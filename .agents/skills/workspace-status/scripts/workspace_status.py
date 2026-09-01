@@ -67,7 +67,6 @@ extract_spec_status_with_fingerprint: Any = None
 parse_workspace: Any = None
 run_canonical_reconciliation: Any = None
 canonical_repository_identity: Any = None
-_confined_artifact_path: Any = None
 _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
@@ -123,7 +122,6 @@ def _bind_engine() -> bool:
         "parse_workspace": engine_mod.parse_workspace,
         "run_canonical_reconciliation": engine_mod.run_canonical_reconciliation,
         "canonical_repository_identity": engine_mod.canonical_repository_identity,
-        "_confined_artifact_path": engine_mod._confined_artifact_path,
         "_safe_spec_path": engine_mod._safe_spec_path,
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
@@ -747,22 +745,30 @@ def _surviving_work(
     root: Path | None,
     cooled: frozenset[Path],
 ) -> tuple[list, list]:
-    """Return the single derivation both closeout consumers read."""
+    """Return the single derivation both closeout consumers read.
+
+    Membership is decided from `entry.slug`, not `entry.path`. A work entry may
+    be canonical (`docs/specs/<slug>/spec.md`) or legacy-shaped (`spec/<slug>`),
+    and `_spec_slug_from_workspace_path` already normalises both; resolving the
+    raw path instead sends a legacy entry to `<root>/spec/<slug>`, which can
+    never equal the cooled `<root>/docs/specs/<slug>/spec.md`. That left a cooled
+    legacy entry excluded from `canonical.legacy_memberships` while both closeout
+    consumers still counted it -- two answers in one response, which is the
+    disagreement this helper exists to close. The engine resolves the same class
+    the same way in `_legacy_canonical_alias` and in the type-2 scan's cooled
+    skip.
+    """
     queue = initiative.work.queue
     active = initiative.work.active
     if root is None or not cooled:
         return queue, active
+
+    def _cooled(entry) -> bool:
+        return _safe_spec_path(root, entry.slug) in cooled
+
     return (
-        [
-            entry
-            for entry in queue
-            if _confined_artifact_path(root, entry.path) not in cooled
-        ],
-        [
-            entry
-            for entry in active
-            if _confined_artifact_path(root, entry.path) not in cooled
-        ],
+        [entry for entry in queue if not _cooled(entry)],
+        [entry for entry in active if not _cooled(entry)],
     )
 
 
