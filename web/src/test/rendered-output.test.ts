@@ -30,10 +30,6 @@ const BUILD_ROOT = join(REPO_ROOT, 'build');
 const DOCS_ROOT = join(BUILD_ROOT, 'docs');
 const GUIDES_SRC = join(REPO_ROOT, 'guides');
 const SIDEBAR_CONFIG = join(REPO_ROOT, 'docs-site/src/sidebar-config.json');
-const ASIDE_LEDGER = join(
-  REPO_ROOT,
-  'docs/specs/guide-typed-asides-conversion/notes/blockquote-classification.jsonl'
-);
 const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
 const DOCS_HOME = join(DOCS_ROOT, 'index.html');
 const NOW_PAGE = join(BUILD_ROOT, 'now', 'index.html');
@@ -184,25 +180,6 @@ function declaredSummaries(): Map<string, { summary: string; page: string }> {
   return out;
 }
 
-interface AsideLedgerRow {
-  item: number;
-  path: string;
-  line: number;
-  content_sha256: string;
-  anchor: string;
-  classification: 'quotation' | 'note' | 'tip' | 'caution' | 'danger';
-  status: 'done' | 'superseded';
-  reason: string;
-}
-
-function asideLedger(): AsideLedgerRow[] {
-  return readFileSync(ASIDE_LEDGER, 'utf8')
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as AsideLedgerRow)
-    .filter((row) => row.status === 'done');
-}
-
 function builtGuidePage(sourcePath: string): string {
   const source = join(REPO_ROOT, sourcePath);
   const text = readFileSync(source, 'utf8');
@@ -228,14 +205,35 @@ function normalizedText(value: string | null | undefined): string {
     .trim();
 }
 
-function sourceAsideCount(sourcePath: string): number {
+const ASIDE_TYPES = ['note', 'tip', 'caution', 'danger'] as const;
+type AsideType = (typeof ASIDE_TYPES)[number];
+
+interface SourceCallouts {
+  /** Contiguous runs of lines opening with `>` at column 0, outside a fence. */
+  blockquotes: number;
+  asides: Record<AsideType, number>;
+}
+
+/**
+ * Count a guide's callouts from its own source.
+ *
+ * The expectation for a built page is derived here rather than read from the
+ * 2026 conversion ledger: that ledger is frozen history, so comparing it to a
+ * living tree made an ordinary prose edit redden this suite.
+ */
+function sourceCallouts(sourcePath: string): SourceCallouts {
   const lines = readFileSync(join(REPO_ROOT, sourcePath), 'utf8').split('\n');
   let fence: { marker: string; length: number } | undefined;
-  let count = 0;
+  let inBlockquote = false;
+  const callouts: SourceCallouts = {
+    blockquotes: 0,
+    asides: { note: 0, tip: 0, caution: 0, danger: 0 },
+  };
   for (const line of lines) {
     const opening = line.match(/^ {0,3}(`{3,}|~{3,})/);
     if (!fence && opening) {
       fence = { marker: opening[1][0], length: opening[1].length };
+      inBlockquote = false;
       continue;
     }
     if (fence) {
@@ -243,9 +241,16 @@ function sourceAsideCount(sourcePath: string): number {
       if (closing.test(line)) fence = undefined;
       continue;
     }
-    if (/^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$/.test(line)) count += 1;
+    if (line.startsWith('>')) {
+      if (!inBlockquote) callouts.blockquotes += 1;
+      inBlockquote = true;
+      continue;
+    }
+    inBlockquote = false;
+    const aside = line.match(/^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$/);
+    if (aside) callouts.asides[aside[1] as AsideType] += 1;
   }
-  return count;
+  return callouts;
 }
 
 describe.skipIf(!docsBuilt)('built docs output', () => {
@@ -955,35 +960,24 @@ describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
     );
   });
 
-  it('resolves every classified block to its emitted semantic container', () => {
+  it('emits each source aside type as its own semantic container', () => {
     const failures: string[] = [];
-    for (const row of asideLedger()) {
-      const page = builtGuidePage(row.path);
+    for (const source of walk(GUIDES_SRC, (name) => name.endsWith('.md'))) {
+      const sourcePath = relative(REPO_ROOT, source);
+      const page = builtGuidePage(sourcePath);
       if (!existsSync(page)) {
-        failures.push(`${row.item}: missing ${relative(DOCS_ROOT, page)}`);
+        failures.push(`${sourcePath}: missing ${relative(DOCS_ROOT, page)}`);
         continue;
       }
       const main = mainFragment(page);
-      if (row.classification === 'quotation') {
-        const matches = [...main.querySelectorAll('blockquote')].filter(
-          (element) =>
-            !element.closest('aside.starlight-aside') &&
-            normalizedText(element.textContent).includes(normalizedText(row.anchor))
-        );
-        if (matches.length !== 1) {
-          failures.push(`${row.item}: quotation matched ${matches.length} blockquotes`);
+      const expected = sourceCallouts(sourcePath).asides;
+      for (const type of ASIDE_TYPES) {
+        const built = main.querySelectorAll(`aside.starlight-aside--${type}`).length;
+        if (built !== expected[type]) {
+          failures.push(
+            `${sourcePath}: ${built} built ${type} asides for ${expected[type]} in source`
+          );
         }
-        continue;
-      }
-
-      const matches = [...main.querySelectorAll(`aside.starlight-aside--${row.classification}`)]
-        .filter((element) =>
-          normalizedText(element.textContent).includes(normalizedText(row.anchor))
-        );
-      if (matches.length !== 1) {
-        failures.push(
-          `${row.item}: ${row.classification} matched ${matches.length} typed asides`
-        );
       }
     }
     expect(failures, `classification/rendering drift:\n${failures.join('\n')}`).toEqual([]);
@@ -991,8 +985,7 @@ describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
 
   it('keeps guide blockquotes tracked and every source aside structurally complete', () => {
     const failures: string[] = [];
-    const ledger = asideLedger();
-    const allowedTypes = new Set(['note', 'tip', 'caution', 'danger']);
+    const allowedTypes = new Set<string>(ASIDE_TYPES);
     for (const source of walk(GUIDES_SRC, (name) => name.endsWith('.md'))) {
       const sourcePath = relative(REPO_ROOT, source);
       const page = builtGuidePage(sourcePath);
@@ -1001,28 +994,21 @@ describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
         continue;
       }
       const main = mainFragment(page);
-      const sourceRows = ledger.filter((row) => row.path === sourcePath);
-      const quotationRows = sourceRows.filter((row) => row.classification === 'quotation');
+      const expected = sourceCallouts(sourcePath);
       const blockquotes = [...main.querySelectorAll('blockquote')].filter(
         (element) => !element.closest('aside.starlight-aside')
       );
-      for (const blockquote of blockquotes) {
-        const text = normalizedText(blockquote.textContent);
-        const matches = quotationRows.filter((row) => text.includes(normalizedText(row.anchor)));
-        if (matches.length !== 1) {
-          failures.push(`${sourcePath}: untracked or duplicate blockquote match`);
-        }
-      }
-      if (blockquotes.length !== quotationRows.length) {
+      if (blockquotes.length !== expected.blockquotes) {
         failures.push(
-          `${sourcePath}: ${blockquotes.length} built blockquotes for ${quotationRows.length} quotation rows`
+          `${sourcePath}: ${blockquotes.length} built blockquotes for ${expected.blockquotes} in source`
         );
       }
 
+      const expectedAsides = ASIDE_TYPES.reduce((sum, type) => sum + expected.asides[type], 0);
       const asides = [...main.querySelectorAll('aside.starlight-aside')];
-      if (asides.length !== sourceAsideCount(sourcePath)) {
+      if (asides.length !== expectedAsides) {
         failures.push(
-          `${sourcePath}: ${asides.length} built asides for ${sourceAsideCount(sourcePath)} source asides`
+          `${sourcePath}: ${asides.length} built asides for ${expectedAsides} source asides`
         );
       }
       for (const aside of asides) {
