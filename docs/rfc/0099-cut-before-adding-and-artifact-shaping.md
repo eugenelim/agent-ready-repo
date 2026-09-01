@@ -1058,3 +1058,22 @@ record. Corrections are appended here, Approver-signed.
   three shipped specs. Both are records of completed work, not new capability;
   closing them is a publication task. Until they close, this RFC is delivered
   but not auditable end to end.
+- **2026-08-31 (Approver: eugenelim) — the adopter routing study is waived;
+  follow-on #6 and the ledger entry above are corrected.** The moderated
+  five-adopter card sort and tree test in `### Adopter routing study` was never
+  run. D7's question — what proves the new routes are clearer — is unanswered,
+  and the four follow-on specs shipped on that untested usability premise.
+  Therefore follow-on #6's instruction to publish an “already-completed” study
+  and the ledger entry above's description of the missing study evidence as a
+  publication task are withdrawn; there is no completed participant evidence
+  to publish. Waiving the study is acceptable now because the four delivery
+  slices, route and alias migration guidance, executable contract fixtures,
+  safety boundaries, and removal window are independently reviewable, while a
+  retroactive publication task cannot create the missing adopter-comprehension
+  evidence. This accepts the known usability uncertainty; it does not say the
+  study passed or that desk research or executable activation fixtures answer
+  it. The activation fixtures test routing logic, not adopter comprehension.
+  The frozen R1–R12 answer key and pass condition above remain the approved
+  instrument for any later owner who chooses to run a new study. Follow-on #6
+  closes when the two missing executable fixture families and the five-field
+  fixture register are complete; no adopter-study artifact is owed.
