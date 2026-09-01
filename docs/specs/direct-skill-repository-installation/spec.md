@@ -61,9 +61,14 @@ Validate, install, inspect, update, and remove one skill or a skills collection 
 >   local-scope clause was withdrawn by amendment on 2026-08-31 as
 >   unsatisfiable against a route that refuses local scope. What remains is the
 >   fixture work.
-> - **AC26** — the sentinel-suppression half is covered. Its second sentence,
->   "decide updates by digest only", describes a decision that lives on the
->   unbuilt upgrade route beside AC30; no function computes it today.
+> - **AC26** — the sentinel-suppression half is covered **as of 2026-09-01**.
+>   It was recorded as covered before it was: the guarding test exercised only
+>   the direct route's own renderers, so `list-installed` printed the internal
+>   `0.0.0` in its `INSTALLED` column — the first surface an adopter sees after
+>   installing. That surface now renders AC22's em dash in both the table and
+>   the JSON, under a test that drives `list-installed` itself. Its second
+>   sentence, "decide updates by digest only", describes a decision that lives
+>   on the unbuilt upgrade route beside AC30; no function computes it today.
 > Each depends on the **direct lifecycle command surface** — `upgrade`,
 > `list-installed`, `show`, and `uninstall` for direct rows — which is not
 > built. T9 delivered the capability-comparison engine those criteria rest on

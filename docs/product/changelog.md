@@ -576,6 +576,11 @@ routes to the reference and that the reference still carries the rule.
 - Adapter orphan sweeps no longer delete installed skills when the state file
   cannot be read. Four adapters treated an unreadable state file as "nothing is
   protected", and three built no protected set at all.
+- `list-installed` shows a dash for a directly installed skill's version
+  instead of the internal `0.0.0` placeholder, in the table and the JSON.
+- The receipt names the command that removes what you just installed —
+  `agentbundle uninstall --pack <name> --yes` — with manual removal kept as
+  a fallback for a tree whose state file has been lost.
 
 ## [agentbundle][0.40.3] — 2026-08-29
 

@@ -103,10 +103,11 @@ None that are unstated. Two rows above are **pending** rather than resolved, and
 both depend on the same unbuilt surface — `upgrade`, `list-installed`, `show`,
 and `uninstall` for direct rows — which is why AC4, AC7, AC9, AC22, and AC30 are
 unticked in the spec. Until that lands, an installed direct skill is recorded in
-state but cannot be inspected, upgraded, or removed through the CLI. The
-receipt no longer names a command for this: as of 2026-08-31 it prints the
-projected directory and the state file to delete by hand, so it promises only
-what exists.
+state but cannot be inspected or upgraded through the CLI. Removal does work:
+`uninstall --pack <identity> --yes` resolves a direct row by its state key and
+removes both the projected files and the row, and as of 2026-09-01 the receipt
+names that command rather than the manual deletion it named before. `show` and
+`upgrade` remain catalogue-only.
 
 Every other residual is stated with its reason and recorded in the governing
 criterion or in `docs/architecture/security.md`.

@@ -67,11 +67,13 @@ and appeared only when the real CLI ran.
 `upgrade`, `list-installed`, `show`, and `uninstall` for direct rows are not
 built; AC4, AC7, AC9, AC22, and AC30 stay unticked for that reason.
 
-**Superseded, 2026-08-31.** During this session the receipt printed an
-`uninstall --skill` line the CLI does not accept. That line has since been
-replaced by manual-removal text naming the projected directory and the state
-file for the scope in use, so the `uninstall:` line visible in every transcript
-receipt below no longer matches what the code emits. Nothing else in the
+**Superseded, 2026-09-01.** During this session the receipt printed an
+`uninstall --skill` line the CLI does not accept, so the `uninstall:` line in
+every transcript receipt below no longer matches what the code emits. It was
+first replaced by manual-removal text; that over-corrected. `uninstall --pack
+<identity> --yes` does resolve a direct row and remove both the projected files
+and the state row — verified against the built CLI — so the receipt now prints
+that command, with manual removal kept as a fallback line. Nothing else in the
 transcripts changed; the commands, exits, and refusals stand as recorded.
 
 ## Transcript

@@ -239,6 +239,7 @@ def test_receipt_reports_kind_source_revision_digest_and_undo():
         identity="alpha",
         removal_hint=".claude/skills/alpha/",
         state_hint=".agentbundle-state.toml",
+        removal_command="agentbundle uninstall --pack alpha --yes",
     )
     for expected in ("manifestless", "git+https://github.com/o/r@v1", "0" * 40, "repo"):
         assert expected in receipt
@@ -280,6 +281,7 @@ def test_sentinel_never_reaches_a_rendered_surface(tmp_path: Path):
         identity="alpha",
         removal_hint=".claude/skills/alpha/",
         state_hint=".agentbundle-state.toml",
+        removal_command="agentbundle uninstall --pack alpha --yes",
     )
     for surface in (rendered, receipt):
         assert "0.0.0" not in surface
@@ -934,3 +936,78 @@ def test_an_unresolvable_user_root_refuses_rather_than_raising(
     printed = capsys.readouterr().err
     assert "[CAT-D008]" in printed and "no home directory" in printed
     assert "Traceback" not in printed
+
+
+def test_the_sentinel_never_reaches_list_installed(tmp_path: Path, capsys):
+    # AC26 says `0.0.0` may reach NO rendered surface, and the guarding test
+    # only ever exercised the direct route's own renderers — so the one surface
+    # an adopter sees first, `list-installed`, printed the internal sentinel in
+    # its INSTALLED column as though it were a published version. AC22 says a
+    # manifestless row shows an em dash.
+    import json as _json
+
+    from agentbundle.commands import list_installed as list_installed_cmd
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    class _Args:
+        root = str(target)
+        scope = "repo"
+        format = "text"
+        no_check = True
+        updates_only = False
+        adapter = pack = None
+
+    assert list_installed_cmd.run(_Args()) == 0
+    table = capsys.readouterr().out
+    assert "alpha" in table, "the direct row is missing from the listing"
+    assert "0.0.0" not in table, "the manifestless sentinel reached the table"
+
+    _Args.format = "json"
+    assert list_installed_cmd.run(_Args()) == 0
+    payload = capsys.readouterr().out
+    assert "0.0.0" not in payload, "the manifestless sentinel reached the JSON"
+    rows = [r for r in _json.loads(payload)["rows"] if r["pack"] == "alpha"]
+    assert rows and rows[0]["installed_version"] == "—"
+
+
+def test_the_receipt_names_an_uninstall_command_that_works(tmp_path: Path, capsys):
+    # The receipt promised `uninstall --skill`, which does not exist; the
+    # correction over-swung into manual removal, when `uninstall --pack` in
+    # fact resolves a direct row and removes both the files and the row. AC28
+    # allows promising an uninstall command only when the row exists — so the
+    # promise and the behaviour are asserted together, here, rather than the
+    # receipt text being pinned on its own.
+    from agentbundle.commands import uninstall as uninstall_cmd
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    receipt = capsys.readouterr().out
+    assert "uninstall --pack alpha --yes" in receipt
+    assert "--skill" not in receipt, "the receipt names a flag uninstall rejects"
+
+    installed = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    assert installed.exists()
+
+    class _Args:
+        pack = "alpha"
+        root = str(target)
+        scope = "repo"
+        adapter = None
+        yes = True
+        dry_run = False
+
+    assert uninstall_cmd.run(_Args()) == 0
+    assert not installed.exists(), "the command the receipt printed left the file"
+
+    from agentbundle.config import load_state
+
+    assert load_state(target / ".agentbundle-state.toml").row("alpha", "claude-code") is None

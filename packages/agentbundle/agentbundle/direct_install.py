@@ -415,6 +415,7 @@ def render_receipt(
     identity: str,
     removal_hint: str,
     state_hint: str,
+    removal_command: str,
 ) -> str:
     """AC22's receipt: what was installed, from where, and how to undo it."""
 
@@ -427,18 +428,19 @@ def render_receipt(
             f"  digest:   {digest}",
             f"  scope:    {scope}",
             f"  adapter:  {adapter}",
-            # NOT `agentbundle uninstall --skill <identity>`: that command
-            # does not exist yet — `uninstall` accepts `--pack` only — so the
-            # receipt was promising a usage error. AC28 says to promise an
-            # uninstall receipt command only when the row exists; the command
-            # has to exist too. Until the direct lifecycle surface lands, the
-            # honest instruction is the manual removal AC28 already specifies.
-            # The state filename is scope-dependent: user scope keeps its rows
-            # in `.agentbundle/state.toml`, not the repo-scope name this line
-            # used to hard-code. A receipt naming a file the adopter does not
-            # have sends them looking for the wrong one.
-            f"  remove:   delete {escape_path_value(removal_hint)} and its "
-            f"row from {escape_path_value(state_hint)}",
+            # `--pack`, not `--skill`. `--skill` does not exist and printing
+            # it promised a usage error, but that correction over-swung into
+            # manual removal: `uninstall --pack <identity>` resolves a direct
+            # row by its state key and removes the files AND the row.
+            # Verified against the built CLI rather than assumed. AC28 permits
+            # promising an uninstall command only when the row exists — it
+            # does, and so does the command. The manual path stays as a second
+            # line, for a tree whose state file has been lost. That filename is
+            # scope-dependent: user scope keeps its rows in
+            # `.agentbundle/state.toml`, not the repo-scope name.
+            f"  remove:   {removal_command}",
+            f"            (or delete {escape_path_value(removal_hint)} and "
+            f"its row from {escape_path_value(state_hint)})",
         ]
     )
 
@@ -869,6 +871,15 @@ def _summarise_and_project(
                 identity=skill.name,
                 removal_hint=f"{skill_target}/{skill.name}/",
                 state_hint=resolve_state_path(scope, Path()).as_posix(),
+                removal_command=recovery_command(
+                    "agentbundle",
+                    "uninstall",
+                    "--pack",
+                    skill.name,
+                    *(() if scope == "repo" else ("--scope", scope)),
+                    *(() if adapter == "claude-code" else ("--adapter", adapter)),
+                    "--yes",
+                ),
             )
         )
     return 0
