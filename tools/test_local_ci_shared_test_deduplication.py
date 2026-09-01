@@ -60,9 +60,30 @@ CORE_COLLECTIONS = {
     # timeout degradation, nothing was removed or renamed, and the other two
     # entries below still reproduce. Adding a test here is expected; leaving this
     # number behind is what makes the contract stop meaning anything.
+    # Re-pinned 2026-08-31: 78 -> 85, in two steps neither of which re-pinned this
+    # contract, so it has been red on main since the first of them. Recomputing the
+    # static node set at each revision of the pinned file gives 78 at `34f00cf29`
+    # (digest `dd567702b9`, the value replaced here), 82 at `d5192da9a`, and 85 at
+    # `487b298c4`; nothing was removed or renamed at either step, and the surviving
+    # 78 keep their original relative order.
+    # `d5192da9a` ("scope lint-spec-status to the specs a session touched") added
+    # four tests for the selection it introduced —
+    # test_default_scope_checks_changed_spec_but_not_unchanged_specs,
+    # test_all_scope_checks_unchanged_specs_too,
+    # test_unresolvable_base_ref_falls_back_to_full_per_spec_checks, and
+    # test_scoped_run_keeps_dangling_reference_warnings_repo_wide.
+    # `487b298c4` ("keep the deferral-anchor invariant repo-wide, and close three
+    # more fail-opens") added three more —
+    # test_scoped_run_keeps_deferral_anchors_repo_wide,
+    # test_scoped_run_reports_the_coverage_it_achieved, and
+    # test_undetermined_changed_set_sweeps_and_says_so.
+    # Dispositioned rather than taken from either side, as the note above requires:
+    # each of the seven asserts a distinct way scoped selection could silently check
+    # nothing, which is the failure the two commits set out to prevent, and the other
+    # two entries below still reproduce.
     SHARED_TESTS[0]: (
-        78,
-        "dd567702b9fe8bdbcff7c8da65b501c64ccaba1fb1cf009fd438befd67db51fc",
+        85,
+        "72b3433894c9eb06912b0c98f437490aed4cb8cf6c111af6ee92ae9224f64675",
     ),
     SHARED_TESTS[1]: (
         16,
