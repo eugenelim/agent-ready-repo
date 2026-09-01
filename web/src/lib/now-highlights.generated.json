@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.20.1"
+        }
+      ],
+      "date": "2026-09-01",
+      "heading": "[core][2.20.1] — 2026-09-01",
+      "changelogAnchor": "core2201--2026-09-01",
+      "highlights": [
+        {
+          "source": "**Quality review now spots four tests that can stay green while proving nothing.** It calls out empty-set assertions without a positive control, unstubbed negative cases, source-text checks that do not exercise a security control, and prose that substitutes for a captured baseline.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Quality review now spots four tests that can stay green while proving nothing."
+            },
+            {
+              "type": "text",
+              "value": " It calls out empty-set assertions without a positive control, unstubbed negative cases, source-text checks that do not exercise a security control, and prose that substitutes for a captured baseline."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.20.0"
         }
       ],
