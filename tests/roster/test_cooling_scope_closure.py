@@ -444,3 +444,429 @@ def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
     assert hashlib.sha256("\n".join(names).encode()).hexdigest() == (
         "6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637"
     )
+
+
+def _run_workspace_status(
+    root: Path, mode: str, *arguments: str
+) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    """Run one workspace-status CLI mode and parse its JSON output."""
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(STATUS_PATH),
+            mode,
+            "--root",
+            str(root),
+            *arguments,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise AssertionError(
+            f"workspace-status exited {completed.returncode}: {completed.stderr}"
+        ) from error
+    return completed, payload
+
+
+def _write_migration_selection(root: Path, operation_nonce: str) -> tuple[Path, dict]:
+    """Write a reviewed selection derived from the fixture's legacy finding."""
+    workspace_path = root / "workspace.toml"
+    workspace_bytes = workspace_path.read_bytes()
+    workspace = ENGINE.parse_workspace(workspace_path)
+    canonical = ENGINE.run_canonical_reconciliation(workspace, root)
+    assert len(canonical.legacy_memberships) == 1
+    finding = ENGINE.build_migration_finding(
+        workspace_bytes, canonical.legacy_memberships[0]
+    )
+    locator = "docs/specs/legacy/spec.md"
+    selection = {
+        "contract_version": "work-intake-migration-selection.v1",
+        "legacy_finding_id": finding["legacy_finding_id"],
+        "workspace_fingerprint": hashlib.sha256(workspace_bytes).hexdigest(),
+        "source_membership": finding["source_membership"],
+        "target_entry": {
+            "path": locator,
+            "kind": "spec",
+            "source": {
+                "mode": "repo-origin",
+                "ref": f"tracker/{operation_nonce}",
+            },
+            "summary": f"Reviewed migration target {operation_nonce}",
+            "needs": [],
+        },
+        "target_membership": {
+            "ini_slug": "ini-002",
+            "collection": "work.queue",
+        },
+        "owning_processor": "new-spec",
+        "provenance_reference": locator,
+        "legacy_content_approved_for_ledger": True,
+    }
+    selection_path = root / "migration-selection.json"
+    selection_path.write_text(json.dumps(selection) + "\n", encoding="utf-8")
+    return selection_path, selection
+
+
+def _plan_migration(
+    root: Path, operation_nonce: str
+) -> tuple[Path, dict, dict[str, object]]:
+    """Write a selection and obtain its planned migration operation."""
+    selection_path, selection = _write_migration_selection(root, operation_nonce)
+    completed, payload = _run_workspace_status(
+        root,
+        "repair-plan",
+        "--migration-selection",
+        selection_path.name,
+    )
+    assert completed.returncode == 0, completed.stderr
+    migration = payload["migration"]
+    assert isinstance(migration, dict)
+    assert migration["result_code"] == "planned"
+    operation = payload["proposed_operation"]
+    assert isinstance(operation, dict)
+    return selection_path, selection, operation
+
+
+def _write_migration_confirmation(
+    root: Path,
+    operation: dict[str, object],
+    *,
+    action: str,
+    confirmation_token: str,
+    subject_token: str,
+    confirmed_at: str,
+) -> Path:
+    """Write fresh test-only migration evidence under the fixture root."""
+    confirmation = {
+        "contract_version": "work-intake-migration-confirmation.v1",
+        "confirmation_id": f"confirmation-{confirmation_token}",
+        "action": action,
+        "operation_id": operation["operation_id"],
+        "operation_digest": operation["operation_digest"],
+        "authorization_subject": f"subject-{subject_token}",
+        "role": "migration-approver",
+        "confirmed_at": confirmed_at,
+        "authorization_source": "current-human-session",
+    }
+    confirmation_path = root / f"{action}-confirmation.json"
+    confirmation_path.write_text(json.dumps(confirmation) + "\n", encoding="utf-8")
+    return confirmation_path
+
+
+def _fresh_confirmation_timestamp() -> str:
+    """Return a current UTC timestamp accepted by migration confirmation checks."""
+    import datetime
+
+    return datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
+
+
+def test_ac17_repair_plan_output_is_identical_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC17: repair planning ignores lifecycle cooling evidence."""
+    outputs = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = cooled_initiative(
+            tmp_path / directory,
+            cooled=cooled,
+            shipped_queue_spec=True,
+        )
+        completed, payload = _run_workspace_status(root, "repair-plan")
+        assert completed.returncode == 0, completed.stderr
+        assert payload["automatic_operations"]
+        outputs.append(payload)
+
+    assert outputs[0] == outputs[1]
+
+
+def test_ac18_repair_apply_writes_identical_bytes_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC18: independently planned repair applications ignore cooling."""
+    resulting_workspace_bytes = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = cooled_initiative(
+            tmp_path / directory,
+            cooled=cooled,
+            shipped_queue_spec=True,
+        )
+        workspace_path = root / "workspace.toml"
+        before = workspace_path.read_bytes()
+        plan_path = root / "repair-plan.json"
+        planned, plan_payload = _run_workspace_status(
+            root,
+            "repair-plan",
+            "--plan-file",
+            str(plan_path),
+        )
+        assert planned.returncode == 0, planned.stderr
+        assert plan_payload["automatic_operations"]
+
+        applied, _payload = _run_workspace_status(
+            root,
+            "repair-apply",
+            "--plan-file",
+            str(plan_path),
+            "--yes",
+        )
+        assert applied.returncode == 0, applied.stderr
+        after = workspace_path.read_bytes()
+        assert after != before
+        resulting_workspace_bytes.append(after)
+
+    assert resulting_workspace_bytes[0] == resulting_workspace_bytes[1]
+
+
+def test_ac19_migration_plan_output_is_identical_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC19: migration planning ignores lifecycle cooling evidence."""
+    assert_migration_fixture_is_real(tmp_path / "realness")
+    outputs = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = migration_fixture(tmp_path / "identity" / directory, cooled=cooled)
+        selection_path, _selection = _write_migration_selection(
+            root, "ac19-identity"
+        )
+        completed, payload = _run_workspace_status(
+            root,
+            "repair-plan",
+            "--migration-selection",
+            selection_path.name,
+        )
+        assert completed.returncode == 0, completed.stderr
+        assert payload["migration"]["result_code"] == "planned"
+        outputs.append(payload)
+
+    assert outputs[0] == outputs[1]
+
+
+def test_ac20_migration_apply_is_identical_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC20: migration application ignores lifecycle cooling evidence."""
+    import secrets
+
+    operation_nonce = secrets.token_hex(16)
+    confirmation_token = secrets.token_hex(16)
+    subject_token = secrets.token_hex(16)
+    confirmed_at = _fresh_confirmation_timestamp()
+    result_codes = []
+    workspace_bytes = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = migration_fixture(tmp_path / directory, cooled=cooled)
+        selection_path, _selection, operation = _plan_migration(
+            root, operation_nonce
+        )
+        confirmation_path = _write_migration_confirmation(
+            root,
+            operation,
+            action="apply",
+            confirmation_token=confirmation_token,
+            subject_token=subject_token,
+            confirmed_at=confirmed_at,
+        )
+        completed, payload = _run_workspace_status(
+            root,
+            "repair-apply",
+            "--migration-selection",
+            selection_path.name,
+            "--operation-id",
+            str(operation["operation_id"]),
+            "--confirmation-file",
+            confirmation_path.name,
+        )
+        assert completed.returncode == 0, completed.stderr
+        result_codes.append(payload["migration"]["result_code"])
+        workspace_bytes.append((root / "workspace.toml").read_bytes())
+
+    assert result_codes == ["applied", "applied"]
+    assert workspace_bytes[0] == workspace_bytes[1]
+
+
+def test_ac21_pending_migration_recovery_is_identical_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC21: pending migration recovery ignores lifecycle cooling evidence."""
+    import secrets
+
+    assert STATUS._bind_engine()
+    operation_nonce = secrets.token_hex(16)
+    initial_confirmation_token = secrets.token_hex(16)
+    initial_subject_token = secrets.token_hex(16)
+    recovery_confirmation_token = secrets.token_hex(16)
+    recovery_subject_token = secrets.token_hex(16)
+    confirmed_at = _fresh_confirmation_timestamp()
+    result_codes = []
+    workspace_bytes = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = migration_fixture(tmp_path / directory, cooled=cooled)
+        selection_path, selection, operation = _plan_migration(root, operation_nonce)
+        initial_confirmation_path = _write_migration_confirmation(
+            root,
+            operation,
+            action="apply",
+            confirmation_token=initial_confirmation_token,
+            subject_token=initial_subject_token,
+            confirmed_at=confirmed_at,
+        )
+        initial_confirmation = json.loads(
+            initial_confirmation_path.read_text(encoding="utf-8")
+        )
+        interrupted = STATUS.apply_migration_operation(
+            root,
+            selection,
+            str(operation["operation_id"]),
+            initial_confirmation,
+            failure_point="workspace_replace_after",
+        )
+        assert interrupted["result_code"] == "write_failed"
+        ledger = json.loads(
+            (root / ".workspace-migrations.json").read_text(encoding="utf-8")
+        )
+        assert ledger["operations"][0]["state"] == "pending"
+        assert b"docs/specs/legacy/spec.md" in (
+            root / "workspace.toml"
+        ).read_bytes()
+
+        recovery_confirmation_path = _write_migration_confirmation(
+            root,
+            operation,
+            action="apply",
+            confirmation_token=recovery_confirmation_token,
+            subject_token=recovery_subject_token,
+            confirmed_at=confirmed_at,
+        )
+        completed, payload = _run_workspace_status(
+            root,
+            "repair-apply",
+            "--migration-selection",
+            selection_path.name,
+            "--operation-id",
+            str(operation["operation_id"]),
+            "--confirmation-file",
+            recovery_confirmation_path.name,
+        )
+        assert completed.returncode == 0, completed.stderr
+        result_codes.append(payload["migration"]["result_code"])
+        workspace_bytes.append((root / "workspace.toml").read_bytes())
+
+    assert result_codes == ["applied", "applied"]
+    assert workspace_bytes[0] == workspace_bytes[1]
+
+
+def test_ac22_migration_rollback_is_identical_with_and_without_cooling(
+    tmp_path: Path,
+) -> None:
+    """AC22: migration rollback ignores lifecycle cooling evidence."""
+    import secrets
+
+    operation_nonce = secrets.token_hex(16)
+    apply_confirmation_token = secrets.token_hex(16)
+    apply_subject_token = secrets.token_hex(16)
+    rollback_confirmation_token = secrets.token_hex(16)
+    rollback_subject_token = secrets.token_hex(16)
+    confirmed_at = _fresh_confirmation_timestamp()
+    result_codes = []
+    workspace_bytes = []
+    for directory, cooled in (("cooled", True), ("uncooled", False)):
+        root = migration_fixture(tmp_path / directory, cooled=cooled)
+        original_workspace_bytes = (root / "workspace.toml").read_bytes()
+        selection_path, _selection, operation = _plan_migration(
+            root, operation_nonce
+        )
+        apply_confirmation_path = _write_migration_confirmation(
+            root,
+            operation,
+            action="apply",
+            confirmation_token=apply_confirmation_token,
+            subject_token=apply_subject_token,
+            confirmed_at=confirmed_at,
+        )
+        applied, apply_payload = _run_workspace_status(
+            root,
+            "repair-apply",
+            "--migration-selection",
+            selection_path.name,
+            "--operation-id",
+            str(operation["operation_id"]),
+            "--confirmation-file",
+            apply_confirmation_path.name,
+        )
+        assert applied.returncode == 0, applied.stderr
+        assert apply_payload["migration"]["result_code"] == "applied"
+
+        rollback_confirmation_path = _write_migration_confirmation(
+            root,
+            operation,
+            action="rollback",
+            confirmation_token=rollback_confirmation_token,
+            subject_token=rollback_subject_token,
+            confirmed_at=confirmed_at,
+        )
+        rolled_back, rollback_payload = _run_workspace_status(
+            root,
+            "repair-rollback",
+            "--operation-id",
+            str(operation["operation_id"]),
+            "--confirmation-file",
+            rollback_confirmation_path.name,
+        )
+        assert rolled_back.returncode == 0, rolled_back.stderr
+        result_codes.append(rollback_payload["migration"]["result_code"])
+        rolled_back_workspace_bytes = (root / "workspace.toml").read_bytes()
+        assert rolled_back_workspace_bytes == original_workspace_bytes
+        workspace_bytes.append(rolled_back_workspace_bytes)
+
+    assert result_codes == ["rolled_back", "rolled_back"]
+    assert workspace_bytes[0] == workspace_bytes[1]
+
+
+def test_ac23_pinned_files_are_byte_unchanged() -> None:
+    """AC23: every frozen dependency retains its approved byte digest."""
+    expected_digests = {
+        "packs/core/.apm/skills/close-work/scripts/cooling.py": (
+            "d6bd7c6e47d5a23e45a9f5ee5a8d5506d3435b1da00facde96f1fbfba5bf061c"
+        ),
+        "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
+            "557e3d60b8fd5647a06fbc2225de51a52cfff1b8777fd3d917e91bcebbe27878"
+        ),
+        "docs/specs/status-projection-and-context-exclusion/spec.md": (
+            "2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d"
+        ),
+        "docs/specs/status-projection-and-context-exclusion/plan.md": (
+            "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
+        ),
+        "docs/specs/thirty-day-cooling-and-retirement/spec.md": (
+            "3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f"
+        ),
+        "docs/specs/thirty-day-cooling-and-retirement/plan.md": (
+            "2c416277c607b9f7b2b617e06a79a58f6059f43bd2d6c2ebef35ea6af810e3e7"
+        ),
+    }
+
+    for relative_path, expected_digest in expected_digests.items():
+        actual_digest = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
+        assert actual_digest == expected_digest, relative_path
+
+
+def test_ac24_two_reconciliation_calls_still_pass_one_argument() -> None:
+    """AC24: exactly two reconciliation call sites remain single-argument."""
+    import ast
+
+    tree = ast.parse(STATUS_PATH.read_text(encoding="utf-8"))
+    single_argument_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "run_canonical_reconciliation"
+        and len(node.args) == 1
+        and not node.keywords
+    ]
+
+    assert len(single_argument_calls) == 2
