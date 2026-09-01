@@ -316,8 +316,11 @@ unavailable, it returns `unknown-timezone` with no UTC fallback.
 Wave 6 has shipped ordinary-context exclusion: `workspace-status` resolves the
 cooled set once per ordinary-orientation run, never loads a cooled artifact
 body, and projects `cooling` under `status` and `reconcile` only, and `closeout` under those two whenever an initiative is active or paused.
-`repair-plan`, `repair-apply`, and the migration paths receive an empty cooled
-set and keep pre-Wave-6 behaviour.
+Wave 7a-i closes cooling scope: it keeps `repair-plan`, `repair-apply`, and the
+migration paths on an empty cooled set with pre-Wave-6 behaviour, while ordinary
+status and reconciliation apply exclusion to both closeout consumers. Wave 7a-ii
+projects the completion receipt, Wave 7b classifies history, and Wave 7c prunes
+proven-eligible artifacts.
 Wave 7 owns historical migration and pruning behavior.
 
 ## 7. Observability, evidence, and the compatibility window

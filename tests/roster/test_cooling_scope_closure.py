@@ -870,3 +870,96 @@ def test_ac24_two_reconciliation_calls_still_pass_one_argument() -> None:
     ]
 
     assert len(single_argument_calls) == 2
+
+
+def test_ac14_skill_states_cooled_exclusion() -> None:
+    """AC14: the workspace-status skill states the cooled exclusion."""
+    normalized = " ".join(
+        (
+            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    assert "the queue emptiness flag excludes entries named by a lifecycle record" in normalized
+
+
+def test_ac15_skill_drops_authoritative_queue_claim() -> None:
+    """AC15: the workspace-status skill drops the authoritative queue claim."""
+    normalized = " ".join(
+        (
+            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    assert "is the authoritative check" not in normalized
+
+
+def test_ac16_skill_withholds_closeout_for_blockers() -> None:
+    """AC16: the workspace-status skill withholds closeout for blockers."""
+    normalized = " ".join(
+        (
+            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    assert "do not offer closeout while `closeout_blockers` is non-empty" in normalized
+
+
+def test_ac25_wave_ownership_statements_survive() -> None:
+    """AC25: the three wave-ownership statements survive unchanged."""
+    normalized = " ".join(
+        (
+            ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    for statement in (
+        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
+        "Wave 6 has shipped ordinary-context exclusion",
+        "Wave 7 owns historical migration and pruning behavior",
+    ):
+        assert statement in normalized, statement
+    assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized
+
+
+def test_ac26_architecture_names_four_wave_slices() -> None:
+    """AC26: the architecture surface names all four Wave 7 slices."""
+    normalized = " ".join(
+        (
+            ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    for statement in (
+        "Wave 7a-i closes cooling scope",
+        "Wave 7a-ii projects the completion receipt",
+        "Wave 7b classifies history",
+        "Wave 7c prunes proven-eligible artifacts",
+    ):
+        assert statement in normalized, statement
+
+
+def test_ac27_reference_states_closeout_derivation() -> None:
+    """AC27: the reference guide states the closeout derivation."""
+    normalized = " ".join(
+        (
+            ROOT / "guides/core/reference/work-intake-routing-and-lifecycle.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    assert (
+        "an entry named by a lifecycle record counts toward neither closeout consumer"
+        in normalized
+    )
+
+
+def test_ac32_skill_retains_queue_and_shipped_conditions() -> None:
+    """AC32: the workspace-status skill retains both further conditions."""
+    normalized = " ".join(
+        (
+            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
+        ).read_text(encoding="utf-8").split()
+    )
+
+    assert "`initiatives[i].queue_empty` is `true`" in normalized
+    assert "filtered shipped is non-empty" in normalized
