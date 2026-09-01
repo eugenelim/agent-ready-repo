@@ -301,7 +301,8 @@ def test_the_plan_cites_exactly_the_criteria_the_spec_defines() -> None:
     agreed on a token neither document contained, so the criterion added that
     round was outside this control entirely and deleting its only plan bullet
     left the module green. `[a-z]*` is greedy and covers every suffix the spec
-    can define, so a new `AC15c` is inside the check the day it is written.
+    can define, so a newly lettered criterion is inside the check the day it is
+    written -- which is how the eight added by the AC restructure were caught.
     """
     spec_acs = set(re.findall(r"\*\*(AC\d+[a-z]*)", SPEC.read_text()))
     plan_acs = set(re.findall(r"\b(AC\d+[a-z]*)\b", PLAN.read_text()))
@@ -317,11 +318,14 @@ def test_the_parity_check_can_see_a_lettered_criterion() -> None:
     same two patterns over a synthetic pair where a lettered criterion is
     spec-only, and requires it to surface.
     """
+    # Synthetic identifiers, deliberately not ones the spec defines: this proves
+    # the patterns, and must not start passing or failing because a real
+    # criterion was added or renumbered.
     spec_pat, plan_pat = r"\*\*(AC\d+[a-z]*)", r"\b(AC\d+[a-z]*)\b"
-    spec_acs = set(re.findall(spec_pat, "**AC15.** body\n**AC15b.** body\n"))
-    plan_acs = set(re.findall(plan_pat, "covers AC15 only\n"))
-    assert spec_acs == {"AC15", "AC15b"}, f"spec-side pattern lost a suffix: {spec_acs}"
-    assert spec_acs - plan_acs == {"AC15b"}, (
+    spec_acs = set(re.findall(spec_pat, "**AC99.** body\n**AC99z.** body\n"))
+    plan_acs = set(re.findall(plan_pat, "covers AC99 only\n"))
+    assert spec_acs == {"AC99", "AC99z"}, f"spec-side pattern lost a suffix: {spec_acs}"
+    assert spec_acs - plan_acs == {"AC99z"}, (
         f"a spec-only lettered criterion did not surface as a gap: {spec_acs - plan_acs}"
     )
 

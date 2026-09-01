@@ -163,7 +163,7 @@ repository through the engine's existing resolver — the same step every other
 engine verb takes first. P1 probes under two roots: a glob under a path derived
 from that argument, and a stat in the repository-shared run directory. The
 resolver establishes confinement for the first; the second is under a root the
-argument does not reach, and AC15a is what bounds it. Confinement precedes both
+argument does not reach, and AC15c is what bounds it. Confinement precedes both
 rather than following them. A rejection returns through the engine's existing
 generic refusal at exit 1 and needs no new code.
 
@@ -498,30 +498,23 @@ the command could not compute a record at all, and emits none.
   `parameters` key set, the `load` list, and `human_wait` equal the Action
   attributes row for that record's `action`. Changing any single cell of that
   table fails this criterion.
-- [ ] **AC6 — preconditions.** Each Preconditions row, exercised in isolation and
-  against a state that also matches a later row, produces that row's exit and
-  record, and its stderr names what the row's last column requires. P1 is
-  exercised in the state that makes ordering load-bearing — a temporary file with
-  no `engine-state.json` beside it — and must win over P2, P3, and P4. P2 is
-  exercised with an unreadable `spec.md` and must win over P4. **P3's** marker
-  match is exercised against every spelling in the plan's fixture set, against a
-  body-zone mention, and against `Modelight` and `light-weight`, none of which may
-  match. Every non-zero row returns the distinct code the Preconditions preamble
-  allocates, each distinct from the others and from 1 and 2, which the engine's
-  generic refusal and argparse already occupy — that preamble is the single home
-  of both the row count and the code count, and this criterion asserts against it
-  rather than restating either. D5's spent branch is exercised on a fresh run,
-  after two consecutive clean rounds, and at `SPEC-PLAN-REVIEW` re-entered by
-  `spec-ready` after a `contract-amendment`, where a surviving over-cap counter
-  yields `cap-reached` and a surviving equal non-empty fingerprint pair yields
-  `stasis` — the same answers as anywhere else, because no carve-out exists; and
-  on a state satisfying both `cap-reached` and `malformed`, which must yield
-  `malformed`. D5 is additionally exercised on a `state.json` with
-  `max_review_retries` **absent entirely**, which must yield `malformed`: that is
-  the shape of any legacy or hand-trimmed state file, and it is the case that
-  distinguishes the sentinel decision from its two wrong implementations —
-  passing `0` reads as `cap-reached` and routes to a replan wait, passing the
-  defaults table opens a file outside AC15's set.
+- [ ] **AC6 — precondition observable.** For every Preconditions row, a state
+  matching that row and no earlier one produces that row's exit and record, and
+  stderr names what the row's last column requires. Every non-zero row returns
+  the distinct code the Preconditions preamble allocates; that preamble is the
+  single home of both the row count and the code count.
+- [ ] **AC6a — precondition ordering.** For every ordered pair of Preconditions
+  rows, a state matching both produces the earlier row's outcome. The pairs that
+  make ordering load-bearing rather than incidental are P1 over P2, P3, and P4,
+  and P2 over P4; a run that reports a later row's outcome for any such state
+  fails this criterion.
+- [ ] **AC6b — discriminator observable.** Every Discriminator resolves to the
+  value its table's row and catch-all define, for each of that Discriminator's
+  values, and a state satisfying two of them resolves to the one the
+  Discriminators section orders first. D5 resolves to `malformed` for a
+  `state.json` whose `max_review_retries` is absent, and to `cap-reached` only
+  for one present and spent — a run that answers `cap-reached` on the absent case
+  fails this criterion.
 
 ### The record
 
@@ -541,53 +534,29 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC10.** `complete_with` lists exactly the events legal from the record's
   state in the engine's transition table for the run's mode, read at runtime, and
   is empty exactly when that state has no outgoing transition. Pinning it to a
-  constant fails this criterion. It carries **one declared exception**: at a review
-  state whose D5 value is **anything other than `within-budget`**,
-  `reviewers-clean` is omitted. The key is stated as the complement deliberately,
-  so the exception covers all three of `cap-reached`, `stasis`, and `malformed`,
-  and so any value added to D5 later omits the clean event until someone decides
-  otherwise. Stasis needs it more than the cap does: the cap is independently
-  refused by the engine's phase guard, while nothing anywhere reads the
-  fingerprint pair, so on the stasis branch this projection is the only thing
-  between two rounds of identical findings and a declared clean. `malformed`
-  needs it for the reason the complement makes obvious — the verb could not read
-  the budget at all, so it cannot know the review is unspent, and its record is
-  the contracted `halt`. Keying on D5's value is safe now that no carve-out can
-  make D5 report `within-budget` at a spent budget. The retained
-  `findings-remain` is the only one the
-  engine still accepts at the cap, and advertising it in the field an agent parses
-  to choose its next move is the false-clean pressure R5 and R25 exist to remove.
-  The general "the guard refuses an illegal choice anyway" argument does not hold
-  on this edge: its guard checks the spec's Status token, not whether the review
-  was actually clean, and in spec-plan mode the edge has no guard at all.
-  Emitting `reviewers-clean` in a record whose D5 value is `cap-reached`,
-  `stasis`, or `malformed` fails this criterion — three failing observables, one
-  per non-`within-budget` value.
+  constant fails this criterion.
+- [ ] **AC10a — no false clean.** At a review state whose D5 value is **anything
+  other than `within-budget`**, `complete_with` omits `reviewers-clean`. The key
+  is the complement, so the omission holds at `cap-reached`, `stasis`, and
+  `malformed` alike, and at any value D5 gains later until someone decides
+  otherwise. Emitting `reviewers-clean` at any of the three fails this criterion —
+  three failing observables, one per non-`within-budget` value. The Assumptions
+  record why this exception is load-bearing on each branch.
 - [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$` or is an
   integer. No `parameters` value is ever a boolean: the Action attributes table
   declares no boolean key, and permitting one would admit `True`, which Python
   counts as an integer. For a value read from either state file this is a
   **runtime refusal, not a suite assertion** — a value that fails yields `halt`
-  rather than a record, and an integer is resolved through the shared guard
-  module's non-negative-integer helper, so a boolean, a negative, or a
-  non-integer is refused rather than silently coerced. `from_index` is the case
-  that requires it: it is the only `parameters` value taken from a field no
-  Precondition form-checks, and it reaches a command line. Its source is
-  `engine-state.json`'s `last_event_context.completed_wave_index`, which the
-  shipped instruction for the same act already uses — **not** `state.json`'s
-  `current_wave_index`, which the advance itself increments, so a record built
-  from that field on a resume where the advance already landed would pass an index
-  one too high and silently skip a wave. `cycle_id` is derived
-  from two fields P6 already checks.
-  Every `load` entry resolves to a file shipped under the skill's `references/`
-  tree, with the resolution built by globbing that tree rather than transcribed.
-  Planting a `last_event_context.completed_wave_index` of `true`, `-1`, or a
-  string, and observing a record rather than a `halt`, fails this criterion —
-  that is the field this criterion names as the source, and planting the field it
-  rules out would demand a `halt` from a read no conforming verb performs. **Absence** resolves the same
-  way: the engine writes a null `last_event_context` for every event but two, so a
-  legacy or hand-edited state at R19's key can carry no `completed_wave_index` at
-  all, and with no fallback default that is `halt`, never an invented index.
+  and no record, rather than being coerced into one.
+- [ ] **AC11a — `from_index` fidelity.** `from_index` equals the wave index the
+  engine recorded as completed. On a resume where the advance already landed, the
+  emitted `from_index` is that index and not one higher: a record that would make
+  the loop skip a wave fails this criterion. A recorded index that is absent,
+  negative, boolean, or not an integer yields `halt` — never an invented,
+  defaulted, or coerced index.
+- [ ] **AC11b — load resolution.** Every `load` entry names a file that exists
+  under the skill's `references/` tree. Emitting an identifier with no matching
+  file fails this criterion.
 - [ ] **AC12.** No record carries a schedule array, amendment history, finding
   fingerprint, or verbatim copy of either state file. A fingerprint is the case
   this criterion uniquely catches: a 64-character hex digest satisfies AC11's
@@ -596,78 +565,47 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC13.** No record in the domain exceeds 1024 bytes, measured as the UTF-8
   byte length of the JSON object written to stdout, excluding any trailing
   newline. This criterion is the single home of that figure; the Assumptions and
-  the plan reference it rather than restating the literal. The test also pins the
-  observed maximum, so growth is visible before it reaches the bound. The domain
-  is a cross product of `(mode, engine state, last_event, discriminator)` and
-  varies no scalar's magnitude, so traversing it cannot by itself establish the
-  bound against a planted state file; what makes the bound enforceable is P6's
-  magnitude check on `transition_sequence`, the only state-derived scalar whose
-  length is attacker-influenced. This criterion asserts the bound over the domain;
-  P6 asserts it against a hostile input, and the two together are what hold.
-- [ ] **AC14.** Every value the verb interpolates into a stderr reason from a state
-  file or from `argv` is length-capped at the bound the shared guard module
-  already applies to one external scalar, and is delimited so a reader can see
-  where untrusted text starts and ends. The observable is what that helper
-  actually emits, not a hand-rolled equivalent: it truncates the *repr*, so an
-  over-long value reaches stderr as an opening quote, the capped prefix, and a
-  trailing ellipsis that is the end marker — there is no closing quote, and a
-  criterion demanding one would be satisfiable only by re-implementing the
-  control. A whole reason is capped at that module's
-  reason bound. A planted oversized `run_id` therefore reaches stderr truncated
-  and quoted, not verbatim; removing either the cap or the delimiters fails this
-  criterion. **The `argv` clause binds this verb's own new code and has no
-  instance today.** The only argv-derived refusal is AC15b's, and AC15b routes it
-  through the pre-existing shared resolver, whose message interpolates the raw
-  argument uncapped through the engine's generic stop path — recorded as a
-  standing Assumption, not closed here. Changing that message would edit a line
-  `init`, `transition`, `status`, and `reset` also emit, which Boundaries puts
-  behind *Ask first*, and no such decision has been taken. The clause is stated
-  so that any argv value this verb interpolates itself is capped from the first
-  line written.
+  the plan reference it rather than restating the literal. The observed maximum is
+  pinned alongside the bound, so growth is visible before it reaches it.
+- [ ] **AC13a — the bound holds against planted state.** No record exceeds AC13's
+  bound for **any** `engine-state.json` P6 admits, not only for the domain. The
+  domain varies no scalar's magnitude, so a criterion asserted over it alone
+  would pass while a planted state file produced a record many times the bound.
+- [ ] **AC14 — bounded stderr.** No value the verb interpolates into a stderr
+  reason reaches stderr verbatim when it is over-long: a planted oversized
+  `run_id` appears truncated and delimited, so a reader can see where untrusted
+  text starts and ends, and the whole reason is itself bounded. Removing either
+  the truncation or the delimiters fails this criterion. The bound and the
+  delimiter form are the ones the shared guard module already applies — the
+  Assumptions record what that control emits and why re-deriving it is what this
+  criterion forbids. **The clause covering values taken from `argv` binds this
+  verb's own new code and has no instance today**; the Assumptions record why.
 
 ### Reads
 
-- [ ] **AC15.** The verb opens no file outside a declared set of **five**: both
-  state files, both artifact Status files, and `scripts/lint-spec-status.py`. The
-  fifth is not a data read and not optional — the canonical status reader this
-  criterion mandates loads and executes that module to parse a Status line, so any
-  conforming implementation opens it on any run that reads one. It is enumerated
-  rather than excused: a criterion bounding the verb at four would be false of the
-  blessed reader, and an instrument narrowed enough to make four true would stop
-  detecting a real extra read. The parser module's own accepted residual — a
-  pre-existing poisoned `.pyc`, which its loader documents and suppresses writing
-  but cannot un-write — is inherited unchanged and recorded in the Assumptions.
-  The verb reads each artifact Status file only at the state whose Discriminator
-  consumes it, so a run that needs neither opens neither.
-  **One carve-out:** P2 through P4 read `spec.md` for the light-mode marker when
-  there is no `engine-state.json`, and therefore at no Discriminator's state. That
-  read is mandatory, goes through the same guard readers, and counts against the
-  declared set; the per-state clause governs the Status reads only. Each data file is read through the shared guard module's readers,
-  with no direct `open` or `read_text` anywhere in the verb's path; a symlink, a
-  non-regular file, and an oversized file at each of the four data files is
-  refused rather than followed, read, or blocked on. The instrument is an
-  open-tracer over the whole invocation with the five paths allow-listed, so a
-  sixth open of any kind — including the bundled state template the phase check
-  would reach — fails this criterion.
-- [ ] **AC15a.** The two crash artifacts are never opened. P1 detects them by
-  presence alone, under two different roots: the engine-state temporary by a
-  confined glob within the spec directory, the pending-events file by a single
-  stat in the repository-shared run directory. A symlink, a directory, or a FIFO
-  at either location is detected as present and yields P1's refusal, and no read,
-  parse, or repair occurs at either. The run-directory stat is under a root
-  `<spec-dir>` does not reach, so AC15b's confinement does not bound it and this
-  criterion is what does.
-- [ ] **AC15b.** `<spec-dir>` is resolved and proved inside the repository
-  through the engine's existing resolver before **any filesystem access under
-  that argument**, which is P1's glob and every subsequent read. The claim is
-  scoped to accesses under the argument because the resolver itself calls
-  `Path.resolve()` and shells to `git rev-parse` to find the repository root: an
-  instrument mechanizing "before any filesystem access" without that scope would
-  redden on the control it is verifying. An argument resolving outside the
-  repository, and one escaping through a symlink, are each refused at the
-  engine's existing generic exit with no record and no probe under the argument
-  performed. Removing the resolver call, or ordering it after P1, fails this
-  criterion.
+- [ ] **AC15 — bounded read surface.** Across a whole invocation the verb opens no
+  file outside a declared set of five: both state files, both artifact Status
+  files, and `scripts/lint-spec-status.py`. A sixth open of any kind fails this
+  criterion. The Assumptions record why the fifth is in the set and what residual
+  comes with it.
+- [ ] **AC15a — reads only what it needs.** Each artifact Status file is opened
+  only on a run whose state consumes it; a run needing neither opens neither, and
+  a run that always opens both fails this criterion. **One carve-out:** with no
+  `engine-state.json` there is no such state, and `spec.md` is opened anyway for
+  the light-mode marker P2 through P4 test.
+- [ ] **AC15b — hostile files are refused, not followed.** At each of the four
+  data files, a symlink, a non-regular file, and an oversized file each produce a
+  refusal rather than being followed, read, or blocked on.
+- [ ] **AC15c — crash artifacts are never opened.** P1's two artifacts are
+  detected by presence alone. A symlink, a directory, or a FIFO at either
+  location is detected as present and produces P1's refusal, with no read, parse,
+  or repair at either.
+- [ ] **AC15d — confinement precedes the probes.** An argument resolving outside
+  the repository, and one escaping through a symlink, are each refused with no
+  record and no filesystem access under that argument — including P1's glob. A
+  run that probes under an out-of-repository argument before refusing fails this
+  criterion. The pending-events stat is under a root the argument does not reach,
+  so AC15c rather than this criterion is what bounds it.
 - [ ] **AC16.** Running `next` leaves `engine-state.json`, `state.json`, and
   `.loop-run/events.jsonl` byte-identical, and creates and deletes no file
   anywhere under the spec directory or the loop run directory. This holds on every
@@ -849,6 +787,20 @@ contract that depends on this one; they are not deferred work from this checklis
   (source: `_loop_guards.py` `_MAX_SCALAR_CHARS` and `_MAX_REASON_CHARS` at
   `:109-123`, the chokepoint comment at `:264-270`; `loop-engine.py:135-137`,
   `:964-966`)
+- Technical: AC10a's omission is load-bearing on all three branches, and most on
+  the two with no backstop. At the cap, the engine's phase guard independently
+  refuses the clean event; at `stasis` nothing anywhere reads the fingerprint
+  pair, so this projection is the only thing standing between two rounds of
+  identical findings and a declared clean; at `malformed` the verb could not read
+  the budget at all and so cannot know the review is unspent. `findings-remain`
+  is the only event the engine still accepts at the cap, and advertising the
+  clean event beside it in the field an agent parses to choose its next move is
+  the false-clean pressure R5 and R25 exist to remove. The general "the guard
+  refuses an illegal choice anyway" argument does not hold here: that guard
+  checks the spec's Status token rather than whether the review was clean, and in
+  spec-plan mode the edge has no guard at all (source: `_GUARDS` in
+  `loop-engine.py:894-909`, which registers no `("spec-plan",
+  "reviewers-clean")` entry)
 - Technical: reading a Status through the canonical reader loads and executes
   `scripts/lint-spec-status.py`, which is why AC15 declares five files rather than
   four. Two residuals come with it and neither is closed here. The loader `lstat`s

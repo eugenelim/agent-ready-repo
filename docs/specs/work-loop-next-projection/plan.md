@@ -254,36 +254,36 @@ and `--help` lists the verb.
 **Depends on:** T1
 
 **Tests:** TDD.
-- The verb opens no file outside AC15's declared set of five — both state files,
-  both artifact Status files, and `scripts/lint-spec-status.py`, which the
-  canonical status reader executes. The instrument is an open-tracer over the
-  whole invocation with those five allow-listed, so a sixth open of any kind
-  fails, including the bundled state template the phase check would reach (AC15).
-- The set is a bound, not a count: each artifact Status file is read **only at
-  the state whose Discriminator consumes it**, so a run needing neither Status
-  opens neither and a run that always opens four fails the criterion (AC15).
-- AC15's carve-out is exercised: at P2 through P4 there is no `engine-state.json`
-  and therefore no Discriminator state, and `spec.md` is read anyway for the
-  light-mode marker, through the same guard readers and against the declared set
-  (AC15).
+- The verb opens no file outside the declared set of five (AC15). Instrument: an
+  open-tracer over the whole invocation with those five paths allow-listed, so a
+  sixth open of any kind fails — including the bundled state template the phase
+  check reaches, which is why the budget counters are read directly rather than
+  through `check_phase`.
+- Each artifact Status file is opened only on a run whose state consumes it; a
+  run needing neither opens neither, and a run that always opens both fails
+  (AC15a). The carve-out is exercised at P2 through P4, where there is no
+  `engine-state.json` and `spec.md` is read anyway for the light-mode marker.
 - A symlink, a non-regular file, and an oversized file at each of the four data
-  files are each refused rather than followed, read, or blocked on.
+  files are each refused rather than followed, read, or blocked on (AC15b).
 - The two crash artifacts are never opened: a symlink, a directory, and a FIFO at
   either location are each detected as present and yield P1's refusal, with no
-  read, parse, or repair (AC15a).
-- `<spec-dir>` is resolved and repo-confined through the engine's existing
-  resolver **before any filesystem access under that argument**, which is P1's
-  glob and every subsequent read: an out-of-repository argument and one escaping
-  through a symlink are each refused at the engine's generic exit with no record
-  and no probe under the argument performed. The claim is scoped to accesses
-  under the argument because the resolver itself calls `Path.resolve()` and
-  shells to `git rev-parse` (AC15b).
-- Mutation proof: replacing one guard read with `Path.read_text` makes the symlink
-  case at that target pass; adding any `open` of a crash artifact reddens AC15a;
-  removing the resolver call, or ordering it after P1, reddens AC15b.
+  read, parse, or repair (AC15c).
+- An out-of-repository argument and one escaping through a symlink are each
+  refused with no record and no filesystem access under that argument, P1's glob
+  included (AC15d).
+- Mutation proofs: replacing one guard read with `Path.read_text` makes the
+  symlink case at that target pass, reddening AC15b; adding any `open` of a crash
+  artifact reddens AC15c; removing the resolver call, or ordering it after P1,
+  reddens AC15d.
 
 **Approach:** artifact statuses go through `read_md_status`; state files through
-their owners' existing readers. The FIFO that once hung `init` while holding the
+their owners' existing readers, with no direct `open` or `read_text` anywhere in
+the verb's path. `<spec-dir>` goes through the engine's existing
+`_resolve_spec_dir` before P1. AC15d's ordering claim is scoped to accesses
+*under the argument*: the resolver itself calls `Path.resolve()` and shells to
+`git rev-parse` to find the repository root, so an instrument mechanizing
+"before any filesystem access" without that scope would redden on the control it
+is verifying. The FIFO that once hung `init` while holding the
 state lock is the precedent for why the non-blocking open matters here too.
 
 **Done when:** every read target has a passing hostile-fixture case and the
@@ -297,9 +297,10 @@ mutation flips.
 - `schema_version` is the literal const; `run_id` equals the engine's and matches
   the canonical UUID form; `sequence` equals `transition_sequence` (AC9).
 - `complete_with` equals the outgoing event set read from `_TRANSITIONS_BY_MODE`
-  at runtime, empty exactly for `DONE`, except AC10's one declared exception that
-  T6 covers: a record whose D5 value is anything other than `within-budget` —
-  `cap-reached`, `stasis`, or `malformed` — omits `reviewers-clean` (AC10).
+  at runtime, empty exactly for `DONE` (AC10).
+- A record whose D5 value is anything other than `within-budget` —
+  `cap-reached`, `stasis`, or `malformed` — omits `reviewers-clean`, with T6
+  driving the three branches (AC10a).
 - Mutation proofs: pinning `run_id`, `sequence`, or `complete_with` to a constant
   reddens at least one case; removing the `run_id` form check lets a planted
   malformed id reach a record.
@@ -354,20 +355,20 @@ across every row and the D5 forced-`within-budget` proof.
 - Every `parameters` value matches the character class or is an integer resolved
   through the guard module's non-negative-integer helper, which refuses a boolean,
   a negative, and a non-integer by name,
-  enforced at runtime for state-derived values: a planted non-integer
-  `completed_wave_index` yields `halt`, not a record carrying it (AC11, first
-  half). `from_index` is sourced from `engine-state.json`'s
-  `last_event_context.completed_wave_index`, never from `state.json`'s
-  `current_wave_index`, which the advance itself increments. The mutation plants
-  `completed_wave_index` — the field the verb reads — because planting the field
-  AC11 rules out would demand a `halt` from a read no conforming verb performs.
-  This is the one place a `parameters` value is not derived from a P5-checked
-  field.
-- `completed_wave_index` **absent** from `last_event_context` also yields `halt`,
-  never an invented index: the engine writes a null context for every event but
-  two, so a legacy state at R19's key can carry no such field (AC11).
+  enforced at runtime for state-derived values: a planted non-integer yields
+  `halt`, not a record carrying it (AC11).
+- `from_index` is sourced from `engine-state.json`'s
+  `last_event_context.completed_wave_index` — the index the engine records as
+  completed — and never from `state.json`'s `current_wave_index`, which the
+  advance itself increments and which would therefore pass an index one too high
+  on a resume where the advance already landed. The mutation plants
+  `completed_wave_index` as `true`, `-1`, and a string, and plants it **absent**:
+  the engine writes a null `last_event_context` for every event but two, so a
+  legacy state at R19's key can carry no such field, and the integer helper is
+  called with a sentinel it rejects rather than a default (AC11a). This is the
+  one place a `parameters` value is not derived from a P5-checked field.
 - Every `load` entry resolves to a file under `references/`, with the mapping
-  built by globbing rather than copied (AC11, second half).
+  built by globbing that tree rather than transcribed (AC11b).
 - No record carries a schedule array, amendment history, fingerprint, or verbatim
   state copy (AC12), with the fingerprint case driven explicitly — a 64-character
   hex digest placed in a declared `parameters` key satisfies AC5, AC7, and AC11,
@@ -375,10 +376,16 @@ across every row and the D5 forced-`within-budget` proof.
 - Traverse the domain and assert no record exceeds the byte bound AC13 states —
   read from the criterion, not restated here — and pin the observed maximum
   against a constant held in the test file (AC13).
-- Mutation proofs: emitting an identifier with no matching file reddens AC11;
-  placing a fingerprint in `cycle_id` reddens AC12 alone.
+- Drive the bound against a planted `engine-state.json` rather than only the
+  domain: a `transition_sequence` at P6's magnitude limit, and one past it, which
+  must be refused before any record is built (AC13a).
+- Mutation proofs: emitting an identifier with no matching file reddens AC11b;
+  placing a fingerprint in `cycle_id` reddens AC12 alone; removing P6's magnitude
+  check reddens AC13a while leaving AC13's domain traversal green, which is the
+  pair that shows why AC13a is not dominated.
 
-**Done when:** the traversal covers the domain and both bounds hold.
+**Done when:** the traversal covers the domain, the planted-state case is green,
+and both bounds hold.
 
 ### T6: the preconditions fire in order, and nothing is written
 
@@ -392,12 +399,13 @@ scheduled into the same wave as its own prerequisites — T3 and T4 also depend
 only on T2 — and a `Depends on:` edge cannot be added once the plan is hashed.
 
 **Tests:** TDD.
-- Each Preconditions row, exercised in isolation and against a state
-  that also matches a later row, produces that row's exit and record, and its
-  stderr names what the row requires (AC6).
-- P1's ordering is exercised in the state that makes it load-bearing: an
-  engine-state temporary with no `engine-state.json` beside it must yield P1's
-  `halt`, not P2's or P3's non-zero refusal.
+- Each Preconditions row, exercised in isolation, produces that row's exit and
+  record, and its stderr names what the row requires. Every non-zero row returns
+  its allocated code, distinct from the others and from 1 and 2 (AC6).
+- Ordering is exercised on every pair a state can match, and on the two pairs
+  that make ordering load-bearing in particular: an engine-state temporary with
+  no `engine-state.json` beside it must yield P1's refusal, not P2's, P3's, or
+  P4's; and an unreadable `spec.md` must yield P2's, not P4's (AC6a).
 - The review-budget branch is exercised from both review states across all four
   D5 values. `cap-reached` and `stasis` each yield `await-replan-decision`, with
   the stderr reason naming which condition fired and only the continuations legal
@@ -419,17 +427,20 @@ only on T2 — and a `Depends on:` edge cannot be added once the plan is hashed.
   `cap-reached` reddens this case.
 - A record at any D5 value other than `within-budget` omits `reviewers-clean`
   from `complete_with` — `cap-reached`, `stasis`, and `malformed` all three —
-  while a `within-budget` record at the same state includes it (AC10's declared
-  exception). Mutation proofs: dropping the omission on the **stasis** branch
-  alone reddens, which the cap-only form of this assertion would not catch, and
-  stasis is the branch with no engine guard behind it; dropping it on the
-  **malformed** branch alone also reddens, which is the branch reached by any
-  `state.json` with a counter absent or non-integer, where the verb could not
-  read the budget at all.
-- D5 with `max_review_retries` **absent from `state.json`** yields `malformed`,
-  not `cap-reached`: the integer helper is called with a sentinel it rejects,
-  never with `0` and never with the defaults table (AC6). Mutation proofs:
-  passing `0` reddens this case by routing to a replan wait; passing the defaults
+  while a `within-budget` record at the same state includes it (AC10a). Mutation
+  proofs: dropping the omission on the **stasis** branch alone reddens, which the
+  cap-only form of this assertion would not catch, and stasis is the branch with
+  no engine guard behind it; dropping it on the **malformed** branch alone also
+  reddens, which is the branch reached by any `state.json` with a counter absent
+  or non-integer, where the verb could not read the budget at all.
+- Every Discriminator resolves to each of its values, and a state satisfying two
+  resolves to the one ordered first — including a state satisfying both
+  `cap-reached` and `malformed`, which must yield `malformed`. D5 with
+  `max_review_retries` **absent from `state.json`** yields `malformed`, not
+  `cap-reached` (AC6b). Mechanism: the integer helper is called with a sentinel
+  it rejects — `None` — rather than a default, because its third argument is a
+  required fallback fed straight to `state.get`. Mutation proofs: passing `0`
+  reddens the absent case by routing it to a replan wait; passing the defaults
   table reddens T2's open-tracer by opening a sixth file.
 - Mutation proof: dropping the non-empty qualifier from the stasis comparison
   reddens the fresh-run case; dropping the `complete_with` exception reddens the
