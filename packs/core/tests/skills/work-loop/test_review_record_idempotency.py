@@ -64,14 +64,23 @@ RECORDED_FIELDS = (
 )
 
 
-def _load_gate():
-    """Import `_review_operation_gate` from the pack-owned script by path."""
+def _load_module():
+    """Import the pack-owned script by path.
+
+    Note it calls `sys.stdout.reconfigure` while executing, so import it before
+    replacing `sys.stdout` with anything that lacks that method.
+    """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("_loop_cohort_under_test", COHORT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module._review_operation_gate
+    return module
+
+
+def _load_gate():
+    """Import `_review_operation_gate` from the pack-owned script by path."""
+    return _load_module()._review_operation_gate
 
 
 class ReviewRecordIdempotency(unittest.TestCase):
@@ -202,6 +211,32 @@ class ReviewRecordIdempotency(unittest.TestCase):
         self.assertEqual(replay.returncode, 0, replay.stderr)
         self.assertEqual(self._state(spec_dir)["review_round_count"], rounds)
 
+    def test_r3_replay_no_ops_for_the_artifact_bearing_forms_too(self) -> None:
+        """The two forms whose payload is a file, not an argument list.
+
+        `--fingerprint` and `--all-skipped` build their payload from argv, so a
+        replay reconstructs it trivially. These two hash a file the caller passes
+        by path, and they also write `last_review_clean_source`/`_digest` — the
+        pair the earlier unsound "derive the digest instead of storing it" idea
+        would have leaned on. A crash-and-retry has to leave those untouched.
+        """
+        for label in ("direct-clean", "report"):
+            with self.subTest(form=label):
+                spec_dir, run_id = self._initialized()
+                argv = (self._clean_file(spec_dir) if label == "direct-clean"
+                        else self._report(spec_dir))
+                op = f"{run_id}:11"
+                first = self._record(spec_dir, run_id, *argv, operation_id=op)
+                self.assertEqual(first.returncode, 0, first.stderr)
+                after_first = (spec_dir / "state.json").read_bytes()
+
+                replay = self._record(spec_dir, run_id, *argv, operation_id=op)
+                self.assertEqual(replay.returncode, 0, replay.stderr)
+                self.assertIn("already recorded", replay.stdout)
+                # Byte equality, not a field subset: these forms touch the clean
+                # source/digest pair as well as the round counters.
+                self.assertEqual((spec_dir / "state.json").read_bytes(), after_first)
+
     # ── R4: same id, different payload — refused ──────────────────────────
 
     def test_r4_conflicting_payload_refuses_and_mutates_nothing(self) -> None:
@@ -275,6 +310,31 @@ class ReviewRecordIdempotency(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual((spec_dir / "state.json").read_bytes(), before)
 
+    def test_r6_an_over_length_id_refuses(self) -> None:
+        spec_dir, run_id = self._initialized()
+        before = (spec_dir / "state.json").read_bytes()
+        result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
+                              operation_id=f"{run_id}:{'1' * 400}")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((spec_dir / "state.json").read_bytes(), before)
+
+    def test_the_length_cap_cannot_reject_a_well_formed_id(self) -> None:
+        """The cap is a pre-filter on pathological input, not a second format rule.
+
+        Nothing the canonical form admits comes near it — a run id is a 36-char
+        UUID and the sequence is at most 18 digits — so the cap must stay clear of
+        that ceiling. Lowering it to anything at or below the longest legal id
+        would start refusing ids the format accepts, and every other test here
+        uses short ids, so none of them would notice.
+        """
+        module = _load_module()
+        longest_legal = len(str(uuid.uuid4())) + len(":") + 18
+        self.assertEqual(longest_legal, 55)
+        self.assertGreater(module._REVIEW_OP_ID_MAX, longest_legal)
+        # And the format itself still accepts an id of that maximum length.
+        run_id = str(uuid.uuid4())
+        self.assertIsNotNone(module._REVIEW_OP_ID_RE.match(f"{run_id}:{'9' * 18}"))
+
     # ── cross-row: the refusals are tellable apart ────────────────────────
 
     def test_the_three_refusal_reasons_are_distinct(self) -> None:
@@ -333,3 +393,90 @@ class ReviewRecordIdempotency(unittest.TestCase):
             f"fingerprint\n{FP_A}\n{FP_B}".encode()).hexdigest()
         self.assertEqual(
             self._state(spec_dir)["last_review_record_payload_digest"], expected)
+
+    # ── the review retry cap ──────────────────────────────────────────────
+
+    def _at_cap(self, retries: int = 5, cap: int = 5) -> tuple[Path, str]:
+        spec_dir, run_id = self._initialized()
+        state = self._state(spec_dir)
+        state["review_retry_count"] = retries
+        state["max_review_retries"] = cap
+        (spec_dir / "state.json").write_text(json.dumps(state, indent=2) + "\n",
+                                             encoding="utf-8")
+        return spec_dir, run_id
+
+    def test_a_new_findings_round_refuses_at_the_cap(self) -> None:
+        spec_dir, run_id = self._at_cap()
+        before = (spec_dir / "state.json").read_bytes()
+        result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
+                              operation_id=f"{run_id}:1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((spec_dir / "state.json").read_bytes(), before)
+        self.assertIn("retry cap", result.stderr)
+
+    def test_the_override_records_a_round_past_the_cap(self) -> None:
+        # The cap stops runaway automation; it must not overrule a human who has
+        # looked, so the escape hatch is explicit and visible in the command.
+        spec_dir, run_id = self._at_cap()
+        result = self._run("review", "record", str(spec_dir), "--fingerprint", FP_A,
+                           "--expect-run-id", run_id, "--operation-id", f"{run_id}:1",
+                           "--allow-retry-cap-override")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self._state(spec_dir)["review_retry_count"], 6)
+
+    def test_a_replay_of_the_recorded_round_still_no_ops_at_the_cap(self) -> None:
+        """The cap must not refuse a write that would not happen.
+
+        This is the crash window the flag exists for: at the cap, re-issuing the
+        round that is already recorded writes nothing, so capping it would trade
+        a runaway for an undecidable resume.
+        """
+        spec_dir, run_id = self._at_cap(retries=4)
+        op = f"{run_id}:1"
+        self.assertEqual(
+            self._record(spec_dir, run_id, "--fingerprint", FP_A, operation_id=op).returncode, 0)
+        self.assertEqual(self._state(spec_dir)["review_retry_count"], 5)  # now at the cap
+        replay = self._record(spec_dir, run_id, "--fingerprint", FP_A, operation_id=op)
+        self.assertEqual(replay.returncode, 0, replay.stderr)
+        self.assertIn("already recorded", replay.stdout)
+        self.assertEqual(self._state(spec_dir)["review_retry_count"], 5)
+
+    def test_the_cap_does_not_touch_the_other_three_forms(self) -> None:
+        # Only a findings round increments review_retry_count, so only it is capped.
+        for label in ("all-skipped", "direct-clean", "report"):
+            with self.subTest(form=label):
+                spec_dir, run_id = self._at_cap()
+                argv = (["--all-skipped"] if label == "all-skipped"
+                        else self._clean_file(spec_dir) if label == "direct-clean"
+                        else self._report(spec_dir))
+                result = self._record(spec_dir, run_id, *argv, operation_id=f"{run_id}:1")
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_corrupt_counter_stops_cleanly_rather_than_tracebacking(self) -> None:
+        spec_dir, run_id = self._initialized()
+        state = self._state(spec_dir)
+        state["review_retry_count"] = "abc"
+        (spec_dir / "state.json").write_text(json.dumps(state, indent=2) + "\n",
+                                             encoding="utf-8")
+        result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
+                              operation_id=f"{run_id}:1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_a_zero_cap_is_honoured_rather_than_defaulted_away(self) -> None:
+        # `int(x or 5)` would turn a deliberate 0 into 5; the shared reader does not.
+        spec_dir, run_id = self._at_cap(retries=0, cap=0)
+        result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
+                              operation_id=f"{run_id}:1")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_status_json_projects_the_recorded_pair(self) -> None:
+        # The eval teaches reading these from `status --json`; without the
+        # projection that instruction is unfollowable.
+        spec_dir, run_id = self._initialized()
+        self._record(spec_dir, run_id, "--fingerprint", FP_A, operation_id=f"{run_id}:1")
+        result = self._run("status", str(spec_dir), "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["last_review_record_operation_id"], f"{run_id}:1")
+        self.assertRegex(payload["last_review_record_payload_digest"], r"^[0-9a-f]{64}$")

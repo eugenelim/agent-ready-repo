@@ -109,11 +109,13 @@ class ShippedRecordingStatements(unittest.TestCase):
                     continue
                 unguarded.append(f"{path.relative_to(SKILL_DIR)}:{line}")
         self.assertEqual(unguarded, [], "recordings reachable after a refused transition")
-        # Non-vacuity: the four statements that follow a transition in their block
-        # must all have been examined, so the check cannot pass by skipping them.
-        self.assertGreaterEqual(
-            len(examined), 4,
-            f"guard check examined too few statements: {examined}")
+        # Non-vacuity coupled to the census, not to a literal. A floor set at the
+        # residue of the defect it was added to catch still tolerates that defect:
+        # every statement found must also have been examined.
+        census = sum(len(_statements(path)) for path in _sources())
+        self.assertEqual(
+            len(examined), census,
+            f"guard check skipped {census - len(examined)} statement(s): {examined}")
 
     def test_the_eval_corpus_covers_the_id_carrying_crash_window(self) -> None:
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
@@ -142,9 +144,13 @@ class ShippedRecordingStatements(unittest.TestCase):
              ("explicit human authorization", "--direct-clean-file", "--adjudication")),
         ):
             self.assertIn(case_id, cases)
-            body = cases[case_id]["expected_output"] + " ".join(cases[case_id]["assertions"])
+            expected = cases[case_id]["expected_output"]
+            # Against expected_output alone: several of these phrases also appear
+            # in `assertions`, so searching the concatenation would let the whole
+            # expected_output be blanked while the check stayed green.
+            self.assertTrue(expected.strip(), f"{case_id} has an empty expected_output")
             for phrase in required:
-                self.assertIn(phrase, body, f"{case_id} lost {phrase!r}")
+                self.assertIn(phrase, expected, f"{case_id} lost {phrase!r}")
 
     def test_the_added_case_is_pinned_by_id(self) -> None:
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))

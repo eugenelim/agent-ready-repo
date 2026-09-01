@@ -36,9 +36,15 @@ def test_the_flagless_forms_still_match_the_baseline() -> None:
 
 
 def test_verify_is_the_default_so_the_oracle_cannot_be_overwritten() -> None:
-    # Writing by default would let a regeneration silently replace the pre-change
-    # oracle with post-change output.
-    before = BASELINE.read_bytes()
-    subprocess.run([sys.executable, str(SCRIPT)], cwd=ROOT,
-                   capture_output=True, text=True, check=False)
-    assert BASELINE.read_bytes() == before
+    """Assert the mode, not a byte compare.
+
+    Comparing bytes cannot catch the mutation it names: a capture-by-default
+    build re-renders a file byte-identical to the committed one whenever the
+    writer matches, so the assertion would hold precisely when it needed to fail.
+    The observable difference is which mode ran.
+    """
+    result = subprocess.run([sys.executable, str(SCRIPT)], cwd=ROOT,
+                            capture_output=True, text=True, check=False)
+    assert "matches the committed baseline" in result.stdout, result.stdout
+    assert "captured" not in result.stdout, (
+        "the default mode wrote the oracle instead of verifying it")

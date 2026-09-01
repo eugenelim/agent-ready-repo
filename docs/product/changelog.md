@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `loop-cohort review record --operation-id <run-id>:<transition-sequence>`,
   accepted alongside all four existing recording forms. Omit it and behaviour is
-  unchanged.
+  unchanged, apart from the retry cap below.
 - `state.json` records `last_review_record_operation_id` and
   `last_review_record_payload_digest`, so a resuming session can tell a completed
   write from one that never landed. Both default to `null`, and a `state.json`
@@ -75,6 +75,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `loop-cohort review record --fingerprint` now refuses once `review_retry_count`
+  reaches `max_review_retries`, instead of writing past it. The cap was
+  previously enforced only by the shell `&&` chaining the recording to a capped
+  transition, so a recording issued on its own bypassed it. Pass
+  `--allow-retry-cap-override` to record a round deliberately past the cap. A
+  replay of an already-recorded round is unaffected: it remains a no-op.
 - The shipped work-loop instructions supply an operation id on every review
   recording, reading the transition sequence after the transition that opened the
   round so a resuming session recomputes the same value.

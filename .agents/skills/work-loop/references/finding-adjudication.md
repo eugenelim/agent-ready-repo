@@ -257,7 +257,7 @@ full mode, or pass `--report <raw-report-path>`.
 For sustained findings, transition before recording so the retry guard sees the
 pre-increment count. **Do not record if the transition exits non-zero.** The
 transition carries the review-retry cap guard; `review record --fingerprint`
-carries none and increments unconditionally. Issue them ungated and a refused
+carries its own cap as well, so the transition is the earlier of two. Issue them ungated and a refused
 transition still records, leaving the engine parked in `CODE-REVIEW` with the
 cohort a round ahead — a desync only a forbidden `state.json` hand-edit
 reconciles. Run the transition, confirm it exited zero and read the `(seq=N)` it

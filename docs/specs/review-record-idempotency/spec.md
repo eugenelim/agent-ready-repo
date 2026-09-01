@@ -81,7 +81,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Add a runtime dependency to any shipped pack script.
 - Introduce a reader of `engine-state.json` inside `loop-cohort.py`; the caller
   supplies the id and the writer validates its form.
-- Make `--operation-id` required, or change behavior for a caller that omits it.
+- Make `--operation-id` required, or change behavior for a caller that omits it,
+  except the review retry cap, which applies to every findings round because a
+  guard an agent can evade by dropping a flag is not a guard.
 - Let a recording run after a refused transition. The transition carries the
   retry-cap guard and the recording does not, so the conditionality must survive
   however the statement is shaped.
@@ -148,7 +150,9 @@ and the plan's mutation proofs keep the choice honest.
   review round.
 - [x] **AC4.** A recording that omits `--operation-id` produces the same
   observable result as it does today, for each of the four recording forms,
-  measured against a baseline captured before the writer changes.
+  measured against a baseline captured before the writer changes — except at the
+  review retry cap, where a findings round now refuses regardless of the flag
+  and `--allow-retry-cap-override` is the way through.
 - [x] **AC5.** A malformed operation id is refused with `state.json` unchanged.
 - [x] **AC6.** No round is recorded under an operation id unless a comparison
   value for a later repeat is recorded with it, so a repeat is never undecidable.

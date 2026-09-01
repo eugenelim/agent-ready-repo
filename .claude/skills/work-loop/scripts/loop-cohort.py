@@ -427,6 +427,7 @@ except GuardsUnavailable as exc:
     canonical_contract = sha256_canonical_contract = _guards_unavailable
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
+    non_negative_int = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
@@ -435,6 +436,7 @@ else:
     # existing tests that reach for these attributes keep working.
     GuardResult = _g.GuardResult
     DEFAULTS = _g.DEFAULTS
+    non_negative_int = _g.non_negative_int
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
     read_state = _g.read_state
@@ -1990,14 +1992,15 @@ def _review_operation_gate(
     if recorded_id == operation_id:
         if state.get("last_review_record_payload_digest") == payload_digest:
             _emit(
-                f"loop-cohort: review record already recorded for operation "
-                f"{_diag(operation_id)} (idempotent no-op) for {spec_name}"
+                f"review record already recorded for operation "
+                f"{operation_id!r} (idempotent no-op) for {spec_name}"
             )
             return "already", 0
         return "refuse", stop(
             f"review record: operation {operation_id!r} is already recorded with "
-            f"a different payload; a replay must carry the payload it recorded, "
-            f"for {spec_name}"
+            f"a different payload; a replay must carry the payload it recorded. "
+            f"Compare against last_review_record_payload_digest in "
+            f"`loop-cohort status --json` for {spec_name}"
         )
     return "record", None
 
@@ -2017,20 +2020,6 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         return err
 
     operation_id = getattr(args, "operation_id", None)
-
-    # The retry cap used to be enforced only by the `&&` chaining the transition
-    # to this command in the shipped instructions -- shell syntax an agent may
-    # not reproduce. `check --phase review` refuses at the cap while this verb
-    # happily wrote past it, so a findings round could loop unbounded. The guard
-    # belongs here, where it cannot be dropped by reformatting an instruction.
-    retries = int(state.get("review_retry_count", 0) or 0)
-    max_retries = int(state.get("max_review_retries", 5) or 5)
-    if args.fingerprint and retries >= max_retries:
-        return stop(
-            f"review record: review_retry_count {retries} has reached "
-            f"max_review_retries {max_retries}; a findings round past the cap is "
-            f"the runaway the cap exists to stop, for {spec_dir.name}"
-        )
 
     if getattr(args, "all_skipped", False):
         # All-skipped branch: every warranted reviewer was a named skip
@@ -2071,6 +2060,28 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         )
         if outcome in ("refuse", "already"):
             return code
+        # The cap belongs here, not before the gate: a replay of an
+        # already-recorded round writes nothing, so refusing it would break the
+        # decidability this flag exists for at exactly the crash window that
+        # matters. Only a round that would actually be recorded is capped.
+        #
+        # It previously held only because the shipped instructions chained this
+        # command to a capped transition with `&&`. Splitting those statements
+        # showed the cap was carried by shell punctuation rather than by code.
+        retries = non_negative_int(state, "review_retry_count", 0)
+        cap = non_negative_int(state, "max_review_retries",
+                               DEFAULTS["max_review_retries"])
+        if isinstance(retries, str):
+            return stop(f"review record: {retries} for {spec_dir.name}")
+        if isinstance(cap, str):
+            return stop(f"review record: {cap} for {spec_dir.name}")
+        if retries >= cap and not getattr(args, "allow_retry_cap_override", False):
+            return stop(
+                f"review record: review retry cap reached ({retries}/{cap}) for "
+                f"{spec_dir.name}; a findings round past the cap is the runaway "
+                f"the cap exists to stop. Reset and start a new run, or pass "
+                f"--allow-retry-cap-override to record this round deliberately"
+            )
         if outcome == "record":
             state["last_review_record_operation_id"] = operation_id
             state["last_review_record_payload_digest"] = digest
@@ -2394,6 +2405,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--adjudication",
         action="store_true",
         help="require the exact finding-adjudicator envelope for --report",
+    )
+    sp.add_argument(
+        "--allow-retry-cap-override",
+        action="store_true",
+        dest="allow_retry_cap_override",
+        help=(
+            "record a findings round even though review_retry_count has reached "
+            "max_review_retries; for a human who has looked, not for an "
+            "unattended loop"
+        ),
     )
     sp.add_argument(
         "--operation-id",

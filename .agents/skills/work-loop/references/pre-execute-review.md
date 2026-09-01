@@ -133,8 +133,8 @@ and derive fresh paths:
 
 After the shared non-executing eligibility, artifact-excluding read-allowlist,
 fresh-path, containment, capture-cap, and exclusive-create preflight succeeds,
-run the retry-cap transition, confirm it succeeded, and record the validated first-adjudication
-digest; a refused transition records and executes nothing:
+run the retry-cap transition, confirm it succeeded, and record the validated
+first-adjudication digest; a refused transition records and executes nothing:
 
 ```bash
 # The transition prints `(seq=N)`. Record only if it succeeded, and pass that
