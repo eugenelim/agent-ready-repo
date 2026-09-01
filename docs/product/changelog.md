@@ -58,23 +58,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- **A fully cooled initiative now reaches closeout instead of reporting
-  `unshipped-specs` forever.** An initiative's shipped-ness and its queue
-  emptiness are derived from one cooled-exclusion pass, so the two can no longer
-  disagree about which entries a lifecycle record removed — while each keeps
-  counting what it counted before. An entry named by a record's aliases is
-  treated exactly as one named by its locator.
-- **When the cooled reading is incomplete, `workspace-status` withholds the
-  suggestion to run `close-work` rather than making it anyway.** A record that
-  cannot be read, or whose review date cannot be judged, adds a
-  `cooling-context-incomplete` blocker, and a skill that distils and disposes is
-  not recommended on a partial reading. The agent-rendered closeout gate reads
-  the same facts, so the rendered prompt and the projection agree.
-- **Repair and migration are settled as unaffected by cooling, not left
-  pending.** `repair-plan`, `repair-apply`, `repair-rollback` and the migration
-  planning, application, recovery and rollback paths behave identically with and
-  without lifecycle records, pinned by control runs so a later blanket filter has
-  to change those lines and say why.
+- **An initiative whose work has all been retired now reaches closeout instead
+  of reporting unfinished work forever.** Whether anything is still outstanding
+  is decided once, by a single pass that excludes what a lifecycle record has
+  already retired — so two halves of the same answer can no longer disagree. An
+  artifact named by one of a record's alternative locators counts the same as one
+  named by its main locator.
+- **When that reading is incomplete, the status surface withholds its suggestion
+  to close out rather than making it anyway.** A record that cannot be read, or
+  whose review date cannot be judged, is reported as a named blocker instead, so
+  a workflow that distils and disposes is never recommended on partial evidence.
+  The prompt an agent renders reads the same facts, so the two agree.
+- **Repair and migration are settled as unaffected by retirement, not left
+  pending.** Planning, applying, recovering and rolling back a repair or a
+  migration behave identically whether or not lifecycle records are present,
+  pinned by paired runs so a later change has to alter those lines and say why.
 
 ## [core][2.20.1] — 2026-09-01
 
