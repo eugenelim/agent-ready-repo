@@ -55,9 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
 ## [core][2.18.1] — 2026-08-31
-## [core][2.18.1] — 2026-08-31
-## [core][2.18.1] — 2026-08-31
-## [core][2.18.1] — 2026-08-31
 
 ### Changed
 
@@ -68,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that need to tell a budget breach from an integrity refusal (a link-like,
   special, or uninspectable entry) can now do so from the exception itself
   rather than by matching on its message text.
-<<<<<<< HEAD
+
 ## [core][2.18.0] — 2026-08-31
 
 ### Highlights
@@ -97,8 +94,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a blocked spec dispatchable by hiding a child's real state.
 - Repair and migration keep their previous behaviour and still reach cooled
   entries; whether cooling constrains them is a later decision.
-=======
->>>>>>> 7a9d114af (docs(product): drop a changelog heading the rebase resolution duplicated)
 
 ## [core][2.17.4] — 2026-08-31
 
