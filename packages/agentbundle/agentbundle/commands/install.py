@@ -223,6 +223,21 @@ def run(args: argparse.Namespace) -> int:
     Returns 0 on success, non-zero on any failure. See module docstring
     for the dual-scope contract.
     """
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
+
+    try:
+        return _run(args)
+    except OrphanSweepRefused as exc:
+        # AC28's refusal is correct — a sweep that cannot read the state file
+        # must not delete what it cannot prove is unowned — but install reaches
+        # it through each adapter's `project()`, and unhandled it arrived as a
+        # traceback with internal paths on stderr.
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run(args: argparse.Namespace) -> int:
+    """The install body; `run` owns the sweep-refusal boundary."""
     # Structural git answers are cached for this invocation only.
     from agentbundle.local_exclude import reset_git_query_cache
 
@@ -263,6 +278,48 @@ def run(args: argparse.Namespace) -> int:
             )
             return 1
         return _run_profile(args)
+
+    # AC7: `--pack` / `--profile` is no longer an argparse-required group,
+    # because a direct source arrives as the positional with neither flag.
+    # "Exactly one of --pack / --profile / a direct source" is enforced here
+    # instead, and a usage error still exits 2 so the observable contract is
+    # what it was.
+    if not getattr(args, "pack", None):
+        from agentbundle.commands._common import direct_source_root
+        from agentbundle.commands.validate import _has_direct_marker
+        from agentbundle.direct_install import _print_refusal, run_direct_install
+        from agentbundle.direct_source import DirectAdmissionError
+
+        positional = getattr(args, "catalogue", None)
+        if positional and positional.startswith("git+https://"):
+            # A remote direct source is a string, not a path; acquisition
+            # resolves it to a tree before admission sees it.
+            return run_direct_install(args, positional)
+        # Normalised once, at the boundary: `classify_direct_source` takes the
+        # source's identity from the last segment of its root, and `install .`
+        # — the canonical spelling of "this directory" — has no last segment.
+        candidate = direct_source_root(positional) if positional else None
+        try:
+            marked = candidate is not None and _has_direct_marker(candidate)
+        except DirectAdmissionError as exc:
+            # The marker probe refuses (entry bound, link-like child). Uncaught,
+            # that reached the terminal as a stack trace carrying internal paths
+            # instead of the registered exit-1 refusal every other direct
+            # refusal prints.
+            _print_refusal(exc.diagnostic)
+            return 1
+        if marked:
+            return run_direct_install(args, candidate)
+        print(
+            "install: one of --pack, --profile, or a direct source directory "
+            "is required\n"
+            "  --pack NAME       install a pack from a catalogue\n"
+            "  --profile NAME    install a curated set of packs\n"
+            "  <path>            install a skill folder, a skills/ collection, "
+            "or a direct pack",
+            file=sys.stderr,
+        )
+        return 2
 
     pack_name: str = args.pack
     # Resolve the default source when the `catalogue` positional was

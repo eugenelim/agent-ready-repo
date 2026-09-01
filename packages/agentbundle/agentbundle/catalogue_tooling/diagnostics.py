@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import enum
+import unicodedata
+
+from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 
 
 class DiagnosticCode(enum.StrEnum):
     UNKNOWN = "UNKNOWN"
 
-    # Lint codes — CAT-L001 through CAT-L027
+    # Lint codes — CAT-L001 through CAT-L031
     CAT_L001 = "CAT-L001"   # catalogue.toml present but invalid per config.py
     CAT_L002 = "CAT-L002"   # Required catalogue marker missing (packs dir or marketplace.json)
     CAT_L003 = "CAT-L003"   # Duplicate pack identity across packs dir
@@ -35,8 +38,172 @@ class DiagnosticCode(enum.StrEnum):
     CAT_L024 = "CAT-L024"   # Primitive name does not match required pattern
     CAT_L025 = "CAT-L025"   # Primitive name exceeds max length
     CAT_L026 = "CAT-L026"   # Primitive description exceeds max length
-    CAT_L027 = "CAT-L027"   # Multiline metadata form not supported
+    # Scoped to agents: adapter projection rewrites agent frontmatter line by
+    # line, so a block scalar reaches the target as the bare `>` indicator with
+    # its text dropped. Skills are copied byte-for-byte and may use them.
+    CAT_L027 = "CAT-L027"   # Block scalar in agent frontmatter is not projectable
     CAT_L028 = "CAT-L028"   # Install profile invariant violation (scope, deps, order)
     CAT_L029 = "CAT-L029"   # Catalogue seeds lint failure (blocklist, placeholder, patterns.jsonl)
     CAT_L030 = "CAT-L030"   # First-value contract violation (Level A/B fields, writes-to-repo, tutorial)  # noqa: E501
     CAT_L031 = "CAT-L031"   # Credentialed-skill convention violation (D1/D2/D2b/D3/broker-specific)  # noqa: E501
+
+    # Direct-route codes — CAT-D001 through CAT-D019 (RFC-0098).
+    #
+    # Derived by walking every acceptance criterion that mandates a registered
+    # direct refusal, which is the enumeration AC31's lint asserts exact
+    # coverage of. The AC each member discharges is named so the walk can be
+    # re-derived rather than trusted. No count is recorded anywhere: two were
+    # written during review and both went stale as criteria added refusals.
+    CAT_D001 = "CAT-D001"   # AC3: malformed owner/repository or invalid URL component
+    CAT_D002 = "CAT-D002"   # AC3: bare or defaulted ref (`main`) refused
+    CAT_D003 = "CAT-D003"   # AC3: hex-shaped tag not safely classifiable as an abbreviated SHA
+    CAT_D004 = "CAT-D004"   # AC3: pax_global_header SHA absent, malformed, or ref mismatch
+    CAT_D005 = "CAT-D005"   # AC5: interpreter runtime floor below the supported minor
+    CAT_D006 = "CAT-D006"   # AC5: acquisition inactivity or download limit breached
+    CAT_D007 = "CAT-D007"   # AC6: archive member refused by the extraction filter or link policy
+    CAT_D008 = "CAT-D008"   # AC20: remote noninteractive install or upgrade missing `--yes`
+    CAT_D009 = "CAT-D009"   # AC27/AC34: measured-path integrity (link-like, reparse, wrong type)
+    CAT_D010 = "CAT-D010"   # AC31: source untraversable or changed during admission
+    CAT_D011 = "CAT-D011"   # AC11/AC31: invalid direct identity (slug grammar or length)
+    CAT_D012 = "CAT-D012"   # AC33 budget: measured-envelope entry count
+    CAT_D013 = "CAT-D013"   # AC33 budget: envelope-relative path depth
+    CAT_D014 = "CAT-D014"   # AC33 budget: measured file count
+    CAT_D015 = "CAT-D015"   # AC33 budget: selected-skills count
+    CAT_D016 = "CAT-D016"   # AC33 budget: per-file bytes
+    CAT_D017 = "CAT-D017"   # AC33 budget: total bytes
+    CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
+    CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
+
+
+# The direct-route subset, as an explicit frozenset literal of enum members.
+#
+# Explicit and literal on purpose: `tools/lint-direct-code-table.py` reads this
+# by `ast` parse WITHOUT importing the module, so that a stale editable install
+# or an unrelated copy on `sys.path` cannot satisfy the published-table check.
+# A comprehension or a filter over `DiagnosticCode` would be invisible to it.
+DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
+    {
+        DiagnosticCode.CAT_D001,
+        DiagnosticCode.CAT_D002,
+        DiagnosticCode.CAT_D003,
+        DiagnosticCode.CAT_D004,
+        DiagnosticCode.CAT_D005,
+        DiagnosticCode.CAT_D006,
+        DiagnosticCode.CAT_D007,
+        DiagnosticCode.CAT_D008,
+        DiagnosticCode.CAT_D009,
+        DiagnosticCode.CAT_D010,
+        DiagnosticCode.CAT_D011,
+        DiagnosticCode.CAT_D012,
+        DiagnosticCode.CAT_D013,
+        DiagnosticCode.CAT_D014,
+        DiagnosticCode.CAT_D015,
+        DiagnosticCode.CAT_D016,
+        DiagnosticCode.CAT_D017,
+        DiagnosticCode.CAT_D018,
+        DiagnosticCode.CAT_D019,
+    }
+)
+
+# AC33's budget names, as carried by `file_safety.BoundExceeded.budget`, mapped
+# to the member that reports each. The mapping lives here rather than in
+# `file_safety.py` because that module is mirrored byte-for-byte into trees
+# where this registry is unimportable, so it carries the budget as a plain
+# string and the direct caller resolves it through this table.
+BUDGET_CODES: dict[str, DiagnosticCode] = {
+    "entries": DiagnosticCode.CAT_D012,
+    "depth": DiagnosticCode.CAT_D013,
+    "files": DiagnosticCode.CAT_D014,
+    "selected-skills": DiagnosticCode.CAT_D015,
+    "per-file-bytes": DiagnosticCode.CAT_D016,
+    "total-bytes": DiagnosticCode.CAT_D017,
+}
+
+
+# AC18's `Default_Ignorable_Code_Point` set, embedded from
+# `DerivedCoreProperties.txt` and pinned to the UCD version that generated it.
+# Category alone does not catch these: U+115F, U+1160, U+3164, and U+FFA0 are
+# all `Lo` and render as nothing, so a publisher can make two distinguishable
+# values look identical.
+UNIDATA_VERSION_AT_GENERATION = "15.1.0"
+_DEFAULT_IGNORABLE_RANGES: tuple[tuple[int, int], ...] = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C),
+    (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F),
+    (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x206F),
+    (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3),
+    (0x1D173, 0x1D17A), (0xE0000, 0xE0FFF),
+)
+
+
+def is_default_ignorable(character: str) -> bool:
+    """True for a `Default_Ignorable_Code_Point`, regardless of its category."""
+
+    point = ord(character)
+    return any(low <= point <= high for low, high in _DEFAULT_IGNORABLE_RANGES)
+
+
+def escape_rendered_value(value: object) -> str:
+    """Render any externally supplied string safe for a human-readable surface.
+
+    AC18 requires this unconditionally on path-shaped values for four classes a
+    publisher allowlist does not cover: bidi controls, separators,
+    default-ignorables, and non-graphic code points. U+202E is the case the
+    criterion names — NFC-stable, category `Cf`, and it reverses the rendering
+    of everything after it.
+    """
+
+    rendered: list[str] = []
+    for character in str(value):
+        category = unicodedata.category(character)
+        unsafe = (
+            category in {"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp", "Zs"}
+            and character != " "
+        ) or is_default_ignorable(character)
+        rendered.append(f"\\u{ord(character):04x}" if unsafe else character)
+    return "".join(rendered)
+
+
+def make_direct_diagnostic(
+    code: DiagnosticCode,
+    severity: Severity,
+    message: str,
+    *,
+    pack: str | None = None,
+    path: str | None = None,
+    line: int | None = None,
+    col: int | None = None,
+    remediation: str | None = None,
+) -> Diagnostic:
+    """Build a direct-route diagnostic, refusing any unregistered code.
+
+    Mirrors `lint.py`'s `_diag` shape so the direct route emits the same
+    `Diagnostic` the established JSON envelope serialises.
+
+    Raises `ValueError` when `code` is outside `DIRECT_CODES`. That is a
+    programmer error at a registration boundary rather than an admission
+    refusal, so it is not an `UnsafeContentError` and carries no diagnostic of
+    its own; AC27's rule that unregistered strings cannot reach users is
+    enforced here, at construction, rather than at a rendering surface.
+    """
+    if code not in DIRECT_CODES:
+        raise ValueError(
+            f"{code.value} is not a registered direct diagnostic code; "
+            "add it to DIRECT_CODES and the published table, or use a "
+            "catalogue-route constructor"
+        )
+    # Escaped HERE rather than at each render site. `path`, `message`, and
+    # `remediation` all carry publisher-controlled text — the admission
+    # refusals build the offending path INTO the message — and AC18 names all
+    # three. Escaping per-surface meant a filename could repaint the terminal
+    # through whichever printer had been missed.
+    return Diagnostic(
+        code=code.value,
+        severity=severity,
+        pack=pack,
+        path=escape_rendered_value(path) if path else path,
+        line=line,
+        col=col,
+        message=escape_rendered_value(message) if message else message,
+        remediation=escape_rendered_value(remediation) if remediation else remediation,
+    )

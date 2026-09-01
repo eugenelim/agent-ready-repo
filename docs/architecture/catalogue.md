@@ -8,6 +8,14 @@ A catalogue is the thing `agentbundle install` reads packs *from*. This repo
 ships one — the `packs/` tree — but nothing about the tool is bound to it.
 Fork it, build a fresh one, or host one privately, and point the CLI at yours.
 
+A catalogue is no longer the *only* thing install reads from. `install` also
+accepts a **direct source**: a skill folder, a `skills/` collection, or a
+single pack, taken straight from a repository with no catalogue around it.
+Direct sources have their own admission rules and their own state provenance;
+a repository carrying catalogue markers takes the catalogue route instead, and
+the direct route refuses it and says so. Everything below describes the
+catalogue route, which is unchanged.
+
 ## What a catalogue is
 
 A catalogue source is a directory holding two adapter-neutral markers:

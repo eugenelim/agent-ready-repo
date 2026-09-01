@@ -22,10 +22,14 @@ import json
 import sys
 import tomllib
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from agentbundle.categories import DEFAULT_CATEGORIES, unknown_categories
 from agentbundle.commands import _drop_warning
 from agentbundle.commands._common import check_spec_version_gate
+
+if TYPE_CHECKING:
+    from agentbundle.direct_source import DirectAdmissionError
 
 # Stdlib only — no third-party deps.
 
@@ -66,11 +70,49 @@ def _conformance_fixtures_dir() -> Path:
 
 def run(args) -> int:
     """Entry point called by the CLI dispatcher. Returns exit code."""
-    pack_path = Path(args.pack_path)
+    from agentbundle.commands._common import direct_source_root
+    from agentbundle.direct_source import DirectAdmissionError
+
+    # Normalised once, at the boundary, so `validate .` derives the identity
+    # from the directory the adopter is standing in rather than from the empty
+    # last segment of ".".
+    pack_path = direct_source_root(args.pack_path)
     strict: bool = getattr(args, "strict", False)
 
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
+    # A direct pack is one of the three direct shapes even though it carries a
+    # pack.toml, and it is distinguishable: T2 requires a direct manifest to
+    # declare a top-level `schema`, while catalogue manifests keep it implicit.
+    # Routing on that rather than on the requested output format, because the
+    # earlier rule made the same directory take the catalogue route in text and
+    # the direct route in JSON — the route is a property of the source, not of
+    # how the caller wants it printed.
+    output_format = getattr(args, "format", "text")
+    # `_has_direct_marker` probes the source, so it can refuse: the entry bound
+    # and the marker probe both raise `DirectAdmissionError`. Uncaught, that
+    # reached the terminal as a stack trace carrying internal paths instead of
+    # AC21's registered exit-1 refusal — the routing seam was added after the
+    # handler `_install_admitted_source` already had.
+    try:
+        # Observed ONCE here and carried into admission, so the manifest is
+        # opened once on this route rather than once for routing and again
+        # inside the inventory.
+        manifest = _read_root_manifest(pack_path)
+        if _declares_direct_schema(manifest) or (
+            output_format == "json" and _has_direct_marker(pack_path)
+        ):
+            return _run_direct(pack_path, output_format, pack_toml=manifest)
+        # Route to the direct path only when a direct marker is actually
+        # present. A directory that is neither a pack nor a direct source is a
+        # mistake, and it must keep reporting the missing pack.toml rather than
+        # a shape refusal that would send the reader after the wrong cause.
+        if not pack_toml_path.exists() and _has_direct_marker(pack_path):
+            return _run_direct(
+                pack_path, getattr(args, "format", "text"), pack_toml=manifest
+            )
+    except DirectAdmissionError as exc:
+        return _render_marker_refusal(exc, pack_path, output_format)
     if not pack_toml_path.exists():
         print(
             f"validate: pack.toml not found at {pack_toml_path}",
@@ -724,3 +766,123 @@ def _tree_files(root: Path) -> dict[str, bytes]:
             relpath = path.relative_to(root).as_posix()
             out[relpath] = path.read_bytes()
     return out
+
+
+def _run_direct(source: Path, output_format: str, *, pack_toml=None) -> int:
+    """Validate a direct source through the one shared admission entry point.
+
+    AC14 requires validation and install preflight to yield identical
+    diagnostics, which holds here because neither owns a check: both call
+    `validate_direct_source`.
+    """
+
+    from agentbundle.direct_source import validate_direct_source
+    from agentbundle.direct_validate import (
+        render_direct_validation_json,
+        render_direct_validation_text,
+    )
+
+    if not source.is_dir():
+        print(f"validate: no pack.toml and no directory at {source}", file=sys.stderr)
+        return 1
+
+    admission = validate_direct_source(source, pack_toml=pack_toml)
+    if output_format == "json":
+        print(render_direct_validation_json(admission))
+    else:
+        rendered = render_direct_validation_text(admission)
+        print(rendered, file=sys.stdout if admission.ok else sys.stderr)
+    return 0 if admission.ok else 1
+
+
+def _render_marker_refusal(
+    exc: DirectAdmissionError, source: Path, output_format: str
+) -> int:
+    """Render a refusal raised while deciding the route, not inside it.
+
+    Through the same `DirectAdmission` renderers the direct route uses, so a
+    refusal raised one frame earlier cannot drift in format or lose the
+    escaping those renderers rely on.
+    """
+
+    from agentbundle.catalogue_tooling.diagnostics import escape_rendered_value
+    from agentbundle.direct_source import DirectAdmission
+    from agentbundle.direct_validate import (
+        render_direct_validation_json,
+        render_direct_validation_text,
+    )
+
+    diagnostic = exc.diagnostic
+    if not diagnostic.path:
+        diagnostic.path = escape_rendered_value(str(source))
+    admission = DirectAdmission(False, None, (diagnostic,))
+    if output_format == "json":
+        print(render_direct_validation_json(admission))
+    else:
+        print(render_direct_validation_text(admission), file=sys.stderr)
+    return 1
+
+
+# The fixed markers that make a directory a candidate direct source. Kept in one
+# place so the routing rule and its diagnostic cannot disagree.
+_DIRECT_MARKERS = ("SKILL.md", "skills", ".claude/skills")
+
+
+def _has_direct_marker(source: Path) -> bool:
+    """Report whether *source* looks like a direct source at all.
+
+    The fixed markers are not the whole set. RFC-0098 E22 admits a repository
+    whose own root is the collection — skill folders sitting directly at the
+    root with no wrapper — and such a source carries none of the markers above.
+    Checking only for them made the CLI refuse a shape admission accepts, which
+    is the two halves failing to join rather than a judgement about the source.
+    """
+
+    if not source.is_dir():
+        return False
+    if any((source / marker).exists() for marker in _DIRECT_MARKERS):
+        return True
+    from agentbundle.direct_source import root_skill_folders
+
+    return bool(root_skill_folders(source))
+
+
+def _read_root_manifest(root: Path):
+    """Observe a root `pack.toml` once, for routing and for admission both.
+
+    Returns the measured file, or None when there is none to read or it cannot
+    be read safely. The result is handed to `_run_direct`, which passes it into
+    admission, so the manifest is opened exactly once on this route — AC15's
+    rule, which the previous `exists()` + `read_text()` pre-check broke in
+    three ways at once: it followed a symlink out of the source, blocked on a
+    FIFO, and materialised an arbitrarily large publisher file before any
+    bound could apply.
+    """
+
+    from agentbundle.direct_source import DirectAdmissionError, read_root_manifest
+
+    try:
+        return read_root_manifest(root)
+    except DirectAdmissionError:
+        # A manifest we cannot observe safely is not a direct manifest; the
+        # catalogue route below reports its own failure for it.
+        return None
+
+
+def _declares_direct_schema(manifest) -> bool:
+    """True when a measured `pack.toml` declares the top-level `schema` key.
+
+    T2 makes `schema = 1` required for a direct manifest and its omission fail
+    closed, while catalogue manifests keep schema-major-1 implicit. That makes
+    the field the discriminator between the two profiles, so neither has to be
+    guessed at from the caller's output format.
+    """
+
+    if manifest is None:
+        return False
+    try:
+        return "schema" in tomllib.loads(manifest.data.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError):
+        # A manifest we cannot parse is not a direct manifest; the catalogue
+        # route below reports the parse failure with its own diagnostic.
+        return False

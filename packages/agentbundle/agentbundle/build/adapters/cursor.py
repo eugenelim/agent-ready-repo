@@ -234,6 +234,16 @@ def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Pa
         for entry in source_dir.iterdir():
             if entry.is_dir():
                 expected_names.add(entry.name)
+    # AC28: this adapter previously built `expected_names` from pack
+    # sources alone and had no protected set at all, so a sweep removed
+    # every skill installed by `agentbundle install` into the same
+    # directory. The installed set is unioned in, and an unreadable
+    # state file refuses rather than sweeping.
+    from agentbundle.build.adapters._sweep_guard import installed_skill_names
+
+    expected_names |= installed_skill_names(
+        output_root, target_dir, adapter="cursor"
+    )
     sweep_orphans(target_dir, expected_names)
 
 

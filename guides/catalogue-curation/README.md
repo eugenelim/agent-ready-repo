@@ -76,6 +76,7 @@ Turn a maintained reference corpus into a portable, discoverable router Skill.
 ### Reference
 
 - [The ledger and the engine guard](reference/ledger-and-guard.md) — where assimilation state lives, and what the guard blocks
+- [Direct-install diagnostic codes](reference/direct-install-diagnostics.md) — every refusal the direct skill-installation route can emit, and what to do about it
 - [Catalogue CI contract](../_shared/reference/catalogue-ci-contract.md) — publication ordering, exit codes, and responsibility boundaries for CI-driven catalogue releases
 
 ### Explanation

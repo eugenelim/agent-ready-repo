@@ -20,6 +20,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -204,16 +206,24 @@ def test_codex_sweep_removes_untracked_orphan(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_claude_code_degrades_on_legacy_state(tmp_path: Path) -> None:
-    """A legacy (wrong schema-version) state file must not prevent the sweep
-    from removing genuine orphans — the fix degrades to the pre-fix behavior."""
+def test_claude_code_refuses_to_sweep_on_legacy_state(tmp_path: Path) -> None:
+    """A state file this build cannot read stops the sweep instead of widening it.
+
+    This inverts the earlier decision, deliberately. The old behaviour treated an
+    unreadable state file as "no skills are protected" and swept everything, which
+    is only safe if the state file never legitimately fails to parse. State 0.5
+    makes that failure ordinary: a reader pinned to 0.4 raises on every state file
+    written after the first direct install, and would then delete the user's
+    installed skills on the next self-host run. Losing a genuine orphan is
+    recoverable; deleting installed content is not.
+    """
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
     from agentbundle.build.adapters.claude_code import project_packs
 
     orphan_dir = tmp_path / ".claude" / "skills" / "orphan-skill"
     orphan_dir.mkdir(parents=True)
     (orphan_dir / "SKILL.md").write_text("# Orphan\n", encoding="utf-8", newline="\n")
 
-    # Write a legacy state file (schema-version "0.3" is not the current "0.4").
     (tmp_path / ".agentbundle-state.toml").write_text(
         'schema-version = "0.3"\n',
         encoding="utf-8",
@@ -221,16 +231,17 @@ def test_claude_code_degrades_on_legacy_state(tmp_path: Path) -> None:
     )
 
     contract = _minimal_contract("claude-code", ".claude/skills/")
-    project_packs([], contract, tmp_path)
+    with pytest.raises(OrphanSweepRefused):
+        project_packs([], contract, tmp_path)
 
-    # Orphan must still be swept — legacy state → empty protection set.
-    assert not orphan_dir.exists(), (
-        "a legacy state file must not prevent orphan sweep from running"
+    assert orphan_dir.exists(), (
+        "a refused sweep must leave the tree untouched, orphans included"
     )
 
 
-def test_claude_code_degrades_on_malformed_state(tmp_path: Path) -> None:
-    """A syntactically invalid state file must not prevent orphan sweep."""
+def test_claude_code_refuses_to_sweep_on_malformed_state(tmp_path: Path) -> None:
+    """Unparseable state is the same case as legacy state: refuse, do not sweep."""
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
     from agentbundle.build.adapters.claude_code import project_packs
 
     orphan_dir = tmp_path / ".claude" / "skills" / "orphan-skill"
@@ -238,17 +249,16 @@ def test_claude_code_degrades_on_malformed_state(tmp_path: Path) -> None:
     (orphan_dir / "SKILL.md").write_text("# Orphan\n", encoding="utf-8", newline="\n")
 
     (tmp_path / ".agentbundle-state.toml").write_text(
-        "this is not valid TOML ][[\n",
+        "this is not valid toml [[[\n",
         encoding="utf-8",
         newline="\n",
     )
 
     contract = _minimal_contract("claude-code", ".claude/skills/")
-    project_packs([], contract, tmp_path)
+    with pytest.raises(OrphanSweepRefused):
+        project_packs([], contract, tmp_path)
 
-    assert not orphan_dir.exists(), (
-        "a malformed state file must not prevent orphan sweep from running"
-    )
+    assert orphan_dir.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -310,3 +320,99 @@ def test_dry_run_consistent_with_write_for_state_tracked_skill(tmp_path: Path) -
             "project_packs in the shadow deleted a state-tracked skill; "
             "--check would have reported false drift"
         )
+
+
+# ---------------------------------------------------------------------------
+# AC28 across all seven sweeps — behaviour, not source text
+# ---------------------------------------------------------------------------
+
+# Each adapter with its contract-declared skill target. Driven through the real
+# `project_packs` rather than grepped, because the previous guard asserted
+# `"_sweep_guard" in source` and `"except ConfigError:\n        return set()"
+# not in source` — a comment mentioning the guard passes the first, and a revert
+# re-indented by one level passes the second. Only claude_code had a
+# behavioural arm; the plan promised one per call site.
+SWEEP_ADAPTERS = (
+    ("claude_code", "claude-code", ".claude/skills/"),
+    ("codex", "codex", ".agents/skills/"),
+    ("copilot", "copilot", ".github/skills/"),
+    ("kiro", "kiro", ".kiro/skills/"),
+    ("cursor", "cursor", ".agents/skills/"),
+    ("gemini", "gemini", ".agents/skills/"),
+    ("kiro_ide", "kiro-ide", ".kiro/skills/"),
+)
+
+
+@pytest.mark.parametrize(("module_name", "adapter_key", "target"), SWEEP_ADAPTERS)
+def test_every_sweep_refuses_on_unreadable_state(
+    tmp_path: Path, module_name: str, adapter_key: str, target: str
+) -> None:
+    """An unreadable state file stops every sweep, and leaves the tree alone."""
+    import importlib
+
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
+
+    module = importlib.import_module(f"agentbundle.build.adapters.{module_name}")
+    skill_dir = tmp_path / target.rstrip("/") / "installed-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("# installed\n", encoding="utf-8", newline="\n")
+
+    # State 0.5 is the ordinary case that makes this reachable: a reader pinned
+    # to 0.4 raises on every file written after the first direct install.
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        'schema-version = "0.6"\n', encoding="utf-8", newline="\n"
+    )
+
+    contract = _minimal_contract(adapter_key, target)
+    with pytest.raises(OrphanSweepRefused):
+        module.project_packs([], contract, tmp_path)
+
+    assert (skill_dir / "SKILL.md").exists(), (
+        f"{module_name} deleted an installed skill it could not prove was unowned"
+    )
+
+
+@pytest.mark.parametrize(("module_name", "adapter_key", "target"), SWEEP_ADAPTERS)
+def test_every_sweep_protects_a_recorded_row(
+    tmp_path: Path, module_name: str, adapter_key: str, target: str
+) -> None:
+    """A skill recorded in readable state survives a sweep that removes orphans.
+
+    The positive control. Without it, a guard that always refused would satisfy
+    the test above while protecting nothing — and three of these adapters built
+    no protected set at all, so a sweep removed everything `agentbundle install`
+    had placed in their directory.
+    """
+    import importlib
+
+    module = importlib.import_module(f"agentbundle.build.adapters.{module_name}")
+    root = tmp_path / target.rstrip("/")
+    owned = root / "owned-skill"
+    orphan = root / "orphan-skill"
+    for directory in (owned, orphan):
+        directory.mkdir(parents=True)
+        (directory / "SKILL.md").write_text("# s\n", encoding="utf-8", newline="\n")
+
+    relpath = f"{target.rstrip('/')}/owned-skill/SKILL.md"
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        f'schema-version = "0.5"\n'
+        f"[pack.owned-skill.adapters.{adapter_key}]\n"
+        f'installed-version = "0.0.0"\n'
+        f'scope = "repo"\n'
+        f'install-route = "cli"\n'
+        f'user-root = "~/.agentbundle"\n'
+        f'[pack.owned-skill.adapters.{adapter_key}.files."{relpath}"]\n'
+        f'sha = "x"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    module.project_packs([], _minimal_contract(adapter_key, target), tmp_path)
+
+    assert (owned / "SKILL.md").exists(), (
+        f"{module_name} swept a skill recorded in state as installed"
+    )
+    assert not orphan.exists(), (
+        f"{module_name} did not sweep a genuine orphan — the guard must not "
+        f"disable the sweep it protects"
+    )

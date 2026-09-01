@@ -326,9 +326,12 @@ def test_agent_malformed_metadata_still_reports_boundary_diagnostic(tmp_path):
             "unsupported frontmatter shape",
         ),
         (
-            "description: >\n  Folded agent description.\nmetadata:\n"
+            # A plain folded description parses now, so this case moved to the
+            # form still refused: an explicit indentation indicator, which the
+            # subset parser rejects rather than guess the indent width.
+            "description: >2\n  Folded agent description.\nmetadata:\n"
             "  boundaries: [filesystem_read_untrusted]\n",
-            "unsupported frontmatter shape",
+            "unsupported block scalar header",
         ),
         (
             "metadata:\n  boundaries: [filesystem_read_untrusted]\n# comment\n",
@@ -356,6 +359,86 @@ def test_agent_unparseable_frontmatter_names_the_parse_failure(
     assert parse_failure in diagnostic.message
     assert diagnostic.remediation is not None
     assert "supported frontmatter subset" in diagnostic.remediation
+
+
+def test_agent_block_scalar_is_refused_but_skills_may_use_one(tmp_path, monkeypatch):
+    """CAT-L027 is scoped to agents, and fires without a `metadata:` block.
+
+    Adapters copy a skill directory byte-for-byte but rewrite agent frontmatter
+    key by key, reading `description: >` as the literal `">"` and silently
+    dropping the folded text. The refusal therefore belongs on agents only.
+
+    This drives the whole linter rather than the helper directly: the helper
+    used to be reachable only through the boundary check, which returns early
+    when an agent declares no `metadata:` -- so the agents most exposed were
+    the ones never checked. A helper that is never called cannot fail.
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
+
+    # No `metadata:` key: the shape that was previously unguarded.
+    agents = pack / ".apm" / "agents"
+    agents.mkdir(parents=True)
+    (agents / "folded.md").write_text(
+        "---\nname: folded\ndescription: >\n  Folded across\n  two lines.\n"
+        "tools: Read\n---\n# Body\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    # The same construct in a skill is admissible: 22% of published skills use
+    # it, and projection copies the file unchanged.
+    skill = pack / ".apm" / "skills" / "folded-skill"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: folded-skill\ndescription: >\n  Folded across\n  two lines.\n"
+        "---\n# Body\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    diagnostics = lint_catalogue(tmp_path).diagnostics
+    l027 = [d for d in diagnostics if d.code == "CAT-L027"]
+    assert len(l027) == 1, f"expected exactly one CAT-L027, got {[d.code for d in diagnostics]}"
+    assert "folded.md" in l027[0].path
+    assert "'description'" in l027[0].message
+    assert l027[0].severity == Severity.ERROR
+    assert l027[0].remediation is not None and "one line" in l027[0].remediation
+    assert not any(
+        "SKILL.md" in (d.path or "") for d in l027
+    ), "CAT-L027 must not reach skills, which adapters copy verbatim"
+
+
+def test_agent_block_scalar_check_covers_every_indicator(tmp_path):
+    """Every block-scalar spelling is caught; look-alike values are not."""
+    refused = [
+        "description: >\n  text\n",
+        "description: >-\n  text\n",
+        "description: |\n  text\n",
+        "description: |-\n  text\n",
+        "description: >+\n  text\n",
+        "description: |2\n  text\n",
+        "metadata:\n  summary: >\n    text\n",
+    ]
+    for frontmatter in refused:
+        diagnostics = _lint_module._agent_block_scalar_diagnostics(
+            frontmatter, tmp_path / "probe.md", pack="pack-a", root=tmp_path
+        )
+        assert len(diagnostics) == 1, frontmatter
+        assert diagnostics[0].code == "CAT-L027", frontmatter
+
+    # A `>` or `|` inside an ordinary value is not a block scalar header.
+    allowed = [
+        "description: Compare a > b and a | b.\n",
+        "description: 'ends with >'\n",
+        "name: demo\ntools: Read, Grep\n",
+    ]
+    for frontmatter in allowed:
+        assert _lint_module._agent_block_scalar_diagnostics(
+            frontmatter, tmp_path / "probe.md", pack="pack-a", root=tmp_path
+        ) == [], frontmatter
 
 
 def test_agent_boundary_without_tools_requires_a_declared_tool(tmp_path):

@@ -55,6 +55,31 @@ def resolve_state_path(scope: str, root: Path) -> Path:
     return root / ".agentbundle-state.toml"
 
 
+def direct_source_root(source: Path) -> Path:
+    """Normalise a CLI-supplied direct source path without following links.
+
+    `classify_direct_source` derives a source's identity from the last segment
+    of its root, and its docstring says the caller supplies a resolved root.
+    No caller did, so `validate .` and `install .` — the canonical spelling of
+    "this directory" — refused with an empty identity under CAT-D011 while the
+    absolute and `../name` spellings of the same directory succeeded.
+
+    Lexical, via `abspath`: it folds away `.` and `..` against the working
+    directory but never resolves a symlink, so a final component that is a link
+    still reaches admission as a link and is refused there. Resolving would
+    hand admission the link's target and silently pass a boundary check that
+    exists to fail.
+    """
+
+    import os
+
+    # `normpath` against the working directory, not `resolve()`: both fold away
+    # "." and "..", but `resolve()` also follows symlinks, which would hand
+    # admission a link's target and silently pass the link-like boundary check
+    # that exists to fail on it.
+    return Path(os.path.normpath(Path.cwd() / source))
+
+
 class SeedDelivery(NamedTuple):
     """One seed file's delivery outcome, returned by ``deliver_seeds``.
 

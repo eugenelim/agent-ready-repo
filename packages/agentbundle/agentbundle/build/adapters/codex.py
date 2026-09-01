@@ -41,32 +41,15 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-# Mirror of claude_code.py:_installed_skill_names — keep in sync.
 def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 
-    Protects skills installed via `agentbundle install` from the orphan
-    sweep when `project_packs` runs in self-host mode. Degrades to an empty
-    set on absent, legacy, or malformed state so the sweep is unchanged.
+    Delegates to the one shared implementation so this adapter cannot
+    drift from the other six; see `_sweep_guard` for the AC28 refusal.
     """
-    from agentbundle.config import ConfigError, load_state
-    try:
-        state = load_state(output_root / ".agentbundle-state.toml")
-    except ConfigError:
-        return set()
-    skill_dir_rel = target_dir.relative_to(output_root)
-    names: set[str] = set()
-    for ps in state.packs.values():
-        if ps.scope != "repo":
-            continue
-        for relpath in ps.files:
-            try:
-                remainder = Path(relpath).relative_to(skill_dir_rel)
-            except ValueError:
-                continue
-            if remainder.parts:
-                names.add(remainder.parts[0])
-    return names
+    from agentbundle.build.adapters._sweep_guard import installed_skill_names
+
+    return installed_skill_names(output_root, target_dir, adapter="codex")
 
 
 def project(

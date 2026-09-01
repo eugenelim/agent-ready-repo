@@ -40,9 +40,16 @@ projections, `agentbundle lint packs` on sources), not a schema change:
 
 - **Frontmatter uses only the agentskills.io keys.** Project-specific data
   goes under the `metadata:` escape hatch the spec provides — never as a
-  bespoke top-level key.
-- **`description` is a single-line scalar** — no folded YAML or line
-  continuations, because several target harnesses parse it loosely.
+  bespoke top-level key. This is our authoring standard for packs in this
+  catalogue; it is *not* an admission rule for third-party content, which
+  routinely carries its own top-level keys and is read rather than refused.
+- **`description` may be a YAML block scalar.** Folded (`>`) and literal (`|`)
+  forms are read, with every chomping indicator. The earlier rule against them
+  was written for a loose-parsing harness, and that concern turns out to be
+  real only for **agents**: every adapter copies a skill directory
+  byte-for-byte, but rewrites agent frontmatter key by key with a line-based
+  parser that would read `description: >` as the literal `">"` and drop the
+  text. Agents therefore still refuse block scalars, under `CAT-L027`.
 
 The other four primitives a pack can carry — `agent`, `hook-body`,
 `hook-wiring`, `command` — are our own shapes, tabulated in
@@ -50,10 +57,17 @@ The other four primitives a pack can carry — `agent`, `hook-body`,
 
 ## Layer 2 — the pack (the distribution envelope)
 
-A skill never ships alone; it ships inside a pack. The pack adds the metadata
+In this catalogue a skill ships inside a pack. The pack adds the metadata
 (`pack.toml`), the install-scope rules, the governance `seeds/`, and the
 Claude Code `plugin.json` that make a set of primitives installable as one
-cohesive kit. The on-disk shape and every file's role are in
+cohesive kit.
+
+A skill *can* be installed without one. Direct installation accepts a bare
+skill folder or a `skills/` collection from a repository that never declared a
+pack; such an install is called **manifestless**, takes its identity from the
+skill's own directory name, and records provenance in install state instead of
+a manifest. The layers below still describe how a pack works, which is how
+everything in this catalogue is published. The on-disk shape and every file's role are in
 [`pack-layout.md`](pack-layout.md); how `pack.toml` metadata projects into the
 catalogue listing is in [`pack-manifest.md`](pack-manifest.md).
 

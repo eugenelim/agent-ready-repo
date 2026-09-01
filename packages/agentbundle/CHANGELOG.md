@@ -6,6 +6,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.41.0] — 2026-08-30
+
+### Added
+
+- Direct skill installation. `agentbundle install <source>` accepts a skill
+  folder, a `skills/` collection, or a single pack from a local path or a
+  credential-free `git+https://github.com/<owner>/<repo>@<ref>` URL, with no
+  catalogue involved. A collection requires an explicit `--skill` or
+  `--all-skills`; it never installs everything by default.
+- `agentbundle validate <source>` accepts the same sources and gains
+  `--format json`, emitting the established diagnostic envelope plus a
+  `summary` naming the shape and the selected skills.
+- Install state schema 0.5, recording each direct row's canonical source,
+  resolved revision, content digest, and install route. Readers accept 0.4 and
+  0.5; a catalogue-only repository stays on 0.4.
+- Published reference for every direct diagnostic code, kept equal to the code
+  registry by a lint that reads the registry from source rather than importing
+  it.
+
+### Changed
+
+- `pack.toml` gained a top-level `schema` field, `{"enum": [1]}`. Catalogue
+  manifests keep implicit v1; a direct pack must declare it.
+- Skill and pack frontmatter may use YAML block scalars for any field. Agent
+  frontmatter still may not: adapters rewrite it key by key and would drop the
+  text.
+
+### Fixed
+
+- Adapter orphan sweeps no longer delete installed skills when the state file
+  cannot be read. Four adapters treated an unreadable state file as "nothing is
+  protected"; three built no protected set at all, so a self-host run removed
+  everything `agentbundle install` had placed in the same directory.
+
 ## [0.40.3] — 2026-08-29
 
 ### Changed
