@@ -177,9 +177,15 @@ def cooled_initiative(
     extra_uncooled: bool = False,
     unreadable: bool = False,
     shipped_queue_spec: bool = False,
+    surviving_active: bool = False,
     initiative_status: str = "active",
 ) -> Path:
-    """Build the standard canonical fixture with optional cooling variants."""
+    """Build the standard canonical fixture with optional cooling variants.
+
+    `surviving_active` adds an uncooled `work.active` entry alongside the cooled
+    queue entry, so the queue-alone shape can be pinned with the exclusion live
+    rather than on the short-circuited path.
+    """
     cooled_locator = write_spec(
         root,
         "cooled-one",
@@ -190,6 +196,8 @@ def cooled_initiative(
     active_entries = [cooled_locator] if active else []
     if extra_uncooled:
         queue.append(write_spec(root, "live-one"))
+    if surviving_active:
+        active_entries.append(write_spec(root, "active-uncooled"))
     write_workspace(
         root,
         queue=queue,
@@ -649,6 +657,7 @@ def test_ac20_migration_apply_is_identical_with_and_without_cooling(
     tmp_path: Path,
 ) -> None:
     """AC20: migration application ignores lifecycle cooling evidence."""
+    assert_migration_fixture_is_real(tmp_path / "realness")
     import secrets
 
     operation_nonce = secrets.token_hex(16)
@@ -692,6 +701,7 @@ def test_ac21_pending_migration_recovery_is_identical_with_and_without_cooling(
     tmp_path: Path,
 ) -> None:
     """AC21: pending migration recovery ignores lifecycle cooling evidence."""
+    assert_migration_fixture_is_real(tmp_path / "realness")
     import secrets
 
     assert STATUS._bind_engine()
@@ -763,6 +773,7 @@ def test_ac22_migration_rollback_is_identical_with_and_without_cooling(
     tmp_path: Path,
 ) -> None:
     """AC22: migration rollback ignores lifecycle cooling evidence."""
+    assert_migration_fixture_is_real(tmp_path / "realness")
     import secrets
 
     operation_nonce = secrets.token_hex(16)
@@ -1055,10 +1066,33 @@ def test_ac31_release_surfaces_agree_above_the_floor() -> None:
     plugin_version = plugin["version"]
     heading = re.search(r"^## \[core\]\[([^\]]+)\] — \d{4}-\d{2}-\d{2}", changelog, re.M)
 
+    # pack<->plugin agreement is already pinned by
+    # tests/conformance/test_pack_metadata.py, and pack<->topmost-[core] by
+    # tests/roster/test_security_checklists_okf_projection.py. What is not
+    # gated elsewhere is that the heading is dated and that the version clears
+    # the floor, so only those are asserted here.
     assert heading is not None, "no dated [core] changelog heading found"
-    assert pack_version == plugin_version == heading.group(1), (
-        pack_version, plugin_version, heading.group(1)
-    )
 
     parsed = tuple(int(part) for part in pack_version.split("."))
     assert parsed > (2, 19, 0), parsed
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac5_queue_empty_counts_the_queue_alone_with_a_cooled_set(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC5: the queue-alone shape holds on the filtered path too.
+
+    AC5's own fixture has no lifecycle record, so `_surviving_work` returns
+    before the exclusion runs. A widening of `queue_empty` to span queue and
+    active applied only when a cooled set is present would pass every other
+    criterion, so the shape is pinned here with the filter live: one cooled
+    queue entry and one uncooled active entry surviving.
+    """
+    root = cooled_initiative(
+        tmp_path, cooled=True, surviving_active=True
+    )
+    result = run_status(root, mode)
+
+    assert result["initiatives"][0]["queue_empty"] is True
+    assert result["closeout"]["all_specs_shipped"] is False

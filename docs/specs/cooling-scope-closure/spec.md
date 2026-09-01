@@ -31,6 +31,14 @@ about an incomplete reading. The gate keeps its own further checks — that the
 initiative's queue is empty and that it shipped something — which the projection
 does not model and which this delivery preserves rather than replaces.
 
+One diagnosis gap is accepted rather than closed. When the cooled reading is
+incomplete because a record's review date could not be judged, the run withholds
+closeout without naming the record that caused it: that path emits no finding,
+and every way of naming it is closed to this delivery — a new finding code is a
+`Never do`, and adding a key to `cooling` or `closeout` is `Ask first`. The
+maintainer's recourse is `close-work`'s own retrieval. The gap predates this
+delivery, which only promoted an existing flag to a blocker.
+
 `repair-plan`, `repair-apply`, `repair-rollback`, and the migration planning,
 application, and rollback paths are unaffected by cooling. That is their settled
 contract, not a pending question, and the two reconciliation call sites that
@@ -121,8 +129,11 @@ SHA-256 digest, a version-equality comparison, a literal string present or
 absent in whitespace-normalized text, or a parsed source-shape count over a
 named file.
 
-- **The shared derivation: TDD.** The fixture tree and the injected instant are
-  arguments, as they are in Wave 6's suite.
+- **The shared derivation: TDD.** The fixture tree is the argument. Unlike Wave
+  6's suite these tests drive the CLI as a subprocess, whose parser has no `now`
+  equivalent, so they read the wall clock and no instant is injected. Nothing
+  asserted here depends on the instant: the cooled set is clock-independent, and
+  dueness is Wave 5's and is not re-derived.
 - **Agreement is proved on movement and on membership, not on value equality.**
   `all_specs_shipped` is derived over queue and active while `queue_empty` is
   derived over queue alone, so the two legitimately differ and AC5 pins that
