@@ -98,31 +98,41 @@
       ]
     },
     {
-      "id": "step0-branch1-echo-resolved-spec",
-      "prompt": "You are starting work-loop with no arguments. workspace.toml shows exactly one active spec path: spec/my-feature. What should you include in the orientation block before proceeding to PLAN?",
-      "expected_output": "Include 'Beginning on `docs/specs/my-feature/spec.md`' in the orientation block as part of the Active spec bullet output. After rendering the orientation block, strip the `spec/` prefix to get slug `my-feature`, read `docs/specs/my-feature/spec.md` and `plan.md`, then proceed to PLAN.",
+      "id": "step0-one-canonical-active-resume",
+      "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports exactly one active spec: docs/specs/my-feature/spec.md. What should you include in the orientation block before proceeding to PLAN?",
+      "expected_output": "Include 'Resuming `docs/specs/my-feature/spec.md`' in the orientation block. Read that spec and its sibling plan.md, then proceed to PLAN without asking the user to choose.",
       "assertions": [
-        "Response includes 'Beginning on `docs/specs/my-feature/spec.md`' as part of the orientation block output",
+        "Response includes 'Resuming `docs/specs/my-feature/spec.md`' in the orientation block",
         "Response does NOT ask the user which spec to use",
         "Response reads spec.md and plan.md before proceeding to PLAN"
       ]
     },
     {
-      "id": "step0-branch2-zero-active-specs",
-      "prompt": "You are starting work-loop with no arguments. workspace.toml shows zero active spec paths across all initiatives. What should you say?",
-      "expected_output": "Surface: 'No active spec found \u2014 run `workspace-status` to see what's ready to start.' Stop without proceeding to PLAN.",
+      "id": "step0-zero-active-one-canonical-ready",
+      "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports no active specs and exactly one ready spec: docs/specs/my-feature/spec.md. What should you do?",
+      "expected_output": "Select the first canonical ready item, read docs/specs/my-feature/spec.md and its sibling plan.md, and proceed to PLAN. Raw workspace queue membership does not authorize the start.",
       "assertions": [
-        "Response surfaces the exact message 'No active spec found \u2014 run `workspace-status` to see what's ready to start.'",
-        "Response does NOT proceed to PLAN",
-        "Response does NOT pick or ask about a spec"
+        "Response selects the canonical ready spec",
+        "Response reads spec.md and plan.md before proceeding to PLAN",
+        "Response does NOT use raw workspace queue membership as authorization"
       ]
     },
     {
-      "id": "step0-branch3-multiple-active-specs",
-      "prompt": "You are starting work-loop with no arguments. workspace.toml shows two active specs: spec/feature-a and spec/feature-b. What should you do?",
-      "expected_output": "List both active specs (spec/feature-a and spec/feature-b), ask the user to pick one, and stop. Do not proceed to PLAN automatically.",
+      "id": "step0-no-canonical-ready-or-active",
+      "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports no active specs and no ready specs. What should you say?",
+      "expected_output": "Surface exactly: 'No canonical ready or active spec found \u2014 run `workspace-status` to see blocked findings.' Then stop without proceeding to PLAN.",
       "assertions": [
-        "Response lists both active spec paths",
+        "Response surfaces the exact no-canonical-ready-or-active message",
+        "Response does NOT proceed to PLAN",
+        "Response does NOT select a raw workspace membership"
+      ]
+    },
+    {
+      "id": "step0-multiple-canonical-active-specs",
+      "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports two active specs: docs/specs/feature-a/spec.md and docs/specs/feature-b/spec.md. What should you do?",
+      "expected_output": "List both canonical active spec paths, ask the user to pick one, and stop. Do not proceed to PLAN automatically.",
+      "assertions": [
+        "Response lists both canonical active spec paths",
         "Response asks the user to pick one",
         "Response does NOT proceed to PLAN automatically",
         "Response does NOT arbitrarily choose one spec"
@@ -131,12 +141,12 @@
     {
       "id": "step0-no-portfolio-reconcile",
       "prompt": "You are starting work-loop. workspace.toml is present. Does work-loop scan every queue and active spec to find stale entries before proceeding to PLAN?",
-      "expected_output": "No. Work-loop does not scan the full portfolio for stale entries at startup. Step 0 reads workspace.toml only to orient: it resolves the active initiative, milestone, and active spec path, and checks the shaping-item guard. For exhaustive workspace integrity checks (including stale queue/active entries), run `workspace-status reconcile`.",
+      "expected_output": "No. Work-loop does not independently scan the full portfolio at startup. Step 0 consumes canonical workspace-status preflight for ready/active dispatch and stale-membership findings, then checks the shaping-item guard. Run `workspace-status reconcile` for the exhaustive Type 1 global spec walk in addition to Type 2 and Type 3 reconciliation.",
       "assertions": [
         "Response states work-loop does NOT scan every queue/active spec for stale entries",
         "Response directs portfolio reconciliation to `workspace-status reconcile`",
-        "Response confirms Step 0 is limited to orientation (initiative, milestone, active spec, shaping guard)",
-        "Response does NOT describe a stale-queue warning mechanism in work-loop"
+        "Response says Step 0 consumes canonical workspace-status preflight",
+        "Response distinguishes exhaustive Type 1 reconciliation from startup preflight"
       ]
     },
     {

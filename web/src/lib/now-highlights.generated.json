@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.17.4"
+          "version": "2.17.5"
         }
       ],
-      "date": "2026-08-31",
-      "heading": "[core][2.17.4] — 2026-08-31",
-      "changelogAnchor": "core2174--2026-08-31",
+      "date": "2026-09-01",
+      "heading": "[core][2.17.5] — 2026-09-01",
+      "changelogAnchor": "core2175--2026-09-01",
       "highlights": [
         {
           "source": "**Re-issuing a review recording no longer risks counting the round twice.** `loop-cohort review record` takes an optional `--operation-id` naming the round. Repeat the same recording under that id and the command reports a completed write and changes nothing; supply a different payload under it and the command refuses rather than silently accepting it. A session that dies before it learns whether the write landed can now simply repeat the command.",
@@ -38,6 +38,49 @@
             {
               "type": "text",
               "value": " naming the round. Repeat the same recording under that id and the command reports a completed write and changes nothing; supply a different payload under it and the command refuses rather than silently accepting it. A session that dies before it learns whether the write landed can now simply repeat the command."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "catalogue-curation",
+          "version": "0.4.6"
+        },
+        {
+          "name": "governance-extras",
+          "version": "0.10.5"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[catalogue-curation][0.4.6] / [governance-extras][0.10.5] — 2026-08-31",
+      "changelogAnchor": "catalogue-curation046--governance-extras0105--2026-08-31",
+      "highlights": [
+        {
+          "source": "**Assimilated primitives finish against the target catalogue's own release contract.** Catalogue curators now close version, inventory, release-history, and projection duties instead of stopping after the content write.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Assimilated primitives finish against the target catalogue's own release contract."
+            },
+            {
+              "type": "text",
+              "value": " Catalogue curators now close version, inventory, release-history, and projection duties instead of stopping after the content write."
+            }
+          ]
+        },
+        {
+          "source": "**New pack proposals reuse the target catalogue's RFC workflow.** The proposal adds its primitive inventory without copying or drifting the canonical RFC template.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "New pack proposals reuse the target catalogue's RFC workflow."
+            },
+            {
+              "type": "text",
+              "value": " The proposal adds its primitive inventory without copying or drifting the canonical RFC template."
             }
           ]
         }

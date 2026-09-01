@@ -1,0 +1,16 @@
+{
+  "skill_name": "propose-catalogue-pack",
+  "evals": [
+    {
+      "id": "emit-proposal-through-canonical-rfc-workflow",
+      "prompt": "A proposed pack has cleared the target catalogue's additivity and fit gates, and new-rfc is installed. How should the proposal RFC be authored?",
+      "expected_output": "Use the installed new-rfc workflow as the target catalogue's canonical RFC authoring surface instead of reproducing its template. Add the pack proposal's per-primitive inventory and assimilate/reject verdicts as proposal content. Reuse an assimilate-repo inventory when present rather than inventorying twice.",
+      "assertions": [
+        "Response routes authoring through installed new-rfc",
+        "Response does not reproduce or fork the RFC template",
+        "Response adds a per-primitive inventory with verdicts",
+        "Response reuses an assimilate-repo inventory when available"
+      ]
+    }
+  ]
+}

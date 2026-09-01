@@ -137,6 +137,16 @@
       ]
     },
     {
+      "id": "template-platform-neutral-author",
+      "prompt": "Create an RFC from the bundled template for a repository whose account host is not GitHub. What author placeholder does the untouched template provide?",
+      "expected_output": "The template provides the platform-neutral `<account-handle>` author placeholder. It does not assume GitHub or embed a real person's account identity.",
+      "assertions": [
+        "Uses the exact placeholder `<account-handle>`",
+        "Does not use `<github-handle>`",
+        "Does not insert a real account identity"
+      ]
+    },
+    {
       "id": "cognitive-load-output-quality",
       "prompt": "Complete a representative task that produces a user-facing RFC. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
       "expected_output": "The RFC leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",

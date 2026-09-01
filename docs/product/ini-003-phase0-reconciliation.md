@@ -60,14 +60,14 @@
 
 ## Phase 0B — ini-003 AC parity matrix
 
-### ini-003 shipped work (baseline)
+### ini-003 completed baseline
 
-| Spec | Status | Shipped |
+| Artifact | State | Completed |
 |---|---|---|
-| spec/rfc-digital-product-experience-doctrine | Shipped | 2026-07-23 |
+| [RFC-0071](../rfc/0071-digital-experience-doctrine.md), accepting [RFC-0062](../rfc/0062-content-design-and-copy-direction-skills.md) | Accepted | 2026-07-23 |
 | spec/digital-experience-contract | Shipped | 2026-07-23 |
 
-Both M1 items are shipped. ini-003 milestone updated from "M1 · Contract + Governance" to "M2 · Adoption + Shaping Doctrine".
+The governance gate was accepted and the delivery contract shipped. ini-003 milestone updated from "M1 · Contract + Governance" to "M2 · Adoption + Shaping Doctrine".
 
 ### Queue item classifications
 
