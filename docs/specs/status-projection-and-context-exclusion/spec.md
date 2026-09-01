@@ -172,7 +172,7 @@ Wave 7 entries and the `workspace.toml` summary were corrected together.
 | Slug | Outcome | Owner |
 | --- | --- | --- |
 | `cooling-repair-migration-scope` | Decide whether cooling constrains `repair-plan`, `repair-apply`, and the migration paths, including whether the two rootless `run_canonical_reconciliation` call sites gain a repository root. | RFC-0096 Wave 7 |
-| `cooling-brief-child-scope` | Decide how a cooled child spec contributes to its parent brief's `invalid_child_scope` verdict. Two defects are shipped and pinned: a cooled child whose parent is declared only in the artifact body is dropped from the parent's child-state set, so the empty set reads as compliance under `brief_queue.shipped` (erasing `impossible_transition` and unblocking the brief's dependants) and as a violation under `brief_queue.executing` (planting one on live work); and a cooled child that *does* declare `source.parent` is attributed with a status derived from its collection rather than observed, so `work.shipped` fabricates `Shipped`. A Wave 6 repair was attempted and reverted — it refused every brief-kind dependency in the workspace whenever any cooled spec lacked `source.parent`, which is the common shape, so it denied service far more often than it closed the bypass. The fix needs a per-brief unevaluable set, and probably a finding code that says "child scope unknown", which AC46's pinned pair does not admit. | RFC-0096 Wave 7 |
+| `cooling-brief-child-scope` | Decide how a cooled child spec whose brief link exists only in the artifact body contributes to its parent brief's `invalid_child_scope` verdict. AC59 closes the case where the child declares `source.parent`; a body-only link is not readable read-free, so such a child is dropped from the child-state set and the empty set reads as compliance under `brief_queue.shipped` (erasing `impossible_transition` and unblocking the brief's dependants) and as a violation under `brief_queue.executing` (planting one on live work). Two conservative repairs were attempted and withdrawn: marking every brief in the workspace, then every brief in the initiative. Both refused brief dependencies whenever any ordinary parentless spec cooled -- 81 of 92 specs in `ini-002` declare no `source.parent` -- which costs more availability than the bypass it closes. Closing it needs either a readable parent link for cooled children or a finding code that says "child scope unknown", which AC46's pinned pair does not admit. | RFC-0096 Wave 7 |
 | `cooling-closeout-eligibility` | Decide whether a cooled queue entry counts toward `all_specs_shipped`. It currently does, so a fully cooled initiative reports `unshipped-specs` indefinitely and never reaches `invoke-close-work`. A Wave 6 repair was attempted and reverted: filtering the count let an unverified lifecycle record drive an affirmative recommendation to run a skill that distils and disposes, while `initiatives[].queue_empty` stayed unfiltered and disagreed inside the same response. Whichever way it resolves, the two must agree. | RFC-0096 Wave 7 |
 | `wave6-dependency-scoped-completion-receipts` | Project the four-field `{delivery_id, outcome, completion_event, evidence_ref}` completion receipt from its coordination surface. Wave 6 projects record completion evidence only; `outcome` has no source in the lifecycle record schema. | RFC-0096 Wave 7 |
 
@@ -218,7 +218,7 @@ absent in whitespace-normalized text.
 - **Frozen-body preservation: pinned digest**, so the check holds after the
   branch is gone.
 
-**Stub coverage.** Compiled red stubs: AC1–AC44 and AC55–AC58 (T1–T3; AC57 and AC58 were added during review and are covered by tests at `tests/roster/test_status_projection_and_context_exclusion.py`).
+**Stub coverage.** Compiled red stubs: AC1–AC44, AC55–AC58, and AC59 (T1–T3; AC57 and AC58 were added during review; AC59 closes the attributed half of `cooling-brief-child-scope` — all covered by tests at `tests/roster/test_status_projection_and_context_exclusion.py`).
 `no stub (mode)`: AC45–AC54 (T4, goal-based). Uncovered: none.
 
 ## Acceptance Criteria
@@ -501,3 +501,27 @@ absent in whitespace-normalized text.
   absent initiative reported a `closeout_blockers` entry of `unshipped-specs`
   against a workspace with no unshipped spec. Omission rather than an empty
   block keeps AC29's closed key set unchanged.
+
+### Brief child scope under cooling
+
+- [ ] **AC59 — A cooled child a brief declares does not change either conclusion
+  about that brief.** With `docs/specs/child/spec.md` in `work.shipped`
+  declaring `source.parent = "docs/product/briefs/b.md"`, `b.md` in
+  `brief_queue.shipped` and healthy, and a queued spec carrying a
+  `kind = "brief"` dependency on `b.md`: without a lifecycle record the
+  dependant is in `canonical.ready` with no finding on `b.md`; with a `Cooling`
+  record for the child the dependant is absent from `canonical.ready` and
+  `canonical.findings` carries `unsatisfied_dependency` for `b.md`. The record
+  must not instead promote a blocked spec by fabricating the child's state from
+  its collection — `_membership_status` returns `Shipped` for anything in
+  `work.shipped` whatever the body says.
+
+  The fail-closed set is exactly the briefs named by a cooled child's
+  `source.parent`. A cooled spec that declares no `source.parent` marks nothing:
+  with such a spec cooled, an unrelated healthy brief in the same initiative
+  keeps its dependant in `canonical.ready` and carries no finding. Attributing
+  those conservatively would refuse every brief dependency whenever any ordinary
+  spec cooled — 81 of 92 specs in this repository's main initiative declare no
+  `source.parent` — so the gap is left open and recorded as
+  `cooling-brief-child-scope` rather than closed at that cost.
+

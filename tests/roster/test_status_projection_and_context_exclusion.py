@@ -1673,3 +1673,315 @@ def test_non_boolean_visibility_fact_is_refused(engine) -> None:
             closeout_blockers=[],
             cooling_context_visible="no",
         )
+
+
+# ── AC59: brief child scope ────────────────────────────────────────────────────
+
+BRIEF_PATH = "docs/product/briefs/brief-1.md"
+
+
+def _brief_body(root: Path, *, status: str = "Shipped") -> None:
+    """Write a brief artifact body."""
+    path = root / BRIEF_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"# Brief\n\n- **Status:** {status}\n",
+        encoding="utf-8",
+    )
+
+
+def _cool_child(root: Path) -> None:
+    """Write a Cooling lifecycle record for docs/specs/child/spec.md."""
+    directory = root / "docs/lifecycle"
+    directory.mkdir(parents=True, exist_ok=True)
+    record = _record(delivery_id="child", locator="docs/specs/child/spec.md")
+    (directory / "child.json").write_text(json.dumps(record), encoding="utf-8")
+
+
+def _reconcile_canonical(root: Path, engine):
+    """Run canonical reconciliation with the resolved cooled set."""
+    workspace = engine.parse_workspace(root / "workspace.toml")
+    cooled, _ = engine._resolve_cooled_state(root)
+    return engine.run_canonical_reconciliation(workspace, root, cooled)
+
+
+def _brief_workspace(
+    root: Path,
+    *,
+    child_collection: str,
+    child_source_parent: str | None,
+    brief_collection: str,
+    include_dependant: bool = True,
+) -> None:
+    """Write workspace.toml for brief-child cooling tests.
+
+    child_collection    — "shipped" | "active" | "queue" for the child spec
+    child_source_parent — source.parent in the TOML entry, or None to omit
+    brief_collection    — "shipped" | "executing" for the brief
+    include_dependant   — include the dependant spec (with kind=brief dep) in queue
+    """
+    parent_clause = (
+        f', parent = "{child_source_parent}"' if child_source_parent is not None else ""
+    )
+    child_entry = (
+        f'{{path = "docs/specs/child/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin"{parent_clause}}}, '
+        f'summary = "fixture", needs = []}}'
+    )
+    dep_entry = (
+        f'{{path = "docs/specs/dependant/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin"}}, '
+        f'summary = "fixture", '
+        f'needs = [{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]}}'
+    )
+    brief_entry = (
+        f'{{path = "{BRIEF_PATH}", kind = "brief", '
+        f'source = {{mode = "repo-origin"}}, summary = "fixture", needs = []}}'
+    )
+    work: dict[str, str] = {"queue": "", "active": "", "shipped": ""}
+    work[child_collection] = child_entry
+    if include_dependant:
+        work["queue"] = dep_entry + ("," + child_entry if child_collection == "queue" else "")
+    elif child_collection == "queue":
+        work["queue"] = child_entry
+    brief_shipped = brief_entry if brief_collection == "shipped" else ""
+    # Use the full table form in a list so the brief becomes a WorkspaceMembership
+    # (not a LegacyWorkspaceMembership) and appears in evaluate_dispatch output.
+    # A bare string like "docs/product/briefs/..." is treated as a legacy_entry.
+    executing_list = f"[{brief_entry}]" if brief_collection == "executing" else "[]"
+    (root / "workspace.toml").write_text(
+        '["ini-002"]\n'
+        'name = "Cooling fixture"\n'
+        'status = "active"\n'
+        'milestone = "M1"\n\n'
+        '["ini-002".work]\n'
+        f'queue = [{work["queue"]}]\n'
+        f'active = [{work["active"]}]\n'
+        f'shipped = [{work["shipped"]}]\n\n'
+        '["ini-002".shaping_queue]\n'
+        'active = []\n'
+        'backlog = []\n\n'
+        '["ini-002".brief_queue]\n'
+        'draft = []\n'
+        'ready = []\n'
+        f'executing = {executing_list}\n'
+        f'shipped = [{brief_shipped}]\n',
+        encoding="utf-8",
+    )
+
+
+def _child_spec(root: Path, *, status: str = "Implementing", brief: str = "none") -> None:
+    """Write the child spec body so the cooled-locator resolver finds it on disk.
+
+    `brief` sets the body-only parent link. It is the shape the residual turns
+    on: a link the engine can read while the artifact is live and cannot read
+    once it is cooled.
+    """
+    path = root / "docs/specs/child/spec.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"# Spec\n\n- **Status:** {status}\n- **Brief:** {brief}\n",
+        encoding="utf-8",
+    )
+
+
+def test_cooled_attributed_child_refuses_brief_dependency(tmp_path, engine) -> None:
+    """AC59 Defect 1: an attributed cooled child makes its parent brief's dep fail closed.
+
+    Before the fix: the cooled child in work.shipped had its state fabricated as
+    "Shipped" via _membership_status, so the brief_queue.shipped parent's
+    invalid_child_scope predicate saw only {"Shipped"} and fired no finding.
+    A downstream spec with kind="brief" dependency then saw a clean brief and
+    was dispatched — a lifecycle record promoted a structurally blocked spec.
+
+    After the fix: the cooled child is excluded from child states; the brief is
+    recorded in briefs_with_cooled_children; _dependency_is_satisfied refuses the
+    dep and the downstream spec stays out of canonical.ready.
+
+    Killing mutation: remove the `dep.kind == "brief" and dep.path in
+    briefs_with_cooled_children` check from _dependency_is_satisfied — the dep
+    becomes satisfied (brief body is "Shipped", no structural findings on brief),
+    the dependant reaches canonical.ready, and the first assertion fails.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    # The child file must exist so _cooled_locators adds it to the cooled set.
+    # Its body is never read after that — the cooled branch short-circuits all
+    # body-dependent predicates. source.parent in the workspace entry attributes
+    # the child to the brief read-free.
+    _child_spec(root, status="Implementing")
+    _spec(root, "dependant", status="Approved", brief="none")
+    _brief_workspace(
+        root,
+        child_collection="shipped",
+        child_source_parent=BRIEF_PATH,
+        brief_collection="shipped",
+    )
+    _cool_child(root)
+
+    result = _reconcile_canonical(root, engine)
+    ready_paths = {e.entry.path for e in result.evaluations if e.dispatchable}
+    assert "docs/specs/dependant/spec.md" not in ready_paths, (
+        "dependant reached canonical.ready — cooled attributed child fabricated Shipped"
+    )
+    assert any(
+        f.code == "unsatisfied_dependency" and f.path == BRIEF_PATH
+        for f in result.findings
+    ), "expected unsatisfied_dependency for the brief whose attributed child was cooled"
+
+
+def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engine) -> None:
+    """AC59: the fail-closed set is exactly the briefs a cooled child declares.
+
+    A spec that declares no `source.parent` is not attributed to any brief. Two
+    conservative repairs that attributed such specs anyway -- to every brief in
+    the workspace, then to every brief in the initiative -- were withdrawn: 81
+    of 92 specs in this repository's main initiative declare no `source.parent`,
+    so either rule refused every brief dependency whenever an ordinary spec
+    cooled. This pins the availability half of the criterion.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    _child_spec(root, status="Shipped")
+    _spec(root, "dependant", status="Approved", brief="none")
+    _brief_workspace(
+        root,
+        child_collection="shipped",
+        child_source_parent=None,
+        brief_collection="shipped",
+    )
+
+    before = _reconcile_canonical(root, engine)
+    ready_before = {e.entry.path for e in before.evaluations if e.dispatchable}
+    assert "docs/specs/dependant/spec.md" in ready_before, (
+        "control never dispatched the dependant; the comparison below proves nothing"
+    )
+
+    _cool_child(root)
+    after = _reconcile_canonical(root, engine)
+    ready_after = {e.entry.path for e in after.evaluations if e.dispatchable}
+    assert "docs/specs/dependant/spec.md" in ready_after, (
+        "cooling a spec that declares no source.parent refused an unrelated brief"
+    )
+    assert not [f for f in after.findings if f.path == BRIEF_PATH]
+
+
+def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> None:
+    """Residual `cooling-brief-child-scope`: a body-only brief link is unprotected.
+
+    The child names its brief in the artifact body, not in `source.parent`, so
+    the link is not recoverable without the read RFC-0096 section 7 forbids. The
+    child drops out of the parent's child-state set and the empty set reads as
+    compliance, so cooling erases the brief's `impossible_transition`. This is
+    the shipped gap, pinned so that closing it has to change this test
+    deliberately rather than silently.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    _child_spec(root, status="Implementing", brief=BRIEF_PATH)
+    _spec(root, "dependant", status="Approved", brief="none")
+    _brief_workspace(
+        root,
+        child_collection="shipped",
+        child_source_parent=None,
+        brief_collection="shipped",
+    )
+
+    before = _reconcile_canonical(root, engine)
+    assert any(
+        f.code == "impossible_transition" and f.path == BRIEF_PATH for f in before.findings
+    ), "control did not flag the brief; the residual below is not demonstrated"
+
+    _cool_child(root)
+    after = _reconcile_canonical(root, engine)
+    assert not [
+        f for f in after.findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ], "the residual is closed — update AC59 and remove the Follow-ons row"
+
+
+def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
+    tmp_path, engine
+) -> None:
+    """AC59 control: a cooled parentless spec in ini-003 leaves the ini-002 brief clean.
+
+    The per-brief scope means only briefs in the same initiative as the cooled
+    child are marked.  A brief in ini-002 must be unaffected when a parentless
+    cooled spec lives only in ini-003.
+
+    Killing mutation: change the parentless attribution to mark all briefs across
+    ALL initiatives (remove the ini_slug filter from _brief_child_spec_states) —
+    the brief in ini-002 enters briefs_with_cooled_children, the dep is refused,
+    and the assertion fails.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    # Child of brief in ini-002 — NOT cooled, status Shipped, attributed.
+    _spec(root, "child", status="Shipped", brief=BRIEF_PATH)
+    _spec(root, "dependant", status="Approved", brief="none")
+    # Unrelated spec in ini-003 — will be cooled, no parent link anywhere.
+    _spec(root, "unrelated", status="Shipped", brief="none")
+
+    # Cool only the ini-003 spec; the ini-002 child is NOT cooled.
+    directory = root / "docs/lifecycle"
+    directory.mkdir(parents=True, exist_ok=True)
+    record_unrelated = _record(
+        delivery_id="unrelated",
+        locator="docs/specs/unrelated/spec.md",
+    )
+    (directory / "unrelated.json").write_text(json.dumps(record_unrelated), encoding="utf-8")
+
+    child_entry = (
+        f'{{path = "docs/specs/child/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{BRIEF_PATH}"}}, '
+        f'summary = "fixture", needs = []}}'
+    )
+    dep_entry = (
+        f'{{path = "docs/specs/dependant/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin"}}, summary = "fixture", '
+        f'needs = [{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]}}'
+    )
+    brief_entry = (
+        f'{{path = "{BRIEF_PATH}", kind = "brief", '
+        f'source = {{mode = "repo-origin"}}, summary = "fixture", needs = []}}'
+    )
+    unrelated_entry = (
+        '{path = "docs/specs/unrelated/spec.md", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
+    )
+    (root / "workspace.toml").write_text(
+        '["ini-002"]\n'
+        'name = "Brief initiative"\n'
+        'status = "active"\n'
+        'milestone = "M1"\n\n'
+        '["ini-002".work]\n'
+        f'queue = [{dep_entry}]\n'
+        'active = []\n'
+        f'shipped = [{child_entry}]\n\n'
+        '["ini-002".shaping_queue]\n'
+        'active = []\n'
+        'backlog = []\n\n'
+        '["ini-002".brief_queue]\n'
+        'draft = []\n'
+        'ready = []\n'
+        'executing = ""\n'
+        f'shipped = [{brief_entry}]\n\n'
+        '["ini-003"]\n'
+        'name = "Unrelated initiative"\n'
+        'status = "active"\n'
+        'milestone = "M2"\n\n'
+        '["ini-003".work]\n'
+        'queue = []\n'
+        'active = []\n'
+        f'shipped = [{unrelated_entry}]\n\n'
+        '["ini-003".shaping_queue]\n'
+        'active = []\n'
+        'backlog = []\n',
+        encoding="utf-8",
+    )
+
+    result = _reconcile_canonical(root, engine)
+    ready_paths = {e.entry.path for e in result.evaluations if e.dispatchable}
+    assert "docs/specs/dependant/spec.md" in ready_paths, (
+        "dependant blocked — a cooled spec in ini-003 affected the ini-002 brief"
+    )

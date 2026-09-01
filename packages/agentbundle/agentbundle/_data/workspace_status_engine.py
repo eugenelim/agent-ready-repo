@@ -2588,9 +2588,20 @@ def _dependency_is_satisfied(
     structurally_blocked_paths: set[str],
     root: Path | None,
     cooled: frozenset[Path],
+    briefs_with_cooled_children: frozenset[str] = frozenset(),
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
+    # Fail closed when a brief's child scope is unknown. A cooled child spec
+    # may have changed the brief's actual terminal state without the workspace
+    # membership reflecting it, so the brief's apparent state cannot be trusted.
+    # Only the specific affected briefs are refused; the blast radius is bounded
+    # to the briefs that share an initiative with a cooled child, or to the
+    # brief named in the cooled child's source.parent.
+    if dep.kind == "brief" and dep.path in briefs_with_cooled_children:
+        return False, _finding(
+            "unsatisfied_dependency", dep.path, "brief child scope is unknown"
+        )
     cooled_dependency = (
         root is not None and _confined_artifact_path(root, dep.path) in cooled
     )
@@ -2764,26 +2775,54 @@ def _brief_child_spec_states(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path] = frozenset(),
-) -> dict[str, set[str]]:
-    """Map each brief to the states of the spec memberships that name it.
+) -> tuple[dict[str, set[str]], frozenset[str]]:
+    """Map each brief to its children's observed states; flag briefs with cooled children.
 
-    A cooled child's brief linkage is not recoverable read-free when it lives
-    only in the artifact body, and its status is derived from the collection
-    rather than observed. Both facts distort a parent brief's child-scope
-    verdict, in opposite directions depending on the parent's collection. See
-    `cooling-brief-child-scope` in the spec's Follow-ons: the two residuals are
-    recorded and deferred rather than repaired here.
+    Returns (states, briefs_with_cooled_children).
+
+    states maps each brief path to the set of states contributed by its
+    non-cooled child spec memberships. A cooled child contributes no state at
+    all: its status would come from `_membership_status`, which derives state
+    from the collection alone and so fabricates "Shipped" for anything in
+    `work.shipped`.
+
+    briefs_with_cooled_children names every brief a cooled child declares
+    through `source.parent`. For those briefs `invalid_child_scope` is
+    unevaluable and any `kind="brief"` dependency fails closed, so a lifecycle
+    record cannot erase or create a finding about a different artifact.
+
+    A cooled child that declares no `source.parent` is not attributed, and the
+    briefs it may belong to are therefore not protected. That gap is the
+    recorded residual `cooling-brief-child-scope`; closing it conservatively
+    would refuse every brief dependency whenever any ordinary parentless spec
+    cooled, which is the common case rather than the exception.
     """
     states: dict[str, set[str]] = {}
+    briefs_affected: set[str] = set()
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
             continue
-        metadata = (
-            _metadata_from_membership(membership)
-            if _membership_is_cooled(membership, root, cooled)
-            else _artifact_metadata(workspace, entry, root)
-        )
+        if _membership_is_cooled(membership, root, cooled):
+            # A cooled child's state is not observable without reading its
+            # body, and its parent may be absent from the read-free source
+            # record.  Both facts make the parent brief's child scope
+            # unevaluable.  Exclude the child from states and record the
+            # affected briefs instead.
+            source_parent = _normalized_optional_artifact_value(entry.source.parent)
+            if source_parent is not None:
+                briefs_affected.add(source_parent)
+            # A cooled child that declares no `source.parent` is deliberately
+            # NOT attributed. Its brief link, if any, lives in the body this run
+            # may not read — but so does the link of every parentless spec that
+            # was never a child at all, and those are the overwhelming majority
+            # (81 of 92 in this repository's main initiative). Marking every
+            # brief in the initiative to cover the rare real child refused every
+            # brief dependency whenever any ordinary spec cooled, which costs
+            # far more availability than the bypass it closes. The residual is
+            # recorded as `cooling-brief-child-scope`.
+            continue
+        metadata = _artifact_metadata(workspace, entry, root)
         parent_paths = {
             path for path in (
                 _normalized_optional_artifact_value(entry.source.parent),
@@ -2806,7 +2845,7 @@ def _brief_child_spec_states(
             child_state = status
         for parent_path in parent_paths:
             states.setdefault(parent_path, set()).add(child_state)
-    return states
+    return states, frozenset(briefs_affected)
 
 
 def _append_impossible_transition(
@@ -2979,6 +3018,7 @@ def _structural_findings(
     global_invalid_workspace: bool = False,
     root: Path | None = None,
     cooled: bool = False,
+    briefs_with_cooled_children: frozenset[str] = frozenset(),
 ) -> list[RoutingFinding]:
     entry = membership.entry
     findings: list[RoutingFinding] = []
@@ -3049,7 +3089,14 @@ def _structural_findings(
         findings.append(
             _finding("provenance_mismatch", entry.path, "source revision mismatch")
         )
-    if entry.kind == "brief" and membership.collection.startswith("brief_queue."):
+    if (
+        entry.kind == "brief"
+        and membership.collection.startswith("brief_queue.")
+        and entry.path not in briefs_with_cooled_children
+    ):
+        # Skip this predicate when a cooled child makes the scope unevaluable.
+        # The per-brief guard limits the blast radius to only the briefs
+        # actually affected; unrelated briefs are evaluated normally.
         child_states = brief_child_states.get(entry.path, set())
         invalid_child_scope = (
             membership.collection == "brief_queue.ready"
@@ -3080,6 +3127,7 @@ def evaluate_dispatch(
     global_invalid_workspace: bool = False,
     root: Path | None = None,
     cooled: frozenset[Path] = frozenset(),
+    briefs_with_cooled_children: frozenset[str] = frozenset(),
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership."""
     entry = membership.entry
@@ -3107,6 +3155,7 @@ def evaluate_dispatch(
         brief_child_states,
         global_invalid_workspace,
         root,
+        briefs_with_cooled_children=briefs_with_cooled_children,
     )
     if (
         entry.kind == "spec"
@@ -3127,6 +3176,7 @@ def evaluate_dispatch(
             structurally_blocked_paths,
             root,
             cooled,
+            briefs_with_cooled_children=briefs_with_cooled_children,
         )
         if not satisfied and finding is not None:
             findings.append(finding)
@@ -3216,7 +3266,7 @@ def run_canonical_reconciliation(
         )
     ]
     cycle_paths = _dependency_cycles(local_memberships)
-    brief_child_states = _brief_child_spec_states(
+    brief_child_states, briefs_with_cooled_children = _brief_child_spec_states(
         local_memberships, workspace, root, cooled
     )
     global_invalid_workspace = any(
@@ -3249,6 +3299,7 @@ def run_canonical_reconciliation(
             global_invalid_workspace,
             root,
             cooled=membership_cooled,
+            briefs_with_cooled_children=briefs_with_cooled_children,
         )
         if member_findings:
             structurally_blocked_paths.add(membership.entry.path)
@@ -3275,6 +3326,7 @@ def run_canonical_reconciliation(
             global_invalid_workspace,
             root,
             cooled,
+            briefs_with_cooled_children=briefs_with_cooled_children,
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
