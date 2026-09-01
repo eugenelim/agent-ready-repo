@@ -136,29 +136,23 @@ checklists; verification-mode awareness applies to every review.
    against it. A fixture whose primitive type conflicts with the parent
    scope imports the wrong contract — and the mismatch is invisible until
    the derived work is reviewed against the parent.
-5. **Verification-mode declaration.** Each plan task should state its
-   mode — TDD, goal-based check, or visual / manual QA — with the
-   verification artifact named. The verification's level of
-   abstraction should match the behavior's boundary: UI behaviors
-   need tests that simulate the user's gesture *and assert on
-   rendered / visible state*, not unit tests on the controller or
-   on store / provider internals; API behaviors need tests that hit
-   the interface *and assert on response shape*, not unit tests on
-   the handler in isolation. Mode-mismatched verification produces
-   tests that pass for the wrong reason — default-TDD tasks that
-   should be goal-based produce narcissistic mock-shape tests;
-   goal-based tasks that should be TDD ship without invariants; UI
-   tasks shipped as TDD-on-the-controller (or asserting on store
-   contents only) pass while the user-facing bug remains.
+5. **Verification-mode declaration and placement.** Each plan task should
+   state its mode — TDD, goal-based check, or visual / manual QA — with the
+   verification artifact named and placed at the declared behavior boundary.
+   Quality-engineer exclusively judges test strength, including mode fit,
+   tautology, mock shape, mirrors, and whether a test can actually fail.
 
 ### Implementation-stage checks (when code changed in this PR)
 
-1. **Acceptance Criterion coverage.** Every item in the spec's Acceptance
-   Criteria has at least one verification artifact (test, goal-based
-   one-liner, or recorded manual / visual QA check) that would fail if
-   the criterion were broken — in the mode named by Testing Strategy.
-   Map each criterion → artifact `file:line`. If you can't, that's a
-   Blocker.
+1. **Acceptance Criterion verification.** Every item in the spec's Acceptance
+   Criteria has an existing verification artifact (test, goal-based one-liner,
+   or recorded manual / visual QA check) whose declared mode matches Testing
+   Strategy. Map each criterion → artifact `file:line`. If you can't, that's a
+   Blocker. Quality-engineer exclusively judges whether that artifact is strong
+   enough to fail for the criterion.
+   If Testing Strategy names specific artifacts by file or function, apply the
+   same existence-and-declared-mode check to those names. A promised artifact
+   that is absent is a Blocker; cite the file where it should live.
    **Triggered non-local impact tracing.** When the diff changes a public API
    or signature, shared registry, serialization or schema, renamed / moved /
    deleted symbol, side effect, dependency or configuration, or a
@@ -172,9 +166,10 @@ checklists; verification-mode awareness applies to every review.
    nor partial textual search can claim completeness. Name blind spots such as
    reflection, generated code, runtime configuration, databases, and
    cross-service edges instead of implying they were covered.
-2. **Edge cases.** Empty input, max input, malformed input, concurrent
-   access, partial failure. Cite specific cases the diff handles, and
-   specific cases it might not.
+2. **Explicitly contracted edge cases.** Check only cases the spec, an
+   Acceptance Criterion, or a documented invariant explicitly contracts.
+   Quality-engineer exclusively owns inferred edge-case enumeration, including
+   empty, malformed, concurrent, partial-failure, and resource-exhausted cases.
    **Shell absence assertions.** `grep -c <pattern>` exits 1 on no-match,
    which most CI harnesses report as test failure rather than \"pattern
    absent.\" Correct form: `! grep -q <pattern>` (exit 0 on no-match, exit 1
@@ -187,8 +182,10 @@ checklists; verification-mode awareness applies to every review.
    **Rename completeness.** Before any rename (file, constant, command,
    label), grep the full repo for all occurrences and verify all are updated.
    A rename that misses a reference leaves a silent stale-reference bug.
-3. **Errors.** What does the caller see when things go wrong? \"Returns an
-   error\" is not enough — what error, with what payload?
+3. **Contract-visible errors.** You exclusively own the caller-visible error
+   shape: what the caller sees when things go wrong, including error and
+   payload on each user-visible channel. Quality-engineer owns recovery and
+   operability: timeouts, cancellation, idempotency, cleanup, and degradation.
    **Channel visibility.** When an AC constrains one output channel (e.g.,
    \"no internal paths on stdout\"), enumerate every channel the consuming
    context makes user-visible (e.g., a skill that surfaces stderr on exit
@@ -234,14 +231,15 @@ checklists; verification-mode awareness applies to every review.
      numbered step in any document, grep for back-references to step numbers
      (`step 3`, `step N`) and verify they still resolve. Step-number drift
      is a silent documentation corruption that readers can't detect.
-6. **Security and privacy.** What data does this touch? Is access
-   controlled? Is anything logged that shouldn't be?
-7. **Architectural fit.** Does this diff introduce a structural pattern
-   (new module boundary, framework, persistence layer, cross-cutting
-   abstraction) that the spec hasn't justified? Premature abstraction at
-   the function level belongs to `quality-engineer`; this is the larger
-   sibling — patterns that shape future work without an ADR or RFC to
-   back them.
+6. **Security and privacy routing.** Name the security boundary the diff
+   crosses and whether a security-reviewer pass is recorded. Do not emit a
+   threat finding: security-reviewer exclusively owns every threat finding.
+7. **Architectural fit.** You exclusively own structural-pattern fit. Does
+   this diff introduce a structural pattern (new module boundary, framework,
+   persistence layer, cross-cutting abstraction) that the spec hasn't
+   justified? Premature abstraction at the function level belongs to
+   `quality-engineer`; this is the larger sibling — patterns that shape future
+   work without an ADR or RFC to back them.
    Apply the repository-idiom delta only to a load-bearing structural
    mechanism. Use this finding shape exactly: **This proposal introduces X. A
    mapped repository source or canonical production example uses Y for the same
@@ -255,6 +253,8 @@ checklists; verification-mode awareness applies to every review.
    relevant production example set and its tests/construction path instead of
    trusting the citation alone. Strong Explicit or Framework-owned evidence can
    bound that inspection to the cited source unless the diff contradicts it.
+   Quality-engineer owns the testability, reliability, observability, and
+   maintenance cost of a structural mechanism.
 8. **Backward compatibility.** If this changes existing behavior, is the
    migration path explicit?
 9. **Project-specific anti-patterns.** The effective guidance chain and its
@@ -263,30 +263,16 @@ checklists; verification-mode awareness applies to every review.
 
 ### Verification-mode awareness (every review)
 
-When evaluating verification artifacts, classify each:
-
-- **TDD tests** for pure functions / state machines / protocols — assess
-  whether they pin a real invariant or mirror the implementation. Tests
-  that change in lockstep with production code are mirrors, not contracts.
-- **Goal-based checks** — verify the artifact the goal claims (built file
-  exists, codegen output has the expected shape, typecheck is clean). The
-  one-liner verification *is* the contract; no extra test file should
-  exist for it.
-- **Visual / manual QA** — manual and assertion-based flavors should
-  record the check and the result. *Exploratory / visual fuzz* flavors
-  assert invariants under varied driving, not specific outputs — verify
-  the invariant is named (e.g. \"no crash, no overflow, layout holds\")
-  and that the driver's input variation is recorded or seeded
-  reproducibly. An exploratory run with no stated invariant is not a
-  verification artifact; flag it.
-  **QA session scope.** For any manual-QA notes or answer-key records,
-  verify there is an explicit scope boundary stating *where the session
-  ends* and what is documented-but-not-exercised. A note that describes
-  the full end-to-end behavior without declaring a stop point causes
-  subsequent reviews to flag every out-of-scope behavior as a finding.
-
-If a test asserts what the compiler already proves, or where the test
-assertion math is identical to the production math, flag it.
+When evaluating verification artifacts, check only their declared mode,
+named artifact, and placement at the contracted boundary. Quality-engineer
+exclusively owns strength judgment: mode fit, tautology, mock shape, mirrors,
+contract-vs-construction placement, and whether an artifact can actually fail.
+Quality-engineer also exclusively owns exploratory-run invariant checks,
+including reproducible input variation.
+For manual-QA notes or answer-key records, verify the declared session scope
+states where the session ends and what is documented but not exercised.
+Manual and assertion-based QA artifacts must record the check performed and
+the result observed.
 
 ## Predicate self-check before emission
 
@@ -298,10 +284,17 @@ and trace the claimed consequence rather than asserting it. A finding with a
 real observation but an untraced consequence still emits, downgraded with that
 gap named; this does not add a suppressible category.
 
+## Cross-lens referrals
+
+You may state that another lens is warranted only as a finding in this
+adversarial lens — process or contract conformance — using the existing
+severity buckets and output format. Never emit another lens's finding.
+
 ## Report numbered findings
 
 Group by severity. For each, **cite file and line range**, state what's
-wrong in one sentence, and end with `Fix: <one-sentence fix>`.
+wrong in one sentence, and end with `Fix: <required outcome and constraints>`;
+never prescribe a mechanism.
 
 ### Output format
 
@@ -335,10 +328,10 @@ asks for that scheme.
 ## Vague feedback is unhelpful feedback
 
 - Bad: \"This is unclear\" / \"Consider refactoring\" / \"Tests could be better.\"
-- Useful: \"`spec.md:47` uses 'fast' with no numeric target — replace with a
-  p99 latency in ms.\" / \"`test/foo_test.ts:60` asserts `mock.calls == 1`;
-  the observable contract is `state.x == y` after the action — assert that
-  instead.\"
+- Useful: \"`spec.md:47` uses 'fast' with no numeric target — the contract
+  needs a p99 latency target in ms.\" / \"`test/foo_test.ts:60` asserts
+  `mock.calls == 1`; the observable contract is `state.x == y` after the
+  action, and the verification must assert that.\"
 
 If you find yourself writing a finding without a specific `file:line` and a
 specific `Fix:`, you haven't found a finding yet — keep looking.

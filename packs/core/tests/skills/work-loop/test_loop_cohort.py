@@ -1711,6 +1711,167 @@ def test_review_record_clean_resets_fingerprint_baseline(tmp: Path) -> None:
         ok(name)
 
 
+def test_skill_shows_every_clean_recording_form(tmp: Path) -> None:
+    """The operator copies these commands; a missing form is a dead end.
+
+    A clean security review always carries the mandatory `## Not checked`
+    footer, so `--direct-clean-file` refuses it. If the skill shows only that
+    form, the layer's headline case has no documented command.
+    """
+    name = "skill-clean-recording-forms"
+    text = (_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    # Scope to the fenced block the operator copies from. A file-wide search
+    # passes on any prose mention of a flag, which is how a guard stops being
+    # able to fail. Anchor on `--all-skipped`, which appears only here, and take
+    # the fence around it — "reviewers-clean" also appears in PLAN's block.
+    anchor = text.index("--all-skipped")
+    block = text[text.rindex("```", 0, anchor) : text.index("```", anchor)]
+    missing = [
+        form
+        for form in (
+            "--direct-clean-file",
+            "--structural-clean-file",
+            "--report <adjudication-report-path> --adjudication",
+            "--all-skipped",
+        )
+        if form not in block
+    ]
+    if missing:
+        fail(name, f"SKILL.md omits clean recording form(s): {missing}")
+    else:
+        ok(name)
+
+
+def test_structural_clean_digest_comes_from_the_classified_read(tmp: Path) -> None:
+    """The audit anchor must digest the bytes that were classified.
+
+    Instrumented rather than source-inspecting: the reader is stubbed to return
+    different content on a second call, so a re-read through *any* helper — not
+    just a literal `read_bytes()` — produces a digest that provably describes
+    bytes nobody classified.
+    """
+    name = "structural-clean-digest-provenance"
+    module = _mod
+    first = "Clean — ready to commit.\n"
+    second = "Clean — ready to commit.\n## Not checked\n- Did not fuzz.\n"
+    calls: list[str] = []
+
+    def stub(path, label):
+        calls.append(label)
+        return first if len(calls) == 1 else second
+
+    original = module.read_managed_text
+    module.read_managed_text = stub
+    try:
+        result = module._classify_raw_report(tmp / "report.md")
+        # A second read would digest `second`; the classified read saw `first`.
+        expected = hashlib.sha256(first.encode("utf-8")).hexdigest()
+        wrong = hashlib.sha256(second.encode("utf-8")).hexdigest()
+        if result["_classified_digest"] == wrong:
+            fail(name, "digest describes a later read, not the classified bytes")
+        elif result["_classified_digest"] != expected:
+            fail(name, f"digest {result['_classified_digest']} is neither read")
+        elif len(calls) != 1:
+            fail(name, f"classifier read the artifact {len(calls)} times, expected 1")
+        else:
+            ok(name)
+    finally:
+        module.read_managed_text = original
+
+
+def test_record_path_never_rereads_for_its_digest(tmp: Path) -> None:
+    """`cmd_review_record` must consume the classified digest, not reopen.
+
+    Source-structural, and narrowly so: it rejects *any* re-read helper in that
+    branch, not just a literal `read_bytes()`. The instrumented behavioural proof
+    that one read happened lives in
+    `test_structural_clean_digest_comes_from_the_classified_read`; this one pins
+    that the recorder consumes it rather than taking its own.
+    """
+    name = "record-digest-no-reread"
+    source = (_SKILL_DIR / "scripts" / "loop-cohort.py").read_text(encoding="utf-8")
+    start = source.index("elif structural_clean_file :=")
+    branch = source[start : source.index("    else:", start)]
+    rereads = [c for c in ("read_bytes(", "read_text(", "read_managed_text(", "open(")
+               if c in branch]
+    if rereads:
+        fail(name, f"structural-clean branch reopens the artifact via {rereads}")
+    elif "_classified_digest" not in branch:
+        fail(name, "structural-clean branch does not consume the classified digest")
+    else:
+        ok(name)
+
+
+def test_raw_refusal_reasons_are_closed_and_reachable(tmp: Path) -> None:
+    """Every declared refusal code must be produced by some real report."""
+    name = "raw-refusal-reasons"
+    bodies = {
+        "sentinel-absent": "## Not checked\n- Did not fuzz.\n",
+        "sentinel-repeated": "Clean — ready to commit.\nClean — ready to commit.\n",
+        "content-before-sentinel": "Preamble.\nClean — ready to commit.\n",
+        "footer-heading-repeated": (
+            "Clean — ready to commit.\n## Not checked\n- a\n## Not checked\n- b\n"
+        ),
+        "footer-bullet-malformed": "Clean — ready to commit.\n## Not checked\nnot a bullet\n",
+        "unpermitted-content": "Clean — ready to commit.\nLooks good.\n",
+    }
+    produced = set()
+    for expected, body in bodies.items():
+        report = tmp / f"{expected}.md"
+        report.write_text(body, encoding="utf-8", newline="")
+        result = _mod._classify_raw_report(report)
+        if result["classification"] != "invalid":
+            fail(name, f"{expected!r} body classified {result['classification']}")
+            return
+        if result["_reason"] != expected:
+            fail(name, f"expected reason {expected!r}, got {result['_reason']!r}")
+            return
+        produced.add(result["_reason"])
+    # `unreadable` needs a missing file rather than a body.
+    missing = _mod._classify_raw_report(tmp / "absent.md")
+    if missing["_reason"] != "unreadable":
+        fail(name, f"missing file gave reason {missing['_reason']!r}")
+        return
+    produced.add("unreadable")
+    unreachable = set(_mod.RAW_REFUSAL_REASONS) - produced
+    if unreachable:
+        fail(name, f"declared but unreachable refusal codes: {sorted(unreachable)}")
+    else:
+        ok(name)
+
+
+def test_clean_source_replay_forms_are_exhaustive(tmp: Path) -> None:
+    """Resumption must map each persisted clean source to its own command form.
+
+    Scoped to the `reviewers-clean` table row. A file-wide search passes while
+    that row is removed, reordered, or mis-mapped, as long as the strings survive
+    anywhere in the document.
+    """
+    name = "clean-source-replay-forms"
+    text = (_SKILL_DIR / "references" / "session-resumption.md").read_text(encoding="utf-8")
+    # Two rows carry this event — the spec gate and the code gate. Replay of a
+    # recorded clean round belongs to the CODE-HUMAN-GATE row.
+    rows = [
+        ln
+        for ln in text.splitlines()
+        if ln.lstrip().startswith("| `reviewers-clean`") and "`CODE-HUMAN-GATE`" in ln
+    ]
+    if len(rows) != 1:
+        fail(name, f"expected one reviewers-clean CODE-HUMAN-GATE row, found {len(rows)}")
+        return
+    row = rows[0]
+    required = (
+        '`"direct-clean"` → `--direct-clean-file <raw-path>`',
+        '`"structural-clean"` → `--structural-clean-file <raw-path>`',
+        '`"report"` → `--report <adjudication-path> --adjudication`',
+    )
+    missing = [form for form in required if form not in row]
+    if missing:
+        fail(name, f"reviewers-clean row omits replay form(s): {missing}")
+    else:
+        ok(name)
+
+
 # ── T3: module-scope constant characterization ────────────────────────────
 
 

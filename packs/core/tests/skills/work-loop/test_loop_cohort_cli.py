@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -235,6 +236,10 @@ class LoopCohortCliTest(unittest.TestCase):
         artifact = spec_dir.parent / "raw-clean.md"
         artifact.write_bytes(body)
         return artifact
+
+    def _raw_classification(self, report: Path) -> dict[str, object]:
+        result = self._assert_cli(0, "review", "raw-classify", "--report", str(report), "--json")
+        return json.loads(result.stdout)
 
     @staticmethod
     def _state(spec_dir: Path) -> dict[str, object]:
@@ -478,6 +483,147 @@ class LoopCohortCliTest(unittest.TestCase):
         )
         self.assertEqual(json.loads(result.stdout)["classification"], "clean")
 
+    def test_37a_raw_classify_uses_closed_footer_grammar(self) -> None:
+        """Only the sentinel and an inert Not checked footer are raw-clean."""
+        root = self._temp_root()
+        cases = (
+            ("bare", "Clean — ready to commit.", "clean", 0, False),
+            (
+                "footer",
+                "Clean — ready to commit.\n## Not checked\n- Did not fuzz the parser.\n",
+                "clean",
+                0,
+                True,
+            ),
+            (
+                "crlf-footer",
+                "Clean — ready to commit.\r\n## Not checked\r\n- Did not fuzz the parser.\r\n",
+                "clean",
+                0,
+                True,
+            ),
+            (
+                "second-section",
+                "Clean — ready to commit.\n## Not checked\n- Not tested.\n## Other\n- Prose.\n",
+                "invalid",
+                0,
+                True,
+            ),
+            ("free-prose", "Clean — ready to commit.\nLooks good.\n", "invalid", 0, False),
+            (
+                "finding-and-footer",
+                "Clean — ready to commit.\n**1. Missing guard.** `src/a.py:2`. Bad. Fix: add it.\n## Not checked\n- None.\n",
+                "findings",
+                1,
+                True,
+            ),
+            (
+                "three-findings",
+                "**1. One.** `src/a.py:1`. Bad. Fix: fix.\n**2. Two.** `src/b.py:2`. Bad. Fix: fix.\n**3. Three.** `src/c.py:3`. Bad. Fix: fix.\n",
+                "findings",
+                3,
+                False,
+            ),
+            ("no-sentinel", "## Not checked\n- Did not fuzz.\n", "invalid", 0, True),
+            (
+                "anchor-in-footer",
+                "Clean — ready to commit.\n## Not checked\n- `src/a.py:2` was not inspected.\n",
+                "clean",
+                0,
+                True,
+            ),
+            ("sentinel-code-fence", "```\nClean — ready to commit.\n```\n", "invalid", 0, False),
+            ("sentinel-whitespace", "Clean — ready to commit. \n", "invalid", 0, False),
+            ("sentinel-bom", "\ufeffClean — ready to commit.\n", "invalid", 0, False),
+            ("sentinel-lookalike", "Clean – ready to commit.\n", "invalid", 0, False),
+            # A real finding written as free prose in the footer carries no
+            # numbered marker, backticked anchor, or `Fix:` token. Only the
+            # closed opener form keeps it out of the clean fast path.
+            # Footer content is never trusted for the fast path, so these
+            # classify `clean` and are disqualified by `not_checked_present`.
+            # `test_37b_footer_reports_never_take_the_clean_fast_path` owns that.
+            (
+                "prose-finding-in-footer",
+                "Clean — ready to commit.\n## Not checked\n"
+                "- Did not complete authorization review: unauthenticated requests "
+                "can set is_admin=true on the invite endpoint.\n",
+                "clean",
+                0,
+                True,
+            ),
+            (
+                "footer-heading-repeated",
+                "Clean — ready to commit.\n## Not checked\n- Did not fuzz.\n"
+                "## Not checked\n- Did not scan.\n",
+                "invalid",
+                0,
+                True,
+            ),
+            # str.splitlines() also breaks on these, which would let one visual
+            # line split into a grammar that reads clean.
+            (
+                "vertical-tab-terminator",
+                "Clean — ready to commit.\v## Not checked\v- Did not fuzz.\n",
+                "invalid",
+                0,
+                False,
+            ),
+            (
+                "line-separator-terminator",
+                "Clean — ready to commit.\u2028## Not checked\u2028- Did not fuzz.\n",
+                "invalid",
+                0,
+                False,
+            ),
+            (
+                "lone-cr-terminator",
+                "Clean — ready to commit.\r## Not checked\r- Did not fuzz.\n",
+                "invalid",
+                0,
+                False,
+            ),
+        )
+        for name, body, classification, finding_count, footer_present in cases:
+            with self.subTest(name=name):
+                report = root / f"{name}.md"
+                report.write_text(body, encoding="utf-8", newline="")
+                self.assertEqual(
+                    self._raw_classification(report),
+                    {
+                        "classification": classification,
+                        "finding_count": finding_count,
+                        "not_checked_present": footer_present,
+                    },
+                )
+
+    def test_37b_raw_classify_refuses_unreadable_nonutf_oversized_and_fifo(self) -> None:
+        root = self._temp_root()
+        unreadable = root / "missing.md"
+        non_utf = root / "non-utf.md"
+        non_utf.write_bytes(b"\xff")
+        oversized = root / "oversized.md"
+        oversized.write_bytes(b"x" * (8 * 1024 * 1024 + 1))
+        paths = [unreadable, non_utf, oversized]
+        fifo = root / "report.fifo"
+        if hasattr(os, "mkfifo"):
+            os.mkfifo(fifo)
+            paths.append(fifo)
+        for path in paths:
+            with self.subTest(path=path.name):
+                self.assertEqual(
+                    self._raw_classification(path),
+                    {"classification": "invalid", "finding_count": 0, "not_checked_present": False},
+                )
+
+    def test_37c_raw_classify_keeps_disclosure_metadata_out_of_routing(self) -> None:
+        root = self._temp_root()
+        report = root / "footer-without-sentinel.md"
+        report.write_text("## Not checked\n- Did not fuzz the parser.\n", encoding="utf-8")
+        self.assertEqual(
+            self._raw_classification(report),
+            {"classification": "invalid", "finding_count": 0, "not_checked_present": True},
+        )
+
     def test_38_review_record_fingerprint_succeeds(self) -> None:
         spec_dir, run_id = self._scheduled()
         self._assert_cli(
@@ -620,6 +766,79 @@ class LoopCohortCliTest(unittest.TestCase):
             state["last_review_clean_digest"],
             hashlib.sha256(DIRECT_CLEAN_BYTES).hexdigest(),
         )
+
+    def test_42aa_review_record_reclassifies_structural_clean_file(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        # Footer-free: a trailing newline is what byte equality rejects and this
+        # form exists to admit. A footer-bearing report is refused — see
+        # test_42ac.
+        artifact = self._direct_clean_file(
+            spec_dir, b"Clean \xe2\x80\x94 ready to commit.\n"
+        )
+        result = self._assert_cli(
+            0,
+            "review",
+            "record",
+            str(spec_dir),
+            "--structural-clean-file",
+            str(artifact),
+            "--expect-run-id",
+            run_id,
+        )
+        self.assertIn("review record (clean:structural-clean)", result.stdout)
+        state = self._state(spec_dir)
+        self.assertEqual(state["last_review_clean_source"], "structural-clean")
+        self.assertEqual(state["last_review_clean_digest"], hashlib.sha256(artifact.read_bytes()).hexdigest())
+
+    def test_42ac_review_record_refuses_a_footer_bearing_report(self) -> None:
+        """A `## Not checked` footer always takes the adjudicator path.
+
+        The footer is prose and prose is what the adjudicator reads. Two attempts
+        to make footer content safe to fast-path were defeated, so its content is
+        no longer inspected — its presence alone disqualifies the fast path.
+        """
+        spec_dir, run_id = self._scheduled()
+        artifact = self._direct_clean_file(
+            spec_dir,
+            b"Clean \xe2\x80\x94 ready to commit.\n## Not checked\n"
+            b"- Did not complete authorization review: unauthenticated requests "
+            b"can set is_admin=true on the invite endpoint.\n",
+        )
+        result = self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--structural-clean-file",
+            str(artifact),
+            "--expect-run-id",
+            run_id,
+        )
+        self.assertIn("not eligible for the clean fast path", result.stdout + result.stderr)
+        self.assertIsNone(self._state(spec_dir)["last_review_clean_source"])
+
+    def test_42ab_review_record_rejects_invalid_structural_clean_file(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        artifact = self._direct_clean_file(
+            spec_dir,
+            # Genuinely malformed, not merely footer-bearing: the footer path is
+            # a separate refusal with its own message (test_42ac).
+            b"Clean \xe2\x80\x94 ready to commit.\nLooks good.\n",
+        )
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--structural-clean-file",
+            str(artifact),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="requires a clean raw-report classification",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
 
     def test_42b_review_record_rejects_near_miss_without_state_change(self) -> None:
         spec_dir, run_id = self._scheduled()

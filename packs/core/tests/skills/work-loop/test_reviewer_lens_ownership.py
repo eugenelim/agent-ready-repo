@@ -110,6 +110,34 @@ def test_testing_strategy_named_artifacts_belong_to_adversarial_reviewer() -> No
     assert "artifacts Testing Strategy names by file or function" in quality, QUALITY
 
 
+def test_security_findings_are_calibrated_to_a_named_attacker() -> None:
+    # Scoped to the calibration section itself. A whole-file check passes while
+    # the rule is gutted, as long as the phrases survive in unrelated prose.
+    raw = _raw(SECURITY)
+    start = raw.index("## Calibrate to the attacker, not the catalogue")
+    section = " ".join(raw[start : raw.index("\n## ", start + 1)].split())
+    # Both gates must be present in the rule: a reachable path, and no easier
+    # capability the attacker already holds.
+    for gate in (
+        "Name the attacker for every finding",
+        "**Reachability.**",
+        "**No easier path.**",
+        "Prefer one exploitable defect to five theoretical ones.",
+    ):
+        assert gate in section, (SECURITY, gate)
+    # The calibration must stay a severity rule. Without these it reads as a
+    # licence to suppress, which is the failure mode it would introduce.
+    assert "narrows **severity, never coverage.**" in section, SECURITY
+    assert "an unpriced finding is a Concern, not a silence" in section, SECURITY
+    for never_downgraded in (
+        "trust-boundary crossing",
+        "missing authentication or authorization check",
+        "secret in the diff",
+        "control the spec required",
+    ):
+        assert never_downgraded in section, (SECURITY, never_downgraded)
+
+
 def test_fix_states_outcomes_and_constraints_not_mechanisms() -> None:
     for path in (ADVERSARIAL, QUALITY, SECURITY):
         text = _compact(path)
@@ -148,7 +176,12 @@ def test_reviewer_finding_wire_format_survives() -> None:
         assert "Cross-lens referrals" in compact, path
         assert "using the existing severity buckets and output format" in compact, path
         assert "Never emit another lens's finding." in compact, path
-    security_template = _finding_template(SECURITY)
-    assert security_template.rstrip().endswith(
-        "## Not checked\n\n- <issue class not checked and why>"
-    ), SECURITY
+    # The footer must close the template and carry a bullet. Its *content* is
+    # deliberately unconstrained: footer-bearing reports always take the
+    # adjudicator path, so a content rule here would be a guard that looks
+    # load-bearing without being one.
+    security_template = _finding_template(SECURITY).rstrip()
+    footer = security_template[security_template.index("## Not checked") :]
+    assert security_template.endswith(footer), SECURITY
+    bullets = [ln for ln in footer.splitlines() if ln.startswith("- ")]
+    assert len(bullets) == 1, SECURITY

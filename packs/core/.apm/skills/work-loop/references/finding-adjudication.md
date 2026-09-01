@@ -1,33 +1,17 @@
 # Finding-adjudication path protocol
 
-Use this reference for every non-exact post-GATES reviewer report. Pre-EXECUTE
+Use this reference for every raw report classified `findings`. Pre-EXECUTE
 reviews use the parallel protocol in `pre-execute-review.md`.
 
-## Exact-clean fast path
+## Raw-clean fast path
 
-Persist the completed reviewer's return to the ignored session path exactly as
-it arrived, then run `review record --direct-clean-file <path>`. The command
-reads that file's bytes and compares them with the UTF-8 encoding of
-`Clean — ready to commit.`. Byte equality is direct clean: run the remaining
-warranted reviewers without dispatching `finding-adjudicator`, creating paired
-artifacts, or invoking an adjudication classifier. The raw artifact is still
-written and still validated — a clean round that leaves no evidence cannot be
-audited, and the saving the fast path exists for is the adjudicator model call,
-not a file write.
-
-The comparison is bytes, not a rendered or decoded reading: a trailing newline,
-trimmed whitespace, case folding, Unicode normalization, unwrapped Markdown, or
-the sentinel as a substring, prefix, or suffix each fail the comparison, and
-the command changes no state when they do. Because the check runs over a file
-rather than over a value the controller carries, no clean round rests on a
-model-performed string comparison.
-
-Every non-exact return follows the protocol below. The reviewer contract makes
-that the finding-bearing path; malformed or mixed output remains fail-closed
-and gains no clean inference. This fast path applies only to a raw reviewer
-return. Once actual findings enter adjudication, only the strict paired
-adjudication artifact may resolve them as sustained, refuted, indeterminate, or
-adjudicated clean.
+Persist and validate the completed reviewer's return exactly as it arrived, then
+run `review raw-classify --report <path> --json`. `clean` requires the exact
+sentinel, zero parsed findings, and only the closed `## Not checked` footer
+grammar; it skips `finding-adjudicator` and paired artifacts. Record a byte-exact
+clean with `--direct-clean-file`, otherwise record the classifier-accepted raw
+artifact with `--structural-clean-file`. `findings` follows this protocol;
+`invalid` stops. The raw artifact is always retained for audit.
 
 ## Artifact identity and validation
 
@@ -250,7 +234,7 @@ full mode, or pass `--report <raw-report-path>`.
 | Result | Route |
 | --- | --- |
 | `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
-| `clean` | Exact `Clean — ready to commit.`; run remaining warranted reviewers. |
+| `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
 | `matches_previous_round=true` | Surface stasis; do not start another round. |
 
@@ -274,16 +258,12 @@ python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
 ```
 
 Then FIX, fire `wave-complete`, rerun GATES, and re-enter REVIEW. Do not record
-an adversarial clean before specialist reviewers finish; a later specialist
-finding would advance the round prematurely. On final clean, use
-`review record --direct-clean-file <raw-report-path>` only when the persisted
-raw response is byte-equal to that sentinel — a report that merely claims to be
-clean, or that appends anything to the sentence, is not eligible, and the
-command enforces that itself by reading the file. A refuted-only adjudication
-is *not* eligible either: it is an adjudicated clean and takes the paired path.
-Otherwise use the paired adjudication path with
-`review record --adjudication`. Fingerprints increment the retry count, while
-either clean-recording form does not.
+an adversarial clean before specialist reviewers finish. On final raw clean, use
+`--direct-clean-file` only for the byte-exact sentinel; use
+`--structural-clean-file` only after its own raw classification accepts the
+closed footer grammar. A refuted-only adjudication uses the paired
+`--report --adjudication` form. Fingerprints increment the retry count; clean
+recording forms do not.
 
 Keep each raw/adjudication pair until handoff but never commit it or store its
 paths in cohort state. After recording, evict both bodies from controller

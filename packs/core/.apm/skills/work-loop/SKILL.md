@@ -316,7 +316,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     Exit 1 (`plan_review_status: pending`) is the expected signal to run
     pre-EXECUTE review — it does not trigger termination.
 
-11. **Run every fired pre-EXECUTE reviewer to direct or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Mechanically classify a completed report as clean only when its entire returned text value is exactly `Clean — ready to commit.`; that path precedes and skips persistence, validation, and adjudicator dispatch. Every non-exact report passes through the finding-adjudication gateway before the controller classifies or acts on it; a missing `finding-adjudicator` blocks that path. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
+11. **Run every fired pre-EXECUTE reviewer to direct, structural, or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Persist and validate each raw report, then run `review raw-classify --report <path> --json`: `clean` skips adjudication, `findings` dispatches it, and `invalid` stops loudly. A report carrying a `## Not checked` footer is never fast-pathed however clean it looks — the footer is prose, and prose is what the adjudicator reads; only security-reviewer emits one. Byte equality remains the distinct direct-clean recording form. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
     ```
     # On findings: revise spec/plan
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
@@ -492,19 +492,14 @@ adversarial evidence into a summary-only or named-skip path.
 ### Finding-adjudication gateway
 
 For every warranted reviewer role, persist the completed report to the ignored
-session path first. Persistence is unconditional: it is a file write, not a
-model call, so it costs nothing the fast path was meant to save, and it is what
-makes a recorded clean round auditable afterward. Then let
-`review record --direct-clean-file <path>` compare that artifact's bytes with
-`Clean — ready to commit.`. Byte equality is direct clean: it skips the
-`finding-adjudicator` dispatch, the paired artifacts, and the adjudication
-classifier — but never the raw artifact itself. Do not trim, case-fold,
-normalize Unicode, unwrap Markdown, or accept a substring, prefix, suffix, or
-trailing newline; the command refuses each of these and changes no state. Every
-non-exact report must pass through `finding-adjudicator` before classification,
-fingerprinting, DECIDE, or FIX. Missing adjudicator, invalid structure, or
-`ADJUDICATION-INDETERMINATE` is then a loud stop; never trust non-exact raw
-prose or turn this gateway into a named skip.
+session path first. Persistence is unconditional. Then run `review raw-classify
+--report <path> --json`: `clean` skips adjudication and records with
+`--direct-clean-file` only for byte equality or `--structural-clean-file` for a
+footer-free clean report whose bytes differ only in trailing whitespace;
+`findings` dispatches
+the adjudicator; `invalid` stops loudly. Never trim, case-fold, normalize
+Unicode, unwrap Markdown, or accept prose outside that grammar. Missing
+adjudicator, invalid structure, or `ADJUDICATION-INDETERMINATE` is a loud stop.
 
 Before the first report in a review unit, read
 [`references/finding-adjudication.md`](references/finding-adjudication.md). It
@@ -512,13 +507,13 @@ owns artifact identity, path validation, strict classification, retry ordering,
 and context eviction. The invariant is short:
 
 1. Persist and validate every raw report without acting on its prose. Only the
-   adjudicator dispatch is conditional on exactness; the artifact is not.
+   adjudicator dispatch is conditional on raw classification; the artifact is not.
 2. Dispatch the adjudicator by path with the unchanged target, reviewer role,
    and governing authority paths; persist and validate its paired output.
 3. Classify only the adjudication artifact: stateful `review inspect
    --adjudication` in full mode, state-free `review classify` in light mode
    (including direct-light).
-4. Route only sustained findings. Refuted-only is an *adjudicated* clean result and consumes no retry; record it with `--report … --adjudication`, never `--direct-clean-file` — that form is reserved for a raw reviewer return whose bytes equal the sentinel. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
+4. Route only sustained findings. Refuted-only is an *adjudicated* clean result and consumes no retry; record it with `--report … --adjudication`, never either raw-clean form. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
 
 Keep the raw report opaque after persistence, pass only artifact paths, and
 evict both report bodies after recording. Re-read only a sustained finding from
@@ -564,6 +559,13 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> revi
 # recorded clean never rests on the controller's own account of what was said:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
+    --expect-run-id <run_id> --operation-id <run_id>:<seq>
+# If it is clean but not byte-exact (a trailing newline, say). Refuses a report
+# carrying a `## Not checked` footer: that always takes the adjudicator path.
+# This form re-classifies the persisted artifact itself, and takes the same
+# operation id so a replay is a no-op rather than a second round:
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --structural-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
     --expect-run-id <run_id> --operation-id <run_id>:<seq>
 # Otherwise, if clean exists only through adjudication:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
