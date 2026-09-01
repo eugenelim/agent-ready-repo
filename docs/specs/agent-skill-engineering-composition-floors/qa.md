@@ -262,16 +262,17 @@ declaration set that this slice adjusted, not one frozen before measurement.
 
 ## Gates
 
-Measured on the shipping tree after every edit this slice makes. Written last,
-because a figure recorded mid-work stops describing the tree the moment the next
-commit lands.
+Measured on the shipping tree after the rebase onto `origin/main`, and re-taken
+because the pre-rebase figures stopped describing the tree the moment 16 upstream
+commits landed under them. Written last for the same reason.
 
 | Gate | Invocation | Result |
 | --- | --- | --- |
-| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 222 passed |
-| Repository suites | `python3 -m pytest tests/ -q` | 1044 passed, 6 skipped, 46 subtests |
-| Tooling suite | `python3 -m pytest tools/ -q` | 1207 passed, 2 skipped, 85 subtests; 2 failed, both attributed `owned-elsewhere` below |
-| Site routing | `python3 -m pytest tools/test_build_site_routing.py -q` | 93 passed, 1 skipped |
+| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 227 passed |
+| Shipped-statement scan | `python3 -m pytest tests/roster/test_ase_shipped_statement_agreement.py -q` | 9 passed |
+| Repository suites | `python3 -m pytest tests/ -q` | 1053 passed, 6 skipped, 46 subtests |
+| Tooling suite | `python3 -m pytest tools/ -q` | 1207 passed, 1 skipped, 85 subtests; 3 failed, all attributed `owned-elsewhere` below |
+| Site routing | `python3 -m pytest tools/test_build_site_routing.py -q` | 94 passed |
 | Lint | `make lint-ruff` | All checks passed |
 | Pack-test boundary | `python3 tools/lint-pack-test-boundary.py` | exit 0 |
 | Brief coverage | `lint-brief-coverage.py --root .` | 3 briefs checked |
@@ -280,8 +281,12 @@ commit lands.
 | Site build | `make site-build` | 233 pages built, exit 0 |
 | Web suite | `npm test --prefix web` | 18 files, 129 tests passed, exit 0 |
 
-The site build and the web suite ran after the final `/now/` regeneration rather
-than against a stale `build/`. This worktree had no `node_modules`; they are
+The site build and the web suite ran after the rebase and the final `/now/`
+regeneration rather than against a stale `build/`. A fourth tooling failure,
+`test_release_anchors_match_the_emitted_page_one_for_one_in_order`, was exactly
+that: the rebase moved the changelog under a `build/` produced before it, and
+rebuilding cleared it. It is not carried below because it was a stale artifact
+rather than an observed defect in the tree that ships. This worktree had no `node_modules`; they are
 gitignored, so `make bootstrap-sites` is required in every new worktree before
 either gate can run.
 
