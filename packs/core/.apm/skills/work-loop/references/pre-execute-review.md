@@ -12,19 +12,25 @@
 
 ## Finding-adjudication gateway
 
-Persist every completed pre-EXECUTE reviewer report, then compare the persisted
-artifact's bytes with the UTF-8 encoding of exactly `Clean — ready to commit.`.
-Byte equality is direct clean: do not dispatch `finding-adjudicator`, create
-paired artifacts, or run an adjudication classifier. Trimmed whitespace, a
-trailing newline, case folding, Unicode normalization, unwrapped Markdown, and
-the sentinel as a substring, prefix, or suffix all fail the comparison.
+Persist every completed pre-EXECUTE reviewer report, then run `review
+raw-classify --report <path> --json`. `clean` requires the sentinel line
+exactly once, zero parsed findings, and nothing else but blank lines; do not
+dispatch `finding-adjudicator`. A report carrying a `## Not checked` footer is
+never fast-pathed however clean it looks — the footer is prose, and prose is what
+the adjudicator reads — so it dispatches. `findings` dispatches it. `invalid` is
+a loud stop. Byte equality is direct clean and remains the distinct
+recording form for a report whose bytes equal the sentinel exactly. For
+that form the comparison is exact: Trimmed whitespace, a trailing newline,
+case folding, Unicode normalization, unwrapped Markdown, and the sentinel
+as a substring, prefix, or suffix all fail it. Structural clean is the
+separate, classifier-decided path that admits surrounding blank lines.
 
 Persistence is unconditional and comes first, so this rule holds identically
 whether the harness routes reviewer output straight to the file or the
 controller delivers it once: exactness is decided by reading the artifact, never
 by classifying output before anyone has written it down.
 
-Route every non-exact report through the same independent gateway before
+Route every `findings` report through the same independent gateway before
 classifying or acting on it, revising the spec or plan, or firing a review
 transition. This applies to adversarial, security, design-intent, and frontend
 pre-flight reports whenever those reviewers are warranted. Malformed or mixed

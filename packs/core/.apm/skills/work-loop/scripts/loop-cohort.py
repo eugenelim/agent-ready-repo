@@ -23,8 +23,10 @@ Verb surface
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
+    loop-cohort review raw-classify --report <path> [--json]
     loop-cohort review inspect <spec-dir> --report <path> [--adjudication] [--json]
     loop-cohort review record <spec-dir> (--direct-clean-file <raw-report-path>
+                               | --structural-clean-file <raw-report-path>
                                | --report <adjudication-report-path> --adjudication
                                | --fingerprint <hex> ...) --expect-run-id <uuid>
     loop-cohort status <spec-dir> [--json]
@@ -1605,6 +1607,18 @@ ADJUDICATION_HEADINGS = (
     "## Indeterminate audit",
 )
 NUMBERED_FINDING_MARKER_RE = re.compile(r"\*\*\d+\.")
+NOT_CHECKED_HEADING = "## Not checked"
+# Shape only, deliberately. Two earlier revisions tried to make footer bullets
+# safe to skip adjudication — first by rejecting finding-shaped markers, then by
+# requiring a `Did not ` opener. Both were defeated, because separating
+# disclosure prose from finding prose is undecidable by pattern
+# ("- Did not complete authorization review: unauthenticated requests can set
+# is_admin=true" satisfies both). The footer's content is therefore never
+# trusted: `not_checked_present` disqualifies a report from the clean fast path
+# and routes it to full adjudication, which reads the whole body. That makes a
+# content rule here non-load-bearing, and a guard that looks load-bearing but
+# is not is worse than none.
+NOT_CHECKED_BULLET_RE = re.compile(r"^- ")
 STRICT_SUSTAINED_FINDING_LINE_RE = re.compile(
     r"^\*\*\d+\.[^*\n]+\*\*\s*"
     r"(?:`[^`\n]+:\d+[^`\n]*`|\S+:\d+|Where:\s+[^.\n]+)\.\s+"
@@ -1793,6 +1807,116 @@ def _resolved_report(candidate: str) -> Path:
         return Path(candidate)
 
 
+def _classify_raw_report(report_path: Path) -> dict[str, object]:
+    """Classify a raw reviewer return without widening adjudication semantics.
+
+    This remains separate from `_classify_report`: that function's optional
+    adjudication envelope is a high-stakes path, where a third mode could
+    silently weaken strict classification.
+    """
+    reason: str | None = None
+    try:
+        report_text = read_managed_text(report_path.resolve(), report_path.name)
+    except (OSError, UnicodeDecodeError, ValueError):
+        classification = "invalid"
+        finding_count = 0
+        classified_digest = None
+        reason = "unreadable"
+        lines: list[str] = []
+    else:
+        # Digest the bytes this call actually classified, not a second read.
+        # `read_managed_text` decodes bytes strictly without folding newlines, so
+        # re-encoding is byte-identical to the file. A caller that re-opened the
+        # path for its audit anchor could digest content nobody classified.
+        classified_digest = hashlib.sha256(report_text.encode("utf-8")).hexdigest()
+        # LF and CRLF only (AC2.3b). `str.splitlines()` also breaks on \v, \f,
+        # \x1c-\x1e, \x85, U+2028 and U+2029, so a single visual line could be
+        # split into a grammar that reads clean. Any of those left embedded here
+        # makes its line unequal to the sentinel, which fails closed.
+        lines = report_text.replace("\r\n", "\n").split("\n")
+        finding_count = len(parse_findings(report_text))
+        if finding_count:
+            classification = "findings"
+        else:
+            sentinel_count = sum(line == CLEAN_SUBSTRING for line in lines)
+            sentinel_index = next(
+                (index for index, line in enumerate(lines) if line == CLEAN_SUBSTRING),
+                -1,
+            )
+            footer_started = False
+            clean_shape = sentinel_count == 1
+            if not clean_shape:
+                reason = "sentinel-absent" if sentinel_count == 0 else "sentinel-repeated"
+            for index, line in enumerate(lines):
+                if not clean_shape:
+                    break
+                if not line or index == sentinel_index:
+                    continue
+                if index < sentinel_index:
+                    clean_shape = False
+                    reason = "content-before-sentinel"
+                    break
+                if line == NOT_CHECKED_HEADING:
+                    if footer_started:
+                        clean_shape = False
+                        reason = "footer-heading-repeated"
+                        break
+                    footer_started = True
+                    continue
+                if footer_started and NOT_CHECKED_BULLET_RE.match(line):
+                    continue
+                clean_shape = False
+                reason = (
+                    "footer-bullet-malformed" if footer_started else "unpermitted-content"
+                )
+                break
+            classification = "clean" if clean_shape else "invalid"
+
+    # Disclosure metadata is deliberately computed after classification.
+    not_checked_present = NOT_CHECKED_HEADING in lines
+    return {
+        "classification": classification,
+        "finding_count": finding_count,
+        "not_checked_present": not_checked_present,
+        # Internal only — never emitted in the JSON payload.
+        # `_raw_classification_payload` projects the closed public field set so a
+        # key added here cannot leak into the documented contract. The reason is
+        # a fixed, content-free code surfaced on stderr, mirroring
+        # `_actionable_review_text`'s refusal vocabulary: a bare `invalid` leaves
+        # an operator unable to tell a missing sentinel from a malformed footer.
+        "_classified_digest": classified_digest,
+        "_reason": reason,
+    }
+
+
+RAW_REFUSAL_REASONS = frozenset(
+    {
+        "unreadable",
+        "sentinel-absent",
+        "sentinel-repeated",
+        "content-before-sentinel",
+        "footer-heading-repeated",
+        "footer-bullet-malformed",
+        "unpermitted-content",
+    }
+)
+
+
+def _warn_raw_refusal(result: dict[str, object]) -> None:
+    """Name which grammar rule refused the report, without echoing its content."""
+    reason = result.get("_reason")
+    if result["classification"] == "invalid" and reason:
+        print(f"loop-cohort: raw report refused ({reason})", file=sys.stderr)
+
+
+RAW_CLASSIFICATION_FIELDS = ("classification", "finding_count", "not_checked_present")
+
+
+def _raw_classification_payload(result: dict[str, object]) -> dict[str, object]:
+    """Project the closed emitted field set for the raw-classify contract."""
+    return {field: result[field] for field in RAW_CLASSIFICATION_FIELDS}
+
+
 def _classify_report(
     report_path: Path,
     state: dict,
@@ -1887,6 +2011,23 @@ def cmd_review_classify(args: argparse.Namespace) -> int:
         require_adjudication=True,
     )
     _print_review_result(result, as_json=args.json, verb="classify")
+    return 0
+
+
+def cmd_review_raw_classify(args: argparse.Namespace) -> int:
+    """Classify a raw reviewer report without cohort state."""
+    full = _classify_raw_report(_resolved_report(args.report))
+    _warn_raw_refusal(full)
+    result = _raw_classification_payload(full)
+    if args.json:
+        print(json.dumps(result))
+    else:
+        print(
+            "loop-cohort: review raw-classify "
+            f"classification={result['classification']} "
+            f"finding_count={result['finding_count']} "
+            f"not_checked_present={result['not_checked_present']}"
+        )
     return 0
 
 
@@ -2114,8 +2255,8 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         )
         return 0
 
-    # Clean branches: a persisted byte-equal reviewer return, or a validated
-    # adjudication report. Both rest on bytes read back from disk, so a
+    # Clean branches: a persisted byte-equal or structural raw return, or a
+    # validated adjudication report. Each rests on bytes read back from disk, so a
     # recorded clean round is never the caller's own assertion about what a
     # reviewer said.
     direct_clean_file = getattr(args, "direct_clean_file", None)
@@ -2142,10 +2283,44 @@ def cmd_review_record(args: argparse.Namespace) -> int:
             )
         clean_source = "direct-clean"
         clean_digest = hashlib.sha256(raw).hexdigest()
+    elif structural_clean_file := getattr(args, "structural_clean_file", None):
+        if args.adjudication:
+            return stop(
+                "review record: --structural-clean-file and --adjudication name two "
+                "different recording forms"
+            )
+        artifact_path = _resolved_report(structural_clean_file)
+        result = _classify_raw_report(artifact_path)
+        if result["classification"] != "clean":
+            _warn_raw_refusal(result)
+            return stop(
+                "review record: --structural-clean-file requires a clean raw-report classification"
+            )
+        # A disclosure footer is prose, and prose is what the adjudicator exists
+        # to read. Its content is never trusted here, so a footer-bearing report
+        # is never fast-pathed however well-formed it looks. This reads
+        # `not_checked_present` for ROUTING only; classification above is
+        # decided without it (AC2.4).
+        if result["not_checked_present"]:
+            return stop(
+                "review record: a report carrying a '## Not checked' footer is not "
+                "eligible for the clean fast path; route it through "
+                "finding-adjudicator and record with --report … --adjudication"
+            )
+        clean_source = "structural-clean"
+        # The digest comes from the same read that classified the artifact. A
+        # second open here would let a concurrent write make the recorded audit
+        # anchor attest to content that was never classified clean.
+        clean_digest = result["_classified_digest"]
+        if not isinstance(clean_digest, str):
+            return stop(
+                "review record: --structural-clean-file produced no digest for "
+                "the classified bytes; re-persist the reviewer's return"
+            )
     else:
         if not args.report:
             return stop(
-                "review record: one of --direct-clean-file, --report, or "
+                "review record: one of --direct-clean-file, --structural-clean-file, --report, or "
                 "--fingerprint is required"
             )
         if not args.adjudication:
@@ -2376,6 +2551,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp.set_defaults(func=cmd_review_classify)
 
     sp = review_sub.add_parser(
+        "raw-classify",
+        help="state-free: classify a raw reviewer report with the closed footer grammar",
+    )
+    sp.add_argument("--report", required=True)
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_review_raw_classify)
+
+    sp = review_sub.add_parser(
         "inspect",
         help="read-only: classify a reviewer report (clean/findings/invalid)",
     )
@@ -2402,6 +2585,11 @@ def build_parser() -> argparse.ArgumentParser:
             "path to the persisted complete reviewer return; its bytes must "
             "equal the exact clean sentinel"
         ),
+    )
+    _rr_grp.add_argument(
+        "--structural-clean-file",
+        default=None,
+        help="path to a raw reviewer return accepted by review raw-classify",
     )
     _rr_grp.add_argument(
         "--report",

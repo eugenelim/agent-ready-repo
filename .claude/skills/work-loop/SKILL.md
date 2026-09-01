@@ -316,7 +316,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     Exit 1 (`plan_review_status: pending`) is the expected signal to run
     pre-EXECUTE review — it does not trigger termination.
 
-11. **Run every fired pre-EXECUTE reviewer to direct or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Mechanically classify a completed report as clean only when its entire returned text value is exactly `Clean — ready to commit.`; that path precedes and skips persistence, validation, and adjudicator dispatch. Every non-exact report passes through the finding-adjudication gateway before the controller classifies or acts on it; a missing `finding-adjudicator` blocks that path. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
+11. **Run every fired pre-EXECUTE reviewer to direct, structural, or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Persist and validate each raw report, then run `review raw-classify --report <path> --json`: `clean` skips adjudication, `findings` dispatches it, and `invalid` stops loudly. A report carrying a `## Not checked` footer is never fast-pathed however clean it looks — the footer is prose, and prose is what the adjudicator reads; only security-reviewer emits one. Byte equality remains the distinct direct-clean recording form. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
     ```
     # On findings: revise spec/plan
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
@@ -481,8 +481,8 @@ Adjudicated sustained findings come back grouped by severity (Blockers /
 Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
 in the paired audit; an indeterminate stops unless the evidence retry admits it.
 
-- **Full mode:** iterate `adversarial-reviewer` until its direct or adjudicated main-loop result returns `Clean — ready to commit.`
-- **Light mode:** run the single bounded pass. Accept only the exact clean sentinel directly; adjudicate every other report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
+- **Full mode:** iterate `adversarial-reviewer` until no unresolved Blocker or Concern remains.
+- **Light mode:** run the single bounded pass. Classify the persisted report with `review raw-classify`; a `clean` result without a `## Not checked` footer records directly, and every other report is adjudicated. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
 
 Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path.
 Fallback if no subagent is installed: record the mandatory reviewer outcome as
@@ -492,19 +492,19 @@ adversarial evidence into a summary-only or named-skip path.
 ### Finding-adjudication gateway
 
 For every warranted reviewer role, persist the completed report to the ignored
-session path first. Persistence is unconditional: it is a file write, not a
-model call, so it costs nothing the fast path was meant to save, and it is what
-makes a recorded clean round auditable afterward. Then let
-`review record --direct-clean-file <path>` compare that artifact's bytes with
-`Clean — ready to commit.`. Byte equality is direct clean: it skips the
-`finding-adjudicator` dispatch, the paired artifacts, and the adjudication
-classifier — but never the raw artifact itself. Do not trim, case-fold,
-normalize Unicode, unwrap Markdown, or accept a substring, prefix, suffix, or
-trailing newline; the command refuses each of these and changes no state. Every
-non-exact report must pass through `finding-adjudicator` before classification,
-fingerprinting, DECIDE, or FIX. Missing adjudicator, invalid structure, or
-`ADJUDICATION-INDETERMINATE` is then a loud stop; never trust non-exact raw
-prose or turn this gateway into a named skip.
+session path first. Persistence is unconditional. Then run `review raw-classify
+--report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
+`--direct-clean-file` only for byte equality or `--structural-clean-file` for a
+footer-free clean report whose bytes differ only in trailing whitespace;
+`findings` dispatches the adjudicator unless the report is Nit-only and the
+thread does not intend to mutate; then defer each Nit in the verdict record.
+An intended Nit mutation requires adjudication. `invalid` stops loudly. Do not trim, case-fold, normalize
+Unicode, unwrap Markdown, or accept prose outside that grammar. A missing
+`finding-adjudicator`, invalid structure, or `ADJUDICATION-INDETERMINATE` is a
+loud stop.
+
+Byte equality is direct clean, and stays the distinct recording form for a
+report whose bytes equal the sentinel exactly.
 
 Before the first report in a review unit, read
 [`references/finding-adjudication.md`](references/finding-adjudication.md). It
@@ -512,13 +512,13 @@ owns artifact identity, path validation, strict classification, retry ordering,
 and context eviction. The invariant is short:
 
 1. Persist and validate every raw report without acting on its prose. Only the
-   adjudicator dispatch is conditional on exactness; the artifact is not.
+   adjudicator dispatch is conditional on raw classification; the artifact is not.
 2. Dispatch the adjudicator by path with the unchanged target, reviewer role,
    and governing authority paths; persist and validate its paired output.
 3. Classify only the adjudication artifact: stateful `review inspect
    --adjudication` in full mode, state-free `review classify` in light mode
    (including direct-light).
-4. Route only sustained findings. Refuted-only is an *adjudicated* clean result and consumes no retry; record it with `--report … --adjudication`, never `--direct-clean-file` — that form is reserved for a raw reviewer return whose bytes equal the sentinel. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
+4. Route only sustained findings. Refuted-only is an *adjudicated* clean result and consumes no retry; record it with `--report … --adjudication`, never either raw-clean form. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
 
 Keep the raw report opaque after persistence, pass only artifact paths, and
 evict both report bodies after recording. Re-read only a sustained finding from
@@ -548,7 +548,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
   named artifact, accepted concept/constraints, and governing rubric paths;
   route its report through finding adjudication. This adds no core trigger.
 
-**When every warranted mandatory reviewer is clean and every non-mandatory reviewer is clean or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
+**When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
 `reviewers-clean` and, if at least one reviewer produced a clean report, record
 it (transition first; record is non-idempotent — recording first then crashing
 leaves CODE-REVIEW with the audit count already moved; the default guard
@@ -564,6 +564,13 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> revi
 # recorded clean never rests on the controller's own account of what was said:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
+    --expect-run-id <run_id> --operation-id <run_id>:<seq>
+# If it is clean but not byte-exact (a trailing newline, say). Refuses a report
+# carrying a `## Not checked` footer: that always takes the adjudicator path.
+# This form re-classifies the persisted artifact itself, and takes the same
+# operation id so a replay is a no-op rather than a second round:
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --structural-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
     --expect-run-id <run_id> --operation-id <run_id>:<seq>
 # Otherwise, if clean exists only through adjudication:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
@@ -632,7 +639,7 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave
 # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
 ```
 
-**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and byte-comparing it against the exact clean sentinel; adjudicate every non-matching report independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
@@ -665,11 +672,12 @@ independently reviewed unit in the same session: use the existing human-gate
 - **Blockers** → include the correction required by the accepted intent. Re-run
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
-- **Concerns and Nits** → apply now only when their inclusion is authorized by
-  the accepted contract and they qualify under the bundled-fixes tiers. A
-  matching discovery that cannot share this unit remains incomplete and moves
-  to the next review unit in the same session. An out-of-intent discovery is
-  excluded unless the owner explicitly changes scope.
+- **Concerns** → apply now only when authorized by the accepted contract and
+  bundled-fixes tiers; matching work that cannot share this unit moves to the next.
+- **Nits** → never fix automatically. Defer an unacted Nit in `findings[]` with
+  its citation and `status: deferred`; adjudicate only when the thread intends to
+  mutate. Before any edit, promote `effective_severity` to at least Concern if
+  its intended repair changes behavior, architecture, dependencies, or more than one file.
 - **Excluded work** → acknowledge it in the PR's *What did you not change that
   you considered?* answer. Do not create a durable follow-on by default. If
   the owner explicitly asks to remember it, route the request through
@@ -696,10 +704,10 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
-- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) returned `Clean — ready to commit.` or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
+- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
 - [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran; its absence is a mandatory `missing` outcome and emits `BLOCKED`, never a readiness-compatible named skip. Every finding received an intent-fit and session-decision disposition; included fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or, only when non-mandatory, is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
-- [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
+- [ ] The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation. In light mode these findings come from the single bounded `adversarial-reviewer` pass; a surviving Blocker escalates to full mode.
 - [ ] One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
 - [ ] **Implementation completion only (code mode and direct-light):** the
   completion evidence handoff exists, including durable-output status
@@ -728,7 +736,7 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 1. Read the sustained finding from the adjudication artifact carefully; fix the established defect, not the symptom. Never route a refuted or indeterminate source finding into FIX.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
-4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept exact clean directly and adjudicate every non-exact report. Continue until direct or adjudicated Clean.
+4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
 5. **Light mode — non-Blocker fix:** return to GATES, then DECIDE/finish. Do not run a second adversarial pass.
 6. **Light mode — Blocker fix:** return to GATES, then run the single permitted re-review. A surviving Blocker escalates to full mode.
 

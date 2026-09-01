@@ -476,12 +476,12 @@
     {
       "id": "review-verdict-missing-adjudicator-blocks",
       "prompt": "A non-exact, finding-bearing reviewer report is ready for classification, but no finding-adjudicator subagent is available. Can work-loop treat the absence as a named skip or proceed with the raw report?",
-      "expected_output": "No. For a non-exact report, a missing finding-adjudicator is a loud stop that produces BLOCKED. Work-loop never treats it as a named skip, trusts the raw report directly, or continues through the existing explicit disposition path. The mandatory gateway for non-exact reports cannot be waived.",
+      "expected_output": "No. For a report that required dispatch, a missing finding-adjudicator is a loud stop that produces BLOCKED. Work-loop never treats it as a named skip, trusts the raw report directly, or continues through the existing explicit disposition path. The mandatory gateway for dispatched reports cannot be waived.",
       "assertions": [
         "Emits BLOCKED",
         "Does not allow a named skip for the missing adjudicator",
         "Does not trust the raw report directly",
-        "The mandatory gateway for non-exact reports cannot be waived"
+        "The mandatory gateway for dispatched reports cannot be waived"
       ]
     },
     {

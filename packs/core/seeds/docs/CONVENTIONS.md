@@ -1106,9 +1106,9 @@ enforces this. Reasoning behind each current choice:
 
 | Subagent | Model | Why |
 |---|---|---|
-| `adversarial-reviewer` | `opus` | Adversarial judgment; stakes are correctness. Output drives a hard gate. |
+| `adversarial-reviewer` | `opus` | Adversarial judgment; stakes are correctness. Owns contract conformance, scope, and structural fit; routes threats to `security-reviewer` rather than judging them. Output drives a hard gate. |
 | `security-reviewer` | `opus` | Threat-model reasoning; stakes are security. |
-| `quality-engineer` | `opus` | Maintenance lens; spec-level coverage pass. Reconsider per observation. |
+| `quality-engineer` | `opus` | Maintenance lens; spec-level coverage pass. Exclusively owns test strength — whether an assertion can fail — which is judgment, not extraction. Reconsider per observation. |
 | `implementer` | `sonnet` | One narrow plan task per dispatch; gates rerun in the primary; supervisor judges merge readiness. Cost beats capability here. |
 | `finding-adjudicator` | `opus` | Weighs a reviewer's claim against repository evidence and decides what the loop may act on. A wrong refutation silently discards a real defect, so this is judgment under conflict, not extraction. |
 
