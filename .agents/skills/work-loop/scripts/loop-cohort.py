@@ -427,6 +427,7 @@ except GuardsUnavailable as exc:
     canonical_contract = sha256_canonical_contract = _guards_unavailable
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
+    non_negative_int = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
@@ -435,6 +436,7 @@ else:
     # existing tests that reach for these attributes keep working.
     GuardResult = _g.GuardResult
     DEFAULTS = _g.DEFAULTS
+    non_negative_int = _g.non_negative_int
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
     read_state = _g.read_state
@@ -1150,6 +1152,8 @@ def cmd_status(args: argparse.Namespace) -> int:
         "amendment_pending": state.get("amendment_pending"),
         "implementation_retry_count": state.get("implementation_retry_count", 0),
         "review_round_count": state.get("review_round_count", 0),
+        "last_review_record_operation_id": state.get("last_review_record_operation_id"),
+        "last_review_record_payload_digest": state.get("last_review_record_payload_digest"),
         "review_retry_count": state.get("review_retry_count", 0),
         "finding_fingerprints": state.get("finding_fingerprints", []),
         "previous_finding_fingerprints": state.get("previous_finding_fingerprints", []),
@@ -1908,6 +1912,107 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
     return 0  # content outcomes always exit 0
 
 
+# ── review-record idempotency ─────────────────────────────────────────────
+#
+# `--operation-id` names the round being recorded, so a session that re-issues a
+# recording after losing its own record of whether the write landed gets one
+# write rather than two. The id is `<run_id>:<transition_sequence>` supplied by
+# the caller and validated here; this module never reads `engine-state.json`.
+#
+# The payload digest is STORED, not derived on read. Deriving it is unsound: the
+# fingerprint and all-skipped branches overwrite `finding_fingerprints` and never
+# touch `last_review_clean_source`, the clean branches do the reverse, and no
+# field records which form closed a round — so `state.json` stops describing a
+# round's payload as soon as the next round lands.
+
+# `\A`/`\Z`, not `^`/`$`: Python's `$` also matches before a trailing newline,
+# so `"<run>:1\n"` would pass and then compare unequal to `"<run>:1"` -- two
+# spellings of one round, each recording separately. `[0-9]` rather than `\d`
+# for the same reason: `\d` accepts Unicode decimal digits.
+_REVIEW_OP_ID_RE = re.compile(r"\A(?P<run>[^:\n]+):(?P<seq>[0-9]{1,18})\Z")
+_REVIEW_OP_ID_MAX = 200
+
+
+def _review_payload_digest(form: str, payload: str) -> str:
+    r"""`sha256(form + "\n" + payload)`. The form prefix stops two forms colliding."""
+    return hashlib.sha256(f"{form}\n{payload}".encode()).hexdigest()
+
+
+def _review_operation_gate(
+    state: dict,
+    operation_id: str | None,
+    payload_digest: str | None,
+    *,
+    expect_run_id: str,
+    spec_name: str,
+) -> tuple[str, int | None]:
+    """Decide the recorded round's fate before any mutation.
+
+    Returns `(outcome, exit_code)`. `outcome` is one of:
+
+    - `"unflagged"` — no id supplied; behave exactly as before and leave the two
+      recorded fields alone. They name the last round recorded *under an id*,
+      which a flagless round does not become.
+    - `"already"`   — this id and this payload are already recorded; no mutation.
+    - `"record"`    — proceed with the mutation and set both fields.
+    - `"refuse"`    — caller must return the accompanying exit code.
+    """
+    if operation_id is None:
+        return "unflagged", None
+
+    if len(operation_id) > _REVIEW_OP_ID_MAX:
+        # Its own message. Folding this into the format refusal below would tell
+        # an operator the format was wrong when the format may be perfectly
+        # correct and only the length is not.
+        return "refuse", stop(
+            f"review record: --operation-id is {len(operation_id)} characters, "
+            f"over the {_REVIEW_OP_ID_MAX}-character limit, for {spec_name}"
+        )
+
+    matched = _REVIEW_OP_ID_RE.match(operation_id)
+    # A leading zero is a second spelling of the same sequence, and the recorded
+    # id is compared by exact string equality, so `:01` and `:1` would each
+    # record the round once.
+    canonical = matched is not None and (
+        matched.group("seq") == "0" or not matched.group("seq").startswith("0")
+    )
+    if not canonical:
+        return "refuse", stop(
+            f"review record: --operation-id must be "
+            f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
+            f"(got {operation_id!r}) for {spec_name}"
+        )
+    if matched.group("run") != expect_run_id:
+        return "refuse", stop(
+            f"review record: --operation-id names run {matched.group('run')!r} "
+            f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
+        )
+    if payload_digest is None:
+        # Refusing here is what keeps a later repeat decidable: an id recorded
+        # without a comparison value could never be judged a replay.
+        return "refuse", stop(
+            "review record: this round's payload digest could not be computed, "
+            "so recording it under an operation id would leave a later repeat "
+            f"undecidable; re-run once the payload is readable, for {spec_name}"
+        )
+
+    recorded_id = state.get("last_review_record_operation_id")
+    if recorded_id == operation_id:
+        if state.get("last_review_record_payload_digest") == payload_digest:
+            _emit(
+                f"review record already recorded for operation "
+                f"{operation_id!r} (idempotent no-op) for {spec_name}"
+            )
+            return "already", 0
+        return "refuse", stop(
+            f"review record: operation {operation_id!r} is already recorded with "
+            f"a different payload; a replay must carry the payload it recorded. "
+            f"Compare against last_review_record_payload_digest in "
+            f"`loop-cohort status --json` for {spec_name}"
+        )
+    return "record", None
+
+
 @_locked("review record")
 def cmd_review_record(args: argparse.Namespace) -> int:
     try:
@@ -1922,11 +2027,26 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if err is not None:
         return err
 
+    operation_id = getattr(args, "operation_id", None)
+
     if getattr(args, "all_skipped", False):
         # All-skipped branch: every warranted reviewer was a named skip
+        digest = _review_payload_digest("all-skipped", "")
+        outcome, code = _review_operation_gate(
+            state, operation_id, digest,
+            expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
+        )
+        if outcome in ("refuse", "already"):
+            return code
+        if outcome == "record":
+            state["last_review_record_operation_id"] = operation_id
+            state["last_review_record_payload_digest"] = digest
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
         state["finding_fingerprints"] = []
-        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        rounds = non_negative_int(state, "review_round_count", 0)
+        if isinstance(rounds, str):
+            return stop(f"review record: {rounds} for {spec_dir.name}")
+        state["review_round_count"] = rounds + 1
         write_state_atomic(spec_dir, state)
         print(
             f"loop-cohort: review record (all-skipped) "
@@ -1944,10 +2064,48 @@ def cmd_review_record(args: argparse.Namespace) -> int:
                 f"(40-char SHA-1 still accepted for a run that predates core 2.3.0); "
                 f"invalid: {bad!r}"
             )
+        digest = _review_payload_digest("fingerprint", "\n".join(fingerprints))
+        outcome, code = _review_operation_gate(
+            state, operation_id, digest,
+            expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
+        )
+        if outcome in ("refuse", "already"):
+            return code
+        # The cap belongs here, not before the gate: a replay of an
+        # already-recorded round writes nothing, so refusing it would break the
+        # decidability this flag exists for at exactly the crash window that
+        # matters. Only a round that would actually be recorded is capped.
+        #
+        # It previously held only because the shipped instructions chained this
+        # command to a capped transition with `&&`. Splitting those statements
+        # showed the cap was carried by shell punctuation rather than by code.
+        retries = non_negative_int(state, "review_retry_count", 0)
+        cap = non_negative_int(state, "max_review_retries",
+                               DEFAULTS["max_review_retries"])
+        if isinstance(retries, str):
+            return stop(f"review record: {retries} for {spec_dir.name}")
+        if isinstance(cap, str):
+            return stop(f"review record: {cap} for {spec_dir.name}")
+        if retries >= cap and not getattr(args, "allow_retry_cap_override", False):
+            return stop(
+                f"review record: review retry cap reached ({retries}/{cap}) for "
+                f"{spec_dir.name}; a findings round past the cap is the runaway "
+                f"the cap exists to stop — stop and surface it. Only a human "
+                f"directing this run may continue: reset and start a new run, or "
+                f"pass --allow-retry-cap-override to this command AND to the "
+                f"`loop-engine transition findings-remain` that opens the round "
+                f"(either half alone leaves the cohort and the engine a round apart)"
+            )
+        if outcome == "record":
+            state["last_review_record_operation_id"] = operation_id
+            state["last_review_record_payload_digest"] = digest
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
         state["finding_fingerprints"] = fingerprints
-        state["review_retry_count"] = int(state.get("review_retry_count", 0)) + 1
-        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        state["review_retry_count"] = retries + 1  # the value the cap above validated
+        rounds = non_negative_int(state, "review_round_count", 0)
+        if isinstance(rounds, str):
+            return stop(f"review record: {rounds} for {spec_dir.name}")
+        state["review_round_count"] = rounds + 1
         write_state_atomic(spec_dir, state)
         print(
             f"loop-cohort: review record (findings) "
@@ -2015,9 +2173,23 @@ def cmd_review_record(args: argparse.Namespace) -> int:
             # but must not undo a classification that succeeded.
             clean_digest = None
 
+    digest = (None if clean_digest is None
+              else _review_payload_digest(clean_source, clean_digest))
+    outcome, code = _review_operation_gate(
+        state, operation_id, digest,
+        expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
+    )
+    if outcome in ("refuse", "already"):
+        return code
+    if outcome == "record":
+        state["last_review_record_operation_id"] = operation_id
+        state["last_review_record_payload_digest"] = digest
     state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
     state["finding_fingerprints"] = []
-    state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+    rounds = non_negative_int(state, "review_round_count", 0)
+    if isinstance(rounds, str):
+        return stop(f"review record: {rounds} for {spec_dir.name}")
+    state["review_round_count"] = rounds + 1
     # Provenance: which recording form closed this round, and the digest of the
     # artifact it rested on. Session resumption reads these to replay the form
     # instead of inferring it from an artifact whose absence is ambiguous.
@@ -2253,6 +2425,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--adjudication",
         action="store_true",
         help="require the exact finding-adjudicator envelope for --report",
+    )
+    sp.add_argument(
+        "--allow-retry-cap-override",
+        action="store_true",
+        dest="allow_retry_cap_override",
+        help=(
+            "record a findings round even though review_retry_count has reached "
+            "max_review_retries; for a human who has looked, not for an "
+            "unattended loop"
+        ),
+    )
+    sp.add_argument(
+        "--operation-id",
+        default=None,
+        dest="operation_id",
+        help=(
+            "'<run_id>:<transition_sequence>' naming this round; a repeat under "
+            "the same id and payload is a completed write, not a new round"
+        ),
     )
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_review_record)

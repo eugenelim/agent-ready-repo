@@ -247,7 +247,7 @@
         "Performs no capture or distillation after stale or failed sealing, rejection, abandonment, or incomplete approval"
       ]
     },
-    
+
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
@@ -633,6 +633,18 @@
         "Stubs AC5's nearest in-process contract with the exit code as a deferred assertion, rather than recording no-stub for a hard surface",
         "Does not substitute prose for the executable stub or the no-stub record",
         "Does not treat the concrete AC4 or AC5 as under-specified"
+      ]
+    },
+    {
+      "id": "review-record-operation-id-crash-window",
+      "prompt": "You fired `findings-remain`, then ran `loop-cohort review record --fingerprint <fp1> --fingerprint <fp2> --expect-run-id <run-id> --operation-id <run-id>:12`. The session died before you saw the result, so you do not know whether the write landed. You resume: `loop-engine status --json` reports `transition_sequence: 12` and `last_event: findings-remain`. What do you do?",
+      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded \u2014 continue without recording again, and note that re-issuing the identical payload under that id would be a no-op anyway. If it is absent or different you cannot tell whether the round landed: an absent id also describes a round recorded before this field existed, so re-issuing would count it twice. Do not auto-reissue; surface to the human. Never mint a fresh operation id for the same round \u2014 that records a second round rather than replaying the first.",
+      "assertions": [
+        "Response compares `last_review_record_operation_id` with the id recomputed from `transition_sequence`",
+        "Response treats a matching id as a completed write and does not record again",
+        "Response surfaces to the human when the id is absent or different rather than re-issuing",
+        "Response notes that an absent id also describes a round recorded before the field existed",
+        "Response does not mint a fresh operation id for the same round"
       ]
     }
   ]

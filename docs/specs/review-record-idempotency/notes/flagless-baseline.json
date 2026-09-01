@@ -1,0 +1,84 @@
+{
+  "_note": "Captured from the unchanged `cmd_review_record`, before `--operation-id` existed. Regenerating this from the changed writer would compare it against itself and prove nothing.",
+  "review_fields": [
+    "review_round_count",
+    "review_retry_count",
+    "finding_fingerprints",
+    "previous_finding_fingerprints",
+    "last_review_clean_source",
+    "last_review_clean_digest"
+  ],
+  "forms": {
+    "fingerprint": {
+      "exit_code": 0,
+      "stdout": "loop-cohort: review record (findings) round=1 retry=1 fingerprints=2 for <feature>",
+      "stderr": "",
+      "delta": {
+        "review_round_count": {
+          "from": 0,
+          "to": 1
+        },
+        "review_retry_count": {
+          "from": 0,
+          "to": 1
+        },
+        "finding_fingerprints": {
+          "from": [],
+          "to": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ]
+        }
+      }
+    },
+    "direct-clean-file": {
+      "exit_code": 0,
+      "stdout": "loop-cohort: review record (clean:direct-clean) round=1 retry=0 for <feature>",
+      "stderr": "",
+      "delta": {
+        "review_round_count": {
+          "from": 0,
+          "to": 1
+        },
+        "last_review_clean_source": {
+          "from": null,
+          "to": "direct-clean"
+        },
+        "last_review_clean_digest": {
+          "from": null,
+          "to": "496778140eb32d28c66834d90f6ce740e1e06345f9a34f0ec24a8310a08b9e61"
+        }
+      }
+    },
+    "report-adjudication": {
+      "exit_code": 0,
+      "stdout": "loop-cohort: review record (clean:report) round=1 retry=0 for <feature>",
+      "stderr": "",
+      "delta": {
+        "review_round_count": {
+          "from": 0,
+          "to": 1
+        },
+        "last_review_clean_source": {
+          "from": null,
+          "to": "report"
+        },
+        "last_review_clean_digest": {
+          "from": null,
+          "to": "47a0414ef9ad23fc57c400daea426e8f1ddd1b32c0196af0d0382dd6016d953a"
+        }
+      }
+    },
+    "all-skipped": {
+      "exit_code": 0,
+      "stdout": "loop-cohort: review record (all-skipped) round=1 for <feature>",
+      "stderr": "",
+      "delta": {
+        "review_round_count": {
+          "from": 0,
+          "to": 1
+        }
+      }
+    }
+  }
+}

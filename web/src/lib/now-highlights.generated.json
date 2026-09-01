@@ -5,6 +5,48 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.18.2"
+        }
+      ],
+      "date": "2026-09-01",
+      "heading": "[core][2.18.2] — 2026-09-01",
+      "changelogAnchor": "core2182--2026-09-01",
+      "highlights": [
+        {
+          "source": "**Re-issuing a review recording no longer risks counting the round twice.** `loop-cohort review record` takes an optional `--operation-id` naming the round. Repeat the same recording under that id and the command reports a completed write and changes nothing; supply a different payload under it and the command refuses rather than silently accepting it. A session that dies before it learns whether the write landed can now simply repeat the command.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Re-issuing a review recording no longer risks counting the round twice."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "loop-cohort review record"
+            },
+            {
+              "type": "text",
+              "value": " takes an optional "
+            },
+            {
+              "type": "code",
+              "value": "--operation-id"
+            },
+            {
+              "type": "text",
+              "value": " naming the round. Repeat the same recording under that id and the command reports a completed write and changes nothing; supply a different payload under it and the command refuses rather than silently accepting it. A session that dies before it learns whether the write landed can now simply repeat the command."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.18.0"
         }
       ],

@@ -164,9 +164,13 @@ existing review budget using the validated adjudication SHA-256 as the
 fingerprint:
 
 ```bash
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
-  && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-       --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id> \
+    --operation-id <run-id>:<seq>
 ```
 
 The transition must succeed before recording; the record must succeed before
@@ -253,16 +257,20 @@ full mode, or pass `--report <raw-report-path>`.
 For sustained findings, transition before recording so the retry guard sees the
 pre-increment count. **Do not record if the transition exits non-zero.** The
 transition carries the review-retry cap guard; `review record --fingerprint`
-carries none and increments unconditionally. Issue them ungated and a refused
-transition still records, leaving the engine parked in `CODE-REVIEW` with the
-cohort a round ahead — a desync only a forbidden `state.json` hand-edit
-reconciles. Chain them where the shell supports it; otherwise read the
-transition's exit status before recording:
+carries its own cap as well, so the transition is the earlier of two. Issue them
+ungated and a refused transition still records, leaving the engine parked in
+`CODE-REVIEW` with the cohort a round ahead — a desync only a forbidden hand-edit
+reconciles. Run the transition, confirm it exited zero and read the `(seq=N)` it
+prints, then record with that N:
 
 ```bash
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
-  && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-       --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run-id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run-id> \
+    --operation-id <run-id>:<seq>
 ```
 
 Then FIX, fire `wave-complete`, rerun GATES, and re-enter REVIEW. Do not record

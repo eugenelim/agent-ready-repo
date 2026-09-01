@@ -38,3 +38,33 @@ The Phase-1 design splits the loop infrastructure into two scripts with a hard b
 **Shared `iteration_count`** — A shared counter collapses forward progress through scheduled waves and repair cycles onto the same budget. A five-wave plan with a default cap of five would exhaust the budget before reaching code review. Separate counters (`review_round_count`, `review_retry_count`, `implementation_retry_count`) correctly model distinct convergence concerns.
 
 **Retry cap at `wave-complete`** — An off-by-one: the nth repair increments the counter and the guard then refuses before verification, so only n−1 repaired attempts can be verified. Guarding at `gates-failed` (before repair begins) means a refused nth back-edge means n−1 complete repair cycles have been attempted.
+
+## Errata
+
+**2026-08-31 Erratum — trigger fired, decision retained.** `loop-cohort review
+record` gained an optional `--operation-id`, so the *Revisit if* trigger above
+fired on its first clause. The Phase-1 decision is retained. Option B needs both
+prerequisites and only one now exists: a `pending_transition` schema is still
+absent, so durable side-effect semantics remain out of reach and Option A is
+still the shape the loop runs.
+
+Two statements above are narrowed rather than reversed, and a reader who lands
+mid-file should not take either as current:
+
+- *"`findings-remain` and `reviewers-clean` crash windows are non-idempotent in
+  Phase 1"* — they are decidable **when a matching operation id is supplied**: a
+  repeat carrying the recorded id and the same payload is a completed write, and
+  a different payload under that id is refused. Without an operation id the
+  windows are non-idempotent exactly as recorded, and the human-authorization
+  obligation on a clean-round replay is unchanged.
+- *"The `spec-plan` drafting loop has no mechanical Phase-1 cap"* — unchanged for
+  `spec-plan`, but the **review** retry cap is now mechanical at the recording
+  verb. It previously held only because the shipped instructions chained the
+  recording to a capped transition with `&&`; splitting those statements showed
+  the cap was carried by shell syntax rather than by code, so `review record`
+  now refuses a findings round at `max_review_retries` itself.
+
+Recorded by `docs/specs/review-record-idempotency/`, core 2.18.2. Whether the
+remaining prerequisite is worth pursuing is a separate decision this erratum does
+not take. The body above is left as written; this ADR is Accepted → Frozen
+(`docs/CONVENTIONS.md`). Approver: eugenelim.

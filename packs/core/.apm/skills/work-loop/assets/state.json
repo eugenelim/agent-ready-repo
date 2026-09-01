@@ -25,5 +25,7 @@
   "last_review_clean_digest": null,
   "auto_parallel": false,
   "last_commit_sha": null,
-  "worktrees": []
+  "worktrees": [],
+  "last_review_record_operation_id": null,
+  "last_review_record_payload_digest": null
 }

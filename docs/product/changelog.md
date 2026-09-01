@@ -52,6 +52,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.18.2] — 2026-09-01
+
+### Highlights
+
+- **Re-issuing a review recording no longer risks counting the round twice.**
+  `loop-cohort review record` takes an optional `--operation-id` naming the round.
+  Repeat the same recording under that id and the command reports a completed
+  write and changes nothing; supply a different payload under it and the command
+  refuses rather than silently accepting it. A session that dies before it learns
+  whether the write landed can now simply repeat the command.
+
+### Added
+
+- `loop-cohort review record --operation-id <run-id>:<transition-sequence>`,
+  accepted alongside all four existing recording forms. Omit it and behaviour is
+  unchanged, apart from the retry cap below.
+- `state.json` records `last_review_record_operation_id` and
+  `last_review_record_payload_digest`, so a resuming session can tell a completed
+  write from one that never landed. Both default to `null`, and a `state.json`
+  written before this release keeps working.
+
+### Changed
+
+- `loop-cohort review record --fingerprint` now refuses once `review_retry_count`
+  reaches `max_review_retries`, instead of writing past it. The cap was
+  previously enforced only by the shell `&&` chaining the recording to a capped
+  transition, so a recording issued on its own bypassed it — and dropping
+  `--operation-id` does not get around it either. A replay of an already-recorded
+  round is unaffected: it writes nothing, so it remains a no-op.
+- `--allow-retry-cap-override` takes one deliberate round past the review cap. It
+  must be passed to **both** `loop-engine transition <spec-dir> findings-remain`
+  and the matching `loop-cohort review record`: either half alone leaves the
+  cohort and the engine a round apart. It is for a human who has looked at why the
+  loop is not converging; the refusal it replaces tells an unattended agent to
+  stop and surface instead. The implementation cap at `gates-failed` has no
+  equivalent.
+- The shipped work-loop instructions supply an operation id on every review
+  recording, reading the transition sequence after the transition that opened the
+  round so a resuming session recomputes the same value.
+- The session-resumption guidance tells a resuming session to compare the
+  recorded id before deciding whether a round was written, and states that the
+  clean-round replay risk applies to a replay without a matching id.
+
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
 ## [core][2.18.1] — 2026-08-31

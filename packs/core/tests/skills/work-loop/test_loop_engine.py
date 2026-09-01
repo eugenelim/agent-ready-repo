@@ -1858,11 +1858,40 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
         "review_retry_count": 5,  # at cap
         "max_review_retries": 5,
     }))
-    rc, _, _ = run_engine("transition", str(spec_dir), "findings-remain")
+    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain")
     if rc == 0:
         fail(name, "expected non-zero when review_retry_count == max")
     else:
         ok(name)
+
+    # The shared guard reason names no flag, because `loop-cohort check --phase
+    # review` prints it too and accepts none. This adapter does accept one, so it
+    # must add the remedy -- and must name BOTH halves, which is the part a reader
+    # misses and the reason a one-sided waiver desyncs engine from cohort.
+    missing = [f for f in ("--allow-retry-cap-override", "review record", "human")
+               if f not in err]
+    if missing:
+        fail(name + "-remedy", f"cap refusal omits {missing}: {err}")
+    else:
+        ok(name + "-remedy")
+
+    # The same transition with the explicit waiver must pass, or the matching
+    # `review record --allow-retry-cap-override` is unreachable and records a
+    # round the engine will not transition on.
+    rc, _, err = run_engine("transition", str(spec_dir), "findings-remain",
+                            "--allow-retry-cap-override")
+    if rc != 0:
+        fail(name + "-override", f"expected 0 with the waiver, got {rc}: {err}")
+    else:
+        ok(name + "-override")
+
+    # And the waiver is scoped to this one event.
+    rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean",
+                            "--allow-retry-cap-override")
+    if rc == 0 or "requires findings-remain" not in err:
+        fail(name + "-wrong-event", f"expected refusal naming the event, got {rc}: {err}")
+    else:
+        ok(name + "-wrong-event")
 
 
 # STUB: adjudicator-evidence-and-remedy-predicate AC5
