@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.41.1] — 2026-09-01
+
+### Fixed
+
+- The direct-install performance harness no longer runs the allocation tracer
+  while it is timing, so its reported budget cost is the cost of the code
+  rather than of the measurement. 0.41.0 failed its release gate on that
+  measurement and never reached PyPI; this version carries its contents there.
+  Nothing in the shipped package changed.
+
 ## [0.41.0] — 2026-08-30
 
 ### Added
