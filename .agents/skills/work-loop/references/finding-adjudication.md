@@ -164,9 +164,13 @@ existing review budget using the validated adjudication SHA-256 as the
 fingerprint:
 
 ```bash
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
-  && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-       --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id> \
+    --operation-id <run-id>:<seq>
 ```
 
 The transition must succeed before recording; the record must succeed before
@@ -260,9 +264,13 @@ reconciles. Chain them where the shell supports it; otherwise read the
 transition's exit status before recording:
 
 ```bash
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
-  && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-       --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run-id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run-id> \
+    --operation-id <run-id>:<seq>
 ```
 
 Then FIX, fire `wave-complete`, rerun GATES, and re-enter REVIEW. Do not record

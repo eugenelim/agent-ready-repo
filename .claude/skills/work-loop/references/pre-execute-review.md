@@ -137,9 +137,13 @@ chain the retry-cap transition and record the validated first-adjudication
 digest; a refused transition records and executes nothing:
 
 ```bash
-python '<skill-dir>/scripts/loop-engine.py' transition <spec-dir> findings-remain \
-  && python '<skill-dir>/scripts/loop-cohort.py' review record <spec-dir> \
-       --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition <spec-dir> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record <spec-dir> \
+    --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id> \
+    --operation-id <run-id>:<seq>
 ```
 
 After the record succeeds, run the literal catalog entry under its declared

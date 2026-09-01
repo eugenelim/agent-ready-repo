@@ -52,6 +52,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.4] — 2026-08-31
+
+### Highlights
+
+- **Re-issuing a review recording no longer risks counting the round twice.**
+  `loop-cohort review record` takes an optional `--operation-id` naming the round.
+  Repeat the same recording under that id and the command reports a completed
+  write and changes nothing; supply a different payload under it and the command
+  refuses rather than silently accepting it. A session that dies before it learns
+  whether the write landed can now simply repeat the command.
+
+### Added
+
+- `loop-cohort review record --operation-id <run-id>:<transition-sequence>`,
+  accepted alongside all four existing recording forms. Omit it and behaviour is
+  unchanged.
+- `state.json` records `last_review_record_operation_id` and
+  `last_review_record_payload_digest`, so a resuming session can tell a completed
+  write from one that never landed. Both default to `null`, and a `state.json`
+  written before this release keeps working.
+
+### Changed
+
+- The shipped work-loop instructions supply an operation id on every review
+  recording, reading the transition sequence after the transition that opened the
+  round so a resuming session recomputes the same value.
+- The session-resumption guidance tells a resuming session to compare the
+  recorded id before deciding whether a round was written, and states that the
+  clean-round replay risk applies to a replay without a matching id.
+
 ## [core][2.17.3] — 2026-08-31
 
 ### Highlights

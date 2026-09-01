@@ -562,14 +562,14 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> revi
 # recorded clean never rests on the controller's own account of what was said:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --direct-clean-file .context/reviews/<run-id>/<n>-post-gates-<role>-raw.md \
-    --expect-run-id <run_id>
+    --expect-run-id <run_id> --operation-id <run_id>:<seq>
 # Otherwise, if clean exists only through adjudication:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --report <adjudication-report-path> --adjudication \
-    --expect-run-id <run_id>
+    --expect-run-id <run_id> --operation-id <run_id>:<seq>
 # Only if every warranted reviewer was non-mandatory and a named skip:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --all-skipped --expect-run-id <run_id>
+    --all-skipped --expect-run-id <run_id> --operation-id <run_id>:<seq>
 ```
 A mandatory named skip blocks before `Status: Shipped`, `reviewers-clean`, or the `--all-skipped` path; do not let verdict emission discover that failure only after the state machine has advanced.
 For an intermediate review unit under an accepted intent that remains incomplete,
@@ -614,9 +614,13 @@ If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `fi
 ```
 # Never record when the transition is refused: it carries the retry-cap guard,
 # `review record --fingerprint` carries none and increments regardless.
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
-    && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-         --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id>
+# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
+# N: a resuming session reads the same value from `loop-engine status`, so the
+# operation id it recomputes matches and the round is not written twice.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
+python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id> \
+    --operation-id <run_id>:<seq>
 # Apply the specialist's fixes, then fire wave-complete (required to reach
 # CODE-VERIFICATION before gates-clean/gates-failed).
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
