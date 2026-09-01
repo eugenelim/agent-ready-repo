@@ -5,6 +5,90 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.21.0"
+        }
+      ],
+      "date": "2026-09-01",
+      "heading": "[core][2.21.0] — 2026-09-01",
+      "changelogAnchor": "core2210--2026-09-01",
+      "highlights": [
+        {
+          "source": "**A fully cooled initiative now reaches closeout instead of reporting `unshipped-specs` forever.** An initiative's shipped-ness and its queue emptiness are derived from one cooled-exclusion pass, so the two can no longer disagree about which entries a lifecycle record removed — while each keeps counting what it counted before. An entry named by a record's aliases is treated exactly as one named by its locator.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A fully cooled initiative now reaches closeout instead of reporting `unshipped-specs` forever."
+            },
+            {
+              "type": "text",
+              "value": " An initiative's shipped-ness and its queue emptiness are derived from one cooled-exclusion pass, so the two can no longer disagree about which entries a lifecycle record removed — while each keeps counting what it counted before. An entry named by a record's aliases is treated exactly as one named by its locator."
+            }
+          ]
+        },
+        {
+          "source": "**When the cooled reading is incomplete, `workspace-status` withholds the suggestion to run `close-work` rather than making it anyway.** A record that cannot be read, or whose review date cannot be judged, adds a `cooling-context-incomplete` blocker, and a skill that distils and disposes is not recommended on a partial reading. The agent-rendered closeout gate reads the same facts, so the rendered prompt and the projection agree.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "When the cooled reading is incomplete, `workspace-status` withholds the suggestion to run `close-work` rather than making it anyway."
+            },
+            {
+              "type": "text",
+              "value": " A record that cannot be read, or whose review date cannot be judged, adds a "
+            },
+            {
+              "type": "code",
+              "value": "cooling-context-incomplete"
+            },
+            {
+              "type": "text",
+              "value": " blocker, and a skill that distils and disposes is not recommended on a partial reading. The agent-rendered closeout gate reads the same facts, so the rendered prompt and the projection agree."
+            }
+          ]
+        },
+        {
+          "source": "**Repair and migration are settled as unaffected by cooling, not left pending.** `repair-plan`, `repair-apply`, `repair-rollback` and the migration planning, application, recovery and rollback paths behave identically with and without lifecycle records, pinned by control runs so a later blanket filter has to change those lines and say why.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Repair and migration are settled as unaffected by cooling, not left pending."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "repair-plan"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "repair-apply"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "repair-rollback"
+            },
+            {
+              "type": "text",
+              "value": " and the migration planning, application, recovery and rollback paths behave identically with and without lifecycle records, pinned by control runs so a later blanket filter has to change those lines and say why."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.20.1"
         }
       ],

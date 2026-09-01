@@ -1034,3 +1034,30 @@ def test_ac33_erratum_records_closures_residual_and_receipt_rename() -> None:
         "registered here as rfc0096-wave7a-ii-completion-receipts",
     ):
         assert statement in errata, statement
+
+def test_ac31_release_surfaces_agree_above_the_floor() -> None:
+    """AC31: the three core release surfaces hold one identical version.
+
+    The floor is a floor, not an equality: `origin/main` released three times
+    while this contract was in review, so a literal cannot track it. Clearing a
+    collision is the release checklist's job, re-deriving the number from
+    `git show origin/main:packs/core/pack.toml` at commit time — a test that read
+    the remote would depend on fetch state.
+    """
+    pack = (ROOT / "packs/core/pack.toml").read_text(encoding="utf-8")
+    plugin = json.loads(
+        (ROOT / "packs/core/.claude-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+
+    pack_version = re.search(r'^version = "([^"]+)"', pack, re.M).group(1)
+    plugin_version = plugin["version"]
+    heading = re.search(r"^## \[core\]\[([^\]]+)\] — \d{4}-\d{2}-\d{2}", changelog, re.M)
+
+    assert heading is not None, "no dated [core] changelog heading found"
+    assert pack_version == plugin_version == heading.group(1), (
+        pack_version, plugin_version, heading.group(1)
+    )
+
+    parsed = tuple(int(part) for part in pack_version.split("."))
+    assert parsed > (2, 19, 0), parsed
