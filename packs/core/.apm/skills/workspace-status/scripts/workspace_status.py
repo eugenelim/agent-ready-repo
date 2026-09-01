@@ -796,6 +796,11 @@ def _closeout_projection(
         initiative, root, result.cooled
     )
     all_specs_shipped = not (surviving_queue or surviving_active)
+    # A record whose dueness could not be judged is an incomplete run just as
+    # a record that would not load is, so it flips the same claim. One blocker
+    # is enough to withhold the affirmative: eligibility is
+    # `all_specs_shipped and not blockers and not paused`.
+    cooling_context_visible = bool(result.cooling_findings) or dueness_failed
     # `spec_path` is `entry.path` straight from workspace.toml with no charset
     # rule, and this string is rendered into agent context. Every sibling
     # emitter bounds its path through this same filter.
@@ -804,13 +809,13 @@ def _closeout_projection(
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
+    if cooling_context_visible:
+        blockers.append("cooling-context-incomplete")
     projection = project_closeout_status(
         paused=paused,
         all_specs_shipped=all_specs_shipped,
         closeout_blockers=blockers,
-        # A record whose dueness could not be judged is an incomplete run just
-        # as a record that would not load is, so it flips the same claim.
-        cooling_context_visible=bool(result.cooling_findings) or dueness_failed,
+        cooling_context_visible=cooling_context_visible,
     )
     return dataclasses.asdict(projection)
 

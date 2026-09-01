@@ -374,6 +374,23 @@ def test_ac8_cooled_queue_entry_has_no_unshipped_blocker(
 
 
 @pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac9_incomplete_reading_withholds_affirmative(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC9: an incomplete cooled reading withholds affirmative closeout."""
+    result = run_status(
+        cooled_initiative(tmp_path, cooled=True, unreadable=True), mode
+    )
+
+    assert result["closeout"]["cooling_context_visible"] is True
+    assert (
+        "cooling-context-incomplete"
+        in result["closeout"]["closeout_blockers"]
+    )
+    assert result["closeout"]["next_action"] != "invoke-close-work"
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
 def test_ac10_clean_cooled_reading_keeps_affirmative_instruction(
     tmp_path: Path, mode: str
 ) -> None:
