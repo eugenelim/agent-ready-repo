@@ -24,7 +24,7 @@ file as stale and ask before relying on it.
 
 **RFC-0067 Change B — Pack status skills.** Two new read-only cold-start orient skills: `desk-research-project-status` (desk-research pack) and `experience-status` (experience-design pack). Added `design` as a valid `shaping_queue` type; `workspace-status` routes `{type = "design"}` entries to `experience-status` (fallback: `journey-mapping`). [spec/spec-B-pack-status-skills]
 
-**RFC-0064 amendment — workspace-status integrity trust boundary.** Documents the session-fragmentation gap (workspace.toml silently incomplete when RFC acceptance and spec generation happen in separate sessions); restructures `## Amendments` to two-layer format. [spec/rfc-0064-errata-workspace-integrity]
+**RFC-0064 amendment — workspace-status integrity trust boundary.** Documents the session-fragmentation gap (workspace.toml silently incomplete when RFC acceptance and spec generation happen in separate sessions); the accepted RFC's errata records the completed fixes and retires the manual workaround. [RFC-0064 errata](../rfc/0064-ini-001-ai-native-ecosystem.md#errata)
 
 **M1 · capture-work — classify-then-triage front-door (RFC-0064 Amendment #3).** Renames `queue-add` → `capture-work`; adds build/shape classification before write; routes shaping items to `[shaping_queue]` or typed `[backlog].open`; progressive capability-detected hand-off. `workspace-status` now prefixes every Ready and Backlog item with `[build]`, `[shape]`, or `[brief]`. `work-loop` step-0 guard redirects shaping items to the correct skill. [spec/capture-work]
 
