@@ -1835,6 +1835,17 @@ open = [
   {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Align standalone new-spec review with existing measurement and adjudication controls, add finding-origin attribution, and surface lint gate scope", needs = []},
   {path = "docs/product/intents/credbroker-socket-budget-float-tolerance.md", kind = "intent", source = {mode = "repo-origin", ref = "packages/credbroker/tests/unit/test_sso_derivation.py", revision = "local-2026-08-29"}, summary = "Give the credbroker socket-budget assertion a float tolerance so Windows timer precision cannot red the suite", needs = []},
 
+  # AC36's CPU assertion is `cpu_median <= 5.0`, deliberately unconditional --
+  # unlike the wall-clock assertion beside it, which is skipped above
+  # LOAD_PER_CORE_CEILING. On ubuntu-latest that is now roughly a coin flip on
+  # one interpreter and never close on the other, so the gate reports the
+  # Python version and not the code. Both halves of the evidence come from the
+  # same workflow run, 33487510335: the original attempt and its rerun. Fixing
+  # it means either raising the ceiling with a re-measured, per-version
+  # justification, or finding the 2.8x -- neither is a threshold nudge, so this
+  # is an entry rather than a ride-along. Pre-existing on main; PR #1192 did not
+  # touch `packages/agentbundle/`.
+  {slug = "agentbundle-ac36-cpu-ceiling-flaky-on-py312", source = "ci/33487510335 (2026-09-01)", summary = "packages/agentbundle/tests/performance/test_direct_family2_budget_cost.py asserts a 5.0s CPU-time ceiling that ubuntu-latest py3.12 measures at 4.78-5.08s across the run and its rerun, with tight ranges inside each measurement, against 1.69s on py3.11 -- a ~2.8x interpreter gap that leaves the gate passing or failing on which side of 5.0s the py3.12 median lands, independent of the diff under test"},
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
