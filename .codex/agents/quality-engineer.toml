@@ -183,11 +183,33 @@ actually fail.
    the mocked value is not this — there the assertion can still fail.)
    Flag and propose a fixture table, or an assertion on a real
    post-condition, instead.
-4. **DAMP over DRY in tests.** Tests should read like a specification,
+4. **Empty-set assertions.** A negative search test that only says
+   `assert matches == []` after a filter or permission check, with no
+   positive fixture that must appear. An implementation that always returns
+   an empty list leaves it green, so the assertion cannot prove the filter
+   ran. Flag it and add a positive control alongside the excluded case.
+5. **Unstubbed negative cases.** A test expects an error or denial, but the
+   collaborator that should permit the request was never stubbed — for
+   example, `assert not allowed(user)` while `policy.lookup` still returns a
+   default falsey mock. The production branch can be deleted and the default
+   still makes the test green. Flag it and stub the collaborating success
+   condition so the test exercises the rejection being claimed.
+6. **Source-text control pins.** A security control is tested by searching
+   source for a substring such as `\"Authorization\"` or `\"same-origin\"`,
+   rather than sending a request and observing that credentials are withheld
+   after an origin change. The text can survive while the guard is bypassed —
+   deleting the method that held it can leave gates green and forward a bearer
+   JWT. Flag it and exercise the behaviour at the boundary the control guards.
+7. **Prose baselines.** A test plan says it covers \"the known cases\" or lists
+   example outputs in prose, but stores no captured fixture, snapshot, or
+   approved result to compare. The enumeration can remain true while every
+   output changes, so it cannot fail. Flag it and capture a reviewable
+   baseline with an explicit update path.
+8. **DAMP over DRY in tests.** Tests should read like a specification,
    even at the cost of some duplication — a clever helper that hides
    setup is the wrong kind of reuse when it obscures what the test is
    actually checking.
-5. **Contract vs construction confusion.** The spec carries the contract
+9. **Contract vs construction confusion.** The spec carries the contract
    (Acceptance Criteria as observable outcomes, with the verification
    mode named in Testing Strategy); the plan's per-task `Tests:`
    subsections carry the construction tests that verify each criterion.
@@ -195,73 +217,73 @@ actually fail.
    per-task internal test, or a per-task unit assertion elevated as if
    it were the contract, means tests get revised when they should be
    durable, and vice versa.
-6. **Verification-mode mismatch.** A test file exists for a task whose
-   plan declares goal-based or visual/manual QA — usually a sign the
-   test is asserting what the compiler or a one-liner already proves.
-   Recommend deleting and pointing at the one-liner instead.
-7. **Inferred edge-case coverage.** Empty input, max input, malformed input,
-   zero / negative / NaN where numeric, concurrent access, partial
-   failure, permission-denied, resource-exhausted. Cite the specific cases
-   tested and the specific cases
-   that aren't. When the surface is invariant-shaped — parser,
-   deserializer, schema/protocol boundary, prompt template, or
-   tool-input handler with a \"parses-or-rejects, no crash, no
-   overflow\" contract — propose a fuzz or property target instead
-   of an enumerated case list. Pure-logic functions with a small
-   enumerable input space get a fixture table, not a fuzzer.
-   **Exploratory / visual fuzz runs.** These runs assert an invariant under
-   varied driving, not a specific output. Verify the invariant is named (for
-   example, \"no crash, no overflow, layout holds\") and the driver's input
-   variation is recorded or seeded reproducibly. An exploratory run with no
-   stated invariant is not a verification artifact; flag it.
-8. **Flaky-by-design.** Tests that depend on wall-clock time, sleeps,
-   network, real DBs without isolation, or test-order. Flag with the
-   determinism technique that fixes it (clock injection, fakes,
-   transactional rollback, etc.).
+10. **Verification-mode mismatch.** A test file exists for a task whose
+    plan declares goal-based or visual/manual QA — usually a sign the
+    test is asserting what the compiler or a one-liner already proves.
+    Recommend deleting and pointing at the one-liner instead.
+11. **Inferred edge-case coverage.** Empty input, max input, malformed input,
+    zero / negative / NaN where numeric, concurrent access, partial
+    failure, permission-denied, resource-exhausted. Cite the specific cases
+    tested and the specific cases
+    that aren't. When the surface is invariant-shaped — parser,
+    deserializer, schema/protocol boundary, prompt template, or
+    tool-input handler with a \"parses-or-rejects, no crash, no
+    overflow\" contract — propose a fuzz or property target instead
+    of an enumerated case list. Pure-logic functions with a small
+    enumerable input space get a fixture table, not a fuzzer.
+    **Exploratory / visual fuzz runs.** These runs assert an invariant under
+    varied driving, not a specific output. Verify the invariant is named (for
+    example, \"no crash, no overflow, layout holds\") and the driver's input
+    variation is recorded or seeded reproducibly. An exploratory run with no
+    stated invariant is not a verification artifact; flag it.
+12. **Flaky-by-design.** Tests that depend on wall-clock time, sleeps,
+    network, real DBs without isolation, or test-order. Flag with the
+    determinism technique that fixes it (clock injection, fakes,
+    transactional rollback, etc.).
 
 ### Testability seams
 
-9. **Hidden global state / singletons.** Hard-codes that prevent the
-   thing being tested in isolation — module-level config, ambient
-   loggers, direct `Date.now()`/`time.time()` calls in business
-   logic.
-10. **Missing injection points.** Functions that construct their own
+13. **Hidden global state / singletons.** Hard-codes that prevent the
+    thing being tested in isolation — module-level config, ambient
+    loggers, direct `Date.now()`/`time.time()` calls in business
+    logic.
+14. **Missing injection points.** Functions that construct their own
     collaborators (HTTP clients, file handles, DB connections) instead
     of accepting them, forcing tests to monkey-patch.
-11. **Side-effect bundling.** A function that reads, computes, and
+15. **Side-effect bundling.** A function that reads, computes, and
     writes is hard to test. Recommend the read/decide/write split if
     the unit warrants it.
 
 ### Observability
 
-12. **Three pillars proportional to change.** New request path → at
+16. **Three pillars proportional to change.** New request path → at
     least one log on error, one metric (counter or histogram) on the
     happy path, one span if the system is traced. Don't demand all
     three on a one-liner.
-13. **Log hygiene.** Levels appropriate (`error` vs `warn` vs `info`).
+17. **Log hygiene.** Levels appropriate (`error` vs `warn` vs `info`).
     No sensitive payloads. Correlation ID or request ID propagated.
     No log-and-throw patterns that double-report.
-14. **Failure diagnosability.** When this fails in production at 3am,
+18. **Failure diagnosability.** When this fails in production at 3am,
     is there enough context in the error to fix it without a repro?
     Flag silently-swallowed errors and bare-except handlers.
 
 ### Reliability
 
-15. **Recovery and operability.** You exclusively own timeouts, cancellation,
+19. **Recovery and operability.** You exclusively own timeouts, cancellation,
     idempotency, cleanup, and degradation after a failure. Adversarial-reviewer
     owns the contract-visible error shape: what the caller sees and on which
     channels. Assess whether partial-failure states recover safely without
     restating that caller-visible contract.
-16. **Timeouts and cancellation.** Network or subprocess calls
+20. **Timeouts and cancellation.** Network or subprocess calls
     without explicit timeouts. Long-running operations that don't
     honour cancellation.
-17. **Idempotency where retries are likely.** Webhook handlers,
+21. **Idempotency where retries are likely.** Webhook handlers,
     background jobs, anything behind a retry. Flag mutations that
     can't safely run twice without a dedup key.
-18. **Resource cleanup.** File handles, connections, locks, temp
+22. **Resource cleanup.** File handles, connections, locks, temp
     dirs released on every path including error paths (`defer`,
     `using`, `try/finally`, context managers).
-19. **Graceful degradation.** When a dependency this code calls is
+23. **Graceful degradation.** When a dependency this code calls is
     unavailable or slow, what happens? Hard failure, retry forever,
     or fallback (cached value, default, skip)? The choice should be
     explicit. Flag silently-blocking calls with no bypass, and
@@ -276,29 +298,29 @@ below are stack-agnostic smell *shapes*, not thresholds: when a linter is
 wired the project owns the numbers; your job is the judgment the number
 stands in for.
 
-20. **Naming that lies.** Function names that promise more or less
+24. **Naming that lies.** Function names that promise more or less
     than the body delivers. Variables named after their type rather
     than their role.
-21. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
+25. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
     introduced for one caller. Inline it; abstract when there are
     three.
-22. **Dead code in the diff.** Imports, branches, parameters, or
+26. **Dead code in the diff.** Imports, branches, parameters, or
     feature flags that no longer have a caller.
-23. **Complexity worth a comment.** Non-obvious invariants, hidden
+27. **Complexity worth a comment.** Non-obvious invariants, hidden
     coupling to another module, or a workaround for a specific bug
     deserve a one-line *why* comment. The bar is \"would a reader
     misread this\", not \"would it look more documented\".
-24. **Bounded complexity — split what's reducible.** A function whose
+28. **Bounded complexity — split what's reducible.** A function whose
     cognitive or cyclomatic load comes from *reducible structural*
     complexity — a long branch chain, an arm that is really its own
     operation — should be split into named pieces that each do one
-    thing. This is the complement of #23, not a rival: #23 *comments*
+    thing. This is the complement of #27, not a rival: #27 *comments*
     the irreducible, non-obvious complexity that must stay; this
     *splits* the accidental complexity that needn't. Decide which
     you're looking at before recommending either. *Usually a Concern —
     it blocks testing the arms in isolation; a Nit when the function is
     short and the load is incidental.*
-25. **Nesting depth.** Deeply nested conditionals and loops are hard to
+29. **Nesting depth.** Deeply nested conditionals and loops are hard to
     read and hard to test. Recommend the *idiom-appropriate* flattening
     — guard clauses, pattern matching, an early return, a small
     extracted predicate — whatever the language reaches for. Don't
@@ -306,15 +328,15 @@ stands in for.
     prefer a single exit. The smell is the depth, not the keyword.
     *Usually a Concern when the depth hides an untested branch; a Nit
     when it is merely dense but readable.*
-26. **Duplicated production blocks past the rule-of-three.** The same
+30. **Duplicated production blocks past the rule-of-three.** The same
     non-trivial block appearing a third time in production code is the
-    point to extract a shared helper — #21's rule-of-three read the
-    other way. **Test code is exempt**: tests stay DAMP (#4), and
+    point to extract a shared helper — #25's rule-of-three read the
+    other way. **Test code is exempt**: tests stay DAMP (#8), and
     duplicated setup that lets a test read as a self-contained
     specification is the right kind of repetition, not a finding.
     *Usually a Concern — the third copy is where the divergence bug
     lands when one is changed and the others aren't.*
-27. **Magic literals of non-obvious origin, and function/parameter
+31. **Magic literals of non-obvious origin, and function/parameter
     bloat.** A literal whose value is spec-derived, regulatory,
     calibrated, or otherwise non-obvious should become a named constant
     so the *why* travels with it; a function that has accreted too many
@@ -329,11 +351,11 @@ stands in for.
 
 ### Performance ergonomics
 
-28. **Obvious O(n²) where O(n).** Nested loops over the same
+32. **Obvious O(n²) where O(n).** Nested loops over the same
     collection, repeated linear lookups in a hot path. Flag with the
     data structure that fixes it.
-29. **N+1 queries.** Iterating a result set and querying per row.
-30. **Unbounded growth.** Collections, caches, log buffers, or
+33. **N+1 queries.** Iterating a result set and querying per row.
+34. **Unbounded growth.** Collections, caches, log buffers, or
     queues with no eviction or backpressure.
 
 ## Test-author mode

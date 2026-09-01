@@ -54,6 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.20.1] — 2026-09-01
+
+### Highlights
+
+- **Quality review now spots four tests that can stay green while proving
+  nothing.** It calls out empty-set assertions without a positive control,
+  unstubbed negative cases, source-text checks that do not exercise a security
+  control, and prose that substitutes for a captured baseline.
+
 ## [core][2.20.0] — 2026-09-01
 
 ### Highlights
