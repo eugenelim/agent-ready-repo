@@ -52,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
+
 ## [core][2.19.0] — 2026-09-01
 
 ### Highlights
@@ -115,8 +117,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The session-resumption guidance tells a resuming session to compare the
   recorded id before deciding whether a round was written, and states that the
   clean-round replay risk applies to a replay without a matching id.
-
-<!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
 ## [core][2.18.1] — 2026-08-31
 
