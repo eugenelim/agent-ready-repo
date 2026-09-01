@@ -72,6 +72,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   incomplete, not that it did not happen: one unreadable record leaves every
   other record still cooling its artifact, and the accompanying finding says
   which case you are in.
+- **A brief whose declared child has cooled holds its dependants back.** When a
+  spec names a brief through `source.parent` in `workspace.toml` and that spec
+  cools, the brief stops satisfying `kind = "brief"` dependencies until its
+  child scope is re-established. Cooling is otherwise subtractive; this is the
+  one place it withholds work, and it exists so a lifecycle record cannot make
+  a blocked spec dispatchable by hiding a child's real state.
 - Repair and migration keep their previous behaviour and still reach cooled
   entries; whether cooling constrains them is a later decision.
 

@@ -1809,7 +1809,7 @@ def test_cooled_attributed_child_refuses_brief_dependency(tmp_path, engine) -> N
     # Its body is never read after that — the cooled branch short-circuits all
     # body-dependent predicates. source.parent in the workspace entry attributes
     # the child to the brief read-free.
-    _child_spec(root, status="Implementing")
+    _child_spec(root, status="Shipped")
     _spec(root, "dependant", status="Approved", brief="none")
     _brief_workspace(
         root,
@@ -1817,8 +1817,16 @@ def test_cooled_attributed_child_refuses_brief_dependency(tmp_path, engine) -> N
         child_source_parent=BRIEF_PATH,
         brief_collection="shipped",
     )
-    _cool_child(root)
 
+    # AC59 names a two-run observable. Without this control the brief is blocked
+    # in both runs and the assertions below cannot attribute anything to cooling.
+    control = _reconcile_canonical(root, engine)
+    assert "docs/specs/dependant/spec.md" in {
+        e.entry.path for e in control.evaluations if e.dispatchable
+    }, "control never dispatched the dependant; the cooled run proves nothing"
+    assert not [f for f in control.findings if f.path == BRIEF_PATH]
+
+    _cool_child(root)
     result = _reconcile_canonical(root, engine)
     ready_paths = {e.entry.path for e in result.evaluations if e.dispatchable}
     assert "docs/specs/dependant/spec.md" not in ready_paths, (
@@ -1828,6 +1836,100 @@ def test_cooled_attributed_child_refuses_brief_dependency(tmp_path, engine) -> N
         f.code == "unsatisfied_dependency" and f.path == BRIEF_PATH
         for f in result.findings
     ), "expected unsatisfied_dependency for the brief whose attributed child was cooled"
+
+
+def test_a_cooled_child_does_not_erase_a_live_childs_violation(tmp_path, engine) -> None:
+    """AC59: suppression covers only the arm a missing child can flip.
+
+    `brief_queue.ready` and `brief_queue.shipped` assert over the states
+    observed; an unknown extra child can add a state but never remove one, so a
+    violation raised by a live, readable child stays a violation. Only
+    `brief_queue.executing` asserts a state is PRESENT, so only it can be
+    flipped by absence. Suppressing all three let cooling one child erase a
+    finding that a different, fully readable child caused.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    for slug, status in (("childa", "Implementing"), ("childb", "Shipped")):
+        directory = root / "docs/specs" / slug
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "spec.md").write_text(
+            f"# Spec\n\n- **Status:** {status}\n- **Brief:** none\n", encoding="utf-8"
+        )
+        (directory / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    _spec(root, "dependant", status="Approved", brief="none")
+
+    def entry(slug: str) -> str:
+        return (
+            f'{{path = "docs/specs/{slug}/spec.md", kind = "spec", '
+            f'source = {{mode = "repo-origin", parent = "{BRIEF_PATH}"}}, '
+            f'summary = "fixture", needs = []}}'
+        )
+
+    brief_entry = (
+        f'{{path = "{BRIEF_PATH}", kind = "brief", source = {{mode = "repo-origin"}}, '
+        f'summary = "fixture", needs = []}}'
+    )
+    (root / "workspace.toml").write_text(
+        '["ini-002"]\nname = "x"\nstatus = "active"\nmilestone = "M1"\n\n'
+        '["ini-002".work]\n'
+        f'queue = []\nactive = [{entry("childa")}]\nshipped = [{entry("childb")}]\n\n'
+        '["ini-002".brief_queue]\ndraft = []\nready = []\nexecuting = []\n'
+        f'shipped = [{brief_entry}]\n',
+        encoding="utf-8",
+    )
+
+    def scope_findings(result):
+        return [
+            f for f in result.findings
+            if f.code == "impossible_transition" and f.path == BRIEF_PATH
+        ]
+
+    assert scope_findings(_reconcile_canonical(root, engine)), (
+        "control raised no child-scope finding; the assertion below proves nothing"
+    )
+    # Cool childb only. childa is live, readable, and still contributes
+    # "Implementing" to a brief_queue.shipped parent, so the violation stands.
+    (root / "docs/lifecycle").mkdir(parents=True, exist_ok=True)
+    (root / "docs/lifecycle/childb.json").write_text(
+        json.dumps(_record(delivery_id="childb", locator="docs/specs/childb/spec.md")),
+        encoding="utf-8",
+    )
+    assert scope_findings(_reconcile_canonical(root, engine)), (
+        "cooling one child erased a violation raised by a different live child"
+    )
+
+
+def test_a_cooled_child_contributes_no_fabricated_state(tmp_path, engine) -> None:
+    """AC59: a cooled child's collection-derived state never reaches a predicate.
+
+    `_membership_status` returns "Shipped" for anything in `work.shipped`
+    whatever the body says. With the `shipped` arm now evaluated for briefs that
+    have a cooled child, letting that fabricated state through would report a
+    brief as compliant on the strength of the collection alone.
+    """
+    root = tmp_path
+    _brief_body(root, status="Shipped")
+    # Body says Implementing; the collection says Shipped. Only the body is true.
+    _child_spec(root, status="Implementing")
+    _spec(root, "dependant", status="Approved", brief="none")
+    _brief_workspace(
+        root,
+        child_collection="shipped",
+        child_source_parent=BRIEF_PATH,
+        brief_collection="shipped",
+    )
+
+    assert [
+        f for f in _reconcile_canonical(root, engine).findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ], "control did not flag the brief; the assertion below proves nothing"
+
+    _cool_child(root)
+    assert not [
+        f for f in _reconcile_canonical(root, engine).findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ], "a cooled child injected its collection-derived state into the predicate"
 
 
 def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engine) -> None:
@@ -1894,25 +1996,35 @@ def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> N
 
     _cool_child(root)
     after = _reconcile_canonical(root, engine)
+    # The observable the Follow-ons row names: the brief's dependants are NOT
+    # held back, because a body-only link is not recoverable read-free. Both
+    # candidate closures — recovering the link, or attributing conservatively —
+    # change exactly this, whereas the erased `impossible_transition` stays
+    # erased under either, so asserting that absence pinned nothing.
+    assert "docs/specs/dependant/spec.md" in {
+        e.entry.path for e in after.evaluations if e.dispatchable
+    }, "the residual is closed — update AC59 and remove the Follow-ons row"
     assert not [
         f for f in after.findings
-        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+        if f.code == "unsatisfied_dependency" and f.path == BRIEF_PATH
     ], "the residual is closed — update AC59 and remove the Follow-ons row"
 
 
 def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
     tmp_path, engine
 ) -> None:
-    """AC59 control: a cooled parentless spec in ini-003 leaves the ini-002 brief clean.
+    """AC59: a cooled spec that declares no `source.parent` marks no brief.
 
-    The per-brief scope means only briefs in the same initiative as the cooled
-    child are marked.  A brief in ini-002 must be unaffected when a parentless
-    cooled spec lives only in ini-003.
+    The refused set is exactly the `source.parent` values declared by cooled
+    specs. There is no initiative filter — an earlier docstring here claimed one
+    and named a `ini_slug` mutation that does not exist, which made this look
+    like a scoping test when it is an attribution test. The cooled spec below
+    happens to live in another initiative, but what makes the brief safe is that
+    the spec declares no parent at all.
 
-    Killing mutation: change the parentless attribution to mark all briefs across
-    ALL initiatives (remove the ini_slug filter from _brief_child_spec_states) —
-    the brief in ini-002 enters briefs_with_cooled_children, the dep is refused,
-    and the assertion fails.
+    Killing mutation: attribute parentless cooled specs to every brief (the
+    withdrawn conservative rule) — the ini-002 brief enters
+    briefs_with_cooled_children and its dependant is refused.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")

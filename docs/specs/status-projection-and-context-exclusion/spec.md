@@ -218,7 +218,7 @@ absent in whitespace-normalized text.
 - **Frozen-body preservation: pinned digest**, so the check holds after the
   branch is gone.
 
-**Stub coverage.** Compiled red stubs: AC1–AC44, AC55–AC58, and AC59 (T1–T3; AC57 and AC58 were added during review; AC59 closes the attributed half of `cooling-brief-child-scope` — all covered by tests at `tests/roster/test_status_projection_and_context_exclusion.py`).
+**Stub coverage.** Compiled red stubs: AC1–AC44 and AC55–AC56 (T1–T3). AC57, AC58 and AC59 were added during review and are covered by directly authored tests rather than compiled stubs — `plan.md` is hash-pinned and names none of them; AC59 closes the attributed half of `cooling-brief-child-scope` — all covered by tests at `tests/roster/test_status_projection_and_context_exclusion.py`).
 `no stub (mode)`: AC45–AC54 (T4, goal-based). Uncovered: none.
 
 ## Acceptance Criteria

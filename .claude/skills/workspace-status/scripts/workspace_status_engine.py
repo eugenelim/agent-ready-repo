@@ -2592,16 +2592,19 @@ def _dependency_is_satisfied(
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
-    # Fail closed when a brief's child scope is unknown. A cooled child spec
-    # may have changed the brief's actual terminal state without the workspace
-    # membership reflecting it, so the brief's apparent state cannot be trusted.
-    # Only the specific affected briefs are refused; the blast radius is bounded
-    # to the briefs that share an initiative with a cooled child, or to the
-    # brief named in the cooled child's source.parent.
-    if dep.kind == "brief" and dep.path in briefs_with_cooled_children:
-        return False, _finding(
-            "unsatisfied_dependency", dep.path, "brief child scope is unknown"
-        )
+    # Fail closed when a brief's child scope is unknown. A cooled child may
+    # have changed the brief's terminal state without the workspace membership
+    # reflecting it, so the brief's apparent state is not evidence.
+    #
+    # The refused set is exactly the normalized `source.parent` values declared
+    # by cooled spec memberships. It is NOT initiative-scoped and does not
+    # consider initiative status: a cooled spec in a paused initiative that
+    # declares a brief owned by an active one still refuses that brief. The
+    # value is also unvalidated against the artifact body, because the cooled
+    # branch of `_structural_findings` returns before the provenance check —
+    # for a cooled child the declaration is unverifiable by construction, which
+    # is the point of failing closed rather than trusting it.
+    brief_scope_unknown = dep.kind == "brief" and dep.path in briefs_with_cooled_children
     cooled_dependency = (
         root is not None and _confined_artifact_path(root, dep.path) in cooled
     )
@@ -2674,6 +2677,14 @@ def _dependency_is_satisfied(
     )
     if safety_finding is not None:
         return False, safety_finding
+    if brief_scope_unknown:
+        # Deliberately after the safety check: a missing, unreadable or
+        # invalid-path brief has a concrete cause, and reporting "re-establish
+        # the child scope" for a brief that does not exist sends the maintainer
+        # to the wrong repair.
+        return False, _finding(
+            "unsatisfied_dependency", dep.path, "brief child scope is unknown"
+        )
     status = metadata.status
     if status is None and matches:
         status = _membership_status(matches[0])
@@ -3089,21 +3100,25 @@ def _structural_findings(
         findings.append(
             _finding("provenance_mismatch", entry.path, "source revision mismatch")
         )
-    if (
-        entry.kind == "brief"
-        and membership.collection.startswith("brief_queue.")
-        and entry.path not in briefs_with_cooled_children
-    ):
-        # Skip this predicate when a cooled child makes the scope unevaluable.
-        # The per-brief guard limits the blast radius to only the briefs
-        # actually affected; unrelated briefs are evaluated normally.
+    if entry.kind == "brief" and membership.collection.startswith("brief_queue."):
         child_states = brief_child_states.get(entry.path, set())
+        # Only the `executing` arm is suppressed for a brief with a cooled
+        # child, because only it is non-monotone: it asserts a state is
+        # PRESENT, so a missing child can flip it from satisfied to violated
+        # and cooling would plant a finding on live work. The other two arms
+        # assert over the states actually observed — an unknown extra child can
+        # only add a state, never remove one — so a violation found among live,
+        # readable children stays a violation whatever the cooled child is.
+        # Suppressing all three let cooling one child erase an
+        # `impossible_transition` that a different, fully readable child caused.
+        scope_unevaluable = entry.path in briefs_with_cooled_children
         invalid_child_scope = (
             membership.collection == "brief_queue.ready"
             and "Implementing" in child_states
         ) or (
             membership.collection == "brief_queue.executing"
             and "Implementing" not in child_states
+            and not scope_unevaluable
         ) or (
             membership.collection == "brief_queue.shipped"
             and any(state != "Shipped" for state in child_states)
