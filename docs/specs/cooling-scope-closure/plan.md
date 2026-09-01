@@ -1,7 +1,7 @@
 # Plan: Cooling scope closure
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-intake-and-artifact-routing.md`
   and `docs/CONVENTIONS.md`. Two analogous production implementations: Wave 6's
   cooling projection — `_resolve_cooled_state`, `_cooling_projection`, and

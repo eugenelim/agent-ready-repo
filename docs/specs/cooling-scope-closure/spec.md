@@ -1,6 +1,6 @@
 # Spec: Cooling scope closure
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §7 and §9; `status-projection-and-context-exclusion` (Shipped and frozen, live dependency — this spec closes two of its recorded follow-ons); `thirty-day-cooling-and-retirement` (Shipped and frozen, live dependency)
