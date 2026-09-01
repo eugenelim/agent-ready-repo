@@ -1058,3 +1058,38 @@ record. Corrections are appended here, Approver-signed.
   three shipped specs. Both are records of completed work, not new capability;
   closing them is a publication task. Until they close, this RFC is delivered
   but not auditable end to end.
+- **2026-08-31 (Approver: eugenelim) — the adopter routing study is waived;
+  follow-on #6 and the ledger entry above are corrected.** The moderated
+  five-adopter card sort and tree test in `### Adopter routing study` was never
+  run. D7's question — what proves the new routes are clearer — is unanswered,
+  and the four follow-on specs shipped on that untested usability premise.
+  Therefore follow-on #6's instruction to publish an “already-completed” study
+  and the ledger entry above's description of the missing study evidence as a
+  publication task are withdrawn; there is no completed participant evidence
+  to publish. Waiving the study is acceptable now because the four delivery
+  slices, route and alias migration guidance, executable contract fixtures,
+  safety boundaries, and removal window are independently reviewable, while a
+  retroactive publication task cannot create the missing adopter-comprehension
+  evidence. This accepts the known usability uncertainty; it does not say the
+  study passed or that desk research or executable activation fixtures answer
+  it. The activation fixtures test routing logic, not adopter comprehension.
+  The frozen R1–R12 answer key and pass condition above remain the approved
+  instrument for any later owner who chooses to run a new study. Follow-on #6
+  closes when the two missing executable fixture families and the five-field
+  fixture register are complete; no adopter-study artifact is owed.
+- **2026-09-01 (Approver: eugenelim) — follow-on #6 is discharged; six of six
+  are now discharged and the status field stays `Accepted`.** The two closing
+  conditions set by the 2026-08-31 waiver entry are met. The missing executable
+  fixture families are complete: R1–R12 activation coverage across all eight
+  entry points is bound cell by cell to the normative routing table, and the six
+  seeded shaping-review efficacy defects carry independently adjudicated,
+  digest-bound receipts. The versioned five-field fixture register that section
+  6 required before acceptance now exists and covers all seven families —
+  `ACT`, `SHAPE`, `ALIAS`, `RFCARCH`, `STATE`, `CORE`, and `BOUNDARY` — citing
+  shipped evidence in place for the five families already discharged per-spec.
+  This RFC is therefore delivered and auditable end to end. The declared
+  vocabulary still has no implemented or shipped status, so `Accepted` remains
+  terminal and the header does not move. What is discharged is the delivery
+  ledger, not D7: the adopter routing study was waived and never run, its
+  question stays unanswered, and no entry here claims the study passed or that
+  the activation fixtures answer it.

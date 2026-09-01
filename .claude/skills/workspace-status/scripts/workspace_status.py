@@ -71,6 +71,7 @@ _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
 _migration_operation_digest: Any = None
+project_closeout_status: Any = None
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
@@ -125,6 +126,7 @@ def _bind_engine() -> bool:
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
         "_migration_operation_digest": engine_mod._migration_operation_digest,
+        "project_closeout_status": engine_mod.project_closeout_status,
     })
     _ENGINE_BOUND = True
     return True
@@ -448,12 +450,31 @@ def _is_work_spec_item(item: dict) -> bool:
     return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
 
 
-def _canonical_projection(root: Path, result) -> dict:
+def _cooling_selection(result, mode: str) -> tuple[frozenset[Path], tuple]:
+    """Return the cooled set and its resolution findings for one mode.
+
+    The two travel together because they are one decision. `repair-plan` and
+    `repair-apply` keep pre-Wave-6 behaviour, which means both an empty cooled
+    set and no cooling findings; returning them separately let a caller
+    suppress the exclusion while still emitting findings about it.
+    """
+    if mode not in {"status", "reconcile", "explain"}:
+        return frozenset(), ()
+    return result.cooled, tuple(result.cooling_findings)
+
+
+def _canonical_projection(
+    root: Path,
+    result,
+    cooled: frozenset[Path],
+    cooling_findings: tuple = (),
+) -> dict:
+    """Build canonical dispatch data using the caller's cooling selection."""
     workspace_bytes = _migration_read_bytes(root, "workspace.toml")
     if workspace_bytes is None:
         raise UnsafeMigrationPathError
     workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-    canonical = run_canonical_reconciliation(workspace, root)
+    canonical = run_canonical_reconciliation(workspace, root, cooled)
     evaluations = [_canonical_evaluation_dict(e) for e in canonical.evaluations]
     legacy_memberships = [
         _canonical_legacy_dict(m, workspace_bytes) for m in canonical.legacy_memberships
@@ -462,7 +483,13 @@ def _canonical_projection(root: Path, result) -> dict:
         "performed": True,
         "bounded": not result.global_scan_performed,
         "input_identity": canonical_repository_identity(workspace, canonical, root),
-        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        # Cooling findings are raised while resolving the cooled set, before
+        # this reconciliation runs, so they have no other route to the emitted
+        # surface. Six criteria name `canonical.findings` as their observable.
+        "findings": [
+            _canonical_finding_dict(f)
+            for f in (*cooling_findings, *canonical.findings)
+        ],
         "evaluations": evaluations,
         "legacy_memberships": legacy_memberships,
         "ready": [
@@ -537,7 +564,7 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
         return public_selector, {"selector_status": "not_found"}
 
     canonical_path, legacy_path = targets
-    projection = _canonical_projection(root, result)
+    projection = _canonical_projection(root, result, *_cooling_selection(result, "explain"))
     candidates = [
         item
         for item in [
@@ -632,6 +659,125 @@ def _scan_dict(result) -> dict:
     }
 
 
+def _projected_locator(value: object) -> str | None:
+    """Return a locator safe to render, or None when it cannot be shown.
+
+    `_public_canonical_path` degrades anything outside its charset to the
+    literal `workspace.toml`. For a finding path that is a safe fallback; for a
+    record locator it is a lie — the artifact is excluded correctly while the
+    projection names a different, real file. Wave 5 admits any non-control
+    character up to 1000 bytes, so this case is reachable.
+    """
+    public = _public_canonical_path(value)
+    return public if public == value else None
+
+
+def _cooling_projection(result) -> dict:
+    """Project validated lifecycle records using the analysis-time clock."""
+    records: list[dict] = []
+    due: list[dict] = []
+    exceptions: list[dict] = []
+    unreadable_records: list = []
+    for record in result.cooling_records:
+        # `cooling_module` is never None here: a record can only exist because
+        # the module that parsed it loaded. The guard proves `is_due` exists and
+        # is callable, not that it returns rather than raises — the module may
+        # be an older cooling.py from an installed skills tree. A raise here
+        # left the whole run as `configuration_mismatch` and exit 2.
+        try:
+            due_now = (
+                record.post_closeout_result != "Retired"
+                and result.cooling_module.is_due(record, result.now).due
+            )
+        except Exception:
+            # Degrading to "not due" silently under-reported the maintainer's
+            # queue while `cooling_context_visible` still claimed a clean run.
+            # The finding both names the record and flips that claim.
+            due_now = False
+            unreadable_records.append(record)
+        records.append({
+            "delivery_id": record.delivery_id,
+            "locator": _projected_locator(record.locator),
+            "disposition": record.disposition,
+            "post_closeout_result": record.post_closeout_result,
+            "completion_event": record.completion_event,
+            "completion_evidence_ref": record.completion_evidence_ref,
+            "review_on": record.review_on.isoformat(),
+            "due": due_now,
+        })
+        if due_now:
+            due.append({
+                "delivery_id": record.delivery_id,
+                "locator": _projected_locator(record.locator),
+                "review_on": record.review_on.isoformat(),
+            })
+        # Gate on the post-closeout result, not on `exception is not None`.
+        # `retain-exception` makes the block mandatory, so presence alone would
+        # also admit ("retain-exception", "Retired") — a settled record AC28
+        # requires to contribute nothing. `ExternalAdvisory` is the other live
+        # obligation and was dropped entirely, losing its owner, reason and date.
+        if (
+            record.post_closeout_result in {"Retained", "ExternalAdvisory"}
+            and record.exception is not None
+        ):
+            exception = dict(record.exception)
+            exceptions.append({
+                "delivery_id": record.delivery_id,
+                "locator": _projected_locator(record.locator),
+                "owner_role": exception["owner_role"],
+                "reason": exception["reason"],
+                "review_on": exception["review_on"],
+            })
+    return {
+        "due_count": len(due),
+        "due": due,
+        "records": records,
+        "exceptions": exceptions,
+        "_unreadable": tuple(unreadable_records),
+    }
+
+
+def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None:
+    """Project the first active or paused initiative's closeout facts, by slug.
+
+    Returns None when no initiative is active or paused. There is no closeout
+    state to project then, and synthesizing one from the absent initiative
+    reported `unshipped-specs` against a workspace whose initiatives are all
+    closed — a blocker naming work that does not exist. The block is omitted
+    rather than emitted empty, which leaves AC29's closed key set untouched.
+    """
+    active = sorted(
+        (
+            initiative
+            for initiative in result.initiatives
+            if initiative.status in {"active", "paused"}
+        ),
+        key=lambda initiative: initiative.slug,
+    )
+    if not active:
+        return None
+    initiative = active[0]
+    paused = initiative.status == "paused"
+    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
+    # `spec_path` is `entry.path` straight from workspace.toml with no charset
+    # rule, and this string is rendered into agent context. Every sibling
+    # emitter bounds its path through this same filter.
+    blockers = [
+        f"type{finding.finding_type}:{_public_canonical_path(finding.spec_path)}"
+        for finding in result.reconciliation
+        if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
+    ]
+    projection = project_closeout_status(
+        paused=paused,
+        all_specs_shipped=all_specs_shipped,
+        closeout_blockers=blockers,
+        # A record whose dueness could not be judged is an incomplete run just
+        # as a record that would not load is, so it flips the same claim.
+        cooling_context_visible=bool(result.cooling_findings) or dueness_failed,
+    )
+    return dataclasses.asdict(projection)
+
+
 def _build_json(root: Path, result, mode: str) -> dict:
     # initiatives/work.active/work.shipped are filtered to active initiatives only;
     # reconciliation.* spans all initiatives (including paused/closed) — mirroring analyze().
@@ -679,14 +825,14 @@ def _build_json(root: Path, result, mode: str) -> dict:
 
     types_performed = [1, 2, 3] if result.global_scan_performed else [2, 3]
 
-    canonical = _canonical_projection(root, result)
+    canonical = _canonical_projection(root, result, *_cooling_selection(result, mode))
     canonical_failed = any(
         finding["code"] in {"invalid_workspace", "configuration_mismatch"}
         for finding in canonical["findings"]
     )
     if canonical_failed:
         type2_cleanup_ops = []
-    return {
+    output = {
         "schema_version": 1,
         "mode": mode,
         "workspace_present": True,
@@ -734,6 +880,14 @@ def _build_json(root: Path, result, mode: str) -> dict:
             "spec_files_read": result.files_read,
         },
     }
+    if mode in {"status", "reconcile"}:
+        cooling = _cooling_projection(result)
+        unreadable = cooling.pop("_unreadable")
+        output["cooling"] = cooling
+        closeout = _closeout_projection(result, dueness_failed=bool(unreadable))
+        if closeout is not None:
+            output["closeout"] = closeout
+    return output
 
 
 def _build_explain_json(root: Path, result, selector: str, explain_result: dict) -> dict:
@@ -744,7 +898,9 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
         "workspace_root": ".",
         "scan": _scan_dict(result),
         "selector": selector,
-        "canonical": _canonical_projection(root, result),
+        "canonical": _canonical_projection(
+            root, result, *_cooling_selection(result, "explain")
+        ),
         **explain_result,
     }
 
@@ -2383,7 +2539,11 @@ def main(argv: list[str] | None = None) -> int:
             # to avoid following a retargeted symlink between the guard and this read.
             _plan_ws_bytes = _ws_toml_resolved.read_bytes()
             _plan_ws_fp = hashlib.sha256(_plan_ws_bytes).hexdigest()
-            result = analyze(root, workspace_bytes=_plan_ws_bytes)
+            result = analyze(
+                root,
+                workspace_bytes=_plan_ws_bytes,
+                cooling_enabled=False,
+            )
             plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
             data = _build_repair_plan_json(root, result, plan)
             # Emit stdout first — plan JSON always available even if file write fails
@@ -2761,6 +2921,22 @@ def main(argv: list[str] | None = None) -> int:
                 else "configuration_mismatch"
             )
         )
+        # Only the unclassified fallback. `unsafe_path` and `invalid_workspace`
+        # are recognized refusals that already carry their own emitted code, and
+        # a shipped criterion requires them to stay silent on stderr;
+        # `configuration_mismatch` is the branch that swallows genuine
+        # programming errors, so it is the one that needs a diagnostic.
+        #
+        # The exception type only, never `str(exc)`: an exception message
+        # routinely carries an absolute host path, and this stream is read into
+        # agent context. The type name is the largest disclosure-free signal,
+        # and it is what the exit-code contract at the top of this module
+        # promises — one line on stderr, no traceback, no internal paths.
+        if code == "configuration_mismatch":
+            print(
+                f"workspace-status: {code}: {type(exc).__name__}",
+                file=sys.stderr,
+            )
         _emit(_canonical_failure_payload(subcommand, code))
         return 2
 

@@ -306,14 +306,19 @@ Impact: helper and persistent schema. Parallelism: not Waves 4 or 6.
 ### Wave 6 — Workspace-status projection and context exclusion
 
 Objective: status projection and context exclusion. Dependencies: Waves 4–5.
-Behavior: show closeout, due reviews, exceptions, and receipts. Non-goals:
-distillation/deletion. Evidence: authoritative projections never dispatch
-cooling work. Impact: status compatibility. Parallelism: after Wave 5.
+Behavior: show closeout, due reviews, and exceptions. Non-goals:
+distillation/deletion, and the dependency-scoped completion receipt, which
+moves to Wave 7 — the lifecycle record carries no `outcome` field, so
+projecting the four-field receipt needs a schema answer this wave does not
+have. Evidence: authoritative projections never dispatch cooling work. Impact:
+status compatibility. Parallelism: after Wave 5.
 
 ### Wave 7 — Historical migration and pruning
 
-Objective: classify history and prune proven-eligible artifacts. Dependencies:
-Waves 1–6. Behavior: reviewed plans, no bulk deletion, explicit exceptions.
+Objective: classify history, prune proven-eligible artifacts, and project the
+dependency-scoped completion receipt from its coordination surface.
+Dependencies: Waves 1–6. Behavior: reviewed plans, no bulk deletion, explicit
+exceptions, and a four-field receipt once `outcome` has a source.
 Non-goals: history rewrite/product-doc reorganization. Evidence: dry-run,
 semantic samples, dependency proof, confirmations, orientation. Impact: large
 separate release. Parallelism: none.

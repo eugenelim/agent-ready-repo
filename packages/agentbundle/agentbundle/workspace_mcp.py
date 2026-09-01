@@ -821,15 +821,23 @@ def _surface_metadata(item: dict[str, Any]) -> dict[str, Any]:
     return metadata
 
 
-def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any] | None:
+def _canonical_status_projection(
+    engine: Any,
+    repo_root: Path,
+) -> dict[str, Any] | None:
     workspace_path = repo_root / "workspace.toml"
     try:
+        # This projection owns the resolution because it must run before
+        # `parse_workspace`: the symlink check below is the only confinement on
+        # `workspace.toml`, so nothing may read that file earlier. A genuine
+        # failure lands in the handler below, the same mapping the CLI applies.
+        cooled, cooling_findings = engine._resolve_cooled_state(repo_root)
         workspace_path.lstat()
         if workspace_path.is_symlink():
             resolved = workspace_path.resolve()
             resolved.relative_to(repo_root.resolve())
         workspace = engine.parse_workspace(workspace_path)
-        canonical = engine.run_canonical_reconciliation(workspace, repo_root)
+        canonical = engine.run_canonical_reconciliation(workspace, repo_root, cooled)
     except tomllib.TOMLDecodeError as exc:
         _log.warning("workspace_status: canonical parse failed: %s", type(exc).__name__)
         return _canonical_failure_projection("invalid_workspace")
@@ -844,7 +852,12 @@ def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any]
         "input_identity": engine.canonical_repository_identity(
             workspace, canonical, repo_root
         ),
-        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        # Cooling findings are raised while resolving the cooled set, ahead of
+        # this reconciliation, so this is their only route to the MCP surface.
+        "findings": [
+            _canonical_finding_dict(f)
+            for f in (*cooling_findings, *canonical.findings)
+        ],
         "evaluations": evaluations,
         "legacy_memberships": legacy_memberships,
         "ready": [
@@ -921,6 +934,13 @@ class _WorkspaceStatusTool:
         blocked_items: list[dict] = []
         shaping_items: list[dict] = []
         active_items: list[dict] = []
+        # This must precede `analyze_bounded`. The only confinement on
+        # `workspace.toml` is the symlink check inside this projection, and
+        # `engine.parse_workspace` opens the path with no guard of its own, so
+        # calling `analyze_bounded` first read and parsed an escaping target
+        # before the check that exists to reject it. Passing `None` for the
+        # cooled set makes the projection resolve it itself, which is what
+        # removes the need to run the analysis first at all.
         canonical_projection = _canonical_status_projection(engine, repo_root)
         legacy_analysis_allowed = bool(
             canonical_projection.pop("_legacy_analysis_allowed", False)
@@ -930,6 +950,15 @@ class _WorkspaceStatusTool:
             for finding in canonical_projection.get("findings", [])
         ):
             legacy_analysis_allowed = False
+
+        result = None
+        if legacy_analysis_allowed:
+            try:
+                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
+            except Exception as exc:
+                _log.warning(
+                    "workspace_status: analyze_bounded failed: %s", type(exc).__name__
+                )
 
         # Work queue items (ready / blocked)
         manifest = _LIFECYCLE_MANIFEST.get("work", {})
@@ -999,13 +1028,6 @@ class _WorkspaceStatusTool:
                 "required_pack": manifest.get("required_pack"),
                 **_surface_metadata(candidate),
             })
-
-        result = None
-        if legacy_analysis_allowed:
-            try:
-                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
-            except Exception as exc:
-                _log.warning("workspace_status: analyze_bounded failed: %s", type(exc).__name__)
 
         # Shaping items (ready + blocked, excluding signals)
         for cls in result.blocked_shaping if result is not None else []:

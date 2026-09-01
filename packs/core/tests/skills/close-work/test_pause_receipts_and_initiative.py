@@ -466,19 +466,19 @@ def test_workspace_status_projects_paused_blocked_and_incomplete_states() -> Non
         assert set(data).isdisjoint({"disposition", "compaction", "deletion"})
 
 
-def test_workspace_status_refuses_wave6_context_exclusion() -> None:
+def test_workspace_status_refuses_non_boolean_cooling_visibility() -> None:
     status = _workspace_status()
     try:
         status.project_closeout_status(
             paused=False,
             all_specs_shipped=True,
             closeout_blockers=(),
-            cooling_context_visible=False,
+            cooling_context_visible="no",
         )
     except ValueError as exc:
-        assert "cannot exclude cooling context" in str(exc)
+        assert "boolean facts" in str(exc)
     else:
-        raise AssertionError("Wave 6 context exclusion became representable")
+        raise AssertionError("non-boolean cooling visibility became representable")
 
 
 # ── Uncovered refusal codes (AC6, AC17, AC19) ────────────────────────────────

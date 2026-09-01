@@ -504,6 +504,17 @@ jobs:
           tests/roster/test_agent_boundary_metadata_contract.py
           tests/roster/test_shaping_review_documentation_contract.py
 
+      # rfc0099-migration-validation-record: the R1-R12 activation coverage
+      # reads the RFC answer key and skill contracts across packs, and the
+      # fixture register spans docs/specs and several packs' test trees, so
+      # lint-pack-test-boundary forbids both from packs/core/tests. CI does not
+      # auto-discover roster tests, so keep both suites explicit.
+      - name: pytest RFC-0099 activation + fixture register (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_rfc0099_activation_coverage.py
+          tests/roster/test_rfc0099_fixture_register.py
+
       # tdd-stub lifecycle: the PLAN-proof / EXECUTE-materialization boundary
       # spans packs/core, docs/, guides/, tools/, and docs-site/, so it is
       # roster-owned rather than pack-owned. CI does not auto-discover roster

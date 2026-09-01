@@ -570,15 +570,15 @@ existing or proposed contract, and `reject` deliberately excludes it.
   proposal are rejected; the narrowed `intake-intent` plus
   `author-delivery-brief`, with compatibility aliases, proceeds to validation.
 - **Governance consequence:** the governing RFC supersedes ADR-0019, ADR-0076,
-  ADR-0077, and ADR-0078. The adopter-routing validation hook remains
-  `to-validate` and is not represented as completed research.
+  ADR-0077, and ADR-0078. The adopter-routing validation hook is `surfaced` and
+  waived, not represented as completed research or usability evidence.
 
 ## Validation hook
 
 ```yaml
 validation_hook:
-  status: to-validate
-  assumption: A two-surface core model makes common intake routes unambiguous.
+  status: surfaced
+  assumption: A two-surface core model may make common intake routes unambiguous; this remains unanswered after four specs shipped on the untested premise.
   kill_condition: Reject unless at least four of five target adopters route every scenario correctly, no scenario produces two plausible answers, and no core-only scenario requires product-engineering.
-  activity: Run a moderated card-sort and tree test for a vague idea, one Jira Story or Linear Issue, an intent needing an RFC, an existing external brief, a delivery brief needing several RFCs, a multi-spec outcome, and source refresh.
+  activity: Waived 2026-08-31. Preserve RFC-0099's frozen R1-R12 answer key and pass condition as the instrument for any later study; executable activation fixtures test routing logic, not adopter comprehension.
 ```
