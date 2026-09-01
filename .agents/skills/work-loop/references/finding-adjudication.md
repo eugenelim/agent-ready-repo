@@ -1,7 +1,9 @@
 # Finding-adjudication path protocol
 
-Use this reference for every raw report classified `findings`. Pre-EXECUTE
-reviews use the parallel protocol in `pre-execute-review.md`.
+Use this reference for every raw report classified `findings`, except a Nit-only
+report the implementation thread does not intend to mutate. Defer each such Nit
+in the verdict record with its citation; intended Nit mutations require dispatch.
+Pre-EXECUTE reviews use the parallel protocol in `pre-execute-review.md`.
 
 ## Raw-clean fast path
 

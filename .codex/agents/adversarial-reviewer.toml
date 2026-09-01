@@ -325,6 +325,8 @@ Some orchestrators prefer the 4-tier scheme CRITICAL / HIGH / MEDIUM / LOW.
 Map as Blockers→CRITICAL+HIGH, Concerns→MEDIUM, Nits→LOW if the caller
 asks for that scheme.
 
+For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
+
 ## Vague feedback is unhelpful feedback
 
 - Bad: \"This is unclear\" / \"Consider refactoring\" / \"Tests could be better.\"

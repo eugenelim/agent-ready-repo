@@ -361,6 +361,8 @@ how unlikely the reviewer judges exploitation to be.
   that depends on a configuration the reviewer can't see.
 - **Nit** — code-style or documentation issue with no exploit path.
 
+For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
+
 Err toward Concern over Blocker when you're inferring exploitability
 from a single file. Err toward Blocker when the diff itself introduces
 the boundary crossing.

@@ -445,6 +445,8 @@ reading; print only the findings.
   will need more tests soon.
 - **Nit** — taste call: naming, micro-complexity, dead import.
 
+For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
+
 If a quality issue also warrants a security lens (for example, an unbounded
 resource that may affect availability), state the security pass need as a
 quality process finding; security-reviewer owns the threat finding.

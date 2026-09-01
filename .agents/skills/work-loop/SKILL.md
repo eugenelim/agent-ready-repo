@@ -481,7 +481,7 @@ Adjudicated sustained findings come back grouped by severity (Blockers /
 Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
 in the paired audit; an indeterminate stops unless the evidence retry admits it.
 
-- **Full mode:** iterate `adversarial-reviewer` until its direct or adjudicated main-loop result returns `Clean — ready to commit.`
+- **Full mode:** iterate `adversarial-reviewer` until no unresolved Blocker or Concern remains.
 - **Light mode:** run the single bounded pass. Accept only the exact clean sentinel directly; adjudicate every other report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
 
 Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path.
@@ -496,8 +496,9 @@ session path first. Persistence is unconditional. Then run `review raw-classify
 --report <path> --json`: `clean` skips adjudication and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
-`findings` dispatches
-the adjudicator; `invalid` stops loudly. Never trim, case-fold, normalize
+`findings` dispatches the adjudicator unless the report is Nit-only and the
+thread does not intend to mutate; then defer each Nit in the verdict record.
+An intended Nit mutation requires adjudication. `invalid` stops loudly. Never trim, case-fold, normalize
 Unicode, unwrap Markdown, or accept prose outside that grammar. Missing
 adjudicator, invalid structure, or `ADJUDICATION-INDETERMINATE` is a loud stop.
 
@@ -543,7 +544,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
   named artifact, accepted concept/constraints, and governing rubric paths;
   route its report through finding adjudication. This adds no core trigger.
 
-**When every warranted mandatory reviewer is clean and every non-mandatory reviewer is clean or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
+**When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip** — for a spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
 `reviewers-clean` and, if at least one reviewer produced a clean report, record
 it (transition first; record is non-idempotent — recording first then crashing
 leaves CODE-REVIEW with the audit count already moved; the default guard
@@ -654,11 +655,12 @@ independently reviewed unit in the same session: use the existing human-gate
 - **Blockers** → include the correction required by the accepted intent. Re-run
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
-- **Concerns and Nits** → apply now only when their inclusion is authorized by
-  the accepted contract and they qualify under the bundled-fixes tiers. A
-  matching discovery that cannot share this unit remains incomplete and moves
-  to the next review unit in the same session. An out-of-intent discovery is
-  excluded unless the owner explicitly changes scope.
+- **Concerns** → apply now only when authorized by the accepted contract and
+  bundled-fixes tiers; matching work that cannot share this unit moves to the next.
+- **Nits** → never fix automatically. Defer an unacted Nit in `findings[]` with
+  its citation and `status: deferred`; adjudicate only when the thread intends to
+  mutate. Before any edit, promote `effective_severity` to at least Concern if
+  its intended repair changes behavior, architecture, dependencies, or more than one file.
 - **Excluded work** → acknowledge it in the PR's *What did you not change that
   you considered?* answer. Do not create a durable follow-on by default. If
   the owner explicitly asks to remember it, route the request through
@@ -685,10 +687,10 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
-- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) returned `Clean — ready to commit.` or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
+- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
 - [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran; its absence is a mandatory `missing` outcome and emits `BLOCKED`, never a readiness-compatible named skip. Every finding received an intent-fit and session-decision disposition; included fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or, only when non-mandatory, is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
-- [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
+- [ ] The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation. In light mode these findings come from the single bounded `adversarial-reviewer` pass; a surviving Blocker escalates to full mode.
 - [ ] One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
 - [ ] **Implementation completion only (code mode and direct-light):** the
   completion evidence handoff exists, including durable-output status
