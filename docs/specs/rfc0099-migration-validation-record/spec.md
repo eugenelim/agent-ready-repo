@@ -93,9 +93,11 @@ maintained five-field register for all seven fixture families.
 
 ### AC2 — Activation fixtures cover the frozen answer key
 
-- [x] `packs/core/tests/skills/work-intake/test_routing_precedence.py`
-  contains executable R1-R12 cases for the eight named entry points and their
-  near misses.
+- [x] `tests/roster/test_rfc0099_activation_coverage.py` contains executable
+  R1-R12 cases for the eight named entry points and their near misses. The
+  suite is repository-level because it reads the RFC answer key and skill
+  contracts across packs, which `tools/lint-pack-test-boundary.py` forbids from
+  inside `packs/core/tests/`.
 - [x] The activation expectations preserve the RFC answer key, including
   `work-intake` delegation counting as one route for R3 and R11.
 - [x] R5 and R6 are gated on the governance and architect pack profiles rather
@@ -153,7 +155,7 @@ to run a new adopter study, but this waiver does not schedule one.
 
 - Technical: no callable router owns all eight activation entry points, so the
   repository's existing prose-contract construction-test mode is the highest
-  deterministic seam (source: `packs/core/tests/skills/work-intake/test_routing_precedence.py`; verified 2026-08-31).
+  deterministic seam (source: `tests/roster/test_rfc0099_activation_coverage.py`; verified 2026-08-31).
 - Technical: the shipped shaping reviewer already names all six checks, while
   detection efficacy needs seeded fresh-context evidence (source:
   `docs/specs/shaping-review-contracts/spec.md` and `notes/qa.md`; verified
