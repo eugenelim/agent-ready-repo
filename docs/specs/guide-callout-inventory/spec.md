@@ -145,9 +145,13 @@ entry that tracked the coupling is gone, because the coupling is gone.
   `test_the_archival_conversion_record_stays_unwired` keeps passing unchanged
   (source: that spec's AC4–AC5 and
   `tools/test_guide_authoring_standard.py:62-82`).
-- Process: no `(deferred: guide-blockquote-ledger-has-no-regenerator)` anchor
-  exists in any spec, so closing the entry cannot break `lint-spec-status.py`
-  invariant (iv) (source: repository-wide `grep` for that exact marker).
+- Process: no spec carries a deferral marker naming this slug, so deleting the
+  register entry cannot break `lint-spec-status.py` invariant (iv). Stated
+  without spelling the marker on purpose: `_DEFERRED_RE` in that linter matches
+  the literal `(deferred: <slug>)` form anywhere in a spec, including inside
+  prose describing it, so an earlier wording of this very line created the
+  dangling anchor it denied (source: repository-wide search for that marker,
+  and `lint-spec-status.py:103`).
 - Product: the register entry is deleted rather than moved to
   `[backlog].closed`, because the coupling it tracked ceases to exist and a
   closed record would describe a condition no longer in the repository
