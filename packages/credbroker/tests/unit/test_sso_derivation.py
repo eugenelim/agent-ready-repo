@@ -366,7 +366,9 @@ def test_socket_timeout_reaches_the_opener_and_tracks_the_budget():   # STUB: AC
         # It shrinks with the shared budget, so a late hop cannot outlive it.
         with pytest.raises(_sso._DerivationAbort):
             _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(1.0), trusted_origin=_sso._origin(BASE))
-        assert seen[-1] <= 1.0
+        # Windows observed 1.0000000000000142 from timer arithmetic (~1.4e-14).
+        # One nanosecond absorbs float noise but is 1,000,000x below a real 1 ms overrun.
+        assert seen[-1] <= 1.0 + 1e-9
     finally:
         m._derivation_opener = real
 
