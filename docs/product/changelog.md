@@ -54,6 +54,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.21.0] — 2026-09-01
+
+### Highlights
+
+- **A fully cooled initiative now reaches closeout instead of reporting
+  `unshipped-specs` forever.** An initiative's shipped-ness and its queue
+  emptiness are derived from one cooled-exclusion pass, so the two can no longer
+  disagree about which entries a lifecycle record removed — while each keeps
+  counting what it counted before. An entry named by a record's aliases is
+  treated exactly as one named by its locator.
+- **When the cooled reading is incomplete, `workspace-status` withholds the
+  suggestion to run `close-work` rather than making it anyway.** A record that
+  cannot be read, or whose review date cannot be judged, adds a
+  `cooling-context-incomplete` blocker, and a skill that distils and disposes is
+  not recommended on a partial reading. The agent-rendered closeout gate reads
+  the same facts, so the rendered prompt and the projection agree.
+- **Repair and migration are settled as unaffected by cooling, not left
+  pending.** `repair-plan`, `repair-apply`, `repair-rollback` and the migration
+  planning, application, recovery and rollback paths behave identically with and
+  without lifecycle records, pinned by control runs so a later blanket filter has
+  to change those lines and say why.
+
 ## [core][2.20.1] — 2026-09-01
 
 ### Highlights
