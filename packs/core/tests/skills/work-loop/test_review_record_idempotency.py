@@ -333,7 +333,3 @@ class ReviewRecordIdempotency(unittest.TestCase):
             f"fingerprint\n{FP_A}\n{FP_B}".encode()).hexdigest()
         self.assertEqual(
             self._state(spec_dir)["last_review_record_payload_digest"], expected)
-
-
-if __name__ == "__main__":
-    unittest.main()

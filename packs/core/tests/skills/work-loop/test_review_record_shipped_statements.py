@@ -150,7 +150,3 @@ class ShippedRecordingStatements(unittest.TestCase):
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
         ids = {case["id"] for case in evals["evals"]}
         self.assertIn("review-record-operation-id-crash-window", ids)
-
-
-if __name__ == "__main__":
-    unittest.main()
