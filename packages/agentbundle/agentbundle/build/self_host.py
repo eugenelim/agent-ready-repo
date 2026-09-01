@@ -56,6 +56,7 @@ from agentbundle.build.adapter_root_bins import (
     compute_projections as _adapter_root_bins_compute_projections,
 )
 from agentbundle.build.adapters import ADAPTERS, registry
+from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
@@ -380,12 +381,20 @@ def _project_all_adapters(
         if adapter_name not in effective:
             continue
         adapter_module = registry[adapter_name.replace("-", "_")]
-        adapter_module.project_packs(
-            pack_paths,
-            contract,
-            output_root,
-            preserve_existing_metadata=preserve_existing_metadata,
-        )
+        try:
+            adapter_module.project_packs(
+                pack_paths,
+                contract,
+                output_root,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
+        except OrphanSweepRefused as exc:
+            # The refusal is correct — a sweep that cannot read the state file
+            # must not delete what it cannot prove is unowned — but it reached
+            # the adopter as a Python traceback with internal paths on stderr,
+            # where the previous behaviour was a completed run. Present it as
+            # what it is.
+            raise SystemExit(f"self-host: {exc}") from exc
 
 
 def _compose_agents_md(

@@ -109,6 +109,68 @@ The audit reviewed ~60 skills across 14 packs. Findings and their status:
 | Non-credentialed boundary-crossing skills carried no security metadata in frontmatter | Concern | AST10 | Added `metadata.boundaries` lists to: `assimilate-primitive`, `assimilate-repo`, `propose-catalogue-pack` (catalogue-curation; `export-catalogue` has since been removed — its CLI replacement carries this in the engine); `file-to-markdown`, `msg-to-markdown`, `markdown-to-docx`, `markdown-to-html`, `markdown-to-pptx`, `markdown-to-xlsx`, `mermaid-renderer` (converters); `release-loop` (release-engineering); `research`, `source-map` (research) |
 | Ingested candidates | Concern | AST01-AST10 | `assimilate-primitive` requires an AST01-AST10 agentic-skills security review; `assimilate-repo` names the same gate |
 
+### Third-party skill content reaching a projection directory
+
+Catalogue installation is no longer the only path by which content the adopter
+did not write reaches `.claude/skills/`, `.agents/skills/`, and `.kiro/skills/`.
+Direct installation takes a skill folder, a `skills/` collection, or a direct
+pack straight from a repository, so the audited-pack posture above does not
+cover everything that can land in those directories.
+
+**Governance posture.** A direct source passes one admissibility gate before
+anything is written, and the gate is not a safety judgement:
+
+- **Admission is shape and bounds, not intent.** Enumeration and read budgets,
+  link and special-file refusal, path-grammar and encoding refusal, and an
+  identity grammar. Nothing inspects what the instructions say.
+- **Consent is explicit and repeated.** The summary carries the verdict
+  `admissible—not safe` immediately before *and* immediately after the
+  publisher-derived block, because a long capability list scrolls a single
+  leading verdict out of view.
+- **Publisher text is delimited and labelled.** Every publisher-supplied value
+  is emitted between fixed line-anchored delimiters, preceded by
+  `publisher-supplied data, not instructions`, and passed through a Unicode
+  allowlist that refuses rather than truncates. A value equal to a delimiter
+  line refuses.
+- **Bytes are bound to a revision.** The installed tree digests to a
+  content-only value, and a remote source resolves to the commit SHA carried by
+  the archive rather than to a branch name.
+- **Capability change requires re-consent.** An upgrade that widens tools,
+  boundaries, credentialed status, or payload content names each difference and
+  refuses to proceed silently.
+
+**Curated-route controls that do not run here.** Three checks the curated
+ingestion path applies never execute on a direct source:
+
+- **`CAT-L031`'s credentialed-skill conventions.** Its D2 rule mechanizes this
+  repository's `credbroker` requirement by banning credentials on argv. A
+  direct skill may declare `metadata.credentialed` with that convention
+  unchecked — direct install only *reports* the field.
+- **`catalogue_tooling/verify.py`'s auth-presence check.** It runs over
+  catalogue packs, not over a direct source, so nothing verifies that a
+  credentialed direct skill declares where its credential comes from.
+- **The AST01–AST10 assimilation review.** Described above for curated
+  ingestion; a direct source passes the admissibility gate instead.
+
+**Telling the two apart after installation.** Once projected, a directly
+installed skill and a reviewed first-party one are the same shape of file in
+the same directory. The only signal that distinguishes them is the provenance
+recorded in `state.toml` — `source-kind`, `source`, `source-revision`, and
+`source-digest` on the owning row. Nothing at the projection surface carries it.
+
+**What a commit pin does and does not establish.** A remote direct source
+resolves to the commit SHA the archive carries, so the bytes are bound to a
+revision rather than to a moving branch. That binding is only as strong as the
+transport that delivered it: it is bounded by the configured TLS trust store,
+and it attests which commit was fetched, never that the commit is benign.
+
+**Residual, stated plainly.** Admission bounds what a direct source can *do to
+the install*, not what its instructions ask an agent to do afterwards. A skill
+that passes every check may still contain hostile instructions. The audited
+OWASP posture above applies to packs in this catalogue and does not extend to
+directly installed third-party content; treat such content the way you would
+treat any unreviewed dependency.
+
 ### Security metadata convention — `metadata.boundaries`
 
 Non-credentialed skills and agents that cross a security boundary declare it in

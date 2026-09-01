@@ -375,7 +375,11 @@ def _build_parser() -> argparse.ArgumentParser:
     # the requiredness. `--scope` with `--profile` is rejected at the handler
     # (a profile declares its own scope); argparse can't express that mutex
     # because `--scope` is valid alongside `--pack`.
-    _pack_or_profile = sp.add_mutually_exclusive_group(required=True)
+    # AC7: the group is no longer argparse-required, because a direct source is
+    # supplied as the positional with neither flag. "Exactly one of --pack /
+    # --profile / a direct source" moves to the handler, which still exits 2 for
+    # a usage error so the observable contract is unchanged.
+    _pack_or_profile = sp.add_mutually_exclusive_group(required=False)
     _pack_or_profile.add_argument("--pack")
     _pack_or_profile.add_argument(
         "--profile",
@@ -474,6 +478,24 @@ def _build_parser() -> argparse.ArgumentParser:
             "prompt on a TTY and refuse rather than block on a non-TTY."
         ),
     )
+    sp.add_argument(
+        "--skill",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help=(
+            "Select one skill from a direct collection source. Repeatable. "
+            "A collection refuses to install without an explicit selection."
+        ),
+    )
+    sp.add_argument(
+        "--all-skills",
+        action="store_true",
+        help=(
+            "Select every skill in a direct collection source. Mutually "
+            "exclusive with --skill; neither is valid for a direct pack."
+        ),
+    )
     sp.set_defaults(func=_lazy("install"))
 
     # --- validate --- (no --scope; schema + rails A/B/C)
@@ -481,8 +503,20 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate",
         help="Validate a pack's pack.toml against the schemas; --strict for conformance.",
     )
-    sp.add_argument("pack_path", help="Path to a pack directory containing pack.toml.")
+    sp.add_argument(
+        "pack_path",
+        help=(
+            "Path to a pack directory containing pack.toml, or a direct source "
+            "directory (a skill folder, a skills/ collection, or a direct pack)."
+        ),
+    )
     sp.add_argument("--strict", action="store_true")
+    sp.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for a direct source. Catalogue packs always print text.",
+    )
     sp.set_defaults(func=_lazy("validate"))
 
     # --- render ---

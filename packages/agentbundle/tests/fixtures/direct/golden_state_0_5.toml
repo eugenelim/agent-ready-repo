@@ -1,0 +1,29 @@
+schema-version = "0.5"
+
+[pack.alpha.adapters.claude-code]
+installed-version = "0.0.0"
+source = "git+https://github.com/example/skills@v1.2.3"
+source-revision = "0000000000000000000000000000000000000000"
+source-kind = "skill"
+source-path = "skills/alpha"
+source-digest = "sha256-1:abababababababababababababababababababababababababababababababab"
+install-route = "cli"
+scope = "repo"
+user-root = "~/.agentbundle"
+primitives = []
+
+[pack.alpha.adapters.claude-code.files]
+".claude/skills/alpha/SKILL.md" = { sha = "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd" }
+
+[pack.bravo.adapters.claude-code]
+installed-version = "2.1.0"
+source = "git+https://github.com/example/pack@v2.1.0"
+source-revision = "1111111111111111111111111111111111111111"
+source-kind = "pack"
+source-digest = "sha256-1:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+install-route = "cli"
+scope = "repo"
+user-root = "~/.agentbundle"
+primitives = []
+
+[pack.bravo.adapters.claude-code.files]

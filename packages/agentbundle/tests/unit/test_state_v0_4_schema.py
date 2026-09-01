@@ -171,9 +171,12 @@ class HardCrossVersionRefusalTests(unittest.TestCase):
         )
 
     def test_future_version_refused(self) -> None:
+        # 0.5 is no longer a future version: it is the direct-source schema this
+        # build also speaks, so the unknown-version case has moved up to 0.6.
+        # The allowlist is what matters here, not the specific number.
         self._assert_refuses(
-            'schema-version = "0.5"\n',
-            version_in_msg="0.5",
+            'schema-version = "0.6"\n',
+            version_in_msg="0.6",
         )
 
 

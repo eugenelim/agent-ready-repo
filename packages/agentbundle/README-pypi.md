@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.41.0
+
+`install` and `validate` now accept a skill folder, a `skills/` collection, or a
+single pack taken straight from a repository — no catalogue required. A direct
+source is admitted against explicit shape and size bounds, pinned to the commit
+its bytes came from, and summarised for consent before anything is written.
+
 ## What's new in 0.40.3
 
 Catalogue validation now checks bounded reviewer declarations and keeps their

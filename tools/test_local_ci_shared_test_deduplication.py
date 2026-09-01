@@ -120,6 +120,17 @@ EXPECTED_COMPOSED_IGNORES = {
 COLLECTION_FLOORS = {
     "packs/desk-research/tests/skills/desk-research/": 9,
     "packs/desk-research/tests/skills/desk-research-project-start/": 7,
+    # Measured at 4,247 on 2026-08-30 (CPython 3.13.13,
+    # PYTHONPATH=packages/agentbundle:packages/credbroker, configfile
+    # packages/agentbundle/pyproject.toml). The floor is 75.3% of measured,
+    # leaving 1,047 tests of headroom. The measurement is recorded with its
+    # date and interpreter rather than as a bare subtraction: an undated figure
+    # cannot be re-checked, and a bare `python3 -m pytest
+    # packages/agentbundle/tests/` measures the wrong thing — it resolves a
+    # stale non-editable `agentbundle` from site-packages, because that
+    # package's pyproject.toml is the nearer pytest configfile and does not
+    # carry the root `pythonpath`.
+    "packages/agentbundle/tests/": 3200,
 }
 
 PROVEN_COMPATIBLE_FILES = (
@@ -190,6 +201,10 @@ FINAL_TOOL_BATCH = (
     # signal. That invocation is a separate recipe line, not a member of this
     # batch, which is why it does not appear here.
     "tools/test_pack_test_compatibility.py",
+    # Added with the direct-install diagnostic-code table lint. The lint
+    # itself is a separate recipe line beside lint-conformance-portability;
+    # this is its mutation control.
+    "tools/test_lint_direct_code_table.py",
 )
 
 WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
@@ -418,11 +433,27 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # set is unchanged with raw equal to unique on both sides. The two floor-bearing
 # desk-research lines are untouched, and both new `tools/test_pack_test_*.py`
 # modules join the final batch's single continued command.
+# Re-pinned by spec/direct-skill-repository-installation, which is the owning
+# change. Two edits move both digests, and both appear in the standalone and
+# the composed plan alike:
+#
+#   T10a — the `packages/agentbundle/tests/` line in `run-test-suite` gained
+#          `-p tools.pytest_collection_floor`, `--minimum-collected=3200`, and
+#          `--collection-floor-suite=packages/agentbundle/tests/`. The floor is
+#          registered in COLLECTION_FLOORS above with its measurement.
+#   T10  — `tools/lint-direct-code-table.py` runs beside
+#          `lint-conformance-portability.py`, and its mutation companion
+#          `tools/test_lint_direct_code_table.py` joins the final tool batch.
+#          Both are registered in `.github/workflows/build-check.yml` too,
+#          because CI runs `build-check` rather than `make test` and a
+#          Makefile-only registration never gates a PR.
+#
+# No other command in either plan changed.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "1e097b6dcf6b1264ac50222cba6d905748a69ddd391384293f613c3df3aaf4f3"
+    "e032e5504800a92b1217da972f02219f2aa7cf511f4975e7bfc43f8530409545"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "847607344749b41c8efeb978a400f77c11d8c075012533967c321b4bb99e733e"
+    "287e955e544c6ac8445a4ad95485265e90a1d8cbfab80bf3575bb9a76a5af033"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
