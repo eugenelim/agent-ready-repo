@@ -963,3 +963,74 @@ def test_ac32_skill_retains_queue_and_shipped_conditions() -> None:
 
     assert "`initiatives[i].queue_empty` is `true`" in normalized
     assert "filtered shipped is non-empty" in normalized
+
+
+def _normalized_rfc_errata() -> str:
+    """Return whitespace-normalized text scoped to RFC-0096's Errata section."""
+    document = (
+        ROOT / "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"
+    ).read_text(encoding="utf-8")
+    errata = document[document.index("## Errata") :]
+    next_section = re.search(r"\n## ", errata[len("## Errata") :])
+    if next_section is not None:
+        errata = errata[: len("## Errata") + next_section.start()]
+    return " ".join(errata.split())
+
+
+def test_ac28_rfc_wave_seven_body_is_byte_unchanged() -> None:
+    """AC28: RFC-0096 section 9 retains its approved byte digest."""
+    rfc_bytes = (
+        ROOT / "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"
+    ).read_bytes()
+    start = rfc_bytes.index(b"## 9. Initiative waves")
+    end = rfc_bytes.index(b"## 10. Risks and revisit conditions")
+
+    assert hashlib.sha256(rfc_bytes[start:end]).hexdigest() == (
+        "e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e"
+    )
+
+
+def test_ac29_erratum_records_four_wave_slices() -> None:
+    """AC29: the signed erratum records the four Wave 7 slices."""
+    errata = _normalized_rfc_errata()
+
+    assert errata.count("Approver: eugenelim") == 2
+    for statement in (
+        "cooling-scope-closure",
+        "Wave 7a-i closes cooling scope",
+        "Wave 7a-ii projects the completion receipt",
+        "Wave 7b classifies history",
+        "Wave 7c prunes proven-eligible artifacts",
+    ):
+        assert statement in errata, statement
+
+
+def test_ac30_erratum_registers_follow_ons_and_corrected_basis() -> None:
+    """AC30: the erratum records open follow-ons and the corrected basis."""
+    errata = _normalized_rfc_errata()
+
+    for statement in (
+        "rfc0096-wave7a-ii-completion-receipts",
+        "rfc0096-wave7b-historical-classification",
+        "rfc0096-wave7c-pruning",
+        "cooling-brief-child-scope",
+        "owned by Wave 7a-ii",
+        "owned by Wave 7b",
+        "owned by Wave 7c",
+        "admits any documented code",
+    ):
+        assert statement in errata, statement
+
+
+def test_ac33_erratum_records_closures_residual_and_receipt_rename() -> None:
+    """AC33: the erratum records closures, the residual, and the rename."""
+    errata = _normalized_rfc_errata()
+
+    for statement in (
+        "cooling-closeout-eligibility",
+        "cooling-repair-migration-scope",
+        "closed by cooling-scope-closure",
+        "without being verified against its artifact",
+        "registered here as rfc0096-wave7a-ii-completion-receipts",
+    ):
+        assert statement in errata, statement
