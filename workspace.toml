@@ -73,6 +73,7 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md" }] },
   {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
   {path = "docs/specs/cooling-untrusted-input-refusals/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Refuse malformed cooling-record input with a named code instead of raising", needs = [{type = "local", kind = "spec", path = "docs/specs/thirty-day-cooling-and-retirement/spec.md"}]},
   {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
@@ -2030,7 +2031,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · language and execution depth in flight"
+milestone = "M2 · composition floors shipped; seven runtime profiles remain"
 
 ["ini-009".brief_queue]
 executing = [

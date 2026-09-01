@@ -172,8 +172,9 @@ and plan are approved and registered under `ini-009`.
 | 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology, retrieval baseline, and `knowledge-provider` authoring mode | Slice 1 |
 | 2b — languages and execution economics | Python/pytest and TypeScript/Node depth; CI, worktree, sandbox, lock, shared-host, and load-management practice | Slice 2a |
 | runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete | RFC-0097 D1, M2 availability rule |
-| 3 — runtime composition profiles | Portable floors and retrieval-dated Claude, Codex, Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles for skills, subagents, hooks, and plugins | Slices 1–2 |
-| 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3 |
+| 3a — composition floors and pilot profile | Portable skills-plus-subagents, hooks, and plugin-package floors; the runtime capability-claim ledger with its four lifecycle states and profile roll-up; and a retrieval-dated Claude Code pilot profile | Slices 1–2 |
+| 3b — runtime profiles | Retrieval-dated Codex, GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles; the router's per-claim state and roll-up reporting together with the provider response contract change it requires; the subagent-composition and hook/plugin-design behavior fixtures; and the `runtime-package` mode | Slice 3a |
+| 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3b |
 | 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slice 4 |
 | 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slice 5 |
 
@@ -188,6 +189,7 @@ promotes and approves them.
 | `agent-skill-engineering-foundation` | Shipped |
 | `agent-skill-engineering-corpus` | Shipped |
 | `agent-skill-engineering-languages-and-execution` | Shipped |
+| `agent-skill-engineering-composition-floors` | Shipped |
 
 ## Backlog and prerequisites
 

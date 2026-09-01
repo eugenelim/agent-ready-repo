@@ -1,6 +1,6 @@
 [pack]
 name = "agent-skill-engineering"
-version = "0.3.0"
+version = "0.4.0"
 description = "Frame, create, update, review, and optimize portable agent skills with governed reference knowledge."
 display_name = "Agent Skill Engineering"
 readme = "README.md"

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_ref": "packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/declared-absent/unpopulated-leaves.md",
+  "note": "Transcribes the register so its size is asserted against a declared count. The register's own frontmatter stays a closed five-key set, so the count cannot live there.",
+  "expected_count": 20,
+  "leaves": [
+    "inline-and-progressive-reference-skills",
+    "multimode-artifact-and-script-backed-skills",
+    "routers-composed-workflows-and-lifecycle-skills",
+    "compatibility-and-runtime-package-patterns",
+    "workspace-orientation-status-and-resumption",
+    "activation-and-near-miss-evals",
+    "behavioral-and-construction-checks",
+    "fixtures-isolation-and-execution-economics",
+    "codex-skills-subagents-hooks-and-plugins",
+    "github-copilot-skills-subagents-hooks-and-plugins",
+    "cursor-skills-subagents-hooks-and-plugins",
+    "kiro-ide-skills-agents-hooks-and-powers",
+    "kiro-cli-skills-subagents-hooks-and-powers",
+    "gemini-cli-skills-subagents-hooks-and-extensions",
+    "google-antigravity-skills-subagents-hooks-and-plugins",
+    "authentication-and-secret-context-isolation",
+    "permissions-sandboxes-and-side-effects",
+    "repository-pattern-census-and-exemplar-selection",
+    "evidence-promotion-and-applicability",
+    "measurement-regression-and-retirement"
+  ]
+}

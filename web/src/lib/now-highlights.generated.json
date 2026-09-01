@@ -65,6 +65,106 @@
       "packages": [
         {
           "name": "agent-skill-engineering",
+          "version": "0.4.0"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[agent-skill-engineering][0.4.0] — 2026-08-31",
+      "changelogAnchor": "agent-skill-engineering040--2026-08-31",
+      "highlights": [
+        {
+          "source": "**The corpus now answers how a skill composes with subagents, hooks and packaged bundles, and keeps the portable question separate from any one tool's answer.** Three portable floors were admitted — skills with subagents, hooks, and plugin packages. Each states the questions worth asking before reaching for a tool's syntax, and each says out loud that event names, configuration paths and output protocols belong to the tool rather than to the floor. Sixteen of thirty-six subjects are now carried and twenty remain recorded as absent.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The corpus now answers how a skill composes with subagents, hooks and packaged bundles, and keeps the portable question separate from any one tool's answer."
+            },
+            {
+              "type": "text",
+              "value": " Three portable floors were admitted — skills with subagents, hooks, and plugin packages. Each states the questions worth asking before reaching for a tool's syntax, and each says out loud that event names, configuration paths and output protocols belong to the tool rather than to the floor. Sixteen of thirty-six subjects are now carried and twenty remain recorded as absent."
+            }
+          ]
+        },
+        {
+          "source": "**A capability claim about a tool now carries a lifecycle state, so nobody reads \"we checked\" where the truth is \"we read the manual\".** Each claim records its first-party source, the date it was retrieved, the version that source exposed, and one of four states. A claim confirmed by actually exercising the behaviour reads `verified`; a claim taken from documentation alone reads `experimental` and is not a support claim; a claim whose verification window has run out reads `stale` and returns provenance instead of guidance; an absent capability reads `unavailable` and is recorded as a difference rather than a gap.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A capability claim about a tool now carries a lifecycle state, so nobody reads \"we checked\" where the truth is \"we read the manual\"."
+            },
+            {
+              "type": "text",
+              "value": " Each claim records its first-party source, the date it was retrieved, the version that source exposed, and one of four states. A claim confirmed by actually exercising the behaviour reads "
+            },
+            {
+              "type": "code",
+              "value": "verified"
+            },
+            {
+              "type": "text",
+              "value": "; a claim taken from documentation alone reads "
+            },
+            {
+              "type": "code",
+              "value": "experimental"
+            },
+            {
+              "type": "text",
+              "value": " and is not a support claim; a claim whose verification window has run out reads "
+            },
+            {
+              "type": "code",
+              "value": "stale"
+            },
+            {
+              "type": "text",
+              "value": " and returns provenance instead of guidance; an absent capability reads "
+            },
+            {
+              "type": "code",
+              "value": "unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and is recorded as a difference rather than a gap."
+            }
+          ]
+        },
+        {
+          "source": "**Claude Code is the first tool profiled, and three of its seven capabilities are backed by an actual probe rather than a citation.** Skill body loading, subagent context isolation and worktree isolation were exercised directly and read `verified`. Nesting limits, hook scoping, managed hook policy and package-supplied agent precedence are documented but unexercised, and read `experimental` on purpose.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Claude Code is the first tool profiled, and three of its seven capabilities are backed by an actual probe rather than a citation."
+            },
+            {
+              "type": "text",
+              "value": " Skill body loading, subagent context isolation and worktree isolation were exercised directly and read "
+            },
+            {
+              "type": "code",
+              "value": "verified"
+            },
+            {
+              "type": "text",
+              "value": ". Nesting limits, hook scoping, managed hook policy and package-supplied agent precedence are documented but unexercised, and read "
+            },
+            {
+              "type": "code",
+              "value": "experimental"
+            },
+            {
+              "type": "text",
+              "value": " on purpose."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agent-skill-engineering",
           "version": "0.3.0"
         }
       ],

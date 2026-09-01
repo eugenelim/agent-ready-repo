@@ -59,6 +59,7 @@
     "id": "mode-loading",
     "prompt": "Make frame, create, and update load only their own procedures",
     "expected_topics": [
+      "activation-discoverability-and-mode-wayfinding",
       "instruction-density-and-progressive-disclosure"
     ]
   },
@@ -66,7 +67,8 @@
     "id": "asset-or-reference",
     "prompt": "Should this template be an asset or an instruction reference?",
     "expected_topics": [
-      "instruction-density-and-progressive-disclosure"
+      "instruction-density-and-progressive-disclosure",
+      "resources-scripts-and-exit-contracts"
     ]
   },
   {
@@ -410,6 +412,181 @@
     "expected_topics": [
       "resources-scripts-and-exit-contracts",
       "python-and-pytest"
+    ]
+  },
+  {
+    "id": "delegate-or-stay-inline",
+    "prompt": "Should this research step run in the caller's context or a separate agent context",
+    "expected_topics": [
+      "skills-and-subagents-common-floor"
+    ]
+  },
+  {
+    "id": "delegate-write-ownership",
+    "prompt": "Two delegated agents will edit files in the same checkout; how do I assign write ownership",
+    "expected_topics": [
+      "skills-and-subagents-common-floor",
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "delegate-result-contract",
+    "prompt": "What result shape should a delegated agent return so the parent can synthesize it",
+    "expected_topics": [
+      "skills-and-subagents-common-floor"
+    ]
+  },
+  {
+    "id": "delegate-partial-failure",
+    "prompt": "One of four parallel delegates failed halfway; what should the parent do",
+    "expected_topics": [
+      "progressive-result-presentation-and-next-actions",
+      "skills-and-subagents-common-floor"
+    ]
+  },
+  {
+    "id": "hook-or-instruction",
+    "prompt": "I want a formatter to always run after an edit rather than hoping the model remembers",
+    "expected_topics": [
+      "hooks-common-floor"
+    ]
+  },
+  {
+    "id": "hook-blocking-versus-observing",
+    "prompt": "Should this check refuse the action or just record that it happened",
+    "expected_topics": [
+      "hooks-common-floor"
+    ]
+  },
+  {
+    "id": "hook-untrusted-config",
+    "prompt": "A contributor added a hook definition in the repository; is that safe to execute",
+    "expected_topics": [
+      "hooks-common-floor",
+      "trust-boundaries-and-instruction-provenance"
+    ]
+  },
+  {
+    "id": "hook-absent-capability",
+    "prompt": "The target tool has no pre-action hook; where should the enforcement live instead",
+    "expected_topics": [
+      "hooks-common-floor"
+    ]
+  },
+  {
+    "id": "package-component-cohesion",
+    "prompt": "Which of these skills belong together in one installable unit",
+    "expected_topics": [
+      "plugin-package-common-floor"
+    ]
+  },
+  {
+    "id": "package-uninstall-residue",
+    "prompt": "After uninstalling, what must be left behind and what must not",
+    "expected_topics": [
+      "plugin-package-common-floor"
+    ]
+  },
+  {
+    "id": "package-namespace-collision",
+    "prompt": "Two installed packages define a component with the same name",
+    "expected_topics": [
+      "plugin-package-common-floor"
+    ]
+  },
+  {
+    "id": "package-install-trust",
+    "prompt": "What is a user actually agreeing to when they install this bundle",
+    "expected_topics": [
+      "plugin-package-common-floor"
+    ]
+  },
+  {
+    "id": "claude-code-subagent-context",
+    "prompt": "In Claude Code, does a subagent see the parent conversation",
+    "expected_topics": [
+      "claude-code-skills-subagents-hooks-and-plugins"
+    ]
+  },
+  {
+    "id": "claude-code-skill-loading",
+    "prompt": "In Claude Code, when does a skill's body enter context",
+    "expected_topics": [
+      "claude-code-skills-subagents-hooks-and-plugins"
+    ]
+  },
+  {
+    "id": "claude-code-parallel-sessions",
+    "prompt": "In Claude Code, how do I run two sessions without their edits colliding",
+    "expected_topics": [
+      "claude-code-skills-subagents-hooks-and-plugins",
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "claude-code-hook-scope-claim",
+    "prompt": "Is Claude Code's managed hook policy behaviour verified or just documented",
+    "expected_topics": [
+      "claude-code-skills-subagents-hooks-and-plugins"
+    ]
+  },
+  {
+    "id": "hooks-floor-then-claude-code",
+    "prompt": "What does a hook guarantee in general, and what does Claude Code actually do",
+    "expected_topics": [
+      "hooks-common-floor",
+      "claude-code-skills-subagents-hooks-and-plugins"
+    ]
+  },
+  {
+    "id": "delegation-floor-then-claude-code",
+    "prompt": "Portable delegation questions and how Claude Code answers them",
+    "expected_topics": [
+      "skills-and-subagents-common-floor",
+      "claude-code-skills-subagents-hooks-and-plugins"
+    ]
+  },
+  {
+    "id": "near-miss-git-worktree-generic",
+    "prompt": "How do I remove a stale git worktree from my machine",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-webhook",
+    "prompt": "Set up a webhook so our CI posts to Slack on failure",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-npm-package",
+    "prompt": "How do I publish this library to the npm registry",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-k8s-sidecar",
+    "prompt": "Should this run as a sidecar container or its own pod",
+    "expected_topics": []
+  },
+  {
+    "id": "depth-library-inert-activation",
+    "prompt": "Keep this checklist library from being chosen to answer a user's question directly",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers",
+      "framing-and-trigger-quality"
+    ]
+  },
+  {
+    "id": "depth-library-matched-modules",
+    "prompt": "A workflow should load only the checklist modules its task actually matches",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers",
+      "instruction-density-and-progressive-disclosure"
+    ]
+  },
+  {
+    "id": "depth-library-compiled-source",
+    "prompt": "Governed source documents are compiled into references another workflow retrieves by topic id",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers"
     ]
   }
 ]

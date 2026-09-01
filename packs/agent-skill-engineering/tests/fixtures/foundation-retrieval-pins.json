@@ -29,7 +29,8 @@
     {
       "id": "authorization-at-trigger",
       "measured_topics": [
-        "framing-and-trigger-quality"
+        "framing-and-trigger-quality",
+        "activation-discoverability-and-mode-wayfinding"
       ]
     },
     {
@@ -53,12 +54,14 @@
     {
       "id": "mode-loading",
       "measured_topics": [
-        "instruction-density-and-progressive-disclosure"
+        "instruction-density-and-progressive-disclosure",
+        "activation-discoverability-and-mode-wayfinding"
       ]
     },
     {
       "id": "asset-or-reference",
       "measured_topics": [
+        "resources-scripts-and-exit-contracts",
         "instruction-density-and-progressive-disclosure"
       ]
     },
@@ -89,14 +92,12 @@
     {
       "id": "python-extension",
       "measured_topics": [
-        "resources-scripts-and-exit-contracts",
         "python-and-pytest"
       ]
     },
     {
       "id": "node-extension",
       "measured_topics": [
-        "resources-scripts-and-exit-contracts",
         "typescript-node-and-javascript-test-runners"
       ]
     },
