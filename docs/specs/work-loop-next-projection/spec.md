@@ -94,7 +94,7 @@ Routing row removes coverage without removing a domain member.
 | D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line, via the canonical reader | `Drafting`, `Approved`, `other` |
 | D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled`, `malformed` |
 | D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` |
-| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count`, `max_review_retries`, `finding_fingerprints`, and `previous_finding_fingerprints`, in `state.json` | `within-budget`, `cap-reached`, `stasis`, `malformed` |
+| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count`, `max_review_retries`, `finding_fingerprints`, `previous_finding_fingerprints`, and `amendment_pending`, all in `state.json` | `within-budget`, `cap-reached`, `stasis`, `malformed` |
 
 **Every value set ends in a catch-all, and that is what makes it closed.**
 `state.json` and the Status files are read without schema validation and no
@@ -130,25 +130,46 @@ spent-or-broken values are evaluated in a fixed order: **`malformed` first, then
 `cap-reached`, then `stasis`.** A state satisfying more than one is reported as
 the earliest, so two conforming implementations cannot disagree.
 
-**A review state ignores counters written in a different review phase.** A
-contract amendment resets the plan-approval cycle but deliberately preserves the
-review counters and fingerprints, so an amended contract would otherwise re-enter
-`SPEC-PLAN-REVIEW` already reading `cap-reached` or `stasis` and could never reach
-`spec.review`. The signal is `amendment_pending`: the amendment sets it and only
-the re-approval of the amended plan clears it, so it is non-null for exactly the
-window in which the surviving counters belong to the previous cycle. While it is
-non-null, D5 at a review state evaluates `within-budget` unless the fields are
-`malformed`. The accepted consequence is that a spec-stage evidence-retry cap
-reached *inside* an amendment window is not reported by this projection, because
-the two are written to the same fields and nothing distinguishes them; the engine
-still enforces that cap itself by refusing `findings-remain`, so the projection
-stops mis-advising without removing the guard.
+**A review state ignores a *cap* written in a different review phase — and only
+the cap.** A contract amendment resets the plan-approval cycle but deliberately
+preserves the review counters and fingerprints, so an amended contract would
+otherwise re-enter `SPEC-PLAN-REVIEW` already reading spent. The signal is
+`amendment_pending`: the amendment sets it and only the re-approval of the
+amended plan clears it. While it is non-null, D5 at a review state does not
+report `cap-reached`.
+
+**`stasis` is never suppressed, and the asymmetry is the whole point.** The cap is
+independently enforced — the engine refuses `findings-remain` at it regardless of
+what this projection says — so suppressing the projection's report of it removes
+mis-advice without removing enforcement. Stasis has no such backstop: no
+transition guard reads the fingerprint pair, and the classifier that computes it
+returns success on every content outcome. Suppressing stasis would therefore
+remove the only signal, and an amended contract could review the same findings
+indefinitely. Leaving it live fails safe onto R5's human gate instead.
+
+Two residuals follow, and are accepted rather than closed:
+
+- An amended contract whose surviving fingerprint pair is non-empty and equal
+  halts on its first review call, and no verb short of a cohort reset clears the
+  pair. That is over-conservative: it stops rather than proceeds, and an
+  amendment following a stasis round is a case a human should look at.
+- The window is wider than the counters' provenance. `amendment_pending` clears
+  only at re-approval, which is after the whole post-amendment review cycle, so a
+  cap genuinely reached *inside* that window also goes unreported. The engine
+  still refuses the transition, so the enforcement holds and only the advice is
+  lost.
 
 D3 lists the full cross product of its two recognised fields rather than the
 reachable subset. Including `pending+scheduled` costs one row's worth of coverage
 and removes a reachability argument the criteria would otherwise depend on.
 
 ### Preconditions
+
+**Before any row is evaluated**, `<spec-dir>` is resolved and proved inside the
+repository through the engine's existing resolver — the same step every other
+engine verb takes first. P1 globs and stats a path derived from that argument, so
+confinement precedes it rather than following it. A rejection returns through the
+engine's existing generic refusal at exit 1 and needs no new code.
 
 Evaluated in order; the first matching row decides, and Routing runs only when
 none matches. P2 through P6 carry five distinct non-zero exit codes, allocated
@@ -258,7 +279,7 @@ spec" would drop an obligation in two of them.
   task section untouched.
 - **R1** is the plain drafting act: a new run, or an ordinary findings round.
 
-**Why R5 and R25 exist.** When the review budget is spent or two rounds return
+**Why R5 and R25 — the two `await-replan-decision` rows — exist.** When the review budget is spent or two rounds return
 identical fingerprints, the loop must not review again — and at the cap the engine
 will not let it, because the `findings-remain` guard refuses. Without these rows
 the projection would answer `spec.review` or `run-review` at exactly the moment
@@ -405,6 +426,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   sample.
 - **Confinement and reader reuse: TDD**, driven by hostile fixtures — a symlink,
   a non-regular file, and an oversized file at each read target.
+- **The conditional-load paths: TDD.** Path 1 is asserted against this document's
+  Action attributes table; paths 2 through 5 are greps over the shipped surface,
+  in the same form as the trust-posture statements, with the reconciling edit to
+  the always-loaded body owned by the task that edits it.
 - **The shipped resumption table's action column, and the consumer's trust
   posture: TDD**, with the expected identifiers parsed from the shipped table
   rather than transcribed into the test.
@@ -461,8 +486,11 @@ the command could not compute a record at all, and emits none.
   generic refusal and argparse already occupy — that preamble is the single home
   of both the row count and the code count, and this criterion asserts against it
   rather than restating either. D5's spent branch is exercised on a fresh run,
-  after two consecutive clean rounds, and immediately after `contract-amendment`,
-  all three of which must yield `within-budget`; and on a state satisfying both
+  after two consecutive clean rounds, and at `SPEC-PLAN-REVIEW` re-entered by
+  `spec-ready` inside an amendment window (not at `SPEC-PLAN-DRAFTING`, where no
+  Discriminator applies), where a surviving over-cap counter must yield
+  `within-budget` while a surviving equal non-empty fingerprint pair must still
+  yield `stasis`; and on a state satisfying both
   `cap-reached` and `malformed`, which must yield `malformed`.
 
 ### The record
@@ -483,8 +511,11 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC10.** `complete_with` lists exactly the events legal from the record's
   state in the engine's transition table for the run's mode, read at runtime, and
   is empty exactly when that state has no outgoing transition. Pinning it to a
-  constant fails this criterion. It carries **one declared exception**: when D5 is
-  `cap-reached`, `reviewers-clean` is omitted. That event is the only one the
+  constant fails this criterion. It carries **one declared exception**: at a review
+  state where `review_retry_count >= max_review_retries`, `reviewers-clean` is
+  omitted. The exception is keyed on that raw condition rather than on D5's routed
+  value, because the amendment carve-out can make D5 report `within-budget` at a
+  genuine cap — and the omission has to survive that. That event is the only one the
   engine still accepts at the cap, and advertising it in the field an agent parses
   to choose its next move is the false-clean pressure R5 and R25 exist to remove.
   The general "the guard refuses an illegal choice anyway" argument does not hold
@@ -523,7 +554,12 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC14.** Every value the verb interpolates into a stderr reason from a state
   file or from `argv` is length-capped at the bound the shared guard module
   already applies to one external scalar, and is delimited so a reader can see
-  where untrusted text starts and ends. A whole reason is capped at that module's
+  where untrusted text starts and ends. The observable is what that helper
+  actually emits, not a hand-rolled equivalent: it truncates the *repr*, so an
+  over-long value reaches stderr as an opening quote, the capped prefix, and a
+  trailing ellipsis that is the end marker — there is no closing quote, and a
+  criterion demanding one would be satisfiable only by re-implementing the
+  control. A whole reason is capped at that module's
   reason bound. A planted oversized `run_id` therefore reaches stderr truncated
   and quoted, not verbatim; removing either the cap or the delimiters fails this
   criterion.
@@ -585,18 +621,30 @@ the command could not compute a record at all, and emits none.
   diagnostic and never authority — a `wait`-kind record authorises no act this
   turn, and the continuations its reason names are choices to put to the human,
   not steps to take. Deleting any one of the five fails this criterion.
-- [ ] **AC27.** The shipped work-loop surface states the conditional load of the
-  two review references, and a grep finds each of the four paths. `run-review` and
-  `spec.review` name neither reference in `load`, so nothing is loaded at
-  dispatch; a raw report classified `clean` with no `## Not checked` footer loads
-  neither; a finding-bearing report loads the adjudication reference; a security
-  report that is otherwise clean but carries the mandatory `## Not checked` footer
-  also loads it, because the footer is prose and prose is what the adjudicator
-  reads, so that report is never fast-pathed; and the verdict reference loads only
-  when the review unit's verdict record is emitted or validated, never at
-  dispatch and never on a repair-verification pass. The footer rule is a control
-  and is not weakened here: footer content stays adjudicated unless some later
-  change moves it into a genuinely machine-separated contract.
+- [ ] **AC27.** Five paths, each with its evidence form named. Paths 1 is a
+  property of this document's Action attributes table; paths 2 through 5 are
+  statements a grep finds in the shipped work-loop surface.
+  1. **At dispatch, neither reference loads.** `run-review` and `spec.review` name
+     neither review reference in `load`. *Evidence: the Action attributes table.*
+  2. **A raw report classified `clean` with no `## Not checked` footer loads
+     neither.** *Evidence: shipped surface.*
+  3. **A finding-bearing report loads the adjudication reference.** *Evidence:
+     shipped surface.*
+  4. **A report that is otherwise clean but carries the mandatory `## Not checked`
+     footer also loads it**, because the footer is prose and prose is what the
+     adjudicator reads, so that report is never fast-pathed. *Evidence: shipped
+     surface.* This is a control and is not weakened here: footer content stays
+     adjudicated unless some later change moves it into a genuinely
+     machine-separated contract.
+  5. **The verdict reference loads only when the review unit's verdict record is
+     emitted or validated** — never at dispatch, never on a repair-verification
+     pass. *Evidence: shipped surface.*
+
+  Path 2 is **false on the shipped surface today**: the always-loaded body
+  instructs an unconditional read of the adjudication reference before a review
+  unit's first report, which contradicts the same file's conditional-reference
+  table. Reconciling those two is this contract's work, not a pre-existing
+  control it inherits, and the task that edits that surface owns it.
 
 - [ ] **AC21.** `loop-engine --help` lists `next` alongside `init`, `transition`,
   `status`, and `reset`.
@@ -621,8 +669,9 @@ the command could not compute a record at all, and emits none.
   carry repository-relative paths only: the verb's own stderr interpolates
   absolute ones, and the privacy convention bans a user-specific filesystem path
   from every committed artifact. The check searches for `/Users/`, `/home/`,
-  `~/`, the committing account's username, and the machine hostname, and passes
-  only when none is present — a transcript carries the worktree path, the prompt
+  `~/`, the committing account's username, the machine hostname, an
+  email-address pattern, and the employer or organisation domain token, and
+  passes only when none is present — a transcript carries the worktree path, the prompt
   hostname, and the account name, and no repository-wide lint backstops this.
 - [ ] **AC25.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
@@ -658,7 +707,10 @@ contract that depends on this one; they are not deferred work from this checklis
   either (source: `test_loop_engine.py:2775-2776` matches the `findings-remain`
   row and requires "stale fingerprint baseline", "under-count", and "do NOT
   auto-reissue", all of which R21 and R22 preserve; `:2846`
-  `test_reviewers_clean_skill_prose_obligations` matches the same way)
+  `test_reviewers_clean_skill_prose_obligations` matches the same way; and
+  `test_loop_cohort.py:1843-1867` pins the same `reviewers-clean` row, requiring
+  exactly one matching line and three command-form substrings inside it, which an
+  appended column also survives)
 - Technical: the stderr bound AC14 requires already exists and is already
   calibrated — the shared guard module caps one interpolated external scalar at
   120 characters and a whole reason at 4000, having found that a 100 KB `run_id`

@@ -200,10 +200,10 @@ from `complete_with`, and calls it again.
 
 ### Failure, edge cases & resilience
 
-The spec's Preconditions table is the failure contract: seven ordered rows, the
-first four exiting non-zero with four distinct stable codes and no record, the
-last three emitting a zero-exit `halt`. Everything below them routes. P8 closes
-the off-table pair — a valid state carrying an event that never targets it —
+The spec's Preconditions table is the failure contract, and its preamble is the
+single home of the row count, the non-zero code allocation, and which rows exit
+which way — this plan asserts against that preamble and restates none of it.
+Everything below the table routes. Its off-table row closes the off-table pair — a valid state carrying an event that never targets it —
 which the transition-table-derived domain cannot reach by construction.
 
 ### Quality attributes (NFRs)
@@ -292,10 +292,15 @@ mutation flips.
 **Depends on:** T2
 
 **Tests:** TDD.
-- `tests/roster/` — parse the spec's Routing and Action attributes tables and
-  assert they equal the implementation's two dictionaries, cell for cell; parse
-  the Discriminators and extra-base-key tables and assert the domain builder uses
-  them.
+- `tests/roster/test_work_loop_next_projection_contract.py` **already exists and
+  already parses all four normative tables**, asserting totality, determinism,
+  the deletion mutation, closure, `human_wait`, the stated domain size,
+  cross-document reference resolution, AC coverage parity, and AC27's path 1. T4
+  **extends that module rather than adding a second parser** of the same tables —
+  two parsers of one normative table is the drift hazard this whole contract is
+  written against. What T4 adds is the half the module cannot have until the verb
+  exists: comparing the parsed tables against the implementation's own routing and
+  attribute dictionaries, cell for cell.
 - Build the domain at runtime from `_TRANSITIONS_BY_MODE` plus the spec's extra
   base keys, crossed with the spec's discriminator value sets; assert totality
   (AC1) and determinism (AC2).
@@ -308,7 +313,7 @@ mutation flips.
 - Assert `kind`, the `parameters` key set, `load`, and `human_wait` against the
   Action attributes row for each emitted record's action (AC5), including
   `human_wait: false` at R8 and R11 while the engine reports
-  `pending_human_wait: true`, and `human_wait: true` at R5 and R25, which are `wait`-kind.
+  `pending_human_wait: true`, and `human_wait: true` at R5 and R25, the two `await-replan-decision` rows, which are `wait`-kind.
 - Mutation proofs, one per property, exactly as listed under Construction tests.
   AC1's must redden for every Routing row in the spec's table.
 
@@ -370,7 +375,13 @@ mutations flip including AC1's across every row.
   yields `halt`.
 - The empty-fingerprint baseline is exercised explicitly: a fresh run, and a run
   after two consecutive clean or all-skipped rounds, both yield `within-budget` at
-  both review states. Without the non-empty qualifier both lists are equal and
+  both review states.
+- The amendment window is exercised where D5 is actually evaluated — at
+  `SPEC-PLAN-REVIEW` re-entered by `spec-ready` while `amendment_pending` is
+  non-null, not at `SPEC-PLAN-DRAFTING`. A surviving over-cap counter yields
+  `within-budget`; a surviving equal non-empty fingerprint pair still yields
+  `stasis`, because stasis is never suppressed. Mutation proof: suppressing
+  stasis inside the window reddens the second case. Without the non-empty qualifier both lists are equal and
   every first call would read as stasis, so this is the case that proves the
   qualifier is present.
 - A `cap-reached` record omits `reviewers-clean` from `complete_with`; a
@@ -403,7 +414,8 @@ pending-events file as halting for every run in the repository, per the spec's P
 scope note. The marker fixture set is the six spellings observed in the corpus:
 bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 
-**Done when:** all seven rows are green and all four mutations flip.
+**Done when:** every Preconditions row in the spec's table is green and all four
+mutations flip.
 
 ### T7: the published schema validates live output and is inventoried
 
@@ -424,7 +436,7 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 **Depends on:** T4
 
 **Tests:** TDD.
-- For each of the 15 shipped rows, the identifiers parsed from the new column
+- For every row of the shipped table, its count parsed rather than restated, the identifiers parsed from the new column
   equal the union across both modes of the Routing actions whose key matches that
   row's `(last_event, state)` pair, with both sides parsed (AC19).
 - All five trust-posture statements appear in
@@ -437,15 +449,15 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 - The `gates-clean`/`CODE-REVIEW` shipped row's prose carries the review-budget
   branch, grepped for explicitly; deleting the branch reddens this case (AC19's
   prose clause, which column parity alone does not cover).
-- The four conditional-load paths are each findable in the shipped surface, and
-  neither `run-review` nor `spec.review` names a review reference in `load`
-  (AC27). Three of the four predicates already exist on main — the
-  conditional-reference table routes the adjudication reference on a
-  `finding-adjudicator` dispatch and the verdict reference on emitting or
-  validating the record, and `raw-classify` plus the `## Not checked` carve-out
-  decide when adjudication fires. This task states the fourth explicitly (nothing
-  loads at dispatch) and asserts all four, rather than re-implementing routing
-  that already ships.
+- AC27's five paths, each asserted in the evidence form the criterion names:
+  path 1 against the spec's Action attributes table, paths 2-5 as greps over the
+  shipped surface. The shipped surface currently carries **two conflicting
+  controls** — the conditional-reference table predicates the adjudication
+  reference on a `finding-adjudicator` dispatch, while the always-loaded body
+  instructs an unconditional read before a review unit's first report. This task
+  reconciles them, which makes path 2 true; it is not a pre-existing control this
+  contract inherits, and the earlier claim that three of four predicates already
+  shipped was wrong.
 - Mutation proof for AC27: restoring either reference to a review action's `load`
   cell reddens the dispatch-time case.
 - Mutation proofs: changing one row's identifier reddens its generated case;
@@ -462,12 +474,14 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
   toward another round. The two spec-plan
   `DONE` rows carry `complete` in the identifier column while their prose keeps
   describing the conditional reset, because that reset is a human-initiated path
-  the projection cannot observe. The diff stays additive and the two prose-pinned
-  tests at `test_loop_engine.py:2775-2776` and `:2846` keep passing unchanged —
-  confirm that rather than assuming it, by running both before and after.
+  the projection cannot observe. The diff stays additive and all three
+  prose-pinned tests keep passing unchanged — `test_loop_engine.py:2775-2776`,
+  `:2846`, and `test_loop_cohort.py:1843-1867`, which pins the same
+  `reviewers-clean` row and requires exactly one matching line. Confirm rather
+  than assume: run all three before and after.
 - Re-check the peer session's activity in the skill tree before editing.
 
-**Done when:** parity is parsed for all 15 rows, all five trust statements are
+**Done when:** parity is parsed for every shipped row, all five trust statements are
 present in `SKILL.md`, the amended row carries the budget branch, and both pinned
 tests still pass untouched.
 
@@ -558,7 +572,7 @@ are regenerated.
 - **The projection pushes a caller toward a false clean.** At the review cap the
   engine refuses `findings-remain`, so `reviewers-clean` is the only event it
   still accepts; a projection that answered `run-review` there would leave
-  declaring the contract clean as the sole escape. R5 and R25 answer
+  declaring the contract clean as the sole escape. R5 and R25 answer `await-replan-decision`;
   `await-replan-decision` instead, and D5 reads the cap and the stasis
   fingerprints straight from `state.json`.
 - **A way back loses its obligation.** All three return paths land in

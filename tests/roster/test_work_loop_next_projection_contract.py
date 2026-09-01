@@ -23,17 +23,22 @@ import importlib.util
 import re
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "docs/specs/work-loop-next-projection/spec.md"
 PLAN = ROOT / "docs/specs/work-loop-next-projection/plan.md"
 ENGINE = ROOT / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
 SKILL = ROOT / "packs/core/.apm/skills/work-loop/SKILL.md"
 
-pytestmark = pytest.mark.skipif(
-    not SPEC.is_file(), reason="work-loop-next-projection contract not present"
-)
+
+def test_the_contract_documents_are_where_this_module_expects_them() -> None:
+    """Fail loudly rather than skipping.
+
+    A module-level skip on a missing target silently deletes every check below
+    and leaves the suite green — which is exactly the control-that-cannot-fail
+    shape this module exists to catch. The repository precedent fails.
+    """
+    missing = [str(p.relative_to(ROOT)) for p in (SPEC, PLAN, ENGINE, SKILL) if not p.is_file()]
+    assert not missing, f"contract targets missing (renamed or moved?): {missing}"
 
 
 def _load_engine():
@@ -59,6 +64,18 @@ def _ticks(cell: str) -> set[str]:
     return set(re.findall(r"`([^`]+)`", cell))
 
 
+def _one_tick(cell: str) -> str:
+    """The single backticked token in a cell that must carry exactly one.
+
+    Popping an arbitrary element of a set is deterministic only while every such
+    cell happens to hold one token; a second token would make the parse vary per
+    process under hash randomization instead of failing.
+    """
+    found = re.findall(r"`([^`]+)`", cell)
+    assert len(found) == 1, f"expected exactly one token in cell {cell!r}, got {found}"
+    return found[0]
+
+
 # ── the four tables, parsed from the spec ──────────────────────────────────
 
 
@@ -70,7 +87,7 @@ def routing_rows() -> list[dict]:
             {
                 "id": row_id,
                 "modes": {"code", "spec-plan"} if mode == "both" else {mode},
-                "state": _ticks(state).pop() if _ticks(state) else state,
+                "state": _one_tick(state) if "`" in state else state.strip(),
                 # `*` means "any base key reaching this state". The literal
                 # token `null` is the JSON null `engine-state.json` carries
                 # before a run's first transition, so it maps to Python None.
@@ -80,7 +97,7 @@ def routing_rows() -> list[dict]:
                     else {None if t == "null" else t for t in _ticks(last_event)}
                 ),
                 "disc": _ticks(disc),
-                "action": _ticks(action).pop(),
+                "action": _one_tick(action),
             }
         )
     return rows
@@ -90,8 +107,8 @@ def action_rows() -> dict[str, dict]:
     out = {}
     for cells in _rows(SPEC.read_text(), r"^\| `[a-z.\-]+` \| `(agent|command|wait|done|stop)` \|"):
         action, kind, params, load, human_wait = cells[:5]
-        out[_ticks(action).pop()] = {
-            "kind": _ticks(kind).pop(),
+        out[_one_tick(action)] = {
+            "kind": _one_tick(kind),
             "params": set() if params == "—" else _ticks(params),
             "load": set() if load == "—" else _ticks(load),
             "human_wait": human_wait.strip() == "true",
@@ -103,24 +120,41 @@ def precondition_ids() -> list[str]:
     return [cells[0] for cells in _rows(SPEC.read_text(), r"^\| P\d+ \|")]
 
 
-DISCRIMINATORS = {
-    "SPEC-HUMAN-GATE": ["Draft", "Approved", "other"],
-    "PLAN-HUMAN-GATE": ["Drafting", "Approved", "other"],
-    "SPEC-PLAN-APPROVED": [
-        "pending+unscheduled", "pending+scheduled",
-        "approved+unscheduled", "approved+scheduled", "malformed",
-    ],
-    "REVIEW": ["within-budget", "cap-reached", "stasis", "malformed"],
-    "FINDINGS-REMAIN": ["matches", "does-not-match"],
-}
+def discriminators() -> list[dict]:
+    """Parse the Discriminators table: which key each applies to, and its values.
+
+    Transcribing this table instead of parsing it was the round-5 defect: an edit
+    to any of its cells was invisible to every check, including the domain-size
+    check that the spec calls the sole home of that figure.
+    """
+    out = []
+    for cells in _rows(SPEC.read_text(), r"^\| D\d+ \|"):
+        did, applies, _read_from, values = cells[0], cells[1], cells[2], cells[3]
+        states = {t for t in _ticks(applies) if t.isupper() or "-" in t and t.upper() == t}
+        event = None
+        if "last_event:" in applies:
+            event = applies.split("last_event:")[1].strip().strip("`").strip()
+        out.append({"id": did, "states": states, "event": event, "values": sorted(_ticks(values))})
+    return out
+
+
+def extra_base_keys() -> list[tuple]:
+    """Parse the extra-base-keys table (initial and legacy keys)."""
+    out = []
+    for cells in _rows(SPEC.read_text(), r"^\| (both|code|spec-plan) \| `"):
+        mode, last_event, state = cells[0].strip(), cells[1], cells[2]
+        ev = _one_tick(last_event)
+        modes = ("code", "spec-plan") if mode == "both" else (mode,)
+        for m in modes:
+            out.append((m, None if ev == "null" else ev, _one_tick(state)))
+    return out
 
 
 def _discriminator_for(state: str, event: str | None) -> list[str | None]:
-    if state in ("SPEC-PLAN-REVIEW", "CODE-REVIEW"):
-        return DISCRIMINATORS["REVIEW"]
-    if state == "CODE-IMPLEMENTATION" and event == "findings-remain":
-        return DISCRIMINATORS["FINDINGS-REMAIN"]
-    return DISCRIMINATORS.get(state, [None])
+    for d in discriminators():
+        if state in d["states"] and (d["event"] is None or d["event"] == event):
+            return d["values"]
+    return [None]
 
 
 def domain() -> list[tuple]:
@@ -129,11 +163,9 @@ def domain() -> list[tuple]:
     members = []
     for mode, table in engine._TRANSITIONS_BY_MODE.items():
         keys = {(event, target) for (_src, event), target in table.items()}
-        keys.add((None, "SPEC-PLAN-DRAFTING"))
-        keys.add(
-            ("plan-approved", "CODE-IMPLEMENTATION") if mode == "code"
-            else ("plan-approved", "DONE")
-        )
+        for m, ev, state in extra_base_keys():
+            if m == mode:
+                keys.add((ev, state))
         for event, state in keys:
             for value in _discriminator_for(state, event):
                 members.append((mode, state, event, value))
@@ -321,8 +353,10 @@ def test_ac27_the_shipped_surface_still_owns_the_conditional_routing() -> None:
             "Before every `finding-adjudicator` dispatch",
         "verdict reference predicated on emit/validate":
             "Emitting or validating the verdict record",
+        # `raw-classify` alone occurs in three other places and survives deleting
+        # the whole gateway section, so pin text unique to the gateway itself.
         "classification gates adjudication":
-            "raw-classify",
+            "Then run `review raw-classify",
         "the Not checked footer is never fast-pathed":
             "## Not checked",
     }
@@ -337,3 +371,57 @@ def test_ac27_the_footer_carve_out_is_not_weakened() -> None:
         "the `## Not checked` carve-out no longer states that such a report "
         "cannot take the clean fast path"
     )
+
+
+def test_prose_row_citations_name_the_action_the_row_actually_carries() -> None:
+    """A citation that survives renumbering is a citation that proves nothing.
+
+    The existence check above catches a reference to a deleted row. It does not
+    catch the likelier drift: rows are renumbered, every identifier still
+    resolves, and a sentence now names a different row than it argues about.
+
+    The binding is deliberately narrow — a backticked action within `WINDOW`
+    characters after a row id, outside the tables themselves. Prose that mentions
+    a row and an unrelated action further off is not an assertion about that row,
+    and treating it as one produces false positives rather than findings.
+    """
+    WINDOW = 80
+    by_id = {r["id"]: r["action"] for r in routing_rows()}
+    actions = set(by_id.values())
+    problems = []
+    for path in (SPEC, PLAN):
+        body = path.read_text().split("## Changelog")[0]
+        for line in body.splitlines():
+            if line.lstrip().startswith("|"):
+                continue  # the tables are the source, not a citation of it
+            for m in re.finditer(r"\bR\d+\b", line):
+                if m.group(0) not in by_id:
+                    continue
+                window = line[m.end() : m.end() + WINDOW]
+                named = {t for t in _ticks(window) if t in actions}
+                if not named:
+                    continue
+                # a run like "R5 and R25" asserts jointly; collect the whole run
+                run = sorted(
+                    {r for r in re.findall(r"\bR\d+\b", line[max(0, m.start() - 40) : m.end()])
+                     if r in by_id}
+                )
+                if len(named) == 1:
+                    # "R5 and R25 answer `X`" asserts it of every row in the run.
+                    # Accepting "any row carries it" lets one unchanged row mask a
+                    # re-point of its neighbour, which is the drift being hunted.
+                    action = next(iter(named))
+                    off = [r for r in run if by_id[r] != action]
+                    if off:
+                        problems.append(
+                            f"{path.name}: text names `{action}` beside {run}, but "
+                            f"{off} carry {sorted({by_id[r] for r in off})} — "
+                            f"{line.strip()[:110]}"
+                        )
+                elif not named & {by_id[r] for r in run}:
+                    problems.append(
+                        f"{path.name}: {m.group(0)} carries {by_id[m.group(0)]} "
+                        f"but the text beside it names {sorted(named)} — "
+                        f"{line.strip()[:110]}"
+                    )
+    assert not problems, "row citations disagree with the table:\n" + "\n".join(problems)
