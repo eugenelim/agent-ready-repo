@@ -1,7 +1,7 @@
 """The `work-loop-next-projection` contract's tables are self-consistent and match the engine.
 
-Four pre-EXECUTE review rounds on this spec sustained 78 findings, and roughly two
-thirds of them were one class: a table changed and a reference to it did not. Row
+Repeated pre-EXECUTE review on this spec has sustained findings dominated by one
+class: a table changed and a reference to it did not. Row
 numbers shifted under mutation proofs that then named a row carrying no
 discriminator; a repaired criterion landed in `spec.md` and not in `plan.md`; a
 count was restated in five places and four went stale. Every one of those is
@@ -22,6 +22,8 @@ from __future__ import annotations
 import importlib.util
 import re
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "docs/specs/work-loop-next-projection/spec.md"
@@ -296,8 +298,13 @@ def test_the_plan_cites_exactly_the_criteria_the_spec_defines() -> None:
     assert not (spec_acs - plan_acs), f"criteria no task covers: {sorted(spec_acs - plan_acs)}"
 
 
-def test_the_plan_does_not_contradict_the_spec_on_the_parameters_value_domain() -> None:
-    """AC11 rules a boolean out; a task that re-admits it inverts the guard it routes through."""
+def test_the_plan_does_not_readmit_the_exact_boolean_phrase_ac11_removed() -> None:
+    """A single-phrase regression pin, named as one.
+
+    This is not general non-contradiction over AC11's value domain — that is a
+    natural-language entailment with no mechanizable seam here. It pins one
+    historical phrase that a task once carried and AC11 removed.
+    """
     assert "or is a boolean" not in PLAN.read_text().split("## Changelog")[0], (
         "plan re-admits a boolean parameters value that AC11 excludes"
     )
@@ -399,6 +406,15 @@ def test_every_state_field_a_discriminator_reads_is_covered_by_its_catch_all() -
             prose,
         )
         if not m:
+            # Fail closed. Skipping here is what let round 6's instance through and
+            # what made the "closes the class" claim false for D1-D4: a discriminator
+            # reading several fields must have its count bound, and a reworded or
+            # absent bullet is a missing binding, not an exemption.
+            if len(fields) > 1:
+                problems.append(
+                    f"{d['id']}: Read-from names {len(fields)} fields {fields} but no "
+                    f"'any of its <N> fields' closure bullet binds that count"
+                )
             continue
         stated = words.get(m.group(1))
         assert stated is not None, f"{d['id']}: unrecognised count word {m.group(1)!r}"
@@ -408,3 +424,32 @@ def test_every_state_field_a_discriminator_reads_is_covered_by_its_catch_all() -
                 f"but the malformed bullet says '{m.group(1)}'"
             )
     assert not problems, "\n".join(problems)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "AC27 path 2 is false on the shipped surface today: the always-loaded body "
+        "still instructs an unconditional read of the adjudication reference before "
+        "a review unit's first report, contradicting the same file's "
+        "conditional-reference table. T8 owns the reconciliation. strict=True means "
+        "this reddens the suite the moment T8 lands, forcing the marker off rather "
+        "than letting a fixed defect sit behind a stale xfail."
+    ),
+)
+def test_ac27_path_2_the_shipped_body_has_no_unconditional_adjudication_read() -> None:
+    """Path 2 says a footer-free clean report loads neither reference.
+
+    That is not true while the always-loaded body carries an unconditional read.
+    The criterion had no failing artifact, so T8 could complete green without
+    doing the reconciliation AC27 assigns it. This is that artifact.
+    """
+    body = SKILL.read_text()
+    # The unconditional instruction wraps across two lines, so match on the
+    # clause that makes it unconditional rather than on a single-line phrase.
+    collapsed = " ".join(body.split())
+    assert "Before the first report in a review unit, read" not in collapsed, (
+        "the always-loaded body still instructs an unconditional read of the "
+        "adjudication reference before any report exists; AC27 path 2 cannot hold "
+        "until T8 reconciles it with the conditional-reference table"
+    )

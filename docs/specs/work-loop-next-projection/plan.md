@@ -18,8 +18,9 @@
     not code this plan changes.
   - Analogous implementation 3 — bounded, confined artifact reading and reason
     hygiene: `_loop_guards.py` `read_md_status` (`:891-923`),
-    `check_artifact_status` (`:1315-1382`), `read_managed_json`/`read_managed_text`
-    (`:430-503`), and the scalar and reason caps at `:109-123` applied at the
+    `check_artifact_status` (`:1315-1382`), `read_managed_json` (`:508`) and
+    `read_managed_text` (`:561`) over the shared `_read_managed_bytes`
+    (`:425-505`), and the scalar and reason caps at `:109-123` applied at the
     refusal chokepoint (`:264-270`).
   - Analogous implementation 4 — the schema field shape a JSON payload contract
     follows: `contracts/jsonschema/semantic-surface-resolution.schema.json`,
@@ -261,8 +262,13 @@ and `--help` lists the verb.
 - The two crash artifacts are never opened: a symlink, a directory, and a FIFO at
   either location are each detected as present and yield P1's `halt`, with no
   read, parse, or repair (AC15a).
+- `<spec-dir>` is resolved and repo-confined through the engine's existing
+  resolver **before any filesystem access**, including P1's glob and stat: an
+  out-of-repository argument and one escaping through a symlink are each refused
+  at the engine's generic exit with no record and no probe performed (AC15b).
 - Mutation proof: replacing one guard read with `Path.read_text` makes the symlink
-  case at that target pass; adding any `open` of a crash artifact reddens AC15a.
+  case at that target pass; adding any `open` of a crash artifact reddens AC15a;
+  removing the resolver call, or ordering it after P1, reddens AC15b.
 
 **Approach:** artifact statuses go through `read_md_status`; state files through
 their owners' existing readers. The FIFO that once hung `init` while holding the
@@ -280,7 +286,8 @@ mutation flips.
   the canonical UUID form; `sequence` equals `transition_sequence` (AC9).
 - `complete_with` equals the outgoing event set read from `_TRANSITIONS_BY_MODE`
   at runtime, empty exactly for `DONE`, except AC10's one declared exception that
-  T6 covers: a `cap-reached` record omits `reviewers-clean` (AC10).
+  T6 covers: a record at either spent D5 value — `cap-reached` or `stasis` —
+  omits `reviewers-clean` (AC10).
 - Mutation proofs: pinning `run_id`, `sequence`, or `complete_with` to a constant
   reddens at least one case; removing the `run_id` form check lets a planted
   malformed id reach a record.
@@ -347,8 +354,9 @@ mutations flip including AC1's across every row.
   state copy (AC12), with the fingerprint case driven explicitly — a 64-character
   hex digest placed in a declared `parameters` key satisfies AC5, AC7, and AC11,
   so it is the case that proves AC12 is not dominated.
-- Traverse the domain, assert no record exceeds 1024 bytes, and pin the observed
-  maximum against a constant held in the test file (AC13).
+- Traverse the domain and assert no record exceeds the byte bound AC13 states —
+  read from the criterion, not restated here — and pin the observed maximum
+  against a constant held in the test file (AC13).
 - Mutation proofs: emitting an identifier with no matching file reddens AC11;
   placing a fingerprint in `cycle_id` reddens AC12 alone.
 
@@ -384,9 +392,11 @@ mutations flip including AC1's across every row.
   other spent budget. No carve-out is exercised because none exists: D5 reports
   what it reads at every state. Mutation proof: adding any suppression of
   `cap-reached` reddens this case.
-- A `cap-reached` record omits `reviewers-clean` from `complete_with`; a
-  `within-budget` record at the same state includes it (AC10's declared
-  exception).
+- A record at either spent D5 value omits `reviewers-clean` from `complete_with`
+  — `cap-reached` and `stasis` both — while a `within-budget` record at the same
+  state includes it (AC10's declared exception). Mutation proof: dropping the
+  omission on the **stasis** branch alone reddens, which the cap-only form of this
+  assertion would not catch; stasis is the branch with no engine guard behind it.
 - Mutation proof: dropping the non-empty qualifier from the stasis comparison
   reddens the fresh-run case; dropping the `complete_with` exception reddens the
   cap-reached case.
@@ -530,7 +540,12 @@ user-specific filesystem paths, and the verb's own stderr interpolates absolute
 ones. Scope boundary: spec-plan mode, contract amendment, and the supervisor
 fan-out paths are covered by unit cases and are not exercised here.
 
-**Done when:** both transcripts are committed with their scope boundary stated.
+- The literal needle set AC24 names is recorded in each transcript's own header,
+  and the check runs against that recorded set rather than against values resolved
+  from the executing host. The observed result is written into the transcript.
+
+**Done when:** both transcripts are committed with their scope boundary stated,
+each carrying its recorded needle set and the observed redaction result.
 
 ### T12: the release surface is consistent
 
@@ -605,8 +620,8 @@ are regenerated.
 
 ## Changelog
 
-The contract reached its present shape through four pre-EXECUTE review rounds
-that sustained 78 findings across the adversarial and secure-design lanes. Three
+The contract reached its present shape through repeated pre-EXECUTE review, whose
+round-by-round record and counts live in the history note linked below. Three
 decisions explain most of what it looks like now:
 
 - **The state-to-action mapping is a set of tables, not prose criteria.** Prose
