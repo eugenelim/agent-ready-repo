@@ -94,7 +94,7 @@ Routing row removes coverage without removing a domain member.
 | D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line, via the canonical reader | `Drafting`, `Approved`, `other` |
 | D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled`, `malformed` |
 | D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` |
-| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count`, `max_review_retries`, `finding_fingerprints`, `previous_finding_fingerprints`, and `amendment_pending`, all in `state.json` | `within-budget`, `cap-reached`, `stasis`, `malformed` |
+| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count`, `max_review_retries`, `finding_fingerprints`, and `previous_finding_fingerprints`, in `state.json` | `within-budget`, `cap-reached`, `stasis`, `malformed` |
 
 **Every value set ends in a catch-all, and that is what makes it closed.**
 `state.json` and the Status files are read without schema validation and no
@@ -130,34 +130,15 @@ spent-or-broken values are evaluated in a fixed order: **`malformed` first, then
 `cap-reached`, then `stasis`.** A state satisfying more than one is reported as
 the earliest, so two conforming implementations cannot disagree.
 
-**A review state ignores a *cap* written in a different review phase — and only
-the cap.** A contract amendment resets the plan-approval cycle but deliberately
-preserves the review counters and fingerprints, so an amended contract would
-otherwise re-enter `SPEC-PLAN-REVIEW` already reading spent. The signal is
-`amendment_pending`: the amendment sets it and only the re-approval of the
-amended plan clears it. While it is non-null, D5 at a review state does not
-report `cap-reached`.
-
-**`stasis` is never suppressed, and the asymmetry is the whole point.** The cap is
-independently enforced — the engine refuses `findings-remain` at it regardless of
-what this projection says — so suppressing the projection's report of it removes
-mis-advice without removing enforcement. Stasis has no such backstop: no
-transition guard reads the fingerprint pair, and the classifier that computes it
-returns success on every content outcome. Suppressing stasis would therefore
-remove the only signal, and an amended contract could review the same findings
-indefinitely. Leaving it live fails safe onto R5's human gate instead.
-
-Two residuals follow, and are accepted rather than closed:
-
-- An amended contract whose surviving fingerprint pair is non-empty and equal
-  halts on its first review call, and no verb short of a cohort reset clears the
-  pair. That is over-conservative: it stops rather than proceeds, and an
-  amendment following a stasis round is a case a human should look at.
-- The window is wider than the counters' provenance. `amendment_pending` clears
-  only at re-approval, which is after the whole post-amendment review cycle, so a
-  cap genuinely reached *inside* that window also goes unreported. The engine
-  still refuses the transition, so the enforcement holds and only the advice is
-  lost.
+**Why no amendment carve-out exists.** A contract amendment preserves the review
+counters by design, so an amended contract can re-enter `SPEC-PLAN-REVIEW` with a
+budget already spent. An earlier revision suppressed `cap-reached` there. That was
+wrong, and the reason is worth keeping: suppressing a *report* does not make the
+projection silent, it makes it answer something else — `spec.review` — and the
+engine still refuses `findings-remain`, so the record named one continuation that
+could not be taken. D5 now reports what it reads, everywhere. An amended contract
+at a spent budget lands on `await-replan-decision`, which is a stop for a human,
+not a dead end.
 
 D3 lists the full cross product of its two recognised fields rather than the
 reachable subset. Including `pending+scheduled` costs one row's worth of coverage
@@ -365,6 +346,18 @@ state, or discriminator for conditional loading, and — critically — never
 inspects a raw report, never derives a discriminator from report prose, and never
 infers a reviewer roster. Post-report routing stays with the work-loop, after
 classification. AC27 fixes the four paths.
+
+**What `complete_with` means on a `wait`.** It lists the events legal from the
+record's state in the transition table — not the events fireable this turn.
+`kind` carries fireability: on a `wait`, nothing may be fired until the human
+decision the row names is taken, and the stderr reason says what that decision
+unlocks. At `cap-reached` this matters most. The record lists `findings-remain`
+and the engine refuses it, which reads as a contradiction until you see that the
+refusal names its own remedy: a human directing the run may pass
+`--allow-retry-cap-override` to that transition and to the matching
+`review record`. So the single listed event is exactly the one the human decision
+unlocks, and the field is honest rather than misleading. Emptying it would delete
+the only authorised continuation from the field an agent reads.
 
 **What `complete_with` does not carry.** It names *events*, not invocations. Two
 of them take required transition arguments the record does not supply:
@@ -746,6 +739,15 @@ contract that depends on this one; they are not deferred work from this checklis
   residual is recorded rather than closed, because closing it needs a freshness
   signal the state files do not carry (source: `references/session-resumption.md`
   step 4's `SPEC-HUMAN-GATE` rule; `loop-engine.py` `_guard_spec_approved`)
+- Technical: an amendment made after the review budget is already spent stops on
+  its first review call, and that is the design rather than a gap. The stop is
+  `await-replan-decision`: a `wait` with `human_wait: true`, carrying
+  `ref:delivery-contract-lifecycle` in `load`, whose stderr reason names both
+  continuations the engine itself offers — reset and start a new run, or the
+  paired human-authorised `--allow-retry-cap-override`. No mechanism is added to
+  route around it. Every attempt to do so produced a worse artifact, and the
+  information the human needs to choose is already in the record and the reason
+  (source: `loop-engine.py`'s cap refusal text, which names both remedies)
 - Technical: the two state files keep their owners, so the projection reads engine
   state through the engine's own reader and cohort state through the shared guard
   API (source: `_loop_guards.py` names `engine-state` only in two comments;

@@ -129,12 +129,18 @@ def discriminators() -> list[dict]:
     """
     out = []
     for cells in _rows(SPEC.read_text(), r"^\| D\d+ \|"):
-        did, applies, _read_from, values = cells[0], cells[1], cells[2], cells[3]
+        did, applies, read_from, values = cells[0], cells[1], cells[2], cells[3]
         states = {t for t in _ticks(applies) if t.isupper() or "-" in t and t.upper() == t}
         event = None
         if "last_event:" in applies:
             event = applies.split("last_event:")[1].strip().strip("`").strip()
-        out.append({"id": did, "states": states, "event": event, "values": sorted(_ticks(values))})
+        out.append({
+            "id": did,
+            "states": states,
+            "event": event,
+            "values": sorted(_ticks(values)),
+            "reads": sorted(_ticks(read_from)),
+        })
     return out
 
 
@@ -373,55 +379,32 @@ def test_ac27_the_footer_carve_out_is_not_weakened() -> None:
     )
 
 
-def test_prose_row_citations_name_the_action_the_row_actually_carries() -> None:
-    """A citation that survives renumbering is a citation that proves nothing.
+def test_every_state_field_a_discriminator_reads_is_covered_by_its_catch_all() -> None:
+    """The Read-from column must not outgrow the closure bullet that guards it.
 
-    The existence check above catches a reference to a deleted row. It does not
-    catch the likelier drift: rows are renumbered, every identifier still
-    resolves, and a sentence now names a different row than it argues about.
-
-    The binding is deliberately narrow — a backticked action within `WINDOW`
-    characters after a row id, outside the tables themselves. Prose that mentions
-    a row and an unrelated action further off is not an assertion about that row,
-    and treating it as one produces false positives rather than findings.
+    Round 6 found a fifth field added to D5's Read-from while the closure bullet
+    still said "any of its four fields", so an unrecognised value of the new
+    field fell through the catch-all into a routing branch instead of `halt`.
+    The instance is gone. This closes the class: the parser previously discarded
+    this column entirely, so nothing could have caught a sixth.
     """
-    WINDOW = 80
-    by_id = {r["id"]: r["action"] for r in routing_rows()}
-    actions = set(by_id.values())
+    words = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7}
+    prose = SPEC.read_text()
     problems = []
-    for path in (SPEC, PLAN):
-        body = path.read_text().split("## Changelog")[0]
-        for line in body.splitlines():
-            if line.lstrip().startswith("|"):
-                continue  # the tables are the source, not a citation of it
-            for m in re.finditer(r"\bR\d+\b", line):
-                if m.group(0) not in by_id:
-                    continue
-                window = line[m.end() : m.end() + WINDOW]
-                named = {t for t in _ticks(window) if t in actions}
-                if not named:
-                    continue
-                # a run like "R5 and R25" asserts jointly; collect the whole run
-                run = sorted(
-                    {r for r in re.findall(r"\bR\d+\b", line[max(0, m.start() - 40) : m.end()])
-                     if r in by_id}
-                )
-                if len(named) == 1:
-                    # "R5 and R25 answer `X`" asserts it of every row in the run.
-                    # Accepting "any row carries it" lets one unchanged row mask a
-                    # re-point of its neighbour, which is the drift being hunted.
-                    action = next(iter(named))
-                    off = [r for r in run if by_id[r] != action]
-                    if off:
-                        problems.append(
-                            f"{path.name}: text names `{action}` beside {run}, but "
-                            f"{off} carry {sorted({by_id[r] for r in off})} — "
-                            f"{line.strip()[:110]}"
-                        )
-                elif not named & {by_id[r] for r in run}:
-                    problems.append(
-                        f"{path.name}: {m.group(0)} carries {by_id[m.group(0)]} "
-                        f"but the text beside it names {sorted(named)} — "
-                        f"{line.strip()[:110]}"
-                    )
-    assert not problems, "row citations disagree with the table:\n" + "\n".join(problems)
+    for d in discriminators():
+        # state.json / spec.md / plan.md name the *file*; the fields are the rest
+        fields = [f for f in d["reads"] if "." not in f and "<" not in f]
+        m = re.search(
+            rf"\*\*{d['id']} `malformed`\*\*.{{0,40}}?any of its \*{{0,2}}(\w+)\*{{0,2}} fields",
+            prose,
+        )
+        if not m:
+            continue
+        stated = words.get(m.group(1))
+        assert stated is not None, f"{d['id']}: unrecognised count word {m.group(1)!r}"
+        if stated != len(fields):
+            problems.append(
+                f"{d['id']}: Read-from names {len(fields)} fields {fields} "
+                f"but the malformed bullet says '{m.group(1)}'"
+            )
+    assert not problems, "\n".join(problems)

@@ -376,14 +376,14 @@ mutations flip including AC1's across every row.
 - The empty-fingerprint baseline is exercised explicitly: a fresh run, and a run
   after two consecutive clean or all-skipped rounds, both yield `within-budget` at
   both review states.
-- The amendment window is exercised where D5 is actually evaluated — at
-  `SPEC-PLAN-REVIEW` re-entered by `spec-ready` while `amendment_pending` is
-  non-null, not at `SPEC-PLAN-DRAFTING`. A surviving over-cap counter yields
-  `within-budget`; a surviving equal non-empty fingerprint pair still yields
-  `stasis`, because stasis is never suppressed. Mutation proof: suppressing
-  stasis inside the window reddens the second case. Without the non-empty qualifier both lists are equal and
-  every first call would read as stasis, so this is the case that proves the
-  qualifier is present.
+  Without the non-empty qualifier both lists are equal on a fresh run, so every
+  first call would read as stasis; these are the cases that prove the qualifier
+  is present.
+- An amended contract re-entering `SPEC-PLAN-REVIEW` with a surviving over-cap
+  counter yields `cap-reached` and routes to `await-replan-decision`, like any
+  other spent budget. No carve-out is exercised because none exists: D5 reports
+  what it reads at every state. Mutation proof: adding any suppression of
+  `cap-reached` reddens this case.
 - A `cap-reached` record omits `reviewers-clean` from `complete_with`; a
   `within-budget` record at the same state includes it (AC10's declared
   exception).
@@ -572,7 +572,7 @@ are regenerated.
 - **The projection pushes a caller toward a false clean.** At the review cap the
   engine refuses `findings-remain`, so `reviewers-clean` is the only event it
   still accepts; a projection that answered `run-review` there would leave
-  declaring the contract clean as the sole escape. R5 and R25 answer `await-replan-decision`;
+  declaring the contract clean as the sole escape. R5 and R25 answer
   `await-replan-decision` instead, and D5 reads the cap and the stasis
   fingerprints straight from `state.json`.
 - **A way back loses its obligation.** All three return paths land in
