@@ -162,6 +162,14 @@ def test_shipped_requires_nonempty_all_shipped_map() -> None:
         ("Cancelled", "Implementing", 0),
         ("Cancelled", "Shipped", 0),
     ],
+    ids=[
+        "withdrawn-approved",
+        "withdrawn-implementing",
+        "withdrawn-shipped",
+        "cancelled-approved",
+        "cancelled-implementing",
+        "cancelled-shipped",
+    ],
 )
 def test_terminated_brief_child_scope(
     brief_status: str,
@@ -244,7 +252,11 @@ def test_untracked_backlink_informational() -> None:
         expect("gamma" in combined, f"untracked spec named: {out}{err}")
 
 
-@pytest.mark.parametrize("brief_status", ["Ready", "Withdrawn"])
+@pytest.mark.parametrize(
+    "brief_status",
+    ["Ready", "Withdrawn"],
+    ids=["ready", "withdrawn"],
+)
 def test_untracked_backlink_contributes_execution_evidence(
     brief_status: str,
 ) -> None:
