@@ -61,12 +61,12 @@ write-second ordering.
 | `max_implementation_retries` | Cap; `check --phase gates-failed` exits non-zero when `implementation_retry_count >= max`. Default: `5`. |
 | `last_record_attempt_cycle_id` | `<run_id>:<seq>` of the last recorded attempt; used for idempotency — a repeated cycle-id is a no-op. |
 | `review_round_count` | Total review rounds (all outcomes), incremented by `review record --fingerprint`, `--direct-clean-file`, `--report`, and `--all-skipped`. |
-| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--direct-clean-file`, `--report`, or `--all-skipped`). `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
+| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--direct-clean-file`, `--report`, or `--all-skipped`). Two verbs enforce the cap against `max_review_retries`: `check --phase review` (and so the `findings-remain` transition) refuses at or above it, and `review record --fingerprint` itself refuses rather than writing past it — with or without `--operation-id`, since a guard an agent can evade by dropping a flag is not a guard. A replay of an already-recorded round is exempt: it writes nothing, so there is nothing to cap. |
 | `last_review_clean_source` | Which form closed the most recent clean round: `"direct-clean"` or `"report"`. `null` until a clean round is recorded. Resumption reads this to replay the original form; artifact presence cannot answer it, because an evicted artifact and a direct clean look identical on disk. |
 | `last_review_clean_digest` | SHA-256 of the artifact that clean round rested on — the raw reviewer return for `--direct-clean-file`, the adjudication report for `--report`. `null` until a clean round is recorded, and `null` for a `--report` round whose file became unreadable after classification. |
 | `last_review_record_operation_id` | `<run_id>:<transition_sequence>` of the round most recently recorded under an operation id, or `null`. Supplied by the caller — this writer never reads `engine-state.json` — and read back to tell a completed write from one that never landed. |
 | `last_review_record_payload_digest` | `sha256("<form>\n<payload>")` of the payload recorded under that id: the sorted deduplicated fingerprint list, the artifact digest for either clean form, or the empty string for `--all-skipped`. Stored, never derived on read — a recording round overwrites `finding_fingerprints` and leaves `last_review_clean_source` untouched, so `state.json` stops describing an earlier round's payload as soon as the next round lands. A repeat under the same id with a matching digest is a completed write and changes nothing; a differing digest is refused. A round whose digest cannot be computed is refused rather than recorded, so no recorded id is ever undecidable. |
-| `max_review_retries` | Cap. Default: `5`. |
+| `max_review_retries` | Cap. Default: `5`. See `review_retry_count` for the two verbs that enforce it, and *Changing a cap* below for the two ways past it. |
 | `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; used for stasis detection via `review inspect`. |
 | `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |
 | `auto_parallel` | Always `false` in Phase 1; `dispatch-decision` and `auto-parallel` verbs are disabled. |
@@ -183,3 +183,13 @@ template — `loop-engine init` writes it from code.
 newly-initialized specs. To change the cap for a running spec, edit that
 spec's own (gitignored) `docs/specs/<feature>/state.json` directly — the only
 sanctioned by-hand write; all other mutations go through `loop-cohort`.
+
+**Going past the review cap once, without changing it.** Pass
+`--allow-retry-cap-override` to *both* `loop-engine transition <spec-dir>
+findings-remain` and the matching `loop-cohort review record`. Either half alone
+desyncs the pair: the recording half writes a round the engine will not
+transition on, and the transition half advances into a round the recording will
+refuse. The waiver covers one round, so a second deliberate round needs both
+flags again. It exists for a human who has looked at why the loop is not
+converging; an agent running unattended stops and surfaces the cap instead. The
+implementation cap at `gates-failed` has no equivalent — reset is its only exit.

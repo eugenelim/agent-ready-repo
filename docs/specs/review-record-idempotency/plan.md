@@ -383,6 +383,45 @@ untouched.
 **Done when:** versions agree, the entry is topmost, and both projections are
 regenerated.
 
+### T9: the review retry cap is code, and its waiver is whole
+
+**Depends on:** T2
+
+**Tests:**
+- A findings round at the cap refuses **without** `--operation-id` and leaves
+  `state.json` byte-identical (AC19). This is the case the whole task exists for:
+  every other cap test supplies an id, so all of them exercise the recording
+  path and none of them would notice the guard being moved back inside it.
+- A replay of an already-recorded round at the cap is still a no-op (AC19).
+- The other three forms are unaffected at the cap (AC19).
+- `check_phase(phase="review", allow_review_retry_cap_override=True)` waives the
+  review cap, waives nothing that precedes it, and does not reach the
+  implementation cap at `gates-failed` (AC20).
+- `transition findings-remain --allow-retry-cap-override` passes at the cap, the
+  same flag is refused on any other event, and the paired recording writes
+  (AC20).
+
+**Approach:**
+- Site the cap inside the `--fingerprint` branch, after `_review_operation_gate`
+  returns. Before the gate it refuses replays; inside `if outcome == "record":`
+  it becomes evadable by dropping the flag.
+- Read both counters through `non_negative_int` and `DEFAULTS`, so a corrupt
+  counter stops rather than tracebacks and `max_review_retries: 0` is honoured.
+- Keep the shared guard reason flag-free — `loop-cohort check --phase review`
+  prints it too and accepts no override — and let each adapter append its own
+  remedy.
+
+**Killing mutations:**
+- Move the cap below `if outcome == "record":` → kills the flagless cap test.
+- Wrap the cap in `if operation_id is not None:` → kills the same test.
+- Move the cap above `_review_operation_gate` → kills the replay-at-cap no-op test.
+- Drop `allow_review_retry_cap_override` from the `review` branch of
+  `check_phase` → kills the guards override test.
+- Drop the `event != "findings-remain"` validation → kills the wrong-event test.
+
+**Done when:** the cap refuses a flagless findings round, a replay at the cap is
+still a no-op, and the waiver is unusable unless both halves carry it.
+
 ## Rollout
 
 - **Delivery:** one PR. The flag is optional and both fields default to `null`, so

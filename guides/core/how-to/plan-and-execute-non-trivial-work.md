@@ -137,7 +137,7 @@ For the end-to-end narrative with the parts in context, read [core-pack.md § Ho
 ### Termination cues you'll see
 
 - **Gates green and review clean** → ship.
-- **`loop-cohort.py check` exits non-zero** → the script tells you which cap fired (implementation retry cap or review retry cap). Read the message; don't override.
+- **`loop-cohort.py check` exits non-zero** → the script tells you which cap fired (implementation retry cap or review retry cap). Read the message. A cap firing means the loop stopped converging, so the default answer is to reset and start a new run, not to push past it. The review cap alone has an escape hatch — `--allow-retry-cap-override`, which must be passed to both `loop-engine.py transition findings-remain` and the matching `loop-cohort.py review record`, since either half alone leaves the engine and the cohort a round apart. It is for a human who has looked at why the loop is not converging and decided to continue anyway; an agent running unattended should stop and surface the cap instead. The implementation cap has no override by design.
 - **Diff is shrinking but findings aren't** → you're spot-fixing without addressing root cause. Back to PLAN.
 
 If any of these fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.

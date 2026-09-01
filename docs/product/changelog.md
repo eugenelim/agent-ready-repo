@@ -78,9 +78,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `loop-cohort review record --fingerprint` now refuses once `review_retry_count`
   reaches `max_review_retries`, instead of writing past it. The cap was
   previously enforced only by the shell `&&` chaining the recording to a capped
-  transition, so a recording issued on its own bypassed it. Pass
-  `--allow-retry-cap-override` to record a round deliberately past the cap. A
-  replay of an already-recorded round is unaffected: it remains a no-op.
+  transition, so a recording issued on its own bypassed it — and dropping
+  `--operation-id` does not get around it either. A replay of an already-recorded
+  round is unaffected: it writes nothing, so it remains a no-op.
+- `--allow-retry-cap-override` takes one deliberate round past the review cap. It
+  must be passed to **both** `loop-engine transition <spec-dir> findings-remain`
+  and the matching `loop-cohort review record`: either half alone leaves the
+  cohort and the engine a round apart. It is for a human who has looked at why the
+  loop is not converging; the refusal it replaces tells an unattended agent to
+  stop and surface instead. The implementation cap at `gates-failed` has no
+  equivalent.
 - The shipped work-loop instructions supply an operation id on every review
   recording, reading the transition sequence after the transition that opened the
   round so a resuming session recomputes the same value.

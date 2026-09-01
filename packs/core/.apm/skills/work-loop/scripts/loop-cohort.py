@@ -1960,8 +1960,16 @@ def _review_operation_gate(
     if operation_id is None:
         return "unflagged", None
 
-    matched = (_REVIEW_OP_ID_RE.match(operation_id)
-               if len(operation_id) <= _REVIEW_OP_ID_MAX else None)
+    if len(operation_id) > _REVIEW_OP_ID_MAX:
+        # Its own message. Folding this into the format refusal below would tell
+        # an operator the format was wrong when the format may be perfectly
+        # correct and only the length is not.
+        return "refuse", stop(
+            f"review record: --operation-id is {len(operation_id)} characters, "
+            f"over the {_REVIEW_OP_ID_MAX}-character limit, for {spec_name}"
+        )
+
+    matched = _REVIEW_OP_ID_RE.match(operation_id)
     # A leading zero is a second spelling of the same sequence, and the recorded
     # id is compared by exact string equality, so `:01` and `:1` would each
     # record the round once.
@@ -2035,7 +2043,10 @@ def cmd_review_record(args: argparse.Namespace) -> int:
             state["last_review_record_payload_digest"] = digest
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
         state["finding_fingerprints"] = []
-        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        rounds = non_negative_int(state, "review_round_count", 0)
+        if isinstance(rounds, str):
+            return stop(f"review record: {rounds} for {spec_dir.name}")
+        state["review_round_count"] = rounds + 1
         write_state_atomic(spec_dir, state)
         print(
             f"loop-cohort: review record (all-skipped) "
@@ -2079,16 +2090,22 @@ def cmd_review_record(args: argparse.Namespace) -> int:
             return stop(
                 f"review record: review retry cap reached ({retries}/{cap}) for "
                 f"{spec_dir.name}; a findings round past the cap is the runaway "
-                f"the cap exists to stop. Reset and start a new run, or pass "
-                f"--allow-retry-cap-override to record this round deliberately"
+                f"the cap exists to stop — stop and surface it. Only a human "
+                f"directing this run may continue: reset and start a new run, or "
+                f"pass --allow-retry-cap-override to this command AND to the "
+                f"`loop-engine transition findings-remain` that opens the round "
+                f"(either half alone leaves the cohort and the engine a round apart)"
             )
         if outcome == "record":
             state["last_review_record_operation_id"] = operation_id
             state["last_review_record_payload_digest"] = digest
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
         state["finding_fingerprints"] = fingerprints
-        state["review_retry_count"] = int(state.get("review_retry_count", 0)) + 1
-        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        state["review_retry_count"] = retries + 1  # the value the cap above validated
+        rounds = non_negative_int(state, "review_round_count", 0)
+        if isinstance(rounds, str):
+            return stop(f"review record: {rounds} for {spec_dir.name}")
+        state["review_round_count"] = rounds + 1
         write_state_atomic(spec_dir, state)
         print(
             f"loop-cohort: review record (findings) "
@@ -2169,7 +2186,10 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         state["last_review_record_payload_digest"] = digest
     state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
     state["finding_fingerprints"] = []
-    state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+    rounds = non_negative_int(state, "review_round_count", 0)
+    if isinstance(rounds, str):
+        return stop(f"review record: {rounds} for {spec_dir.name}")
+    state["review_round_count"] = rounds + 1
     # Provenance: which recording form closed this round, and the digest of the
     # artifact it rested on. Session resumption reads these to replay the form
     # instead of inferring it from an artifact whose absence is ambiguous.

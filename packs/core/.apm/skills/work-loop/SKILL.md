@@ -615,8 +615,10 @@ five-field final handoff.
 If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
 ```
 # Never record when the transition is refused: it carries the retry-cap guard,
-# `review record --fingerprint` carries its own cap too, so the two are
-# belt and braces; the transition is simply the earlier of the pair.
+# and `review record --fingerprint` carries its own cap too. The caps are belt
+# and braces, but the rail is not only about the cap -- record after ANY refused
+# transition and the cohort ends a round ahead of the engine, a desync only a
+# forbidden `state.json` hand-edit reconciles.
 # The transition prints `(seq=N)`. Record only if it succeeded, and pass that
 # N: a resuming session reads the same value from `loop-engine status`, so the
 # operation id it recomputes matches and the round is not written twice.

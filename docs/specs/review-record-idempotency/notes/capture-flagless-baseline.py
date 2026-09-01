@@ -188,19 +188,24 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "all-skipped": (["--all-skipped"], {}),
     }
-    baseline = {
-        "_note": (
-            "Captured from the unchanged `cmd_review_record`, before "
-            "`--operation-id` existed. Regenerating this from the changed writer "
-            "would compare it against itself and prove nothing."
-        ),
-        "review_fields": list(REVIEW_FIELDS),
-        "forms": {name: capture(scratch, name, argv, files)
-                  for name, (argv, files) in forms.items()},
-    }
+    try:
+        baseline = {
+            "_note": (
+                "Captured from the unchanged `cmd_review_record`, before "
+                "`--operation-id` existed. Regenerating this from the changed writer "
+                "would compare it against itself and prove nothing."
+            ),
+            "review_fields": list(REVIEW_FIELDS),
+            "forms": {name: capture(scratch, name, argv, files)
+                      for name, (argv, files) in forms.items()},
+        }
+    finally:
+        # `capture` raises SystemExit on an init failure, and the roster test runs
+        # this twice per suite; without the finally a failing run leaves a
+        # `flagless-baseline-*` directory under `.context/` for good.
+        shutil.rmtree(scratch, ignore_errors=True)
     out = Path(__file__).resolve().parent / "flagless-baseline.json"
     rendered = json.dumps(baseline, indent=2, ensure_ascii=False) + "\n"
-    shutil.rmtree(scratch, ignore_errors=True)
 
     if args.capture:
         out.write_text(rendered, encoding="utf-8")

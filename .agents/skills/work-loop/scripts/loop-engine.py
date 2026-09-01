@@ -784,11 +784,28 @@ def _guard_wave_check_last(spec_dir: Path, engine_state: dict, _) -> str | None:
     )
 
 
-def _guard_check_phase_review(spec_dir: Path, engine_state: dict, _) -> str | None:
-    return _guard_reason(
+def _guard_check_phase_review(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    override = event_args.get("allow_retry_cap_override", False)
+    err = _guard_reason(
         "check --phase review failed",
-        _guards().check_phase(spec_dir, phase="review"),
+        _guards().check_phase(
+            spec_dir, phase="review", allow_review_retry_cap_override=override,
+        ),
     )
+    # The shared reason names no flag, because `loop-cohort check` prints it too
+    # and accepts none. This adapter does accept one, so it adds the remedy here
+    # -- including the second half, which is the part that is easy to miss.
+    if err and not override and "review retry cap reached" in err:
+        err += (
+            " — that is the default answer, because a cap firing means the loop "
+            "stopped converging. Only a human directing this run may continue "
+            "past it, by passing --allow-retry-cap-override to this transition "
+            "AND to the matching `loop-cohort review record`; either half alone "
+            "leaves the cohort and the engine a round apart"
+        )
+    return err
 
 
 def _guard_check_spec_status(
@@ -1229,6 +1246,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
     event = args.event
     wave_index = args.wave_index
     intent_incomplete = args.intent_incomplete
+    allow_retry_cap_override = getattr(args, "allow_retry_cap_override", False)
     owner_authority_ref = args.owner_authority_ref
     reason_ref = args.reason_ref
     completed_evidence_entries = tuple(args.completed_evidence_ref or [])
@@ -1243,6 +1261,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
             return stop(f"transition {event!r} does not accept --wave-index")
     if intent_incomplete and event != "reviewers-clean":
         return stop("transition --intent-incomplete requires reviewers-clean")
+    if allow_retry_cap_override and event != "findings-remain":
+        return stop("transition --allow-retry-cap-override requires findings-remain")
     if event == "contract-amendment":
         if not owner_authority_ref:
             return stop("transition contract-amendment requires --owner-authority-ref")
@@ -1414,6 +1434,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
             event_args["wave_index"] = wave_index
         if intent_incomplete:
             event_args["intent_incomplete"] = True
+        if allow_retry_cap_override:
+            event_args["allow_retry_cap_override"] = True
         err = guard_fn(spec_dir, state, event_args)
         if err:
             return stop(err)
@@ -1533,6 +1555,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--intent-incomplete",
         action="store_true",
         help="declare reviewers-clean is an intermediate unit of an incomplete intent",
+    )
+    sp.add_argument(
+        "--allow-retry-cap-override",
+        action="store_true",
+        dest="allow_retry_cap_override",
+        help=("waive the review retry cap for this findings-remain transition; "
+              "the matching `review record` needs the same flag"),
     )
     sp.add_argument("--owner-authority-ref", dest="owner_authority_ref", default=None)
     sp.add_argument("--reason-ref", dest="reason_ref", default=None)

@@ -310,26 +310,37 @@ class ReviewRecordIdempotency(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual((spec_dir / "state.json").read_bytes(), before)
 
-    def test_r6_an_over_length_id_refuses(self) -> None:
+    def test_r6_an_over_length_id_refuses_and_says_it_was_the_length(self) -> None:
+        """The diagnosis, not just the exit code.
+
+        Folded into the format refusal, an over-length id whose format is
+        otherwise perfect is reported as a format error, sending the operator to
+        look at a part of the id that is correct.
+        """
         spec_dir, run_id = self._initialized()
         before = (spec_dir / "state.json").read_bytes()
         result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
                               operation_id=f"{run_id}:{'1' * 400}")
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("character limit", result.stderr)
+        self.assertNotIn("decimal-sequence", result.stderr)
         self.assertEqual((spec_dir / "state.json").read_bytes(), before)
 
     def test_the_length_cap_cannot_reject_a_well_formed_id(self) -> None:
         """The cap is a pre-filter on pathological input, not a second format rule.
 
-        Nothing the canonical form admits comes near it — a run id is a 36-char
-        UUID and the sequence is at most 18 digits — so the cap must stay clear of
-        that ceiling. Lowering it to anything at or below the longest legal id
-        would start refusing ids the format accepts, and every other test here
-        uses short ids, so none of them would notice.
+        Nothing the canonical form admits comes near it, so the cap must stay
+        clear of that ceiling. Lowering it to anything at or below the longest
+        legal id would start refusing ids the format accepts, and every other
+        test here uses short ids, so none of them would notice.
+
+        The 36 is `loop-engine init`'s `uuid4()`, which is what writes the run id
+        the loop actually uses; `loop-cohort init --run-id` stores whatever it is
+        given without a form check, so this is the bound in practice rather than
+        an enforced one. The 18 is the regex's own `[0-9]{1,18}`.
         """
         module = _load_module()
-        longest_legal = len(str(uuid.uuid4())) + len(":") + 18
-        self.assertEqual(longest_legal, 55)
+        longest_legal = len(str(uuid.uuid4())) + len(":") + 18  # 36 + 1 + 18 = 55
         self.assertGreater(module._REVIEW_OP_ID_MAX, longest_legal)
         # And the format itself still accepts an id of that maximum length.
         run_id = str(uuid.uuid4())
@@ -414,6 +425,21 @@ class ReviewRecordIdempotency(unittest.TestCase):
         self.assertEqual((spec_dir / "state.json").read_bytes(), before)
         self.assertIn("retry cap", result.stderr)
 
+    def test_the_cap_applies_without_an_operation_id(self) -> None:
+        """The one claim the AC4 amendment and the *Never do* rail actually make.
+
+        Every other cap test supplies an id, so every one of them exercises the
+        `record` outcome. Without this, moving the cap four lines down into
+        `if outcome == "record":` restores the exact bypass the guard was added
+        to close -- an agent that drops the flag -- with the whole suite green.
+        """
+        spec_dir, run_id = self._at_cap()
+        before = (spec_dir / "state.json").read_bytes()
+        result = self._record(spec_dir, run_id, "--fingerprint", FP_A)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("retry cap", result.stderr)
+        self.assertEqual((spec_dir / "state.json").read_bytes(), before)
+
     def test_the_override_records_a_round_past_the_cap(self) -> None:
         # The cap stops runaway automation; it must not overrule a human who has
         # looked, so the escape hatch is explicit and visible in the command.
@@ -453,15 +479,45 @@ class ReviewRecordIdempotency(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_corrupt_counter_stops_cleanly_rather_than_tracebacking(self) -> None:
-        spec_dir, run_id = self._initialized()
-        state = self._state(spec_dir)
-        state["review_retry_count"] = "abc"
-        (spec_dir / "state.json").write_text(json.dumps(state, indent=2) + "\n",
-                                             encoding="utf-8")
-        result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
-                              operation_id=f"{run_id}:1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("Traceback", result.stderr)
+        """Both counters, not just the one. The two branches are symmetric, so
+        checking only `review_retry_count` lets the `max_review_retries` branch be
+        dropped -- restoring the `int >= str` TypeError -- with nothing red."""
+        for field in ("review_retry_count", "max_review_retries"):
+            with self.subTest(field=field):
+                spec_dir, run_id = self._initialized()
+                state = self._state(spec_dir)
+                state[field] = "abc"
+                (spec_dir / "state.json").write_text(json.dumps(state, indent=2) + "\n",
+                                                     encoding="utf-8")
+                result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
+                                      operation_id=f"{run_id}:1")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("Traceback", result.stderr)
+                # Pin the reason, not just the exit code: a wholesale state
+                # rejection would otherwise satisfy this test.
+                self.assertIn(field, result.stderr)
+                self.assertIn("non-negative integer", result.stderr)
+
+    def test_a_corrupt_round_count_stops_cleanly_in_every_branch(self) -> None:
+        """`review_round_count` is incremented by all four forms, not just the
+        capped one, so each branch needs the guard. A bare `int()` here raised a
+        `ValueError` whose traceback carried absolute script paths."""
+        for label in ("fingerprint", "all-skipped", "direct-clean", "report"):
+            with self.subTest(form=label):
+                spec_dir, run_id = self._initialized()
+                argv = (["--fingerprint", FP_A] if label == "fingerprint"
+                        else ["--all-skipped"] if label == "all-skipped"
+                        else self._clean_file(spec_dir) if label == "direct-clean"
+                        else self._report(spec_dir))
+                state = self._state(spec_dir)
+                state["review_round_count"] = "abc"
+                (spec_dir / "state.json").write_text(json.dumps(state, indent=2) + "\n",
+                                                     encoding="utf-8")
+                result = self._record(spec_dir, run_id, *argv,
+                                      operation_id=f"{run_id}:1")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertIn("review_round_count", result.stderr)
 
     def test_a_zero_cap_is_honoured_rather_than_defaulted_away(self) -> None:
         # `int(x or 5)` would turn a deliberate 0 into 5; the shared reader does not.
@@ -469,6 +525,9 @@ class ReviewRecordIdempotency(unittest.TestCase):
         result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
                               operation_id=f"{run_id}:1")
         self.assertNotEqual(result.returncode, 0)
+        # Naming the ratio distinguishes the cap refusal from a run-id mismatch
+        # or a schema refusal, either of which also exits non-zero.
+        self.assertIn("(0/0)", result.stderr)
 
     def test_status_json_projects_the_recorded_pair(self) -> None:
         # The eval teaches reading these from `status --json`; without the

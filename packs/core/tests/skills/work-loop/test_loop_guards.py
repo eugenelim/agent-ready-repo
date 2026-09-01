@@ -2059,6 +2059,31 @@ def test_check_phase_retry_caps(g, spec) -> None:
     r = g.check_phase(spec(implementation_retry_count=5), phase="gates-failed")
     assert not r.ok and "implementation retry cap reached (5/5)" in r.reason
 
+
+def test_check_phase_review_cap_override(g, spec) -> None:
+    """The waiver applies to the review cap, to nothing else, and only on request.
+
+    `review record` has a matching flag. Without this half, a human taking the
+    documented way past the cap records a round the engine then refuses to
+    transition on, leaving the cohort one round ahead of the engine.
+    """
+    at_cap = spec(review_retry_count=5)
+    assert not g.check_phase(at_cap, phase="review").ok
+    assert g.check_phase(at_cap, phase="review",
+                         allow_review_retry_cap_override=True).ok
+
+    # It waives the cap, not the state checks that precede it.
+    assert not g.check_phase(spec(schema_version=99), phase="review",
+                             allow_review_retry_cap_override=True).ok
+    r = g.check_phase(spec(review_retry_count="abc"), phase="review",
+                      allow_review_retry_cap_override=True)
+    assert not r.ok and "review_retry_count" in r.reason
+
+    # The implementation cap is a different cap with no paired writer flag, so it
+    # must not be reachable through this parameter.
+    assert not g.check_phase(spec(implementation_retry_count=5), phase="gates-failed",
+                             allow_review_retry_cap_override=True).ok
+
     assert not g.check_phase(spec(), phase="nonsense").ok
 
 

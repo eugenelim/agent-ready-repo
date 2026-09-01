@@ -33,11 +33,11 @@ the producer profile fills deterministically.
 ## The pinned anchor is older than the file it names
 
 All three observations carry the same source anchor: `plan.md` at
-`f8d8b8e3…`, 27303 bytes. That is the plan as it stood at `plan-locked`. Review
-rounds after that gate amended the plan — the retry cap moved after the
-idempotency gate and gained an override — so `plan.md` is now `5de9c046…`,
-26729 bytes. Anyone resolving the anchor against the working tree gets a
-mismatch.
+`f8d8b8e3…`, 27303 bytes. That is the plan as it stood at `plan-locked`. One
+commit has touched `plan.md` since — `219e92290`, which renumbered task anchors
+after a task was removed and rewrote the *Open findings* section — so `plan.md`
+is now `5de9c046…`, 26729 bytes. Anyone resolving the anchor against the working
+tree gets a mismatch.
 
 This is recorded rather than re-captured, deliberately. The anchor's job is to
 say which text the observation was drawn from, and each of the three

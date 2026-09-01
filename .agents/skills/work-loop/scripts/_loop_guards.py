@@ -1174,7 +1174,8 @@ def non_negative_int(state: dict, field: str, default):
 
 
 @contained
-def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
+def check_phase(spec_dir: Path, *, phase: str,
+                allow_review_retry_cap_override: bool = False) -> GuardResult:
     """Implementation and review retry caps.
 
     Reads state FIRST, for every phase including `implement`. `cmd_check` has always
@@ -1182,6 +1183,14 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
     implement` is not a total no-op: it refuses on a missing or malformed
     `state.json`. Returning `ok` unconditionally for `implement` would drop a live
     refusal that the `wave-complete` guard depends on.
+
+    `allow_review_retry_cap_override` waives the **review** cap only, and only for
+    a caller that asked for it. It is named for that one cap rather than for both
+    because only `findings-remain` plumbs it through: `review record` has the
+    matching flag, and a human going past the review cap has to clear the
+    transition and the recording together or the two halves desync. The
+    implementation cap at `gates-failed` has no such pair and no way to set this,
+    so it is deliberately not consulted here.
     """
     state, reason = _state_or_reason(spec_dir)
     if reason is not None:
@@ -1224,7 +1233,11 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
         for value in (count, cap):
             if isinstance(value, str):
                 return GuardResult(ok=False, reason=f"check: {value}")
-        if count >= cap:
+        if count >= cap and not allow_review_retry_cap_override:
+            # Wording unchanged, deliberately. This reason is printed by
+            # `loop-cohort check --phase review`, which accepts no override, as
+            # well as by the `findings-remain` transition, which does -- so the
+            # shared text names no flag and each adapter appends its own remedy.
             return GuardResult(
                 ok=False,
                 reason=(

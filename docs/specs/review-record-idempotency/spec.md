@@ -1,12 +1,12 @@
 # Spec: review-record-idempotency
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** none — no interface payload changes; the CLI gains one optional flag
+- **Contract:** none — no interface payload changes; the CLIs gain three optional flags (`review record --operation-id`, and `--allow-retry-cap-override` on both `review record` and `loop-engine transition findings-remain`)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -150,9 +150,8 @@ and the plan's mutation proofs keep the choice honest.
   review round.
 - [x] **AC4.** A recording that omits `--operation-id` produces the same
   observable result as it does today, for each of the four recording forms,
-  measured against a baseline captured before the writer changes — except at the
-  review retry cap, where a findings round now refuses regardless of the flag
-  and `--allow-retry-cap-override` is the way through.
+  measured against a baseline captured before the writer changes. AC19 states the
+  one exception.
 - [x] **AC5.** A malformed operation id is refused with `state.json` unchanged.
 - [x] **AC6.** No round is recorded under an operation id unless a comparison
   value for a later repeat is recorded with it, so a repeat is never undecidable.
@@ -192,6 +191,23 @@ and the plan's mutation proofs keep the choice honest.
 - [x] **AC18.** The release surface is consistent: a dated free-standing changelog
   entry carrying a highlights block, both version files reading one patch above
   the base branch, and no projection drift.
+
+### Review retry cap
+
+The cap held only because the shipped instructions chained the recording to a
+capped transition with a shell `&&`. Splitting those statements for AC13 showed
+the guard was carried by punctuation rather than by code, so it is stated here.
+
+- [x] **AC19.** `review record --fingerprint` refuses a findings round at or above
+  `max_review_retries` rather than writing past it, whether or not
+  `--operation-id` is supplied. A replay of an already-recorded round is exempt,
+  because it writes nothing and so cannot run the counter away. The other three
+  recording forms are unaffected: they do not increment the retry counter.
+- [x] **AC20.** A human directing the run can take one deliberate round past the
+  cap, and cannot do it by half. The waiver is refused unless it is given to both
+  the `findings-remain` transition and the matching recording; either half alone
+  leaves the cohort and the engine a round apart, which is the state the shipped
+  adjudication reference says only a forbidden hand-edit reconciles.
 
 ## Follow-ons
 
