@@ -277,3 +277,136 @@ def test_a_root_level_collection_is_routed_by_both_commands(tmp_path: Path, caps
     )
     capsys.readouterr()
     assert (target / ".claude" / "skills" / "alt-text" / "SKILL.md").exists()
+
+
+def _validate_args(path: Path, output_format: str = "text"):
+    class _A:
+        pack_path = str(path)
+        format = output_format
+        strict = False
+
+    return _A()
+
+
+def test_a_refusal_raised_while_choosing_the_route_is_not_a_traceback(
+    tmp_path: Path, capsys
+):
+    # `_has_direct_marker` probes the source, so it can refuse: both the entry
+    # bound and the marker probe raise `DirectAdmissionError`. Neither
+    # `validate.run` nor `install._run` handled it and `cli.main` has no
+    # boundary, so an ordinary directory produced a stack trace carrying
+    # internal paths on stderr instead of AC21's registered exit-1 refusal.
+    from agentbundle.direct_source import DIRECT_MAX_ENTRIES
+
+    crowded = tmp_path / "crowded"
+    crowded.mkdir()
+    for index in range(DIRECT_MAX_ENTRIES + 1):
+        (crowded / f"d{index:05d}").mkdir()
+
+    assert validate_cmd.run(_validate_args(crowded)) == 1
+    printed = capsys.readouterr()
+    assert "FAIL: direct source refused" in printed.err
+    assert "CAT-D012" in printed.err
+    assert "Traceback" not in printed.err and "Traceback" not in printed.out
+
+    # The JSON envelope carries the same refusal, not a different one.
+    assert validate_cmd.run(_validate_args(crowded, "json")) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is False
+    assert [d["code"] for d in payload["diagnostics"]] == ["CAT-D012"]
+
+
+def test_install_renders_a_routing_refusal_rather_than_raising(tmp_path: Path, capsys):
+    # The same seam on the install side, which routes through the same helper.
+    from agentbundle.commands import install as install_cmd
+    from agentbundle.direct_source import DIRECT_MAX_ENTRIES
+
+    crowded = tmp_path / "crowded"
+    crowded.mkdir()
+    for index in range(DIRECT_MAX_ENTRIES + 1):
+        (crowded / f"d{index:05d}").mkdir()
+
+    class _A:
+        catalogue = str(crowded)
+        output = str(tmp_path / "target")
+        pack = profile = scope = adapter = None
+        skill = None
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert install_cmd._run(_A()) == 1
+    printed = capsys.readouterr().err
+    assert "[CAT-D012]" in printed and "Traceback" not in printed
+
+
+def test_a_root_name_reaching_the_renderer_is_escaped(tmp_path: Path, capsys):
+    # `validate_direct_source` assigns `diagnostic.path` AFTER
+    # `make_direct_diagnostic` escaped the fields it constructs, and
+    # `render_direct_validation_text` prints that field on the strength of that
+    # chokepoint. A remote source's root name comes from publisher-controlled
+    # archive member names, so the assignment put raw bidi on the terminal.
+    # The refusal must be one that supplies NO path of its own, because the
+    # assignment under test is the `if not diagnostic.path` fallback. An empty
+    # collection root is exactly that shape.
+    hostile = tmp_path / "src\u202edrowssap"
+    (hostile / "skills").mkdir(parents=True)
+
+    assert validate_cmd.run(_validate_args(hostile)) == 1
+    printed = capsys.readouterr()
+    assert "no skill envelopes" in printed.err, "the pathless refusal was not reached"
+    assert "\u202e" not in printed.err and "\u202e" not in printed.out
+    assert "\\u202e" in printed.err
+
+    # And the JSON envelope, whose escaping is otherwise incidental — a
+    # `json.dumps` default rather than this chokepoint.
+    assert validate_cmd.run(_validate_args(hostile, "json")) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert "\u202e" not in json.dumps(payload, ensure_ascii=False)
+
+
+def test_a_direct_pack_manifest_is_opened_exactly_once_on_the_validate_route(
+    tmp_path: Path, monkeypatch
+):
+    # AC15: "no direct source file is opened twice on any route". The router
+    # had to know whether `pack.toml` declares the top-level `schema` before it
+    # could choose a route, and answered with `exists()` + `read_text()` — a
+    # second open, and one that followed a symlink out of the source, blocked
+    # on a FIFO, and materialised an arbitrarily large publisher file before
+    # any bound applied. The router now performs the ONE measured read and
+    # hands it to admission.
+    #
+    # Counted at the confined primitive itself, so neither the router nor the
+    # inventory can satisfy this by reading through some other door.
+    from agentbundle.catalogue_tooling import file_safety
+
+    source = tmp_path / "pack"
+    envelope = source / "skills" / "alpha"
+    envelope.mkdir(parents=True)
+    (envelope / "SKILL.md").write_text(
+        "---\nname: alpha\ndescription: A skill inside a direct pack.\n---\n# alpha\n"
+    )
+    (source / "pack.toml").write_text(
+        'schema = 1\n[pack]\nname = "demo"\nversion = "1.0.0"\n'
+        'description = "A direct pack used to count manifest reads."\n'
+    )
+
+    opens: list[str] = []
+    real = file_safety.read_confined_regular_file
+
+    def _counting(root, path, **kwargs):
+        opens.append(Path(path).name)
+        return real(root, path, **kwargs)
+
+    monkeypatch.setattr(file_safety, "read_confined_regular_file", _counting)
+    monkeypatch.setattr(
+        "agentbundle.direct_source.read_confined_regular_file", _counting
+    )
+
+    assert validate_cmd.run(_validate_args(source)) == 0
+    assert opens.count("pack.toml") == 1, (
+        f"the root manifest was opened {opens.count('pack.toml')} times on one "
+        f"validate run; AC15 allows exactly one read per direct file"
+    )
+    # The positive control: the run really did read the manifest and the skill,
+    # so a count of one is "read once", not "never routed here".
+    assert opens.count("SKILL.md") == 1

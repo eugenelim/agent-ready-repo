@@ -139,7 +139,7 @@ def test_verdict_is_emitted_before_and_after_the_publisher_block(tmp_path: Path)
     root = _collection(tmp_path, "alpha", "beta")
     classification = admit_direct_source(root)
     listing = candidate_listing(classification, source=str(root))
-    rendered = render_admissibility_summary([], source=str(root), listing=listing)
+    rendered = render_admissibility_summary([listing], source=str(root))
 
     assert rendered.startswith(ADMISSIBILITY_VERDICT)
     assert rendered.endswith(ADMISSIBILITY_VERDICT)
@@ -238,6 +238,7 @@ def test_receipt_reports_kind_source_revision_digest_and_undo():
         adapter="claude-code",
         identity="alpha",
         removal_hint=".claude/skills/alpha/",
+        state_hint=".agentbundle-state.toml",
     )
     for expected in ("manifestless", "git+https://github.com/o/r@v1", "0" * 40, "repo"):
         assert expected in receipt
@@ -278,6 +279,7 @@ def test_sentinel_never_reaches_a_rendered_surface(tmp_path: Path):
         adapter="claude-code",
         identity="alpha",
         removal_hint=".claude/skills/alpha/",
+        state_hint=".agentbundle-state.toml",
     )
     for surface in (rendered, receipt):
         assert "0.0.0" not in surface
@@ -443,8 +445,19 @@ def test_a_hostile_filename_cannot_repaint_the_consent_surface(tmp_path: Path, c
     # three renderers and never to `message` — and the admission refusals build
     # the offending path into the message. Escaping now happens at
     # `make_direct_diagnostic`, so no renderer can bypass it.
+    import os
+
     from agentbundle.commands import validate as validate_cmd
     from agentbundle.direct_install import run_direct_install
+
+    if os.name == "nt":
+        # Windows rejects code points 1-31 in a filename outright, so this
+        # payload cannot be created at all and the refusal under test is
+        # unreachable rather than broken. Assert the platform fact instead of
+        # raising `OSError` in a suite that must not skip.
+        with pytest.raises(OSError):
+            (tmp_path / ".\x1b[2Jevil").write_text("x")
+        return
 
     source = tmp_path / "hostile"
     envelope = source / "skills" / "alpha"
@@ -557,12 +570,23 @@ def test_a_refused_projection_leaves_nothing_behind(tmp_path: Path, capsys):
     # written on disk with no state row and no receipt: the adopter was told the
     # install failed while an unreviewed SKILL.md was live in their skills
     # directory. Destinations are validated before the first write now.
+    import os
+
     from agentbundle.direct_install import run_direct_install
 
     source = tmp_path / "reserved"
     envelope = source / "skills" / "alpha"
     envelope.mkdir(parents=True)
     (envelope / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    if os.name == "nt":
+        # `NUL` is a reserved device in every Windows directory: the write goes
+        # to the null device, the name never appears in `iterdir`, and the
+        # install therefore succeeds. The reserved-name refusal is a Windows
+        # rule being asserted on a source that cannot carry the name, so pin
+        # the platform fact rather than the refusal.
+        (envelope / "nul.md").write_text("payload\n")
+        assert "nul.md" not in {entry.name for entry in envelope.iterdir()}
+        return
     (envelope / "nul.md").write_text("payload\n")
     target = tmp_path / "target"
     target.mkdir()
@@ -606,3 +630,299 @@ def test_local_scope_is_refused_rather_than_half_honoured(tmp_path: Path, capsys
     assert run_direct_install(_Args(), source) == 1
     assert "not supported" in "".join(capsys.readouterr())
     assert list(target.rglob("*")) == []
+
+
+def _direct_args(source: Path, target: Path, **overrides):
+    """The argument object `run_direct_install` reads, with test overrides."""
+
+    class _A:
+        catalogue = str(source)
+        output = str(target)
+        pack = profile = scope = adapter = None
+        skill = ["alpha"]
+        all_skills = dry_run = force = False
+        yes = True
+
+    for key, value in overrides.items():
+        setattr(_A, key, value)
+    return _A()
+
+
+def _alpha_collection(root: Path, body: str = "original") -> Path:
+    envelope = root / "skills" / "alpha"
+    envelope.mkdir(parents=True)
+    (envelope / "SKILL.md").write_text(f"---\nname: alpha\n---\n# {body}\n")
+    return root
+
+
+def test_a_user_scope_row_lands_where_every_reader_looks(
+    tmp_path: Path, capsys, monkeypatch
+):
+    # Both state-path computations hard-coded the repo-scope filename, but user
+    # scope resolves to `<root>/.agentbundle/state.toml` — the path `uninstall`,
+    # `diff`, and `upgrade` all read. A user-scope install therefore projected
+    # files and recorded ownership in a file nothing consults, so the projection
+    # was permanently unowned and the ownership guard could not see its own
+    # prior row. AC12's concurrency test pins `persist_state_locked` usage; only
+    # this pins the path.
+    from agentbundle.commands._common import resolve_state_path
+    from agentbundle.config import load_state
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "userroot"
+    target.mkdir()
+
+    # User scope resolves its own root and ignores `--output` by design, so the
+    # root is pinned through the documented env seam rather than by an argument
+    # the command does not read. Without this the install writes into the real
+    # home directory.
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(target))
+    assert run_direct_install(_direct_args(source, target, scope="user"), source) == 0
+    capsys.readouterr()
+
+    # Read back through the SAME resolver every other command uses, not through
+    # the literal path this test could otherwise agree with by accident.
+    state_path = resolve_state_path("user", target)
+    assert state_path == target / ".agentbundle" / "state.toml"
+    assert state_path.exists(), "the row is not where a user-scope reader looks"
+    assert not (target / ".agentbundle-state.toml").exists()
+    row = load_state(state_path).row("alpha", "claude-code")
+    assert row is not None and row.scope == "user"
+    assert ".claude/skills/alpha/SKILL.md" in row.files
+
+
+def test_reinstalling_an_in_repository_source_is_permitted(tmp_path: Path, capsys):
+    # The write relativised a repo-scope source that lives inside the target,
+    # while the ownership check compared the raw invocation string, so the
+    # byte-identical command refused its own prior install as "a different
+    # source" — and pointed at an uninstall route that does not exist for a
+    # direct row. Every earlier fixture put the source OUTSIDE the target, where
+    # `relative_to` raises and both sides happened to agree, so the relativising
+    # branch was never exercised.
+    from agentbundle.config import load_state
+    from agentbundle.direct_install import run_direct_install
+
+    target = tmp_path / "repo"
+    source = _alpha_collection(target / "vendor")
+
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+    row = load_state(target / ".agentbundle-state.toml").row("alpha", "claude-code")
+    assert row is not None and row.source == "vendor", (
+        "the stored source is relative, which is the branch that must round-trip"
+    )
+
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    assert "different source" not in "".join(capsys.readouterr())
+
+
+def test_a_path_owned_by_a_differently_named_row_is_not_overwritten(
+    tmp_path: Path, capsys
+):
+    # The guard asked "does a row named like ours claim this skill?". A
+    # catalogue pack's row key is the PACK name while the directory it projects
+    # carries the SKILL name, so a pack owning `.claude/skills/alpha/SKILL.md`
+    # under any other key was replaced at exit 0, leaving two rows claiming one
+    # path with different SHAs — the state `shas_for` documents as corruption.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    # Re-key the row onto a pack name, leaving the file and its SHA untouched.
+    state_file = target / ".agentbundle-state.toml"
+    state_file.write_text(
+        state_file.read_text().replace("[pack.alpha.", "[pack.toolkit.")
+    )
+
+    other = _alpha_collection(tmp_path / "other", body="replacement")
+    assert run_direct_install(_direct_args(other, target), other) == 1
+    printed = "".join(capsys.readouterr())
+    assert "already owned by toolkit (claude-code)" in printed
+    installed = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    assert "original" in installed.read_text(), "the owned content survived"
+
+
+def test_an_unowned_file_is_refused_rather_than_silently_replaced(
+    tmp_path: Path, capsys
+):
+    # An adopter's hand-authored skill has no state row at all, so the row-level
+    # guard saw nothing and the publisher's content replaced it at exit 0 — the
+    # instruction-injection path, not merely a bookkeeping error, because the
+    # agent already trusts that file.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src", body="publisher content")
+    target = tmp_path / "target"
+    hand_authored = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    hand_authored.parent.mkdir(parents=True)
+    hand_authored.write_text("# what the adopter wrote themselves\n")
+
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    printed = "".join(capsys.readouterr())
+    assert "no install put its content there" in printed
+    assert hand_authored.read_text() == "# what the adopter wrote themselves\n"
+    assert not (target / ".agentbundle-state.toml").exists()
+
+
+def test_reinstalling_over_an_unedited_file_this_row_owns_still_writes(
+    tmp_path: Path, capsys
+):
+    # The content rule must not break the ordinary reinstall: a file whose
+    # on-disk hash is one an install recorded is ours to rewrite. Without this
+    # case the guard above could pass by refusing everything.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    # Publisher moves on; the adopter has not touched the projected file.
+    (source / "skills" / "alpha" / "SKILL.md").write_text(
+        "---\nname: alpha\n---\n# revised upstream\n"
+    )
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    installed = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    assert "revised upstream" in installed.read_text()
+
+
+def test_an_adopter_edit_to_an_owned_file_is_refused(tmp_path: Path, capsys):
+    # The complement of the case above: once the adopter edits a projected file,
+    # its content matches neither the incoming bytes nor any recorded SHA, and
+    # overwriting it would discard their work silently.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    installed = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    installed.write_text("---\nname: alpha\n---\n# locally edited\n")
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    assert "no install put its content there" in "".join(capsys.readouterr())
+    assert "locally edited" in installed.read_text()
+
+
+def test_a_jail_refusal_mid_projection_lists_what_it_left_behind(
+    tmp_path: Path, capsys
+):
+    # The pre-write loop validates only `write_jailed`'s portable-name
+    # precondition; its jail and prefix checks still run per write. `PathJailError`
+    # is a `ValueError`, so the recovery handler's `except OSError` never caught
+    # it and the files already written stayed live, unlisted, and unowned — the
+    # exact residue that handler exists to report.
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "src"
+    envelope = source / "skills" / "alpha"
+    (envelope / "scripts").mkdir(parents=True)
+    (envelope / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    (envelope / "scripts" / "run.md").write_text("payload\n")
+
+    # A pre-existing symlink in the TARGET tree, pointing outside it.
+    target = tmp_path / "target"
+    (target / ".claude" / "skills" / "alpha").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (target / ".claude" / "skills" / "alpha" / "scripts").symlink_to(outside)
+
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    printed = capsys.readouterr().err
+    assert "owned by no state row" in printed, "the residue was not reported"
+    assert ".claude/skills/alpha/SKILL.md" in printed
+    assert not (target / ".agentbundle-state.toml").exists()
+    assert not (outside / "run.md").exists(), "a write escaped the target tree"
+
+
+def test_a_concurrent_claim_is_caught_under_the_lock(tmp_path: Path, capsys, monkeypatch):
+    # Ownership was checked before the projection and outside the lock that
+    # serialises the state write, so a concurrent install landing in that window
+    # produced the two-rows-one-path corruption the check exists to prevent —
+    # and the window spanned every file write, not an instant. The check is
+    # re-asserted inside `_mutate`, against the state re-read there.
+    #
+    # The race is modelled by disabling the pre-write check, which is precisely
+    # what a concurrent write in the window amounts to: it saw a state that no
+    # longer holds by the time the lock is taken.
+    import agentbundle.direct_install as direct_install
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / ".agentbundle-state.toml").write_text(
+        'schema-version = "0.4"\n\n'
+        "[pack.toolkit.adapters.claude-code]\n"
+        'installed-version = "1.0.0"\n'
+        'source = "git+https://example.invalid/toolkit"\n'
+        'install-route = "cli"\n'
+        'scope = "repo"\n'
+        "primitives = []\n\n"
+        "[pack.toolkit.adapters.claude-code.files]\n"
+        '".claude/skills/alpha/SKILL.md" = { sha = "deadbeef" }\n'
+    )
+    monkeypatch.setattr(direct_install, "_refuse_foreign_owner", lambda *a, **k: None)
+
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    printed = capsys.readouterr().err
+    assert "was claimed by toolkit (claude-code)" in printed
+    assert "owned by no state row" in printed, "the residue was not reported"
+
+    # The foreign row is intact and no second row was added beside it.
+    from agentbundle.config import load_state
+
+    state = load_state(target / ".agentbundle-state.toml")
+    assert state.row("alpha", "claude-code") is None
+    assert state.row("toolkit", "claude-code") is not None
+
+
+def test_the_receipt_names_the_state_file_that_scope_actually_uses(
+    tmp_path: Path, capsys, monkeypatch
+):
+    # The removal line hard-coded the repo-scope filename. At user scope the
+    # row lives in `.agentbundle/state.toml`, so the receipt sent the adopter
+    # after a file they do not have.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    target = tmp_path / "userroot"
+    target.mkdir()
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(target))
+
+    assert run_direct_install(_direct_args(source, target, scope="user"), source) == 0
+    printed = capsys.readouterr().out
+    assert "row from .agentbundle/state.toml" in printed
+    assert "row from .agentbundle-state.toml" not in printed
+
+
+def test_an_unresolvable_user_root_refuses_rather_than_raising(
+    tmp_path: Path, capsys, monkeypatch
+):
+    # `resolve_user_root` raises `UserScopeUnresolvable` on a `$HOME` of `/` or
+    # an absent home — both documented, both real in corporate sandboxes and
+    # containers. It was called bare, so the adopter got a traceback while every
+    # other direct failure below admission printed a registered exit-1 refusal.
+    from agentbundle import scope as scope_mod
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "src")
+    monkeypatch.setattr(
+        scope_mod,
+        "resolve_user_root",
+        lambda *a, **k: (_ for _ in ()).throw(
+            scope_mod.UserScopeUnresolvable("no home directory")
+        ),
+    )
+
+    assert run_direct_install(_direct_args(source, tmp_path, scope="user"), source) == 1
+    printed = capsys.readouterr().err
+    assert "[CAT-D008]" in printed and "no home directory" in printed
+    assert "Traceback" not in printed

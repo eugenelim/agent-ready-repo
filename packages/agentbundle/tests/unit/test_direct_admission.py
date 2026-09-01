@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -246,8 +247,17 @@ def test_normalization_reduces_modes_to_executable_or_not(tmp_path: Path):
         direct_source.admit_direct_source(source)
     ) as normalized:
         skills = normalized.root / "skills" / "modes" / "scripts"
-        assert skills.joinpath("run.sh").stat().st_mode & 0o7777 == 0o755
-        assert skills.joinpath("notes.txt").stat().st_mode & 0o7777 == 0o644
+        # Windows has no POSIX mode bits: it reports 0o666 for a writable file
+        # and 0o444 for a read-only one, and `chmod` above set neither. The
+        # normalisation still has to have happened — asserting the POSIX values
+        # there would fail the suite on the platform it is dispatched to with a
+        # no-skip floor, which is a platform report, not a defect report.
+        if os.name == "posix":
+            assert skills.joinpath("run.sh").stat().st_mode & 0o7777 == 0o755
+            assert skills.joinpath("notes.txt").stat().st_mode & 0o7777 == 0o644
+        else:
+            for name in ("run.sh", "notes.txt"):
+                assert skills.joinpath(name).stat().st_mode & 0o7777 in (0o666, 0o444)
 
 
 def test_bounded_metadata_characterization(monkeypatch):
@@ -832,3 +842,128 @@ def test_a_dot_claude_collection_root_is_not_a_hidden_entry(tmp_path: Path):
         refused = direct_source.validate_direct_source(hostile)
         assert refused.ok is False, collection_root
         assert "hidden entry" in refused.diagnostics[0].message
+
+
+def test_a_hidden_segment_between_the_collection_root_and_the_envelope_refuses(
+    tmp_path: Path,
+):
+    # The in-envelope hidden rule is measured from the ENVELOPE, which left
+    # every segment between the collection root and the envelope unchecked.
+    # `skills/.hidden/backdoor/SKILL.md` validated and reported `backdoor` as a
+    # selectable skill, while `root_skill_folders` refuses the same layout at
+    # the root — so one shape let a publisher keep a skill out of an `ls` or a
+    # casual browse while `--all-skills` still installed it.
+    import agentbundle.direct_source as direct_source
+
+    for relative in (".hidden/backdoor", ".backdoor"):
+        root = tmp_path / relative.replace("/", "-")
+        _write_skill(root / "skills" / relative, "backdoor")
+        _refusal_code(
+            lambda root=root: direct_source.admit_direct_source(root), "CAT-D009"
+        )
+
+    # The rule is about the leading dot, not about depth: an ordinary category
+    # directory at the same depth is still admitted.
+    ordinary = tmp_path / "ordinary"
+    _write_skill(ordinary / "skills" / "writing" / "editing", "editing")
+    assert direct_source.admit_direct_source(ordinary).skills
+
+
+def test_a_dot_path_keeps_the_identity_of_the_directory_it_names(tmp_path: Path):
+    # `classify_direct_source` derives identity from the last segment of its
+    # root and its docstring says the caller supplies a resolved one. No caller
+    # did, so `validate .` and `install .` — the canonical spelling of "this
+    # directory" — refused with an empty identity under CAT-D011, while the
+    # absolute and `../name` spellings of the same directory succeeded.
+    import os
+
+    import agentbundle.direct_source as direct_source
+    from agentbundle.commands._common import direct_source_root
+
+    envelope = tmp_path / "myskill"
+    _write_skill(envelope, "myskill")
+
+    previous = Path.cwd()
+    os.chdir(envelope)
+    try:
+        for spelling in (".", "./"):
+            classification = direct_source.admit_direct_source(
+                direct_source_root(Path(spelling))
+            )
+            assert [skill.name for skill in classification.skills] == ["myskill"]
+    finally:
+        os.chdir(previous)
+
+
+def test_normalising_a_source_root_does_not_follow_a_symlink(tmp_path: Path):
+    # `resolve()` would also fold away "." and "..", but it resolves symlinks
+    # too — handing admission a link's target and silently passing the
+    # link-like boundary check that exists to fail on it.
+    from agentbundle.commands._common import direct_source_root
+
+    real = tmp_path / "real"
+    _write_skill(real, "real")
+    link = tmp_path / "link"
+    link.symlink_to(real)
+
+    assert direct_source_root(link) == link
+    assert direct_source_root(link).name == "link"
+
+
+def test_payload_paths_that_differ_only_by_case_refuse(tmp_path: Path):
+    # The archive extractor refuses case-folded member collisions because the
+    # archive "cannot be extracted safely on a case-insensitive filesystem".
+    # The same holds for a LOCAL source projected onto macOS or Windows, and
+    # nothing applied it: only skill NAMES were folded. Both files were read,
+    # digested, and recorded, then written to one destination — so the state row
+    # held a SHA for content that is not on disk, and every later footprint
+    # check compared against a hash that never existed there.
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "src"
+    envelope = root / "skills" / "alpha" / "references"
+    envelope.mkdir(parents=True)
+    _write_skill(root / "skills" / "alpha", "alpha")
+    (envelope / "Notes.md").write_text("upper\n")
+    (envelope / "notes.md").write_text("lower\n")
+
+    # A case-insensitive host cannot even build the fixture; skip rather than
+    # assert a refusal the source shape cannot reach there.
+    if len(list(envelope.iterdir())) < 2:
+        pytest.skip("case-insensitive filesystem cannot hold both spellings")
+
+    _refusal_code(lambda: direct_source.admit_direct_source(root), "CAT-D009")
+
+    # Distinct names in the same envelope are untouched, and so is the same
+    # spelling in two DIFFERENT envelopes — the rule is per envelope.
+    ok = tmp_path / "ok"
+    for name in ("alpha", "beta"):
+        _write_skill(ok / "skills" / name, name)
+        (ok / "skills" / name / "references").mkdir()
+        (ok / "skills" / name / "references" / "notes.md").write_text("x\n")
+    assert len(direct_source.admit_direct_source(ok).skills) == 2
+
+
+def test_the_case_fold_payload_rule_holds_on_a_case_insensitive_host(tmp_path: Path):
+    # The fixture above cannot be BUILT on macOS or Windows, where the two
+    # spellings are one file — so on the very platforms the rule protects, it
+    # would report a skip rather than a result, and `test_direct_admission.py`
+    # runs on the Windows job under a no-skip executed floor. Driving the check
+    # directly needs no filesystem, so it runs everywhere.
+    import agentbundle.direct_source as direct_source
+
+    envelope = tmp_path / "skills" / "alpha"
+    _refusal_code(
+        lambda: direct_source._enforce_case_distinct_payloads(
+            envelope,
+            [envelope / "references" / "Notes.md", envelope / "references" / "notes.md"],
+        ),
+        "CAT-D009",
+    )
+
+    # The positive control: without it a check that refused every list would
+    # pass the assertion above while blocking every legitimate install.
+    direct_source._enforce_case_distinct_payloads(
+        envelope,
+        [envelope / "SKILL.md", envelope / "references" / "notes.md"],
+    )

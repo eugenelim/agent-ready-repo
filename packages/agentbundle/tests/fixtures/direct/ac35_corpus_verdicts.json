@@ -10,11 +10,12 @@
   "category_level_coverage": "The eighteen repositories still on disk contain no ADMITTED category-level collection. The three the plan's T0d run recorded as category admissions \u2014 google/skills, obra/superpowers-skills, davidondrej/skills \u2014 are not in this corpus, and mrgoonie/claudekit-skills, recorded there as the mixed case, refuses correctly under AC1's nested-envelope rule (its category directory holds its own SKILL.md as well as four child envelopes). Category flattening is therefore covered by the hand-authored fixture in test_direct_install.py::test_a_category_keeps_its_full_path_in_state_but_flattens_on_disk rather than by this table.",
   "criterion": "AC35 \u2014 corpus admission evidence",
   "depth_basis": "measured relative to each skill envelope, per E15 \u2014 never to the collection or repository root, so the figure is comparable to the depth bound",
+  "entries_basis": "admitted_entries accumulates the root candidate scan into the walk's allowance. The three root-level collections rose by exactly their root-child count (ComposioHQ +35, alirezarezvani +59, posit-dev +20) when that accounting was corrected; the shape that wraps its skills in skills/ or .claude/skills/ is unchanged, because its root scan enumerates nothing. Re-measured 2026-08-31 after the hidden-collection-segment refusal and the entry-accounting fix: NO repository's verdict changed.",
   "measured_on": "2026-08-31",
   "measured_with": "Darwin/arm64 python=3.13.13",
   "repositories": [
     {
-      "admitted_entries": 185,
+      "admitted_entries": 220,
       "admitted_files": 173,
       "admitted_total_bytes": 6347503,
       "allowlist_failures": [],
@@ -104,7 +105,7 @@
       "verdict": "refused"
     },
     {
-      "admitted_entries": 8,
+      "admitted_entries": 67,
       "admitted_files": 6,
       "admitted_total_bytes": 21492,
       "allowlist_failures": [],
@@ -284,7 +285,7 @@
       "verdict": "admitted"
     },
     {
-      "admitted_entries": 11,
+      "admitted_entries": 31,
       "admitted_files": 9,
       "admitted_total_bytes": 69018,
       "allowlist_failures": [],

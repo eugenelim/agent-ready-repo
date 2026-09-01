@@ -29,6 +29,7 @@ from agentbundle.build.validate import validate
 from agentbundle.catalogue_tooling.diagnostics import (
     BUDGET_CODES,
     DiagnosticCode,
+    escape_rendered_value,
     make_direct_diagnostic,
 )
 from agentbundle.catalogue_tooling.file_safety import (
@@ -185,11 +186,38 @@ def probe_measured_path(root: Path, relative: str, *, directory: bool) -> Measur
     return MeasuredPathProbe(exists=True, is_directory=actual_directory)
 
 
-def classify_direct_source(root: Path) -> DirectClassification:
+def read_root_manifest(root: Path) -> MeasuredFile | None:
+    """AC15's single confined read of a root `pack.toml`, exposed for routing.
+
+    The CLI has to know whether a `pack.toml` declares the top-level `schema`
+    that marks a direct manifest before it can choose a route, and it was
+    answering that with `exists()` plus `read_text()` — which followed a
+    symlink out of the source, blocked on a FIFO, and materialised an
+    arbitrarily large publisher file before any bound applied.
+
+    Reading through this function instead means the observation is the same
+    single measured read AC15 governs. The caller passes the result back into
+    :func:`validate_direct_source`, so the manifest is opened exactly once on
+    the route, not once for routing and again during admission.
+    """
+
+    probe = probe_measured_path(root, "pack.toml", directory=False)
+    if not probe.exists:
+        return None
+    return _read_named(root, root / "pack.toml")
+
+
+def classify_direct_source(
+    root: Path, *, pack_toml: MeasuredFile | None = None
+) -> DirectClassification:
     """Classify and inventory a resolved local direct-source root.
 
     The caller supplies the resolved source root.  Repository context outside
     the fixed marker set is intentionally never inspected or counted.
+
+    ``pack_toml`` carries a root manifest the caller already observed through
+    :func:`read_root_manifest`; when given it is used verbatim rather than
+    re-read, which is what keeps the route to one open per file.
     """
 
     markers = {
@@ -228,7 +256,9 @@ def classify_direct_source(root: Path) -> DirectClassification:
                 DiagnosticCode.CAT_D009,
                 "direct pack requires a skills collection root",
             )
-        return _inventory_collection(root, collection_root, "direct-pack", has_pack=True)
+        return _inventory_collection(
+            root, collection_root, "direct-pack", has_pack=True, pack_toml=pack_toml
+        )
     if collection_root is not None:
         if has_skill:
             raise _refusal(
@@ -245,10 +275,21 @@ def classify_direct_source(root: Path) -> DirectClassification:
     # been ruled out, and it is still one level: a child holding `SKILL.md` is
     # an envelope, exactly as it would be under `skills/`. No recursive
     # discovery is added.
-    envelopes = root_skill_folders(root)
+    envelopes, root_entries = _root_skill_folders_with_entries(root)
     if envelopes:
+        # The root scan's entries are carried INTO the walk's allowance. Bounded
+        # separately, the root-collection shape could consume 2,500 root children
+        # and then 2,500 walked entries while reporting only the second figure,
+        # while the `skills/` shape counts its envelope directories in the one
+        # budget. AC33 requires entries to accumulate across every enumerated
+        # directory.
         return _inventory_collection(
-            root, root, "collection", has_pack=False, enumerate_only=envelopes
+            root,
+            root,
+            "collection",
+            has_pack=False,
+            enumerate_only=envelopes,
+            entries_used=root_entries,
         )
     raise _refusal(DiagnosticCode.CAT_D009, "direct source has no supported shape")
 
@@ -260,18 +301,30 @@ def root_skill_folders(root: Path) -> tuple[str, ...]:
     or wrong-type child refuses through AC34 instead of being followed.
     """
 
+    return _root_skill_folders_with_entries(root)[0]
+
+
+def _root_skill_folders_with_entries(root: Path) -> tuple[tuple[str, ...], int]:
+    """As :func:`root_skill_folders`, plus the entries the scan consumed."""
+
+    # Counted AS the directory is consumed, not over a finished list. Building
+    # `sorted(root.iterdir())` in full and comparing afterwards pays the cost
+    # the bound exists to cap before the bound can apply — the same shape
+    # `_read_bounded`'s docstring calls out for the byte budget. Dot-children
+    # count too: they are entries this scan enumerated even though it skips
+    # them, and under-counting is the unsafe direction.
+    candidates: list[Path] = []
+    entries = 0
     try:
-        candidates = sorted(
-            entry for entry in root.iterdir() if not entry.name.startswith(".")
-        )
+        for entry in root.iterdir():
+            entries += 1
+            if entries > DIRECT_MAX_ENTRIES:
+                raise _budget_refusal("entries", DIRECT_MAX_ENTRIES, entries)
+            if not entry.name.startswith("."):
+                candidates.append(entry)
     except OSError:
-        return ()
-    # AC15: any enumeration carries an entry bound. Without one, a root holding
-    # 6,000 child directories probed all 6,000 — two `lstat`s and a `resolve`
-    # each — before the 2,500-entry budget refused downstream, and a local path
-    # has no archive member cap to fall back on.
-    if len(candidates) > DIRECT_MAX_ENTRIES:
-        raise _budget_refusal("entries", DIRECT_MAX_ENTRIES, len(candidates))
+        return (), 0
+    candidates.sort()
     found: list[str] = []
     for child in candidates:
         # `is_dir()` selects candidates only. It is not a measured-path
@@ -285,7 +338,7 @@ def root_skill_folders(root: Path) -> tuple[str, ...]:
             continue
         if probe_measured_path(root, f"{child.name}/SKILL.md", directory=False).exists:
             found.append(child.name)
-    return tuple(found)
+    return tuple(found), entries
 
 
 # Set by acquisition for a remote source, so a root-single takes the repository
@@ -302,10 +355,23 @@ def declare_remote_root_identity(root: Path, identity: str) -> None:
     _REMOTE_ROOT_IDENTITY[root] = identity
 
 
-def admit_direct_source(root: Path) -> DirectClassification:
+def forget_remote_root_identity(root: Path) -> None:
+    """Drop the identity recorded for an acquired root once its tree is gone.
+
+    The keys are acquisition temp roots the installer deletes, so without this
+    the mapping grew for the lifetime of the process and was shared across
+    concurrent in-process invocations.
+    """
+
+    _REMOTE_ROOT_IDENTITY.pop(root, None)
+
+
+def admit_direct_source(
+    root: Path, *, pack_toml: MeasuredFile | None = None
+) -> DirectClassification:
     """Run the shared direct admission entry point used by validate and install."""
 
-    return classify_direct_source(root)
+    return classify_direct_source(root, pack_toml=pack_toml)
 
 
 def _select_collection_root(
@@ -333,6 +399,8 @@ def _inventory_collection(
     *,
     has_pack: bool,
     enumerate_only: tuple[str, ...] | None = None,
+    entries_used: int = 0,
+    pack_toml: MeasuredFile | None = None,
 ) -> DirectClassification:
     """Inventory an E14 collection using one bounded confined traversal.
 
@@ -345,9 +413,9 @@ def _inventory_collection(
     """
 
     if enumerate_only is None:
-        paths, entries = _enumerate(root, collection_root, 0)
+        paths, entries = _enumerate(root, collection_root, entries_used)
     else:
-        paths, entries = [], 0
+        paths, entries = [], entries_used
         for name in enumerate_only:
             found, entries = _enumerate(root, collection_root / name, entries)
             paths.extend(found)
@@ -372,6 +440,24 @@ def _inventory_collection(
                     f"nested skill envelope: {relative}",
                     path=relative.as_posix(),
                 )
+            # The in-envelope hidden rule is measured from the ENVELOPE, which
+            # leaves every segment between the collection root and the envelope
+            # unchecked: `skills/.hidden/backdoor/SKILL.md` was admitted and
+            # reported as a selectable skill, while `root_skill_folders`
+            # refuses the same layout at the root. A publisher could keep a
+            # skill out of an `ls` or a casual browse and still have
+            # `--all-skills` install it.
+            hidden = [
+                segment
+                for segment in envelope.relative_to(collection_root).parts
+                if segment.startswith(".")
+            ]
+            if hidden:
+                raise _refusal(
+                    DiagnosticCode.CAT_D009,
+                    f"hidden entry in collection path: {relative.as_posix()}",
+                    path=relative.as_posix(),
+                )
             by_envelope.setdefault(envelope, []).append(path)
 
     if not by_envelope:
@@ -383,7 +469,10 @@ def _inventory_collection(
     _enforce_unique_skill_names(skills)
     named_files: tuple[MeasuredFile, ...] = ()
     if has_pack:
-        named_files = (_read_named(root, root / "pack.toml"),)
+        # Re-read only when the caller did not already observe it. AC15 allows
+        # exactly one read per direct file across the whole route, and the
+        # validate router observes this one before admission runs.
+        named_files = (pack_toml or _read_named(root, root / "pack.toml"),)
         try:
             validate_direct_manifest(parse_bounded_toml(named_files[0].data))
         except (BoundedMetadataError, DirectManifestError) as exc:
@@ -506,6 +595,7 @@ def _build_envelopes(
         # at the envelope root. Hidden entries still refuse, enforced inside
         # `_read_bounded` so the root-single shape gets the same rule.
         payload_paths = sorted(buckets[envelope], key=lambda item: item.as_posix())
+        _enforce_case_distinct_payloads(envelope, payload_paths)
         files = _read_bounded(
             root, payload_paths, carried=running_total, envelope=envelope
         )
@@ -621,6 +711,40 @@ def _read_named(root: Path, path: Path) -> MeasuredFile:
         relative = path.relative_to(root).as_posix()
         raise _refusal(DiagnosticCode.CAT_D009, str(exc), path=relative) from exc
     return MeasuredFile(path, data, mode)
+
+
+def _enforce_case_distinct_payloads(envelope: Path, paths: list[Path]) -> None:
+    """Refuse two payload paths in one envelope that differ only by case.
+
+    The archive extractor already refuses case-folded member collisions,
+    "because the archive cannot be extracted safely on a case-insensitive
+    filesystem". The same reasoning applies to a LOCAL source projected onto a
+    case-insensitive target — macOS and Windows both — and nothing applied it:
+    only skill *names* were folded. `Notes.md` and `notes.md` were each read,
+    each digested, and each recorded in the state row, then written to one
+    destination, so the row recorded a SHA for a path whose on-disk bytes are
+    the other file's. Every later footprint check compares against a hash that
+    was never on disk.
+    """
+
+    seen: dict[str, Path] = {}
+    for path in paths:
+        folded = path.relative_to(envelope).as_posix().casefold()
+        collides = seen.get(folded)
+        if collides is not None:
+            raise _refusal(
+                DiagnosticCode.CAT_D009,
+                f"payload paths differ only by case: "
+                f"{collides.relative_to(envelope).as_posix()} and "
+                f"{path.relative_to(envelope).as_posix()}",
+                path=path.relative_to(envelope).as_posix(),
+                remediation=(
+                    "Rename one of them. On a case-insensitive filesystem both "
+                    "project to one destination, and the state row would record "
+                    "a digest for content that is not there."
+                ),
+            )
+        seen[folded] = path
 
 
 def _enforce_selected_skills(count: int) -> None:
@@ -1000,7 +1124,9 @@ class DirectAdmission:
     diagnostics: tuple[Diagnostic, ...]
 
 
-def validate_direct_source(root: Path) -> DirectAdmission:
+def validate_direct_source(
+    root: Path, *, pack_toml: MeasuredFile | None = None
+) -> DirectAdmission:
     """Admit a direct source without raising: the shared validate/install seam.
 
     AC14 requires validation and install preflight to yield *identical*
@@ -1012,7 +1138,7 @@ def validate_direct_source(root: Path) -> DirectAdmission:
     """
 
     try:
-        classification = admit_direct_source(root)
+        classification = admit_direct_source(root, pack_toml=pack_toml)
     except DirectAdmissionError as exc:
         # AC27 requires an offending path on every refusal. A raise site that
         # knows a more specific path supplies it; the rest describe the source
@@ -1021,7 +1147,13 @@ def validate_direct_source(root: Path) -> DirectAdmission:
         # which is what the criterion asks for.
         diagnostic = exc.diagnostic
         if not diagnostic.path:
-            diagnostic.path = str(root)
+            # Escaped here too. `make_direct_diagnostic` is the chokepoint for
+            # every field it constructs, but this assignment lands AFTER it,
+            # and `render_direct_validation_text` prints the field on the
+            # strength of that chokepoint. A remote root's last segment comes
+            # from publisher-controlled archive member names, so an unescaped
+            # assignment put a raw bidi override on the terminal.
+            diagnostic.path = escape_rendered_value(str(root))
         return DirectAdmission(False, None, (diagnostic,))
     return DirectAdmission(True, classification, ())
 

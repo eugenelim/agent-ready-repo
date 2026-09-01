@@ -139,6 +139,31 @@ anything is written, and the gate is not a safety judgement:
   boundaries, credentialed status, or payload content names each difference and
   refuses to proceed silently.
 
+**Curated-route controls that do not run here.** Three checks the curated
+ingestion path applies never execute on a direct source:
+
+- **`CAT-L031`'s credentialed-skill conventions.** Its D2 rule mechanizes this
+  repository's `credbroker` requirement by banning credentials on argv. A
+  direct skill may declare `metadata.credentialed` with that convention
+  unchecked — direct install only *reports* the field.
+- **`catalogue_tooling/verify.py`'s auth-presence check.** It runs over
+  catalogue packs, not over a direct source, so nothing verifies that a
+  credentialed direct skill declares where its credential comes from.
+- **The AST01–AST10 assimilation review.** Described above for curated
+  ingestion; a direct source passes the admissibility gate instead.
+
+**Telling the two apart after installation.** Once projected, a directly
+installed skill and a reviewed first-party one are the same shape of file in
+the same directory. The only signal that distinguishes them is the provenance
+recorded in `state.toml` — `source-kind`, `source`, `source-revision`, and
+`source-digest` on the owning row. Nothing at the projection surface carries it.
+
+**What a commit pin does and does not establish.** A remote direct source
+resolves to the commit SHA the archive carries, so the bytes are bound to a
+revision rather than to a moving branch. That binding is only as strong as the
+transport that delivered it: it is bounded by the configured TLS trust store,
+and it attests which commit was fetched, never that the commit is benign.
+
 **Residual, stated plainly.** Admission bounds what a direct source can *do to
 the install*, not what its instructions ask an agent to do afterwards. A skill
 that passes every check may still contain hostile instructions. The audited

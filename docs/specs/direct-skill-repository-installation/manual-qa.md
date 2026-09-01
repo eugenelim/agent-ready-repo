@@ -65,9 +65,14 @@ and appeared only when the real CLI ran.
 ## Not exercised
 
 `upgrade`, `list-installed`, `show`, and `uninstall` for direct rows are not
-built; AC4, AC7, AC9, AC22, and AC30 stay unticked for that reason. The receipt
-prints an `uninstall --skill` line that the CLI does not yet accept, which is
-recorded in `security-evidence.md` rather than hidden here.
+built; AC4, AC7, AC9, AC22, and AC30 stay unticked for that reason.
+
+**Superseded, 2026-08-31.** During this session the receipt printed an
+`uninstall --skill` line the CLI does not accept. That line has since been
+replaced by manual-removal text naming the projected directory and the state
+file for the scope in use, so the `uninstall:` line visible in every transcript
+receipt below no longer matches what the code emits. Nothing else in the
+transcripts changed; the commands, exits, and refusals stand as recorded.
 
 ## Transcript
 

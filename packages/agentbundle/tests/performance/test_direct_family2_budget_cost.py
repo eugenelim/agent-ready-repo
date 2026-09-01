@@ -136,6 +136,31 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
         f"{classification.total_bytes / DIRECT_MAX_TOTAL_BYTES:.0%} of the "
         f"total-bytes budget; AC36 measures at the limits"
     )
+    # Every Family-2 budget the warning PRINTS is also asserted. Entries,
+    # selected skills, and depth were imported and reported but never checked,
+    # so the line "budgets entries=2500 ... skills=500" described the limits
+    # rather than the shape, and a reference configuration that drifted away
+    # from them would still have read as measuring at them.
+    assert len(classification.skills) == DIRECT_MAX_SELECTED_SKILLS, (
+        "the reference configuration must sit at the selected-skill budget"
+    )
+    deepest = max(
+        len(measured.path.relative_to(skill.envelope).parts)
+        for skill in classification.skills
+        for measured in skill.files
+    )
+    assert deepest == DIRECT_MAX_DEPTH, (
+        f"the reference configuration reaches envelope-relative depth {deepest}, "
+        f"not the E15 bound of {DIRECT_MAX_DEPTH}"
+    )
+    # Entries is asserted as a bound rather than driven to it. The shape reaches
+    # roughly 2,010 of 2,500 because files and bytes are BOTH pinned at their
+    # limits, and those dominate the cost E16 sized the entry budget against:
+    # adding 490 empty directories buys entry saturation at the price of a
+    # slower run against a wall-clock ceiling this shape already approaches.
+    # The measured figure is published in the warning above either way.
+    assert classification.entries <= DIRECT_MAX_ENTRIES
+
     # CPU time is asserted unconditionally: it is the cost this code actually
     # incurs, and no amount of contention inflates it.
     assert cpu_median <= CEILING_SECONDS, (

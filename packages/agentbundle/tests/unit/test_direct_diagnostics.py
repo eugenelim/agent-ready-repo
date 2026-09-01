@@ -12,6 +12,9 @@ now — its tasks have no API in the LLD yet.
 
 from __future__ import annotations
 
+import itertools
+import os
+
 import pytest
 
 # The AC33 budget names BoundExceeded carries. Deliberately plain strings: the
@@ -232,8 +235,21 @@ def test_every_registered_direct_code_has_a_raise_site():
     # module actually consumes that mapping.
     from agentbundle.catalogue_tooling.diagnostics import BUDGET_CODES
 
+    # Read from `ast.Name`/`ast.Attribute` USES, not from the module text. A
+    # substring search credited all six codes when the string "BUDGET_CODES"
+    # appeared anywhere at all — including in a comment or a docstring
+    # explaining why it is used — which is the same "a mention satisfies the
+    # control" shape repaired in `joins_without_confinement` and in `_steps()`.
+    def _uses_budget_codes(module) -> bool:
+        tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
+        return any(
+            (isinstance(node, ast.Name) and node.id == "BUDGET_CODES")
+            or (isinstance(node, ast.Attribute) and node.attr == "BUDGET_CODES")
+            for node in ast.walk(tree)
+        )
+
     consumes_mapping = any(
-        "BUDGET_CODES" in Path(module.__file__).read_text(encoding="utf-8")
+        _uses_budget_codes(module)
         for module in (direct_source, direct_source_acquisition, direct_install)
     )
     if consumes_mapping:
@@ -307,11 +323,20 @@ def _emitted_codes(tmp_path) -> set[str]:
                 archive.addfile(info, io.BytesIO(payload))
         return gzip.compress(raw.getvalue())
 
+    # A monotonic counter, NOT `len(emitted)`. Deriving the scratch identity
+    # from the assertion state meant that the moment two consecutive scenarios
+    # stopped contributing a new code, a later extraction silently reused a
+    # spool path and unpacked into a directory already holding the previous
+    # members — so the control establishing AC31's reachability half would be
+    # measuring a different input than the one it names.
+    extraction_count = itertools.count()
+
     def _extract(payload, **kwargs):
-        spool = tmp_path / f"a{len(emitted)}.tar.gz"
+        index = next(extraction_count)
+        spool = tmp_path / f"a{index}.tar.gz"
         spool.write_bytes(payload)
-        destination = tmp_path / f"out{len(emitted)}"
-        destination.mkdir(exist_ok=True)
+        destination = tmp_path / f"out{index}"
+        destination.mkdir()
         return acquisition._extract(
             spool, destination, source,
             max_members=kwargs.get("max_members", 20_000),
@@ -353,13 +378,17 @@ def _emitted_codes(tmp_path) -> set[str]:
     # cannot be searched makes `lstat` raise, which is neither "absent" nor a
     # shape refusal. Reached with a mode-000 parent rather than a missing path,
     # because a missing path is simply absent.
-    unsearchable = tmp_path / "unsearchable"
-    (unsearchable / "skills").mkdir(parents=True)
-    unsearchable.chmod(0o000)
-    try:
-        _record(lambda: direct_source.admit_direct_source(unsearchable))
-    finally:
-        unsearchable.chmod(0o755)
+    # Root ignores the mode bit, so `lstat` would succeed, CAT-D010 would never
+    # be emitted, and the every-code-has-a-fixture test would fail with a
+    # confusing message in any root container.
+    if getattr(os, "geteuid", lambda: 1000)() != 0:
+        unsearchable = tmp_path / "unsearchable"
+        (unsearchable / "skills").mkdir(parents=True)
+        unsearchable.chmod(0o000)
+        try:
+            _record(lambda: direct_source.admit_direct_source(unsearchable))
+        finally:
+            unsearchable.chmod(0o755)
 
     # --- budgets ------------------------------------------------------------
     entries = _skill(tmp_path / "entries", "entries")

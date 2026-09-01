@@ -23,9 +23,10 @@ from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 from agentbundle.direct_source import (
     DirectClassification,
     DirectSkill,
+    forget_remote_root_identity,
     recovery_command,
 )
-from agentbundle.direct_source_state import DirectStateError
+from agentbundle.direct_source_state import DirectStateError, relative_repo_source
 from agentbundle.safety import PathJailError
 
 # AC20: the verdict is emitted immediately before *and* immediately after the
@@ -377,21 +378,30 @@ def _string_set(value: object) -> list[str]:
     return []
 
 
-def render_admissibility_summary(
-    blocks: list[list[str]], *, source: str, listing: list[str] | None = None
-) -> str:
+def publisher_block(lines: list[str]) -> list[str]:
+    """Wrap publisher-supplied lines in AC18's note and delimiters.
+
+    One emitter. The consent summary and the refusal path each built the note
+    and the two delimiters themselves, so AC18's single rule had two
+    implementations that could drift apart in either direction — and the
+    summary additionally took a `listing` parameter no production call passed.
+    """
+
+    return [PUBLISHER_BLOCK_NOTE, PUBLISHER_BLOCK_OPEN, *lines, PUBLISHER_BLOCK_CLOSE]
+
+
+def render_admissibility_summary(blocks: list[list[str]], *, source: str) -> str:
     """Wrap publisher-derived output in AC20's verdicts and AC18's delimiters."""
 
-    lines = [ADMISSIBILITY_VERDICT, "", PUBLISHER_BLOCK_NOTE, PUBLISHER_BLOCK_OPEN]
-    if listing:
-        lines.extend(listing)
+    body: list[str] = []
     for block in blocks:
-        lines.extend(block)
-        lines.append("")
-    while lines and lines[-1] == "":
-        lines.pop()
-    lines.extend([PUBLISHER_BLOCK_CLOSE, "", ADMISSIBILITY_VERDICT])
-    return "\n".join(lines)
+        body.extend(block)
+        body.append("")
+    while body and body[-1] == "":
+        body.pop()
+    return "\n".join(
+        [ADMISSIBILITY_VERDICT, "", *publisher_block(body), "", ADMISSIBILITY_VERDICT]
+    )
 
 
 def render_receipt(
@@ -404,6 +414,7 @@ def render_receipt(
     adapter: str,
     identity: str,
     removal_hint: str,
+    state_hint: str,
 ) -> str:
     """AC22's receipt: what was installed, from where, and how to undo it."""
 
@@ -422,8 +433,12 @@ def render_receipt(
             # uninstall receipt command only when the row exists; the command
             # has to exist too. Until the direct lifecycle surface lands, the
             # honest instruction is the manual removal AC28 already specifies.
+            # The state filename is scope-dependent: user scope keeps its rows
+            # in `.agentbundle/state.toml`, not the repo-scope name this line
+            # used to hard-code. A receipt naming a file the adopter does not
+            # have sends them looking for the wrong one.
             f"  remove:   delete {escape_path_value(removal_hint)} and its "
-            f"row from .agentbundle-state.toml",
+            f"row from {escape_path_value(state_hint)}",
         ]
     )
 
@@ -552,6 +567,7 @@ def run_direct_install(args, source: Path | str) -> int:
     finally:
         if acquired_root is not None:
             shutil.rmtree(acquired_root, ignore_errors=True)
+            forget_remote_root_identity(acquired_root)
 
 
 def _install_admitted_source(
@@ -600,12 +616,9 @@ def _install_admitted_source(
             return 1
         _print_refusal(exc.diagnostic)
         if listing:
-            # AC18: publisher values appear only inside the delimiters.
-            print(f"\n{PUBLISHER_BLOCK_NOTE}", file=sys.stderr)
-            print(PUBLISHER_BLOCK_OPEN, file=sys.stderr)
-            for line in listing:
-                print(line, file=sys.stderr)
-            print(PUBLISHER_BLOCK_CLOSE, file=sys.stderr)
+            # AC18: publisher values appear only inside the delimiters, emitted
+            # by the one helper the consent summary also uses.
+            print("\n" + "\n".join(publisher_block(listing)), file=sys.stderr)
         if exc.diagnostic.remediation:
             print(f"\n{exc.diagnostic.remediation}", file=sys.stderr)
         return 1
@@ -657,6 +670,7 @@ def _summarise_and_project(
     import sys
 
     from agentbundle import safety
+    from agentbundle.commands._common import resolve_state_path
     from agentbundle.direct_source_state import direct_source_digest
 
     if scope == "local":
@@ -682,7 +696,23 @@ def _summarise_and_project(
     if scope == "user":
         from agentbundle import scope as scope_mod
 
-        projection_root = Path(scope_mod.resolve_user_root())
+        try:
+            projection_root = Path(scope_mod.resolve_user_root())
+        except scope_mod.UserScopeUnresolvable as exc:
+            # Every other direct failure below admission was deliberately turned
+            # into a registered exit-1 refusal so internal paths never print.
+            # This one was left bare, so a `$HOME` of `/` or an absent home —
+            # both documented, both real in corporate sandboxes and containers —
+            # reached the adopter as a traceback. The catalogue route handles it.
+            raise _refuse(
+                DiagnosticCode.CAT_D008,
+                f"--scope user cannot be resolved: {exc}",
+                path=source_string,
+                remediation=(
+                    "Use --scope repo with --output, or set AGENTBUNDLE_USER_ROOT "
+                    "to the directory that should hold user-scope installs."
+                ),
+            ) from None
     else:
         # Not canonicalised here: AC39 assigns confinement to `write_jailed`,
         # which resolves inside the helper. A caller-side resolve is exactly
@@ -775,7 +805,7 @@ def _summarise_and_project(
             planned.append((relpath, measured.data))
 
     _refuse_foreign_owner(
-        projection_root, selection, skill_target, scope, adapter, source_string
+        projection_root, selection, skill_target, scope, adapter, source_string, planned
     )
 
     written: dict[str, bytes] = {}
@@ -789,37 +819,42 @@ def _summarise_and_project(
                 allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
             )
             written[relpath] = projected_bytes
-    except OSError as exc:
-        # Only a genuine I/O fault reaches here now. Whatever landed before it
-        # is unowned — no state row is written — so AC28 requires the adopter be
-        # told which files to remove rather than left with an errno.
+    except (OSError, PathJailError) as exc:
+        # `PathJailError` is a `ValueError`, so an `except OSError` never caught
+        # it: the pre-write loop validates only `write_jailed`'s portable-name
+        # precondition, while its jail and prefix checks still run per write. A
+        # pre-existing symlink in the target tree therefore left the files
+        # already written live, unlisted, and unowned — the exact residue this
+        # handler exists to report.
         print(f"install: projection failed: {exc}", file=sys.stderr)
-        if written:
-            print(
-                "install: these files were written and are owned by no state "
-                "row; remove them manually:",
-                file=sys.stderr,
-            )
-            for relpath in sorted(written):
-                print(f"  {escape_path_value(relpath)}", file=sys.stderr)
+        _report_unowned(written)
         return 1
 
     # AC12: the state row is written last and under the lock. Writing it before
     # the projection would leave a row pointing at files that were never
     # created; writing it outside the lock would let a concurrent run's rows be
     # lost, and would compute the 0.5 floor from a stale snapshot.
-    _record_direct_rows(
-        target_root=projection_root,
-        skill_target=skill_target,
-        scope=scope,
-        selection=selection,
-        classification=classification,
-        source_string=source_string,
-        revision=revision,
-        digest=digest,
-        adapter=adapter,
-        written=written,
-    )
+    try:
+        _record_direct_rows(
+            target_root=projection_root,
+            skill_target=skill_target,
+            scope=scope,
+            selection=selection,
+            classification=classification,
+            source_string=source_string,
+            revision=revision,
+            digest=digest,
+            adapter=adapter,
+            written=written,
+        )
+    except (DirectStateError, OSError, PathJailError) as exc:
+        # The projection succeeded and the row did not, so every projected file
+        # is now unowned. Previously this unwound to the generic handler, which
+        # printed one line and no file list — AC28 asks install to surface an
+        # unowned projection, and the files are only knowable here.
+        print(f"install: state write failed: {exc}", file=sys.stderr)
+        _report_unowned(written)
+        return 1
 
     for skill in selection.skills:
         print()
@@ -833,6 +868,7 @@ def _summarise_and_project(
                 adapter=adapter,
                 identity=skill.name,
                 removal_hint=f"{skill_target}/{skill.name}/",
+                state_hint=resolve_state_path(scope, Path()).as_posix(),
             )
         )
     return 0
@@ -856,16 +892,30 @@ def _record_direct_rows(
     import hashlib as _hashlib
 
     from agentbundle import statelock
+    from agentbundle.commands._common import resolve_state_path
     from agentbundle.config import PackState
     from agentbundle.direct_source import MANIFESTLESS_VERSION_SENTINEL
-    from agentbundle.direct_source_state import (
-        build_provenance,
-        relative_repo_source,
-    )
+    from agentbundle.direct_source_state import build_provenance
 
-    state_path = target_root / ".agentbundle-state.toml"
+    state_path = resolve_state_path(scope, target_root)
 
     def _mutate(state) -> None:
+        # Re-asserted INSIDE the lock, against the state re-read there. The
+        # pre-write guard read state unlocked, so a concurrent install landing
+        # in the window between the two produced exactly the two-rows-one-path
+        # corruption that guard exists to prevent — and the window spanned every
+        # file write, not an instant.
+        owner_keys = {(skill.name, adapter) for skill in selection.skills}
+        for relpath in written:
+            foreign_rows = sorted(
+                key for key in state.owners_of(relpath) if key not in owner_keys
+            )
+            if foreign_rows:
+                claimants = ", ".join(f"{name} ({ad})" for name, ad in foreign_rows)
+                raise DirectStateError(
+                    f"{relpath} was claimed by {claimants} while this install "
+                    f"was writing; no row was recorded"
+                )
         for skill in selection.skills:
             # Bucketed by path parts rather than by a string prefix: AC39 bans
             # a hand-rolled prefix check on a path-shaped value, and the digest
@@ -882,26 +932,7 @@ def _record_direct_rows(
             else:
                 kind = "skill"
                 relative = skill.envelope.relative_to(classification.root).as_posix()
-            stored_source = source_string
-            if scope == "repo" and not source_string.startswith("git+https://"):
-                # AC12: a repo-scope source that lives INSIDE the repository is
-                # stored relatively, because an absolute path in repository
-                # state is wrong for every other clone. A source outside the
-                # repository keeps its verbatim string: refusing it would
-                # reject `install /elsewhere/skill --output .`, which is the
-                # ordinary local workflow. AC12's "refuse out-of-repository
-                # sources" is read here as the confinement rule its neighbouring
-                # sentence states, not as a ban on that workflow.
-                # No caller-side canonicalisation: AC39 assigns that to the
-                # confinement helpers, and this is a question about which
-                # string to store, not a security boundary — `write_jailed`
-                # has already confined every write by the time we get here.
-                try:
-                    stored_source = relative_repo_source(
-                        Path(source_string), target_root
-                    )
-                except DirectStateError:
-                    stored_source = source_string
+            stored_source = stored_source_for(source_string, scope, target_root)
             provenance = build_provenance(
                 source=stored_source,
                 source_revision=revision,
@@ -923,7 +954,103 @@ def _record_direct_rows(
                 files=files,
             )
 
-    statelock.persist_state_locked(state_path, _mutate)
+    # Root and relpath given explicitly so the jail is the projection root, not
+    # the state file's own parent directory, and the scope rail matches the
+    # catalogue route's. The state file is CLI-owned metadata rather than
+    # pack-projected content, so the per-adapter prefix check is skipped at the
+    # two scopes whose state file is a top-level name no prefix can match;
+    # user scope keeps `.agentbundle/`, which its state file is already under
+    # and which `write_jailed` requires any user-scope write to declare.
+    state_relpath = state_path.relative_to(target_root).as_posix()
+    statelock.persist_state_locked(
+        state_path,
+        _mutate,
+        scope=scope,
+        allowed_prefixes=None if scope in ("repo", "local") else [".agentbundle/"],
+        root=target_root,
+        relpath=state_relpath,
+    )
+
+
+def stored_source_for(source_string: str, scope: str, root: Path) -> str:
+    """The exact string a direct row stores for this source.
+
+    One function, called at write time AND by the ownership check. They
+    computed it separately: the write relativised an in-repository repo-scope
+    source while the check compared the raw string, so reinstalling the same
+    in-repository source refused as "a different source" — and the remediation
+    named `uninstall --skill`, which does not exist. Every fixture put the
+    source outside the target, where `relative_to` raises and both sides
+    happened to agree.
+
+    AC12: an absolute path in repository state is wrong for every other clone.
+    A source outside the repository keeps its verbatim string, because refusing
+    it would reject `install /elsewhere/skill --output .` — the ordinary local
+    workflow. No caller-side canonicalisation: AC39 assigns that to the
+    confinement helpers, and this decides which string to store, not a boundary.
+    """
+
+    if scope != "repo" or source_string.startswith("git+https://"):
+        return source_string
+    try:
+        return relative_repo_source(Path(source_string), root)
+    except DirectStateError:
+        return source_string
+
+
+def _report_unowned(written: dict[str, bytes]) -> None:
+    """Name every file that is live on disk and owned by no state row.
+
+    Called from both failure paths — a projection fault and a state-write
+    fault — because either leaves the same residue and the adopter cannot
+    discover it any other way: `list-installed` and `uninstall` read the state
+    file, and by construction nothing there points at these paths.
+    """
+
+    import sys
+
+    if not written:
+        return
+    print(
+        "install: these files were written and are owned by no state row; "
+        "remove them manually:",
+        file=sys.stderr,
+    )
+    for relpath in sorted(written):
+        print(f"  {escape_path_value(relpath)}", file=sys.stderr)
+
+
+def _destination_holds_foreign_content(
+    root: Path, relpath: str, projected_bytes: bytes, state
+) -> bool:
+    """True when the file at *relpath* holds content no install put there.
+
+    The row-level guard asks "does a row named like ours claim this skill?".
+    That misses the two cases that matter: a catalogue pack's row is keyed on
+    the PACK name while the directory it projects carries the SKILL name, and
+    an adopter's hand-authored skill has no row at all. Both were overwritten
+    silently at exit 0 — publisher content replacing a file the agent already
+    trusts, which is the injection path, not merely a bookkeeping error.
+
+    Content, not existence: reinstalling the same source rewrites its own
+    bytes, and reinstalling after the publisher moved on rewrites a file whose
+    on-disk hash is still the one an install recorded. Only content that
+    matches neither is foreign. Confinement failures are not decided here —
+    `write_jailed` owns that boundary and refuses on its own terms.
+    """
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        sha256_confined_regular_file,
+    )
+
+    try:
+        on_disk = sha256_confined_regular_file(root, root / relpath)
+    except (OSError, UnsafeContentError):
+        return False
+    if on_disk == hashlib.sha256(projected_bytes).hexdigest():
+        return False
+    return on_disk not in state.shas_for(relpath)
 
 
 def _refuse_foreign_owner(
@@ -933,6 +1060,7 @@ def _refuse_foreign_owner(
     scope: str,
     adapter: str,
     source_string: str,
+    planned: list[tuple[str, bytes]],
 ) -> None:
     """Refuse to overwrite a row or a directory this source does not own.
 
@@ -944,9 +1072,16 @@ def _refuse_foreign_owner(
     an in-place re-install and gates `--force`; this is the direct equivalent.
     """
 
+    from agentbundle.commands._common import resolve_state_path
     from agentbundle.config import ConfigError, load_state
 
-    state_path = projection_root / ".agentbundle-state.toml"
+    # Through the shared resolver, not a hard-coded repo-scope filename. At
+    # user scope every reader looks in `<user_root>/.agentbundle/state.toml`,
+    # so writing `<user_root>/.agentbundle-state.toml` left the projection
+    # permanently unowned — exactly the state AC28's sweep guard exists to
+    # prevent, and it made "install/list surfaces unowned projections at every
+    # scope" false at user scope.
+    state_path = resolve_state_path(scope, projection_root)
     try:
         state = load_state(state_path)
     except ConfigError:
@@ -959,13 +1094,13 @@ def _refuse_foreign_owner(
             remediation="Repair or remove the state file before installing.",
         ) from None
 
+    stored = stored_source_for(source_string, scope, projection_root)
     for skill in selection.skills:
         existing = state.row(skill.name, adapter)
         if existing is None:
             continue
         same_source = (
-            existing.source_kind in {"pack", "skill"}
-            and existing.source == source_string
+            existing.source_kind in {"pack", "skill"} and existing.source == stored
         )
         if not same_source:
             raise _refuse(
@@ -977,5 +1112,40 @@ def _refuse_foreign_owner(
                     "Uninstall it first, or choose a source whose skill names "
                     "do not collide. Overwriting would orphan the files the "
                     "existing row owns."
+                ),
+            )
+
+    # Per DESTINATION, not per skill name. `State.owners_of` is the blessed
+    # path-level ownership primitive and it answers the question the row-level
+    # loop above cannot: which rows, under any name, already claim the exact
+    # paths we are about to write.
+    owner_keys = {(skill.name, adapter) for skill in selection.skills}
+    for relpath, projected_bytes in planned:
+        foreign_rows = sorted(
+            key for key in state.owners_of(relpath) if key not in owner_keys
+        )
+        if foreign_rows:
+            claimants = ", ".join(f"{name} ({ad})" for name, ad in foreign_rows)
+            raise _refuse(
+                DiagnosticCode.CAT_D009,
+                f"{relpath} is already owned by {claimants}",
+                path=relpath,
+                remediation=(
+                    "Uninstall the owning pack first. Overwriting would leave "
+                    "two rows claiming one path with different contents, which "
+                    "no later install, upgrade, or uninstall can resolve."
+                ),
+            )
+        if _destination_holds_foreign_content(
+            projection_root, relpath, projected_bytes, state
+        ):
+            raise _refuse(
+                DiagnosticCode.CAT_D009,
+                f"{relpath} already exists and no install put its content there",
+                path=relpath,
+                remediation=(
+                    "Move or delete the existing file first. It is either "
+                    "hand-authored or locally edited, and this source would "
+                    "replace it with publisher content silently."
                 ),
             )

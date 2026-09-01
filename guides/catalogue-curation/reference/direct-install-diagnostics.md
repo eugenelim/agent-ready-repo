@@ -22,7 +22,7 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D003` | Hex-shaped tag not safely classifiable as an abbreviated SHA |
 | `CAT-D004` | `pax_global_header` SHA absent, malformed, or ref mismatch |
 | `CAT-D005` | Interpreter runtime floor below the supported minor |
-| `CAT-D006` | Acquisition inactivity or download limit breached |
+| `CAT-D006` | Transport failure during acquisition: a download or inactivity limit, a non-2xx HTTP status, a malformed seam between acquisition stages, or a certificate that could not be verified even after the system-trust retry |
 | `CAT-D007` | Archive member refused by the extraction filter or link policy |
 | `CAT-D008` | Collection selection missing, unknown, duplicated, or applied to a direct pack; or a remote noninteractive install or upgrade missing `--yes` |
 | `CAT-D009` | Measured-path integrity (link-like, reparse, wrong type) |
@@ -35,13 +35,15 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D016` | Per-file bytes |
 | `CAT-D017` | Total bytes |
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
-| `CAT-D019` | Publisher candidate value failed the output allowlist |
+| `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
 
 ## Reading a refusal
 
 A refusal names the offending path, not just the rule. Before a source root
 exists — a malformed URL, for instance — the path is the source string you
-supplied, reproduced exactly as you typed it.
+supplied, with any non-graphic, bidirectional-override, or default-ignorable
+code point rendered as `\uXXXX`. Every character that would print as itself
+does; the escaping exists so a path cannot repaint the line it appears on.
 
 Every value in a printed recovery command is shell-quoted, so you can paste
 the line as-is even when a publisher chose an awkward skill name.

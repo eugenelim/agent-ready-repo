@@ -65,6 +65,13 @@ CONFINEMENT_CALLS = frozenset(
         # walks through the same helper.
         "walk_confined_regular_files",
         "list_confined_regular_files",
+        # The hashing form of mechanism (1), on the same footing as the
+        # traversal form above: it opens through `_open_confined_regular_file`,
+        # which resolves the root, refuses a path outside it, and applies
+        # O_NOFOLLOW plus the post-open inode and link-count checks. Named in
+        # AGENTS.md's blessed helper list, and omitted here only because no
+        # direct module had needed it before.
+        "sha256_confined_regular_file",
     }
 )
 BANNED_PREFIX_HELPERS = frozenset({"commonpath", "commonprefix", "normpath"})
