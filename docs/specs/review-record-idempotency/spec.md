@@ -1,6 +1,6 @@
 # Spec: review-record-idempotency
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
@@ -137,55 +137,55 @@ and the plan's mutation proofs keep the choice honest.
 
 ### Behavior
 
-- [ ] **AC1.** A recording re-issued with the same operation id and the same
+- [x] **AC1.** A recording re-issued with the same operation id and the same
   payload leaves every review counter, fingerprint list, and clean-round
   provenance field exactly as the first application left them, and says the round
   was already recorded.
-- [ ] **AC2.** A recording presented with a recorded operation id and a different
+- [x] **AC2.** A recording presented with a recorded operation id and a different
   payload is refused, and `state.json` is byte-identical to its state before the
   attempt.
-- [ ] **AC3.** Recordings under different operation ids each count as a distinct
+- [x] **AC3.** Recordings under different operation ids each count as a distinct
   review round.
-- [ ] **AC4.** A recording that omits `--operation-id` produces the same
+- [x] **AC4.** A recording that omits `--operation-id` produces the same
   observable result as it does today, for each of the four recording forms,
   measured against a baseline captured before the writer changes.
-- [ ] **AC5.** A malformed operation id is refused with `state.json` unchanged.
-- [ ] **AC6.** No round is recorded under an operation id unless a comparison
+- [x] **AC5.** A malformed operation id is refused with `state.json` unchanged.
+- [x] **AC6.** No round is recorded under an operation id unless a comparison
   value for a later repeat is recorded with it, so a repeat is never undecidable.
-- [ ] **AC7.** An operator can tell the refusal outcomes apart — a payload
+- [x] **AC7.** An operator can tell the refusal outcomes apart — a payload
   conflict, a missing comparison value, and a malformed id — from the command's
   output alone.
-- [ ] **AC8.** Each recording form's existing payload validation is unchanged:
+- [x] **AC8.** Each recording form's existing payload validation is unchanged:
   what refuses today still refuses, with the same result.
 
 ### Persisted state
 
-- [ ] **AC9.** `state.json` records which round the counters belong to, and a
+- [x] **AC9.** `state.json` records which round the counters belong to, and a
   session resuming before the run's next transition judges a repeat of that round
   correctly from it.
-- [ ] **AC10.** A `state.json` written before this change is read without error
+- [x] **AC10.** A `state.json` written before this change is read without error
   and every recording form operates on it.
-- [ ] **AC11.** The shipped state-schema reference and the bundled template
+- [x] **AC11.** The shipped state-schema reference and the bundled template
   describe the recorded state accurately, including how a repeat is judged.
-- [ ] **AC12.** Every shipped check that pins the template's field set matches the
+- [x] **AC12.** Every shipped check that pins the template's field set matches the
   shipped template.
 
 ### Shipped surfaces
 
-- [ ] **AC13.** Every shipped recording instruction supplies an operation id that
+- [x] **AC13.** Every shipped recording instruction supplies an operation id that
   a session resuming at that point recomputes identically.
-- [ ] **AC14.** A refused transition never reaches a recording.
-- [ ] **AC15.** The shipped resumption guidance says when a replay is safe and
+- [x] **AC14.** A refused transition never reaches a recording.
+- [x] **AC15.** The shipped resumption guidance says when a replay is safe and
   when it is not, and every obligation its pinned tests require is intact.
-- [ ] **AC16.** The pack's eval corpus exercises the command shape the skill
+- [x] **AC16.** The pack's eval corpus exercises the command shape the skill
   emits, and the expectations of its two existing crash-window cases are
   unchanged.
-- [ ] **AC17.** An adopter reading the core guides can find what the flag
+- [x] **AC17.** An adopter reading the core guides can find what the flag
   guarantees.
 
 ### Release
 
-- [ ] **AC18.** The release surface is consistent: a dated free-standing changelog
+- [x] **AC18.** The release surface is consistent: a dated free-standing changelog
   entry carrying a highlights block, both version files reading one patch above
   the base branch, and no projection drift.
 

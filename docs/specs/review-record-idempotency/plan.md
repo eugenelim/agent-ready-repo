@@ -1,7 +1,7 @@
 # Plan: review-record-idempotency
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - Ownership source: `docs/architecture/loop-infrastructure.md` §2-3 makes
     `loop-cohort.py` the sole writer of `state.json`. `packs/AGENTS.md`
