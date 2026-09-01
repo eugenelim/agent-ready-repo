@@ -108,7 +108,9 @@ A feature lifecycle, end to end, with the parts named:
    `CONVENTIONS.md` + `spec.md`. An exact clean sentinel is recorded directly;
    otherwise `finding-adjudicator` independently sustains, refutes, or stops on
    each reported finding before the loop acts. `loop-cohort review record`
-   fingerprints the sustained set, and the loop iterates.
+   fingerprints the sustained set, and the loop iterates. Given `--operation-id`, a
+   repeated recording of the same round is recognised as a completed write instead
+   of counted twice.
 8. **Specialist reviewers** (if warranted). `security-reviewer` when the diff changes a security boundary, data flow, or guarding control, including agent authority, untrusted-input, tool, permission, sandbox, or data-handling behavior. Unchanged existing I/O and ordinary prompt wording do not fire it. `quality-engineer` covers the maintenance lens.
 9. **Stasis detection.** If the next iteration's findings fingerprint the same as the previous round's, the loop stops and surfaces. No silent third pass.
 10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.

@@ -50,6 +50,11 @@ EXPECTED_STATE_KEYS = {
     # inferring the form from an artifact whose absence is ambiguous.
     "last_review_clean_source",
     "last_review_clean_digest",
+    # Review-record idempotency: which round the counters belong to, and the
+    # digest of the payload it was recorded with. Stored rather than derived,
+    # because the next round overwrites whatever a derivation would read.
+    "last_review_record_operation_id",
+    "last_review_record_payload_digest",
     "auto_parallel",
     "last_commit_sha",
     "worktrees",
