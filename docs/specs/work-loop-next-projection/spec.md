@@ -72,7 +72,7 @@ which reach the verb anyway.
 That yields 19 base keys in `code` mode and 10 in `spec-plan`, 29 in all.
 
 Each base key is crossed with the values of whichever Discriminator applies to
-it, giving **27 domain members in `code` mode and 17 in `spec-plan`, 44 in all**.
+it, giving **29 domain members in `code` mode and 18 in `spec-plan`, 47 in all**.
 A base key no Discriminator applies to contributes exactly one member. This
 document is the sole home of that figure; the plan references it rather than
 restating it.
@@ -93,6 +93,7 @@ Routing row removes coverage without removing a domain member.
 | D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line, via the canonical reader | `Drafting`, `Approved`, `other` |
 | D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled` |
 | D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` |
+| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count` against `max_review_retries`, and `finding_fingerprints` against `previous_finding_fingerprints`, in `state.json` | `within-budget`, `exhausted` |
 
 **`other` is a catch-all, and it is why D1 and D2 are closed.** The canonical
 reader applies no vocabulary check: it returns whatever leading token the Status
@@ -104,6 +105,13 @@ The repository's Status vocabularies are enforced by a finish-time lint over thi
 repository's own specs, not at read time, and this verb runs against arbitrary
 spec directories; a value set that assumed the lint had run would be narrower than
 the live input space, and totality over it would prove nothing.
+
+**D5 is why the loop can say "stop reviewing".** `exhausted` is either condition:
+the review retry count has reached its cap, or the last two findings rounds carry
+identical fingerprints, which is stasis. Both are readable from `state.json`, and
+both mean the next useful act is replanning rather than another round. The
+distinction between them is a stderr reason, not a different action, so D5 carries
+two values rather than three.
 
 D3 is the full cross product of its two fields rather than the reachable subset.
 Including `pending+scheduled` costs one row's worth of coverage and removes a
@@ -165,30 +173,61 @@ in the Mode column matches either mode.
 
 | Row | Mode | Engine state | `last_event` | Discriminator | Action |
 | --- | --- | --- | --- | --- | --- |
-| R1 | both | `SPEC-PLAN-DRAFTING` | `*` | — | `spec.draft` |
-| R2 | both | `SPEC-PLAN-REVIEW` | `*` | — | `spec.review` |
-| R3 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Draft` | `await-spec-approval` |
-| R4 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Approved` | `engine.spec-approved` |
-| R5 | both | `SPEC-HUMAN-GATE` | `*` | D1 `other` | `halt` |
-| R6 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Drafting` | `await-plan-approval` |
-| R7 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Approved` | `engine.plan-approved` |
-| R8 | both | `PLAN-HUMAN-GATE` | `*` | D2 `other` | `halt` |
-| R9 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `pending+unscheduled`, `pending+scheduled` | `cohort.approve-plan` |
-| R10 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled` | `cohort.schedule` |
-| R11 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+scheduled` | `engine.plan-locked` |
-| R12 | spec-plan | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled`, `approved+scheduled` | `engine.plan-locked` |
-| R13 | code | `CODE-IMPLEMENTATION` | `plan-locked`, `plan-approved`, `blocker-applied` | — | `implement` |
-| R14 | code | `CODE-IMPLEMENTATION` | `wave-passed` | — | `cohort.wave-advance` |
-| R15 | code | `CODE-IMPLEMENTATION` | `gates-failed` | — | `cohort.record-attempt` |
-| R16 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `matches` | `implement` |
-| R17 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `does-not-match` | `halt` |
-| R18 | code | `CODE-VERIFICATION` | `wave-complete` | — | `run-gates` |
-| R19 | code | `CODE-REVIEW` | `gates-clean` | — | `run-review` |
-| R20 | code | `CODE-HUMAN-GATE` | `reviewers-clean` | — | `await-merge-decision` |
-| R21 | code | `DONE` | `done` | — | `complete` |
-| R22 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `complete` |
+| R1 | both | `SPEC-PLAN-DRAFTING` | `null`, `findings-remain` | — | `spec.draft` |
+| R2 | both | `SPEC-PLAN-DRAFTING` | `spec-rejected`, `plan-rejected` | — | `spec.reset-and-revise` |
+| R3 | code | `SPEC-PLAN-DRAFTING` | `contract-amendment` | — | `spec.amend` |
+| R4 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `within-budget` | `spec.review` |
+| R5 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `exhausted` | `await-replan-decision` |
+| R6 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Draft` | `await-spec-approval` |
+| R7 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Approved` | `engine.spec-approved` |
+| R8 | both | `SPEC-HUMAN-GATE` | `*` | D1 `other` | `halt` |
+| R9 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Drafting` | `await-plan-approval` |
+| R10 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Approved` | `engine.plan-approved` |
+| R11 | both | `PLAN-HUMAN-GATE` | `*` | D2 `other` | `halt` |
+| R12 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `pending+unscheduled`, `pending+scheduled` | `cohort.approve-plan` |
+| R13 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled` | `cohort.schedule` |
+| R14 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+scheduled` | `engine.plan-locked` |
+| R15 | spec-plan | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled`, `approved+scheduled` | `engine.plan-locked` |
+| R16 | code | `CODE-IMPLEMENTATION` | `plan-locked`, `plan-approved`, `blocker-applied` | — | `implement` |
+| R17 | code | `CODE-IMPLEMENTATION` | `wave-passed` | — | `cohort.wave-advance` |
+| R18 | code | `CODE-IMPLEMENTATION` | `gates-failed` | — | `cohort.record-attempt` |
+| R19 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `matches` | `implement` |
+| R20 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `does-not-match` | `halt` |
+| R21 | code | `CODE-VERIFICATION` | `wave-complete` | — | `run-gates` |
+| R22 | code | `CODE-REVIEW` | `*` | D5 `within-budget` | `run-review` |
+| R23 | code | `CODE-REVIEW` | `*` | D5 `exhausted` | `await-replan-decision` |
+| R24 | code | `CODE-HUMAN-GATE` | `reviewers-clean` | — | `await-merge-decision` |
+| R25 | code | `DONE` | `done` | — | `complete` |
+| R26 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `complete` |
 
-**Why R22 is `complete` and not a reset.** The shipped resumption rows for those
+**The three ways back are not the same act, which is why R1-R3 are separate
+rows.** All three land in `SPEC-PLAN-DRAFTING`, and an agent told only "draft the
+spec" would drop an obligation in two of them. A rejected gate (R2) requires
+resetting `spec.md` to `Draft` and `plan.md` to `Drafting` before `spec-ready`
+will be fired again. A contract amendment (R3) requires scope-owner authority,
+preservation of the completed-task pins and evidence, reapproval, and
+rescheduling — none of which a fresh draft performs. Only R1, a new run or an
+ordinary findings round, is the plain drafting act.
+
+**Why R5 and R23 exist.** When the review budget is spent or two rounds return
+identical fingerprints, the loop must not review again — and the engine will not
+let it, because the `findings-remain` guard refuses at the cap. Without these
+rows the projection would answer `spec.review` or `run-review` at exactly the
+moment another round is the wrong move, and the only event the engine still
+accepts from those states is `reviewers-clean`, so a caller following the record
+would be pushed toward declaring a contract clean in order to escape. Instead the
+record waits, and the stderr reason names the replanning options the owner
+chooses between: narrow the accepted intent, split the contract into separate
+specs, re-ground it against evidence the review surfaced, or abandon the run.
+
+**Splitting a spec is a human decision, not a routed action.** Which of those
+options applies is not in either state file, so the projection surfaces the
+decision and stops rather than naming one. That is the same rule R24 and R26
+follow. No unhappy path here needs a new engine transition: two already have
+edges — `spec-rejected`/`plan-rejected` and `contract-amendment` — and the rest
+resolve to a human decision, which is why this contract stays read-only.
+
+**Why R26 is `complete` and not a reset.** The shipped resumption rows for those
 two keys prescribe a destructive reset, but only *if implementation is later
 requested* — a human decision neither state file records. That is the same
 unobservability that collapsed `CODE-HUMAN-GATE` to one row: a projection that
@@ -205,6 +244,8 @@ prose, and no action in this contract is destructive.
 | Action | `kind` | `parameters` keys | `load` | `human_wait` |
 | --- | --- | --- | --- | --- |
 | `spec.draft` | `agent` | — | `ref:pre-execute-review` | false |
+| `spec.reset-and-revise` | `agent` | — | `ref:delivery-contract-lifecycle` | false |
+| `spec.amend` | `agent` | — | `ref:delivery-contract-lifecycle` | false |
 | `spec.review` | `agent` | — | `ref:pre-execute-review`, `ref:finding-adjudication` | false |
 | `implement` | `agent` | — | `ref:verification-modes` | false |
 | `run-gates` | `agent` | — | `ref:pre-flight-failures` | false |
@@ -219,10 +260,11 @@ prose, and no action in this contract is destructive.
 | `await-spec-approval` | `wait` | — | — | true |
 | `await-plan-approval` | `wait` | — | — | true |
 | `await-merge-decision` | `wait` | — | `ref:session-resumption` | true |
+| `await-replan-decision` | `wait` | — | `ref:delivery-contract-lifecycle` | true |
 | `complete` | `done` | — | — | false |
 | `halt` | `stop` | — | — | false |
 
-`human_wait` is true exactly for the three `wait`-kind actions. No action in this
+`human_wait` is true exactly for the four `wait`-kind actions. No action in this
 table is destructive, so there is no second source of it.
 
 `human_wait` describes the record, not the engine's `pending_human_wait`. At a
@@ -314,8 +356,8 @@ the command could not compute a record at all, and emits none.
   row. The domain is built at runtime from the engine's transition tables plus the
   extra base keys, crossed with the Discriminators table's value sets — never with
   values read out of the Routing table. Deleting any Routing row leaves at least
-  one domain member uncovered, and that holds for all 22 rows, not only the ten
-  that carry no Discriminator.
+  one domain member uncovered, and that holds for every row without exception,
+  not only those carrying no Discriminator.
 - [ ] **AC2 — determinism.** No member of the domain matches more than one Routing
   row. Widening any row's Mode, `last_event`, or Discriminator column so that it
   overlaps another row fails this criterion.
@@ -325,7 +367,7 @@ the command could not compute a record at all, and emits none.
   state, `last_event`, and Discriminator columns — never obtained from the
   implementation's own routing data or discriminator resolver. Both a changed row
   action and a swapped discriminator branch fail this criterion; the second is the
-  mutation that distinguishes it from AC1 and AC2, so exchanging R3's and R4's
+  mutation that distinguishes it from AC1 and AC2, so exchanging R6's and R7's
   Discriminator cells in the implementation must redden it.
 - [ ] **AC4 — closure.** Every action named in a Routing row has exactly one Action
   attributes row, and every Action attributes row is named by at least one Routing

@@ -115,11 +115,14 @@ rather than answer from state that is mid-write.
     the discriminator-bearing rows survive deletion means the domain is still
     being sourced from the Routing table, which is the round-1 defect.
   - **AC2** — widen one row's match so it overlaps another.
-  - **AC3** — exchange R3's and R4's Discriminator cells in the implementation's
+  - **AC3** — exchange R6's and R7's Discriminator cells in the implementation's
     resolver. This is the mutation that distinguishes AC3 from AC1 and AC2: it
     changes no row's action and no row's coverage, so only a criterion that drives
     the live command and compares against the spec's Discriminator column catches
     it. Four domain members change action under it.
+  - **D5's two rows** get their own mutation: forcing `within-budget` at the cap
+    makes R5 and R23 unreachable and must redden AC3, because it is the one that
+    drives the live command into a state whose review budget is spent.
   - **AC4** — remove an Action attributes row.
   - **AC5** — change one attribute cell.
 
@@ -344,6 +347,10 @@ mutations flip including AC1's across every row.
 - P1's ordering is exercised in the state that makes it load-bearing: an
   engine-state temporary with no `engine-state.json` beside it must yield P1's
   `halt`, not P2's or P3's non-zero refusal.
+- The review-budget branch is exercised from both review states: at the cap, and
+  with two identical fingerprint rounds, each yielding `await-replan-decision`
+  rather than another review action, with the stderr reason naming which condition
+  fired and the replanning options (narrow, split, re-ground, abandon).
 - P2's marker match is exercised against the six spellings in the fixture set
   below, against a body-zone mention, and against `Modelight` and
   `Mode: light-weight` — none of the last three may match.
@@ -495,6 +502,17 @@ are regenerated.
 - **The tables and the code drift apart.** The roster test compares the spec's
   Markdown with the implementation's dictionaries; neither is generated from the
   other, so agreement is evidence.
+- **The projection pushes a caller toward a false clean.** At the review cap the
+  engine refuses `findings-remain`, so `reviewers-clean` is the only event it
+  still accepts; a projection that answered `run-review` there would leave
+  declaring the contract clean as the sole escape. R5 and R23 answer
+  `await-replan-decision` instead, and D5 reads the cap and the stasis
+  fingerprints straight from `state.json`.
+- **A way back loses its obligation.** All three return paths land in
+  `SPEC-PLAN-DRAFTING`, and two carry duties a plain redraft skips — status reset
+  after a rejected gate, and authority plus pin preservation plus reapproval and
+  rescheduling after a contract amendment. R1-R3 separate them and each carries
+  `ref:delivery-contract-lifecycle` where the duty is written down.
 - **Totality passes over a domain narrower than the live input.** Rounds 1 and 2
   each found a version of this. The fix is not a citation but closure: each
   discriminator's value set is total over what its source can return, with `other`
@@ -636,6 +654,25 @@ are regenerated.
   only required distinct from each other, not from the engine's existing exit 1
   and argparse's 2. And P2's marker regex admitted `Modelight` and `light-weight`,
   both now rejected while the 37 real markers still match.
+- 2026-09-01 (owner scope change) — The unhappy paths were missing. The contract
+  routed the forward walk and the two `halt` branches, but answered the three ways
+  a run goes *backwards* with a single `spec.draft`, and answered an exhausted
+  review budget by asking for another review round. Four cases, worked in as rows
+  rather than criteria: a rejected gate now routes to `spec.reset-and-revise`,
+  which owes a status reset before `spec-ready`; a contract amendment routes to
+  `spec.amend`, which owes authority, completed-task pins, reapproval, and
+  rescheduling; a spent review budget or a stasis fingerprint match routes to
+  `await-replan-decision`; and splitting the contract into separate specs is named
+  as one of that wait's replanning options rather than as an action, because which
+  option applies is not in either state file. The cap case was the dangerous one:
+  the engine refuses `findings-remain` at the cap, leaving `reviewers-clean` as the
+  only event it still accepts, so a projection answering `run-review` there made
+  declaring a false clean the only escape. No new engine transition was needed —
+  two paths already had edges and the rest resolve to a human decision, so the verb
+  stays read-only. 22 rows became 26, the domain 44 members became 47, and the
+  action vocabulary 17 became 20. Re-verified: 0 uncovered, 0 ambiguous, all 26
+  rows caught by the deletion mutation. No acceptance criterion changed shape,
+  which is the property the table restructure was for.
 - 2026-09-01 (round 2, refuted) — Nine findings were tested and not sustained.
   Notably: `halt` carrying no `load` is a deliberate table cell, not a gap; the
   duplicated row counts cannot drift silently because both documents are hashed
