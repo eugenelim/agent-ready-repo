@@ -1156,7 +1156,9 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
         "skips the `finding-adjudicator` dispatch, the paired artifacts, and "
         "the adjudication classifier — but never the raw artifact itself",
         "Do not trim, case-fold, normalize Unicode, unwrap Markdown",
-        "Every non-exact return follows the protocol below",
+        # Classification replaced byte comparison: `findings` names the
+        # dispatching set, and a footer-bearing report joins it.
+        "`findings` follows this protocol",
         "review-artifact.py' validate",
         "Dispatch a subagent matching `finding-adjudicator`",
         "<round>-post-gates-<reviewer-role>-raw.md",
@@ -1193,7 +1195,9 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
     # left anchor resolves in the SKILL.md prefix, so the comparison would hold
     # no matter where the fast-path section sat in the file it describes.
     reference = flat(FINDING_ADJUDICATION.read_text(encoding="utf-8"))
-    assert reference.index("## Exact-clean fast path") < reference.index(
+    # Renamed to "Raw-clean fast path" when classification replaced byte
+    # comparison; the ordering invariant it guards is unchanged.
+    assert reference.index("## Raw-clean fast path") < reference.index(
         "## Artifact identity"
     )
     for role in (
@@ -1226,8 +1230,9 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
     text = flat(PRE_EXECUTE_REVIEW.read_text(encoding="utf-8"))
 
     for required in (
-        "Persist every completed pre-EXECUTE reviewer report, then compare the "
-        "persisted artifact's bytes",
+        # Same substitution on the pre-EXECUTE path.
+        "Persist every completed pre-EXECUTE reviewer report, then run `review "
+        "raw-classify",
         "Byte equality is direct clean",
         # Persistence must be stated as unconditional and prior. Without this
         # the ordering is only implementable when the controller holds the
@@ -1235,7 +1240,9 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
         "Persistence is unconditional and comes first",
         "Trimmed whitespace, a trailing newline, case folding, Unicode "
         "normalization, unwrapped Markdown",
-        "Route every non-exact report through the same independent gateway",
+        # "non-exact" stopped naming the dispatching set once structural clean
+        # landed: a report can be non-exact and still skip adjudication.
+        "Route every `findings` report through the same independent gateway",
         "<round>-pre-execute-<reviewer-role>-raw.md",
         "<round>-pre-execute-<reviewer-role>-adjudication.md",
         "review-artifact.py' validate",
@@ -1254,7 +1261,7 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
         assert required in text
 
     assert text.index("Byte equality is direct clean") < text.index(
-        "Route every non-exact report"
+        "Route every `findings` report"
     )
 
 

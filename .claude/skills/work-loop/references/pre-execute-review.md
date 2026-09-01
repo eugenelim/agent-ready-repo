@@ -18,7 +18,12 @@ exactly once, zero parsed findings, and nothing else but blank lines; do not
 dispatch `finding-adjudicator`. A report carrying a `## Not checked` footer is
 never fast-pathed however clean it looks — the footer is prose, and prose is what
 the adjudicator reads — so it dispatches. `findings` dispatches it. `invalid` is
-a loud stop. Byte equality remains the direct-clean recording form.
+a loud stop. Byte equality is direct clean and remains the distinct
+recording form for a report whose bytes equal the sentinel exactly. For
+that form the comparison is exact: Trimmed whitespace, a trailing newline,
+case folding, Unicode normalization, unwrapped Markdown, and the sentinel
+as a substring, prefix, or suffix all fail it. Structural clean is the
+separate, classifier-decided path that admits surrounding blank lines.
 
 Persistence is unconditional and comes first, so this rule holds identically
 whether the harness routes reviewer output straight to the file or the

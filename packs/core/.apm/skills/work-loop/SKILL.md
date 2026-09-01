@@ -493,14 +493,18 @@ adversarial evidence into a summary-only or named-skip path.
 
 For every warranted reviewer role, persist the completed report to the ignored
 session path first. Persistence is unconditional. Then run `review raw-classify
---report <path> --json`: `clean` skips adjudication and records with
+--report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
 `findings` dispatches the adjudicator unless the report is Nit-only and the
 thread does not intend to mutate; then defer each Nit in the verdict record.
-An intended Nit mutation requires adjudication. `invalid` stops loudly. Never trim, case-fold, normalize
-Unicode, unwrap Markdown, or accept prose outside that grammar. Missing
-adjudicator, invalid structure, or `ADJUDICATION-INDETERMINATE` is a loud stop.
+An intended Nit mutation requires adjudication. `invalid` stops loudly. Do not trim, case-fold, normalize
+Unicode, unwrap Markdown, or accept prose outside that grammar. A missing
+`finding-adjudicator`, invalid structure, or `ADJUDICATION-INDETERMINATE` is a
+loud stop.
+
+Byte equality is direct clean, and stays the distinct recording form for a
+report whose bytes equal the sentinel exactly.
 
 Before the first report in a review unit, read
 [`references/finding-adjudication.md`](references/finding-adjudication.md). It

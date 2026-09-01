@@ -249,7 +249,7 @@ attack scenario in one sentence, and end with
 
 ## Not checked
 
-- <issue class you did not examine>; <why, or which tool owns it>.
+- <issue class not checked and why>
 
 ```
 
@@ -267,7 +267,8 @@ disk and re-reads it across iterations, so this distilled shape is the contract,
 not a courtesy. Do the full reading; print only the report.
 
 Because the footer accompanies the clean line too, a clean security report is
-never eligible for the orchestrator's clean fast path: the footer is prose, and
+never byte-identical to the bare sentinel, and is never eligible for the
+orchestrator's clean fast path either: the footer is prose, and
 prose is what the adjudicator exists to read. Your clean report therefore costs
 one adjudication pass. That is deliberate — two attempts to make footer prose
 safe to skip were both defeated, because no pattern separates a disclosure from
