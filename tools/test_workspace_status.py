@@ -1540,8 +1540,21 @@ _WORK_LOOP_CONTRACT_HASH = (
 # deferral-anchor requirement are unchanged, and
 # `workspace_status_engine.py`'s only mention of this lint is a comment about
 # the canonical preamble boundary, which this change does not touch.
+# Moved 2026-09-01 for core 2.18.0, which stopped Nits gating readiness. Two
+# edits fall inside this window, both reviewer-readiness wording. (1) The
+# full-mode reviewer bullet now requires "no unresolved Blocker or Concern"
+# instead of a literal `Clean — ready to commit.` return, because a Nit-only
+# report never produces that sentence and the old wording deadlocked the
+# completion transition. (2) The disposition-record bullet now distinguishes
+# Blockers and Concerns, which must be resolved, from unacted Nits, which must
+# be deferred with their citation. Reviewed as the pin requires, and the engine
+# needs no edit: both are reviewer-readiness concerns with no spec.md write and
+# no workspace.toml mutation. Ownership is unchanged — work-loop still writes
+# spec.md `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped — and the status vocabulary, the deferral-anchor
+# requirement, and the doc-drift bullet are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "ffe0227c862b2563438662bda5c1dd7ccc6d06451458361a6b017e1491ba45e7"
+    "8a7d7febebe6673220cbcc1255d72b493067379adea6e73720ecc2d4cb1022d3"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

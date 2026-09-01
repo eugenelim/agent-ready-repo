@@ -54,6 +54,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.20.0] — 2026-09-01
+
+### Highlights
+
+- **Each reviewer now owns its concerns outright, so the same defect stops
+  arriving twice under different severities.** Adversarial owns contract
+  conformance, scope and structural fit; quality owns whether a test can
+  actually fail and the edge cases a spec never named; security owns every
+  threat finding. A reviewer that notices another lens's concern says so in its
+  own lens instead of emitting that lens's finding.
+- **A clean review no longer pays for a model call to confirm it is clean.** The
+  loop classifies a persisted reviewer report structurally rather than comparing
+  it byte-for-byte to one sentence, so an ordinary clean pass skips adjudication.
+  A report carrying security-reviewer's mandatory coverage-disclosure footer
+  still takes the full adjudication path, because that footer is prose and prose
+  is what adjudication exists to read.
+- **A naming quibble no longer costs the same as a correctness blocker.** Nits
+  do not block readiness and are never fixed automatically. They are recorded
+  with their citation, deferred, and acted on only when the thread means to
+  change the code because of one — and promoted first if that repair turns out to
+  change behaviour, architecture, dependencies, or more than one file.
+- **Security findings are now priced against a named attacker.** A finding has to
+  be reachable on a path this codebase runs and must not rest on a capability
+  that already gives the attacker an easier route. This narrows severity and
+  never coverage: an unpriced real weakness is still reported, and a
+  trust-boundary crossing, missing authentication check, leaked secret, or
+  spec-required control never drops on likelihood alone.
+
+### Changed
+
+- The reviewer roster carries disjoint lenses. Concerns that two prompts
+  previously shared — acceptance-criterion verification, test strength, error
+  paths, edge cases, security, repository idiom, and what `Fix:` must contain —
+  each have one owner, and the prompt that gave one up names the owner.
+- `Fix:` states the required outcome and its constraints instead of prescribing a
+  mechanism. The implementer chooses the mechanism; the finding format the
+  adjudicator and the report parser depend on is unchanged.
+- `loop-cohort review raw-classify` reports a persisted report's classification,
+  finding count, and whether it carries a coverage-disclosure footer. Refusals
+  name which rule rejected the report without echoing its content.
+- `review record` gains `--structural-clean-file` for a report that is clean by
+  structure rather than by bytes: the clean sentence appears exactly once, no
+  findings parse, and nothing else but blank lines surrounds it. It is recorded
+  distinctly from a byte-exact clean, so an audit can still say which rule
+  admitted the round.
+- The verdict record carries one authoritative finding-disposition table; its
+  schema and residual-eligibility sections point at that table instead of
+  restating the rule.
+
+### Fixed
+
+- A clean security review could never satisfy the completion condition, because
+  its mandatory footer made the report structurally incapable of matching the
+  expected sentence.
+
+
 ## [core][2.19.0] — 2026-09-01
 
 ### Highlights
@@ -74,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tracker refresh locks Withdrawn and Cancelled requirements with the stable
   result codes `withdrawn_requirements_locked` and
   `cancelled_requirements_locked` across every supported profile.
+
 
 ## [core][2.18.2] — 2026-09-01
 

@@ -37,9 +37,9 @@ The first premise claimed four new rules. The repo shows a smaller gap:
 
 - **The fact check exists.** `new-spec` step 5a asks for the cheapest check that
   could prove the plan wrong. This intent will point to that rule.
-- **The reachability check exists.** Full-mode spec review sends each non-exact
-  report to `finding-adjudicator` — a raw return whose bytes are exactly
-  `Clean — ready to commit.` closes the round directly. It checks whether the
+- **The reachability check exists.** Full-mode spec review sends each report
+  that is not footer-free clean to `finding-adjudicator` — a structurally clean
+  return closes the round directly. It checks whether the
   claimed state can occur. The standalone `new-spec` path does not name this
   route.
 - **The gate scope exists.** `lint-spec-status.py` lists its six checks and their

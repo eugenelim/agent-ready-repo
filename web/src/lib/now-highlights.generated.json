@@ -5,6 +5,71 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.20.0"
+        }
+      ],
+      "date": "2026-09-01",
+      "heading": "[core][2.20.0] — 2026-09-01",
+      "changelogAnchor": "core2200--2026-09-01",
+      "highlights": [
+        {
+          "source": "**Each reviewer now owns its concerns outright, so the same defect stops arriving twice under different severities.** Adversarial owns contract conformance, scope and structural fit; quality owns whether a test can actually fail and the edge cases a spec never named; security owns every threat finding. A reviewer that notices another lens's concern says so in its own lens instead of emitting that lens's finding.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Each reviewer now owns its concerns outright, so the same defect stops arriving twice under different severities."
+            },
+            {
+              "type": "text",
+              "value": " Adversarial owns contract conformance, scope and structural fit; quality owns whether a test can actually fail and the edge cases a spec never named; security owns every threat finding. A reviewer that notices another lens's concern says so in its own lens instead of emitting that lens's finding."
+            }
+          ]
+        },
+        {
+          "source": "**A clean review no longer pays for a model call to confirm it is clean.** The loop classifies a persisted reviewer report structurally rather than comparing it byte-for-byte to one sentence, so an ordinary clean pass skips adjudication. A report carrying security-reviewer's mandatory coverage-disclosure footer still takes the full adjudication path, because that footer is prose and prose is what adjudication exists to read.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A clean review no longer pays for a model call to confirm it is clean."
+            },
+            {
+              "type": "text",
+              "value": " The loop classifies a persisted reviewer report structurally rather than comparing it byte-for-byte to one sentence, so an ordinary clean pass skips adjudication. A report carrying security-reviewer's mandatory coverage-disclosure footer still takes the full adjudication path, because that footer is prose and prose is what adjudication exists to read."
+            }
+          ]
+        },
+        {
+          "source": "**A naming quibble no longer costs the same as a correctness blocker.** Nits do not block readiness and are never fixed automatically. They are recorded with their citation, deferred, and acted on only when the thread means to change the code because of one — and promoted first if that repair turns out to change behaviour, architecture, dependencies, or more than one file.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A naming quibble no longer costs the same as a correctness blocker."
+            },
+            {
+              "type": "text",
+              "value": " Nits do not block readiness and are never fixed automatically. They are recorded with their citation, deferred, and acted on only when the thread means to change the code because of one — and promoted first if that repair turns out to change behaviour, architecture, dependencies, or more than one file."
+            }
+          ]
+        },
+        {
+          "source": "**Security findings are now priced against a named attacker.** A finding has to be reachable on a path this codebase runs and must not rest on a capability that already gives the attacker an easier route. This narrows severity and never coverage: an unpriced real weakness is still reported, and a trust-boundary crossing, missing authentication check, leaked secret, or spec-required control never drops on likelihood alone.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Security findings are now priced against a named attacker."
+            },
+            {
+              "type": "text",
+              "value": " A finding has to be reachable on a path this codebase runs and must not rest on a capability that already gives the attacker an easier route. This narrows severity and never coverage: an unpriced real weakness is still reported, and a trust-boundary crossing, missing authentication check, leaked secret, or spec-required control never drops on likelihood alone."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.19.0"
         }
       ],
