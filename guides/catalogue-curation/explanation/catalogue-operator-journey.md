@@ -84,7 +84,7 @@ The ledger lives at a deterministic path derived from the run-id, so an interrup
 Each candidate gets a verdict: `assimilate`, `reject`, or `needs-new-pack`.
 
 For `needs-new-pack` candidates, `propose-catalogue-pack` tests the proposed pack against the catalogue's charter before scaffolding anything.
-The charter test is the gate — if the proposed pack doesn't clear all four principles, scaffolding does not happen and the reason is named.
+The charter test is the gate — if the proposed pack doesn't clear its applicable Charter admission path, scaffolding does not happen and the failing principle is named. A tech-stack accelerator pack takes the carve-out path: its specificity is the point, so it is exempt from Universal and must clear every other applicable principle plus the Charter's maintainer, maturity-scope, and deprecation gates.
 
 ### Assimilate and shape
 

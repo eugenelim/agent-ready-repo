@@ -1,0 +1,26 @@
+[
+  {
+    "query": "Should we add a new pack for database migration practices?",
+    "should_trigger": true
+  },
+  {
+    "query": "Propose and scaffold a new catalogue pack for incident response",
+    "should_trigger": true
+  },
+  {
+    "query": "Test whether this SaaS-specific accelerator pack fits our charter",
+    "should_trigger": true
+  },
+  {
+    "query": "Assimilate this single external skill into an existing pack",
+    "should_trigger": false
+  },
+  {
+    "query": "Survey this repository for ingestion candidates",
+    "should_trigger": false
+  },
+  {
+    "query": "Write an ADR for our database choice",
+    "should_trigger": false
+  }
+]

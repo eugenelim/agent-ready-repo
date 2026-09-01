@@ -64,8 +64,10 @@ you the options and its recommendation — it guides, it doesn't dump.
 
 You see the shaped target before it's written. Approve, and it's written into the
 destination pack through the engine's path-jail (nothing escapes `packs/`). The
-skill prompts you to run `make build-self` so the projection tracks the new
-source.
+skill then closes this catalogue's release contract with you: bump the pack and
+plugin versions, sync any hand-maintained inventory, run `make build-self`, and
+add the changelog entry — in that order, because the entry names the manifest
+that `build-self` regenerates.
 
 ## What you just relied on
 
@@ -79,7 +81,9 @@ Before the skill is fully landed, verify:
 
 - [ ] Raw body confirmed safe (human review of the verbatim fetch output)
 - [ ] OWASP AST review ran and returned clean (handled by `assimilate-primitive`)
+- [ ] Pack and plugin versions bumped together, hand-maintained inventory synced
 - [ ] `make build-self` ran without error after landing
+- [ ] Changelog entry added after `build-self`, free-standing at `##`
 - [ ] `agentbundle show <pack>` lists the assimilated skill by name
 - [ ] Activation evals authored and passing (`evals/eval_queries.json`)
 - [ ] PR open; adversarial review returned `Clean — ready to commit.`

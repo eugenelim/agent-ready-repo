@@ -52,6 +52,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.4] — 2026-08-31
+
+### Fixed
+
+- The `work-loop` behavior examples for its startup step now describe what the
+  skill actually does. Four of them still showed the superseded path, in which
+  raw `workspace.toml` queue membership was enough to begin work and a startup
+  read stood in for a full reconciliation. Work-loop resumes or starts only
+  from canonical `workspace-status` ready/active dispatch, and directs the
+  exhaustive sweep to `workspace-status reconcile`.
+
+## [catalogue-curation][0.4.6] / [governance-extras][0.10.5] — 2026-08-31
+
+### Highlights
+
+- **Assimilated primitives finish against the target catalogue's own release
+  contract.** Catalogue curators now close version, inventory, release-history,
+  and projection duties instead of stopping after the content write.
+- **New pack proposals reuse the target catalogue's RFC workflow.** The proposal
+  adds its primitive inventory without copying or drifting the canonical RFC
+  template.
+
+### Fixed
+
+- Catalogue-curation now ships activation and behavior evals for primitive
+  assimilation, repository re-sync, and pack proposals, including a
+  self-contained three-route RFC re-sync fixture.
+- Accelerator-pack policy no longer states two conflicting principle counts.
+- The governance-extras RFC template uses the platform-neutral
+  `<account-handle>` placeholder instead of assuming GitHub.
+
 ## [core][2.17.3] — 2026-08-31
 
 ### Highlights

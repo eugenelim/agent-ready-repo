@@ -49,8 +49,9 @@ What this project does:
 - Ships opt-in **tech-stack accelerator packs** for common infrastructure
   tooling, CI/CD platforms, and SaaS integrations — ready-to-run
   scaffolding for adopters who have already chosen a stack, not a
-  prescription for those who haven't. Each accelerator pack clears the
-  four principles below, plus: a named maintainer, a stated maturity
+  prescription for those who haven't. Each accelerator pack is exempt from the
+  Universal principle and must clear every other catalogue principle, plus a
+  named maintainer, a stated maturity
   scope (validated / contract-complete / experimental), and an
   archiving/deprecation path. The `iac-terraform` pack is the
   establishing precedent; future packs are judged against it.
@@ -60,10 +61,10 @@ What this project does **not** do:
 - **Not a marketplace of specialized agents.** The always-on core code-review
   gate is capped at three lenses: adversarial, security, and quality. A
   reviewer for a different loop or work type is not a fourth code-review lens,
-  but it must clear the four principles below and ADR-0042's unique-value,
+  but it must clear the catalogue principles below and ADR-0042's unique-value,
   distinct-cadence, and collision-hardening test through an RFC. This does not
   generally pre-authorize specialized agents. New skills earn a place by
-  clearing the four principles below; most candidates fail at least one.
+  clearing the catalogue principles below; most candidates fail at least one.
 - **Not prescriptive about tech-stack choices through the default install.**
   Frontend, backend, agentic, CLI, mobile, data — the core structure works
   for any of them. Opt-in accelerator packs (above) are tech-stack-specific
@@ -84,14 +85,14 @@ drift.
 
 ## Principles
 
-Every artifact in the catalogue earns its place by clearing the same
-four bars. These are the canonical principles referenced everywhere
+Every artifact in the catalogue earns its place by clearing the applicable
+bars below. These are the canonical principles referenced everywhere
 else in this repo when we discuss what to add and what to refuse.
 
 1. **Universal across tech stacks (core layer).** The core works for any
    adopter, not just a specific framework or language. Opt-in accelerator
    packs are tech-stack-specific by design — their specificity is the point;
-   they clear the remaining three principles instead of this one.
+   they clear every applicable non-Universal catalogue principle instead.
 2. **Substantive, not duplicative.** Adds what the template doesn't
    already encode somewhere.
 3. **A habit, not a tool.** Captures a way of working, not a piece of
@@ -99,7 +100,8 @@ else in this repo when we discuss what to add and what to refuse.
 4. **Used often enough to stick.** Reached for regularly, not once a
    year and forgotten.
 
-Most proposed additions don't clear all four. That's the point.
+Most proposed additions don't clear every applicable principle. That's the
+point.
 
 ## What's NOT in this charter
 

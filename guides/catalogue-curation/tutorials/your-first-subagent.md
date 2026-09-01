@@ -104,9 +104,9 @@ The subagent lands in `packs/<pack>/.apm/agents/<name>.md` — one Markdown file
 
 You see the shaped target before it is written.
 Approve, and it is written through the path-jail to the destination pack.
-The skill prompts you to run `make build-self` so the projection tracks the new source.
+The skill then closes this catalogue's release contract with you: bump the pack and plugin versions, sync any hand-maintained inventory, run `make build-self`, and add the changelog entry — in that order, because the entry names the manifest that `build-self` regenerates.
 
-After landing, verify: the shaped file is in `packs/<pack>/.apm/agents/`, `make build-self` has run without error, and `agentbundle show <pack>` lists the new agent.
+After landing, verify: the shaped file is in `packs/<pack>/.apm/agents/`, the pack and plugin versions match, `make build-self` has run without error, `agentbundle show <pack>` lists the new agent, and the changelog carries the release entry.
 
 ## What you just relied on
 

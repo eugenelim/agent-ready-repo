@@ -3,7 +3,7 @@
 and sibling-RFC references inline on first use. -->
 
 - **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Author:** <github-handle>
+- **Author:** <account-handle>
 - **Approver:** <approver who signs off>
 - **Date opened:** YYYY-MM-DD
 - **Date closed:** <!-- filled at a terminal status -->

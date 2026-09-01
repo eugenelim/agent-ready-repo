@@ -1,0 +1,22 @@
+{
+  "skill_name": "assimilate-repo",
+  "evals": [
+    {
+      "id": "resync-rfc-routing-self-contained",
+      "prompt": "Using the supplied open and frozen prior RFC fixtures plus the last-synced marker, classify three re-sync outcomes: an Open RFC with a changed and a new candidate; a Frozen RFC with an operator-flagged verdict typo; and a Frozen RFC with new candidates or reversed verdicts.",
+      "expected_output": "The Open RFC receives an in-place Amendment. The Frozen RFC's operator-flagged typo receives an additive Erratum only after Approver sign-off. Frozen new candidates or reversed verdicts require a new RFC, followed by an Approver-signed Erratum on the prior RFC naming the superseder. Unchanged hashes are skipped, and fresh decisions are never appended to a Frozen RFC's Errata.",
+      "assertions": [
+        "Routes the Open-RFC delta to an in-place Amendment",
+        "Treats a Frozen-RFC correction as operator-flagged and requires Approver sign-off before an Erratum",
+        "Routes Frozen new or reversed decisions to a new RFC",
+        "Records the superseder on the prior RFC only after Approver sign-off",
+        "Skips unchanged hashes and never appends fresh decisions to Frozen Errata"
+      ],
+      "files": [
+        "evals/files/resync/prior-rfc-open.md",
+        "evals/files/resync/prior-rfc-frozen.md",
+        "evals/files/resync/last-synced.toml"
+      ]
+    }
+  ]
+}

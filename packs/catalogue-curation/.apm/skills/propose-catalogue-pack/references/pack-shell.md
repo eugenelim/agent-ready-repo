@@ -1,7 +1,8 @@
 # Pack shell — what a new pack needs to register
 
-Scaffold these only after the area has cleared the additivity + four-principles
-bar. All writes route through `agentbundle.safety.write_jailed`.
+Scaffold these only after the area has cleared additivity and its applicable
+Charter admission path. All writes route through
+`agentbundle.safety.write_jailed`.
 
 ## Files
 - `packs/<name>/pack.toml` — the metadata source of truth. Required: `[pack]`

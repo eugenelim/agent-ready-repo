@@ -511,6 +511,18 @@ jobs:
       - name: pytest TDD stub lifecycle contract (roster-owned)
         run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
 
+      # curation QA + RFC template: the accelerator-pack admission rule spans
+      # docs/CHARTER.md and packs/catalogue-curation, and the RFC template
+      # guard's natural pack home (packs/governance-extras/tests/skills/
+      # new-rfc) is declared unrun in lint-pack-test-boundary's _NO_RUNNER.
+      # Both are therefore roster-owned, and CI does not auto-discover roster
+      # tests, so keep them explicit.
+      - name: pytest curation QA + RFC template contracts (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_curation_qa_contracts.py
+          tests/roster/test_rfc_template_contract.py
+
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +
       # the install→upgrade offer, and the dropped --scope flags. The CLI

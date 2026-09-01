@@ -1,6 +1,6 @@
 [pack]
 name = "catalogue-curation"
-version = "0.4.5"
+version = "0.4.6"
 description = "For catalogue maintainers: assimilate outside skills, survey repositories, propose packs, and compile pack-owned OKF knowledge."
 readme = "README.md"
 display_name = "Catalogue Curation"
@@ -28,7 +28,7 @@ repository = "https://github.com/eugenelim/agent-ready-repo"
 documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/catalogue-curation/"
 
 [pack.evals]
-skills = ["compile-okf"]
+skills = ["assimilate-primitive", "assimilate-repo", "compile-okf", "propose-catalogue-pack"]
 
 [[pack.maintainers]]
 name = "eugenelim"
