@@ -60,13 +60,16 @@ def test_authoring_standard_defines_the_fixed_aside_contract() -> None:
 
 
 def test_the_archival_conversion_record_stays_unwired() -> None:
-    """The blockquote-ledger file must not be added to a gated pytest list.
+    """The release-tripwire file must not be added to a gated pytest list.
 
-    It pins a reviewed 172-row ledger across `guides/**` with no regenerator,
-    and `build-check.yml` has no `paths:` filter — so gating it would redden a required
-    check when someone adds a blockquote to an unrelated guide. Asserted rather than
-    left to a hand-run grep, so re-wiring it is detected rather than discovered.
-    See `guide-blockquote-ledger-has-no-regenerator`.
+    Its two assertions pin a released changelog section and a shipped spec's
+    handoff record. Neither has a mechanical repair, so a failure is worth a
+    human look rather than a red required check. Asserted rather than left to a
+    hand-run grep, so re-wiring it is detected rather than discovered.
+
+    The ledger's own self-consistency is `tools/test_guide_ledger_integrity.py`,
+    which *is* gated: nothing compares that ledger to `guides/` any more, so no
+    guide edit can redden it.
     """
     for relative in GATED_LISTS:
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
@@ -77,6 +80,6 @@ def test_the_archival_conversion_record_stays_unwired() -> None:
         ]
         assert not hits, (
             f"{relative}:{hits} wires {ARCHIVAL_RECORD} into a gate. It is deliberately "
-            f"unwired — see its module docstring and the register slug "
-            f"guide-blockquote-ledger-has-no-regenerator. Gate this file instead."
+            f"unwired — its two assertions have no mechanical repair; see its module "
+            f"docstring. Gate tools/test_guide_ledger_integrity.py instead."
         )

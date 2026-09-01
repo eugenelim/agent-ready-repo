@@ -1,6 +1,6 @@
 # Spec: guide typed asides test gate
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (AC6's register anchor `guide-blockquote-ledger-has-no-regenerator` was closed by [`guide-callout-inventory`](../guide-callout-inventory/spec.md); not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none

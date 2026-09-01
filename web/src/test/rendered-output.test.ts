@@ -224,6 +224,7 @@ interface SourceCallouts {
 function sourceCallouts(sourcePath: string): SourceCallouts {
   const lines = readFileSync(join(REPO_ROOT, sourcePath), 'utf8').split('\n');
   let fence: { marker: string; length: number } | undefined;
+  let inAside = false;
   let inBlockquote = false;
   const callouts: SourceCallouts = {
     blockquotes: 0,
@@ -241,14 +242,28 @@ function sourceCallouts(sourcePath: string): SourceCallouts {
       if (closing.test(line)) fence = undefined;
       continue;
     }
+
+    const aside = line.match(/^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$/);
+    if (!inAside && aside) {
+      callouts.asides[aside[1] as AsideType] += 1;
+      inAside = true;
+      inBlockquote = false;
+      continue;
+    }
+    if (inAside) {
+      // A quoted line inside an aside body renders as a <blockquote> nested in
+      // the aside, and the built-side comparison filters those out — counting
+      // it here would redden the suite for a guide with no defect.
+      if (line.trimEnd() === ':::') inAside = false;
+      continue;
+    }
+
     if (line.startsWith('>')) {
       if (!inBlockquote) callouts.blockquotes += 1;
       inBlockquote = true;
       continue;
     }
     inBlockquote = false;
-    const aside = line.match(/^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$/);
-    if (aside) callouts.asides[aside[1] as AsideType] += 1;
   }
   return callouts;
 }

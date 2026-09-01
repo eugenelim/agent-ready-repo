@@ -8,8 +8,11 @@ release tripwires in `tools/test_guide_typed_asides.py`.
 
 `check_ledger` is a pure function over already-parsed rows so every rule can be
 killed against a mutated copy. `test_each_rule_is_falsifiable` does exactly
-that, one mutation per rule, with a positive control on the unmutated copy — so
-the falsifiability evidence re-runs in CI instead of living in a note.
+that, and each case names the violation substring its rule must produce.
+Asserting only that *some* violation came back would not kill a rule: several
+mutations also perturb a `(path, line, content_sha256)` tuple, so the baseline
+comparison fires for them too and three rules could be deleted with the suite
+still green.
 """
 
 from __future__ import annotations
@@ -51,7 +54,16 @@ def load_rows(path: Path) -> list[Row]:
 
 
 def _identities(rows: list[Row]) -> list[tuple[object, object, object]]:
-    return [(row["path"], row["line"], row["content_sha256"]) for row in rows]
+    """Identity triples, tolerating a row that is missing one of the three.
+
+    `.get` rather than indexing: a row that failed the field-set rule still
+    reaches here, and a corrupted JSONL merge should surface as a violation
+    rather than as a traceback out of a function that promises a list.
+    """
+    return [
+        (row.get("path"), row.get("line"), row.get("content_sha256"))
+        for row in rows
+    ]
 
 
 def check_ledger(ledger: list[Row], baseline: list[Row]) -> list[str]:
@@ -103,10 +115,12 @@ def test_the_frozen_ledger_is_self_consistent() -> None:
 
 
 def test_each_rule_is_falsifiable() -> None:
-    """One killing mutation per rule, each against its own deep copy.
+    """One killing mutation per rule, each asserting its own violation.
 
-    Sharing one mutated structure across cases would let an earlier mutation
-    satisfy a later case, so every case starts from a fresh copy.
+    Every case starts from a fresh deep copy, so an earlier mutation cannot
+    satisfy a later case, and each asserts the substring only its own rule
+    emits — otherwise a mutation that also perturbs an identity tuple would be
+    "killed" by the baseline comparison while its own rule went unproven.
     """
     ledger = load_rows(LEDGER_PATH)
     baseline = load_rows(BASELINE_PATH)
@@ -144,32 +158,46 @@ def test_each_rule_is_falsifiable() -> None:
         rows[1]["path"] = rows[0]["path"]
         rows[1]["anchor"] = rows[0]["anchor"]
 
+    def drop_identity_field(rows: list[Row]) -> None:
+        del rows[0]["path"]
+
     ledger_mutations = (
-        ("item numbering", renumber),
-        ("missing field", drop_field),
-        ("extra field", add_field),
-        ("non-terminal status", bad_status),
-        ("unknown classification", bad_classification),
-        ("blank reason", blank_reason),
-        ("blank anchor", blank_anchor),
-        ("malformed digest", bad_digest),
-        ("duplicate identity", duplicate_identity),
-        ("duplicate anchor", duplicate_anchor),
+        ("item numbering", renumber, "item numbers are not 1..N in order"),
+        ("missing field", drop_field, "field set is not the recorded eight"),
+        ("extra field", add_field, "field set is not the recorded eight"),
+        ("non-terminal status", bad_status, "is not terminal"),
+        ("unknown classification", bad_classification, "is not allowed"),
+        ("blank reason", blank_reason, "reason is empty"),
+        ("blank anchor", blank_anchor, "anchor is empty"),
+        ("malformed digest", bad_digest, "is not a sha256 digest"),
+        (
+            "duplicate identity",
+            duplicate_identity,
+            "duplicate (path, line, content_sha256) identities",
+        ),
+        ("duplicate anchor", duplicate_anchor, "anchors are not unique within a guide"),
+        (
+            "row missing an identity field",
+            drop_identity_field,
+            "field set is not the recorded eight",
+        ),
     )
 
     survivors: list[str] = []
-    for name, mutate in ledger_mutations:
+    for name, mutate, expected in ledger_mutations:
         mutated = copy.deepcopy(ledger)
         mutate(mutated)
         assert mutated != ledger, f"{name}: mutation did not apply"
-        if not check_ledger(mutated, copy.deepcopy(baseline)):
-            survivors.append(name)
+        violations = check_ledger(mutated, copy.deepcopy(baseline))
+        if not any(expected in violation for violation in violations):
+            survivors.append(f"{name} (expected {expected!r}, got {violations[:3]})")
 
     # Baseline drift is the one rule a ledger-side mutation cannot reach.
     drifted = copy.deepcopy(baseline)
     drifted[0]["content_sha256"] = "0" * 64
     assert drifted != baseline, "baseline drift: mutation did not apply"
-    if not check_ledger(copy.deepcopy(ledger), drifted):
+    violations = check_ledger(copy.deepcopy(ledger), drifted)
+    if not any("drifted from the frozen baseline" in v for v in violations):
         survivors.append("baseline drift")
 
     assert survivors == [], f"rules with no killing mutation: {survivors}"

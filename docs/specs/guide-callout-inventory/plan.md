@@ -1,7 +1,7 @@
 # Plan: guide-callout-inventory
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `web/src/test/rendered-output.test.ts:231-249`
   (`sourceAsideCount` — the source-derived pattern this change mirrors) and
   `:994-1019` (the ledger-derived half it replaces);
@@ -141,11 +141,16 @@ One PR, reversible by revert. No flag, no runtime surface, no infrastructure.
   enforcing it forever is the coupling being removed.
 - **`make test` does not cover the `web/` half.** A green `make ci` alone does
   not prove T1. The vitest run is a separate, named gate in T3's Done-when.
-- **A blockquote run's definition could drift from remark's.** Both counters
-  use column-0 markers; an indented `>` would be counted by remark and not by
-  either counter. Measured: zero such cases in `guides/**` today, and the
-  asymmetry already exists for asides, so this change neither adds nor removes
-  it.
+- **A blockquote run's definition diverges from remark's in three ways, all
+  measured at zero in `guides/**` today.** An indented `>` is a blockquote to
+  remark and is not counted here. A lazy continuation (`> a` / `b` / `> c`) is
+  one blockquote to remark and two runs to this counter. A nested `> >` is one
+  run here and two `<blockquote>` elements in the DOM. Each would surface as a
+  count mismatch on a guide with no defect. A fourth case — a quoted line inside
+  a `:::` aside body — is handled rather than accepted, because the built-side
+  comparison filters blockquotes nested in an aside and ordinary authoring will
+  hit it; `sourceCallouts` skips aside bodies, and the counter-factual is
+  recorded in `notes/falsifiability.md`.
 
 ## Changelog
 

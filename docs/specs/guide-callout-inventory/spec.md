@@ -1,6 +1,6 @@
 # Spec: guide-callout-inventory
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -78,9 +78,11 @@ entry that tracked the coupling is gone, because the coupling is gone.
       is a contiguous block of lines beginning `>` at column 0 outside a fenced
       code block, fences being matched by the same expressions
       `sourceAsideCount` already uses.
-- [ ] **AC3 — A guide's built asides are still checked against its own
-      source.** The existing `sourceAsideCount` comparison survives unchanged
-      in behaviour, so removing the ledger loses no aside coverage.
+- [ ] **AC3 — A guide's built asides are checked against its own source, per
+      type.** For every `guides/**/*.md`, the rendered-output suite compares the
+      count of built `aside.starlight-aside--<type>` elements against the count
+      of `:::<type>` blocks in that file's source, for each of `note`, `tip`,
+      `caution`, `danger`.
 - [ ] **AC4 — The ledger's integrity is asserted against itself.**
       `tools/test_guide_ledger_integrity.py` checks: `item` values exactly
       `1..N` in order; every row carrying exactly the fields `item`, `path`,
@@ -140,11 +142,15 @@ entry that tracked the coupling is gone, because the coupling is gone.
   `tools/test_local_ci_shared_test_deduplication.py:175-182,1240`).
 - Process: `tools/test_guide_typed_asides.py` stays unwired, so
   `docs/specs/guide-typed-asides-test-gate/spec.md` AC4 and AC5 both remain
-  true and nothing is superseded; `tools/test_guide_ledger_integrity.py` is a
-  new file that frozen spec makes no claim about, and
-  `test_the_archival_conversion_record_stays_unwired` keeps passing unchanged
-  (source: that spec's AC4–AC5 and
-  `tools/test_guide_authoring_standard.py:62-82`).
+  true, and `tools/test_guide_ledger_integrity.py` is a new file that frozen
+  spec makes no claim about. Its **AC6** is a different matter: it requires
+  every gate-excluded assertion to resolve to a `[backlog].open` slug, and the
+  deleted slug was that resolution for the two surviving tripwires. Nothing is
+  superseded — every decision in that spec stands — so the licensed
+  non-supersession `Status`-line pointer of `docs/CONVENTIONS.md` § *Superseding
+  a frozen document* records the closure instead, on both that spec and the plan
+  that names the anchor (source: that spec's AC4–AC6, its
+  `plan.md:94-96`, and `docs/CONVENTIONS.md:186-203`).
 - Process: no spec carries a deferral marker naming this slug, so deleting the
   register entry cannot break `lint-spec-status.py` invariant (iv). Stated
   without spelling the marker on purpose: `_DEFERRED_RE` in that linter matches
@@ -161,6 +167,12 @@ entry that tracked the coupling is gone, because the coupling is gone.
   `guides/**` and compared only against `guides/**` was cut at the necessity
   rung: its diff is redundant with the guide diff that produced it (source:
   user direction 2026-08-31).
+- Product: per-type counting is accepted as weaker than the deleted
+  ledger-to-HTML test in one respect: that test resolved each classified row to
+  emitted HTML by anchor text, so an aside whose rendered body is replaced
+  wholesale, or two same-type asides that swap position, now pass. Accepted
+  rather than replaced with a source-derived body check, which would add scope
+  the contract does not require (source: user direction 2026-09-01).
 - Product: enforcing the reviewed judgement that a specific block stays a
   quotation is deliberately given up. That judgement is frozen history, two
   of its rows are already stale from legitimate rewording, and enforcing it
