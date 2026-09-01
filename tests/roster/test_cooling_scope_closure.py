@@ -1,5 +1,7 @@
+import hashlib
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import uuid
@@ -417,3 +419,28 @@ def test_ac11_paused_projection_omits_initiative_queue_empty(
     assert result["closeout"]["paused"] is True
     assert result["closeout"]["next_action"] == "resume-or-keep-paused"
     assert result["initiatives"] == []
+
+
+def test_ac12_wave6_residual_assertion_is_replaced() -> None:
+    """AC12: Wave 6's residual assertion is replaced in place."""
+    text = (
+        ROOT / "tests/roster/test_status_projection_and_context_exclusion.py"
+    ).read_text(encoding="utf-8")
+
+    assert "def test_a_fully_cooled_initiative_still_reports_unshipped_specs" not in text
+    assert "def test_a_fully_cooled_initiative_reports_all_specs_shipped" in text
+    assert 'projection["closeout"]["all_specs_shipped"] is True' in text
+
+
+def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
+    """AC13: the Wave 6 roster changes by only the residual-test rename."""
+    text = (
+        ROOT / "tests/roster/test_status_projection_and_context_exclusion.py"
+    ).read_text(encoding="utf-8")
+    names = sorted(
+        match.group(1) for match in re.finditer(r"^def (test_\w+)", text, re.M)
+    )
+
+    assert hashlib.sha256("\n".join(names).encode()).hexdigest() == (
+        "6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637"
+    )
