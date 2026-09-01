@@ -54,6 +54,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.21.0] — 2026-09-01
+
+### Highlights
+
+- **Spec authoring now says where the evidence for a rule belongs.** Criteria
+  state the observable, plans carry the mechanism, and the evidence that a
+  mechanism is the right one goes in Assumptions with its source. That third
+  category previously had no home, so it was written into both the criterion
+  and the task, and the two copies drifted apart as the spec was revised.
+
+### Changed
+
+- `new-spec`'s acceptance-criteria guidance gains the three-way content-home
+  rule and a worked example (`H1`) showing one rule expressed as a criterion, a
+  plan bullet, and an assumption. The existing observable-outcome rule is
+  unchanged; this extends it to the case it did not cover.
+
 ## [core][2.20.1] — 2026-09-01
 
 ### Highlights

@@ -89,6 +89,11 @@ RULES = (
         "A criterion names an observable outcome. Naming a function's parameters, a helper, or a call sequence is the give-away that the content belongs in the plan.",
     ),
     (
+        "grounding-home",
+        "spec",
+        "Evidence that a mechanism is the **right** one is neither the outcome nor the mechanism. It is grounding: it belongs in Assumptions with its source, and the criterion cites it rather than carrying it.",
+    ),
+    (
         "plan-mechanism",
         "skill",
         "Carry mechanism, never a restatement of a criterion.",
@@ -110,6 +115,15 @@ EXAMPLES = (
     ('E3', 'stays one', 'One comparison value expressed in parts — the split test never engages, because there is one failure and one remedy.', 'the digest preimage is the u64be path length, the path bytes, the execute byte, the u64be content length, then the content bytes.'),
     ('E4', 'splits', '"X is correct" is not checkable as written: it expands into a different check per member.', 'the same constraint, correctness, holds across stdout and the exit code.'),
     ('E5', 'stays one', 'Different failure modes (interception, script access) but one substitutable predicate and one remedy.', 'session cookies are set `Secure` and `HttpOnly`.'),
+)
+
+# The H-series demonstrates a different axis from the E-series: not whether a
+# criterion splits, but which of the three documents owns each kind of content.
+# One rule shown three ways, so the trio only makes its point intact.
+HOME_EXAMPLES = (
+    ('H1', 'criterion', 'Checkable by reading output.', '`complete_with` omits `reviewers-clean` at any budget value that is not `within-budget`.'),
+    ('H1', 'plan', 'Mechanism the criterion must not name.', 'Resolve the counter through the guard module\'s non-negative-integer helper, passing a sentinel it rejects rather than a default.'),
+    ('H1', 'assumption', 'Why the rule earns its place; delete it and the criterion looks arbitrary at the next review.', 'Nothing else reads the fingerprint pair, so on that branch this projection is the only backstop'),
 )
 
 
@@ -151,6 +165,51 @@ def test_worked_example_has_one_owner_and_occurs_once(
         assert f"**{identifier} — {verdict}.**" not in other_text
         assert example not in other_text
         assert criterion not in other_text, f"{identifier} exemplar duplicated"
+
+
+@pytest.mark.parametrize(
+    ("identifier", "home", "rationale", "content"),
+    HOME_EXAMPLES,
+    ids=[f"{example[0]}-{example[1]}" for example in HOME_EXAMPLES],
+)
+def test_content_home_example_shows_all_three_homes(
+    identifier: str, home: str, rationale: str, content: str
+) -> None:
+    """The trio is the rule; any one of the three alone teaches the wrong thing.
+
+    Criterion-only reads as "no mechanism in specs", which the existing
+    observable-outcome rule already says. Criterion-plus-plan reads as a
+    two-way split, which is what left grounding evidence homeless and got it
+    copied into both. Pin all three so a well-meaning trim cannot drop the
+    assumption row and reintroduce the defect this rule exists to stop.
+    """
+    owner_text = flattened(SPEC)
+    assert f"**{identifier} — {home}.**" in owner_text
+    assert owner_text.count(rationale) == 1
+    assert owner_text.count(content) == 1, f"{identifier}/{home} content missing or duplicated"
+    for other_path in (SKILL, PLAN):
+        assert f"**{identifier} — {home}.**" not in flattened(other_path)
+
+
+def test_content_home_rule_sits_with_the_criterion_shape_rules() -> None:
+    """Placement, not just presence.
+
+    The rule is only actionable while criteria are being written, so it must sit
+    inside the Acceptance Criteria guidance next to the observable-outcome rule
+    it extends -- not in Assumptions, where a reader arrives after the criteria
+    are already wrong. A phrase pin proves a sentence exists in a file and
+    nothing about where.
+    """
+    body = flattened(SPEC)
+    observable = "A criterion names an observable outcome."
+    grounding = "Evidence that a mechanism is the **right** one"
+    assumptions = "## Assumptions"
+    for phrase in (observable, grounding, assumptions):
+        assert phrase in body
+    assert body.index(observable) < body.index(grounding) < body.index(assumptions), (
+        "the grounding-home rule must sit with the criterion-shape rules, "
+        "between the observable-outcome rule and the Assumptions section"
+    )
 
 
 def test_unreachable_corpus_rule_is_not_duplicated_within_its_owner() -> None:
