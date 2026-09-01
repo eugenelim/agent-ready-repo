@@ -105,9 +105,12 @@ rather than on a fixture error. The observed verdicts:
 | AC29 | RED | no erratum entry exists |
 | AC30 | RED | no erratum entry exists |
 | AC32 | GREEN | preservation — both conditions present today |
+| AC31 | n/a | `no stub (mode)` — the release checklist verifies it |
 | AC33 | RED | the closure sentence is absent |
 
-**This table is the single source for every criterion's class.** The spec's
+**This table is the single source for every criterion's class**, including the
+one `no stub (mode)` criterion, so the table's row count equals the criteria
+count. The spec's
 Testing Strategy points here and states no counts, because three earlier drafts
 stated them in two or three places and each copy drifted. Totals: 17 red, 15
 preservation, 1 `no stub (mode)` — 33.
@@ -237,12 +240,17 @@ Traces to: AC9, AC11.
   builder at
   `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
   rather than authoring a second one. Assert the fixture is real with a
-  **pair**, not a single run: the cooled artifact is present in
-  `canonical.ready` with `docs/lifecycle/` removed and absent with it present. A
-  single absence assertion passes when the artifact was never dispatchable, and
-  `_cooled_locators` requires `member.exists()` — so a record naming a
-  nonexistent path yields an *empty* cooled set and a byte-identical pair while a
-  one-sided guard still passes.
+  **pair**, not a single run, and on the right field. A legacy entry is a bare
+  string in the queue (`"spec/legacy"`, not a table) and never reaches
+  `canonical.ready` at all: `_parse_membership_entry` returns no membership for a
+  legacy shape, so it lands only in `legacy_memberships`, which is what
+  `evaluations` — and therefore `ready` — is not built from. Measured on the
+  reused fixture: `canonical.ready` is `[]` in **both** runs, while
+  `canonical.legacy_memberships` is `['spec/legacy']` uncooled and `[]` cooled.
+  The guard is therefore that pair on `legacy_memberships`. It matters because
+  `_cooled_locators` requires `member.exists()`, so a record naming a nonexistent
+  path yields an *empty* cooled set and a byte-identical pair that a one-sided
+  guard would pass.
 - For AC17 and AC18 the queued spec's `Status` is `Shipped`, so a Type-2
   automatic operation exists and `repair-apply` actually writes. AC18 asserts
   `workspace.toml` changes in **both** runs before comparing them; otherwise a
@@ -443,8 +451,9 @@ red recorded in the table.
 **Depends on:** T5
 
 **Verification mode:** TDD for AC29, AC30 and AC33 — each is a literal search
-over the RFC and each was observed red. AC23 and AC28 are preservation digests
-with mutation rows.
+over the RFC and each was observed red. AC29 counts `Approver: eugenelim`
+occurrences rather than testing presence, because the 2026-08-27 entry already
+supplies one. AC23 and AC28 are preservation digests with mutation rows.
 
 **Approach:**
 - Append one dated, signed erratum to RFC-0096 § Errata carrying: the four-slice
@@ -453,7 +462,13 @@ with mutation rows.
   `cooling-closeout-eligibility` and `cooling-repair-migration-scope` were closed
   by `cooling-scope-closure`; and that Wave 6's
   `wave6-dependency-scoped-completion-receipts` is registered here as
-  `rfc0096-wave7a-ii-completion-receipts`. Do not touch §9.
+  `rfc0096-wave7a-ii-completion-receipts`. Write the literals AC29, AC30 and
+  AC33 pin verbatim — `owned by Wave 7a-ii`, `owned by Wave 7b`, `owned by Wave
+  7c`, `admits any documented code`, `closed by cooling-scope-closure`, `without
+  being verified against its artifact`, `registered here as
+  rfc0096-wave7a-ii-completion-receipts`, and AC26's four slice literals — and
+  sign it `Approver: eugenelim`, which makes two occurrences in § Errata. Do not
+  touch §9.
 - Edit neither frozen dependency: the erratum is the durable record of closure,
   and AC23 pins the six files in its table byte-for-byte, including both frozen
   plans.
@@ -471,7 +486,9 @@ invocation. `no stub (mode)`.
 
 **Approach:**
 - Re-derive the version from `git show origin/main:packs/core/pack.toml`
-  immediately before committing. This is a process step, not an assertion: a
+  immediately before committing. `origin/main` moved from 2.18.2 to 2.19.0 during
+  this contract's review, which is why AC31's floor is `(2, 19, 0)` and why this
+  step is not optional. This is a process step, not an assertion: a
   test reading `origin/main` at assertion time depends on fetch state and
   re-baselines exactly as a merge-base comparison does.
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`, and

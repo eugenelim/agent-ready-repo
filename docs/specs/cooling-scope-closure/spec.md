@@ -47,7 +47,7 @@ exact observable it must produce.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| `decision-record` | Applicable: RFC-0096 §9 scopes Wave 7, this delivery ships its first slice, and §9's objective does not name either follow-on closing here | [`docs/rfc/0096-portable-delivery-artifact-lifecycle.md`](../../rfc/0096-portable-delivery-artifact-lifecycle.md) § Errata | Approver | AC29, AC30 and AC33: a dated, Approver-signed erratum carrying the four-slice split with what each slice owns, the three follow-on slugs with owners, and the corrected `cooling-brief-child-scope` basis | Closeout verifies all three erratum contents and AC28's §9 body digest |
+| `decision-record` | Applicable: RFC-0096 §9 scopes Wave 7, this delivery ships its first slice, and §9's objective does not name either follow-on closing here | [`docs/rfc/0096-portable-delivery-artifact-lifecycle.md`](../../rfc/0096-portable-delivery-artifact-lifecycle.md) § Errata | Approver | AC29, AC30 and AC33: a dated, Approver-signed erratum carrying the four-slice split with what each slice owns, the four follow-on slugs with owners, the corrected `cooling-brief-child-scope` basis, both closures, the accepted residual, and the receipt slug's rename | Closeout verifies all three erratum contents and AC28's §9 body digest |
 | `current-architecture` | Applicable: the wave-ownership statement gains the slice split | [`docs/architecture/work-intake-and-artifact-routing.md`](../../architecture/work-intake-and-artifact-routing.md) | maintainer | AC25 and AC26 | Closeout verifies the three pinned strings, the absent string, and the four named slices |
 | `user-documentation` (reference) | Applicable: the closeout derivation a reader relies on changes | [`guides/core/reference/work-intake-routing-and-lifecycle.md`](../../../guides/core/reference/work-intake-routing-and-lifecycle.md) | maintainer | AC27 | Closeout verifies the literal statement |
 | `user-documentation` (workflow instructions) | Applicable: the agent-rendered closeout gate reads the changed facts | [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | maintainer | AC14, AC15, AC16, AC32 | Closeout verifies the exclusion statement, the narrowed rationale, the withholding rule, and the two retained conditions |
@@ -313,33 +313,42 @@ a green for the wrong reason.
   `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`.
 - [ ] **AC29 — The erratum records the four-slice split and what each slice
   owns.** Whitespace-normalized, the RFC's § Errata contains `Approver:
-  eugenelim`, `cooling-scope-closure` and each of the four literals AC26
-  requires of the architecture surface. Its date is the date of the commit that
-  adds it, which the release checklist verifies rather than a test.
+  eugenelim` **twice** — it occurs once today, in the 2026-08-27 entry, so one
+  occurrence cannot distinguish a signed new erratum from an unsigned one — and
+  contains `cooling-scope-closure` and each of the four literals AC26 requires of
+  the architecture surface. Its date is the date of the commit that adds it,
+  which the release checklist verifies rather than a test.
 - [ ] **AC30 — The erratum registers the three open follow-ons and corrects the
   `cooling-brief-child-scope` basis.** The same erratum names
   `rfc0096-wave7a-ii-completion-receipts`,
   `rfc0096-wave7b-historical-classification`, `rfc0096-wave7c-pruning`, and
-  `cooling-brief-child-scope` with their owning slices, and states that Wave 6's `cooling-brief-child-scope`
-  entry misattributes its constraint to that spec's own AC46 pinned pair when the finding-code
-  documentation gate is a superset check admitting any documented code.
+  `cooling-brief-child-scope`, and contains each of the literals `owned by Wave
+  7a-ii`, `owned by Wave 7b`, `owned by Wave 7c`, and `admits any documented
+  code`. The last records the corrected `cooling-brief-child-scope` basis: Wave
+  6's entry misattributes its constraint to that spec's own AC46 pinned pair,
+  when the finding-code documentation gate is a superset check.
 - [ ] **AC33 — The erratum records both closures, the accepted residual, and the
   receipt slug's rename.** The same erratum states that
   `cooling-closeout-eligibility` and `cooling-repair-migration-scope` were closed
-  by `cooling-scope-closure`; that the closure accepts the residual Wave 6
-  named — a lifecycle record that reads cleanly now moves an initiative toward an
-  affirmative closeout recommendation without being verified against its
-  artifact; and that Wave 6's `wave6-dependency-scoped-completion-receipts` is
-  registered here as `rfc0096-wave7a-ii-completion-receipts`.
+  by `cooling-scope-closure`, and contains each of the literals `closed by
+  cooling-scope-closure`, `without being verified against its artifact`, and
+  `registered here as rfc0096-wave7a-ii-completion-receipts`. The second records
+  the residual Wave 6 named and this closure accepts: a lifecycle record that
+  reads cleanly moves an initiative toward an affirmative closeout recommendation
+  without being cross-checked against the artifact it names.
 - [ ] **AC31 — The release surface agrees.** `packs/core/pack.toml`'s version,
   `packs/core/.claude-plugin/plugin.json`'s `version`, and the topmost dated
   `[core]` changelog heading are one identical value whose parsed
-  `(major, minor, patch)` tuple is strictly greater than `(2, 18, 2)`.
+  `(major, minor, patch)` tuple is strictly greater than `(2, 19, 0)` — the
+  version `origin/main` carries at this contract's approval, not the merge base
+  it was first drafted against. The release checklist re-derives the number from
+  `git show origin/main:packs/core/pack.toml` immediately before the commit,
+  because a fixed floor cannot see a version main takes after approval.
 
 ## Follow-ons
 
-Separately scoped work this delivery does not perform. The erratum AC29 and AC30
-require is the register for all four.
+Separately scoped work this delivery does not perform. The erratum AC29, AC30
+and AC33 require is the register for all four.
 
 | Slug | Outcome | Owner |
 | --- | --- | --- |

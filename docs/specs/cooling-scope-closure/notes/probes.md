@@ -123,3 +123,51 @@ with the evidence rather than in a review artifact that is not committed:
 
 Neither constrains this delivery, which adds no collection and no finding code.
 Both are load-bearing for Wave 7a-ii and are carried on its follow-on row.
+
+## Probe 6 — AC17's mutation is a killing one, and the fixture shape is why
+
+AC17-AC22 pin a decision rather than a change, so the question is whether their
+control pairs *could* differ under a wrong implementation. `repair-plan` calls
+`analyze(..., cooling_enabled=False)`, and the mutation row is exactly the flip
+of that flag. Measured over AC17's fixture — one `work.queue` entry whose spec is
+`Status: Shipped`, so a Type-2 repair operation exists:
+
+```
+cooling_enabled=False  (today)   type2 findings=[docs/specs/cooled-one/spec.md]  files_read=4
+cooling_enabled=True             type2 findings=[]                              files_read=2
+```
+
+The repair operation for the cooled spec disappears. So the mutation reddens
+AC17, the criterion is a real regression guard, and the guard has a killing edit.
+
+The fixture shape is load-bearing, not incidental. The difference appears only
+because the queued spec is `Shipped` and therefore produces a Type-2 finding. An
+ordinary `Approved` spec yields no operation in either run, both sides are empty,
+and the mutation is silent — which is the vacuity AC18's fixture requirement and
+T1's Done-when exist to prevent.
+
+## Probe 7 — a legacy entry never reaches `canonical.ready`
+
+The realness guard for the migration criteria was first written against
+`canonical.ready`. That field cannot express it. A legacy queue entry is a bare
+string, not a table, and `_parse_membership_entry` returns no membership for that
+shape — so it lands only in `legacy_memberships`, and `evaluations`, which is the
+sole source of `ready`, is built from memberships. Measured on the
+migration-effects fixture's `"spec/legacy"` shape with
+`docs/specs/legacy/spec.md` cooled:
+
+| Run | `canonical.ready` | `canonical.legacy_memberships` |
+| --- | --- | --- |
+| `docs/lifecycle/` removed | `[]` | `['spec/legacy']` |
+| record present | `[]` | `[]` |
+
+`ready` is empty in both runs, so a guard on it passes whatever the cooled set
+does. `legacy_memberships` is the discriminating field, and T1's guard asserts
+that pair.
+
+One shape correction this probe forced: the first attempt used
+`{path = "spec/legacy", needs = []}`, a table, which the parser accepts as a
+canonical entry and never treats as legacy — both fields came back empty and the
+guard looked broken when the fixture was. The legacy form is the bare string, as
+`packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
+writes it.
