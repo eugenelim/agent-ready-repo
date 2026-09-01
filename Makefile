@@ -611,6 +611,7 @@ $(PYTHON) -m pytest \
 	tools/test_contract_parity.py \
 	tools/test_marketplace_envelope_parity.py \
 	tools/test_guide_authoring_standard.py \
+	tools/test_guide_ledger_integrity.py \
 	tools/test_release_check.py \
 	tools/test_check_release_impact.py \
 	tools/test_scaffold_projection.py \
