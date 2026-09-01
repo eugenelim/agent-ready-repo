@@ -556,6 +556,8 @@ requires Status: Shipped). A direct-light run has no spec status to write and
 fires no engine or cohort transition:
 ```
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
+# The transition must succeed before recording. It prints `(seq=N)`; pass that N
+# as the operation id's sequence so a resuming session recomputes the same id.
 # If at least one reviewer produced the exact direct-clean sentinel, persist
 # that reviewer's complete return to the ignored session path first, then name
 # the file; the command reads its bytes and compares them to the sentinel, so a
