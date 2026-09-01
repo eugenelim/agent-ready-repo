@@ -1035,6 +1035,7 @@ def test_ac33_erratum_records_closures_residual_and_receipt_rename() -> None:
     ):
         assert statement in errata, statement
 
+
 def test_ac31_release_surfaces_agree_above_the_floor() -> None:
     """AC31: the three core release surfaces hold one identical version.
 
