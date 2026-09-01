@@ -208,8 +208,32 @@ Keep two visibly separate groups:
 
 The work-loop/CI verification gate runs `scripts/lint-brief-coverage.py` after
 a mapped spec status changes. This authoring skill does not invoke a shell. An
-empty Spec map is not delivered, a map is delivered only when every mapped spec
-is `Shipped`, and a hand-written stale status fails closed.
+empty Spec map is not delivered. An all-shipped map is eligible for closeout but
+does not close the brief: delivery is reported only when the brief itself is
+explicitly `Shipped`, and a missing, contradictory, or hand-written stale status
+fails closed.
+
+## Brief lifecycle
+
+The brief status and its `workspace.toml` collection use the same token:
+
+- `Draft` has not passed the Ready gate.
+- `Ready` has passed that gate and has no `Implementing` or `Shipped` child.
+- `Executing` is an open brief with at least one `Implementing` or `Shipped`
+  child. It remains Executing when every currently materialized child is
+  Shipped but another slice has not yet been materialized.
+- `Shipped` is an explicit successful closeout with a non-empty Spec map whose
+  children are all `Shipped`.
+- `Withdrawn` is an explicit terminal closeout before any child reaches
+  `Implementing` or `Shipped`.
+- `Cancelled` is an explicit terminal closeout after at least one child reaches
+  `Implementing` or `Shipped`.
+
+Child statuses are never rewritten to make a brief transition fit. Move an
+entry between the matching `brief_queue` collections in the same reviewed
+change that updates the brief. Route a request to ship, withdraw, or cancel a
+brief through `close-work`; create and continue modes do not self-certify a
+terminal outcome.
 
 ## Project-knowledge gate: `brief-ready`
 

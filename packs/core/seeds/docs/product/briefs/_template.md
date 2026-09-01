@@ -11,7 +11,7 @@
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename. Derived specs back-link this brief by path (`docs/product/briefs/<slug>.md`), not by the bare slug -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
-- **Status:** Draft <!-- Draft | Ready | Executing | Shipped -->
+- **Status:** Draft <!-- Draft | Ready | Executing | Shipped | Withdrawn | Cancelled -->
 - **Source / provenance:** <!-- LOAD-BEARING. A safe, durable reference to the source and, for tracker-origin work, its reviewed revision. Retain a normalized summary; never copy raw external payload. -->
 - **Epic:** <!-- optional: id/link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. -->
 - **Parent intent:** <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->

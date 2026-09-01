@@ -22,6 +22,7 @@
       "enum": [
         "accepted_field_not_local",
         "authority_revision_mismatch",
+        "cancelled_requirements_locked",
         "comparison_failed",
         "decision_required",
         "executing_requirements_locked",
@@ -41,7 +42,8 @@
         "shipped_requirements_locked",
         "unauthorized_approver",
         "unsupported_artifact_kind",
-        "unsupported_lifecycle"
+        "unsupported_lifecycle",
+        "withdrawn_requirements_locked"
       ]
     },
     "comparison_status": {"enum": ["not-started", "failed", "completed"]},

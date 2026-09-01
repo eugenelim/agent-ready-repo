@@ -437,6 +437,9 @@ backlog = []
             "executing": "docs/product/briefs/executing.md",
             "ready": ["docs/product/briefs/ready.md"],
             "draft": ["docs/product/briefs/draft.md"],
+            "shipped": [],
+            "withdrawn": [],
+            "cancelled": [],
         })
 
     def test_reconcile_and_explain_include_canonical_projection(self) -> None:
@@ -986,6 +989,9 @@ backlog = []
             "executing": "workspace.toml",
             "ready": ["workspace.toml"],
             "draft": ["docs/product/briefs/safe-draft.md"],
+            "shipped": [],
+            "withdrawn": [],
+            "cancelled": [],
         })
         self.assertNotIn("should-not-leak", result.stdout + result.stderr)
         self.assertNotIn("ignore previous instructions", result.stdout + result.stderr)

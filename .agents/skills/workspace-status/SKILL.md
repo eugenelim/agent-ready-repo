@@ -120,7 +120,9 @@ selector_status                  — "matched" | "not_found" | "ambiguous" (expl
 explained_item                   — item details when selector_status is "matched" (explain only)
 matches                          — initiative slugs with colliding entries when "ambiguous" (explain only)
 initiatives              — list of active initiatives (slug, name, status, milestone, brief_queue)
-initiatives[].brief_queue — {executing, ready, draft} or null
+initiatives[].brief_queue — `{executing, ready, draft, shipped, withdrawn, cancelled}` or null;
+                            `executing` remains a scalar path for compatibility and
+                            every other field is a list
 work.ready     — compatibility alias for canonical dispatchable work.queue specs
 work.blocked   — compatibility alias for canonical non-dispatchable work entries
 work.active    — compatibility alias for canonical valid work.active specs
@@ -412,7 +414,7 @@ Format output in four sections (omit sections with no entries):
 
 **Active initiatives:** (for each entry in `initiatives[]`)
 `<ini-slug>` — `<name>` (milestone: `<milestone>`)
-- **Brief queue** (from `initiatives[].brief_queue`; omit when `null`): Executing: `<executing>` (or "none") · Ready: N item(s) · Draft: N item(s)
+- **Brief queue** (from `initiatives[].brief_queue`; omit when `null`): Executing: `<executing>` (or "none") · Ready: N · Draft: N · Shipped: N · Withdrawn: N · Cancelled: N
 
 **Active context — signals** _(ongoing; do not need action):_
 - `<slug>` (`signal`) — no action needed; informs shaping decisions
@@ -434,7 +436,7 @@ Format output in four sections (omit sections with no entries):
   - `work:` — scope to blocked entry's `ini_slug`: filter `work.active`, `work.ready`, `work.blocked` by `ini_slug == owning-ini`. Path in filtered `work.active` → `in-progress`; in filtered `work.ready` or `work.blocked` → `queued`; else → omit.
   - `shape:` — scope to `ini_slug` as above; use `shaping.active_entries` filtered to `ini_slug == owning-ini`: if a matching entry with `slug == dep_slug` is found → `in-progress` (signals included); else → omit.
   - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` — filter both by `ini_slug == owning-ini`: if dep slug found → `queued`; else → omit.
-  - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `slug == owning-ini`, since `initiatives[]` carries `slug` not `ini_slug`): if path in `brief_queue.draft` → `queued`; if in `brief_queue.executing` → `in-progress`; else → omit.
+  - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `slug == owning-ini`, since `initiatives[]` carries `slug` not `ini_slug`). `ready`, scalar `executing`, and `shipped` satisfy the dependency; `draft` is `queued`, `executing` is `in-progress`, and `withdrawn` or `cancelled` remains unsatisfied without a progress annotation.
   - Cross-initiative prefix (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix to get the named initiative; resolve the remainder as above using that initiative's `ini_slug`.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 

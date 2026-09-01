@@ -18,6 +18,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # The pack ships tests under packs/<pack>/tests/ and runtime primitives under
 # packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "author-delivery-brief"
@@ -42,13 +44,20 @@ def write_spec(root: Path, slug: str, status: str, brief: str | None = None) -> 
 
 
 def write_brief(
-    root: Path, slug: str, rows: list[tuple[str, str]], stem: str | None = None
+    root: Path,
+    slug: str,
+    rows: list[tuple[str, str]],
+    stem: str | None = None,
+    status: str = "Ready",
 ) -> None:
     """Write a brief with a two-column Spec map. `rows` is (spec-slug, recorded-status)."""
     name = stem if stem is not None else slug
     p = root / "docs" / "product" / "briefs" / f"{name}.md"
     p.parent.mkdir(parents=True, exist_ok=True)
-    body = f"# Brief: {slug}\n\n- **Slug:** `{slug}`\n\n## Spec map\n\n"
+    body = (
+        f"# Brief: {slug}\n\n- **Status:** {status}\n"
+        f"- **Slug:** `{slug}`\n\n## Spec map\n\n"
+    )
     body += "| Spec | Status |\n| --- | --- |\n"
     for spec_slug, recorded in rows:
         body += f"| `{spec_slug}` | {recorded} |\n"
@@ -68,7 +77,12 @@ def test_mixed_map_not_delivered() -> None:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped", brief="myb")
         write_spec(root, "beta", "Implementing", brief="myb")
-        write_brief(root, "myb", [("alpha", "Shipped"), ("beta", "Implementing")])
+        write_brief(
+            root,
+            "myb",
+            [("alpha", "Shipped"), ("beta", "Implementing")],
+            status="Executing",
+        )
         rc, out, err = run_lint(root)
         expect(rc == 0, f"mixed map should exit 0, got {rc}: {err}")
         expect("shipped" in out.lower(), f"alpha should roll up shipped: {out}")
@@ -76,16 +90,91 @@ def test_mixed_map_not_delivered() -> None:
         expect("not delivered" in out.lower(), f"mixed map → not delivered: {out}")
 
 
-def test_all_shipped_delivered() -> None:
+def test_explicitly_shipped_all_shipped_map_is_delivered() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped", brief="myb")
         write_spec(root, "beta", "Shipped", brief="myb")
-        write_brief(root, "myb", [("alpha", "Shipped"), ("beta", "Shipped")])
+        write_brief(
+            root,
+            "myb",
+            [("alpha", "Shipped"), ("beta", "Shipped")],
+            status="Shipped",
+        )
         rc, out, err = run_lint(root)
         expect(rc == 0, f"all-shipped should exit 0, got {rc}: {err}")
         # "': delivered" disambiguates from "': not delivered".
         expect("': delivered" in out, f"all-shipped brief → delivered: {out}")
+
+
+def test_all_shipped_map_requires_explicit_shipped_status() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        write_brief(root, "myb", [("alpha", "Shipped")], status="Executing")
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"executing all-shipped map remains valid: {err}")
+        expect("': not delivered" in out, f"open brief must not auto-close: {out}")
+
+
+def test_statusless_all_shipped_map_fails_closed() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        write_brief(root, "myb", [("alpha", "Shipped")], status="Executing")
+        brief = root / "docs/product/briefs/myb.md"
+        brief.write_text(
+            brief.read_text(encoding="utf-8").replace("- **Status:** Executing\n", ""),
+            encoding="utf-8",
+        )
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"missing lifecycle must fail closed: {out}")
+        expect("brief lifecycle" in err.lower(), err)
+        expect("': not delivered" in out, out)
+
+
+def test_shipped_requires_nonempty_all_shipped_map() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "myb", [], status="Shipped")
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"empty Shipped map must fail: {out}")
+        expect("': not delivered" in out, out)
+        expect("brief lifecycle" in err.lower(), err)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Approved", brief="myb")
+        write_brief(root, "myb", [("alpha", "Approved")], status="Shipped")
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"non-shipped child must block Shipped brief: {out}")
+        expect("': not delivered" in out, out)
+        expect("brief lifecycle" in err.lower(), err)
+
+
+@pytest.mark.parametrize(
+    ("brief_status", "child_status", "expected_rc"),
+    [
+        ("Withdrawn", "Approved", 0),
+        ("Withdrawn", "Implementing", 1),
+        ("Withdrawn", "Shipped", 1),
+        ("Cancelled", "Approved", 1),
+        ("Cancelled", "Implementing", 0),
+        ("Cancelled", "Shipped", 0),
+    ],
+)
+def test_terminated_brief_child_scope(
+    brief_status: str,
+    child_status: str,
+    expected_rc: int,
+) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", child_status, brief="myb")
+        write_brief(root, "myb", [("alpha", child_status)], status=brief_status)
+        rc, out, err = run_lint(root)
+        expect(rc == expected_rc, f"{brief_status}/{child_status}: {out}{err}")
+        expect("': not delivered" in out, out)
 
 
 def test_empty_map_not_delivered() -> None:
@@ -147,12 +236,28 @@ def test_untracked_backlink_informational() -> None:
         # gamma back-links myb but is NOT in myb's Spec map → untracked.
         write_spec(root, "alpha", "Shipped", brief="myb")
         write_spec(root, "gamma", "Draft", brief="myb")
-        write_brief(root, "myb", [("alpha", "Shipped")])
+        write_brief(root, "myb", [("alpha", "Shipped")], status="Executing")
         rc, out, err = run_lint(root)
         combined = (out + err).lower()
         expect(rc == 0, f"untracked back-link must NOT be an error, got {rc}: {err}")
         expect("untracked" in combined, f"gamma should be reported untracked: {out}{err}")
         expect("gamma" in combined, f"untracked spec named: {out}{err}")
+
+
+@pytest.mark.parametrize("brief_status", ["Ready", "Withdrawn"])
+def test_untracked_backlink_contributes_execution_evidence(
+    brief_status: str,
+) -> None:
+    """A missing Spec-map row cannot hide a back-linked shipped child."""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", "Shipped", brief="myb")
+        write_brief(root, "myb", [], status=brief_status)
+        rc, out, err = run_lint(root)
+        expect(rc == 1, f"{brief_status} must reject shipped child evidence: {out}")
+        expect("brief lifecycle" in err.lower(), err)
+        expect("untracked" in out.lower(), out)
 
 
 def test_stale_cell_drifts_fail_closed() -> None:
@@ -162,7 +267,12 @@ def test_stale_cell_drifts_fail_closed() -> None:
         # Implementing — a hand-edited stale cell. Fail closed.
         write_spec(root, "alpha", "Shipped", brief="myb")
         write_spec(root, "beta", "Shipped", brief="myb")
-        write_brief(root, "myb", [("alpha", "Shipped"), ("beta", "Implementing")])
+        write_brief(
+            root,
+            "myb",
+            [("alpha", "Shipped"), ("beta", "Implementing")],
+            status="Shipped",
+        )
         rc, out, err = run_lint(root)
         expect(rc == 1, f"stale recorded cell should exit 1, got {rc}: {out}")
         expect("stale" in err.lower(), f"drift message should name staleness: {err}")
@@ -174,7 +284,7 @@ def test_unset_cell_is_not_drift() -> None:
         root = Path(tmp)
         # An `<auto>` / unset cell means "not yet derived" — report, don't fail.
         write_spec(root, "alpha", "Implementing", brief="myb")
-        write_brief(root, "myb", [("alpha", "<auto>")])
+        write_brief(root, "myb", [("alpha", "<auto>")], status="Executing")
         rc, out, err = run_lint(root)
         expect(rc == 0, f"unset <auto> cell must not be drift, got {rc}: {err}")
         expect("implementing" in out.lower(), f"derived status still reported: {out}")
@@ -252,7 +362,7 @@ def test_prose_pipe_after_table_is_not_a_row() -> None:
         p = root / "docs" / "product" / "briefs" / "myb.md"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(
-            "# Brief: myb\n\n- **Slug:** `myb`\n\n## Spec map\n\n"
+            "# Brief: myb\n\n- **Status:** Shipped\n- **Slug:** `myb`\n\n## Spec map\n\n"
             "| Spec | Status |\n| --- | --- |\n| `alpha` | Shipped |\n\n"
             "Note: rows are added as slices ship | one per spec.\n",
             encoding="utf-8",
@@ -266,7 +376,7 @@ def test_lowercase_status_token_still_delivers() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "shipped", brief="myb")  # lowercase token
-        write_brief(root, "myb", [("alpha", "Shipped")])
+        write_brief(root, "myb", [("alpha", "Shipped")], status="Shipped")
         rc, out, err = run_lint(root)
         expect(rc == 0, f"no drift expected, got {rc}: {err}")
         expect("': delivered" in out,
@@ -292,7 +402,12 @@ def test_annotated_recorded_cell_not_drift() -> None:
         # be (`Shipped (2026-06-01)`) must not misreport as drift against a
         # derived `Shipped` — the recorded side is normalized symmetrically.
         write_spec(root, "alpha", "Shipped", brief="myb")
-        write_brief(root, "myb", [("alpha", "Shipped (2026-06-01)")])
+        write_brief(
+            root,
+            "myb",
+            [("alpha", "Shipped (2026-06-01)")],
+            status="Shipped",
+        )
         rc, out, err = run_lint(root)
         expect(rc == 0, f"annotated recorded cell must not drift, got {rc}: {err}")
         expect("stale" not in err.lower(), f"no false drift on annotated cell: {err}")

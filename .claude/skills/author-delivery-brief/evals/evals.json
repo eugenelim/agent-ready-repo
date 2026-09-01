@@ -53,6 +53,17 @@
         "Returns the exact BLOCKED lifecycle receipt",
         "Keeps the brief from transitioning to Ready"
       ]
+    },
+    {
+      "id": "brief-lifecycle-progress-and-termination",
+      "prompt": "A brief has shipped its first slice but a later slice is not materialized. Explain its status, and distinguish withdrawing it from cancelling it.",
+      "expected_output": "Keep the open brief Executing because a Shipped child is execution evidence and an all-shipped current map is not closure authority. Withdraw only before any child reaches Implementing or Shipped; cancel after that evidence exists; preserve every child status and route terminal closeout through close-work.",
+      "assertions": [
+        "Keeps the partly delivered open brief Executing",
+        "Does not infer Shipped from the current Spec map",
+        "Distinguishes pre-execution Withdrawn from post-execution Cancelled",
+        "Preserves child statuses and requires explicit closeout"
+      ]
     }
   ]
 }

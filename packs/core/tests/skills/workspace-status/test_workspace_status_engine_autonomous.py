@@ -165,6 +165,8 @@ def test_t1_group2_pack_contract_surface() -> None:
         "brief_queue.ready",
         "brief_queue.executing",
         "brief_queue.shipped",
+        "brief_queue.withdrawn",
+        "brief_queue.cancelled",
     ):
         case = mod.parse_legacy_workspace_entry(
             collection, "docs/product/briefs/account-recovery.md"
@@ -2065,11 +2067,25 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
     brief_cases = [
         ("ready", "Ready", None, None, False),
         ("ready", "Ready", "active", "Implementing", True),
+        ("ready", "Ready", "shipped", "Shipped", True),
         ("executing", "Executing", "active", "Implementing", False),
+        ("executing", "Executing", "shipped", "Shipped", False),
         ("executing", "Executing", None, None, True),
         ("shipped", "Shipped", "shipped", "Shipped", False),
+        # No child is attributed to the brief, which is the common case: most
+        # specs declare no `source.parent`. The projection cannot read the
+        # brief's Spec map, so it does not treat that as an unshipped child.
+        ("shipped", "Shipped", None, None, False),
         ("shipped", "Shipped", "queue", "Approved", True),
         ("shipped", "Shipped", "shipped", "Approved", True),
+        ("withdrawn", "Withdrawn", None, None, False),
+        ("withdrawn", "Withdrawn", "queue", "Approved", False),
+        ("withdrawn", "Withdrawn", "active", "Implementing", True),
+        ("withdrawn", "Withdrawn", "shipped", "Shipped", True),
+        ("cancelled", "Cancelled", None, None, True),
+        ("cancelled", "Cancelled", "queue", "Approved", True),
+        ("cancelled", "Cancelled", "active", "Implementing", False),
+        ("cancelled", "Cancelled", "shipped", "Shipped", False),
     ]
     for collection, brief_status, child_collection, child_status, expect_block in brief_cases:
         workspace = brief_workspace(collection, brief_status, child_collection, child_status)
@@ -2092,6 +2108,90 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
             for finding in result.dispatch_by_path["docs/product/briefs/parent.md"].findings
         }
         assert ("impossible_transition" in codes) is expect_block
+
+
+@pytest.mark.parametrize(
+    ("collection", "child_states", "expected"),
+    [
+        ("brief_queue.draft", set(), True),
+        ("brief_queue.draft", {"Shipped"}, False),
+        ("brief_queue.ready", set(), True),
+        ("brief_queue.ready", {"Shipped"}, False),
+        ("brief_queue.executing", {"Implementing"}, True),
+        ("brief_queue.executing", {"Shipped"}, True),
+        ("brief_queue.executing", set(), False),
+        ("brief_queue.shipped", {"Shipped"}, True),
+        ("brief_queue.shipped", {"Approved"}, False),
+        ("brief_queue.shipped", set(), True),
+        ("brief_queue.withdrawn", set(), True),
+        ("brief_queue.withdrawn", {"Implementing"}, False),
+        ("brief_queue.withdrawn", {"Shipped"}, False),
+        ("brief_queue.cancelled", {"Implementing"}, True),
+        ("brief_queue.cancelled", {"Shipped"}, True),
+        ("brief_queue.cancelled", set(), False),
+    ],
+)
+def test_brief_child_scope_state_machine(
+    collection: str,
+    child_states: set[str],
+    expected: bool,
+) -> None:
+    mod = _load_engine()
+    assert mod._brief_child_scope_is_valid(collection, child_states) is expected
+
+
+@pytest.mark.parametrize(
+    ("collection", "child_states", "expected"),
+    [
+        # Presence-asserting arms are suppressed when a declared child has
+        # cooled: the cooled child may be the only one carrying the evidence,
+        # so the arm can flip from satisfied to violated and plant a finding on
+        # live work.
+        ("brief_queue.executing", set(), True),
+        ("brief_queue.cancelled", set(), True),
+        # Absence-asserting arms are not suppressed. An unknown extra child can
+        # only add a state, never remove one, so a violation found among live,
+        # readable children stays a violation whatever the cooled child is.
+        ("brief_queue.draft", {"Shipped"}, False),
+        ("brief_queue.ready", {"Implementing"}, False),
+        ("brief_queue.withdrawn", {"Shipped"}, False),
+        ("brief_queue.shipped", {"Approved"}, False),
+    ],
+)
+def test_cooled_child_suppression_is_limited_to_presence_arms(
+    collection: str,
+    child_states: set[str],
+    expected: bool,
+) -> None:
+    """A cooled child suppresses only the arms a missing child can falsify."""
+
+    mod = _load_engine()
+    assert mod._brief_child_scope_is_valid(
+        collection, child_states, scope_unevaluable=True
+    ) is expected
+
+
+def test_public_brief_queue_output_preserves_executing_scalar() -> None:
+    mod = _load_status()
+    result = mod._brief_queue_dict(
+        SimpleNamespace(
+            executing="docs/product/briefs/live.md",
+            ready=["docs/product/briefs/ready.md"],
+            draft=["docs/product/briefs/draft.md"],
+            shipped=["docs/product/briefs/shipped.md"],
+            withdrawn=["docs/product/briefs/withdrawn.md"],
+            cancelled=["docs/product/briefs/cancelled.md"],
+        )
+    )
+
+    assert result == {
+        "executing": "docs/product/briefs/live.md",
+        "ready": ["docs/product/briefs/ready.md"],
+        "draft": ["docs/product/briefs/draft.md"],
+        "shipped": ["docs/product/briefs/shipped.md"],
+        "withdrawn": ["docs/product/briefs/withdrawn.md"],
+        "cancelled": ["docs/product/briefs/cancelled.md"],
+    }
 
 
 def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:

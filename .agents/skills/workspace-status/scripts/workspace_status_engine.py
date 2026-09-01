@@ -381,6 +381,9 @@ class BriefQueue:
     executing: str
     ready: list[str]
     draft: list[str]
+    shipped: list[str]
+    withdrawn: list[str]
+    cancelled: list[str]
 
 
 @dataclasses.dataclass
@@ -1227,6 +1230,8 @@ def _accepted_legacy_entry(collection: str, raw: object) -> LegacyWorkspaceEntry
         "brief_queue.ready",
         "brief_queue.executing",
         "brief_queue.shipped",
+        "brief_queue.withdrawn",
+        "brief_queue.cancelled",
     }
     if (
         collection in work_collections
@@ -1409,7 +1414,7 @@ def parse_legacy_fixture_file(path: Path) -> list[LegacyWorkspaceEntry]:
 _INITIATIVE_ENTRY_COLLECTIONS = {
     "work": ("queue", "active", "shipped"),
     "shaping_queue": ("backlog", "active"),
-    "brief_queue": ("draft", "ready", "executing", "shipped"),
+    "brief_queue": ("draft", "ready", "executing", "shipped", "withdrawn", "cancelled"),
 }
 _TOP_LEVEL_ENTRY_COLLECTIONS = {"backlog": ("open", "closed")}
 _ALLOWED_KIND_BY_COLLECTION = {
@@ -1421,6 +1426,8 @@ _ALLOWED_KIND_BY_COLLECTION = {
     "brief_queue.ready": {"brief"},
     "brief_queue.executing": {"brief"},
     "brief_queue.shipped": {"brief"},
+    "brief_queue.withdrawn": {"brief"},
+    "brief_queue.cancelled": {"brief"},
     "work.queue": {"spec"},
     "work.active": {"spec"},
     "work.shipped": {"spec"},
@@ -2529,6 +2536,10 @@ def _membership_status(membership: WorkspaceMembership) -> str | None:
         return "Executing"
     if membership.collection == "brief_queue.shipped":
         return "Shipped"
+    if membership.collection == "brief_queue.withdrawn":
+        return "Withdrawn"
+    if membership.collection == "brief_queue.cancelled":
+        return "Cancelled"
     return None
 
 
@@ -2919,6 +2930,8 @@ def _append_lifecycle_findings(
             "brief_queue.ready": {"Ready"},
             "brief_queue.executing": {"Executing"},
             "brief_queue.shipped": {"Shipped"},
+            "brief_queue.withdrawn": {"Withdrawn"},
+            "brief_queue.cancelled": {"Cancelled"},
         }
         expected = expected_by_collection.get(collection)
         if expected is not None:
@@ -3102,28 +3115,11 @@ def _structural_findings(
         )
     if entry.kind == "brief" and membership.collection.startswith("brief_queue."):
         child_states = brief_child_states.get(entry.path, set())
-        # Only the `executing` arm is suppressed for a brief with a cooled
-        # child, because only it is non-monotone: it asserts a state is
-        # PRESENT, so a missing child can flip it from satisfied to violated
-        # and cooling would plant a finding on live work. The other two arms
-        # assert over the states actually observed — an unknown extra child can
-        # only add a state, never remove one — so a violation found among live,
-        # readable children stays a violation whatever the cooled child is.
-        # Suppressing all three let cooling one child erase an
-        # `impossible_transition` that a different, fully readable child caused.
-        scope_unevaluable = entry.path in briefs_with_cooled_children
-        invalid_child_scope = (
-            membership.collection == "brief_queue.ready"
-            and "Implementing" in child_states
-        ) or (
-            membership.collection == "brief_queue.executing"
-            and "Implementing" not in child_states
-            and not scope_unevaluable
-        ) or (
-            membership.collection == "brief_queue.shipped"
-            and any(state != "Shipped" for state in child_states)
-        )
-        if invalid_child_scope:
+        if not _brief_child_scope_is_valid(
+            membership.collection,
+            child_states,
+            scope_unevaluable=entry.path in briefs_with_cooled_children,
+        ):
             findings.append(_finding("impossible_transition", entry.path, "brief child scope"))
     _append_plan_findings(findings, membership, metadata)
     if not skip_status_lifecycle:
@@ -3425,6 +3421,9 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
             executing_raw = brief_raw.get("executing", "")
             ready_raw = brief_raw.get("ready", [])
             draft_raw = brief_raw.get("draft", [])
+            shipped_raw = brief_raw.get("shipped", [])
+            withdrawn_raw = brief_raw.get("withdrawn", [])
+            cancelled_raw = brief_raw.get("cancelled", [])
             if isinstance(executing_raw, list):
                 executing_paths = [
                     path
@@ -3448,10 +3447,34 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
                     for raw in draft_raw
                     if (path := _supported_brief_queue_path(raw)) is not None
                 ]
+            shipped = []
+            if isinstance(shipped_raw, list):
+                shipped = [
+                    path
+                    for raw in shipped_raw
+                    if (path := _supported_brief_queue_path(raw)) is not None
+                ]
+            withdrawn = []
+            if isinstance(withdrawn_raw, list):
+                withdrawn = [
+                    path
+                    for raw in withdrawn_raw
+                    if (path := _supported_brief_queue_path(raw)) is not None
+                ]
+            cancelled = []
+            if isinstance(cancelled_raw, list):
+                cancelled = [
+                    path
+                    for raw in cancelled_raw
+                    if (path := _supported_brief_queue_path(raw)) is not None
+                ]
             brief_queue = BriefQueue(
                 executing=executing,
                 ready=ready,
                 draft=draft,
+                shipped=shipped,
+                withdrawn=withdrawn,
+                cancelled=cancelled,
             )
         initiatives.append(Initiative(
             slug=key,
@@ -3706,7 +3729,7 @@ def is_need_satisfied(
                 return slug not in research_slugs
         return True
 
-    # Brief: "brief:<path>" — satisfied if in brief_queue.ready or executing
+    # Brief: "brief:<path>" — satisfied if Ready, Executing, or Shipped.
     if need.startswith("brief:"):
         path = need[len("brief:"):]
         for ini in all_initiatives:
@@ -3714,7 +3737,7 @@ def is_need_satisfied(
                 bq = ini.brief_queue
                 if bq.executing == path:
                     return True
-                return path in bq.ready
+                return path in bq.ready or path in bq.shipped
         return False
 
     # `backlog:<slug>` — KD-01: not in SKILL.md table; treated conservatively as unsatisfied
@@ -3728,6 +3751,48 @@ def is_need_satisfied(
 
     # Unknown prefix — conservatively unsatisfied
     return False
+
+
+def _brief_child_scope_is_valid(
+    collection: str,
+    child_states: set[str],
+    scope_unevaluable: bool = False,
+) -> bool:
+    """Return whether child progress is compatible with a brief lifecycle.
+
+    `scope_unevaluable` is True when a child this brief declares has cooled, so
+    `child_states` may be missing a state that is really there. Only the arms
+    that assert a state is PRESENT are suppressed, because only they are
+    non-monotone: a missing child can flip them from satisfied to violated, and
+    cooling would plant a finding on live work. The arms that assert a state is
+    ABSENT read the states actually observed — an unknown extra child can only
+    add a state, never remove one — so a violation found among live, readable
+    children stays a violation whatever the cooled child is. Suppressing every
+    arm would let cooling one child erase an `impossible_transition` that a
+    different, fully readable child caused.
+    """
+
+    execution_evidence = bool(child_states & {"Implementing", "Shipped"})
+    if collection in {
+        "brief_queue.draft",
+        "brief_queue.ready",
+        "brief_queue.withdrawn",
+    }:
+        # Asserts execution evidence is absent: monotone, never suppressed.
+        return not execution_evidence
+    if collection in {"brief_queue.executing", "brief_queue.cancelled"}:
+        # Asserts evidence is present: a cooled child can hide the only child
+        # carrying it.
+        return execution_evidence or scope_unevaluable
+    if collection == "brief_queue.shipped":
+        # Asserts no child is in a state other than Shipped: monotone, never
+        # suppressed. Deliberately does NOT require the set to be non-empty.
+        # Most specs declare no `source.parent`, so an empty set here means
+        # "no child is attributed to this brief", not "this brief shipped
+        # nothing". The non-empty requirement lives in the coverage lint, which
+        # reads the brief's own Spec map; this projection cannot read the brief.
+        return all(state == "Shipped" for state in child_states)
+    return True
 
 
 def classify_entries(
@@ -4599,6 +4664,8 @@ _MIGRATION_SOURCE_COLLECTIONS = frozenset({
     "brief_queue.ready",
     "brief_queue.executing",
     "brief_queue.shipped",
+    "brief_queue.withdrawn",
+    "brief_queue.cancelled",
     "backlog.open",
 })
 _MIGRATION_TARGET_COLLECTIONS = _MIGRATION_SOURCE_COLLECTIONS | {"backlog.closed"}
@@ -4819,6 +4886,8 @@ def migration_candidate_routes(entry: LegacyWorkspaceEntry) -> list[dict[str, ob
             "brief_queue.ready",
             "brief_queue.executing",
             "brief_queue.shipped",
+            "brief_queue.withdrawn",
+            "brief_queue.cancelled",
         )
     elif entry.collection.startswith("shaping_queue."):
         kinds = ("intent", "research", "design")

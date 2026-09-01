@@ -453,6 +453,8 @@ def test_confirmation_ledger_is_seeded_from_durable_receipts() -> None:
         ("Implementing", "implementing_requirements_locked"),
         ("Executing", "executing_requirements_locked"),
         ("Shipped", "shipped_requirements_locked"),
+        ("Withdrawn", "withdrawn_requirements_locked"),
+        ("Cancelled", "cancelled_requirements_locked"),
     ],
 )
 def test_lifecycle_matrix_is_shared(lifecycle: str, expected_code: str) -> None:
