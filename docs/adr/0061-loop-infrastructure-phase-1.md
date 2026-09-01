@@ -66,4 +66,5 @@ mid-file should not take either as current:
 
 Recorded by `docs/specs/review-record-idempotency/`, core 2.17.4. Whether the
 remaining prerequisite is worth pursuing is a separate decision this erratum does
-not take.
+not take. The body above is left as written; this ADR is Accepted → Frozen
+(`docs/CONVENTIONS.md`). Approver: eugenelim.

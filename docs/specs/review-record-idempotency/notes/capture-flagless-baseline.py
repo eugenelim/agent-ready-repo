@@ -22,12 +22,16 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 SCRIPTS = ROOT / "packs/core/.apm/skills/work-loop/scripts"
 # `.context/` is gitignored, so the throwaway spec directories never enter git.
-SCRATCH = ROOT / ".context/flagless-baseline"
+# A per-process subdirectory below it, rather than one fixed path: the roster
+# test drives this script, and a fixed path lets a concurrent run in the same
+# worktree delete the directory a live run is mid-way through writing.
+SCRATCH_PARENT = ROOT / ".context"
 
 # The six fields a recording round mutates. The delta over these is the contract;
 # everything else in `state.json` is out of scope for this comparison.
@@ -90,8 +94,17 @@ def run(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def normalise(text: str, run_id: str, feature: str) -> str:
-    """Strip the values that differ between two runs of the same capture."""
+def normalise(text: str, run_id: str, feature: str, scratch: Path) -> str:
+    """Strip the values that differ between two runs of the same capture.
+
+    The scratch directory is normalised first and by longest match: its name now
+    carries a per-process random suffix, and the writer echoes the spec-dir path
+    back in its messages, so leaving it in would make the baseline differ from
+    itself on every run.
+    """
+    for path in sorted((str(scratch), str(scratch.relative_to(ROOT))), key=len,
+                       reverse=True):
+        text = text.replace(path, "<scratch>")
     text = text.replace(run_id, "<run-id>").replace(feature, "<feature>")
     text = re.sub(r"\b[0-9a-f]{64}\b", "<sha256>", text)
     text = re.sub(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
@@ -109,11 +122,10 @@ def delta(before: dict[str, object], after: dict[str, object]) -> dict[str, obje
             if before[k] != after[k]}
 
 
-def capture(form_name: str, extra_argv: list[str], files: dict[str, str]) -> dict:
+def capture(scratch: Path, form_name: str, extra_argv: list[str],
+            files: dict[str, str]) -> dict:
     feature = f"baseline-{form_name}"
-    spec_dir = SCRATCH / feature
-    if spec_dir.exists():
-        shutil.rmtree(spec_dir)
+    spec_dir = scratch / feature
     spec_dir.mkdir(parents=True)
     (spec_dir / "spec.md").write_text(SPEC_BODY, encoding="utf-8")
     (spec_dir / "plan.md").write_text(PLAN_BODY, encoding="utf-8")
@@ -139,8 +151,8 @@ def capture(form_name: str, extra_argv: list[str], files: dict[str, str]) -> dic
 
     return {
         "exit_code": proc.returncode,
-        "stdout": normalise(proc.stdout, run_id, feature),
-        "stderr": normalise(proc.stderr, run_id, feature),
+        "stdout": normalise(proc.stdout, run_id, feature, scratch),
+        "stderr": normalise(proc.stderr, run_id, feature, scratch),
         "delta": delta(before, after),
     }
 
@@ -162,7 +174,8 @@ def main(argv: list[str] | None = None) -> int:
                       help="overwrite the baseline; only valid before the writer changes")
     args = parser.parse_args(argv)
 
-    SCRATCH.mkdir(parents=True, exist_ok=True)
+    SCRATCH_PARENT.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="flagless-baseline-", dir=SCRATCH_PARENT))
     forms = {
         "fingerprint": (["--fingerprint", FP_A, "--fingerprint", FP_B], {}),
         "direct-clean-file": (
@@ -182,12 +195,12 @@ def main(argv: list[str] | None = None) -> int:
             "would compare it against itself and prove nothing."
         ),
         "review_fields": list(REVIEW_FIELDS),
-        "forms": {name: capture(name, argv, files)
+        "forms": {name: capture(scratch, name, argv, files)
                   for name, (argv, files) in forms.items()},
     }
     out = Path(__file__).resolve().parent / "flagless-baseline.json"
     rendered = json.dumps(baseline, indent=2, ensure_ascii=False) + "\n"
-    shutil.rmtree(SCRATCH, ignore_errors=True)
+    shutil.rmtree(scratch, ignore_errors=True)
 
     if args.capture:
         out.write_text(rendered, encoding="utf-8")
