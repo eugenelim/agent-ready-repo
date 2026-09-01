@@ -42,13 +42,18 @@ domain's size. The implementation carries the routing and attribute data as
 module-level dictionaries in `loop-engine.py`, and a `tests/roster/` test parses
 the spec's Markdown and asserts the two agree. That is a comparison between two
 independent expressions of the mapping, not an artifact checked against itself:
-neither is generated from the other. The pack suite then drives the live command
-into every domain member.
+neither is generated from the other. That same `tests/roster/` suite builds the
+domain and drives the live command into every member, because both the domain and
+AC3's expected action are parsed from `spec.md`, which a pack test may not read.
+The pack suite carries only what needs no file above `packs/core/`.
 
-The Discriminators table is what keeps totality honest. Because each
-discriminator's value set is fixed outside the Routing table, deleting a routing
-row shrinks coverage without shrinking the domain, so AC1's mutation reddens for
-every row rather than only the ones carrying no discriminator.
+The Discriminators table is what keeps totality honest, and it does that by being
+total over what each source can actually return rather than by citing a vocabulary
+elsewhere. The canonical status reader has no vocabulary check — it returns
+`draft`, `Frobnicate`, an empty string, or nothing at all — so D1 and D2 name two
+values and fold every other outcome into `other`. Because the value sets no longer
+come from the Routing table, deleting a routing row shrinks coverage without
+shrinking the domain, and AC1's mutation reddens for all 22 rows.
 
 Four record fields carry the loop rather than describe it, and each is derived
 rather than authored: `run_id` and `sequence` from the engine's state,
@@ -105,10 +110,10 @@ rather than answer from state that is mid-write.
   `run_id`, `sequence`, `complete_with`, or `human_wait` to a constant must redden
   at least one case.
 - The five table properties each get a mutation that must redden them:
-  - **AC1** — delete any Routing row. This must redden for all 22, which is the
-    property the Discriminators table exists to buy; a run where only the ten
-    discriminator-free rows redden means the domain is still being sourced from
-    the Routing table.
+  - **AC1** — delete any Routing row; at least one domain member must go
+    uncovered. This must redden for every row without exception. A run in which
+    the discriminator-bearing rows survive deletion means the domain is still
+    being sourced from the Routing table, which is the round-1 defect.
   - **AC2** — widen one row's match so it overlaps another.
   - **AC3** — exchange R3's and R4's Discriminator cells in the implementation's
     resolver. This is the mutation that distinguishes AC3 from AC1 and AC2: it
@@ -219,6 +224,8 @@ None added. Both suites already run in `make test`.
 - Every interpolated external scalar is capped and delimited, and the whole reason
   is capped, at the guard module's existing bounds; a planted oversized `run_id`
   reaches stderr truncated and quoted (AC14).
+- `--json` is required: the verb invoked without it exits non-zero and writes
+  nothing to stdout, so no second output form exists (AC7, second half).
 - The subparser is registered beside the four existing verbs (AC21).
 - Mutation proofs: routing one reason to stdout reddens the channel case; removing
   the cap, and removing the delimiters, each redden an AC14 case.
@@ -236,14 +243,16 @@ and `--help` lists the verb.
 **Depends on:** T1
 
 **Tests:** TDD.
-- Both state files, both artifact Status files, and both crash artifacts are
-  resolved through the existing spec-directory confinement and read through the
-  guard module's readers; no direct `open` or `read_text` appears in the verb's
-  path (AC15).
-- A symlink, a non-regular file, and an oversized file at each read target are
+- The verb opens exactly four files — both state files, both artifact Status
+  files — each through the guard module's readers, with no direct `open` or
+  `read_text` in the verb's path (AC15).
+- A symlink, a non-regular file, and an oversized file at each of those four are
   each refused rather than followed, read, or blocked on.
+- The two crash artifacts are never opened: a symlink, a directory, and a FIFO at
+  either location are each detected as present and yield P1's `halt`, with no
+  read, parse, or repair (AC15a).
 - Mutation proof: replacing one guard read with `Path.read_text` makes the symlink
-  case at that target pass.
+  case at that target pass; adding any `open` of a crash artifact reddens AC15a.
 
 **Approach:** artifact statuses go through `read_md_status`; state files through
 their owners' existing readers. The FIFO that once hung `init` while holding the
@@ -279,8 +288,11 @@ mutation flips.
 - Build the domain at runtime from `_TRANSITIONS_BY_MODE` plus the spec's extra
   base keys, crossed with the spec's discriminator value sets; assert totality
   (AC1) and determinism (AC2).
-- Drive the live command into a domain member matching each Routing row and assert
-  the row's action, with the expected value parsed from the spec (AC3).
+- `tests/roster/` — drive the live command into a domain member matching each
+  Routing row and assert the row's action, with the expected value parsed from the
+  spec's Routing table including its Discriminator column, never from the
+  implementation's resolver (AC3). Every bullet in this task is a roster test for
+  the same reason as the first: each reads `spec.md`.
 - Assert closure in both directions between the tables (AC4).
 - Assert `kind`, the `parameters` key set, `load`, and `human_wait` against the
   Action attributes row for each emitted record's action (AC5), including
@@ -303,8 +315,11 @@ mutations flip including AC1's across every row.
 **Depends on:** T3, T4
 
 **Tests:** TDD.
-- Every `parameters` value matches the character class or is an integer or boolean
-  (AC11, first half).
+- Every `parameters` value matches the character class or is an integer or boolean,
+  enforced at runtime for state-derived values: a planted non-integer
+  `current_wave_index` yields `halt`, not a record carrying it (AC11, first half).
+  This is the one place a `parameters` value is not derived from a P5-checked
+  field.
 - Every `load` entry resolves to a file under `references/`, with the mapping
   built by globbing rather than copied (AC11, second half).
 - No record carries a schedule array, amendment history, fingerprint, or verbatim
@@ -326,11 +341,14 @@ mutations flip including AC1's across every row.
 - Each of the seven Preconditions rows, exercised in isolation and against a state
   that also matches a later row, produces that row's exit and record, and its
   stderr names what the row requires (AC6).
-- P1's marker match is exercised against every spelling the live corpus carries —
-  bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded —
-  and against a body-zone mention that must not match.
-- P1 through P4 return four distinct codes, asserted as mutually distinct rather
-  than as four literals in four places.
+- P1's ordering is exercised in the state that makes it load-bearing: an
+  engine-state temporary with no `engine-state.json` beside it must yield P1's
+  `halt`, not P2's or P3's non-zero refusal.
+- P2's marker match is exercised against the six spellings in the fixture set
+  below, against a body-zone mention, and against `Modelight` and
+  `Mode: light-weight` — none of the last three may match.
+- P2 through P5 return four distinct codes, asserted as distinct from each other
+  and from 1 and 2, which the engine's generic refusal and argparse occupy.
 - Digest `engine-state.json`, `state.json`, and `.loop-run/events.jsonl` before
   and after; assert equality and that no file is created or removed, on every
   Preconditions row as well as every Routing row (AC16).
@@ -338,10 +356,15 @@ mutations flip including AC1's across every row.
   the `mode` well-formedness check, or the off-table-pair check each make their
   row's case pass.
 
-**Approach:** detect the two crash artifacts by presence alone — an `lstat`, not a
-read — because reading them would parse an attacker-influenceable file and repair
-is a writing verb's job. Treat a present pending-events file as halting for every
-run in the repository, per the spec's P5 scope note.
+**Approach:** detect the two crash artifacts by presence alone, never by reading:
+the engine-state temporary has a random `mkstemp` name, so it needs a confined
+glob of `.engine-state-*.json.tmp` within the spec directory — the same
+enumeration the engine's own recovery uses — while the pending-events file takes a
+single stat in the repository-shared run directory. Reading either would parse an
+attacker-influenceable file, and repair is a writing verb's job. Treat a present
+pending-events file as halting for every run in the repository, per the spec's P1
+scope note. The marker fixture set is the six spellings observed in the corpus:
+bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 
 **Done when:** all seven rows are green and all four mutations flip.
 
@@ -367,18 +390,22 @@ run in the repository, per the spec's P5 scope note.
 - For each of the 15 shipped rows, the identifiers parsed from the new column
   equal the union across both modes of the Routing actions whose key matches that
   row's `(last_event, state)` pair, with both sides parsed (AC19).
-- A grep over the shipped text finds all four trust-posture statements: record is
-  data, unrecognised `action` halts, unrecognised `load` halts, no field is
-  executed (AC20).
+- All four trust-posture statements appear in
+  `packs/core/.apm/skills/work-loop/references/session-resumption.md`, in the
+  section introducing the verb — the file R20's `load` names, so the control sits
+  where the consumer already is: record is data, unrecognised `action` halts,
+  unrecognised `load` halts, no field is executed (AC20).
 - Mutation proofs: changing one row's identifier reddens its generated case;
   deleting any one of the four statements reddens AC20.
 
 **Approach:**
-- Add the identifier column only. No row's prose changes: every shipped row's
-  prescribed action already agrees with the Routing table, so this task's diff is
-  additive and the two prose-pinned tests at `test_loop_engine.py:2775-2776` and
-  `:2846` keep passing unchanged. Confirm that rather than assuming it — run both
-  before opening the task and after the edit.
+- Add the identifier column only; no row's prose changes. Thirteen rows'
+  prescribed actions already agree with the Routing table. The two spec-plan
+  `DONE` rows carry `complete` in the identifier column while their prose keeps
+  describing the conditional reset, because that reset is a human-initiated path
+  the projection cannot observe. The diff stays additive and the two prose-pinned
+  tests at `test_loop_engine.py:2775-2776` and `:2846` keep passing unchanged —
+  confirm that rather than assuming it, by running both before and after.
 - Re-check the peer session's activity in the skill tree before editing.
 
 **Done when:** parity is parsed for all 15 rows, all four trust statements are
@@ -401,8 +428,10 @@ names writers, so a read-only verb adds no row there.
 
 **Depends on:** T8
 
-**Tests:** goal-based — `guides/core/how-to/plan-and-execute-non-trivial-work.md`
-names the verb in its resumption passage (AC23).
+**Tests:** goal-based — grep
+`guides/core/how-to/plan-and-execute-non-trivial-work.md` for the literal
+`loop-engine next`, not the bare word: that file already carries "the next phase"
+and "the next review unit", so a bare-word check is green before the edit (AC23).
 
 **Approach:** rewrite the hand-driven resumption passage to the sequence adopters
 now run, rather than appending the new one beside the old.
@@ -466,10 +495,11 @@ are regenerated.
 - **The tables and the code drift apart.** The roster test compares the spec's
   Markdown with the implementation's dictionaries; neither is generated from the
   other, so agreement is evidence.
-- **Totality passes without covering the discriminators.** This is the defect the
-  first review round found. The Discriminators table sources every value set
-  outside the Routing table, and AC1's mutation is required to redden for all 22
-  rows, not the ten that carry no discriminator.
+- **Totality passes over a domain narrower than the live input.** Rounds 1 and 2
+  each found a version of this. The fix is not a citation but closure: each
+  discriminator's value set is total over what its source can return, with `other`
+  absorbing every unrecognised, empty, absent, and unreadable outcome, and AC1's
+  mutation must redden for all 22 rows.
 - **The discriminator resolver ships untested.** The roster equality test cannot
   reach it. AC3 drives the live command with expectations parsed from the spec,
   and the R3/R4 exchange is its named mutation.
@@ -568,6 +598,49 @@ are regenerated.
   two-file read is recorded as an accepted Assumption with what P6 does and does
   not bound; and AC19 states that its comparison set is the union across both
   modes, without which its exactness claim had no quantifier.
+- 2026-09-01 (round 2 repair) — Round 2 sustained 16 findings against round 1's
+  own repairs, which is the non-convergence signature this contract already has a
+  history of. Rather than patch again, one premise was inverted. Round 1 had
+  claimed each discriminator's value set was "sourced outside the Routing table",
+  and that claim was false twice over: the citation for `plan.md`'s vocabulary
+  named a script whose docstring puts `plan.md` out of scope, and the canonical
+  reader enforces no vocabulary at all — it returns `draft`, `Frobnicate`, an
+  empty string, or nothing, four outcomes the declared sets did not contain, so
+  totality was again passing over a restricted domain. Independence now comes from
+  closure, not citation: D1 and D2 name two values each and fold every other
+  possible reader outcome into `other`. The domain fell from 54 to 44 and needs no
+  external source. Re-verified: 0 uncovered, 0 ambiguous, all 22 rows caught by
+  the deletion mutation.
+- 2026-09-01 (round 2 repair) — Three defects in round 1's own repairs. AC15
+  required the crash artifacts to be read through guard readers while P5 forbade
+  opening them, making its hostile-fixture clause unsatisfiable; the read targets
+  and the presence probes are now separate criteria under their two distinct
+  roots. The precondition order shadowed the crash-artifact row for the
+  interrupted `init` it existed to catch, because that state has a temporary and
+  no `engine-state.json`; it is now P1. And the plan put AC3's live drive in the
+  pack suite, which may not read `spec.md`.
+- 2026-09-01 (round 2 repair) — `reset-and-reinit` was removed from the action
+  vocabulary. R22 had answered a finished spec-plan run with a destructive action
+  conditioned on "if implementation is later requested" — a human decision neither
+  state file records, which is the same unobservability that collapsed
+  `CODE-HUMAN-GATE` to one row. Spec-plan `DONE` now answers `complete`, the reset
+  stays a human-initiated path in the shipped row's prose, and no action in this
+  contract is destructive. `human_wait` is now exactly `kind == "wait"`.
+- 2026-09-01 (round 2 repair) — Four checks that could not fail, and one that
+  could not be implemented one way. AC11 never said whether its character class
+  was a runtime refusal or a suite assertion, and `from_index` is the one
+  `parameters` value taken from a state field no precondition form-checks — it is
+  now a runtime refusal. AC23's grep passed before the edit, because "next"
+  already appears twice in the guide. AC20 named no file, so the consumer control
+  could land in a reference the consumer never loads. The four exit codes were
+  only required distinct from each other, not from the engine's existing exit 1
+  and argparse's 2. And P2's marker regex admitted `Modelight` and `light-weight`,
+  both now rejected while the 37 real markers still match.
+- 2026-09-01 (round 2, refuted) — Nine findings were tested and not sustained.
+  Notably: `halt` carrying no `load` is a deliberate table cell, not a gap; the
+  duplicated row counts cannot drift silently because both documents are hashed
+  once approved; and AC9's malformed-`run_id` clause is redundant with AC6 plus
+  AC7 but redundancy between two criteria that both hold is not a coverage gap.
 - 2026-09-01 (round 1, refuted) — Four findings were tested and not sustained, and
   the artifact is unchanged on each: AC12 is not dominated by AC5/AC7/AC11,
   because a 64-character fingerprint satisfies all three while violating it, so it

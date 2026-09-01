@@ -72,7 +72,7 @@ which reach the verb anyway.
 That yields 19 base keys in `code` mode and 10 in `spec-plan`, 29 in all.
 
 Each base key is crossed with the values of whichever Discriminator applies to
-it, giving **32 domain members in `code` mode and 22 in `spec-plan`, 54 in all**.
+it, giving **27 domain members in `code` mode and 17 in `spec-plan`, 44 in all**.
 A base key no Discriminator applies to contributes exactly one member. This
 document is the sole home of that figure; the plan references it rather than
 restating it.
@@ -82,61 +82,81 @@ and enters the record only as `cohort.wave-advance`'s `from_index` parameter.
 
 ### Discriminators
 
-Each Discriminator's value set is fixed **here**, from a source outside the
-Routing table, so that deleting a Routing row shrinks the coverage without
-shrinking the domain.
+Each Discriminator's value set is fixed **here**, and each is **total over what
+its source can actually produce**. That totality — not a citation to some other
+document — is what makes the domain independent of the Routing table: deleting a
+Routing row removes coverage without removing a domain member.
 
-| # | Applies to | Read from | Values | Value source |
-| --- | --- | --- | --- | --- |
-| D1 | `SPEC-HUMAN-GATE` | `spec.md`'s Status line | `Draft`, `Approved`, `Implementing`, `Shipped`, `Archived`, `unreadable` | The five-token spec Status vocabulary `lint-spec-status.py` enforces, plus one value for no usable status |
-| D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line | `Drafting`, `Approved`, `Executing`, `Done`, `unreadable` | The four-token plan Status vocabulary `lint-spec-status.py` enforces, plus one value for no usable status |
-| D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled` | The full cross product of the two fields' domains in `references/state-schema.md` |
-| D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` | A boolean comparison |
+| # | Applies to | Read from | Values |
+| --- | --- | --- | --- |
+| D1 | `SPEC-HUMAN-GATE` | `spec.md`'s Status line, via the canonical reader | `Draft`, `Approved`, `other` |
+| D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line, via the canonical reader | `Drafting`, `Approved`, `other` |
+| D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled` |
+| D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` |
 
-`unreadable` is **one** value, not two. The canonical reader raises for a file it
-cannot read and returns nothing for a file with no recognised Status line; both
-outcomes mean the same thing to this projection — no usable status — and both
-route identically, so the contract does not distinguish them.
+**`other` is a catch-all, and it is why D1 and D2 are closed.** The canonical
+reader applies no vocabulary check: it returns whatever leading token the Status
+line carries, an empty string for a comment-only value, nothing at all for a file
+with no Status line, and raises for a file it cannot read. `other` is every one
+of those outcomes except the two named values — an unrecognised token, a
+differently-cased one, an empty value, an absent line, and an unreadable file.
+The repository's Status vocabularies are enforced by a finish-time lint over this
+repository's own specs, not at read time, and this verb runs against arbitrary
+spec directories; a value set that assumed the lint had run would be narrower than
+the live input space, and totality over it would prove nothing.
 
-`D3` is the full cross product rather than the reachable subset. Including
-`pending+scheduled` costs one row's worth of coverage and removes a reachability
-argument the criteria would otherwise depend on.
+D3 is the full cross product of its two fields rather than the reachable subset.
+Including `pending+scheduled` costs one row's worth of coverage and removes a
+reachability argument the criteria would otherwise depend on.
 
 ### Preconditions
 
 Evaluated in order; the first matching row decides, and Routing runs only when
-none matches. `P1` through `P4` carry four distinct non-zero exit codes, and the
-same condition always yields the same code.
+none matches. P2 through P5 carry four distinct non-zero exit codes, allocated
+from 3 upward so that none collides with the engine's existing exit 1 (its
+generic refusal, including an unloadable guard module) or argparse's exit 2.
 
 | # | Condition | Exit | Record | stderr names |
 | --- | --- | --- | --- | --- |
-| P1 | No `engine-state.json`, and `spec.md` carries the light-mode marker defined below | non-zero | none | the legacy light-mode resumption table as the surface that answers instead |
-| P2 | No `engine-state.json`, and no light-mode marker | non-zero | none | the ambiguity, without pointing at the light-mode table |
-| P3 | `engine-state.json` is unreadable, or its `schema_version` is not `1` | non-zero | none | which of the two it was |
-| P4 | `engine-state.json` lacks a well-formed `run_id`, `transition_sequence`, or `mode` | non-zero | none | which field failed, and the offending value under the bound AC14 sets |
-| P5 | An unpromoted engine-state temporary file, or an unreplayed pending-events file, is present | zero | `halt` | which artifact was found, and that recovery is a writing verb's job |
+| P1 | An unpromoted engine-state temporary file, or an unreplayed pending-events file, is present | zero | `halt` | which artifact class was found, and that recovery is a writing verb's job |
+| P2 | No `engine-state.json`, and `spec.md` carries the light-mode marker defined below | non-zero | none | the legacy light-mode resumption table as the surface that answers instead |
+| P3 | No `engine-state.json`, and no light-mode marker | non-zero | none | the ambiguity, without pointing at the light-mode table |
+| P4 | `engine-state.json` is unreadable, or its `schema_version` is not `1` | non-zero | none | which of the two it was |
+| P5 | `engine-state.json` lacks a well-formed `run_id`, `transition_sequence`, or `mode` | non-zero | none | which field failed, and the offending value under the bound AC14 sets |
 | P6 | `state.json` is missing, is unreadable, carries no `run_id`, or carries one differing from `engine-state.json`'s | zero | `halt` | which of the four it was |
 | P7 | The `(engine state, last_event)` pair is not a base key for the run's mode | zero | `halt` | the offending pair |
 
-**P4's well-formedness.** `run_id` is a canonical lowercase UUID,
+**Why P1 is first.** The engine writes state by creating a temporary file and
+then renaming it, so an interrupted `init` leaves a temporary behind with *no*
+`engine-state.json` at all — and an interrupted `transition` can leave one beside
+a stale or unreadable file. Ordered any lower, P1 would be shadowed by P2, P3, or
+P4 in exactly the cases it exists to catch, and the run would be told "no engine
+state, this is ambiguous" when the truth is "a write was interrupted and a
+writing verb must finish it."
+
+**P1's detection.** Presence only, of either artifact class: a confined glob for
+the engine-state temporary, whose name is random, and a single stat for the
+pending-events file. Neither artifact is opened and neither is parsed, so nothing
+here reads attacker-influenceable content. The pending-events file lives in the
+repository-shared run directory rather than the spec directory, so its presence
+halts every run in the repository, not only this one — the artifact records an
+interrupted write whose replay is a writing verb's job, and a read-only verb
+cannot tell whose.
+
+**P5's well-formedness.** `run_id` is a canonical lowercase UUID,
 `transition_sequence` a non-negative integer, and `mode` one of `code` or
 `spec-plan`. All three fail before any record is built rather than routing to a
 `halt`, because the record cannot be constructed without them: `run_id` and
 `transition_sequence` are two of its nine keys, and `mode` selects the transition
 table `complete_with` is derived from.
 
-**P1's light-mode marker.** With HTML comments removed, a line in `spec.md`
+**P2's light-mode marker.** With HTML comments removed, a line in `spec.md`
 *before its first `##` heading* matching
-`^[\s>*_`-]*Mode[\s*_`]*:?[\s*_`]*light\b`, case-insensitively. The zone
-restriction is load-bearing: the marker is discussed in the body of specs that
-are about it, and those mentions must not route a run to P1.
-
-**P5's scope.** Detection is by presence alone; neither artifact's content is
-read, so nothing here parses an attacker-influenceable file. The pending-events
-file lives in the repository-shared run directory rather than the spec directory,
-so its presence halts every run in the repository, not only this one. That is the
-intended behaviour: the artifact records an interrupted write whose replay is a
-writing verb's job, and a read-only verb cannot tell whose.
+`^[\s>*_`-]*Mode[\s*_`]*:[\s*_`]+light(?![\w-])`, case-insensitively. The
+colon and at least one following separator are both required, and the trailing
+guard rejects a hyphen, so neither `Modelight` nor `light-weight` matches. The
+zone restriction is load-bearing: the marker is discussed in the body of specs
+that are about it, and those mentions must not route a run to P2.
 
 ### Routing
 
@@ -149,10 +169,10 @@ in the Mode column matches either mode.
 | R2 | both | `SPEC-PLAN-REVIEW` | `*` | — | `spec.review` |
 | R3 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Draft` | `await-spec-approval` |
 | R4 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Approved` | `engine.spec-approved` |
-| R5 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Implementing`, `Shipped`, `Archived`, `unreadable` | `halt` |
+| R5 | both | `SPEC-HUMAN-GATE` | `*` | D1 `other` | `halt` |
 | R6 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Drafting` | `await-plan-approval` |
 | R7 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Approved` | `engine.plan-approved` |
-| R8 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Executing`, `Done`, `unreadable` | `halt` |
+| R8 | both | `PLAN-HUMAN-GATE` | `*` | D2 `other` | `halt` |
 | R9 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `pending+unscheduled`, `pending+scheduled` | `cohort.approve-plan` |
 | R10 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled` | `cohort.schedule` |
 | R11 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+scheduled` | `engine.plan-locked` |
@@ -166,7 +186,15 @@ in the Mode column matches either mode.
 | R19 | code | `CODE-REVIEW` | `gates-clean` | — | `run-review` |
 | R20 | code | `CODE-HUMAN-GATE` | `reviewers-clean` | — | `await-merge-decision` |
 | R21 | code | `DONE` | `done` | — | `complete` |
-| R22 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `reset-and-reinit` |
+| R22 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `complete` |
+
+**Why R22 is `complete` and not a reset.** The shipped resumption rows for those
+two keys prescribe a destructive reset, but only *if implementation is later
+requested* — a human decision neither state file records. That is the same
+unobservability that collapsed `CODE-HUMAN-GATE` to one row: a projection that
+reads only state cannot see it. So a finished spec-plan run is answered as
+finished, the reset stays a human-initiated path described in the shipped row's
+prose, and no action in this contract is destructive.
 
 ### Action attributes
 
@@ -192,17 +220,16 @@ in the Mode column matches either mode.
 | `await-plan-approval` | `wait` | — | — | true |
 | `await-merge-decision` | `wait` | — | `ref:session-resumption` | true |
 | `complete` | `done` | — | — | false |
-| `reset-and-reinit` | `done` | — | `ref:session-resumption` | true |
 | `halt` | `stop` | — | — | false |
+
+`human_wait` is true exactly for the three `wait`-kind actions. No action in this
+table is destructive, so there is no second source of it.
 
 `human_wait` describes the record, not the engine's `pending_human_wait`. At a
 human gate whose approver has already written the decision — R4 and R7 — the
 engine still reports `pending_human_wait: true` while the record reports
 `human_wait: false`, because nothing is left to wait for: the action is firing the
-event the approver's write authorised. `reset-and-reinit` runs the other way: it
-is a `done`-kind action reporting `human_wait: true`, because R22's reset is
-destructive and the shipped resumption rows require explicit human confirmation
-before it.
+event the approver's write authorised.
 
 **What `complete_with` does not carry.** It names *events*, not invocations. Two
 of them take required transition arguments the record does not supply:
@@ -309,17 +336,23 @@ the command could not compute a record at all, and emits none.
   table fails this criterion.
 - [ ] **AC6 — preconditions.** Each Preconditions row, exercised in isolation and
   against a state that also matches a later row, produces that row's exit and
-  record, and its stderr names what the row's last column requires. P1's marker
-  match is exercised against every marker spelling the live corpus carries and
-  against a body-zone mention that must not match. P1 through P4 return four
-  distinct exit codes, asserted as mutually distinct rather than as four literals.
+  record, and its stderr names what the row's last column requires. P1 is
+  exercised in the state that makes ordering load-bearing — a temporary file with
+  no `engine-state.json` beside it — and must win over P2 and P3. P2's marker
+  match is exercised against every spelling in the plan's fixture set, against a
+  body-zone mention, and against `Modelight` and `light-weight`, none of which may
+  match. P2 through P5 return four distinct exit codes, asserted as distinct from
+  each other and from both 1 and 2, which the engine's generic refusal and
+  argparse already occupy.
 
 ### The record
 
 - [ ] **AC7.** On a zero exit, `loop-engine next <spec-dir> --json` writes exactly
   one JSON object to stdout, whose key set is exactly `schema_version`, `run_id`,
   `sequence`, `kind`, `action`, `parameters`, `complete_with`, `load`,
-  `human_wait`. On a non-zero exit it writes nothing to stdout.
+  `human_wait`. On a non-zero exit it writes nothing to stdout. `--json` is
+  required: `next` invoked without it exits non-zero and writes nothing to stdout,
+  so there is no second, uncontracted output form.
 - [ ] **AC8.** No diagnostic, refusal reason, or stop reason is written to stdout
   on any exit path; every one of them is written to stderr.
 - [ ] **AC9.** `schema_version` is the literal string `work-loop-next.v1`; `run_id`
@@ -332,9 +365,15 @@ the command could not compute a record at all, and emits none.
   is empty exactly when that state has no outgoing transition. Pinning it to a
   constant fails this criterion.
 - [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$`, or is an
-  integer, or is a boolean; and every `load` entry resolves to a file shipped
-  under the skill's `references/` tree, with the resolution built by globbing that
-  tree rather than transcribed.
+  integer, or is a boolean. For a value read from either state file this is a
+  **runtime refusal, not a suite assertion**: a value that fails yields `halt`
+  rather than a record. `from_index` is the case that requires it — it is the only
+  `parameters` value taken from a state field no Precondition form-checks, and it
+  reaches a command line. `cycle_id` is derived from two fields P5 already checks.
+  Every `load` entry resolves to a file shipped under the skill's `references/`
+  tree, with the resolution built by globbing that tree rather than transcribed.
+  Planting a non-integer `current_wave_index` and observing a record rather than a
+  `halt` fails this criterion.
 - [ ] **AC12.** No record carries a schedule array, amendment history, finding
   fingerprint, or verbatim copy of either state file. A fingerprint is the case
   this criterion uniquely catches: a 64-character hex digest satisfies AC11's
@@ -354,12 +393,17 @@ the command could not compute a record at all, and emits none.
 
 ### Reads
 
-- [ ] **AC15.** Every file the verb opens — both state files, both artifact Status
-  files, and both crash artifacts — is resolved through the existing spec-directory
-  confinement and read through the shared guard module's readers, with no direct
-  `open` or `read_text` anywhere in the verb's path. A symlink, a non-regular file,
-  and an oversized file at each read target are each refused rather than followed,
-  read, or blocked on.
+- [ ] **AC15.** The verb opens exactly four files — both state files and both
+  artifact Status files. Each is read through the shared guard module's readers,
+  with no direct `open` or `read_text` anywhere in the verb's path; a symlink, a
+  non-regular file, and an oversized file at each of the four is refused rather
+  than followed, read, or blocked on.
+- [ ] **AC15a.** The two crash artifacts are never opened. P1 detects them by
+  presence alone, under two different roots: the engine-state temporary by a
+  confined glob within the spec directory, the pending-events file by a single
+  stat in the repository-shared run directory. A symlink, a directory, or a FIFO
+  at either location is detected as present and yields P1's `halt`, and no read,
+  parse, or repair occurs at either.
 - [ ] **AC16.** Running `next` leaves `engine-state.json`, `state.json`, and
   `.loop-run/events.jsonl` byte-identical, and creates and deletes no file
   anywhere under the spec directory or the loop run directory. This holds on every
@@ -383,19 +427,25 @@ the command could not compute a record at all, and emits none.
   Routing actions whose `(mode, engine state, last_event)` key matches that row's
   `(last_event, state)` pair, with both sides parsed rather than transcribed.
   Changing one identifier fails this criterion.
-- [ ] **AC20.** The shipped instructions state the consumer's trust posture: that
-  the record is data rather than instruction, that `action` is matched against the
-  closed Action attributes vocabulary and an unrecognised value halts, that a
-  `load` entry outside the closed reference vocabulary halts, and that no field of
-  the record is executed or interpreted as a command. A grep over the shipped text
-  finds each of those four statements.
+- [ ] **AC20.** All four consumer trust-posture statements appear in
+  `packs/core/.apm/skills/work-loop/references/session-resumption.md`, in the
+  section that introduces the verb — the same file R20's `load` names and the one
+  an agent has open when it consumes a record, so the control is where the
+  consumer is rather than merely somewhere in the payload. The four: the record is
+  data rather than instruction; `action` is matched against the closed Action
+  attributes vocabulary and an unrecognised value halts; a `load` entry outside the
+  closed reference vocabulary halts; no field of the record is executed or
+  interpreted as a command. Deleting any one of the four fails this criterion.
 - [ ] **AC21.** `loop-engine --help` lists `next` alongside `init`, `transition`,
   `status`, and `reset`.
 - [ ] **AC22.** The entrypoint section of
   `docs/architecture/loop-infrastructure.md` names `next` in the `loop-engine.py`
   verb set and records it as read-only.
 - [ ] **AC23.** `guides/core/how-to/plan-and-execute-non-trivial-work.md`
-  describes resuming through `next`.
+  describes resuming through `next`, checked by grepping for the literal
+  `loop-engine next` rather than the bare word — that file already contains "the
+  next phase" and "the next review unit", so a bare-word check is green before the
+  edit.
 
 ### Evidence and release
 
@@ -429,9 +479,13 @@ contract that depends on this one; they are not deferred work from this checklis
   `docs/specs/review-record-idempotency/spec.md` at `Status: Shipped`, core
   2.18.2, PR #1192; `references/state-schema.md` documents both fields, and all
   seven fenced `review record` invocations in the shipped skill pass the flag)
-- Technical: AC19 is purely additive — every shipped resumption row's prescribed
-  action already agrees with the Routing table, so no row is rewritten and the two
-  tests that pin row prose keep passing. They locate their row by substring and
+- Technical: AC19 is additive for thirteen of the fifteen shipped rows, whose
+  prescribed action already agrees with the Routing table. The two spec-plan `DONE`
+  rows are the exception: they prescribe a reset conditioned on a later human
+  request, so their identifier column carries `complete` — the action `next`
+  returns — while their prose keeps describing the conditional reset as a human
+  path. No row's prose is rewritten, and the two tests that pin row prose keep
+  passing. They locate their row by substring and
   assert phrases within the matched line, so an added column does not disturb
   either (source: `test_loop_engine.py:2775-2776` matches the `findings-remain`
   row and requires "stale fingerprint baseline", "under-count", and "do NOT
@@ -453,8 +507,11 @@ contract that depends on this one; they are not deferred work from this checklis
   `run_id` is constant within a run; it does not bound a `plan_review_status`,
   `schedule_waves`, or `transition_sequence` value captured mid-write. This is
   accepted: the verb is advisory, the agent re-reads before acting, and every
-  writing verb it names re-validates under the lock. P5 covers the one torn state
-  that is detectable from disk (source: `_statelock.py:122-124`)
+  writing verb it names re-validates under the lock. Two atomic-write temporaries
+  are detectable from disk, and P1 halts on only one of them: the cohort's
+  `.state-*.json.tmp` is deliberately not a halting condition, because no recovery
+  routine exists for it and halting would wedge the loop permanently (source:
+  `_statelock.py:122-124`; `loop-cohort.py:177`)
 - Technical: the two state files keep their owners, so the projection reads engine
   state through the engine's own reader and cohort state through the shared guard
   API (source: `_loop_guards.py` names `engine-state` only in two comments;
