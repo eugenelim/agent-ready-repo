@@ -67,6 +67,7 @@ extract_spec_status_with_fingerprint: Any = None
 parse_workspace: Any = None
 run_canonical_reconciliation: Any = None
 canonical_repository_identity: Any = None
+_confined_artifact_path: Any = None
 _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
@@ -122,6 +123,7 @@ def _bind_engine() -> bool:
         "parse_workspace": engine_mod.parse_workspace,
         "run_canonical_reconciliation": engine_mod.run_canonical_reconciliation,
         "canonical_repository_identity": engine_mod.canonical_repository_identity,
+        "_confined_artifact_path": engine_mod._confined_artifact_path,
         "_safe_spec_path": engine_mod._safe_spec_path,
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
@@ -740,7 +742,36 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None:
+def _surviving_work(
+    initiative: Any,
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> tuple[list, list]:
+    """Return the single derivation both closeout consumers read."""
+    queue = initiative.work.queue
+    active = initiative.work.active
+    if root is None or not cooled:
+        return queue, active
+    return (
+        [
+            entry
+            for entry in queue
+            if _confined_artifact_path(root, entry.path) not in cooled
+        ],
+        [
+            entry
+            for entry in active
+            if _confined_artifact_path(root, entry.path) not in cooled
+        ],
+    )
+
+
+def _closeout_projection(
+    result,
+    root: Path | None,
+    *,
+    dueness_failed: bool = False,
+) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
     Returns None when no initiative is active or paused. There is no closeout
@@ -761,7 +792,10 @@ def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None
         return None
     initiative = active[0]
     paused = initiative.status == "paused"
-    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
+    surviving_queue, surviving_active = _surviving_work(
+        initiative, root, result.cooled
+    )
+    all_specs_shipped = not (surviving_queue or surviving_active)
     # `spec_path` is `entry.path` straight from workspace.toml with no charset
     # rule, and this string is rendered into agent context. Every sibling
     # emitter bounds its path through this same filter.
@@ -796,13 +830,14 @@ def _build_json(root: Path, result, mode: str) -> dict:
     for ini in result.initiatives:
         if ini.status != "active":
             continue
+        surviving_queue, _ = _surviving_work(ini, root, result.cooled)
         initiatives_out.append({
             "slug": _public_ini_slug(ini.slug),
             "name": "workspace.toml",
             "status": ini.status if ini.status in {"active", "paused", "closed"} else "invalid",
             "milestone": "workspace.toml",
             "brief_queue": _brief_queue_dict(ini.brief_queue),
-            "queue_empty": len(ini.work.queue) == 0,
+            "queue_empty": len(surviving_queue) == 0,
         })
         for e in ini.work.shipped:
             shipped_entries.append(_work_entry_dict(e, ini.slug))
@@ -887,7 +922,9 @@ def _build_json(root: Path, result, mode: str) -> dict:
         cooling = _cooling_projection(result)
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
-        closeout = _closeout_projection(result, dueness_failed=bool(unreadable))
+        closeout = _closeout_projection(
+            result, root, dueness_failed=bool(unreadable)
+        )
         if closeout is not None:
             output["closeout"] = closeout
     return output

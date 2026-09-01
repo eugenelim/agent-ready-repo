@@ -6,6 +6,8 @@ import uuid
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 STATUS_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
@@ -231,3 +233,170 @@ def assert_migration_fixture_is_real(tmp_path: Path) -> None:
     cooled_memberships = run_status(cooled)["canonical"]["legacy_memberships"]
     assert [membership["path"] for membership in uncooled_memberships] == ["spec/legacy"]
     assert [membership["path"] for membership in cooled_memberships] == []
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac1_cooled_queue_entry_counts_toward_neither(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC1: a cooled queue entry is absent from both closeout consumers."""
+    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
+    initiative = next(
+        item for item in result["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert result["closeout"]["all_specs_shipped"] is True
+    assert initiative["queue_empty"] is True
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac2_uncooled_control_reports_both_false(tmp_path: Path, mode: str) -> None:
+    """AC2: the uncooled queue entry keeps both closeout values false."""
+    result = run_status(cooled_initiative(tmp_path, cooled=False), mode)
+    initiative = next(
+        item for item in result["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert result["closeout"]["all_specs_shipped"] is False
+    assert initiative["queue_empty"] is False
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac3_both_consumers_move_together(tmp_path: Path, mode: str) -> None:
+    """AC3: both closeout consumers move between cooled and plain fixtures."""
+    cooled = run_status(
+        cooled_initiative(tmp_path / "cooled", cooled=True), mode
+    )
+    uncooled = run_status(
+        cooled_initiative(tmp_path / "uncooled", cooled=False), mode
+    )
+    cooled_initiative_out = next(
+        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
+    )
+    uncooled_initiative_out = next(
+        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert (
+        cooled["closeout"]["all_specs_shipped"]
+        != uncooled["closeout"]["all_specs_shipped"]
+    )
+    assert (
+        cooled_initiative_out["queue_empty"]
+        != uncooled_initiative_out["queue_empty"]
+    )
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac4_alias_cooled_entry_moves_both_consumers(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC4: an alias-cooled queue entry moves both closeout consumers."""
+    cooled = run_status(
+        cooled_initiative(tmp_path / "cooled", cooled=True, alias=True), mode
+    )
+    uncooled = run_status(
+        cooled_initiative(tmp_path / "uncooled", cooled=False, alias=True), mode
+    )
+    cooled_initiative_out = next(
+        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
+    )
+    uncooled_initiative_out = next(
+        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert cooled["closeout"]["all_specs_shipped"] is True
+    assert cooled_initiative_out["queue_empty"] is True
+    assert (
+        cooled["closeout"]["all_specs_shipped"]
+        != uncooled["closeout"]["all_specs_shipped"]
+    )
+    assert (
+        cooled_initiative_out["queue_empty"]
+        != uncooled_initiative_out["queue_empty"]
+    )
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac5_queue_empty_still_counts_queue_alone(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC5: an uncooled active entry blocks shipping but not queue emptiness."""
+    result = run_status(
+        cooled_initiative(tmp_path, cooled=False, active=True), mode
+    )
+    initiative = next(
+        item for item in result["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert result["closeout"]["all_specs_shipped"] is False
+    assert initiative["queue_empty"] is True
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac6_cooled_active_entry_counts_toward_shippedness(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC6: a cooled active entry stops blocking projected shipped-ness."""
+    cooled = run_status(
+        cooled_initiative(tmp_path / "cooled", cooled=True, active=True), mode
+    )
+    uncooled = run_status(
+        cooled_initiative(tmp_path / "uncooled", cooled=False, active=True), mode
+    )
+
+    assert cooled["closeout"]["all_specs_shipped"] is True
+    assert uncooled["closeout"]["all_specs_shipped"] is False
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac7_uncooled_sibling_still_blocks(tmp_path: Path, mode: str) -> None:
+    """AC7: an uncooled queue sibling keeps both closeout values false."""
+    result = run_status(
+        cooled_initiative(tmp_path, cooled=True, extra_uncooled=True), mode
+    )
+    initiative = next(
+        item for item in result["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert result["closeout"]["all_specs_shipped"] is False
+    assert initiative["queue_empty"] is False
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac8_cooled_queue_entry_has_no_unshipped_blocker(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC8: a cooled queue entry does not emit the unshipped-specs blocker."""
+    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
+
+    assert "unshipped-specs" not in result["closeout"]["closeout_blockers"]
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac10_clean_cooled_reading_keeps_affirmative_instruction(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC10: a complete cooled reading keeps the affirmative closeout action."""
+    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
+
+    assert result["closeout"]["cooling_context_visible"] is False
+    assert result["closeout"]["next_action"] == "invoke-close-work"
+    assert (
+        "cooling-context-incomplete"
+        not in result["closeout"]["closeout_blockers"]
+    )
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_ac11_paused_projection_omits_initiative_queue_empty(
+    tmp_path: Path, mode: str
+) -> None:
+    """AC11: a paused projection emits closeout without an initiative row."""
+    result = run_status(
+        cooled_initiative(tmp_path, initiative_status="paused"), mode
+    )
+
+    assert result["closeout"]["paused"] is True
+    assert result["closeout"]["next_action"] == "resume-or-keep-paused"
+    assert result["initiatives"] == []
