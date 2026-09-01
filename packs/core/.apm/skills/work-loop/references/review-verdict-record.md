@@ -90,7 +90,7 @@ Each is closed on the same terms as the top level.
 Apply in order, without compensation:
 
 1. `BLOCKED` — an unresolved blocker, a failed required gate, a missing required
-   `finding-adjudicator` for a non-exact report, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
+   `finding-adjudicator` for a report that required dispatch, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
    missing, or named-skipped mandatory review, or prohibited silent suppression.
 2. `CHANGES_REQUIRED` — a finding still requires action, per the disposition
    table below.
@@ -127,7 +127,7 @@ state blocked.
 Closed. Only a named skip for a warranted non-mandatory reviewer, an explicitly
 accepted deferral, an explicitly accepted analysis blind spot, or an unacted Nit
 as the disposition table defines it qualifies. A missing required
-`finding-adjudicator` for a non-exact report, a failed gate, an invalid or missing mandatory
+`finding-adjudicator` for a report that required dispatch, a failed gate, an invalid or missing mandatory
 review (including a named skip), an unresolved blocker, or a Nit absent from the
 record or missing its citation never qualifies.
 

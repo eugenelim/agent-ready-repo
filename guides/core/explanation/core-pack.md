@@ -64,16 +64,19 @@ The core pack ships seven tightly-coupled artifacts plus the documents they all 
 - **`docs/CONVENTIONS.md`** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (TDD / goal-based / visual-manual), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
 - **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates a Boundaries section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
 - **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Tracks state in `state.json` (gitignored, session-scratch), enforces an iteration cap, detects stasis (same findings twice = stop and surface), and gates EXECUTE on plan-approval after a pre-EXECUTE adversarial review.
-- **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses: adversarial checks delivery drift, security checks threats, and quality checks maintainability.
+- **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses, which now own disjoint concerns: adversarial checks delivery drift and contract conformance, security owns every threat finding, and quality owns test strength and maintenance cost. A reviewer that spots another lens's concern says so in its own lens rather than emitting that lens's finding.
 - **The reviewer subagents** —
   - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + `CONVENTIONS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits). Cannot be skipped.
   - **`finding-adjudicator`** (Opus): independently tests each completed
-    non-exact reviewer report against current evidence and governing authority
-    before a finding can trigger repair. The exact clean sentinel is accepted
-    mechanically without an adjudicator call. The adjudicator owns reachability
-    and preserves refuted or indeterminate results for audit.
+    reviewer report that reaches it against current evidence and governing
+    authority before a finding can trigger repair. A report the loop classifies
+    clean by structure is accepted mechanically without an adjudicator call; one
+    carrying `security-reviewer`'s coverage-disclosure footer always takes the
+    adjudicator path, because that footer is prose. A malformed report stops the
+    loop rather than routing anywhere. The adjudicator owns reachability and
+    preserves refuted or indeterminate results for audit.
   - **`security-reviewer`** (Opus): OWASP + STRIDE lens. Conditional — runs when the diff crosses a security boundary.
-  - **`quality-engineer`** (Opus): testability, observability, reliability, maintainability. Conditional. Different lens from adversarial; not a duplicate.
+  - **`quality-engineer`** (Opus): testability, observability, reliability, maintainability. Conditional. It exclusively owns test strength — whether a test can actually fail — and the inferred edge cases the spec never named; adversarial owns whether the promised artifact exists at all.
   - **`implementer`** (Sonnet): single-task executor for supervisor mode. Not a reviewer.
 
 The reviewers are diff-source-agnostic — the work loop points them at your own working tree, but you can point them at any diff, including a teammate's branch or open PR. See [Review a branch or PR you didn't write](../how-to/review-someone-elses-pr.md).
@@ -95,8 +98,9 @@ A feature lifecycle, end to end, with the parts named:
 2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, the exact code in that `Tests:` section is a planning proof: PLAN compiles and exercises it from disposable scratch without adding a repository test file.
 3. **`shaping-reviewer`** reads the draft contract cold before plan approval;
    then `adversarial-reviewer` reads the complete spec + plan for construction
-   risk. The exact clean sentinel closes review mechanically; every other
-   completed spec-review report passes through `finding-adjudicator` before it
+   risk. A structurally clean spec-review report closes review mechanically;
+   every other completed spec-review report — one carrying findings, or a
+   coverage-disclosure footer — passes through `finding-adjudicator` before it
    can change the spec or plan. Only sustained findings drive repair; each is marked as originating in the draft
    or a prior review repair, and any green gate used as evidence is bounded by
    what it proves and a relevant blind spot. Two passes is normal; three means a
@@ -105,13 +109,15 @@ A feature lifecycle, end to end, with the parts named:
 5. **EXECUTE.** After the engine enters `CODE-IMPLEMENTATION`, the agent materializes each approved TDD block unchanged at its real test path, verifies byte identity, and then runs red, green, refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
-   `CONVENTIONS.md` + `spec.md`. An exact clean sentinel is recorded directly;
-   otherwise `finding-adjudicator` independently sustains, refutes, or stops on
-   each reported finding before the loop acts. `loop-cohort review record`
-   fingerprints the sustained set, and the loop iterates. Given `--operation-id`, a
-   repeated recording of the same round is recognised as a completed write instead
-   of counted twice.
-8. **Specialist reviewers** (if warranted). `security-reviewer` when the diff changes a security boundary, data flow, or guarding control, including agent authority, untrusted-input, tool, permission, sandbox, or data-handling behavior. Unchanged existing I/O and ordinary prompt wording do not fire it. `quality-engineer` covers the maintenance lens.
+   `CONVENTIONS.md` + `spec.md`. Each report is persisted, then classified:
+   a structurally clean report is recorded directly, a report carrying findings
+   or a coverage-disclosure footer goes to `finding-adjudicator`, and a
+   malformed one stops the loop. The adjudicator independently sustains,
+   refutes, or stops on each reported finding before the loop acts.
+   `loop-cohort review record` fingerprints the sustained set, and the loop
+   iterates. Given `--operation-id`, a repeated recording of the same round is
+   recognised as a completed write instead of counted twice.
+8. **Specialist reviewers** (if warranted). `security-reviewer` when the diff changes a security boundary, data flow, or guarding control, including agent authority, untrusted-input, tool, permission, sandbox, or data-handling behavior. Unchanged existing I/O and ordinary prompt wording do not fire it. `quality-engineer` covers the maintenance lens. Nits from any reviewer do not block readiness: they are recorded with their citation and deferred, and are only acted on — after promotion, if the repair is larger than a Nit — when the thread means to change the code because of one.
 9. **Stasis detection.** If the next iteration's findings fingerprint the same as the previous round's, the loop stops and surfaces. No silent third pass.
 10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.
 

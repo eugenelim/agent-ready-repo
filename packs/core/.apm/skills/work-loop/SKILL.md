@@ -482,7 +482,7 @@ Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
 in the paired audit; an indeterminate stops unless the evidence retry admits it.
 
 - **Full mode:** iterate `adversarial-reviewer` until no unresolved Blocker or Concern remains.
-- **Light mode:** run the single bounded pass. Accept only the exact clean sentinel directly; adjudicate every other report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
+- **Light mode:** run the single bounded pass. Classify the persisted report with `review raw-classify`; a `clean` result without a `## Not checked` footer records directly, and every other report is adjudicated. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
 
 Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path.
 Fallback if no subagent is installed: record the mandatory reviewer outcome as
@@ -635,7 +635,7 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave
 # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
 ```
 
-**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and byte-comparing it against the exact clean sentinel; adjudicate every non-matching report independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
@@ -732,7 +732,7 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 1. Read the sustained finding from the adjudication artifact carefully; fix the established defect, not the symptom. Never route a refuted or indeterminate source finding into FIX.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
-4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept exact clean directly and adjudicate every non-exact report. Continue until direct or adjudicated Clean.
+4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
 5. **Light mode — non-Blocker fix:** return to GATES, then DECIDE/finish. Do not run a second adversarial pass.
 6. **Light mode — Blocker fix:** return to GATES, then run the single permitted re-review. A surviving Blocker escalates to full mode.
 

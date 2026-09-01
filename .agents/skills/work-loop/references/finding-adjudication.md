@@ -8,16 +8,18 @@ Pre-EXECUTE reviews use the parallel protocol in `pre-execute-review.md`.
 ## Raw-clean fast path
 
 Persist and validate the completed reviewer's return exactly as it arrived, then
-run `review raw-classify --report <path> --json`. `clean` requires the exact
-sentinel, zero parsed findings, and only the closed `## Not checked` footer
-grammar; it skips `finding-adjudicator` and paired artifacts. Record a byte-exact
+run `review raw-classify --report <path> --json`. `clean` requires the
+sentinel line exactly once, zero parsed findings, and nothing else but blank
+lines; it skips `finding-adjudicator` and paired artifacts. A report carrying a
+`## Not checked` footer never takes that fast path however clean it looks — the
+footer is prose, and prose is what the adjudicator reads. Record a byte-exact
 clean with `--direct-clean-file`, otherwise record the classifier-accepted raw
 artifact with `--structural-clean-file`. `findings` follows this protocol;
 `invalid` stops. The raw artifact is always retained for audit.
 
 ## Artifact identity and validation
 
-For a non-exact report, `<round>` is the 1-based ordinal of the review pass being conducted, not a count
+For a dispatched report, `<round>` is the 1-based ordinal of the review pass being conducted, not a count
 of completed ones: in full mode it is `review_round_count + 1`. The validator
 refuses `--round 0`, and `review_round_count` is `0` until the first
 `review record`, so deriving the round from the raw counter fails on every run's

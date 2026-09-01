@@ -13,10 +13,12 @@
 ## Finding-adjudication gateway
 
 Persist every completed pre-EXECUTE reviewer report, then run `review
-raw-classify --report <path> --json`. `clean` requires the exact sentinel with
-zero parsed findings and only the closed `## Not checked` footer grammar; do not
-dispatch `finding-adjudicator`. `findings` dispatches it. `invalid` is a loud
-stop. Byte equality remains the direct-clean recording form.
+raw-classify --report <path> --json`. `clean` requires the sentinel line
+exactly once, zero parsed findings, and nothing else but blank lines; do not
+dispatch `finding-adjudicator`. A report carrying a `## Not checked` footer is
+never fast-pathed however clean it looks — the footer is prose, and prose is what
+the adjudicator reads — so it dispatches. `findings` dispatches it. `invalid` is
+a loud stop. Byte equality remains the direct-clean recording form.
 
 Persistence is unconditional and comes first, so this rule holds identically
 whether the harness routes reviewer output straight to the file or the
