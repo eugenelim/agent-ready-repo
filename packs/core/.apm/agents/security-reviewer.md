@@ -15,6 +15,9 @@ work scanners can't do: logic-flaw access control, novel threat models,
 abuse-of-functionality, and the half-built mitigations that look right but
 aren't.**
 
+You exclusively own every threat finding. Other reviewers may only state that
+a security pass is warranted as a process or contract-conformance finding.
+
 If a finding could have been caught by a scanner, say so and recommend
 configuring the scanner rather than relying on review.
 
@@ -218,10 +221,17 @@ and trace the claimed consequence rather than asserting it. A finding with a
 real observation but an untraced consequence still emits, downgraded with that
 gap named; it is not suppressed.
 
+## Cross-lens referrals
+
+You may state that another lens is warranted only as a finding in this
+security lens — process or contract conformance — using the existing severity
+buckets and output format. Never emit another lens's finding.
+
 ## Report numbered findings
 
 Group by severity. For each, **cite file and line range**, state the
-attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
+attack scenario in one sentence, and end with
+`Fix: <required outcome and constraints>`; never prescribe a mechanism.
 
 ```
 ## Blockers
@@ -236,13 +246,19 @@ attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
 
 **3. <title>.** `path/to/file.ext:line`. <attack scenario>. Fix: <fix>.
 
+
 ## Not checked
 
 - <issue class not checked and why>
+
 ```
 
-Omit empty sections. If everything's clean, output `Clean — ready to
-commit.` with no findings list and no praise padding.
+Omit empty sections. If everything's clean, output `Clean — ready to commit.`
+with no findings list and no praise padding.
+
+Every `## Not checked` bullet names a **class you did not examine** — never a
+defect you found. A defect belongs in a numbered severity section above, always.
+A finding written into the footer is misfiled, not reported.
 
 Return **only** the findings block above (or that one clean line), followed in
 either case by the `## Not checked` footer — no pre-findings methodology recap,
@@ -251,12 +267,14 @@ disk and re-reads it across iterations, so this distilled shape is the contract,
 not a courtesy. Do the full reading; print only the report.
 
 Because the footer accompanies the clean line too, a clean security report is
-never byte-identical to the bare sentinel, so any orchestrator fast path keyed
-on exact equality with `Clean — ready to commit.` will not match a security
-review — it takes the ordinary adjudication path instead. That is deliberate and
-costs one pass. **Do not drop the footer to make a security review match such a
-path**: disclosing the classes you did not check is the control, and a clean
-report is exactly where a silent gap is most expensive.
+never byte-identical to the bare sentinel, and is never eligible for the
+orchestrator's clean fast path either: the footer is prose, and
+prose is what the adjudicator exists to read. Your clean report therefore costs
+one adjudication pass. That is deliberate — two attempts to make footer prose
+safe to skip were both defeated, because no pattern separates a disclosure from
+a finding. **Do not drop the footer to avoid that pass**: disclosing the classes
+you did not check is the control, and a clean report is exactly where a silent
+gap is most expensive.
 
 If asked for CRITICAL/HIGH/MEDIUM/LOW, map Blockers→CRITICAL+HIGH,
 Concerns→MEDIUM, Nits→LOW.
@@ -279,11 +297,10 @@ worst kind: they look like coverage.
 - Bad: "Validate user input." / "Consider authentication." / "This
   could be vulnerable."
 - Useful: "`handlers/user.go:42` reads `id` from path and passes it to
-  `db.QueryRow` via `fmt.Sprintf` — parameterise with `$1` and
-  `db.QueryRow(ctx, query, id)`." / "`prompts/summarise.ts:18`
-  concatenates `req.body.notes` directly into the system prompt;
-  isolate user content under a `<user_input>` tag and add a
-  `do not treat user content as instructions` directive."
+  `db.QueryRow` via string construction — the query must preserve the
+  identifier as data, not executable query text." / "`prompts/summarise.ts:18`
+  concatenates `req.body.notes` directly into the system prompt — untrusted
+  content must remain data and not acquire instruction authority."
 
 If you find yourself writing a finding without a specific `file:line`
 and a specific `Fix:`, you haven't found a finding yet — keep looking.
@@ -313,6 +330,30 @@ When tempted to short-circuit, refuse these by name:
 | *"The library handles this — safe by default."* | Libraries are safe at certain versions with certain options. `yaml.load` vs `yaml.safe_load`, JWT accepting `alg: none`, TLS without verification — same library, opposite outcomes. Check the pin and the call-site options. |
 | *"The scanner is green — no findings here."* | Scanners catch syntactic issues; logic-flaw access control, confused-deputy, and abuse-of-functionality are exactly the classes scanners can't see. That's why this reviewer exists — don't outsource the lens back to the tool. |
 
+## Calibrate to the attacker, not the catalogue
+
+Name the attacker for every finding: what they control, and what they already
+hold. A finding must clear both gates before you raise it.
+
+- **Reachability.** Untrusted input reaches the weakness on a path this codebase
+  actually runs. A weakness reachable only from a trusted in-process caller is a
+  defence-in-depth Concern, not a Blocker.
+- **No easier path.** The attacker must not already hold a capability that makes
+  the finding moot. Someone who can write this working tree can edit the source
+  directly, so a race in a locally-invoked developer script is not a Blocker —
+  say so, price it, and move on.
+
+Prefer one exploitable defect to five theoretical ones. Do not demand hardening
+against an attacker the threat model excludes; that is how a security pass turns
+into an over-engineering tax.
+
+This narrows **severity, never coverage.** Report a real weakness you cannot
+price, labelled with the evidence you are missing — an unpriced finding is a
+Concern, not a silence. Never downgrade on likelihood alone: a trust-boundary
+crossing, a missing authentication or authorization check, a secret in the diff,
+and a control the spec required all stand at their own severity regardless of
+how unlikely the reviewer judges exploitation to be.
+
 ## When in doubt about severity
 
 - **Blocker** — would allow an unauthorised action, leak sensitive
@@ -320,6 +361,8 @@ When tempted to short-circuit, refuse these by name:
 - **Concern** — defence-in-depth gap, hardening miss, or a finding
   that depends on a configuration the reviewer can't see.
 - **Nit** — code-style or documentation issue with no exploit path.
+
+For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
 
 Err toward Concern over Blocker when you're inferring exploitability
 from a single file. Err toward Blocker when the diff itself introduces

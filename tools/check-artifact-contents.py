@@ -73,6 +73,14 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^Windows-only$",
         r"^hardcoded POSIX /tmp path$",
         r"^no seed primitives in core fixture; skip$",
+        # The only load-conditional entry, and deliberately the narrowest
+        # pattern here: every number is required, so it admits this one
+        # message shape and nothing else. Registered because
+        # `gate-export-boundary` fails on any skip at all, so an unregistered
+        # load spike reddens a required check on a property of the runner.
+        r"^wall-clock not asserted: load/core \d+(?:\.\d+)? exceeds "
+        r"\d+(?:\.\d+)?\. CPU \(\d+(?:\.\d+)?s\) and memory "
+        r"\(\d+(?:\.\d+)? MiB\) were asserted unconditionally\.$",
     )
 )
 _EXPECTED_STUB_MODULE_HASHES = {

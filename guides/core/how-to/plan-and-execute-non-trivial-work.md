@@ -77,11 +77,12 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 3. You read the Unverified list and confirm or revise. If the Unverified list is empty, the skill surfaces the Verified list with the highest-stakes item called out and asks you to confirm *that one specifically* — a vague "looks good" doesn't count.
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.
-6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses.
-7. Every `adversarial-reviewer` report is persisted first. An
-   `adversarial-reviewer` report whose persisted bytes are exactly
-   `Clean — ready to commit.` closes the round without an adjudicator call.
-   Every other completed report goes through
+6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses, each owning concerns the others do not repeat.
+7. Every `adversarial-reviewer` report is persisted first, then classified from
+   the persisted bytes. A report that is clean — by exact bytes, or by structure
+   with nothing but blank lines around the clean sentence — closes the round
+   without an adjudicator call. A report carrying findings, or
+   `security-reviewer`'s coverage-disclosure footer, goes through
    `finding-adjudicator` before the author classifies it or edits either
    artifact. Only sustained findings can change the spec or plan; refuted
    findings stay in the audit, and an indeterminate result stops for your

@@ -65,11 +65,17 @@ Each is closed on the same terms as the top level.
   text, status}`. `id`, `source_role`, `citation`, and `text` non-empty strings;
   `id` stays unchanged across review, adjudication, disposition, and verdict emission.
   Both severities are `blocker | concern | nit`: `severity` always
-  preserves the reviewer value; `effective_severity` always equals `severity`
-  under the mandatory gateway model. `status` is
-  `unresolved | resolved | rejected | deferred`. Only sustained findings from
-  the adjudicator gateway enter this array; refuted findings appear only in
-  paired audit artifacts. See [`finding-adjudication.md`](finding-adjudication.md)
+  preserves the reviewer value; `effective_severity` equals it unless DECIDE
+  promotes a Nit before acting on a repair that crosses its blast-radius rule.
+  The disposition table under State precedence is authoritative for what a given
+  combination contributes. `status` is
+  `unresolved | resolved | rejected | deferred`. Sustained findings from the
+  adjudicator gateway enter this array, plus one exception the Nit rule requires:
+  a strictly classified Nit-only raw report deferred without dispatch enters it
+  with its citation and `status: deferred`. Without that exception a deferred Nit
+  could not be recorded at all, since skipping dispatch is precisely what makes
+  it cheap. Every other non-clean report still reaches this array only through
+  adjudication. Refuted findings appear only in paired audit artifacts. See [`finding-adjudication.md`](finding-adjudication.md)
   for the full gateway procedure.
 - `required_gates[]` — `{name, outcome, evidence}`. `name` and `evidence`
   non-empty strings; `outcome` `passed | failed`.
@@ -84,12 +90,34 @@ Each is closed on the same terms as the top level.
 Apply in order, without compensation:
 
 1. `BLOCKED` — an unresolved blocker, a failed required gate, a missing required
-   `finding-adjudicator` for a non-exact report, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
+   `finding-adjudicator` for a report that required dispatch, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
    missing, or named-skipped mandatory review, or prohibited silent suppression.
-2. `CHANGES_REQUIRED` — a finding still requires action.
+2. `CHANGES_REQUIRED` — a finding still requires action, per the disposition
+   table below.
 3. `READY_WITH_RESIDUAL_RISK` — every mandatory control passed and at least one
    residual-eligible item remains.
 4. `READY` — otherwise.
+
+### Finding disposition
+
+This table is authoritative for a single `findings[]` entry. The schema and
+residual-eligibility sections point here rather than restating it, so one
+reader's answer cannot drift from another's. `effective_severity` decides
+gating, never the reviewer's `severity` — that is what makes a DECIDE promotion
+bite.
+
+| `status` | `effective_severity` | Citation | Contributes |
+| --- | --- | --- | --- |
+| `deferred` | `nit` (and `severity` `nit`) | present | `READY_WITH_RESIDUAL_RISK` |
+| `deferred` | `nit` | **missing** | `BLOCKED` — silent suppression |
+| `deferred` | `blocker` or `concern` | any | `BLOCKED` — a promoted finding cannot be deferred as a Nit |
+| `unresolved` | `blocker` | any | `BLOCKED` |
+| `unresolved` | `concern` | any | `CHANGES_REQUIRED` |
+| `unresolved` | `nit` | any | `CHANGES_REQUIRED` — decide it: defer it or act on it |
+| `resolved` or `rejected` | any | any | nothing |
+
+An **unacted Nit** is row 1 only: `status: deferred` with **both** `severity`
+and `effective_severity` equal to `nit`, carrying its citation.
 
 Resolved original blockers stay in the record as evidence without keeping the
 state blocked.
@@ -97,10 +125,11 @@ state blocked.
 ## Residual eligibility
 
 Closed. Only a named skip for a warranted non-mandatory reviewer, an explicitly
-accepted deferral, or an explicitly accepted analysis blind spot qualifies. A
-missing required `finding-adjudicator` for a non-exact report, a failed gate, an invalid or missing mandatory
-review (including a named skip), an unresolved blocker, and silent suppression
-never qualify.
+accepted deferral, an explicitly accepted analysis blind spot, or an unacted Nit
+as the disposition table defines it qualifies. A missing required
+`finding-adjudicator` for a report that required dispatch, a failed gate, an invalid or missing mandatory
+review (including a named skip), an unresolved blocker, or a Nit absent from the
+record or missing its citation never qualifies.
 
 An absent graph provider, project-knowledge not requested or unavailable, and
 `stateful migration: not triggered` are recorded where they apply but never by
@@ -111,7 +140,8 @@ and cannot override the categorical state.
 
 ## Mode semantics are unchanged
 
-Full mode still iterates every warranted reviewer to clean. Light mode still
+Full mode still iterates every warranted reviewer until no unresolved Blocker or
+Concern remains. Light mode still
 runs one bounded adversarial pass with the existing Blocker escalation, and a
 light non-Blocker disposition reaches `READY_WITH_RESIDUAL_RISK` only when the
 record names the accepted residual and all required light-mode gates passed.
