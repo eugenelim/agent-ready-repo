@@ -85,9 +85,30 @@ CORE_COLLECTIONS = {
         85,
         "72b3433894c9eb06912b0c98f437490aed4cb8cf6c111af6ee92ae9224f64675",
     ),
+    # Re-pinned 2026-09-01: 16 -> 27 after `885176fad`. This is the first
+    # re-pin triggered by a hard AssertionError rather than count/digest drift:
+    # `_parametrize_ids` refuses an ids-less `parametrize` outright, so this
+    # contract could not derive a node set. The repair adds explicit IDs to the
+    # two parametrizes that commit introduced, not a relaxation that teaches the
+    # static contract pytest's default ID rules; that would couple this deliberately
+    # static derivation to pytest's own ID generation, which it exists to avoid.
+    # Static arithmetic is 16 - 1 removed + 12 added = 27. The removed
+    # `test_all_shipped_delivered` was renamed and strengthened, not lost: its
+    # successor `test_explicitly_shipped_all_shipped_map_is_delivered` has the
+    # same body except that `write_brief` now receives the `status="Shipped"`
+    # required by `885176fad`. Three genuine new siblings cover the commit's
+    # refusals — `test_all_shipped_map_requires_explicit_shipped_status`,
+    # `test_shipped_requires_nonempty_all_shipped_map`, and
+    # `test_statusless_all_shipped_map_fails_closed`. Eight of the twelve
+    # additions are parameter expansions newly derivable from the explicit IDs:
+    # six from `test_terminated_brief_child_scope` and two from
+    # `test_untracked_backlink_contributes_execution_evidence`; 16 -> 27 thus
+    # records both new coverage and newly visible parameters, not eleven new test
+    # functions. The fifteen survivors preserve relative order, and the other two
+    # entries below still reproduce unchanged.
     SHARED_TESTS[1]: (
-        16,
-        "9eb21215317b77e1b24e1433a4219c87aa09ee9220462850475b0431fe1b8bcd",
+        27,
+        "f227c460b916f2414275bc9d8b76560aecd9589aaccb0925ca88db251a1a1597",
     ),
     SHARED_TESTS[2]: (
         45,
