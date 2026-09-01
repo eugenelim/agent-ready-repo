@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.41.1
+
+The same release as 0.41.0, which never reached PyPI: its release run failed a
+pre-release gate on a faulty performance measurement, so the version exists in
+the internal repository but was never published here. No shipped code differs
+between the two.
+
 ## What's new in 0.41.0
 
 `install` and `validate` now accept a skill folder, a `skills/` collection, or a

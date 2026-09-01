@@ -653,6 +653,17 @@ routes to the reference and that the reference still carries the rule.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
 
+## [agentbundle][0.41.1] — 2026-09-01
+
+### Fixed
+
+- The budget-cost measurement in the direct-install performance harness no
+  longer runs the allocation tracer while it is timing, so the figure it
+  reports is the cost of the code rather than of the measurement. Nothing in
+  the shipped package changed; 0.41.0 reached the internal repository but its
+  release gate failed on that measurement, so it never reached PyPI, and this
+  is the version that carries 0.41.0's contents there.
+
 ## [agentbundle][0.41.0] — 2026-08-30
 
 ### Highlights
