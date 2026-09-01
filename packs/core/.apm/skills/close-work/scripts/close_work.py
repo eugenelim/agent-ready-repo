@@ -18,10 +18,10 @@ import secrets
 import stat
 import sys
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
-sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")  # type: ignore[union-attr]
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILLS_DIR = SCRIPT_DIR.parents[1]
@@ -883,7 +883,7 @@ def classify_artifact_closeout(
     return ArtifactCloseoutResult("disposition-classification-ready", "Closeout-pending")
 
 
-def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> object:
+def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> Any:
     try:
         inspected = os.lstat(path)
     except OSError as exc:
@@ -913,7 +913,7 @@ def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> o
     return module
 
 
-def file_safety() -> object:
+def file_safety() -> Any:
     """Load only the co-located byte projection of the blessed helper."""
     global _file_safety_module
     if _file_safety_module is None:
@@ -931,9 +931,27 @@ def file_safety() -> object:
     return _file_safety_module
 
 
-def surface_resolver() -> object:
+def _in_installed_skills_tree() -> bool:
+    """True when this module is running from an installed skills tree.
+
+    `file_safety()` loads a co-located byte projection, so it works wherever
+    this module sits. `surface_resolver()` is different: it reaches out of its
+    own directory into a sibling skill. Under the packaged closure at
+    `agentbundle/_data/` there are no sibling skills, so `SKILLS_DIR` resolves
+    to an unrelated package directory and the reach would execute whatever
+    happened to occupy that relative path. Every projected layout keeps the
+    `skills/<skill>/scripts` shape, so its absence is the signal.
+    """
+    return SCRIPT_DIR.name == "scripts" and SKILLS_DIR.name == "skills"
+
+
+def surface_resolver() -> Any:
     """Load the installed Wave 1 resolver from its sibling skill, with no fallback."""
     global _surface_resolver_module
+    if not _in_installed_skills_tree():
+        raise ImportError(
+            "surface_resolver is unavailable outside an installed skills tree"
+        )
     if _surface_resolver_module is None:
         _surface_resolver_module = _load_regular_sibling(
             SKILLS_DIR / "work-intake" / "scripts" / "surface_resolver.py",
@@ -1311,7 +1329,7 @@ def _resolved_surface(
     write_authority: str,
     deletion_authority: str,
     authority_evidence_refs: Mapping[str, str],
-) -> tuple[object, str]:
+) -> tuple[Any, str]:
     """Resolve and validate one repository-owned deletion surface."""
     resolver = surface_resolver()
     result = resolver.resolve_surface(repository_root, role, candidates)
@@ -1682,7 +1700,7 @@ def preview_deletion(
         if normalized_targets != [resolved_physical]:
             return DeletionResult("surface-resolution-refused")
         boundary = resolved_physical.parent
-        resolved_targets = (resolved_physical,)
+        resolved_targets: tuple[Path, ...] = (resolved_physical,)
     else:
         if boundary != resolved_physical:
             return DeletionResult("surface-resolution-refused")

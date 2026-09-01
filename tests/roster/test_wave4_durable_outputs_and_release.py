@@ -141,16 +141,20 @@ def test_core_release_metadata_rejects_manifest_version_drift() -> None:
 
 
 def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
-    """Wave 5 ships cooling while Waves 6 and 7 retain their stated boundary."""
+    """Waves 5 and 6 have shipped; Wave 7 retains its stated boundary."""
+    # Asserted against the architecture document alone. The earlier form joined
+    # three files, so the mutation clause held only because these strings
+    # happened to appear nowhere else; scoping it to the owning document makes
+    # deleting a statement from that document the thing that reddens this test.
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
-    lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
-    how_to = _read("guides/core/how-to/close-and-disposition-work.md")
     # Whitespace-normalized for the same reason as the AC11/AC14 pin above: these
     # statements are long enough to wrap, and a reflow must not redden a doctrine
     # test whose meaning is unchanged.
-    combined = " ".join("\n".join((architecture, lifecycle, how_to)).split())
+    normalized = " ".join(architecture.split())
     for statement in (
         "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
-        "Wave 6 and 7 own ordinary-context exclusion and historical migration and pruning behavior",
+        "Wave 6 has shipped ordinary-context exclusion",
+        "Wave 7 owns historical migration and pruning behavior",
     ):
-        assert statement in combined, statement
+        assert statement in normalized, statement
+    assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized

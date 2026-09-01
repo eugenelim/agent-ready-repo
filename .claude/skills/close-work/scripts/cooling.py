@@ -11,6 +11,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Any, TypeGuard
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 MAX_RECORD_BYTES = 64 * 1024
@@ -275,7 +276,7 @@ def _authority_is_valid(value: object) -> bool:
     return True
 
 
-def _exception_is_valid(value: object) -> bool:
+def _exception_is_valid(value: object) -> TypeGuard[dict[str, str]]:
     permitted = {"reason", "owner_role", "review_on", "evidence_ref"}
     if not isinstance(value, dict) or set(value) - permitted:
         return False
@@ -483,7 +484,7 @@ def deletion_allowed(
     )
 
 
-def _close_work() -> object:
+def _close_work() -> Any:
     """Load the co-located close-work authority seam without package imports."""
     global _CLOSE_WORK
     if _CLOSE_WORK is None:

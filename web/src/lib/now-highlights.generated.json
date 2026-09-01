@@ -4,6 +4,144 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.18.0"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.18.0] — 2026-08-31",
+      "changelogAnchor": "core2180--2026-08-31",
+      "highlights": [
+        {
+          "source": "**`workspace-status` now tells you what closed-out work is waiting on you, and stops showing you work that is already finished.** Orientation reports how many cooling reviews are due, names each one, and lists retention exceptions with the role that owns them and the date they are due. An artifact that has finished cooling is no longer offered as something to start, and is no longer opened, so a session begins on live work rather than on settled deliveries.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`workspace-status` now tells you what closed-out work is waiting on you, and stops showing you work that is already finished."
+            },
+            {
+              "type": "text",
+              "value": " Orientation reports how many cooling reviews are due, names each one, and lists retention exceptions with the role that owns them and the date they are due. An artifact that has finished cooling is no longer offered as something to start, and is no longer opened, so a session begins on live work rather than on settled deliveries."
+            }
+          ]
+        },
+        {
+          "source": "**A retention exception stays visible, because someone still owes work against it.** Only artifacts whose lifecycle record says `Cooling` or `Retired` are excluded; `Retained` and `ExternalAdvisory` records are projected and their artifacts remain available to start.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A retention exception stays visible, because someone still owes work against it."
+            },
+            {
+              "type": "text",
+              "value": " Only artifacts whose lifecycle record says "
+            },
+            {
+              "type": "code",
+              "value": "Cooling"
+            },
+            {
+              "type": "text",
+              "value": " or "
+            },
+            {
+              "type": "code",
+              "value": "Retired"
+            },
+            {
+              "type": "text",
+              "value": " are excluded; "
+            },
+            {
+              "type": "code",
+              "value": "Retained"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "ExternalAdvisory"
+            },
+            {
+              "type": "text",
+              "value": " records are projected and their artifacts remain available to start."
+            }
+          ]
+        },
+        {
+          "source": "**Orientation says whether the exclusion is complete.** If a lifecycle record or the cooling module cannot be read, the run still projects the workspace and reports `cooling_context_visible: true`. That means the exclusion may be incomplete, not that it did not happen: one unreadable record leaves every other record still cooling its artifact, and the accompanying finding says which case you are in.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Orientation says whether the exclusion is complete."
+            },
+            {
+              "type": "text",
+              "value": " If a lifecycle record or the cooling module cannot be read, the run still projects the workspace and reports "
+            },
+            {
+              "type": "code",
+              "value": "cooling_context_visible: true"
+            },
+            {
+              "type": "text",
+              "value": ". That means the exclusion may be incomplete, not that it did not happen: one unreadable record leaves every other record still cooling its artifact, and the accompanying finding says which case you are in."
+            }
+          ]
+        },
+        {
+          "source": "**A brief whose declared child has cooled holds its dependants back.** When a spec names a brief through `source.parent` in `workspace.toml` and that spec cools, the brief stops satisfying `kind = \"brief\"` dependencies until its child scope is re-established. Cooling is otherwise subtractive; this is the one place it withholds work, and it exists so a lifecycle record cannot make a blocked spec dispatchable by hiding a child's real state.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A brief whose declared child has cooled holds its dependants back."
+            },
+            {
+              "type": "text",
+              "value": " When a spec names a brief through "
+            },
+            {
+              "type": "code",
+              "value": "source.parent"
+            },
+            {
+              "type": "text",
+              "value": " in "
+            },
+            {
+              "type": "code",
+              "value": "workspace.toml"
+            },
+            {
+              "type": "text",
+              "value": " and that spec cools, the brief stops satisfying "
+            },
+            {
+              "type": "code",
+              "value": "kind = \"brief\""
+            },
+            {
+              "type": "text",
+              "value": " dependencies until its child scope is re-established. Cooling is otherwise subtractive; this is the one place it withholds work, and it exists so a lifecycle record cannot make a blocked spec dispatchable by hiding a child's real state."
+            }
+          ]
+        },
+        {
+          "source": "Repair and migration keep their previous behaviour and still reach cooled entries; whether cooling constrains them is a later decision.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Repair and migration keep their previous behaviour and still reach cooled entries; whether cooling constrains them is a later decision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "catalogue-curation",
           "version": "0.4.6"
         },

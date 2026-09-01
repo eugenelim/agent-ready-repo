@@ -179,6 +179,8 @@ identifier to the repository root without checking it is a path first.
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
+| `invalid_lifecycle_record` | A `docs/lifecycle/` record failed to load, was a symlink, or was not a regular file. | Repair or remove that record; other records still cool. |
+| `cooling_state_unavailable` | The cooled set could not be established at all: `docs/lifecycle/` is unusable or escapes the root, or no cooling module resolved. | Install `close-work` or repair `docs/lifecycle/`; no artifact is excluded this run. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
@@ -252,8 +254,24 @@ For closeout orientation, project only current pause, closeout blockers,
 all-specs-shipped initiative eligibility, cooling-context visibility, and the next
 action to invoke `close-work`. Never infer semantic freshness, choose a disposition,
 confirm authority, distil content, record a closeout result, compact coordination,
-remove an entry, or delete. A paused item remains visible as paused; cooling context
-remains visible because ordinary-context exclusion is not part of this wave.
+remove an entry, or delete. A paused item remains visible as paused.
+
+Cooling context is excluded from ordinary orientation. `status` and `reconcile`
+carry a `cooling` block — `due_count`, the named due list, every loaded record,
+and the retention exceptions — and a `closeout` block whenever an initiative is active or paused; with
+every initiative closed the `closeout` key is absent rather than empty. `explain` and
+`repair-plan` carry neither. An artifact named by a `Cooling` or `Retired`
+lifecycle record is neither scanned nor dispatchable, and its body is never
+opened; `Retained` and `ExternalAdvisory` artifacts stay visible because someone
+still owes work against them. Read `closeout.cooling_context_visible` before
+trusting that exclusion happened: it is `false` only when the cooled set
+resolved cleanly, and `true` when any lifecycle record or the cooling module
+could not be read. `true` means the exclusion is *incomplete*, not that it did
+not happen — which of the two depends on the finding. A
+`cooling_state_unavailable` finding means the cooled set could not be
+established at all and nothing was excluded this run. An
+`invalid_lifecycle_record` finding names one record that cooled nothing, while
+every record that did load still cooled its artifact.
 
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 

@@ -52,6 +52,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.18.0] — 2026-08-31
+
+### Highlights
+
+- **`workspace-status` now tells you what closed-out work is waiting on you, and
+  stops showing you work that is already finished.** Orientation reports how many
+  cooling reviews are due, names each one, and lists retention exceptions with the
+  role that owns them and the date they are due. An artifact that has finished
+  cooling is no longer offered as something to start, and is no longer opened, so
+  a session begins on live work rather than on settled deliveries.
+- **A retention exception stays visible, because someone still owes work against
+  it.** Only artifacts whose lifecycle record says `Cooling` or `Retired` are
+  excluded; `Retained` and `ExternalAdvisory` records are projected and their
+  artifacts remain available to start.
+- **Orientation says whether the exclusion is complete.** If a lifecycle record
+  or the cooling module cannot be read, the run still projects the workspace and
+  reports `cooling_context_visible: true`. That means the exclusion may be
+  incomplete, not that it did not happen: one unreadable record leaves every
+  other record still cooling its artifact, and the accompanying finding says
+  which case you are in.
+- **A brief whose declared child has cooled holds its dependants back.** When a
+  spec names a brief through `source.parent` in `workspace.toml` and that spec
+  cools, the brief stops satisfying `kind = "brief"` dependencies until its
+  child scope is re-established. Cooling is otherwise subtractive; this is the
+  one place it withholds work, and it exists so a lifecycle record cannot make
+  a blocked spec dispatchable by hiding a child's real state.
+- Repair and migration keep their previous behaviour and still reach cooled
+  entries; whether cooling constrains them is a later decision.
+
 ## [core][2.17.4] — 2026-08-31
 
 ### Fixed
@@ -169,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pack's shipped release. Each value changes when its own contract's emitted
   shape changes, so a pack release no longer requires a matching edit to the
   skills.
+
 ## [agent-skill-engineering][0.4.0] — 2026-08-31
 
 ### Highlights
@@ -247,6 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Identifying which mode a piece of work will need is no longer reported as
   having entered that mode. A fully specified change that has not been
   authorized is still framing, and the receipt now says so.
+
 ## [core][2.17.1] — 2026-08-31
 
 ### Highlights
@@ -278,6 +309,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   producer-profile contract version rather than the shipped pack version. The
   recorded value now changes when the producer contract's shape changes, not on
   every release, so a version bump no longer requires a matching source edit.
+
 ## [core][2.17.0] — 2026-08-31
 
 ### Highlights
@@ -999,6 +1031,7 @@ routes to the reference and that the reference still carries the rule.
   `- **Acceptance Criteria:** none — <one-line reason>`. Existing sectionless
   specs, including frozen adopter history, do not acquire a retroactive hard
   gate; malformed markers and a real section plus a marker remain hard errors.
+
 ## [core][2.12.4] — 2026-08-27
 
 ### Highlights
@@ -3438,6 +3471,7 @@ detection loses its baseline.
 
 - **Installing `linear` now requires the `credential-brokers` pack.** Same
   change, same reason, same upgrade-time refusal as `figma` above.
+
 ## [core][2.3.0] — 2026-08-07
 
 ### Fixed
@@ -6148,6 +6182,7 @@ project page and the swept docstrings actually reach installers.
 - (nothing yet)
 
 <!--
+
 ## [1.0.0] — YYYY-MM-DD
 
 ### Added
