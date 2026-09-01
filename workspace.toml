@@ -231,7 +231,6 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  {slug = "shared-test-dedup-node-pin-stale", source = "spec/review-record-idempotency pre-flight/2026-08-31", summary = "tools/test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact fails on the base: the per-file node-id pin for packs/core/tests/skills/work-loop/test_lint_spec_status.py reads 78 (re-pinned 2026-08-28) while the file now collects 85. Three commits on main since that pin -- 487b298c4, d5192da9a, 34f00cf29 -- added tests without re-pinning. Not caused by any change in this delivery; test_lint_spec_status.py is not in its diff. Fix is a one-line re-pin plus the usual note recording which commits moved it."},
   # Surfaced 2026-08-29 by the security review of spec-dir confinement (PR #1156).
   # loop-cohort and loop-engine both canonicalize a --spec-dir and check it is
   # under the repo root BEFORE using it, but nothing binds the later file
