@@ -8,46 +8,64 @@
     counter to `loop-cohort.py`. `packs/AGENTS.md` §Version bump rule and
     §Shipped pack content own the release and portability constraints.
   - Analogous implementation 1 — a read-only JSON-emitting engine verb:
-    `loop-engine.py:1160-1181` (`cmd_status`); its resolve → read → schema-check →
-    `json.dumps` shape, and its stderr-only `stop` at `:947-949`. Tests:
-    `packs/core/tests/skills/work-loop/test_loop_engine.py:2350-2360`.
+    `loop-engine.py:1177-1198` (`cmd_status`); its resolve → read →
+    schema-check → `json.dumps` shape, and the stderr-only `stop()` it returns
+    through at `:964-966`. Tests: `test_loop_engine.py:1037`
+    (`test_status_json_after_init`).
   - Analogous implementation 2 — id-keyed idempotency with form validation:
-    `loop-cohort.py:1536-1581` (`cmd_record_attempt`), form check at
-    `:1552-1565`. Tests: the crash-window block from `test_loop_engine.py:2232`.
-  - Analogous implementation 3 — the schema field shape a JSON payload contract
+    `loop-cohort.py:1540` (`cmd_record_attempt`), form check at `:1557-1558`.
+    This is the shipped precedent for the `run_id` and `cycle_id` form checks,
+    not code this plan changes.
+  - Analogous implementation 3 — bounded, confined artifact reading and reason
+    hygiene: `_loop_guards.py` `read_md_status` (`:891-923`),
+    `check_artifact_status` (`:1315-1382`), `read_managed_json`/`read_managed_text`
+    (`:430-503`), and the scalar and reason caps at `:109-123` applied at the
+    refusal chokepoint (`:264-270`).
+  - Analogous implementation 4 — the schema field shape a JSON payload contract
     follows: `contracts/jsonschema/semantic-surface-resolution.schema.json`,
     validated from `tests/roster/`.
   - Named uncertainty: none material. Every seam is grounded in the anchors
-    above and the vocabularies below.
+    above and in the spec's four contract tables.
 
 ## Approach
 
 The projection is a pure function of engine state, cohort state, and artifact
-statuses. Purity is what lets a test enumerate the input set and what makes the
+statuses. Purity is what lets a test traverse the whole domain and what makes the
 read-only guarantee checkable by digest. It reads engine state through the
-engine's own reader and cohort state through the shared guard API, so no new
-reader of either file appears.
+engine's own reader and both artifact statuses through the guard module's
+`read_md_status`, so no new reader of either surface appears and the confinement,
+symlink, non-regular-file, and size bounds those readers already enforce apply
+unchanged.
+
+The spec's four tables are the contract, and the spec is the sole home of the
+domain's size. The implementation carries the routing and attribute data as
+module-level dictionaries in `loop-engine.py`, and a `tests/roster/` test parses
+the spec's Markdown and asserts the two agree. That is a comparison between two
+independent expressions of the mapping, not an artifact checked against itself:
+neither is generated from the other. The pack suite then drives the live command
+into every domain member.
+
+The Discriminators table is what keeps totality honest. Because each
+discriminator's value set is fixed outside the Routing table, deleting a routing
+row shrinks coverage without shrinking the domain, so AC1's mutation reddens for
+every row rather than only the ones carrying no discriminator.
 
 Four record fields carry the loop rather than describe it, and each is derived
 rather than authored: `run_id` and `sequence` from the engine's state,
 `complete_with` from the transition table's outgoing edges, and `human_wait` from
-the wait-state set plus the destructive-action set. Deriving them is what stops an
-emitter from satisfying the contract with constants.
+the Action attributes table. Deriving them is what stops an emitter from
+satisfying the contract with constants.
 
-The record carries identifiers and scalars only. Every human-readable reason —
-including a stop's reason and the reset a terminal record names — goes to stderr.
-That is why the record needs no message key and no path-shaped value, and why the
-nine keys are enough.
-
-The operation id makes the recording state decidable. Recorded means the write
-happened; absent means it did not, once every shipped invocation passes the flag.
-The projection stops on absent rather than recording, because it cannot know the
-round's warranted reviewer roster.
+The record carries identifiers and scalars only, and every human-readable reason
+goes to stderr. That channel is the one an agent also reads, so it gets the same
+treatment the guard module already gives its own refusals: each interpolated
+external scalar capped and delimited, the whole reason capped. Reuse those bounds;
+do not invent new numbers.
 
 The engine repairs its own crash artifacts only inside its writing verbs. A
 read-only verb must therefore detect an unpromoted temporary state file or an
-unreplayed pending-events file and stop, rather than answer confidently from
-state that is mid-write.
+unreplayed pending-events file — by presence alone, reading neither — and stop,
+rather than answer from state that is mid-write.
 
 ## Constraints
 
@@ -56,167 +74,109 @@ state that is mid-write.
   enforces this for the engine.
 - No runtime dependency is added to any shipped pack script.
 - No task edits `packages/agentbundle/`. The protected-tree gate at
-  `tools/repo/build_gate_chain.py:305` requires an engine-scoped RFC trailer for
+  `tools/repo/build_gate_chain.py:306` requires an engine-scoped RFC trailer for
   that tree, and nothing here needs it.
 - A pack test may not read above its own pack
-  (`tools/lint-pack-test-boundary.py`), so anything reading `contracts/` is a
-  `tests/roster/` test and anything reading only `packs/core/**` is a pack test.
-- `packs/core/tests/skills/work-loop/` (`Makefile:544`) and `tests/roster/` (via
-  `pytest tests/` at `Makefile:529`) already run in `make test`; neither needs new
+  (`tools/lint-pack-test-boundary.py`), so every test that parses `spec.md` or
+  reads `contracts/` is a `tests/roster/` test, and anything reading only
+  `packs/core/**` is a pack test.
+- `packs/core/tests/skills/work-loop/` (`Makefile:545`) and `tests/roster/` (via
+  `pytest tests/` at `Makefile:530`) already run in `make test`; neither needs new
   CI wiring.
 - The changelog entry ships in this change, because `contracts/` is
   release-impacting.
 - `pytest` and `make build-check` cannot run concurrently in this tree; gate runs
   are serialized.
 - `spec.md` and `plan.md` are hashed file-wide once approved. Every enumeration an
-  implementer needs is in this plan; no task authors one mid-execution.
-- A peer session is active in this repository's skill tree; re-check
-  `packs/core/.apm/skills/work-loop/` for landed changes before T7 and T12.
-
-## Vocabularies
-
-These four enumerations are the closed sets the criteria quantify over. They are
-here, not in `spec.md`, because they are mechanism the criteria reference.
-
-### Action identifiers
-
-| Identifier | Kind | Meaning |
-| --- | --- | --- |
-| `spec.draft` | agent | Draft or revise the spec and plan |
-| `spec.review` | agent | Run the fired pre-EXECUTE reviewers |
-| `engine.spec-ready` | command | Fire `spec-ready` |
-| `engine.spec-approved` | command | Fire `spec-approved` |
-| `engine.plan-approved` | command | Fire `plan-approved` |
-| `engine.plan-locked` | command | Fire `plan-locked` |
-| `engine.wave-passed` | command | Fire `wave-passed` |
-| `engine.gates-clean` | command | Fire `gates-clean` |
-| `engine.done` | command | Fire `done` |
-| `cohort.approve-plan` | command | Record the approved baseline |
-| `cohort.schedule` | command | Schedule waves |
-| `cohort.wave-advance` | command | Advance the wave pointer |
-| `cohort.record-attempt` | command | Record a failed implementation cycle |
-| `cohort.review-record` | command | Record a review round |
-| `implement` | agent | Implement the current wave's tasks |
-| `run-gates` | agent | Run lint, typecheck, tests |
-| `run-review` | agent | Dispatch the warranted reviewers |
-| `await-spec-approval` | wait | Spec approver decides |
-| `await-plan-approval` | wait | Plan approver decides |
-| `await-merge-decision` | wait | Human merge decision |
-| `reset-and-reinit` | done | Terminal; a later implementation request needs a reset |
-| `complete` | done | Terminal; the loop finished |
-| `halt` | stop | Fail closed; the stderr reason names why |
-
-### Destructive action set
-
-`reset-and-reinit` only. `human_wait` is true for it, and for every `wait`-kind
-record. No other identifier in the table above names an operation that deletes or
-overwrites durable state.
-
-### Reference-load identifiers
-
-One per shipped reference file: `ref:delivery-contract-lifecycle`,
-`ref:finding-adjudication`, `ref:infra-verification`, `ref:pre-execute-review`,
-`ref:pre-flight-failures`, `ref:review-verdict-record`, `ref:scale-with-a-tool`,
-`ref:self-coverage-protocol`, `ref:self-coverage-resolve-vs-surface`,
-`ref:session-resumption`, `ref:state-schema`, `ref:supervisor-mode`,
-`ref:tdd-stubs`, `ref:unattended-loops`, `ref:verification-modes`. The identifier
-is the reference's path under `references/` with `.md` removed and `/` replaced
-by `-`, so the mapping is derivable and the test builds it by globbing.
-
-### Per-action `parameters` keys
-
-| Action | Keys |
-| --- | --- |
-| `cohort.wave-advance` | `from_index` — the engine's `last_event_context.completed_wave_index` |
-| `cohort.record-attempt` | `cycle_id` — `<run_id>:<transition_sequence>` |
-| `cohort.review-record` | `operation_id` — the id recorded in `state.json` on the continuation path, otherwise `<run_id>:<transition_sequence>` |
-| every other action | none; `parameters` is `{}` |
-
-### Input-set dimension applicability
-
-| Dimension | Applies to | Values |
-| --- | --- | --- |
-| `spec.md` status | `SPEC-HUMAN-GATE` | `Draft`, `Approved`, `Implementing`, `Shipped`, `Archived` |
-| `plan.md` status | `PLAN-HUMAN-GATE` | `Drafting`, `Approved`, `Executing`, `Done` |
-| Recorded operation id | `CODE-IMPLEMENTATION`, `CODE-HUMAN-GATE` | present, absent |
-| `last_review_clean_source` | `CODE-HUMAN-GATE` | present, absent |
-| Wave position | code mode, `CODE-IMPLEMENTATION` and `CODE-VERIFICATION` | before the last wave, at the last wave, unscheduled |
-
-A dimension not listed for a state contributes no cells for that state. The
-resulting set is a few hundred cells, not a full cross product.
-
-### Resumption row to action identifier
-
-T7 writes this mapping into the shipped table's new column. Retained rows:
-`reviewers-clean`/`SPEC-HUMAN-GATE` → `await-spec-approval`;
-`spec-approved`/`PLAN-HUMAN-GATE` → `await-plan-approval`;
-`plan-approved`/`SPEC-PLAN-APPROVED` → `cohort.approve-plan`;
-`plan-locked`/`CODE-IMPLEMENTATION` → `implement`;
-`plan-approved`/`CODE-IMPLEMENTATION` → `implement`;
-`done`/`DONE` → `complete`;
-`wave-passed`/`CODE-IMPLEMENTATION` → `cohort.wave-advance`;
-`gates-failed`/`CODE-IMPLEMENTATION` → `cohort.record-attempt`;
-`blocker-applied`/`CODE-IMPLEMENTATION` → `implement`;
-`wave-complete`/`CODE-VERIFICATION` → `run-gates`;
-`gates-clean`/`CODE-REVIEW` → `run-review`.
-Superseded rows: `findings-remain`/`CODE-IMPLEMENTATION` → `cohort.review-record`
-or `halt` per the recorded id; `reviewers-clean`/`CODE-HUMAN-GATE` →
-`await-merge-decision`; `plan-locked`/`DONE` and `plan-approved`/`DONE` →
-`reset-and-reinit`.
+  implementer needs is in the spec's tables; no task authors one mid-execution.
+- A peer session may be active in this repository's skill tree; re-check
+  `packs/core/.apm/skills/work-loop/` for landed changes before T8.
 
 ## Construction tests
 
 - Every new refusal and guard carries a mutation proof: the invariant, the test
   catching its removal, the exact mutation, the expected failure.
-- Enumerations are derived at runtime from shipped source, never copied. The base
-  triples come from the transition tables; row parity comes from parsing the
-  shipped table's action column; the load vocabulary comes from globbing
-  `references/`.
+- The base keys and `complete_with` are derived at runtime from
+  `_TRANSITIONS_BY_MODE`; the extra base keys and the discriminator value sets are
+  parsed from the spec's own tables. The load vocabulary comes from globbing
+  `references/`. Resumption-row parity comes from parsing the shipped table's
+  action column.
 - Each of the four derived fields gets a constant-value mutation: pinning
   `run_id`, `sequence`, `complete_with`, or `human_wait` to a constant must redden
   at least one case.
+- The five table properties each get a mutation that must redden them:
+  - **AC1** — delete any Routing row. This must redden for all 22, which is the
+    property the Discriminators table exists to buy; a run where only the ten
+    discriminator-free rows redden means the domain is still being sourced from
+    the Routing table.
+  - **AC2** — widen one row's match so it overlaps another.
+  - **AC3** — exchange R3's and R4's Discriminator cells in the implementation's
+    resolver. This is the mutation that distinguishes AC3 from AC1 and AC2: it
+    changes no row's action and no row's coverage, so only a criterion that drives
+    the live command and compares against the spec's Discriminator column catches
+    it. Four domain members change action under it.
+  - **AC4** — remove an Action attributes row.
+  - **AC5** — change one attribute cell.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Interface compatibility — the record schema | T6 | `tests/roster/` conformance over live output; `contracts/README.md` row | Schema validates real output, carries `x-spec`, inventoried |
-| Current architecture — `loop-infrastructure.md` | T14 | Entrypoint section names the verb as read-only | Doc matches the shipped verb set |
-| Current product truth — the skill payload | T7, T11, T12, T17 | `make build-self-dry-run` clean | Source edited, projections regenerated |
-| User-facing promise — the core how-to | T15 | Adopter description of the verb and of replay | Guide describes shipped behavior |
-| Operations — the QA transcripts | T16 | Two transcripts at `notes/qa-transcripts.md` | Both committed with their scope boundary |
-| Release history — the changelog | T17 | Free-standing dated entry with `### Highlights` | Entry at top level; highlights projection regenerated |
-| Reusable learning | T17 | `project-knowledge` receipt or recorded unavailability | Receipt recorded or unavailability named |
+| Interface compatibility — the record schema | T7 | `tests/roster/` conformance over live output; `contracts/README.md` row | Schema validates real output, carries `x-spec`, inventoried |
+| Current architecture — `loop-infrastructure.md` | T9 | Entrypoint section names the verb as read-only | Doc matches the shipped verb set |
+| Current product truth — the skill payload | T1, T4, T8, T12 | `make build-self-dry-run` clean | Source edited, projections regenerated |
+| User-facing promise — the core how-to | T10 | Adopter description of resuming through the verb | Guide describes shipped behavior |
+| Operations — the QA transcripts | T11 | Two transcripts at `notes/qa-transcripts.md` | Both committed with their scope boundary |
+| Release history — the changelog | T12 | Free-standing dated entry with `### Highlights` | Entry at top level; highlights projection regenerated |
+| Reusable learning | T12 | `project-knowledge` receipt or recorded unavailability | Receipt recorded or unavailability named |
 
 ## Design (LLD)
 
 ### Design decisions
 
-- `kind` separates who acts; the controller maps `action` through the closed table
-  above, so no string from the record is executed.
+- `kind` separates who acts; the controller maps `action` through the closed
+  Action attributes table, so no string from the record is executed. AC20 makes
+  that consumer obligation a shipped, grep-assertable statement rather than a
+  design note — the producer-side closed vocabulary is only a control if the
+  consumer refuses what is outside it.
 - The record carries identifiers and scalars only. Reasons go to stderr, which is
-  why a `stop` needs no message field and no path value.
+  why a `stop` needs no message field and no path value — and why AC14 bounds that
+  channel, since it reaches the same agent the record does.
 - A `stop` is a zero-exit record because computing "you must stop" succeeded; a
-  non-zero exit means no record could be computed.
+  non-zero exit means no record could be computed. P1-P4 are the four conditions
+  under which no record can be built, which is why they exit non-zero: three of
+  them cannot produce `run_id`, `sequence`, or `complete_with` at all.
+- `complete_with` is the *unguarded* outgoing-edge set. Filtering it by the
+  cohort's wave guard would make the record answer "which event" at
+  `CODE-VERIFICATION`, but it would also couple the projection to a guard's
+  runtime result and make `complete_with` no longer derivable from one table.
+  The guard refuses an illegal choice anyway. The spec records the consequence:
+  `complete_with` names events, not invocations, and two of them take required
+  transition arguments the record does not supply.
+- `SPEC-PLAN-APPROVED` needs three commands with no engine transition between
+  them. R9-R12 discriminate on `plan_review_status` and `schedule_waves` so each
+  call advances, rather than returning `cohort.approve-plan` three times.
 
 ### Data & schema
 
-`state.json` gains the recorded operation id and a digest of the payload recorded
-under it. `record-attempt`'s precedent checks the id alone, sufficient there
-because its payload *is* the id; a review round's payload varies, so the digest is
-what refuses a conflicting payload. Both fields are absent-tolerant on read.
+No new state field. The two fields D4 reads —
+`last_review_record_operation_id` and `last_review_record_payload_digest` —
+shipped with `docs/specs/review-record-idempotency/`, are documented in
+`references/state-schema.md`, and are absent-tolerant on read, which is why D4 is
+a boolean over "matches" rather than a three-way over absent, differing, and
+equal.
 
 ### Interfaces & contracts
 
 The schema fixes the nine-key set with `additionalProperties: false`, the `kind`
-enum, the `schema_version` const, the `action` enum from the table above, and
-`parameters` as a per-action conditional key set with character-class-constrained
-values.
+enum, the `schema_version` const, the `action` enum from the Action attributes
+table, `run_id` with the canonical-UUID pattern P4 requires, and `parameters` as a
+per-action conditional key set with character-class-constrained values.
 
 ### Component / module decomposition
 
-No new module: a new `cmd_next` plus a projection table in `loop-engine.py`, and
-one new flag plus two state fields in `loop-cohort.py`.
+No new module: a new `cmd_next` plus two table dictionaries and a per-state
+discriminator resolver in `loop-engine.py`.
 
 ### State & control flow
 
@@ -225,16 +185,19 @@ from `complete_with`, and calls it again.
 
 ### Failure, edge cases & resilience
 
-Missing engine state with and without a light-mode marker, a mid-write crash
-artifact, schema-version mismatch, run-id mismatch, an unknown state, a malformed
-operation id, an absent recorded id, and an absent clean-round source each fail
-closed with a distinct stable code.
+The spec's Preconditions table is the failure contract: seven ordered rows, the
+first four exiting non-zero with four distinct stable codes and no record, the
+last three emitting a zero-exit `halt`. Everything below them routes. P7 closes
+the off-table pair — a valid state carrying an event that never targets it —
+which the transition-table-derived domain cannot reach by construction.
 
 ### Quality attributes (NFRs)
 
-The size bound is asserted over the input set in the suite rather than enforced
-at runtime, so a future record that grows reddens CI instead of leaving a live
-loop with no next action. The measured headroom is in the spec's Assumptions.
+The size bound is asserted over the domain in the suite rather than enforced at
+runtime, so a future record that grows reddens CI instead of leaving a live loop
+with no next action. The stderr bound is different in kind and is enforced at
+runtime, because its failure mode is a context flood into the supervising agent
+rather than a CI signal.
 
 ### Dependencies & integration
 
@@ -242,274 +205,239 @@ None added. Both suites already run in `make test`.
 
 ## Tasks
 
-### T1: the record has a fixed shape and a clean exit convention
+### T1: the verb exists, with a fixed shape, a clean exit convention, and a bounded reason channel
 
 **Depends on:** none
 
-**Tests:**
-- Zero exit yields exactly one JSON object with the nine-key set; `kind` and
-  `schema_version` are constrained (AC1, AC5, AC6).
-- Non-zero exit writes nothing to stdout (AC2); no diagnostic reaches stdout on
-  any path (AC3); every diagnostic and stop reason reaches stderr (AC4).
+**Tests:** TDD.
+- Zero exit yields exactly one JSON object with the nine-key set; non-zero exit
+  writes nothing to stdout (AC7).
+- No diagnostic reaches stdout on any path; every diagnostic and stop reason
+  reaches stderr (AC8).
 - A `stop`-kind record is emitted on a zero exit, and a command failure emits none
   (the exit convention).
-- No schedule array, amendment history, or fingerprint appears (AC16).
-- The subparser is registered beside the four existing verbs (AC35).
-- Mutation proof: routing one reason to stdout reddens the channel case.
+- Every interpolated external scalar is capped and delimited, and the whole reason
+  is capped, at the guard module's existing bounds; a planted oversized `run_id`
+  reaches stderr truncated and quoted (AC14).
+- The subparser is registered beside the four existing verbs (AC21).
+- Mutation proofs: routing one reason to stdout reddens the channel case; removing
+  the cap, and removing the delimiters, each redden an AC14 case.
 - `stub: true` — one compilable red assertion that the verb exits 0 and prints
   parseable JSON for a freshly initialised `code`-mode run.
 
-**Approach:** follow `cmd_status`'s shape and its stderr-only `stop`.
+**Approach:** follow `cmd_status`'s shape and return through the existing `stop()`.
+Reuse `_MAX_SCALAR_CHARS` and `_MAX_REASON_CHARS`; do not introduce new numbers.
 
-**Done when:** shape, channel, and exit-convention cases are green and `--help`
-lists the verb.
+**Done when:** shape, channel, exit-convention, and reason-bound cases are green
+and `--help` lists the verb.
 
-### T2: the four derived fields are computed, not authored
-
-**Depends on:** T1
-
-**Tests:**
-- `run_id` equals the engine's (AC7); `sequence` equals `transition_sequence`
-  (AC8).
-- `complete_with` equals the outgoing event set read from the transition table at
-  runtime, empty exactly for a state with no outgoing edge (AC9).
-- `human_wait` equals `kind == "wait" or action in {reset-and-reinit}` (AC10).
-- Mutation proofs, one per field: pinning each to a constant reddens at least one
-  case.
-
-**Done when:** four assertions green and four mutations flip.
-
-### T3: the action vocabulary and per-action parameters are closed
+### T2: every read goes through the confinement and the guard readers
 
 **Depends on:** T1
 
-**Tests:**
-- Every emitted `action` is in the vocabulary table (AC11).
-- Each action's `parameters` key set matches the per-action table exactly (AC12).
-- Every value matches the character class or is an integer or boolean (AC13).
-- At least one record carries non-empty `parameters` (AC15, second half).
-- Mutation proof: emitting `{}` for an action that declares keys reddens its case.
+**Tests:** TDD.
+- Both state files, both artifact Status files, and both crash artifacts are
+  resolved through the existing spec-directory confinement and read through the
+  guard module's readers; no direct `open` or `read_text` appears in the verb's
+  path (AC15).
+- A symlink, a non-regular file, and an oversized file at each read target are
+  each refused rather than followed, read, or blocked on.
+- Mutation proof: replacing one guard read with `Path.read_text` makes the symlink
+  case at that target pass.
 
-**Done when:** vocabulary and key-set cases are green and the mutation flips.
+**Approach:** artifact statuses go through `read_md_status`; state files through
+their owners' existing readers. The FIFO that once hung `init` while holding the
+state lock is the precedent for why the non-blocking open matters here too.
 
-### T4: the load vocabulary resolves to shipped references
+**Done when:** every read target has a passing hostile-fixture case and the
+mutation flips.
 
-**Depends on:** T1
+### T3: the derived fields are computed, not authored
 
-**Tests:**
-- Every emitted `load` entry is in the vocabulary, and every vocabulary entry
-  resolves to a file under `references/`, with the mapping built by globbing
-  rather than copied (AC14).
-- At least one record carries a non-empty `load` (AC15, first half).
-- Mutation proof: emitting an identifier with no matching file reddens the case.
+**Depends on:** T2
 
-**Done when:** both directions of the mapping are asserted and the mutation flips.
+**Tests:** TDD.
+- `schema_version` is the literal const; `run_id` equals the engine's and matches
+  the canonical UUID form; `sequence` equals `transition_sequence` (AC9).
+- `complete_with` equals the outgoing event set read from `_TRANSITIONS_BY_MODE`
+  at runtime, empty exactly for `DONE` (AC10).
+- Mutation proofs: pinning `run_id`, `sequence`, or `complete_with` to a constant
+  reddens at least one case; removing the `run_id` form check lets a planted
+  malformed id reach a record.
 
-### T5: the input set is traversed and bounded
+**Done when:** the assertions are green and all four mutations flip.
 
-**Depends on:** T2, T3, T4, T8, T13
+### T4: the four contract tables, and the five properties that hold of them
 
-**Tests:**
-- Build the input set at runtime from the transition tables plus the two extra
-  triple sources, crossed only per the applicability table; assert no record
-  exceeds 1024 bytes and pin the observed maximum against a constant held in the
-  test file (AC17).
+**Depends on:** T2
 
-**Approach:** depends on T8 and T13 so the traversal runs against real branches
-rather than placeholders.
+**Tests:** TDD.
+- `tests/roster/` — parse the spec's Routing and Action attributes tables and
+  assert they equal the implementation's two dictionaries, cell for cell; parse
+  the Discriminators and extra-base-key tables and assert the domain builder uses
+  them.
+- Build the domain at runtime from `_TRANSITIONS_BY_MODE` plus the spec's extra
+  base keys, crossed with the spec's discriminator value sets; assert totality
+  (AC1) and determinism (AC2).
+- Drive the live command into a domain member matching each Routing row and assert
+  the row's action, with the expected value parsed from the spec (AC3).
+- Assert closure in both directions between the tables (AC4).
+- Assert `kind`, the `parameters` key set, `load`, and `human_wait` against the
+  Action attributes row for each emitted record's action (AC5), including
+  `human_wait: false` at R4 and R7 while the engine reports
+  `pending_human_wait: true`, and `human_wait: true` at R22.
+- Mutation proofs, one per property, exactly as listed under Construction tests.
+  AC1's must redden for all 22 rows.
 
-**Done when:** the traversal covers the applicability table and the bound holds.
+**Approach:** implement routing as a dictionary keyed on
+`(mode, state, last_event)` with a discriminator resolver per state. The resolver
+is the part the roster equality test cannot reach — it has no dictionary cell — so
+AC3's live-drive case is its only coverage and the R3/R4 exchange is its only
+mutation. Neither may source its expectation from the resolver.
 
-### T6: the published schema validates live output and is inventoried
+**Done when:** all five properties are green over the full domain, and all five
+mutations flip including AC1's across every row.
+
+### T5: values, references, and the size bound are constrained
+
+**Depends on:** T3, T4
+
+**Tests:** TDD.
+- Every `parameters` value matches the character class or is an integer or boolean
+  (AC11, first half).
+- Every `load` entry resolves to a file under `references/`, with the mapping
+  built by globbing rather than copied (AC11, second half).
+- No record carries a schedule array, amendment history, fingerprint, or verbatim
+  state copy (AC12), with the fingerprint case driven explicitly — a 64-character
+  hex digest placed in a declared `parameters` key satisfies AC5, AC7, and AC11,
+  so it is the case that proves AC12 is not dominated.
+- Traverse the domain, assert no record exceeds 1024 bytes, and pin the observed
+  maximum against a constant held in the test file (AC13).
+- Mutation proofs: emitting an identifier with no matching file reddens AC11;
+  placing a fingerprint in `cycle_id` reddens AC12 alone.
+
+**Done when:** the traversal covers the domain and both bounds hold.
+
+### T6: the preconditions fire in order, and nothing is written
+
+**Depends on:** T2
+
+**Tests:** TDD.
+- Each of the seven Preconditions rows, exercised in isolation and against a state
+  that also matches a later row, produces that row's exit and record, and its
+  stderr names what the row requires (AC6).
+- P1's marker match is exercised against every spelling the live corpus carries —
+  bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded —
+  and against a body-zone mention that must not match.
+- P1 through P4 return four distinct codes, asserted as mutually distinct rather
+  than as four literals in four places.
+- Digest `engine-state.json`, `state.json`, and `.loop-run/events.jsonl` before
+  and after; assert equality and that no file is created or removed, on every
+  Preconditions row as well as every Routing row (AC16).
+- Mutation proofs: removing the crash-artifact check, the `run_id` pairing check,
+  the `mode` well-formedness check, or the off-table-pair check each make their
+  row's case pass.
+
+**Approach:** detect the two crash artifacts by presence alone — an `lstat`, not a
+read — because reading them would parse an attacker-influenceable file and repair
+is a writing verb's job. Treat a present pending-events file as halting for every
+run in the repository, per the spec's P5 scope note.
+
+**Done when:** all seven rows are green and all four mutations flip.
+
+### T7: the published schema validates live output and is inventoried
 
 **Depends on:** T5
 
-**Tests:**
-- `tests/roster/` conformance running the real command for one representative
-  member of every `(kind, action)` pair and validating each record (AC18).
-- An undeclared `parameters` key is rejected (AC19).
-- `contract_version`, `x-spec`, and the `contracts/README.md` row (AC20).
+**Tests:** TDD, as a contract test.
+- `tests/roster/` conformance running the real command for at least one record per
+  Action attributes row and validating each (AC17, first half).
+- An undeclared `parameters` key for that record's action is rejected (AC17,
+  second half).
+- `contract_version`, `x-spec`, and the `contracts/README.md` row with CLI data
+  `no` (AC18).
 
 **Done when:** the roster test validates live output and the inventory row exists.
 
-### T7: the resumption table carries action identifiers and its pinned tests move with it
+### T8: the resumption table carries action identifiers, and the consumer's trust posture is shipped
 
-**Depends on:** T3
+**Depends on:** T4
 
-**Tests:**
-- Every retained row's parsed identifier equals the projection's `action` and the
-  plan's row-to-action mapping (AC21, AC22).
-- The four superseded rows state this spec's behavior (AC23).
-- The `reviewers-clean` row no longer asserts non-idempotency or a double
-  increment (AC24).
-- Mutation proof: changing one row's identifier reddens its generated case.
+**Tests:** TDD.
+- For each of the 15 shipped rows, the identifiers parsed from the new column
+  equal the union across both modes of the Routing actions whose key matches that
+  row's `(last_event, state)` pair, with both sides parsed (AC19).
+- A grep over the shipped text finds all four trust-posture statements: record is
+  data, unrecognised `action` halts, unrecognised `load` halts, no field is
+  executed (AC20).
+- Mutation proofs: changing one row's identifier reddens its generated case;
+  deleting any one of the four statements reddens AC20.
 
 **Approach:**
-- Add the identifier column, then rewrite the four superseded rows.
-- Update the two shipped tests that pin those rows' prose,
-  `packs/core/tests/skills/work-loop/test_loop_engine.py:2746` and `:2817`, in
-  this task. The second's pinned phrases assert the replay is non-idempotent,
-  which this spec makes false, so its assertions change rather than move.
+- Add the identifier column only. No row's prose changes: every shipped row's
+  prescribed action already agrees with the Routing table, so this task's diff is
+  additive and the two prose-pinned tests at `test_loop_engine.py:2775-2776` and
+  `:2846` keep passing unchanged. Confirm that rather than assuming it — run both
+  before opening the task and after the edit.
 - Re-check the peer session's activity in the skill tree before editing.
 
-**Done when:** parity is parsed from the table, all four rows are rewritten, and
-both pinned tests assert the new prose.
+**Done when:** parity is parsed for all 15 rows, all four trust statements are
+present, and both pinned tests still pass untouched.
 
-### T8: terminal rows and artifact-status branches route correctly
+### T9: the architecture surface names the new verb
 
-**Depends on:** T3
+**Depends on:** T6
 
-**Tests:**
-- The two spec-plan terminal rows yield `done` with `reset-and-reinit`, and the
-  stderr reason names the reset and its required confirmation (AC25).
-- The code-mode terminal row yields `done` with `complete` (AC26).
-- Spec-gate statuses route wait / command / stop across all five values (AC27).
-- Plan-gate statuses route wait / command / stop across all four values (AC28).
-
-**Done when:** every enumerated status value has a passing case.
-
-### T9: the projection is read-only and fails closed
-
-**Depends on:** T1
-
-**Tests:**
-- Digest the three mutable state files before and after; assert equality, that no
-  path appears, and that none is removed (AC29).
-- An unpromoted engine-state temporary file, and an unreplayed pending-events
-  file, each yield `stop` naming which was found (AC30).
-- Missing engine state with a light-mode marker names the legacy table (AC31);
-  without one, names the ambiguity (AC32).
-- Divergent run ids yield `stop` (AC33); a state neither source nor target yields
-  `stop` (AC34).
-- Mutation proofs: removing the crash-artifact check, the run-id comparison, and
-  the unknown-state branch each make their case pass.
-
-**Approach:** detect the two crash artifacts by a bounded read; never repair them,
-because repair is a writing verb's job.
-
-**Done when:** every case is green and all three mutations flip.
-
-### T10: review recording is replayable, conflict-refusing, and form-validated
-
-**Depends on:** none
-
-**Tests:**
-- Golden capture, committed before `cmd_review_record` is touched, of the stdout
-  line and resulting state for each of the four flagless forms; the post-change
-  test asserts against it (AC42).
-- The id form is `<run_id>:<transition_sequence>` (AC36); a non-matching id exits
-  non-zero changing nothing (AC37).
-- A flagged first application produces the same delta as the flagless form except
-  for the two new fields, for each of the four forms (AC38).
-- Replay with the same payload leaves all six named fields unchanged (AC39).
-- A differing payload under the same id exits non-zero leaving `state.json`
-  byte-identical (AC40).
-- Two rounds separated by a transition get different ids and the second
-  increments `review_round_count` (AC41).
-- Mutation proofs: removing the digest comparison makes the conflict case pass;
-  removing the form check makes the malformed-id case pass.
-
-**Approach:** mirror `cmd_record_attempt`'s early-return idempotency and form
-validation, extended with the payload digest; validate against `--expect-run-id`,
-which the verb already requires, so no new cross-file read appears. Attach the
-flag outside the existing mutually exclusive group.
-
-**Done when:** all seven cases are green and both mutations flip.
-
-### T11: the state surfaces document the new fields
-
-**Depends on:** T10
-
-**Tests:**
-- Both fields exist after a recorded round (AC43); the shipped reference documents
-  both and the bundled template carries both (AC44).
-
-**Done when:** template, reference, and writer agree on the field set.
-
-### T12: every shipped recording invocation passes the flag
-
-**Depends on:** T10
-
-**Tests:**
-- No invocation in `SKILL.md` or `references/` omits `--operation-id`, where an
-  invocation is a fenced-code-block line naming the cohort script and the verb
-  (AC45).
-- A prose mention in a field table is not counted, proved by a fixture containing
-  one.
-- Mutation proof: removing the flag from one invocation reddens the check.
-
-**Approach:** edit the invocations in `SKILL.md` and in the reference files the
-check finds. `evals/evals.json` records expected transcripts and is out of scope;
-the check's path list states this.
-
-**Done when:** the check passes over the stated paths and the mutation flips.
-
-### T13: the recording states route on the recorded id
-
-**Depends on:** T3, T10, T12
-
-**Tests:**
-- Id recorded → the following action (AC46); id absent → `halt` whose stderr
-  reason names the expected id and the artifact (AC47).
-- `reviewers-clean` in `CODE-HUMAN-GATE` → `await-merge-decision` (AC48).
-- The continuation with a recorded source names the matching form and carries the
-  recorded id, not a freshly computed one (AC49); replaying it leaves
-  `review_round_count` unchanged (AC50); with no recorded source, `halt` (AC51).
-- Mutation proof: computing a fresh id on the continuation path reddens AC50.
-
-**Done when:** all six cases are green and the mutation flips.
-
-### T14: the architecture surface names the new verb
-
-**Depends on:** T9
-
-**Tests:** goal-based — `grep -n "next" docs/architecture/loop-infrastructure.md`
-shows it in the verb list marked read-only (AC52).
+**Tests:** goal-based — the entrypoint section of
+`docs/architecture/loop-infrastructure.md` lists `next` in the `loop-engine.py`
+verb set and marks it read-only (AC22).
 
 **Approach:** edit that one owning section; the repository state-ownership table
 names writers, so a read-only verb adds no row there.
 
 **Done when:** the doc describes the shipped verb set.
 
-### T15: adopters can drive the new behavior from the guide
+### T10: adopters can drive the new behavior from the guide
 
-**Depends on:** T13
+**Depends on:** T8
 
-**Tests:** goal-based — the how-to names the verb in its resumption passage
-(AC53) and describes what a recorded id makes replayable (AC54).
+**Tests:** goal-based — `guides/core/how-to/plan-and-execute-non-trivial-work.md`
+names the verb in its resumption passage (AC23).
 
 **Approach:** rewrite the hand-driven resumption passage to the sequence adopters
 now run, rather than appending the new one beside the old.
 
 **Done when:** the guide describes shipped behavior.
 
-### T16: the assembled route runs, including a crash and resume
+### T11: the assembled route runs, including a crash and resume
 
-**Depends on:** T7, T8, T13
+**Depends on:** T4, T6, T8
 
-**Tests:**
+**Tests:** visual / manual QA.
 - Run 1: a full-mode `code`-mode loop to `DONE`, recording the action sequence,
-  final engine state, and per-command exit codes (AC55).
+  final engine state, and per-command exit codes.
 - Run 2: interrupt between firing `findings-remain` and recording the round,
-  resume, confirm a correct next action with no double increment (AC56).
-- Both transcripts state what the sessions do not exercise (AC57).
+  resume, confirm a correct next action with no double increment.
+- Both transcripts state what the sessions do not exercise (AC24).
 
 **Approach:** write both to `notes/qa-transcripts.md`. Use a throwaway spec
-directory, remove it afterwards, and confirm `git status` is clean. Scope
-boundary: spec-plan mode, contract amendment, and the supervisor fan-out paths
-are covered by unit cases and are not exercised here.
+directory, remove it afterwards, and confirm `git status` is clean. Write
+repository-relative paths only; the privacy convention forbids committing
+user-specific filesystem paths, and the verb's own stderr interpolates absolute
+ones. Scope boundary: spec-plan mode, contract amendment, and the supervisor
+fan-out paths are covered by unit cases and are not exercised here.
 
 **Done when:** both transcripts are committed with their scope boundary stated.
 
-### T17: the release surface is consistent
+### T12: the release surface is consistent
 
-**Depends on:** T6, T14, T15, T16
+**Depends on:** T7, T9, T10, T11
 
-**Tests:**
-- A free-standing dated entry at `##` (AC58) with a `### Highlights` block
-  (AC59); both version files read the same value, one minor above the base
-  branch's (AC60); the drift gate reports no drift (AC61); the highlights
-  projection matches the entry (AC62).
+**Tests:** goal-based.
+- A free-standing dated entry at `##` with a `### Highlights` block, and both
+  version files reading the same value one minor above the base branch's (AC25).
+- The drift gate reports no drift and the highlights projection matches the entry
+  (AC26).
 
 **Approach:** diff the version against the base branch before committing;
 regenerate both projections rather than editing either; run the gate chain with a
@@ -520,38 +448,43 @@ are regenerated.
 
 ## Rollout
 
-- **Delivery:** dependency-ordered waves, each green and shippable. The verb, the
-  flag, and the state fields are additive; the shipped instructions gain the flag
-  and the resumption table gains a column, both backward-compatible with existing
-  persisted runs. One PR carries the whole spec, so the release indicator the
-  `contracts/` change requires is present from the first commit that needs it.
-- **Reversibility:** reverting removes additive code and restores the table's
-  prior rows and its two pinned tests. Existing `state.json` files without the new
-  fields keep working, because both are absent-tolerant on read.
+- **Delivery:** dependency-ordered waves, each green and shippable. The verb and
+  the resumption table's new column are additive and backward-compatible with
+  existing persisted runs. One PR carries the whole spec, so the release indicator
+  the `contracts/` change requires is present from the first commit that needs it.
+- **Reversibility:** reverting removes additive code and one table column. No
+  state field is added, so no persisted `state.json` is affected either way.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** the version bump and changelog land in T17.
+- **Deployment sequencing:** the version bump and changelog land in T12.
 
 ## Risks
 
-- **The projection and the state machine drift apart.** Both read the same
-  transition tables, and the input set and `complete_with` are derived from them
-  at runtime.
+- **The projection and the state machine drift apart.** The base keys and
+  `complete_with` are both derived from `_TRANSITIONS_BY_MODE` at runtime, and
+  AC1 fails the moment the engine gains a transition the tables do not cover.
+- **The tables and the code drift apart.** The roster test compares the spec's
+  Markdown with the implementation's dictionaries; neither is generated from the
+  other, so agreement is evidence.
+- **Totality passes without covering the discriminators.** This is the defect the
+  first review round found. The Discriminators table sources every value set
+  outside the Routing table, and AC1's mutation is required to redden for all 22
+  rows, not the ten that carry no discriminator.
+- **The discriminator resolver ships untested.** The roster equality test cannot
+  reach it. AC3 drives the live command with expectations parsed from the spec,
+  and the R3/R4 exchange is its named mutation.
 - **The emitter satisfies the contract with constants.** Each of the four derived
-  fields carries a constant-value mutation proof.
-- **Row parity degrades to "a record exists".** T7 adds the identifier column and
-  anchors the expected mapping in this plan, outside the PR that writes the
-  column.
-- **A distinct round is absorbed as a replay.** AC41 requires the second round to
-  increment; AC49 requires the continuation to reuse the recorded id rather than
-  mint one.
-- **The projection answers from mid-write state.** T9 detects both crash artifacts
-  and stops.
-- **Rewriting the resumption rows reddens two pinned tests.** T7 owns them in the
-  same task.
+  fields and each of the five table properties carries a mutation proof.
+- **A planted state file floods the agent's context.** AC14 caps and delimits
+  every interpolated scalar on stderr; P4 refuses a malformed `run_id` before a
+  record exists; AC15 keeps every read inside the bounded guard readers.
+- **Row parity degrades to "a record exists".** T8 parses both sides.
+- **The projection answers from mid-write state.** T6 detects both crash artifacts
+  by presence and stops. The residual torn two-file read is accepted and recorded
+  in the spec's Assumptions.
 - **A peer worktree takes the version.** Re-checked against the base before
   commit.
-- **A peer session is editing the same skill tree.** Re-checked before T7 and T12.
+- **A peer session is editing the same skill tree.** Re-checked before T8.
 - **Concurrent gate runs void results.** Gates run serialized and never while a
   worker is editing.
 
@@ -564,9 +497,8 @@ are regenerated.
   dependency graph refuted its own atomicity claim.
 - 2026-08-31 — Three fields the loop advances on — `complete_with`, `human_wait`,
   `sequence` — were unconstrained through two review rounds; an emitter returning
-  empty values satisfied the whole contract. A fourth, `run_id`, and the `load`
-  and `action` vocabularies had the same gap. All now have derivation criteria,
-  closed vocabularies in this plan, and constant-value mutation proofs.
+  empty values satisfied the whole contract. All now have derivation criteria and
+  constant-value mutation proofs.
 - 2026-08-31 — The automatic recording branch was cut: the projection cannot know
   a round's warranted reviewer roster, so requiring every warranted reviewer's
   payload was unverifiable by construction. An absent id now stops.
@@ -578,9 +510,68 @@ are regenerated.
 - 2026-08-31 — The runtime over-length refusal was dropped. A refusal would leave
   a live loop with no next action, and the invariant it guarded is already covered
   by the no-state-dump criterion; the size bound is now a suite assertion.
-- 2026-08-31 — Two shipped tests pin the literal prose of the resumption rows this
-  spec rewrites, and one asserts a property this spec makes false. T7 owns them.
-- 2026-08-31 — The authored-word threshold was briefly planned inside
-  `packages/agentbundle/`. A protected-tree gate requires an engine-scoped RFC
-  trailer there, so no task touches that tree; the dependent contract places its
-  checks in an existing pack test instead.
+- 2026-09-01 — Restructured after four review rounds (30 → 43 → 19 → 37 findings)
+  failed to converge. The diagnosis: the spec was specifying a total
+  state-to-action function in prose acceptance criteria, so every round's repair
+  of one row's wording opened a gap in another's. The mapping moved into tables in
+  `spec.md` and the criteria became properties of those tables, taking the
+  contract from 62 ACs and 17 tasks to its current 26 and 12.
+- 2026-09-01 — Wave 3 was deleted rather than rewritten. `--operation-id`, its
+  form check, replay and conflict behaviour, the two `state.json` fields, the
+  state-schema reference, and the shipped invocations all landed in
+  `docs/specs/review-record-idempotency/` (core 2.18.2, PR #1192). Ten criteria
+  describing that mechanism were removed as already shipped; what remains of the
+  recording branch is two Routing rows, R16 and R17.
+- 2026-09-01 — The `CODE-HUMAN-GATE` changes-requested criteria were dropped. They
+  described a record for a branch `next` cannot observe: the human's merge
+  decision is not in either state file, so that state has one row and the replay
+  detail stays in the shipped resumption row, which already carries it.
+- 2026-09-01 — Wave position stopped being an input dimension. It discriminates no
+  row's action; it enters the record only as `cohort.wave-advance`'s `from_index`.
+- 2026-09-01 (round 1 repair) — The restructure's own totality criterion was a
+  control that could not fail. The domain was crossed with "each row set's
+  discriminator values", read out of the same Routing table totality was checked
+  against, so deleting a discriminator-bearing row deleted the members that would
+  have exposed it: only 10 of 22 rows reddened. A Discriminators table now fixes
+  each value set from a source outside Routing — the Status vocabularies
+  `lint-spec-status.py` enforces, the `state.json` field domains, and a boolean —
+  and the domain is a derivable 54 members with the count stated once. Re-checked
+  after the repair: 0 uncovered, 0 ambiguous, and all 22 rows reddening.
+- 2026-09-01 (round 1 repair) — Three ways the contract could be satisfied while
+  still handing an agent attacker-controlled text. Stderr was unbounded while the
+  record was tightly bounded, and the guard module had already been through this:
+  a 100 KB `run_id` produced a 100,055-character reason. `run_id` reached the
+  record with no form check. Artifact reads were named by filename with no
+  confinement or reader. AC14, P4, and AC15 close the three, all by reusing
+  controls that already exist rather than inventing bounds.
+- 2026-09-01 (round 1 repair) — Two holes the routing tables could not see. An
+  off-table `(state, last_event)` pair — a valid state carrying an event that
+  never targets it — was excluded from the domain by construction, so no criterion
+  reached it; P7 now covers it. `mode` appeared in no precondition while Routing
+  keyed on it, and P6's old "differs" test passed vacuously on two absent
+  `run_id`s; P4 and the restated P6 close both. The precondition table went from
+  six rows and three exit codes to seven and four.
+- 2026-09-01 (round 1 repair) — `P1`'s light-mode marker was undecidable. The
+  literal appears across `docs/specs/` in six header spellings plus HTML comments,
+  acceptance-criterion mentions, and one negated prose occurrence, and no Python
+  in the repository parses it. The condition is now a single regex over the
+  pre-`##` zone with comments stripped, validated against the corpus: it matches
+  exactly the 37 specs carrying a real marker, with no misses and no over-matches.
+- 2026-09-01 (round 1 repair) — AC3 could not be distinguished from the roster
+  equality test, leaving the discriminator resolver — 12 of 22 rows — with no
+  coverage. AC3 now sources its expectation from the spec's Discriminator column
+  and names the R3/R4 exchange as its mutation; that mutation changes four domain
+  members' actions while changing no row's action or coverage.
+- 2026-09-01 (round 1 repair) — Three smaller gaps closed: `complete_with` now
+  states that it names events rather than invocations and that `wave-passed` and
+  `contract-amendment` take arguments the record does not supply; the unlocked
+  two-file read is recorded as an accepted Assumption with what P6 does and does
+  not bound; and AC19 states that its comparison set is the union across both
+  modes, without which its exactness claim had no quantifier.
+- 2026-09-01 (round 1, refuted) — Four findings were tested and not sustained, and
+  the artifact is unchanged on each: AC12 is not dominated by AC5/AC7/AC11,
+  because a 64-character fingerprint satisfies all three while violating it, so it
+  stays and T5 now drives that exact case; the extra base keys are already sourced;
+  per-task verification modes were already derivable from the Testing Strategy,
+  though they are now stated per task anyway; and T8's test location was already
+  fixed by the Constraints section.

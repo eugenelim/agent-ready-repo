@@ -168,6 +168,10 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
+  # `needs` is empty because its one dependency, review-record-idempotency, is
+  # already Shipped -- naming a spec absent from this file would be a dangling
+  # reference, not a gate.
+  {path = "docs/specs/work-loop-next-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Answer 'what do I do next' from loop state with one bounded record, routed by a total state-to-action table the criteria assert properties of", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
