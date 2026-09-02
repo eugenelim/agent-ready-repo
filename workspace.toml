@@ -17,11 +17,16 @@
 # non-dispatchable record. `workspace-status` reports every such record; run it
 # after editing this file.
 #
-# The one current exception is `[backlog].open`, where a `{slug = ...}` entry is
-# still required: `lint-spec-status.py` invariant (iv) resolves each spec's
-# `(deferred: <slug>)` anchor from the `slug` key only, and that is a hard CI
-# gate. Reconciling that contradiction needs a governance decision, not a
-# reshape of individual entries.
+# `[backlog].open` takes the canonical shape like every other collection.
+# `lint-spec-status.py` invariant (iv) resolves a spec's `(deferred: <slug>)`
+# anchor from either shape -- a legacy record's `slug`, or a canonical record's
+# `path` via `canonical_entry_anchor` -- so a deferring spec is not obliged to
+# write a legacy record. This comment previously claimed the `slug` key was
+# still required; that stopped being true when canonical anchoring shipped.
+#
+# A canonical entry's `path` must name an artifact that exists, or it reconciles
+# as `missing_artifact`. For a deferral with no artifact of its own, point the
+# entry at the document that records it.
 #
 # Comments, summaries, list order, tracker labels, and profile hints are
 # non-semantic. They must not determine routing, dependency satisfaction,
@@ -226,6 +231,7 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {path = "docs/specs/cooling-scope-closure/notes/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Nine findings that survived adjudication across three review rounds on the withdrawn cooling-scope-closure amendment, each carrying what was measured: the missing entry-class criteria, the raw-path-string closeout seam, AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships, the unpinned alias axis, a withheld closeout that cannot name its record, and cooling.load_record reporting a missing confinement helper as an invalid record", needs = []},
   # Surfaced 2026-08-29 by the security review of spec-dir confinement (PR #1156).
   # loop-cohort and loop-engine both canonicalize a --spec-dir and check it is
   # under the repo root BEFORE using it, but nothing binds the later file
