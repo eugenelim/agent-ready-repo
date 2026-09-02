@@ -46,6 +46,9 @@ better contract still gets things wrong; what a loop does on that discovery is
 - The delegation anchor: making a plan record whether an existing owner for the
   contract was found, alongside the imitation anchors the template already asks
   for.
+- Whether a narrow delegated worker should run the ownership search before
+  authoring, given that every worker this repository defines today is a reviewer
+  or a retriever and none runs before a spec exists.
 - The activation mechanism for both, and the measurement that says whether they
   activate.
 
@@ -237,6 +240,28 @@ progressive-disclosure lint has a case asserting that an authored
 artifacts sit outside the enforcement boundary by design, so the guidance is
 loaded at every turn and enforced nowhere near where it would bind.
 
+**The repository-anchoring work is the clearest instance, and it fails twice.**
+Real work shipped: the plan template carries a `Repository anchors:` field, and
+`new-spec` states the bounded discovery rule and the ask-on-absence obligation.
+
+*Its verification is presence-pinning.* Its tests assert that sentences exist in
+the skill files — that the anchors field is present, that the phrase "one or two
+analogous production implementations" appears, that the unanchored-mechanism
+obligation is stated. Nothing reads an authored plan to see whether it has
+anchors, whether they resolve, or whether they were used. That is this brief's
+own "a pin that a sentence exists in a file" row, applied to the anchoring rule
+by the anchoring rule's own tests.
+
+*And it was complied with anyway.* The abandoned plan carried four anchors, all
+imitation. Compliance was complete and the razor still never fired, because the
+field asks what to copy rather than whether an owner exists.
+
+Together those are the strongest argument here: **a rule can be shipped, tested,
+and complied with, and still not do its job.** Anchoring is also where the
+razor's evidence would live, so while nothing reads an authored plan's anchors
+the razor cannot be *observed* to have run — which is why the two are one
+problem.
+
 Every rule this work ships therefore carries three things:
 
 - **An activation point** — the moment in the loop where the rule is consulted
@@ -297,6 +322,80 @@ collapse the work:
   otherwise restate, with what delegating to it costs and what it leaves
   undischarged. Or an explicit, recorded *no owner exists* after a bounded
   search, which is the razor's own "decisive empty result".
+
+### A delegated worker is the candidate mechanism, and one already proves it
+
+The brief's own finding is that rules do not fire and mechanisms that bind do. A
+narrow delegated worker is a mechanism, so it is the strongest candidate for the
+razor's activation point — and this repository already runs one that demonstrates
+the pattern.
+
+**The proof case.** `finding-adjudicator` is `Read, Grep` only and is defined as
+not discovering defects and not editing the target. It is given the *path* to a
+reviewer's report, never the report body. Across the last two review rounds of
+the abandoned work it refuted several findings the authoring agent had already
+accepted — including one the agent had verified a premise for and then adopted
+the wrong conclusion from. Three properties made that possible, and each maps
+onto what the razor needs:
+
+- it cannot repair, so it must judge;
+- it has no authoring investment in the thing it is judging;
+- its output shape forces a verdict per item, so "I looked" is not a valid
+  return.
+
+That is exactly the shape of "did the search return an owner for this contract" —
+a question that is easy when it is the only question, and that the authoring
+agent reliably failed while holding a whole session's context.
+
+**The gap is real.** Every narrow worker this repository defines is a *reviewer*
+or a *retriever*. None runs before authoring. So a spec author searches, reads,
+and recognises in one context, which is where recognition failed.
+
+**Do not build new machinery for it — this is the razor's own test case.** The
+desk-research pack ships `decision-archaeology`, which walks time-ordered
+artifacts to reconstruct why something was decided, and already carries a
+*revival check* that flags rejected alternatives whose rejection no longer
+holds. That is archaeology with a verdict, which is most of the shape. It is
+backwards-looking where this need is forwards-looking — "does an owner exist for
+what I am about to write" rather than "why was this decided" — and it lives in
+another pack. So the first question is whether it extends, whether the reviewer
+roster gains a sibling, or whether neither fits; not what to build.
+
+**Why an isolated worker rather than the host's built-in explorer.** The case has
+to be made, because a general-purpose explore agent already exists in the host
+and the razor applies to this proposal as much as to anything else.
+
+- **Context protection is the mechanism, not a side effect.** An isolated worker
+  returns a conclusion; the authoring context never loads the corpus. That is
+  already this repository's stated rationale for two shipped workers —
+  `evidence-retriever` and `source-extractor` both describe themselves as
+  preserving main-session context by collapsing material into a synthesis before
+  returning. The pattern is established; it is not being invented here.
+- **The needed output is a verdict, not located code.** The host's explorer is
+  described as reading excerpts to *locate* code, explicitly not to review or
+  audit it. Location was never the failure — the search returned the precedent
+  in the opening grep. A better locator finds it sooner and still leaves
+  recognition undone.
+- **The verdict has to bind to authority.** "Is this an owner for my contract"
+  is answered against the razor's ladder and this repository's ownership
+  conventions. A generic explorer carries neither.
+
+One leg deliberately *not* used: host portability. This repository's declared
+target vocabulary is `claude-code` only, so "a shipped pack cannot depend on one
+host's built-in agent" is not established by the contracts and should not prop up
+the case.
+
+And the razor-consistent conclusion is likely narrower than a new agent: reuse
+an isolated worker for the isolation, and add only the **request contract** that
+makes its return a verdict. That is delegation. Building a bespoke agent when the
+isolation already exists would be the exact duplication this brief exists to
+prevent.
+
+**What is unknown.** Whether a forwards-looking ownership search is reliable
+enough to trust, and what it costs per spec. Both are answerable with a cheap
+trial: run it against contracts already authored, and score whether it surfaces
+owners a human agrees were missed. The abandoned contract is a ready-made case
+with a known answer.
 
 **A measurement harness already exists, and it does not cover this.** The
 `pack-activation-evals` spec is Shipped: `agentbundle pack evals run` computes a
