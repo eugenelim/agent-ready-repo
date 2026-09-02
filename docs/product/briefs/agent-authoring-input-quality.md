@@ -93,6 +93,27 @@ findings here, not a hypothetical. The right-hand column is what an author does
 instead — these are the candidate instructions, and per the activation section
 above they must not ship as prose alone.
 
+**The design should have delegated, and the criteria should never have been
+written.** This class precedes all the others: no amount of criterion craft
+rescues a contract that restates an obligation someone else already owns.
+
+| Shape | Instead |
+| --- | --- |
+| An obligation restated per consumer — "the consumer must check X, refuse Y, degrade Z…" repeated at each site | Name the owner and delegate. `work-loop`'s SKILL.md does this in three lines: it invokes the `project-knowledge` producer profile, states that the profile owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope, and gives one named-absence receipt. Ten obligations, one sentence, one owner |
+| A consumer-side trust posture spelled out as N statements on N surfaces | Route to the reference that owns it. Three `architect-*` skills each point at `references/knowledge-surfaces.md` for permission and degradation instead of carrying their own copy |
+| Shortening or single-homing a long restatement | The wrong repair. If a passage is long because it restates someone else's contract, the fix is delegation, not compression — the delegation form collapses the review history rather than repairing it |
+| A bounded search for an existing solution that was run, read, and not recognised | The razor's failure mode is not skipping the search. It is reading the answer without matching it to the problem. Ask explicitly: does an owner for this contract already exist, and what would delegating to it look like? |
+
+**The instance from the abandoned contract.** Its `AC20` required the consumer's
+trust posture to ship as five separate statements on the always-loaded surface,
+and argued at length for why a reference could not hold them — because only one
+routing row loaded that reference, so the control would be absent on the other
+turns. The argument is locally valid and the conclusion still wrong: the repo's
+own answer to "a consumer needs an obligation that a reference cannot reach" is
+to name an owning profile and give it a named-absence receipt, not to inline the
+obligations. That criterion, its five grep-able statements, and the rounds spent
+tightening them all disappear under the delegation form.
+
 **The criterion cannot fail.** The most expensive class, because it reports
 confidence.
 
