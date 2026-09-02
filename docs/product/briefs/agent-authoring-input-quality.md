@@ -1,40 +1,89 @@
-# Intent: authoring input good enough that the loop can converge
+# Brief: authoring contracts that survive review
 
 - **Slug:** `agent-authoring-input-quality`
-- **Type:** `shape`
-- **Raised:** 2026-09-02
+- **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Stage:** Shaping — designable now
+- **Status:** Draft
 
-## Why this exists, and what it is not
+## Outcome
 
-A review-and-repair loop can run indefinitely without converging. Two things
-would change that, and they are different kinds of work:
+An author — human or agent — writes a spec and plan that a review loop can
+converge on, and does not open one at all when the upstream is not ready. Today
+neither holds: a contract can be authored with no upstream and no registration
+and nothing objects, and once authored, most of what review finds is not the
+subject but the way it was written.
 
-- **Prevention** — make the contract good enough going in that the loop has
-  less to find, and refuse to start one over an undefined outcome. That is this
-  item. It is designable now against evidence already in the repository.
-- **Escalation** — when a loop discovers mid-flight that the contract is wrong
-  anyway, decide which artifact level to return to. That is
-  [`agent-loop-escalation-recovery.md`](agent-loop-escalation-recovery.md), and
-  it is open research with competing hypotheses.
+Two things change:
 
-Prevention only *partially* solves non-convergence, and saying so is the point:
-a better contract still gets things wrong, and the escalation item owns what
-happens then. Neither waits on the other.
+- **Criteria and tasks stop being fragile.** A criterion states an outcome that
+  can fail, once, in one place. A task says what to verify rather than spelling
+  out the assertion. Review then finds defects in the subject instead of in the
+  prose about the subject.
+- **A contract is not opened over an undefined outcome.** A pressure test at
+  creation asks what the work descends from and whether its unknowns are closed,
+  and hands the work to brief authoring when they are not.
 
-## The evidence
+This only **partially** prevents non-convergence, and that is deliberate. A
+better contract still gets things wrong; what a loop does on that discovery is
+[`agent-loop-escalation-recovery.md`](../intents/agent-loop-escalation-recovery.md).
 
-One spec-authoring loop ran eleven pre-EXECUTE review rounds in a single run
-before a human intervened, and was abandoned. Most of what those rounds found
-was not the mapping the contract existed to state — that part survived
-independent re-derivation. It was everything authored around it: criteria that
-could not fail, criteria that contradicted each other, counts that decayed,
-mechanism inside criteria that then drifted against the plan's copy, and
-explanatory prose in the normative section that nothing bound.
+## Success metrics
 
-That is a quality-of-input problem, and it is addressable with instructions and
-a gate rather than with research.
+- Review rounds on a new contract find defects in the subject rather than in the
+  criteria's wording — measured by classifying a round's findings, not by
+  counting them.
+- A contract whose upstream is missing or unready is redirected before its body
+  is written, and the redirect is recorded rather than inferred.
+- Every rule this work ships can be shown to have fired at least once. A rule
+  with no firing is withdrawn, not re-worded.
+
+## Scope / Non-goals
+
+**In scope**
+
+- The failure-point rubric, and the authoring instructions derived from it.
+- The pre-creation pressure test and its redirect.
+- The activation mechanism for both, and the measurement that says whether they
+  activate.
+
+**Non-goals**
+
+- What a loop does once it has discovered the contract is wrong. Separate item,
+  linked above.
+- Rewriting the cognitive-load or cut-before-adding rules. The question is why
+  they do not activate, not whether they are well written.
+- Changing what reviewers do, or how findings are adjudicated.
+
+## Appetite
+
+The rubric and the instructions are cheap — they are distillation of evidence
+already in this repository. The pressure test is a small gate with one open
+design question (where it fires so it cannot be discharged by filling in a
+missing field). **Activation is the expensive part, and it gates the rest**: if
+the measurement says written guidance does not bind here, the deliverable becomes
+machinery and the appetite changes.
+
+## What actually works, and what does not
+
+This is the load-bearing finding, and it should shape every deliverable.
+
+Across the eleven rounds that produced this evidence, the mechanisms that caught
+defects **on their first run** all bound the document to something outside
+itself:
+
+- criterion-identifier parity between the spec and the plan;
+- assumption-citation parity, both directions;
+- claims bound to a live symbol table rather than to prose;
+- mutation proofs — delete the row, and a specific case must redden.
+
+The rules that lived only as prose — the cognitive-load simplification, the
+cut-before-adding razor, the observable-outcome rule — were loaded in context for
+the whole of that work and fired never.
+
+So a rule's value here is not how well it is written. It is whether it binds to
+code, to a sibling document, or to a mutation. The rubric below is written as
+prose because that is how it is legible; whether any row of it ships as prose is
+the activation question's to answer.
 
 ## A rubric of known failure points
 
@@ -152,72 +201,75 @@ be discharged the way the registration check was; and whether the redirect is a
 hard stop or a recorded override. The activation section above applies to this
 guardrail as much as to any other — a pressure test nobody runs is a rule that
 does not fire.
-## The activation problem underneath all of them
+## Activation design and measurement
 
-Every hypothesis above proposes a rule. This repository has already shipped two
-rules that should have prevented what happened, and neither fired. That is a
-prior question, and it changes what any response has to include.
+Required of this brief and of every rule it produces, because the evidence is
+that rules of this kind do not fire.
 
-**The two instances, both in one session, with the authoring agent as subject.**
+The cognitive-load rules are not prose-only — several gates enforce them. Those
+gates read the packs, the root guidance, the seeds, and the changelog. The
+progressive-disclosure lint has a case asserting that an authored
+`docs/specs/<feature>/spec.md` is *not* in its results. Authored work-loop
+artifacts sit outside the enforcement boundary by design, so the guidance is
+loaded at every turn and enforced nowhere near where it would bind.
 
-- The cognitive-load simplification and the cut-before-adding razor are both
-  present, both routed from the root context, and both were in the agent's
-  loaded context the whole time. The artifacts it then authored were long and
-  dense with precise claims — the opposite of what the rules ask.
-- The spec-authoring guidance already said a criterion names an observable
-  outcome and that naming a helper or a call sequence means the content belongs
-  in the plan. The agent read that rule, cited it to reviewers as governing
-  authority, and still put mechanism into criteria repeatedly.
-
-**Presence is not activation, and neither is enforcement — if the enforcement is
-scoped elsewhere.** The cognitive-load rules are not prose-only; several gates
-enforce them. But those gates read the packs, the root guidance, the seeds, and
-the changelog. The progressive-disclosure lint goes further and has a case
-asserting that an authored `docs/specs/<feature>/spec.md` is *not* in its
-results. Authored work-loop artifacts are outside the enforcement boundary by
-design.
-
-So the rule is loaded at every turn and enforced nowhere near the moment it
-would bind. An agent authoring a spec is holding the guidance in context and
-receiving no signal from it.
-
-**What this means for the work.** A response to non-convergence that is another
-rule, shipped the same way, has no reason to behave differently. Any hypothesis
-above must come with:
+Every rule this work ships therefore carries three things:
 
 - **An activation point** — the moment in the loop where the rule is consulted
-  and something changes as a result, not merely the file where it is written.
-- **A measurement** — a way to tell activation from presence. The distinction is
-  observable: compare what the rule asks for against what the agent produced,
-  on artifacts the agent authored, not on the surfaces the rule was originally
-  written to govern.
-- **A failure mode when it does not activate.** A rule that silently does
-  nothing is worse than an absent one, because it makes the gap look covered.
+  and something changes as a result, not merely the file it is written in.
+- **A measurement** — how to tell activation from presence. Compare what the rule
+  asks for against what the author produced, on artifacts the author wrote, not
+  on the surfaces the rule was originally written to govern.
+- **A failure mode when it does not activate** — because a rule that silently
+  does nothing is worse than an absent one: it makes the gap look covered.
 
-The cheapest available measurement is retrospective and needs no new mechanism:
-the repository holds authored specs, plans, and briefs from many loops. Scoring
-those against the guidance that was in force when each was written would say how
-often these rules activate at all, and whether the two instances above are
-typical or unlucky. That measurement should precede any new rule.
-## Shape of the work
+**The first measurement needs no new mechanism.** Score specs, plans, and briefs
+already in this repository against the guidance in force when each was written.
+That says how often these rules activate at all, and whether the two known
+instances are typical or unlucky. It runs before anything else here is designed.
 
-Three deliverables, in dependency order.
+## Risks
 
-1. **Measure activation first.** Every item below is a rule, and this repository
-   has evidence that rules of this kind do not fire. Score already-authored
-   specs and briefs against the guidance in force when each was written. One
-   retrospective pass; it decides whether any of this can be written guidance at
-   all or has to be machinery in the loop.
-2. **The rubric and the authoring instructions**, wherever activation says they
-   will bind. Not as another bullet in a template that is loaded and unenforced.
-3. **The pre-creation pressure test and its redirect**, designed against the open
-   questions above rather than assumed.
+- **This brief ships another unactivated rule.** The most likely failure, and the
+  reason activation is scoped in rather than assumed. The withdrawal metric above
+  is the guard.
+- **The pressure test is discharged rather than answered.** The existing
+  registration check was satisfied by filling in the missing entry, not by
+  answering whether the spec was warranted. A gate at creation can fail the same
+  way.
+- **The rubric grows into doctrine on one instance.** A rule was shipped from
+  this same evidence, as a minor release, and withdrawn a day later as unearned.
+  The hypothesis is recorded in `[backlog].open` with what would earn it.
 
-## Not in scope here
+## Rabbit holes
 
-- Detecting or responding to a loop already in trouble. That is the escalation
-  item.
-- Rewriting the cognitive-load or cut-before-adding rules themselves. The
-  question here is why they do not activate, not whether they are well written.
-- The `next` action projection, which is a delivery brief:
-  `docs/product/briefs/work-loop-next-action.md`.
+- **Do not mechanize a judgment.** "Is this criterion well-founded?" is not a
+  predicate. Where the same gate is defeated twice by different surfaces, split
+  it: the gate asserts declared shape and required fields, a named human owns the
+  soundness call.
+- **Do not verify guidance by parsing the guidance.** A check that a sentence
+  exists in a file proves presence, which is the thing already known.
+- **Do not let the rubric become a review checklist.** It is authoring guidance.
+  Handed to reviewers it becomes a source of nits, which is the problem it exists
+  to reduce.
+
+## Ready gaps
+
+- **No appetite is set**, and activation's answer changes it.
+- **No slices are proposed.** `continue` selects them. The retrospective
+  activation measurement is the natural first, and it can run before any of the
+  rest is designed.
+- **Where the pressure test fires is undecided**, and it is the open design
+  question that matters most — see the boundary section above.
+
+## Spec map
+
+None. No slices confirmed, no spec derived.
+
+## Provenance
+
+- Source: repository origin. Distilled from this repository's memory, its
+  `docs/knowledge/` topics, and one abandoned delivery attempt whose spec and
+  plan are preserved at commit `e1bdde746`.
+- Promoted from a shaping intent of the same slug on 2026-09-02, which was itself
+  split out of `docs/product/briefs/work-loop-next-action.md`.

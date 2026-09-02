@@ -21,7 +21,7 @@ transcribed, so it cannot drift from the state machine it describes.
 artifact notice when a review loop was not converging, and failed partly by
 assuming one thing could do both. Detecting and responding to non-convergence is
 a separate, and much less settled, problem: it is shaped at
-[`agent-authoring-input-quality.md`](../intents/agent-authoring-input-quality.md) and [`agent-loop-escalation-recovery.md`](../intents/agent-loop-escalation-recovery.md),
+[`agent-authoring-input-quality.md`](agent-authoring-input-quality.md) and [`agent-loop-escalation-recovery.md`](../intents/agent-loop-escalation-recovery.md),
 where the response is still competing hypotheses rather than a decision. Nothing
 in this brief waits on it.
 
@@ -133,6 +133,25 @@ The ruling comes from the trust threshold, not from mechanically mirroring
 whatever the current reader happens to do. A trace still documents current reader
 behaviour so the eventual spec knows what it is changing.
 
+## Activation measurement
+
+The three authoring habits above are rules, and the sibling brief's load-bearing
+finding is that prose rules in this repository do not fire — the cognitive-load
+and cut-before-adding rules were loaded throughout the abandoned attempt and
+never bound, because the gates that enforce them exclude authored specs by
+design.
+
+So this brief's slices carry the same obligation the sibling brief states in
+full: each rule names where it is consulted, how activation is told from
+presence, and what happens when it does not activate. Concretely here, the
+mechanisms worth building first are the ones that caught defects on their first
+run in the abandoned attempt — parity between the spec and plan, claims bound to
+a live symbol table, and mutation proofs — rather than another sentence in a
+template.
+
+If a rule this work adds cannot be shown to have fired, it is withdrawn rather
+than re-worded.
+
 ## Risks
 
 - **A criterion over an unverified claim about the world.** This is what ended the
@@ -212,7 +231,7 @@ Not process boilerplate — these are the three habits that produced the failure
 
 A rubric of the specific shapes that have produced findings in this repository —
 criteria that cannot fail, that are unsatisfiable, that decay, that are too big,
-and that are not mechanizable at all — is in the authoring-quality shaping item
+and that are not mechanizable at all — is in the authoring-quality brief
 linked above, together with what to write instead of each. Read it before
 authoring criteria, not after a reviewer cites one.
 
@@ -228,7 +247,7 @@ Whoever authors from this brief should assume the same of the three habits above
 state them, and then find the point in the loop where something actually changes
 if they are ignored. If this work adds any guidance of its own, it ships with an
 activation point and a way to tell activation from presence, or it does not ship.
-The general problem is shaped in the authoring-quality item linked above.
+The general problem is owned by the authoring-quality brief linked above.
 
 ## Decision authority
 
@@ -237,7 +256,7 @@ The general problem is shaped in the authoring-quality item linked above.
   favoured the former; it was taken against an abandoned draft and should be
   re-confirmed at the Ready review rather than inherited.
 - Anything about detecting or responding to non-convergence is decided in the
-  shaping items, not here. If a Ready review finds itself ruling on that, the
+  sibling brief and the escalation intent, not here. If a Ready review finds itself ruling on that, the
   split has leaked and the ruling belongs on the other side of it.
 
 ## Ready gaps

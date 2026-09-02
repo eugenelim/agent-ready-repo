@@ -13,8 +13,8 @@ right. When a loop discovers mid-flight that the artifact above it is wrong, it
 has to decide **which level to return to** — and today it has no procedure, so
 it does the only thing it knows: repair in place, repeatedly.
 
-Prevention is the sibling item,
-[`agent-authoring-input-quality.md`](agent-authoring-input-quality.md), and it is
+Prevention is the sibling brief,
+[`docs/product/briefs/agent-authoring-input-quality.md`](../briefs/agent-authoring-input-quality.md), and it is
 designable now. This one is not: the response is competing hypotheses that need
 spikes before any contract.
 
@@ -82,7 +82,7 @@ None is validated. Several are mutually compatible; some conflict.
 ## The activation requirement applies here too
 
 Every hypothesis above is a rule, and this repository has shipped rules that did
-not fire — see the prevention item's activation section for the mechanism and the
+not fire — see the prevention brief's activation section for the mechanism and the
 evidence. Any hypothesis adopted here must come with an activation point, a way
 to tell activation from presence, and a stated failure mode for when it does not
 activate. A response nobody invokes is worse than none, because it makes the gap
@@ -117,7 +117,7 @@ repeating" is useful even while the response is still a human's judgement.
 ## Not in scope here
 
 - Authoring quality, the failure-point rubric, and the pre-creation pressure
-  test. Those are the prevention item.
+  test. Those are the prevention brief's.
 - Rewriting how reviewers work or how findings are adjudicated.
 - Any cross-session or committed state. The observed failure was inside one run,
   and the signal that would have caught it was already on disk.
