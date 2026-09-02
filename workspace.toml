@@ -45,6 +45,15 @@ parent    = "INI-001"
 ["ini-002".shaping_queue]
 active  = []
 backlog = [
+  # `research` -- outcome NOT defined. What a loop does when it discovers the
+  # artifact above it is wrong, at any phase, and which level it returns to.
+  # Six competing hypotheses; two are measurable retrospectively against review
+  # artifacts already on disk, so the first spikes are cheap. `needs` is empty
+  # deliberately: an earlier edge to the prevention brief made this BLOCKED with
+  # unsatisfied_dependency, which was wrong -- the relationship is shared evidence,
+  # not sequencing, and the retrospective spikes run today. Cross-referenced in
+  # prose instead.
+  {path = "docs/product/intents/agent-loop-escalation-recovery.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Decide what a work-loop does when PLAN, EXECUTE, GATES, or REVIEW discovers the contract above it is wrong -- which artifact level to return to and on what signal, against six competing hypotheses none of which is validated, plus the detection half that is small enough to ship on its own", needs = []},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   {path = "docs/product/intents/ini-002-initiative-brief.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reconcile Platform Core's accepted proposal, shipped milestones, and remaining adoption work into one living initiative brief", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-place-bet/spec.md"}]},
@@ -65,7 +74,23 @@ executing = [
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
 ready     = []
-draft     = []
+draft     = [
+  # Authored 2026-09-01 by `author-delivery-brief create` after the
+  # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
+  # review rounds in, on a model error no clause repair could reach. Draft only:
+  # three load-bearing unknowns are open and no slices are proposed. `continue`
+  # owns Ready after the owner closes them.
+  # Promoted 2026-09-02 from a shaping intent of the same slug. Prevention:
+  # a rubric of the criterion and task shapes that have produced findings here,
+  # the authoring instructions derived from it, and a pressure test at spec
+  # creation that redirects to brief authoring when the upstream is unready.
+  # Carries its own activation design and measurement, because the load-bearing
+  # finding is that prose rules here do not fire -- what caught defects was
+  # parity checks, symbol binding, and mutation proofs. Its sibling
+  # agent-loop-escalation-recovery stays an intent: no defined outcome yet.
+  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on, and refuse to open one over an undefined outcome: a failure-point rubric, non-fragile AC and plan-task instructions, a pre-creation pressure test with a redirect to brief authoring, and the activation measurement that decides whether any of it can ship as written guidance", needs = []},
+  {path = "docs/product/briefs/work-loop-next-action.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give a work-loop turn one authoritative next action from persisted state, and decide separately what owns stopping a non-converging authoring loop", needs = []},
+]
 # tech-site-completion is Status: Shipped, so `ready` was an impossible
 # transition. It moves to the engine's terminal brief collection rather than
 # leaving the lifecycle: nine shipped specs below still name this brief as both
@@ -231,6 +256,40 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Hypothesis, not accepted work. Spiked 2026-09-01 in core 2.22.0 and REVERTED
+  # the same day because the spike did not pay out.
+  #
+  # The idea: a spec's acceptance criteria attract a third kind of content that
+  # the two-way outcome/mechanism split does not name -- the evidence that a
+  # chosen mechanism is the RIGHT one (a control's arity, the field nothing else
+  # reads, the measurement a bound came from). Having no home, it gets written
+  # into both the criterion and the plan task, and the copies drift as the spec
+  # is revised. Proposed home: Assumptions, with a source, cited by the criterion.
+  #
+  # What was measured, and it is real: on work-loop-next-projection, 12 of one
+  # round's 16 findings were a single clause moved in one document and not the
+  # other, and applying the split cut criteria prose 21% while raising the
+  # criterion count 29 -> 37, because grounding left and hidden conjunctions came
+  # apart.
+  #
+  # Why it is NOT earned. (i) n=1, and the subject was abandoned days later for an
+  # unrelated and deeper defect, so the split neither caused nor prevented the
+  # outcome. (ii) Sustained findings AFTER the split were 21, 17, 18 and blockers
+  # went 6, 8, 5, 3 -- no drop, which is weak evidence against the diagnosis being
+  # dominant. (iii) The causal step "no home, therefore duplicated" was inferred,
+  # never tested; an 18k-word contract pair duplicates facts whether or not a home
+  # exists. (iv) The split introduced a drift class of its own -- criteria citing
+  # assumptions that were absent or wrong -- which then needed its own mechanised
+  # check. (v) The shipped worked example was drawn from the abandoned contract,
+  # including a line-number citation, so no reader could follow it.
+  #
+  # What would earn it: the same before/after measurement on two or three
+  # unrelated specs authored by different sessions, at least one of which reaches
+  # approval; a test of the causal step rather than the correlation; and a worked
+  # example grounded in a shipped, stable artifact with no line-number citation.
+  # Re-spike only with those in hand. Reverted at d73597ae2's successor; the
+  # spiked text is in history at 7478c8d25.
+  {slug = "spec-criteria-grounding-evidence-home", source = "spiked and reverted 2026-09-01; core 2.22.0 (7478c8d25), reverted same day", summary = "Hypothesis: acceptance criteria attract a third content category -- the evidence that a mechanism is correct -- which has no home in the two-way outcome/mechanism split and therefore gets duplicated into both the criterion and the plan task, where the copies drift. Measured once on an abandoned contract (12 of 16 findings were single-clause drift; the split cut criteria prose 21% while raising criterion count 29->37) but not earned: n=1, findings did not fall afterwards, the causal step was inferred rather than tested, and the split introduced a dangling-citation class of its own. Needs replication across two or three unrelated specs, one reaching approval, before it ships as authoring doctrine"},
   {path = "docs/specs/cooling-scope-closure/notes/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Nine findings that survived adjudication across three review rounds on the withdrawn cooling-scope-closure amendment, each carrying what was measured: the missing entry-class criteria, the raw-path-string closeout seam, AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships, the unpinned alias axis, a withheld closeout that cannot name its record, and cooling.load_record reporting a missing confinement helper as an invalid record", needs = []},
   # Surfaced 2026-08-29 by the security review of spec-dir confinement (PR #1156).
   # loop-cohort and loop-engine both canonicalize a --spec-dir and check it is
@@ -1832,6 +1891,30 @@ open = [
   # decides which topics land in which tier.
   {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
   {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Align standalone new-spec review with existing measurement and adjudication controls, add finding-origin attribution, and surface lint gate scope", needs = []},
+  # Framing matters here and my first draft got it wrong: this is not flake and
+  # not a coin flip. `load/core` is 0.2 on every run and the failing ranges are
+  # tight (0.19s, 0.06s, 0.42s), so these are stable measurements sitting on the
+  # bound -- you do not raise a bound to absorb variance that is not there. The
+  # ceiling was derived on py3.11 (RFC-0098 E16 records 1.92-2.12s when 5s was
+  # set, ~60% headroom) and is enforced on a 3.11/3.12 matrix where 3.12 has
+  # 0-4%. The load skip cannot protect it: the failing assertion is `cpu_median`
+  # at :166, unconditional; only the wall-clock assertion at :185 sits behind
+  # `load_per_core > 2.0`. Two cautions before anyone moves a number. (i) The
+  # open question is unprofiled and should stay a question -- py3.12 is normally
+  # faster than 3.11, so a ~2.8x slowdown is backwards from expectation and may
+  # be a real regression in the admission path rather than a mis-derived
+  # ceiling; if so the ceiling is only the messenger. (ii) RFC-0098 E21 records
+  # this exact ceiling being retired once on a 44.2s measurement, with both the
+  # measurement and the retirement later judged wrong. Profile first, then
+  # discuss numbers. Raising a Family-2 budget is Ask-first under AC36 anyway.
+  # Auditing trap: `gh run rerun --failed` overwrites a run's rolled-up
+  # conclusion, so run 33487510335 reports success -- read `--attempt 1`.
+  # Memory is not the binding dimension: the same harness asserts a 256 MiB
+  # ceiling and observes ~27 MiB, so wall-clock/CPU is the only side in play.
+  # Multi-run measurements credited to peer sessions work-loop-controller-fb and
+  # auto-backlog-review-run-2-20260831t1400-c6; the RFC errata and the
+  # assertion-site facts above are verified locally.
+  {slug = "agentbundle-ac36-cpu-ceiling-derived-on-wrong-interpreter", source = "ci/33487510335 att.1, 33520586244, 33479283513 (2026-09-01)", summary = "packages/agentbundle/tests/performance/test_direct_family2_budget_cost.py enforces a 5.0s CPU-time ceiling that RFC-0098 E16 derived from a 1.92-2.12s py3.11 measurement, against a CI matrix that also runs py3.12 where the same shape measures 4.78-5.08s -- three failures across three branches at load/core 0.2 with tight ranges, so the gate is decided by interpreter version rather than by the diff. Whether py3.12 is genuinely ~2.8x slower here (backwards from expectation, possibly a real admission-path regression) is unprofiled and must be settled before any bound moves; E21 records this ceiling already being retired once on a bad measurement"},
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
