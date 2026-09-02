@@ -1,6 +1,6 @@
 # Follow-ons this delivery discovered
 
-Two separately scoped items surfaced while building the dependency-scoped
+Three separately scoped items surfaced while building the dependency-scoped
 completion receipt. Neither belongs to its accepted contract. This document is
 the artifact of the canonical `[backlog].open` entry
 `docs/specs/dependency-scoped-completion-receipts/notes/follow-ons.md`

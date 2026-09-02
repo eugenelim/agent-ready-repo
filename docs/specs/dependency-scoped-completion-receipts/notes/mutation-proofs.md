@@ -4,6 +4,6 @@
 observed red for each row of its mutation table is recorded here instead. One
 row per guard, filled in during EXECUTE.
 
-| Criterion | Mutation applied | Observed result |
+| Guard | Mutation applied | Observed result |
 | --- | --- | --- |
 | _pending_ | | |

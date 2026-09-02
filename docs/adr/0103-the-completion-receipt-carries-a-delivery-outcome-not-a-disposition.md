@@ -59,7 +59,7 @@ a delivery that shipped and one that was abandoned can both be parked as
 `lifecycle_outcome`'s three values are already the repository's answer to "did
 this delivery land", already validated in the same file, and already the value
 the shipped Wave 4 receipt fixture passes verbatim
-(`test_pause_receipts_and_initiative.py:227` passes `outcome="completed"`).
+(`test_pause_receipts_and_initiative.py:226` passes `outcome="completed"`).
 Inventing a second vocabulary for the same question would create two answers.
 
 The reuse is a reason for the *choice*, not a live coupling. The receipt's
