@@ -1,7 +1,7 @@
 # Plan: Cooling scope closure
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-intake-and-artifact-routing.md`
   and `docs/CONVENTIONS.md`. Two analogous production implementations: Wave 6's
   cooling projection — `_resolve_cooled_state`, `_cooling_projection`, and
@@ -513,6 +513,53 @@ invocation. `no stub (mode)`.
 copies are byte-identical, `tools/test_build_site_routing.py` passes, and
 `notes/manual-qa.md` records both invocations with their exit codes.
 
+### T9: The entry-class criteria and the re-review precision items
+
+**Depends on:** T2, T8
+
+**Verification mode:** TDD for AC37; preservation criteria with mutation rows for
+AC34-AC36; goal-based for the record corrections.
+
+**Stub honesty.** AC34, AC35 and AC36 are green on arrival, because the repair
+they describe landed before the contract that names it. They are recorded as
+preservation criteria, not as reds, and each carries a mutation verified to kill
+it. `origin/main` at `d6b2298a1` is a natural mutant for the first row: it
+carries the re-derivation this criterion set exists to forbid.
+
+| Mutation | Reddens |
+| --- | --- |
+| `_surviving_work` consumes `_safe_spec_path(root, entry.slug) in cooled` (the form on `origin/main`) | AC35, AC36 |
+| `_surviving_work` consumes `entry.path in cooled` against the raw cooled set (the pre-repair form) | AC34, AC36 |
+| `cooled_work_entry_paths` drops its `legacy_memberships` loop | AC34, AC36 |
+
+**Approach:**
+- Add AC34 and AC35 to `tests/roster/test_cooling_scope_closure.py` using a
+  legacy-queue fixture seam on `cooled_initiative`. `write_workspace` already
+  emits legacy entries as bare quoted strings, so the seam is a parameter, not a
+  new helper.
+- Add AC36 as a direct comparison: run reconciliation and the closeout derivation
+  over one workspace and assert the two cooled verdicts are the same set. Assert
+  on `canonical.legacy_memberships` as well as canonical memberships — a legacy
+  entry never reaches `canonical.ready`, so a guard reading `ready` cannot see it.
+- Bind AC31's assertion to the topmost `[core]` heading, and correct its
+  docstring and comment: they claim an identity check the body no longer makes,
+  and a "not gated elsewhere" claim that
+  `test_thirty_day_cooling_and_retirement.py` contradicts.
+- Give `notes/closeout-records.md` an inbound pointer from the spec's
+  Durable-output map `project-knowledge` row, whose Destination is `-`.
+- Record AC28's observed digest comparison in `notes/closeout-records.md`, not
+  the discharge method alone.
+- Correct the residual paragraph in `notes/closeout-records.md`: name which
+  routes are forbidden and which were declined without asking. An `Ask first`
+  boundary is a question never put, so "every way is closed" overstates it.
+- Correct the `dueness_failed` comment in `workspace_status.py`, which claims a
+  finding names the record when that arm emits none.
+
+**Done when:** AC37 passes from a recorded red, AC34-AC36 pass with each mutation
+row's observed red recorded in the commit that adds them, the four record
+corrections are in place, and the three `workspace_status.py` and three
+`SKILL.md` copies remain byte-identical.
+
 ## Rollout
 
 Pure-logic and documentation change. No flag, no persistent representation, no
@@ -543,6 +590,17 @@ identical output before and after. Rollback is a revert.
 
 ## Changelog
 
+- 2026-09-02: sealed-baseline replacement under ADR-0099, on owner authority
+  recorded in [`notes/amendment-authority.md`](notes/amendment-authority.md).
+  Two successive defects passed all 33 criteria in one blind spot: no criterion
+  named a `work.*` entry *class*, so a criteria set complete against canonical
+  `docs/specs/<slug>/spec.md` fixtures was silent on every other accepted shape.
+  The second reached `origin/main` in PR #1210, which merged mid-review, and
+  the repair for it on this branch added no test. Added AC34-AC37 and T9. AC36 is the
+  load-bearing one — it compares closeout's cooled verdict against
+  reconciliation's directly, so it fails for an entry class no fixture
+  enumerates, which is the property the previous set lacked. T1-T7 are pinned
+  as completed with per-task evidence and are not re-planned.
 - 2026-09-01: initial plan, authored after Wave 7a was split into a cooling half
   and a completion-receipt half.
 - 2026-09-01: reworked from the first review round on this contract (two

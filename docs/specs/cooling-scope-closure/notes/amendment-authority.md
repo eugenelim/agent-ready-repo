@@ -26,9 +26,9 @@ shape a `work.*` collection accepts. Two successive defects passed all 33 green
 criteria in that same blind spot.
 
 The second defect reached `origin/main` in PR #1210, which merged during the
-review round. `62355e6d8` repaired it on this branch and added no test — the
-repair was verified by a manual probe that was never committed as a guard. That
-is the gap AC34–AC36 close.
+review round. The repair for it on this branch added no test: it was verified by
+a manual probe that was never committed as a guard. That is the gap AC34–AC36
+close.
 
 ### Measured differential
 

@@ -1,6 +1,6 @@
 # Spec: Cooling scope closure
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §7 and §9; `status-projection-and-context-exclusion` (Shipped and frozen, live dependency — this spec closes two of its recorded follow-ons); `thirty-day-cooling-and-retirement` (Shipped and frozen, live dependency)
@@ -355,6 +355,32 @@ a green for the wrong reason.
   it was first drafted against. The release checklist re-derives the number from
   `git show origin/main:packs/core/pack.toml` immediately before the commit,
   because a fixed floor cannot see a version main takes after approval.
+
+- [ ] **AC34 — A cooled legacy-shaped queue entry is excluded from both
+  consumers.** An initiative whose only `work.queue` entry is the bare string
+  `spec/<slug>`, with a lifecycle record naming `docs/specs/<slug>/spec.md`,
+  reports `closeout.all_specs_shipped` `true` and that initiative's
+  `initiatives[].queue_empty` `true`. The identical fixture with no lifecycle
+  record reports both `false`, so the criterion fails on an implementation that
+  excludes the entry unconditionally as well as on one that never excludes it.
+- [ ] **AC35 — An entry the canonical layer refuses to model is not excluded.**
+  An initiative whose only `work.queue` entry is a bare slug carrying no `spec/`
+  prefix, with a lifecycle record naming the `docs/specs/<slug>/spec.md` that
+  slug would resolve to, produces an `unsupported_legacy` finding at
+  `canonical.findings`, reports `closeout.all_specs_shipped` `false` and that
+  initiative's `initiatives[].queue_empty` `false`, and does not report
+  `closeout.next_action` `invoke-close-work`. Closeout never offers to close an
+  initiative whose remaining work reconciliation declines to route.
+- [ ] **AC36 — Closeout's cooled verdict is reconciliation's.** For every
+  `work.*` entry in a workspace, the paths the closeout derivation excludes are
+  exactly the memberships the canonical layer reports as cooled. The criterion
+  compares the two verdicts directly rather than re-checking either against a
+  fixture expectation, so it fails whenever an entry class is excluded by one
+  layer and counted by the other — including a class no fixture enumerates.
+- [ ] **AC37 — The release assertion binds to the topmost heading.** AC31's
+  dated-heading check reads the topmost `[core]` changelog heading and fails when
+  that heading carries no date. A dated heading further down the file does not
+  satisfy it.
 
 ## Follow-ons
 
