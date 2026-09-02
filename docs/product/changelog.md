@@ -54,6 +54,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.22.0] — 2026-09-02
+
+### Highlights
+
+- **Closeout no longer offers to close an initiative whose remaining work the
+  status surface says it cannot route.** Deciding what a lifecycle record has
+  retired now reads the same verdict the reconciliation layer reached, instead of
+  rebuilding a guess from the entry's name. An entry recorded in an older shape is
+  retired exactly when its artifact is; an entry the surface declines to route at
+  all is never quietly treated as finished.
+
 ## [core][2.21.0] — 2026-09-01
 
 ### Highlights

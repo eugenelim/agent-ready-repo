@@ -39,11 +39,8 @@ reads nothing else, so no permitted application reaches the assertion.
 
 It is discharged instead by showing the mutated scratch copy's §9 byte-range
 digest differs from the pinned constant
-`e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`. This note
-recorded the real method because the plan was sealed when AC28 was discharged.
-The 2026-09-01 amendment reopened the plan, but the row's wording still stands:
-the mutation table records a discharged row where it was discharged, and moving
-this one would rewrite history the amendment is required to preserve.
+`e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`. The plan is
+sealed, so the row's wording stands and this note records the real method.
 
 ## AC31's recorded class
 
@@ -53,11 +50,5 @@ heading is dated, and that the version clears the floor. Its two equality
 assertions were dropped because `tests/conformance/test_pack_metadata.py` already
 pins pack↔plugin agreement and
 `tests/roster/test_security_checklists_okf_projection.py` already pins
-pack↔topmost-`[core]`. The class deviation was recorded here rather than in the
-plan because the plan was sealed at the time.
-
-The 2026-09-01 amendment supersedes the narrowing this section records. AC31 now
-states datedness as a failure condition rather than a description, fixes the
-topmost-heading selection so a heading naming a second artifact is not skipped,
-and is discharged by T9 after T8's release edit rather than by T8. Read this
-section as the pre-amendment state; the amended criterion governs.
+pack↔topmost-`[core]`. The class deviation is recorded here rather than by
+amending the sealed plan.

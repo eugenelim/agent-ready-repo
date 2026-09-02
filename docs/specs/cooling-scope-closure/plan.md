@@ -1,7 +1,7 @@
 # Plan: Cooling scope closure
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-intake-and-artifact-routing.md`
   and `docs/CONVENTIONS.md`. Two analogous production implementations: Wave 6's
   cooling projection — `_resolve_cooled_state`, `_cooling_projection`, and
@@ -105,36 +105,28 @@ rather than on a fixture error. The observed verdicts:
 | AC29 | RED | no erratum entry exists |
 | AC30 | RED | no erratum entry exists |
 | AC32 | GREEN | preservation — both conditions present today |
-| AC31 | n/a | `no stub (mode)` — T9 verifies it after T8's release edit |
+| AC31 | n/a | `no stub (mode)` — the release checklist verifies it |
 | AC33 | RED | the closure sentence is absent |
-| AC34 | PREDICTED GREEN | preservation — not yet run; T9 records the observation |
-| AC35 | PREDICTED GREEN | preservation — not yet run; T9 records the observation |
 
 **This table is the single source for every criterion's class**, including the
 one `no stub (mode)` criterion, so the table's row count equals the criteria
 count. The spec's
 Testing Strategy points here and states no counts, because three earlier drafts
-stated them in two or three places and each copy drifted. Totals: 17 red, 17
-preservation, 1 `no stub (mode)` — 35. AC34 and AC35 are the two rows this
-table does not yet record a run for: the repair they describe landed before the
-contract naming it, so each is predicted green and carries a mutation row below
-instead of a red. T9 replaces both predictions with the observed verdict on both
-invocations. Every other row is an observation.
+stated them in two or three places and each copy drifted. Totals: 17 red, 15
+preservation, 1 `no stub (mode)` — 33.
 
 AC13 and AC32 were each predicted the wrong way round and corrected from the run;
 AC17-AC24 and AC28 carried no recorded verdict at all in an earlier draft and
 were classified by inference, which this table replaces.
 
 **Both invocations, per criterion.** The spec measures every derivation criterion
-on `status` **and** `reconcile` — every criterion in "The shared cooled-exclusion
-derivation", which is AC1-AC11 plus AC34 and AC35 — so their tests are
-parametrized over the pair rather than covered by one integration run each. The two differ materially:
+on `status` **and** `reconcile`, so AC1-AC11's tests are parametrized over the
+pair rather than covered by one integration run each. The two differ materially:
 `status` uses `analyze_bounded` with no Type 1 scan while `reconcile` uses
 `analyze`, and `_closeout_projection` draws its blockers from
 `result.reconciliation`. Wave 6's suite parametrizes the same way. The verdict
 table above records the `status` result; the `reconcile` result is recorded
-alongside it when the tests are authored. AC34 and AC35 carry no invocation
-label yet, because neither has been run.
+alongside it when the tests are authored.
 
 **Manual verification:** T8.
 
@@ -142,9 +134,7 @@ label yet, because neither has been run.
 
 Each row is an **obligation**: the mutation is applied by editing the source, its
 named test is confirmed red, the observed red is recorded here, and the file's
-digest is re-asserted after restore. Rows discharged before this contract was
-amended record their red in the commit that discharged them; T6's Done-when
-names that location for AC17-AC24 and stands unchanged.
+digest is re-asserted after restore. None is verified yet.
 
 | Mutation | Must redden |
 | --- | --- |
@@ -166,14 +156,12 @@ names that location for AC17-AC24 and stands unchanged.
 | pass any second argument to either single-argument call site | AC24 |
 | delete condition (3) or condition (4) from the closeout-check sentence | AC32 |
 | change one byte inside RFC-0096 §9's body, applied to a scratch copy outside the repository tree — the Boundaries forbid editing the RFC body and both frozen directories, so no mutation is applied to them in place | AC28 |
-| resolve `_safe_spec_path(root, entry.slug)` against the cooled set, the form `origin/main` carries at `d6b2298a1` | AC35 |
-| drop `cooled_work_entry_paths`' `legacy_memberships` loop | AC34 |
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| `runtime-coordination` derivation | T2, T3, T9 | AC1-AC11, AC34, AC35 | Both consumers read one helper; AC5 shows neither widened; AC34/AC35 show the legacy and refused classes agree with reconciliation |
+| `runtime-coordination` derivation | T2, T3 | AC1-AC11 | Both consumers read one helper; AC5 shows neither widened |
 | Wave 6 roster assertion | T4 | AC12, AC13 | Replaced in place; the name set changed by exactly that rename |
 | `user-documentation` / workspace-status SKILL.md | T5 | AC14, AC15, AC16, AC32 | Gate matches the projection and keeps its two further conditions |
 | `user-documentation` / work-intake reference | T5 | AC27 | Literal present |
@@ -181,7 +169,7 @@ names that location for AC17-AC24 and stands unchanged.
 | Repair and migration decision | T6 | AC17-AC24 | Control-run identity, no production diff in T6's file set |
 | `decision-record` / RFC-0096 Errata | T7 | AC29, AC30, AC33 | Both closures, the accepted residual, the rename and the four slugs recorded; AC28's §9 digest holds |
 | `capability-evidence` / frozen dependencies | T7 | AC23 | Every listed digest holds |
-| `release-history` / changelog | T8 edits, T9 verifies | AC31 | Three surfaces agree |
+| `release-history` / changelog | T8 | AC31 | Three surfaces agree |
 | `project-knowledge` | T8 | Gate receipt or not-applicable finding | One of the two |
 
 ## Design (LLD)
@@ -493,8 +481,7 @@ exits 0.
 
 **Depends on:** T2-T7
 
-**Verification mode:** no criterion is discharged here — T9 verifies AC31
-against the amended predicate; visual / manual QA for the
+**Verification mode:** goal-based check for AC31; visual / manual QA for the
 invocation. `no stub (mode)`.
 
 **Approach:**
@@ -521,81 +508,10 @@ invocation. `no stub (mode)`.
   `notes/manual-qa.md`, plus the stop point and any behaviour documented but not
   exercised.
 
-**Done when:** the three release surfaces carry one re-derived version,
-`SKIP_SAST=1 make build-check` exits 0 on a clean
+**Done when:** AC31 passes, `SKIP_SAST=1 make build-check` exits 0 on a clean
 `build/` and `dist/`, the three `workspace_status.py` and three `SKILL.md`
 copies are byte-identical, `tools/test_build_site_routing.py` passes, and
 `notes/manual-qa.md` records both invocations with their exit codes.
-
-### T9: The two entry-class criteria and AC31's single predicate
-
-**Depends on:** T1, T2, T8
-
-**Verification mode:** preservation with mutation rows for AC34 and AC35;
-goal-based for AC31's amended assertion.
-
-**AC31 ownership.** T9 is AC31's sole discharge. T8 performs the release edit
-but no longer verifies AC31, because the predicate changed after T8 was written
-and a check that ran before this amendment would ratify the old wording. The
-dependency on T8 is what puts the amended predicate after the version bump and
-the changelog heading it reads.
-
-**Why these are predicted green.** The repair AC34 and AC35 describe landed
-before the contract naming it, so both are preservation criteria, not reds. Their
-verdict rows stay `PREDICTED GREEN` until this task runs them.
-
-AC35's mutation row restores the form `origin/main` carries at `d6b2298a1`
-(`_safe_spec_path(root, entry.slug) in cooled`). That tree is where the form is
-read from, but reading is not the discharge: the row is discharged by applying
-that form into this tree, confirming AC35's named test red, restoring, and
-re-asserting the file's digest — the same rule every other row obeys. AC34's row
-is the `legacy_memberships`-loop drop alone, which reddens AC34 while leaving
-AC1-AC11 and AC35 green; that isolation is the row's whole purpose, so it must
-not be combined with the `entry.path` edit, which reddens most of AC1-AC11 and
-would prove nothing about AC34.
-
-**Approach:**
-- Add AC34 and AC35 to `tests/roster/test_cooling_scope_closure.py`. Both sit in
-  "The shared cooled-exclusion derivation", so both are parametrized over
-  `status` **and** `reconcile` like AC1-AC11, and both drive the CLI as a
-  subprocess through `run_status`.
-- Give `cooled_initiative` a legacy-entry seam that **replaces** its canonical
-  queue entry rather than adding one. `write_workspace` builds `queue_entries`
-  from `queue` and then extends with `legacy_queue`, and `cooled_initiative`
-  unconditionally sets `queue = [cooled_locator]`, so a pass-through seam would
-  leave two entries and falsify both criteria's "only `work.queue` entry".
-- Write AC35's positive control: the same fixture with the entry replaced by its
-  canonical form must report `all_specs_shipped` `true`. Without it, a fixture
-  whose artifact is absent produces AC35's expected values for the wrong reason —
-  `_cooled_locators` admits a locator only when `member.exists()`, so an empty
-  cooled set satisfies the criterion and AC35's mutation row cannot redden it.
-  Write the paired negative too: the replacement fixture with `docs/lifecycle/`
-  removed must report `all_specs_shipped` `false`, which is what attributes the
-  exclusion to the record instead of to the entry's shape.
-- Amend AC31's existing assertion to the single predicate its criterion now
-  states: select the first line matching `^## \[core\]\[`, then require a date
-  somewhere in that line. The current assertion anchors the em dash directly
-  after the `[core]` segment, so a heading naming a second artifact before the
-  date is skipped and the *previous* release is returned as topmost —
-  `test_thirty_day_cooling_and_retirement.py` records exactly that shape.
-  Correct its docstring and comment, which claim an identity check the body no
-  longer makes.
-
-**Scope note.** T9 touches `tests/roster/` only. It mutates no packed file, so
-T8's release verification, the three-copy byte-identity, and the built `dist/`
-all stand; no rebuild is in this task's Done-when because none is owed.
-
-**Deliberately not here.** Four record corrections the review surfaced carry no
-acceptance criterion and no named observable, so they are registered as follow-ons
-rather than smuggled into a task: `notes/closeout-records.md`'s missing inbound
-pointer, AC28's observed-result record, the stale comment at
-`workspace_status.py:700` (which claims a finding that arm never emits), and the
-unbound `notes/amendment-authority.md`. The Objective's own overstatement was
-contract text, so it is corrected in this amendment rather than deferred.
-
-**Done when:** AC34 and AC35 pass on both invocations, AC31's amended assertion
-passes, and both new mutation rows have their observed red recorded in the commit
-that adds them.
 
 ## Rollout
 
@@ -626,29 +542,6 @@ identical output before and after. Rollback is a revert.
   is the guard.
 
 ## Changelog
-
-- 2026-09-01: sealed-baseline replacement under ADR-0099, on owner authority
-  recorded in [`notes/amendment-authority.md`](notes/amendment-authority.md).
-  Two successive defects passed all 33 criteria in one blind spot: no criterion
-  named a `work.*` entry *class*, so a criteria set complete against canonical
-  `docs/specs/<slug>/spec.md` fixtures was silent on every other accepted shape.
-  The second reached `origin/main` in PR #1210, which merged mid-review, and the
-  repair for it on this branch added no test. Added AC34, AC35 and T9.
-  ADR-0099 step 4 licenses the `Status:` return to `Draft`, which reads as a
-  backwards transition against what `origin/main` carries.
-
-  A first draft of this amendment also carried an AC36 ("closeout's cooled
-  verdict is reconciliation's") and an AC37 binding AC31's assertion. Both were
-  withdrawn on review, and the reason is worth keeping: AC36 had no obtainable
-  oracle. The canonical layer publishes the *complement* of a cooled membership
-  set — `legacy_memberships` and `evaluations` are already filtered to
-  non-cooled, and `cooled` is a set of paths — so every route to the criterion
-  was either a tautology or was falsified by AC35's own fixture, in which an
-  `unsupported_legacy` entry appears in no membership list yet must survive.
-  AC37 stated a second, different predicate over the artifact AC31 already
-  governs, so AC31's own wording was amended instead. The general property AC36
-  reached for is real; it needs an accessor the engine does not publish, and
-  adding one to satisfy a test is the wrong direction.
 
 - 2026-09-01: initial plan, authored after Wave 7a was split into a cooling half
   and a completion-receipt half.

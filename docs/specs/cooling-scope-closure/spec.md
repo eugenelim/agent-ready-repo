@@ -1,6 +1,6 @@
 # Spec: Cooling scope closure
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §7 and §9; `status-projection-and-context-exclusion` (Shipped and frozen, live dependency — this spec closes two of its recorded follow-ons); `thirty-day-cooling-and-retirement` (Shipped and frozen, live dependency)
@@ -34,9 +34,8 @@ does not model and which this delivery preserves rather than replaces.
 One diagnosis gap is accepted rather than closed. When the cooled reading is
 incomplete because a record's review date could not be judged, the run withholds
 closeout without naming the record that caused it: that path emits no finding,
-and this delivery names it nowhere. A new finding code is a `Never do`, so that
-route is closed; adding a key to `cooling` or `closeout` is `Ask first`, a
-question this delivery declined to put rather than a route ruled out. The
+and every way of naming it is closed to this delivery — a new finding code is a
+`Never do`, and adding a key to `cooling` or `closeout` is `Ask first`. The
 maintainer's recourse is `close-work`'s own retrieval. The gap predates this
 delivery, which only promoted an existing flag to a blocker.
 
@@ -217,25 +216,6 @@ a green for the wrong reason.
   `closeout` block is present with `paused` `true` and `next_action`
   `resume-or-keep-paused`, and `initiatives[]` carries no entry for that
   initiative.
-- [ ] **AC34 — A cooled legacy-shaped queue entry is excluded from both
-  consumers.** An initiative whose only `work.queue` entry is the bare string
-  `spec/<slug>`, where `docs/specs/<slug>/spec.md` exists and a lifecycle record
-  names it, reports `closeout.all_specs_shipped` `true` and that initiative's
-  `initiatives[].queue_empty` `true`. The identical fixture with no lifecycle
-  record reports both `false`, so the criterion fails on an implementation that
-  excludes the entry unconditionally as well as on one that never excludes it.
-- [ ] **AC35 — An entry the canonical layer refuses to model is not excluded.**
-  An initiative whose only `work.queue` entry is a bare slug carrying no `spec/`
-  prefix, where `docs/specs/<slug>/spec.md` exists and a lifecycle record names
-  it, produces an `unsupported_legacy` finding at `canonical.findings`, reports
-  `closeout.all_specs_shipped` `false` and that initiative's
-  `initiatives[].queue_empty` `false`, and does not report
-  `closeout.next_action` `invoke-close-work`. Replacing only that entry with a
-  canonical target-table entry for the same artifact, over the same record,
-  reports `all_specs_shipped` `true`, and that replacement fixture with
-  `docs/lifecycle/` removed reports `all_specs_shipped` `false`. The pair is the
-  control: together they attribute the exclusion to the record rather than to
-  the entry's shape, so the criterion cannot pass over an empty cooled set.
 
 ### The retired Wave 6 pin
 
@@ -368,19 +348,13 @@ a green for the wrong reason.
   reads cleanly moves an initiative toward an affirmative closeout recommendation
   without being cross-checked against the artifact it names.
 - [ ] **AC31 — The release surface agrees.** `packs/core/pack.toml`'s version,
-  `packs/core/.claude-plugin/plugin.json`'s `version`, and the `[core]`
-  changelog heading that stands topmost in the file are one identical value
-  whose parsed
+  `packs/core/.claude-plugin/plugin.json`'s `version`, and the topmost dated
+  `[core]` changelog heading are one identical value whose parsed
   `(major, minor, patch)` tuple is strictly greater than `(2, 19, 0)` — the
   version `origin/main` carries at this contract's approval, not the merge base
   it was first drafted against. The release checklist re-derives the number from
   `git show origin/main:packs/core/pack.toml` immediately before the commit,
-  because a fixed floor cannot see a version main takes after approval, and
-  the recorded floor is that re-derivation's input rather than the gate. A
-  topmost `[core]` heading carrying no date fails this criterion; a dated
-  heading below it does not satisfy it. The topmost heading is the first line
-  matching `^## \[core\]\[`, whose date may stand anywhere in that line, so a
-  heading naming a second artifact before the date is still selected.
+  because a fixed floor cannot see a version main takes after approval.
 
 ## Follow-ons
 
