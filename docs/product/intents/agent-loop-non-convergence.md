@@ -55,6 +55,54 @@ None is validated. Several are mutually compatible; some conflict.
 | H5 | Escalate the **review question** rather than the review round — classify the model as viable / blocked / unstable before permitting clause-level findings | The one round that ran this way produced 4 substantive findings against 14 cosmetic, and named the root premise | Tried once, at the very end, on an artifact already being abandoned. Untested as an early intervention |
 | H6 | Require oracle acquisition before criteria are written — no criterion over an unverified claim about the world | The defect that ended the loop was exactly this: a claim about what the system observes, never checked | Cost unknown. May stall authoring on unknowns that do not matter |
 
+## The activation problem underneath all of them
+
+Every hypothesis above proposes a rule. This repository has already shipped two
+rules that should have prevented what happened, and neither fired. That is a
+prior question, and it changes what any response has to include.
+
+**The two instances, both in one session, with the authoring agent as subject.**
+
+- The cognitive-load simplification and the cut-before-adding razor are both
+  present, both routed from the root context, and both were in the agent's
+  loaded context the whole time. The artifacts it then authored were long and
+  dense with precise claims — the opposite of what the rules ask.
+- The spec-authoring guidance already said a criterion names an observable
+  outcome and that naming a helper or a call sequence means the content belongs
+  in the plan. The agent read that rule, cited it to reviewers as governing
+  authority, and still put mechanism into criteria repeatedly.
+
+**Presence is not activation, and neither is enforcement — if the enforcement is
+scoped elsewhere.** The cognitive-load rules are not prose-only; several gates
+enforce them. But those gates read the packs, the root guidance, the seeds, and
+the changelog. The progressive-disclosure lint goes further and has a case
+asserting that an authored `docs/specs/<feature>/spec.md` is *not* in its
+results. Authored work-loop artifacts are outside the enforcement boundary by
+design.
+
+So the rule is loaded at every turn and enforced nowhere near the moment it
+would bind. An agent authoring a spec is holding the guidance in context and
+receiving no signal from it.
+
+**What this means for the work.** A response to non-convergence that is another
+rule, shipped the same way, has no reason to behave differently. Any hypothesis
+above must come with:
+
+- **An activation point** — the moment in the loop where the rule is consulted
+  and something changes as a result, not merely the file where it is written.
+- **A measurement** — a way to tell activation from presence. The distinction is
+  observable: compare what the rule asks for against what the agent produced,
+  on artifacts the agent authored, not on the surfaces the rule was originally
+  written to govern.
+- **A failure mode when it does not activate.** A rule that silently does
+  nothing is worse than an absent one, because it makes the gap look covered.
+
+The cheapest available measurement is retrospective and needs no new mechanism:
+the repository holds authored specs, plans, and briefs from many loops. Scoring
+those against the guidance that was in force when each was written would say how
+often these rules activate at all, and whether the two instances above are
+typical or unlucky. That measurement should precede any new rule.
+
 ## What we would need to know
 
 - Which detector fires earliest **without** false positives on loops that are
@@ -69,7 +117,14 @@ None is validated. Several are mutually compatible; some conflict.
 
 ## Shape of the work
 
-Spikes before any contract. H3 and H2 are measurable against review artifacts
+**Order matters: measure activation first.** Every hypothesis is a rule, and this
+repository has evidence that rules of this kind do not fire. Scoring already-authored
+specs and briefs against the guidance in force when they were written costs one
+retrospective pass and decides whether the rest of this item is worth doing as
+rules at all, or whether the response has to be a mechanism in the loop rather
+than a statement in a document.
+
+Then spikes before any contract. H3 and H2 are measurable against review artifacts
 that already exist in this repository — several loops have run and left their
 rounds on disk, so the detectors can be evaluated retrospectively rather than by
 running fresh loops. H5 and H6 need a live loop to test and are more expensive.
@@ -84,6 +139,8 @@ is useful even when the response is still a human's judgement call.
 
 - The `next` action projection. Separate delivery brief,
   `docs/product/briefs/work-loop-next-action.md`.
+- Rewriting the cognitive-load or cut-before-adding rules themselves. The
+  question here is why they do not activate, not whether they are well written.
 - Changing what reviewers do or how findings are adjudicated.
 - Any cross-session or committed state. The observed failure was inside one run,
   and the signal that would have caught it was already on disk.

@@ -126,19 +126,20 @@ The ruling comes from the trust threshold, not from mechanically mirroring
 whatever the current reader happens to do. A trace still documents current reader
 behaviour so the eventual spec knows what it is changing.
 
-## Assumptions and risks
+## Risks
 
-**Risks**
-
-- **Under-observed convergence.** Whatever owns stopping must count something
-  that is actually recorded. U1 exists because the previous attempt did not check
-  this before specifying a rescue route.
-- **Unbounded invariants.** A confinement claim stated over "all files" is false
-  of any Python process and its natural instrument is blind under a test runner.
-  U2 exists to bound the claim before it is written.
-- **Two owners, one artifact.** Reporting and stopping have different authority
-  and different state needs. Merging them costs the read-only property, which is
-  the reporting half's most valuable guarantee.
+- **A criterion over an unverified claim about the world.** This is what ended the
+  prior attempt: it asserted what the system observes and never checked. Any
+  criterion resting on a claim about live behaviour needs its oracle named before
+  the criterion is written, not after a reviewer asks.
+- **An invariant no instrument can hold.** A claim stated over "all files" is
+  false of any Python process, and the obvious instrument is blind in the
+  environment the tests run in. The Constraints above bound the two known cases;
+  the habit generalises.
+- **Reporting quietly re-acquiring the stopping problem.** They have different
+  authority and different state needs, and merging them costs the read-only
+  property that is this outcome's most valuable guarantee. The non-goal above is
+  the guard.
 
 ## Rabbit holes
 
@@ -201,6 +202,20 @@ Not process boilerplate — these are the three habits that produced the failure
 - **Prefer a claim you will not have to defend.** Where a number does not change
   a decision, do not state it. Where it does, name its oracle and expect to
   re-measure it. Two figures in this brief's own first draft moved within a day.
+
+**These three habits are themselves rules, and rules here have a track record of
+not activating.** The cognitive-load simplification and the cut-before-adding
+razor were both in the authoring agent's context throughout the abandoned
+attempt, and several gates enforce them — over the packs, the root guidance, the
+seeds, and the changelog. The progressive-disclosure lint explicitly excludes an
+authored `docs/specs/<feature>/spec.md`. So the guidance was loaded at every turn
+and enforced nowhere near the point where it would have bound.
+
+Whoever authors from this brief should assume the same of the three habits above:
+state them, and then find the point in the loop where something actually changes
+if they are ignored. If this work adds any guidance of its own, it ships with an
+activation point and a way to tell activation from presence, or it does not ship.
+The general problem is shaped in the non-convergence item linked above.
 
 ## Decision authority
 
