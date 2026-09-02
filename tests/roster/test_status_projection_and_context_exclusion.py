@@ -1306,25 +1306,20 @@ def test_cooling_both_halves_of_a_duplicate_still_reports_it(tmp_path, engine) -
     assert duplicates(cooled) == {("duplicate_membership", "docs/specs/alpha/spec.md")}
 
 
-def test_a_fully_cooled_initiative_still_reports_unshipped_specs(tmp_path, engine) -> None:
-    """Residual `cooling-closeout-eligibility`, pinned deliberately.
+def test_a_fully_cooled_initiative_reports_all_specs_shipped(tmp_path, engine) -> None:
+    """`cooling-scope-closure` retires the closeout eligibility residual.
 
-    `all_specs_shipped` counts the raw queue and active lists, so a cooled
-    entry every other surface has excluded still blocks closeout. The repair
-    that filtered it was reverted: it let an unverified lifecycle record drive
-    an affirmative `invoke-close-work` recommendation for a skill that distils
-    and disposes, while `initiatives[].queue_empty` stayed unfiltered and
-    disagreed inside the same response. Reporting a stale blocker is the safer
-    of the two, and pinning it gives the follow-on a known starting state.
+    The two closeout consumers now derive from one cooled-exclusion pass, so a
+    cooled entry counts toward neither. When the cooled reading is incomplete,
+    the `cooling-context-incomplete` blocker withholds the affirmative instead.
     """
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
     _spec(cooled, "alpha")
     _workspace(cooled, queue=_entry("alpha"))
     projection = _reconcile_json(cooled, engine)
 
-    assert projection["closeout"]["all_specs_shipped"] is False
-    assert "unshipped-specs" in projection["closeout"]["closeout_blockers"]
-    # The artifact itself is still excluded, which is what this wave ships.
+    assert projection["closeout"]["all_specs_shipped"] is True
+    assert "unshipped-specs" not in projection["closeout"]["closeout_blockers"]
     assert projection["canonical"]["ready"] == []
 
 

@@ -740,7 +740,44 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None:
+def _surviving_work(
+    initiative: Any,
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> tuple[list, list]:
+    """Return the single derivation both closeout consumers read.
+
+    Membership is decided from `entry.slug`, not `entry.path`. A work entry may
+    be canonical (`docs/specs/<slug>/spec.md`) or legacy-shaped (`spec/<slug>`),
+    and `_spec_slug_from_workspace_path` already normalises both; resolving the
+    raw path instead sends a legacy entry to `<root>/spec/<slug>`, which can
+    never equal the cooled `<root>/docs/specs/<slug>/spec.md`. That left a cooled
+    legacy entry excluded from `canonical.legacy_memberships` while both closeout
+    consumers still counted it -- two answers in one response, which is the
+    disagreement this helper exists to close. The engine resolves the same class
+    the same way in `_legacy_canonical_alias` and in the type-2 scan's cooled
+    skip.
+    """
+    queue = initiative.work.queue
+    active = initiative.work.active
+    if root is None or not cooled:
+        return queue, active
+
+    def _cooled(entry) -> bool:
+        return _safe_spec_path(root, entry.slug) in cooled
+
+    return (
+        [entry for entry in queue if not _cooled(entry)],
+        [entry for entry in active if not _cooled(entry)],
+    )
+
+
+def _closeout_projection(
+    result,
+    root: Path | None,
+    *,
+    dueness_failed: bool = False,
+) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
     Returns None when no initiative is active or paused. There is no closeout
@@ -761,7 +798,15 @@ def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None
         return None
     initiative = active[0]
     paused = initiative.status == "paused"
-    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
+    surviving_queue, surviving_active = _surviving_work(
+        initiative, root, result.cooled
+    )
+    all_specs_shipped = not (surviving_queue or surviving_active)
+    # A record whose dueness could not be judged is an incomplete run just as
+    # a record that would not load is, so it flips the same claim. One blocker
+    # is enough to withhold the affirmative: eligibility is
+    # `all_specs_shipped and not blockers and not paused`.
+    cooling_context_visible = bool(result.cooling_findings) or dueness_failed
     # `spec_path` is `entry.path` straight from workspace.toml with no charset
     # rule, and this string is rendered into agent context. Every sibling
     # emitter bounds its path through this same filter.
@@ -770,13 +815,13 @@ def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
+    if cooling_context_visible:
+        blockers.append("cooling-context-incomplete")
     projection = project_closeout_status(
         paused=paused,
         all_specs_shipped=all_specs_shipped,
         closeout_blockers=blockers,
-        # A record whose dueness could not be judged is an incomplete run just
-        # as a record that would not load is, so it flips the same claim.
-        cooling_context_visible=bool(result.cooling_findings) or dueness_failed,
+        cooling_context_visible=cooling_context_visible,
     )
     return dataclasses.asdict(projection)
 
@@ -796,13 +841,14 @@ def _build_json(root: Path, result, mode: str) -> dict:
     for ini in result.initiatives:
         if ini.status != "active":
             continue
+        surviving_queue, _ = _surviving_work(ini, root, result.cooled)
         initiatives_out.append({
             "slug": _public_ini_slug(ini.slug),
             "name": "workspace.toml",
             "status": ini.status if ini.status in {"active", "paused", "closed"} else "invalid",
             "milestone": "workspace.toml",
             "brief_queue": _brief_queue_dict(ini.brief_queue),
-            "queue_empty": len(ini.work.queue) == 0,
+            "queue_empty": len(surviving_queue) == 0,
         })
         for e in ini.work.shipped:
             shipped_entries.append(_work_entry_dict(e, ini.slug))
@@ -887,7 +933,9 @@ def _build_json(root: Path, result, mode: str) -> dict:
         cooling = _cooling_projection(result)
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
-        closeout = _closeout_projection(result, dueness_failed=bool(unreadable))
+        closeout = _closeout_projection(
+            result, root, dueness_failed=bool(unreadable)
+        )
         if closeout is not None:
             output["closeout"] = closeout
     return output

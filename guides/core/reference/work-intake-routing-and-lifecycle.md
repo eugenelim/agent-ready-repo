@@ -147,7 +147,8 @@ action, but never distils, dispositions, confirms, or mutates. Ordinary
 orientation never loads a cooled artifact body: it reads each lifecycle record
 through the bounded reader and reports whether that resolution succeeded, so a
 run that could not establish the cooled set says so rather than implying an
-exclusion it did not perform.
+exclusion it did not perform. Across the projections, an entry named by a
+lifecycle record counts toward neither closeout consumer.
 
 Initiative coordination and artifact retention are assessed independently. A
 settled workspace entry may leave while an RFC/release/decision family remains

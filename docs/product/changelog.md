@@ -54,6 +54,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.21.0] — 2026-09-01
+
+### Highlights
+
+- **An initiative whose work has all been retired now reaches closeout instead
+  of reporting unfinished work forever.** Whether anything is still outstanding
+  is decided once, by a single pass that excludes what a lifecycle record has
+  already retired — so two halves of the same answer can no longer disagree. An
+  artifact named by one of a record's alternative locators counts the same as one
+  named by its main locator.
+- **When that reading is incomplete, the status surface withholds its suggestion
+  to close out rather than making it anyway.** A record that cannot be read, or
+  whose review date cannot be judged, is reported as a named blocker instead, so
+  a workflow that distils and disposes is never recommended on partial evidence.
+  The prompt an agent renders reads the same facts, so the two agree.
+- **Repair and migration are settled as unaffected by retirement, not left
+  pending.** Planning, applying, recovering and rolling back a repair or a
+  migration behave identically whether or not lifecycle records are present,
+  pinned by paired runs so a later change has to alter those lines and say why.
+
 ## [core][2.20.1] — 2026-09-01
 
 ### Highlights
