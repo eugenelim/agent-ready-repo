@@ -40,6 +40,14 @@ parent    = "INI-001"
 ["ini-002".shaping_queue]
 active  = []
 backlog = [
+  # Raised 2026-09-02, split out of the work-loop-next-action brief. Outcome is
+  # NOT defined: detecting a non-converging review loop is close to free, but
+  # deciding what to do about it is unsolved and carries six competing
+  # hypotheses. Kept out of the delivery brief so the tractable reporting half
+  # does not wait on an open problem -- bundling those two is what the abandoned
+  # spec did. Several hypotheses are measurable against review artifacts already
+  # on disk from past loops, so the first spikes are retrospective.
+  {path = "docs/product/intents/agent-loop-non-convergence.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Shape how an agent loop responds once it detects it is not converging: detection is cheap and shippable alone, the response is six competing hypotheses (round cap, finding-composition signal, repair-size bound, artifact split, escalating the review question, oracle-first authoring) needing spikes before any contract", needs = []},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   {path = "docs/product/intents/ini-002-initiative-brief.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reconcile Platform Core's accepted proposal, shipped milestones, and remaining adoption work into one living initiative brief", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-place-bet/spec.md"}]},

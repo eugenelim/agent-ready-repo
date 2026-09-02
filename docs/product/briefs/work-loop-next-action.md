@@ -12,23 +12,18 @@ do I do next" from two state dumps and a fifteen-row prose routing table, on eve
 turn. An adopter driving the loop by hand does the same reconstruction manually.
 Both should instead ask the loop once and get one authoritative answer.
 
-The outcome has two halves, and separating them is the point of this brief.
+The loop can be asked, from persisted state, what to do next, and answers with
+one bounded record: a single action, the arguments it needs, the events that
+complete it, and whether a human gate is open. The answer is derived, not
+transcribed, so it cannot drift from the state machine it describes.
 
-**Reporting.** The loop can be asked, from persisted state, what to do next, and
-answers with one bounded record: a single action, the arguments it needs, the
-events that complete it, and whether a human gate is open. The answer is derived,
-not transcribed, so it cannot drift from the state machine it describes.
-
-**Stopping.** The loop notices when it is not converging and says so, including
-during the spec-authoring phase before any code exists. Today it does not: a
-contract can spend ten review rounds in one state while every cohort counter
-reads zero, because ordinary pre-EXECUTE results are not recorded there. The
-rounds were not invisible — the protocol wrote an artifact per round the whole
-time — but nothing consulted them and nothing stopped.
-
-These are different problems with different owners, and a previous attempt failed
-by assuming one artifact could serve both. That failure is the reason this brief
-exists and is documented under Rabbit holes.
+**This brief covers reporting only.** A prior attempt also tried to make the same
+artifact notice when a review loop was not converging, and failed partly by
+assuming one thing could do both. Detecting and responding to non-convergence is
+a separate, and much less settled, problem: it is shaped at
+[`docs/product/intents/agent-loop-non-convergence.md`](../intents/agent-loop-non-convergence.md),
+where the response is still competing hypotheses rather than a decision. Nothing
+in this brief waits on it.
 
 ## Success metrics
 
@@ -37,9 +32,6 @@ exists and is documented under Rabbit holes.
 - The reported action matches what the shipped resumption guidance prescribes,
   for every state the loop can be in — checked by comparing both, not by
   asserting it.
-- A non-converging authoring loop stops before a **fourth** findings-bearing
-  repair cycle and asks for owner-directed replanning, and the stop is not lost
-  when the agent's context is. Per D1.
 - No component gains the ability to declare a review clean that could not
   previously do so.
 
@@ -50,7 +42,6 @@ exists and is documented under Rabbit holes.
 - A read-only query answering from persisted engine and cohort state.
 - A published payload contract for that answer, versioned and inventoried.
 - Making the shipped resumption guidance and the query agree, by construction.
-- Deciding where the authoring-loop stop lives and what state it needs.
 
 **Non-goals**
 
@@ -60,6 +51,9 @@ exists and is documented under Rabbit holes.
 - Reducing the always-loaded instruction surface. That depends on this outcome
   and is separate work.
 - Rewriting the review protocol's artifact conventions.
+- Detecting or responding to a non-converging review loop. Separate shaping item,
+  linked above. This brief must not acquire a claim about review passes the loop
+  did not record — that assumption is what ended the prior attempt.
 
 ## Appetite
 
@@ -68,66 +62,24 @@ pre-EXECUTE review rounds without converging and was abandoned at
 `e1bdde746`. Appetite should be set with that in mind rather than from the
 apparent simplicity of "emit a JSON record".
 
-The reporting half is well understood and its hard part is already solved (see
-Provenance). The stopping half looks small — the signal it needs already exists
-on disk — but it is a protocol change and unscoped; the Ready review should not
-bundle the two into one appetite.
+The hard part is already solved: the state-to-action mapping survived
+independent re-derivation and is preserved (see Provenance). What consumed ten
+rounds was not the mapping but everything authored around it.
 
-## Owner decisions
+## Constraints carried from the prior attempts
 
-Three load-bearing unknowns were open at Draft creation. All three are now closed
-by owner decision, recorded here as the governing rulings.
+Two technical rulings survive from the abandoned work. They are constraints on
+how this outcome may be built, not part of the outcome, and they are here
+because re-deriving them would cost rounds.
 
-### D1 — the review protocol stops an unproductive authoring loop
-
-> Owner decision: pre-EXECUTE non-convergence is enforced by the review
-> protocol, not by `next`. After three aggregated findings-bearing repair cycles
-> on one contract, the protocol stops before dispatching another review and
-> requires owner-directed replanning. `next` neither infers nor increments
-> whatever the protocol counts; whether it eventually *displays* the stop is
-> optional projection behaviour.
-
-**What one count means.** One aggregated reviewer round that produced at least
-one sustained finding, counted once before revision begins — not per reviewer,
-not per finding, and not for clean, refuted-only, or evidence-only rounds. It
-counts unproductive repair cycles, not reviewer calls.
-
-**What must not happen.** The implementation-review budget is not reused for this.
-Spending it during spec authoring conflates two different loops with different
-appetites.
-
-**Durability: the evidence supports the cheap tier.** The observed failure was
-eleven rounds inside a single run, and the count was in fact already carried —
-by the forty-two artifacts the protocol writes under its own run directory,
-through a context compaction, with no new state anywhere. That tier survives
-compaction and session restart on the same machine and costs nothing, because
-those artifacts already exist.
-
-Committed cross-session state answers a different question — surviving a clone or
-a machine change, and being auditable after the fact — and we have not observed
-that failure. Requiring it here would add a schema change, a migration, and a
-reset-authority decision to fix a problem the evidence does not show, and a
-persisted budget that never resets is its own hazard: a legitimate second attempt
-on the same contract inherits a spent one.
-
-So this brief fixes the **outcome and the threshold** and leaves the counting
-substrate to the slice that implements it, with one floor: whatever it counts must
-survive losing agent context, because compaction is routine rather than
-exceptional and an agent that forgets the count will start round twelve.
-
-*Consequence for slicing:* this is a change to the review protocol, not to the
-projection, and it is a separate slice that can ship first — it fixes an
-operational failure that is happening now. Its design decisions, for that slice
-rather than for this brief: where the count lives, whether it is derived from the
-existing artifacts or recorded explicitly, what resets it and on whose authority,
-and whether an audit trail is required.
-
-### D2 — the read-surface claim is scoped to application-directed I/O
+### The read-surface claim is scoped to application-directed I/O
 
 The process-wide claim is rejected. "Opens nothing else" is neither truthful nor
-useful: a cold process executing the loop's guard module opens 37 files beyond any
-set a contract would name, all interpreter and standard-library loading, and the
-natural instrument sees none of them under a test runner.
+useful: a cold process executing the loop's guard module opens many files beyond
+any set a contract would name, all of them interpreter and standard-library
+loading, and the natural instrument sees none of them under a test runner. The
+count is deliberately not stated — it moved by a factor of three between a warm
+and a cold measurement, and it varies with the interpreter.
 
 Two invariants replace it:
 
@@ -151,7 +103,7 @@ derivation — not by an informal exemption list. Verification must:
 No exact file count is stated. A count recreates the source-versus-bytecode and
 lazy-import drift that consumed several review rounds of the abandoned attempt.
 
-### D3 — output availability follows a trustworthy-record threshold
+### Output availability follows a trustworthy-record threshold
 
 > Owner decision: output availability follows the trustworthy-record threshold.
 > Failures before confined authoritative engine identity is established return
@@ -197,12 +149,12 @@ behaviour so the eventual spec knows what it is changing.
   still read zero. Ten rounds of clause repair never reached it, because it was a
   model error, not a wording error.
 - **Do not verify a contract by parsing its own prose.** The abandoned attempt
-  carried a 602-line pre-approval test, eleven of whose assertions read the draft.
+  carried a large pre-approval test, much of which read the draft's own prose.
   It proved the draft agreed with itself and did not detect the model error in ten
   rounds. Tests that compare a document against *shipped code* are worth building
   early; tests that compare a document against itself are not.
-- **Watch the fourth content home.** The same attempt accumulated ~2,700 words of
-  explanatory prose inside its normative section — bound by no criterion, cited by
+- **Watch the fourth content home.** The same attempt accumulated a quarter of
+  its spec as explanatory prose inside the normative section — bound by no criterion, cited by
   no task, checked by nothing — and it regenerated consistency defects on every
   edit. Mechanism belongs with the implementation; the evidence that a mechanism is
   right belongs in assumptions, cited once.
@@ -212,41 +164,43 @@ behaviour so the eventual spec knows what it is changing.
 
 ## What didn't work
 
-Negative results from the abandoned attempt, recorded so they are not retried.
-Each fixed something real. None reached the defect that ended the attempt.
+Approach-level negative results, so they are not retried. Stated directionally on
+purpose: the per-round measurements behind them live in the non-convergence
+shaping item, which is where they are the subject rather than supporting detail.
 
 | Approach | What it fixed | What it did not fix |
 | --- | --- | --- |
-| Prose acceptance criteria for a total state-to-action function | — | Nothing. Four rounds of reviewers attacked the prose, each repair produced fresh prose findings, and the criteria became a test plan |
-| Restating the mapping as normative tables, criteria asserting properties of them | The prose-criteria class, permanently. Two reviewers independently re-derived the tables afterwards and they held | Convergence. The drift moved to clause-level mismatch between a criterion and the plan bullet implementing it |
-| Splitting content into three homes — outcome, mechanism, grounding | The clause-drift class. Criteria prose fell 21% while the criterion count rose, because grounding left and hidden conjunctions came apart | Convergence, and it introduced a class of its own: criteria citing assumptions that were absent or wrong |
-| Mechanising the citation edges — identifier parity, assumption parity, guard-fact binding | Real defects, each on first run. The identifier check caught a criterion outside its own scope; the assumption check caught a dangling citation; the guard-fact check caught an inverted claim | Anything about the model. All three bind the document to itself or to symbol names |
-| Tests that parse the draft | Self-consistency | The model. A 602-line pre-approval suite, eleven of whose assertions read the draft, did not detect the unobservable premise in ten rounds |
+| Prose criteria for a total state-to-action function | Nothing. Reviewers attacked the prose, each repair produced fresh prose findings, and the criteria became a test plan | — |
+| Restating the mapping as normative tables, criteria asserting properties of them | The prose-criteria class, permanently. The tables then survived independent re-derivation | Convergence. Drift moved to mismatch between a criterion and the task implementing it |
+| Splitting content into outcome, mechanism, and grounding homes | The cross-document drift class, measurably | Convergence, and it introduced criteria citing grounding that was absent or wrong |
+| Mechanising the document's internal edges — identifier and citation parity, binding claims to live symbols | Real defects, each on its first run | Anything about the model. All of it binds the document to itself |
+| Tests that parse the draft | Self-consistency | The model. The pre-approval suite never detected the false premise |
 
-**The measurements that matter for appetite.**
+**The pattern underneath all five.** Each round's repair was itself a defect
+source: by the end, most blockers found were introduced by the previous round's
+fix. Every attempt at precision added claims, and claims are what the next round
+falsifies. A contract that demands exhaustive precision about its own prose grows
+its attack surface faster than it closes it.
 
-Sustained findings across ten rounds: 17, 16, 22, 23, 20, 19, 19, 23, 21, 17,
-then 18 at the eleventh. Blockers bottomed out at 3 in rounds 6 and 7, then went
-back up to 6, 8, 5, 3. The count was a steady state of the review-and-repair
-loop, not a distance to done.
+That is the argument for slicing this brief small, and for the authoring
+constraints below.
 
-Repair size against the next round's blockers:
+## How to author from this brief
 
-| Repair closed round | Lines changed in the pair | Blockers found next round |
-| ---: | ---: | ---: |
-| 7 | 124 | 6 |
-| 8 | 377 | 8 |
-| 9 | 250 | 5 |
-| 10 | 204 | 3 |
+Not process boilerplate — these are the three habits that produced the failure.
 
-By round 10 most blockers found were defects the previous round's repair had
-introduced. A large repair on a long contract is a defect source, so the next
-attempt should keep each contract small enough that a repair touches little —
-which is a reason to slice this brief rather than write one spec.
-
-**The one thing that would have worked** is asking, before writing any criterion,
-what observes convergence. Nothing did. That question belongs at brief stage,
-which is why this brief exists.
+- **Criteria state outcomes, never mechanism.** If a criterion names a helper, a
+  call sequence, a file count, or an instrument, it belongs in the plan. A
+  criterion that a reviewer can only check by reading the implementation is not a
+  criterion.
+- **Plan tasks name what to verify, not how.** "Verify the read discipline holds
+  against a planted access, with a control proving the detector can fail" is a
+  task. A bullet that spells out the assertion, the fixture, and the expected
+  message is pseudo-code, and it will be reviewed as code while being unable to
+  run. The abandoned plan was largely the latter.
+- **Prefer a claim you will not have to defend.** Where a number does not change
+  a decision, do not state it. Where it does, name its oracle and expect to
+  re-measure it. Two figures in this brief's own first draft moved within a day.
 
 ## Decision authority
 
@@ -259,36 +213,27 @@ which is why this brief exists.
 
 ## Ready gaps
 
-Recorded rather than invented. Closed and remaining are both listed, so a Ready
-review can see what moved.
+Recorded rather than invented. A Ready review must resolve these.
 
-**Closed by owner decision (see Owner decisions):**
+**Settled, and why they are no longer gaps:**
 
-- ~~U1 — where the authoring stop lives.~~ D1: the review protocol stops after
-  three unproductive repair cycles. This also confirms the shape — `next`
-  neither infers nor increments what it counts. The counting substrate is a
-  slice-level design decision, not a brief-level requirement.
-- ~~U2 — what a read-surface claim can assert.~~ D2: two invariants scoped to
-  application-directed I/O; the process-wide claim is rejected and no file count
-  is stated.
-- ~~U3 — hostile status file behaviour.~~ D3: the trustworthy-record threshold.
-- ~~Success metrics unquantified.~~ The stop threshold is three findings-bearing
-  repair cycles.
+- The read-surface claim and the hostile-artifact behaviour are ruled on, in
+  Constraints above. Both were open questions at Draft creation; both are now
+  constraints on the build rather than things to decide.
+- Non-convergence left this brief entirely. It is a shaping item with an
+  undefined outcome, not a gap in this one.
 
-**Remaining for the Ready review:**
+**Remaining:**
 
-- **No appetite is set.** The two halves warrant separate ones: the stop is a
-  small protocol change that fixes a live operational failure; the projection is
-  larger and has two prior failed attempts behind it.
-- **No slices are proposed.** `continue` selects them. D1's stop is the natural
-  first slice and can ship independently of the projection.
-- **D1's counting substrate is undecided by design.** The slice that implements
-  the stop chooses it against D1's floor. Do not promote that choice into this
-  brief.
-- **Two bounded observations are still owed**, not as unknowns but as
-  documentation the eventual specs need: an application-directed I/O trace with a
-  positive control (per D2), and a trace of the current reader's behaviour on
-  hostile status files (per D3, to record what the ruling changes).
+- **No appetite is set.**
+- **No slices are proposed.** `continue` selects them. The natural cut is the
+  projection itself, the published payload contract, and the shipped-surface
+  parity — the last of which touches a skill tree a peer session may be editing.
+- **Two bounded observations are owed** before the slices that depend on them:
+  an application-directed I/O trace with a positive control, and a trace of the
+  current reader's behaviour on hostile status files so the eventual spec records
+  what the ruling changes. Neither is an unknown any more; both are documentation
+  the constraints above already decided the shape of.
 
 ## Spec map
 
@@ -299,10 +244,11 @@ None. No slices are confirmed and no spec is derived from this brief yet.
 - Source: repository origin. This brief is authored from a failed delivery
   attempt in this repository, not from external input.
 - The four normative tables — domain, discriminators, ordered preconditions,
-  routing, and action attributes — survived independent re-derivation by two
-  reviewers across rounds 9 and 10 and are the reusable asset from the abandoned
-  attempt. They are preserved at commit `e1bdde746`, together with the record
-  shape, the read-only guarantee, and the fail-closed catch-alls.
+  routing, and action attributes — survived independent re-derivation by more than
+  one reviewer and are the reusable asset from the abandoned attempt. They are
+  preserved at commit `e1bdde746`, together with the record shape, the read-only
+  guarantee, and the fail-closed catch-alls. Read them there rather than trusting
+  this summary of them.
 - The abandoned spec, plan, review history, and pre-approval test were removed
   from the working tree in the same change that created this brief; they remain
   in history at that commit.
