@@ -43,6 +43,9 @@ better contract still gets things wrong; what a loop does on that discovery is
 
 - The failure-point rubric, and the authoring instructions derived from it.
 - The pre-creation pressure test and its redirect.
+- The delegation anchor: making a plan record whether an existing owner for the
+  contract was found, alongside the imitation anchors the template already asks
+  for.
 - The activation mechanism for both, and the measurement that says whether they
   activate.
 
@@ -243,6 +246,57 @@ Every rule this work ships therefore carries three things:
   on the surfaces the rule was originally written to govern.
 - **A failure mode when it does not activate** — because a rule that silently
   does nothing is worse than an absent one: it makes the gap look covered.
+
+### The razor's activation, specifically
+
+The cut-before-adding razor is the hardest of the three to activate, because it
+failed at recognition rather than at retrieval. The search ran and the hits were
+read; they were not matched to the problem. "Search first" is already what the
+rule says, so restating it changes nothing.
+
+What can be made observable is the **verdict**, not the recognition:
+
+- **Activation point** — the razor's second rung, at the moment the search
+  returns. Each hit gets a recorded verdict: *is this an owner for the contract I
+  am about to write, and if so what would delegating to it look like?* A search
+  whose output is "I looked and found some related things" has not discharged the
+  rung.
+- **Telling activation from presence** — the artifact carries the search, its
+  hits, and a per-hit verdict. That is a receipt, and receipts are checkable. The
+  recognition itself is not, which is the same split the unmechanizable-predicate
+  row above prescribes: assert the receipt's shape mechanically, leave the
+  soundness of the verdict to a named human.
+- **Failure mode when it does not activate** — no receipt means the rung did not
+  run, whether or not a search happened. That is the honest reading, and it is
+  the one that would have caught this: the search *had* run.
+
+### Repo anchoring: reuse over duplicate machinery
+
+The plan template already asks for repository anchors — "one or two analogous
+production implementations". That is **imitation** anchoring: find something
+shaped like what you are about to build, and follow its shape. Useful, and not
+the razor.
+
+The razor asks a different question: **is there an existing owner for this
+contract, so that no new machinery is needed at all?** Nothing currently asks for
+that, and the two questions produce different answers from the same search.
+
+The abandoned plan is the clean demonstration. It carried four anchors and all
+four were imitation — an analogous read-only verb to copy the shape of, an
+analogous idempotency check, analogous confined readers, an analogous schema
+field shape. Every one made the new machinery better. None asked whether the
+machinery should exist. The plan looked fully anchored while the razor had not
+been run.
+
+So anchoring should record both kinds, labelled, because only the second can
+collapse the work:
+
+- **Imitation anchor** — a production implementation whose shape this work
+  follows. What the template asks for today.
+- **Delegation anchor** — an existing owner of a contract this work would
+  otherwise restate, with what delegating to it costs and what it leaves
+  undischarged. Or an explicit, recorded *no owner exists* after a bounded
+  search, which is the razor's own "decisive empty result".
 
 **A measurement harness already exists, and it does not cover this.** The
 `pack-activation-evals` spec is Shipped: `agentbundle pack evals run` computes a
