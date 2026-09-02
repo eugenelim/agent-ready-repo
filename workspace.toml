@@ -60,7 +60,14 @@ executing = [
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
 ready     = []
-draft     = []
+draft     = [
+  # Authored 2026-09-01 by `author-delivery-brief create` after the
+  # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
+  # review rounds in, on a model error no clause repair could reach. Draft only:
+  # three load-bearing unknowns are open and no slices are proposed. `continue`
+  # owns Ready after the owner closes them.
+  {path = "docs/product/briefs/work-loop-next-action.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give a work-loop turn one authoritative next action from persisted state, and decide separately what owns stopping a non-converging authoring loop", needs = []},
+]
 # tech-site-completion is Status: Shipped, so `ready` was an impossible
 # transition. It moves to the engine's terminal brief collection rather than
 # leaving the lifecycle: nine shipped specs below still name this brief as both
@@ -167,10 +174,6 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
-  # `needs` is empty because its one dependency, review-record-idempotency, is
-  # already Shipped -- naming a spec absent from this file would be a dangling
-  # reference, not a gate.
-  {path = "docs/specs/work-loop-next-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Answer 'what do I do next' from loop state with one bounded record, routed by a total state-to-action table the criteria assert properties of", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
