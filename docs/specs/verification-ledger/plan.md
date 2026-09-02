@@ -21,7 +21,7 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 
 ## Construction tests
 
-**Integration tests:** focused pytest of the new `tests/roster/` guard, including its goal-based checks of pointer-only guidance, then supervisor-selected repository gates. `build-check.yml` runs `python -m pytest tests/ -q`, while no workflow matches `packs/core/tests/skills/new-spec/`.
+**Integration tests:** focused pytest of the new `tests/roster/` guard, including its checks of the how-to's two clauses and of `work-loop/SKILL.md`'s pointer, then supervisor-selected repository gates. `build-check.yml` runs `python -m pytest tests/ -q`, while no workflow matches `packs/core/tests/skills/new-spec/`.
 
 **Manual verification:** none. This delivery changes authoring contracts; the roster test and regeneration/release checks are the observable surfaces.
 
@@ -41,8 +41,8 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 ### Design decisions
 
 - The ledger is Markdown at `docs/specs/<feature>/notes/verification-ledger.md`. It holds observed mutations, red results, assertion text, digest comparisons, and deviations; `spec.md` criteria and `plan.md` task rows retain obligations. Traces to: AC1, AC2, AC3.
-- `packs/core/seeds/docs/CONVENTIONS.md` owns mutability. The template mirrors it; the public explanation carries one phase-qualified clause and an in-tree pointer to the how-to; the how-to retains its existing immutability fact and names the ledger destination; the lifecycle reference owns operational detail. `work-loop/SKILL.md` and `pre-execute-review.md` are pointer-only links to that reference and state no independent licence or routing rule. Traces to: AC1, AC2.
-- The roster test reads the actual freeze guard and the four closed rule-bearing sources, testing their contradiction rather than a newly added phrase; it separately checks the pointer-only surfaces. Traces to: AC3.
+- `packs/core/seeds/docs/CONVENTIONS.md` owns mutability. Five surfaces restate that boundary in their own operational terms and must provably agree with the owner: the new-plan template, the lifecycle reference (which also owns the ledger's operational detail), the public explanation, the how-to, and `references/pre-execute-review.md` § *Mid-EXECUTE re-plan*. **`pre-execute-review.md` is rule-bearing, not a pointer** — its :205-215 note carries no cross-reference and independently states the permitted post-approval edit set and the on-error instruction, so classifying it as pointer-only was false. Exactly one surface is a pure pointer: `work-loop/SKILL.md`. Traces to: AC1, AC2.
+- The roster test reads the actual freeze guard and the five closed rule-bearing sources, testing their agreement with the owner rather than a newly added phrase; it separately checks the how-to's two clauses and `work-loop/SKILL.md`'s pointer. Traces to: AC3.
 - **Prose-lint detector:** rejected because detection leaves the impossible state representable; the ledger removes it from the contract shape.
 - **A third freeze-guard exemption:** rejected because another carve-out repeats the category error; reducing existing exemptions is a separately governed follow-on.
 - **Engine change:** rejected because the guard, engine, and cohort already enforce the freeze; this delivery changes authoring and evidence routing only.
@@ -78,11 +78,11 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 **Depends on:** T1
 
 **Tests:**
-- no stub (goal-based check): T3's roster guard verifies resolvable lifecycle-reference pointers in `work-loop/SKILL.md` and `pre-execute-review.md`, and verifies that neither carries an independent licence or observation-routing rule.
+- no stub (goal-based check): T3's roster guard verifies that `pre-execute-review.md`'s retained :205-215 rule agrees with the convention owner and that its observation destination is a pointer to the lifecycle reference; and separately that `work-loop/SKILL.md` carries a resolvable pointer to that reference and no rule of its own. The guard never asserts that `pre-execute-review.md` is free of a licence statement — it retains one deliberately.
 
 **Approach:**
 - Add one or two pointer-only lines in `work-loop/SKILL.md` Step 2 that link to the lifecycle reference; do not state an independent observation-routing rule.
-- In `references/pre-execute-review.md` § *Mid-EXECUTE re-plan*, **keep** the existing plan-error rule at :205-215 — "immutable in substance", the bookkeeping exemption, and "surface to the human and stop" are all correct and are the only work-loop surface that already is. Extend it: name `spec.md` alongside `plan.md`, and add a pointer-only link to the lifecycle reference for where an execution observation goes. Do not delete correct guidance and do not state an independent licence or observation-routing rule.
+- In `references/pre-execute-review.md` § *Mid-EXECUTE re-plan*, **keep** the existing rule at :205-215 — "immutable in substance", the bookkeeping exemption, "any substantive edit still causes a refusal", and "surface to the human and stop" are all correct, and this is the only work-loop surface that already states the boundary. It is therefore a rule-bearing surface. Extend it twice: name `spec.md` alongside `plan.md`, and add a pointer to the lifecycle reference for where an execution observation goes. Delete no correct guidance. The observation destination is a pointer; the retained edit-set rule stays a rule.
 - Add one ledger-destination clause to `guides/core/how-to/plan-and-execute-non-trivial-work.md`, retaining its existing immutability fact and pointing operational detail to the lifecycle reference.
 
 **Done when:** AC2's how-to names the ledger destination, while work-loop and pre-execute guidance reach that procedure only through resolvable lifecycle-reference pointers and preserve the amendment path for genuine errors.
@@ -92,8 +92,8 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 **Depends on:** T1
 
 **Tests:**
-- TDD: add `tests/roster/<verification-ledger guard>.py`. It reads `_loop_guards.py` to establish that both artifacts are canonically hashed and that `Executing` is legal post-approval, then reads the closed four-source set—convention seed, plan template, lifecycle reference, public explanation—as one relationship. It separately verifies the how-to's ledger clause and the pointer-only work-loop/pre-execute surfaces.
-- Mutation proof: independently restore the Executing-time substantive-edit licence in any closed rule-bearing source, then run `pytest tests/roster/<verification-ledger guard>.py -q`. Expected failure text: `post-approval mutability guidance must agree with the approved-artifact hash guards`.
+- TDD: add `tests/roster/<verification-ledger guard>.py`. It reads `_loop_guards.py` to establish that both artifacts are canonically hashed and that `Executing` is legal post-approval, then reads the closed five-source set — convention seed, plan template, lifecycle reference, public explanation, `pre-execute-review.md` § *Mid-EXECUTE re-plan* — as one relationship. It separately verifies the how-to's retained immutability statement and its ledger clause, and `work-loop/SKILL.md`'s pointer.
+- Mutation proof: **seven mutations, each verified to redden before the fix is believed.** Independently restore the Executing-time substantive-edit licence in each of the five rule-bearing sources (five mutations); delete the how-to's ledger clause (six); remove `work-loop/SKILL.md`'s pointer (seven). After each, run `pytest tests/roster/<verification-ledger guard>.py -q` and restore by editing the file back, never by `git checkout`, `reset`, or `stash`. Expected failure text for the five: `post-approval mutability guidance must agree with the approved-artifact hash guards`. Record each observed red in `notes/verification-ledger.md`, never here.
 
 **Approach:**
 - Use section-scoped semantic assertions: prove the guard/source contradiction, not merely a new phrase.
@@ -157,3 +157,13 @@ This is a source-first core-pack documentation and test release. Regenerate proj
   :205-215 already states the rule correctly and is the only work-loop surface
   that does; it is incomplete in naming `plan.md` alone, not conflicting, so a
   replacement would have deleted correct guidance.
+- 2026-09-02: while `Drafting`, reclassified `pre-execute-review.md` from
+  pointer-only to rule-bearing and widened AC3's closed set from four sources
+  to five, with seven killing mutations. Reason: the previous amendment created
+  a contradiction — it ordered the file's licence rule retained while AC2, AC3,
+  the Testing Strategy and T2's own test bullet all asserted the file carried
+  no such rule. Review round 2 caught it as fix-induced; adjudication
+  established that :205-215 holds no cross-reference and independently states
+  the permitted edit set, so "pointer-only" was false of it. `work-loop/SKILL.md`
+  is now the only pure pointer. The how-to was already treated consistently and
+  did not change category.
