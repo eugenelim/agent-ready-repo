@@ -223,10 +223,33 @@ Every rule this work ships therefore carries three things:
 - **A failure mode when it does not activate** — because a rule that silently
   does nothing is worse than an absent one: it makes the gap look covered.
 
-**The first measurement needs no new mechanism.** Score specs, plans, and briefs
-already in this repository against the guidance in force when each was written.
-That says how often these rules activate at all, and whether the two known
-instances are typical or unlucky. It runs before anything else here is designed.
+**A measurement harness already exists, and it does not cover this.** The
+`pack-activation-evals` spec is Shipped: `agentbundle pack evals run` computes a
+Tier-A `trigger_rate` per skill from authored `eval_queries.json`, graded against
+a threshold, with a weekly report-only workflow. So "measure activation" is not a
+thing to invent here.
+
+What it measures is whether a **skill fires for a query**. It says nothing about
+whether an author who had a rule in context then followed it — which is the
+activation question this brief is about. The two are different subjects, and the
+existing Tier A does not reach the second.
+
+That makes the first slice a scoping question with three candidate answers, and
+it should be settled by observation rather than argued:
+
+- Tier A extends to authored artifacts, and the rule becomes an eval query.
+- A new eval class is needed, in which case the existing harness supplies the
+  runner, the workspace layout, and the report-only posture rather than being
+  rebuilt.
+- The property is not eval-shaped at all, and the binding has to be a parity
+  check or a mutation proof — which is what actually worked in the evidence
+  above.
+
+**Prefer generated evals over scavenged history.** Scoring artifacts already in
+the repository is available and cheap, but the review artifacts that would show
+*how* a loop went are gitignored and machine-local — they sit in peer worktrees
+and can be cleaned up. A generated eval is reproducible where a scavenged corpus
+is one-shot, so where a question can be put to a generated eval, it should be.
 
 ## Risks
 

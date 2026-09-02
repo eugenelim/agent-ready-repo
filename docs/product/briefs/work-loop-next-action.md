@@ -143,11 +143,16 @@ design.
 
 So this brief's slices carry the same obligation the sibling brief states in
 full: each rule names where it is consulted, how activation is told from
-presence, and what happens when it does not activate. Concretely here, the
-mechanisms worth building first are the ones that caught defects on their first
-run in the abandoned attempt — parity between the spec and plan, claims bound to
-a live symbol table, and mutation proofs — rather than another sentence in a
-template.
+presence, and what happens when it does not activate. The repository already
+ships an activation harness — `agentbundle pack evals run`, Tier-A `trigger_rate`
+per skill — and the sibling brief owns the question of whether it reaches
+authored artifacts. Reuse whatever that settles rather than inventing a second
+measurement here.
+
+Concretely for this outcome, the mechanisms worth building first are the ones
+that caught defects on their first run in the abandoned attempt — parity between
+the spec and plan, claims bound to a live symbol table, and mutation proofs —
+rather than another sentence in a template.
 
 If a rule this work adds cannot be shown to have fired, it is withdrawn rather
 than re-worded.

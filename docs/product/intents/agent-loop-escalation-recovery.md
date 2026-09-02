@@ -117,9 +117,22 @@ look covered.
 
 Spikes before any contract, cheapest first.
 
-Two hypotheses are measurable **retrospectively** against review artifacts
-already on disk from past loops, needing no fresh loop: the
-finding-composition signal and the repair-size bound. Those go first. The
+Two hypotheses are measurable without running a fresh loop end to end: the
+finding-composition signal and the repair-size bound. Those go first, and they
+draw on different sources, which matters for how durable each answer is.
+
+The repair-size bound reads **git history** — commit sizes against the next
+round's findings — so it is durable and can be measured any time. The
+composition signal needs the per-round review artifacts, which are gitignored and
+machine-local: they sit in peer worktrees and can be cleaned up, so a scavenged
+answer is one-shot.
+
+**Prefer a generated eval where one can carry the question.** The repository
+ships an eval harness (`agentbundle pack evals run`, Tier-A `trigger_rate` from
+authored `eval_queries.json`) and generated evals are reproducible where a
+scavenged corpus is not. Whether these hypotheses are eval-shaped is itself part
+of the first spike — the sibling brief's activation slice asks the same question
+about a different subject and should be settled once, not twice. The
 escalation-routing hypotheses need a live loop and are more expensive. The plain
 round cap needs no spike at all — it needs a justified threshold, which the
 others would supply.
