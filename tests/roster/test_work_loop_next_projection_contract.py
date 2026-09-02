@@ -293,6 +293,50 @@ def test_every_row_and_precondition_reference_resolves() -> None:
     assert not problems, "\n".join(problems)
 
 
+def _assumption_ids(text: str) -> set[str]:
+    """Identifiers declared by an Assumptions bullet: `- <category> (**An**):`."""
+    body = text.split("## Assumptions", 1)[-1]
+    return set(re.findall(r"^- \w+ \(\*\*(A\d+)\*\*\):", body, re.M))
+
+
+def _cited_assumption_ids(text: str) -> set[str]:
+    """Identifiers a criterion cites, above the Assumptions section."""
+    above = text.split("## Assumptions", 1)[0]
+    return set(re.findall(r"\*\*(A\d+)\*\*", above))
+
+
+def test_every_assumption_a_criterion_cites_actually_exists() -> None:
+    """The restructure's own new drift class, mechanized.
+
+    Moving grounding evidence out of the criteria created a citation direction
+    that did not exist before: a criterion saying "the Assumptions record X" is
+    load-bearing, and round 9 found two instances where the cited home was
+    empty or held a claim the same document refuted elsewhere. Prose citations
+    cannot be checked, so the citations are identifiers and this binds them.
+
+    Both directions matter. A dangling citation points a reader at nothing; an
+    uncited assumption carrying an identifier is a rename or a deletion that
+    silently orphaned its criterion.
+    """
+    text = SPEC.read_text()
+    declared, cited = _assumption_ids(text), _cited_assumption_ids(text)
+    assert not (cited - declared), (
+        f"criteria cite assumptions that do not exist: {sorted(cited - declared)}"
+    )
+    assert not (declared - cited), (
+        f"assumptions carry an identifier no criterion cites: {sorted(declared - cited)}"
+    )
+    assert declared, "no identified assumptions parsed — the citation check would be vacuous"
+
+
+def test_the_assumption_citation_check_can_fail() -> None:
+    """Prove both directions redden, since the check above is green by design."""
+    dangling = "A criterion citing **A99**.\n## Assumptions\n- Technical (**A1**): body\n"
+    orphan = "A criterion citing **A1**.\n## Assumptions\n- Technical (**A1**): a\n- Technical (**A2**): b\n"
+    assert _cited_assumption_ids(dangling) - _assumption_ids(dangling) == {"A99"}
+    assert _assumption_ids(orphan) - _cited_assumption_ids(orphan) == {"A2"}
+
+
 def test_the_plan_cites_exactly_the_criteria_the_spec_defines() -> None:
     """Parity over criterion identifiers, INCLUDING their letter suffixes.
 

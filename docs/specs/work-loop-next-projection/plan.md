@@ -162,11 +162,15 @@ rather than answer from state that is mid-write.
   non-zero exit means no record could be computed. P2-P6 are the conditions
   under which no record can be built, which is why they exit non-zero: three of
   them cannot produce `run_id`, `sequence`, or `complete_with` at all.
-- `complete_with` is the *unguarded* outgoing-edge set. Filtering it by the
-  cohort's wave guard would make the record answer "which event" at
-  `CODE-VERIFICATION`, but it would also couple the projection to a guard's
-  runtime result and make `complete_with` no longer derivable from one table.
-  The guard refuses an illegal choice anyway. The spec records the consequence:
+- `complete_with` is the outgoing-edge set **less AC10a's omission**, and is not
+  filtered by the cohort's **wave** guard. Filtering by the wave guard would
+  make the record answer "which event" at `CODE-VERIFICATION`, but it would
+  couple the projection to a guard's runtime result and make `complete_with` no
+  longer derivable from one table; on that edge the guard does refuse an illegal
+  choice. That argument is scoped to the wave guard and does **not** extend to
+  AC10a's review edge, where assumption A3 records that no guard checks whether
+  the review was clean and spec-plan mode has no guard at all. The spec records
+  the consequence:
   `complete_with` names events, not invocations, and two of them take required
   transition arguments the record does not supply.
 - `SPEC-PLAN-APPROVED` needs three commands with no engine transition between
@@ -254,17 +258,19 @@ and `--help` lists the verb.
 **Depends on:** T1
 
 **Tests:** TDD.
-- The verb opens no file outside the declared set of five (AC15). Instrument: an
-  open-tracer over the whole invocation with those five paths allow-listed, so a
-  sixth open of any kind fails — including the bundled state template the phase
+- The verb opens no file outside the set AC15 declares (AC15). Instrument: an
+  open-tracer from the `next` handler's first statement to its return, with
+  AC15's paths allow-listed and both forms of the parser — source and
+  `__pycache__` bytecode — admitted, since the loader opens whichever is valid;
+  an open outside the set fails — including the bundled state template the phase
   check reaches, which is why the budget counters are read directly rather than
   through `check_phase`.
 - Each artifact Status file is opened only on a run whose state consumes it; a
   run needing neither opens neither, and a run that always opens both fails
   (AC15a). The carve-out is exercised at P2 through P4, where there is no
   `engine-state.json` and `spec.md` is read anyway for the light-mode marker.
-- A symlink, a non-regular file, and an oversized file at each of the four data
-  files are each refused rather than followed, read, or blocked on (AC15b).
+- A symlink, a non-regular file, and an oversized file at each data file AC15b
+  covers are each refused rather than followed, read, or blocked on (AC15b).
 - The two crash artifacts are never opened: a symlink, a directory, and a FIFO at
   either location are each detected as present and yield P1's refusal, with no
   read, parse, or repair (AC15c).
@@ -340,8 +346,11 @@ mutation flips.
 **Approach:** implement routing as a dictionary keyed on
 `(mode, state, last_event)` with a discriminator resolver per state. The resolver
 is the part the roster equality test cannot reach — it has no dictionary cell — so
-AC3's live-drive case is its only coverage and the R7/R8 exchange is its only
-mutation. Neither may source its expectation from the resolver.
+AC3's live-drive case is this task's coverage of it and the R7/R8 exchange is
+this task's mutation. It is not the only coverage overall: AC6b in T6 drives
+every Discriminator to every value with its own mutations. T4 owns the R7/R8
+exchange; T6 owns per-value resolution. Neither may source its expectation from
+the resolver.
 
 **Done when:** all five properties are green over the full domain, and every
 mutation this task and its Construction tests enumerate flips — including AC1's
@@ -366,9 +375,16 @@ across every row and the D5 forced-`within-budget` proof.
   the engine writes a null `last_event_context` for every event but two, so a
   legacy state at R19's key can carry no such field, and the integer helper is
   called with a sentinel it rejects rather than a default (AC11a). This is the
-  one place a `parameters` value is not derived from a P5-checked field.
+  one place a `parameters` value is not derived from a P6-checked field.
 - Every `load` entry resolves to a file under `references/`, with the mapping
   built by globbing that tree rather than transcribed (AC11b).
+- The reference R2 and R3 load states the `Draft`/`Drafting` reset before
+  `spec-ready` is fired, found by grep in its shipped text (AC11c). Existence is
+  AC11b's subject; this asserts the sentence, because assumption A4 records that
+  the reset is the only thing preventing one resumption from crossing both human
+  gates and nothing in the engine enforces it. Mutation proof: deleting that
+  sentence from the reference reddens AC11c while leaving AC11b green, which is
+  the pair that shows the two are not the same check.
 - No record carries a schedule array, amendment history, fingerprint, or verbatim
   state copy (AC12), with the fingerprint case driven explicitly — a 64-character
   hex digest placed in a declared `parameters` key satisfies AC5, AC7, and AC11,
@@ -377,8 +393,11 @@ across every row and the D5 forced-`within-budget` proof.
   read from the criterion, not restated here — and pin the observed maximum
   against a constant held in the test file (AC13).
 - Drive the bound against a planted `engine-state.json` rather than only the
-  domain: a `transition_sequence` at P6's magnitude limit, and one past it, which
-  must be refused before any record is built (AC13a).
+  domain, on **both** state-derived integers: a `transition_sequence` at P6's
+  magnitude limit and one past it, refused before any record is built; and a
+  `last_event_context.completed_wave_index` at and past the same limit at R19,
+  refused to `halt` (AC13a, AC11a). The second is the case a bound written only
+  for `transition_sequence` misses, and it is the one that reaches stdout.
 - Mutation proofs: emitting an identifier with no matching file reddens AC11b;
   placing a fingerprint in `cycle_id` reddens AC12 alone; removing P6's magnitude
   check reddens AC13a while leaving AC13's domain traversal green, which is the
@@ -402,8 +421,8 @@ only on T2 — and a `Depends on:` edge cannot be added once the plan is hashed.
 - Each Preconditions row, exercised in isolation, produces that row's exit and
   record, and its stderr names what the row requires. Every non-zero row returns
   its allocated code, distinct from the others and from 1 and 2 (AC6).
-- Ordering is exercised on every pair a state can match, and on the two pairs
-  that make ordering load-bearing in particular: an engine-state temporary with
+- Ordering is exercised on every pair a state can match, and in particular on
+  the pairs AC6a enumerates as load-bearing: an engine-state temporary with
   no `engine-state.json` beside it must yield P1's refusal, not P2's, P3's, or
   P4's; and an unreadable `spec.md` must yield P2's, not P4's (AC6a).
 - The review-budget branch is exercised from both review states across all four
@@ -454,7 +473,10 @@ only on T2 — and a `Depends on:` edge cannot be added once the plan is hashed.
   literal restated here.
 - Digest `engine-state.json`, `state.json`, and `.loop-run/events.jsonl` before
   and after; assert equality and that no file is created or removed, on every
-  Preconditions row as well as every Routing row (AC16).
+  Preconditions row as well as every Routing row — and at P1 **once per
+  crash-artifact class**, the unpromoted engine-state temporary and the
+  unreplayed pending-events file, which AC16 requires separately because one P1
+  case leaves the other artifact's path unexercised (AC16).
 - Mutation proofs: removing the crash-artifact check, the `run_id` pairing check,
   the `mode` well-formedness check, or the off-table-pair check each make their
   row's case pass.
@@ -671,8 +693,9 @@ are regenerated.
   absorbing every unrecognised, empty, absent, and unreadable outcome, and AC1's
   mutation must redden for every Routing row in the spec's table.
 - **The discriminator resolver ships untested.** The roster equality test cannot
-  reach it. AC3 drives the live command with expectations parsed from the spec,
-  and the R7/R8 exchange is its named mutation.
+  reach it. AC3 drives the live command with expectations parsed from the spec
+  and the R7/R8 exchange is its named mutation (T4); AC6b additionally drives
+  every Discriminator to every value (T6).
 - **The emitter satisfies the contract with constants.** Each of the four derived
   fields and each of the five table properties carries a mutation proof.
 - **A planted state file floods the agent's context.** AC14 caps and delimits
