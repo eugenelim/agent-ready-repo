@@ -3215,6 +3215,44 @@ def evaluate_dispatch(
     )
 
 
+def cooled_work_entry_paths(
+    workspace: dict,
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> dict[str, set[str]]:
+    """Per initiative slug, the raw `work.*` entry paths the canonical layer cools.
+
+    Closeout must not re-derive an artifact path from an entry to ask whether it
+    is cooled: an entry may be canonical (`docs/specs/<slug>/spec.md`), legacy
+    (`spec/<slug>`), a bare slug the canonical layer refuses to model at all, or
+    a non-spec kind, and each has a different mapping — or none. Re-deriving
+    picks one mapping and silently disagrees with reconciliation on the rest.
+
+    This returns reconciliation's own verdict, keyed on the raw workspace path
+    string both layers read, so the two agree by construction rather than by two
+    resolutions happening to match.
+    """
+    memberships, legacy_memberships, _findings, _blocked = (
+        _extract_canonical_memberships(workspace)
+    )
+    by_initiative: dict[str, set[str]] = {}
+    for membership in memberships:
+        if not membership.collection.startswith("work."):
+            continue
+        if membership.entry.path is None:
+            continue
+        if _membership_is_cooled(membership, root, cooled):
+            by_initiative.setdefault(membership.ini_slug, set()).add(
+                membership.entry.path
+            )
+    for legacy in legacy_memberships:
+        if not legacy.collection.startswith("work."):
+            continue
+        if _legacy_membership_is_cooled(legacy, root, cooled):
+            by_initiative.setdefault(legacy.ini_slug, set()).add(legacy.entry.path)
+    return by_initiative
+
+
 def run_canonical_reconciliation(
     workspace: dict,
     root: Path | None = None,
