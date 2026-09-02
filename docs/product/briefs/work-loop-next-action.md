@@ -35,8 +35,9 @@ exists and is documented under Rabbit holes.
 - The reported action matches what the shipped resumption guidance prescribes,
   for every state the loop can be in — checked by comparing both, not by
   asserting it.
-- A non-converging authoring loop is surfaced to a human within a bounded number
-  of passes, by whichever component owns stopping.
+- A non-converging authoring loop stops before a **fourth** findings-bearing
+  repair cycle and asks for owner-directed replanning, and that stop survives a
+  session restart. Per D1.
 - No component gains the ability to declare a review clean that could not
   previously do so.
 
@@ -70,17 +71,97 @@ Provenance). The stopping half is not yet scoped and may be cheap or may require
 a persisted counter and a protocol change; the Ready review should not bundle
 them into one appetite.
 
+## Owner decisions
+
+Three load-bearing unknowns were open at Draft creation. All three are now closed
+by owner decision, recorded here as the governing rulings.
+
+### D1 — pre-EXECUTE non-convergence is enforced by a durable counter
+
+> Owner decision: pre-EXECUTE non-convergence is enforced by a durable
+> `pre_execute_repair_count` owned and updated by the review protocol. One count
+> represents one aggregated findings-bearing repair cycle. At three cycles, the
+> protocol stops before another reviewer dispatch and requires owner-directed
+> replanning. Session restart does not reset it. `next` neither infers nor
+> increments this counter.
+
+Counting rules, as decided:
+
+- Increment **once** after an aggregated reviewer round produces at least one
+  sustained Blocker or Concern, and **before** revision begins.
+- Do **not** increment per reviewer, per finding, for clean or refuted-only
+  results, or for evidence-only retries.
+- Stop before dispatching another review once the count reaches **3**.
+- Persist across sessions.
+- Reset only by starting a new run, or by an explicit owner-authorised replan
+  recorded in the audit trail.
+
+The name counts failed repair cycles, not reviewer calls. `review_retry_count` is
+**not** reused: consuming the implementation-review budget during spec authoring
+conflates two different loops.
+
+Whether `next` eventually *displays* that stop is optional projection behaviour.
+Enforcement does not belong there.
+
+*Consequence for slicing:* this decision requires a new persisted field in cohort
+state with a defined writer, a reset point, and an audit-trail entry — a change to
+the review protocol's own state, not to the projection. It is a separate slice
+from the reporting half and can be delivered first, because it fixes an
+operational failure that is happening now.
+
+### D2 — the read-surface claim is scoped to application-directed I/O
+
+The process-wide claim is rejected. "Opens nothing else" is neither truthful nor
+useful: a cold process executing the loop's guard module opens 37 files beyond any
+set a contract would name, all interpreter and standard-library loading, and the
+natural instrument sees none of them under a test runner.
+
+Two invariants replace it:
+
+> Before `<spec-dir>` confinement succeeds, the verb performs no directory
+> enumeration or artifact read beneath the supplied path.
+
+> After confinement, every application-directed operation on a path derived from
+> `<spec-dir>` is a named presence probe or flows through the repository's blessed
+> readers. Interpreter imports, standard-library loading, and repository-root
+> discovery are outside this claim.
+
+"Application-directed" is to be defined mechanically — by call origin or by target
+derivation — not by an informal exemption list. Verification must:
+
+- bootstrap all imports **before** starting the application-I/O trace;
+- trace opens, stats, enumeration, and symlink resolution **separately**;
+- exercise both allowed and forbidden target-derived accesses;
+- include a **positive control** proving the detector fails on a planted forbidden
+  access.
+
+No exact file count is stated. A count recreates the source-versus-bytecode and
+lazy-import drift that consumed several review rounds of the abandoned attempt.
+
+### D3 — output availability follows a trustworthy-record threshold
+
+> Owner decision: output availability follows the trustworthy-record threshold.
+> Failures before confined authoritative engine identity is established return
+> non-zero with no stdout. Failures in supporting artifacts after that threshold
+> return a zero-exit halt record when its fields can be constructed without
+> trusting the failed artifact.
+
+Applied:
+
+| Situation | Outcome |
+| --- | --- |
+| No engine state, plus a symlinked, FIFO, or oversized `spec.md` | Hard refusal — non-zero, nothing on stdout |
+| Valid engine state, plus a hostile status file needed for the next decision | Zero-exit halt record |
+| Unreadable cohort state after valid engine identity | Zero-exit halt record, matching existing behaviour for the right reason |
+
+A hostile value is **never** copied into the record. It reaches stderr only, as a
+bounded and escaped diagnostic.
+
+The ruling comes from the trust threshold, not from mechanically mirroring
+whatever the current reader happens to do. A trace still documents current reader
+behaviour so the eventual spec knows what it is changing.
+
 ## Assumptions and risks
-
-**Load-bearing unknowns.** Each needs an observation against code or a governing
-decision before the dependent work can be specified. None is settled by review
-opinion, and each invalidates a section of any spec written over it.
-
-| # | Unknown | Oracle | Invalidates if answered the other way |
-| --- | --- | --- | --- |
-| U1 | Is there a durable signal an authoring-loop stop can count? The pre-EXECUTE ordinal is not persisted in either state file and no script writes it; it survives only as a command argument reconstructible from a gitignored session root. | The persisted field sets of both state files, and every writer in the cohort and engine scripts | The entire stopping half, and any claim that it can be delegated to a component that already tracks passes |
-| U2 | What can a read-surface bound over the query honestly assert? A cold process executing the loop's own guard module opens 37 files beyond any set a contract would name, all interpreter and standard-library loading. | A cold-process open trace, partitioned into files the component names versus module loading | Any confinement criterion phrased as "opens no file outside a declared set", and the instrument meant to check it |
-| U3 | For a hostile artifact status file — symlinked, non-regular, oversized — is the contract's answer a zero-exit stop record or a non-zero refusal? The two are both defensible and produce different caller-visible behaviour. | The canonical reader's raise behaviour, the discriminator catch-all's routing, and the existing precedence rules | The hostile-input criteria, and consistency with the row that already gives an unreadable cohort state file a zero-exit stop record |
 
 **Risks**
 
@@ -116,6 +197,44 @@ opinion, and each invalidates a section of any spec written over it.
   four rounds, most blockers found in each round were introduced by the previous
   round's repair. A large repair on a long contract is not free.
 
+## What didn't work
+
+Negative results from the abandoned attempt, recorded so they are not retried.
+Each fixed something real. None reached the defect that ended the attempt.
+
+| Approach | What it fixed | What it did not fix |
+| --- | --- | --- |
+| Prose acceptance criteria for a total state-to-action function | — | Nothing. Four rounds of reviewers attacked the prose, each repair produced fresh prose findings, and the criteria became a test plan |
+| Restating the mapping as normative tables, criteria asserting properties of them | The prose-criteria class, permanently. Two reviewers independently re-derived the tables afterwards and they held | Convergence. The drift moved to clause-level mismatch between a criterion and the plan bullet implementing it |
+| Splitting content into three homes — outcome, mechanism, grounding | The clause-drift class. Criteria prose fell 21% while the criterion count rose, because grounding left and hidden conjunctions came apart | Convergence, and it introduced a class of its own: criteria citing assumptions that were absent or wrong |
+| Mechanising the citation edges — identifier parity, assumption parity, guard-fact binding | Real defects, each on first run. The identifier check caught a criterion outside its own scope; the assumption check caught a dangling citation; the guard-fact check caught an inverted claim | Anything about the model. All three bind the document to itself or to symbol names |
+| Tests that parse the draft | Self-consistency | The model. A 602-line pre-approval suite, eleven of whose assertions read the draft, did not detect the unobservable premise in ten rounds |
+
+**The measurements that matter for appetite.**
+
+Sustained findings across ten rounds: 17, 16, 22, 23, 20, 19, 19, 23, 21, 17,
+then 18 at the eleventh. Blockers bottomed out at 3 in rounds 6 and 7, then went
+back up to 6, 8, 5, 3. The count was a steady state of the review-and-repair
+loop, not a distance to done.
+
+Repair size against the next round's blockers:
+
+| Repair closed round | Lines changed in the pair | Blockers found next round |
+| ---: | ---: | ---: |
+| 7 | 124 | 6 |
+| 8 | 377 | 8 |
+| 9 | 250 | 5 |
+| 10 | 204 | 3 |
+
+By round 10 most blockers found were defects the previous round's repair had
+introduced. A large repair on a long contract is a defect source, so the next
+attempt should keep each contract small enough that a repair touches little —
+which is a reason to slice this brief rather than write one spec.
+
+**The one thing that would have worked** is asking, before writing any criterion,
+what observes convergence. Nothing did. That question belongs at brief stage,
+which is why this brief exists.
+
 ## Decision authority
 
 - Repository maintainers own the shape decision between "reporting stays a pure
@@ -127,16 +246,32 @@ opinion, and each invalidates a section of any spec written over it.
 
 ## Ready gaps
 
-Recorded rather than invented. A Ready review must resolve these:
+Recorded rather than invented. Closed and remaining are both listed, so a Ready
+review can see what moved.
 
-- **U1, U2 and U3 are open.** They are acquisition work, not specification work,
-  and should be closed before slices are cut.
-- **The shape decision is unconfirmed** for this brief, as above.
-- **No appetite is set**, and the two halves may warrant separate ones.
-- **Success metrics are unquantified.** "A bounded number of passes" needs a
-  number, and that number depends on U1.
-- **No slices are proposed.** Create mode does not author them; `continue` selects
-  them after the gaps above are closed.
+**Closed by owner decision (see Owner decisions):**
+
+- ~~U1 — where the authoring stop lives.~~ D1: a durable
+  `pre_execute_repair_count` owned by the review protocol, stopping at three
+  cycles. This also confirms the shape — `next` neither infers nor increments it.
+- ~~U2 — what a read-surface claim can assert.~~ D2: two invariants scoped to
+  application-directed I/O; the process-wide claim is rejected and no file count
+  is stated.
+- ~~U3 — hostile status file behaviour.~~ D3: the trustworthy-record threshold.
+- ~~Success metrics unquantified.~~ The stop threshold is three findings-bearing
+  repair cycles.
+
+**Remaining for the Ready review:**
+
+- **No appetite is set.** The two halves warrant separate ones: the counter is a
+  small protocol change that fixes a live operational failure; the projection is
+  larger and has two prior failed attempts behind it.
+- **No slices are proposed.** `continue` selects them. D1's counter is the
+  natural first slice and can ship independently of the projection.
+- **Two bounded observations are still owed**, not as unknowns but as
+  documentation the eventual specs need: an application-directed I/O trace with a
+  positive control (per D2), and a trace of the current reader's behaviour on
+  hostile status files (per D3, to record what the ruling changes).
 
 ## Spec map
 

@@ -213,27 +213,6 @@ mere design detail:
   plan. See the Objective guidance and `SKILL.md`'s design-doc anti-pattern for
   the document-level distinction.
 
-- Evidence that a mechanism is the **right** one is neither the outcome nor the
-  mechanism. It is grounding: it belongs in Assumptions with its source, and the
-  criterion cites it rather than carrying it. This is the category with no
-  obvious home, so it gets written into the criterion *and* the plan task, and
-  the two copies then drift — a criterion revised in review while its task is
-  not is the most common way a checked criterion stops describing what was
-  built. Applying the split to a contract that had drifted three rounds running
-  removed 21% of its criteria prose while raising the criterion count, because
-  the grounding left and the conjunctions it had been hiding came apart. The
-  three homes, on one rule from that contract:
-
-  - **H1 — criterion.** "`complete_with` omits `reviewers-clean` at any budget
-    value that is not `within-budget`." Checkable by reading output.
-  - **H1 — plan.** "Resolve the counter through the guard module's
-    non-negative-integer helper, passing a sentinel it rejects rather than a
-    default." Mechanism the criterion must not name.
-  - **H1 — assumption.** "Nothing else reads the fingerprint pair, so on that
-    branch this projection is the only backstop (source: `_GUARDS`,
-    `loop-engine.py:894-909`)." Why the rule earns its place; delete it and the
-    criterion looks arbitrary at the next review.
-
 - [ ] <observable outcome>
 - [ ] <observable outcome>
 - [ ] <observable outcome>

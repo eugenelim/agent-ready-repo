@@ -5,32 +5,6 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.22.0"
-        }
-      ],
-      "date": "2026-09-01",
-      "heading": "[core][2.22.0] — 2026-09-01",
-      "changelogAnchor": "core2220--2026-09-01",
-      "highlights": [
-        {
-          "source": "**Spec authoring now says where the evidence for a rule belongs.** Criteria state the observable, plans carry the mechanism, and the evidence that a mechanism is the right one goes in Assumptions with its source. That third category previously had no home, so it was written into both the criterion and the task, and the two copies drifted apart as the spec was revised.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Spec authoring now says where the evidence for a rule belongs."
-            },
-            {
-              "type": "text",
-              "value": " Criteria state the observable, plans carry the mechanism, and the evidence that a mechanism is the right one goes in Assumptions with its source. That third category previously had no home, so it was written into both the criterion and the task, and the two copies drifted apart as the spec was revised."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "core",
           "version": "2.21.0"
         }
       ],
