@@ -368,3 +368,29 @@ record. Corrections are appended here, Approver-signed.
   not RFC-0096's ordinary normalized `Paused` state, whose artifact statuses
   remain unchanged. The ordinary `Paused` rule and governance-outside-rollup
   holding remain authoritative.
+
+- **2026-09-01 (Approver: eugenelim) — Wave 7 ships as four owned slices.**
+
+  RFC-0096 section 9 scoped Wave 7 as one release, but its objective names
+  neither follow-on closed by this first slice. Wave 7a-i closes cooling scope
+  through `cooling-scope-closure`; Wave 7a-ii projects the completion receipt;
+  Wave 7b classifies history; and Wave 7c prunes proven-eligible artifacts. The
+  still-open `rfc0096-wave7a-ii-completion-receipts` is owned by Wave 7a-ii,
+  `rfc0096-wave7b-historical-classification` is owned by Wave 7b, and
+  `rfc0096-wave7c-pruning` is owned by Wave 7c.
+
+  The Wave 6 Follow-ons entries `cooling-closeout-eligibility` and
+  `cooling-repair-migration-scope` are both closed by cooling-scope-closure.
+  This closure also accepts the residual Wave 6 named: a lifecycle record that
+  reads cleanly moves an initiative toward an affirmative closeout
+  recommendation without being verified against its artifact.
+
+  Wave 6's `cooling-brief-child-scope` entry misattributes its constraint to
+  that spec's own AC46 pinned pair. The finding-code documentation gate is a
+  superset check that admits any documented code, so a third code was always
+  available; the real open question is attribution breadth. That follow-on
+  stays open and is owned by Wave 7b.
+
+  Wave 6 registered the receipt work as
+  `wave6-dependency-scoped-completion-receipts`; it is registered here as
+  rfc0096-wave7a-ii-completion-receipts.
