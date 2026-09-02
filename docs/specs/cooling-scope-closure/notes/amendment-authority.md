@@ -19,8 +19,9 @@ delivery rather than deferred.
 branch and is what ships. The owner subsequently directed, on 2026-09-02, that
 scope be cut to what is certain: the contract amendment is withdrawn, and the
 spec and plan return byte-identical to the pair already approved and merged in
-PR #1210. Every criterion the amendment proposed is registered in
-`[backlog].open` instead of contracted.
+PR #1210. Every criterion the amendment proposed, and every finding that survived
+adjudication, is recorded in [`review-findings.md`](review-findings.md) instead of
+being contracted — including why `[backlog].open` could not take them.
 
 Authority never extended to editing a completed task section, overwriting the
 prior pin, or erasing completed history, and none of those occurred:
@@ -102,7 +103,8 @@ yet must survive. **AC37** stated a second predicate over the artifact AC31
 already governs.
 
 The decisive round-3 finding was structural rather than editorial, and it is
-registered rather than fixed: the mutation table instructs that each observed red
+recorded as finding 1 of [`review-findings.md`](review-findings.md) rather than
+fixed: the mutation table instructs that each observed red
 is recorded in `plan.md`, but `plan.md` is hash-frozen once `schedule` persists
 it, so that edit fails `schedule check-current`. Zero of the twenty mutation rows
 record an observed red, and T6 — pinned as completed and merged — records none in
