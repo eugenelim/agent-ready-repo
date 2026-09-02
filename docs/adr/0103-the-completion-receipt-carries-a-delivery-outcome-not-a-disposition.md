@@ -38,10 +38,16 @@ source and its own question:
 | Spelling | Where | Values | The question it answers |
 | --- | --- | --- | --- |
 | `post_closeout_result` | `delivery-lifecycle-record.schema.json:18` | `Cooling`, `Retained`, `Retired`, `ExternalAdvisory` | What happened to the *artifact* after closeout? |
-| `lifecycle_outcome` | `close_work.py:78`, gated at `:1014` | `completed`, `abandoned`, `superseded` | Did the *delivery* achieve its accepted outcome? |
+| `lifecycle_outcome` | `close_work.py:78`, gated at `:1025` | `completed`, `abandoned`, `superseded` | Did the *delivery* achieve its accepted outcome? |
+| `outcome` (parameter) | `close_work.py:969`, gated at `:986` and `:1014` | `completed`, `abandoned`, `superseded` | Did the *delivery* achieve its accepted outcome? |
 | `outcome` | `CompletionReceipt.outcome`, `close_work.py:348` | previously bounded text of at most 512 characters | undecided before this record |
 
-A dependant reading a receipt is asking the second question. It needs to know
+The fourth row is the sharpest evidence for this record's existence:
+`project_lifecycle` already takes a parameter *spelled* `outcome` that carries
+the *delivery* meaning and the closed vocabulary — the same spelling as row 3
+and the same semantics as row 2. The collision is already in the module.
+
+A dependant reading a receipt is asking the delivery question. It needs to know
 whether the thing it depends on landed. `post_closeout_result` cannot answer it:
 a delivery that shipped and one that was abandoned can both be parked as
 `Retained`, and both would read identically to every dependant.
@@ -55,6 +61,15 @@ this delivery land", already validated in the same file, and already the value
 the shipped Wave 4 receipt fixture passes verbatim
 (`test_pause_receipts_and_initiative.py:227` passes `outcome="completed"`).
 Inventing a second vocabulary for the same question would create two answers.
+
+The reuse is a reason for the *choice*, not a live coupling. The receipt's
+vocabulary is owned by its own contract and stated once, in that spec's AC2;
+`close_work.py`'s copies are not pinned to it by an equality read the way the
+other three grammars are pinned to the lifecycle record. That asymmetry is
+deliberate: the lifecycle record is a published, versioned contract document, so
+an equality read against it is meaningful, whereas `lifecycle_outcome` is an
+internal literal with no published home to read from. If the two ever need to
+move together, the fix is to publish the vocabulary, not to add a fourth copy.
 
 The alternative was bounded free prose, which `close-work`'s instructions
 described before this record as "a short outcome statement". It was rejected
@@ -81,7 +96,7 @@ a human has to the evidence.
 
 `close-work` forbids creating "a permanent initiative shell, shipped-spec list,
 third room, receipt store, or lifecycle schema"
-(`packs/core/.apm/skills/close-work/SKILL.md:204`). An optional object on the
+(`packs/core/.apm/skills/close-work/SKILL.md:203-204`). An optional object on the
 citing dependency edge creates none of them, and gives the receipt exactly the
 lifetime RFC-0096 §7 specifies: delete the last citing edge and the receipt is
 gone with it.

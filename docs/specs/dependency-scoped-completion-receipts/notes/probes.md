@@ -32,3 +32,36 @@ contract carries from it:
    empty finding list would fail on correct code.
 
 The probe was not committed.
+
+## Probe B — where a dependency-blocked entry actually appears
+
+AC7 asserts that a bad receipt refuses *without removing its entry*. That is only
+a criterion if the two states are distinguishable. Measured 2026-09-02 against
+`98df5599c`, driving the CLI over two throwaway workspaces whose citing entry is
+`Approved` with an `Approved` plan:
+
+```
+dependency finding at satisfaction time (needs -> an absent target):
+   ready=[]  blocked=['docs/specs/dependant/spec.md']
+   findings=[('missing_dependency', 'docs/specs/gone/spec.md')]
+
+parse finding (a need carrying an unknown field):
+   ready=[]  blocked=[]
+   findings=[('invalid_entry', 'docs/specs/dependant/spec.md')]
+```
+
+Three facts this contract carries:
+
+1. `canonical.blocked` is the discriminating field. A satisfaction-time finding
+   leaves the citing path there; a parse finding removes it from every
+   collection. AC7's second clause reads that field.
+2. A satisfaction-time finding is attributed to the **dependency's** path, and a
+   parse finding to the **citing entry's**. AC7 asserts the code against the
+   dependency edge accordingly.
+3. A need carrying any unknown field is rejected today by an exact-set check
+   (`_LOCAL_NEED_FIELDS`), so a receipt-bearing need currently yields
+   `invalid_entry` and the entry vanishes. That is why AC4's stub asserts
+   presence in `canonical.ready` *before* asserting an empty finding set: the
+   code-set half alone would pass on an entry that had disappeared.
+
+The probes were not committed.

@@ -53,3 +53,28 @@ published contract, and removing it from the RFC would need an Approver-signed
 erratum. Discovered while measuring which of three concepts spelled `outcome`
 the completion receipt should carry; recorded because that measurement is the
 only place the disagreement is visible.
+
+## `engine-cross-repo-deferral-slug-stale` — a deferral comment names a renamed slug
+
+**Owner:** RFC-0096 Wave 7b.
+
+`workspace_status_engine.py` ~:2630, in `_dependency_is_satisfied`'s cooled
+cross-repository arm, defers to `wave6-dependency-scoped-completion-receipts`.
+RFC-0096's 2026-09-01 Errata renamed that follow-on to
+`rfc0096-wave7a-ii-completion-receipts`.
+
+This delivery deliberately does **not** rename it. The comment describes
+projecting a receipt for a *cooled cross-repository brief* — a case this
+contract does not implement, since a cooled brief's body may not be opened and
+the four-field local receipt has no bearing on it. Retagging it with the slug
+this delivery closes would point a live deferral at closed work: stale on
+arrival, and worse than the current staleness because it would read as done.
+
+The same spelling also survives at
+`docs/specs/status-projection-and-context-exclusion/notes/repair-plan.md:144`
+and is asserted present at
+`tests/roster/test_status_projection_and_context_exclusion.py:400`, both inside a
+frozen spec directory. Those are history and stay.
+
+The correct repair is a slug that names the still-open cross-repository work,
+which is Wave 7b's to choose.
