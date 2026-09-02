@@ -75,11 +75,38 @@ executing = [
 ]
 ready     = []
 draft     = [
-  # Authored 2026-09-01 by `author-delivery-brief create` after the
-  # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
-  # review rounds in, on a model error no clause repair could reach. Draft only:
-  # three load-bearing unknowns are open and no slices are proposed. `continue`
-  # owns Ready after the owner closes them.
+  # Ready candidate, not sealed. `author-delivery-brief continue` closed the
+  # owner's two open questions on 2026-09-02 -- appetite, and where the
+  # pre-creation pressure test fires -- and proposed, without confirming, two
+  # initial slices: the activation measurement, appetited first and alone, then
+  # the pre-creation pressure test. No slice is confirmed and no spec is
+  # authored. Ready waits on a revision-bound clean shaping review plus the
+  # owner's explicit confirmation; the status line stays Draft until both hold.
+  # Length: 3,582 words, up from 2,868 at Draft. The owner accepted the overage
+  # at 2,969 -- recording three decisions costs more than recording them open --
+  # and review added correctness fixes on top: two missing in-scope bullets, a
+  # corrected measurement subject, and four anchors for claims that did not
+  # resolve, against trims to the rubric categories and a duplicated rabbit
+  # hole. It does not license carrying the failure-point rubric, which this
+  # brief produces rather than contains.
+  # Owed at slice confirmation, not at the seal -- both carry a round-3
+  # reviewer verdict of "does not block Ready":
+  #   1. Name the assumption that the ownership survey can ship, observably run,
+  #      and still leave recognition failing. Every kill condition in the brief
+  #      is a necessity condition; none covers "it ran and did not work". Add it
+  #      as a Risks bullet before the survey becomes a confirmed slice.
+  #   2. Apply the guide shippability test (CONVENTIONS.md "A phase whose
+  #      tooling ships without its guide is not a complete slice"). No slice
+  #      names a guides/ artifact yet; the pressure test and the step-5a
+  #      widening both change documented author-facing behaviour.
+  #   3. The routing-decision spike added 2026-09-02 reuses step 5a's SHAPE,
+  #      not step 5a. 5a is a numbered step inside new-spec (SKILL.md:475,
+  #      between steps 5 and 6) and the spike fires before new-spec is entered,
+  #      so the two cannot be the same invocation. An earlier draft of this
+  #      comment recorded them as coupled; that was wrong, and round 5 caught
+  #      it. Killing the 5a widening leaves the routing spike intact. Keep the
+  #      two bounded-evidence instruments consistent in shape when either is
+  #      specified, but do not cut them as one slice.
   # Promoted 2026-09-02 from a shaping intent of the same slug. Prevention:
   # a rubric of the criterion and task shapes that have produced findings here,
   # the authoring instructions derived from it, and a pressure test at spec
@@ -89,6 +116,13 @@ draft     = [
   # parity checks, symbol binding, and mutation proofs. Its sibling
   # agent-loop-escalation-recovery stays an intent: no defined outcome yet.
   {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on, and refuse to open one over an undefined outcome: a failure-point rubric, non-fragile AC and plan-task instructions, a pre-creation pressure test with a redirect to brief authoring, and the activation measurement that decides whether any of it can ship as written guidance", needs = []},
+  # Authored 2026-09-01 by `author-delivery-brief create` after the
+  # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
+  # review rounds in, on a model error no clause repair could reach. Draft only:
+  # appetite and the slice cut are undecided, and two bounded observations are
+  # owed before the slices that depend on them -- the brief records those two as
+  # documentation, not unknowns. `continue` owns Ready after the owner closes
+  # the two open decisions.
   {path = "docs/product/briefs/work-loop-next-action.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give a work-loop turn one authoritative next action from persisted state, and decide separately what owns stopping a non-converging authoring loop", needs = []},
 ]
 # tech-site-completion is Status: Shipped, so `ready` was an impossible

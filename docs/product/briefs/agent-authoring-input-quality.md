@@ -18,7 +18,8 @@ Two things change:
 - **Criteria and tasks stop being fragile.** A criterion states an outcome that
   can fail, once, in one place. A task says what to verify rather than spelling
   out the assertion. Review then finds defects in the subject instead of in the
-  prose about the subject.
+  prose about the subject, and over a mechanism that should exist rather than one
+  that should not.
 - **A contract is not opened over an undefined outcome.** A pressure test at
   creation asks what the work descends from and whether its unknowns are closed,
   and hands the work to brief authoring when they are not.
@@ -26,6 +27,7 @@ Two things change:
 This only **partially** prevents non-convergence, and that is deliberate. A
 better contract still gets things wrong; what a loop does on that discovery is
 [`agent-loop-escalation-recovery.md`](../intents/agent-loop-escalation-recovery.md).
+
 ## Success metrics
 
 - Review rounds on a new contract find defects in the subject rather than in the
@@ -35,6 +37,11 @@ better contract still gets things wrong; what a loop does on that discovery is
   is written, and the redirect is recorded rather than inferred.
 - Every rule this work ships can be shown to have fired at least once. A rule
   with no firing is withdrawn, not re-worded.
+- Measured by classifying a round whose findings share a premise as one finding
+  about the mechanism, not several about the criteria. The first metric cannot
+  see that failure on its own: findings over a wrong mechanism are real, about
+  the subject, and not about wording, so they score there as success.
+
 ## Scope / Non-goals
 
 **In scope**
@@ -45,12 +52,28 @@ better contract still gets things wrong; what a loop does on that discovery is
   contract was found, alongside the imitation anchors the template already asks
   for.
 - Whether a narrow delegated worker should run the ownership survey before
-  authoring, given that every worker this repository defines today is a reviewer
-  or a retriever and none runs before a spec exists — including its source
-  selection, which delegates to the existing knowledge-surface contract rather
-  than defaulting to reading the tree.
-- The activation mechanism for both, and the measurement that says whether they
-  activate.
+  authoring. Nothing narrow and read-only runs inside the delivery loop before
+  criteria exist: `implementer` follows the plan gate, and `product-engineering`'s
+  `discovery-lead` runs before a spec but supervises a whole peer loop rather
+  than performing one step. That worker's source selection would delegate to the
+  existing knowledge-surface contract rather than defaulting to reading the tree.
+- The activation mechanism for the pressure test and the ownership survey.
+- Widening `new-spec`'s existing step 5a so a criterion's satisfiability is
+  probed before the spec gate. A scope change to a rule that exists, not a new
+  artifact.
+- The consumer-side readiness check at the two handoffs the pressure test does
+  not cover: `new-spec`'s input, and a spec and plan handed to an implementer.
+  Same question, asked by whoever must do the next piece of work.
+- **The activation measurement:** whether written guidance activates in this
+  repository at all, read on artifacts an author already wrote. It is the report
+  every deliverable above waits on, and it does not depend on any of them. It
+  starts from `docs/specs/pack-activation-evals/`, which is Shipped and whose
+  Phase 3 already runs a skill on a seeded prompt and grades post-conditions the
+  runner re-derives; what it does not measure is whether an author who had a rule
+  in context then followed it. Prefer generated evals to scavenged history —
+  past review artifacts are gitignored and machine-local. Its report must say
+  which result means written guidance binds, or the appetite below cannot
+  resolve.
 
 **Non-goals**
 
@@ -58,37 +81,73 @@ better contract still gets things wrong; what a loop does on that discovery is
   linked above.
 - Rewriting the cognitive-load or cut-before-adding rules. The question is why
   they do not activate, not whether they are well written.
-- Changing what reviewers do, or how findings are adjudicated.
+- Changing the review lens itself, or how findings are adjudicated. Amended
+  2026-09-02: sequencing a readiness gate *before* review is now in scope,
+  because the gate's whole value is being ahead of the findings it prevents.
+  What a reviewer looks for once it runs, and the adjudicator's contract, stay
+  out.
+
 ## Appetite
 
-The rubric and the instructions are cheap — they are distillation of evidence
-already in this repository. The pressure test is a small gate with one open
-design question (where it fires so it cannot be discharged by filling in a
-missing field). **Activation is the expensive part, and it gates the rest**: if
-the measurement says written guidance does not bind here, the deliverable becomes
-machinery and the appetite changes.
+The activation measurement is appetited now, first and alone. **Activation is the
+expensive part, and it gates the rest**: if the measurement says written guidance
+does not bind here, the deliverable becomes machinery — and machinery leaves this
+brief until an approved amendment sets its appetite. Everything else waits for
+its report — the rubric, the pressure test, the delegation anchor, the ownership
+survey, the step-5a widening, the two further readiness checks, and, if the
+explorer is admitted, the anchoring-prose move. A half that is
+mechanical from the outset waits with them rather than exiting: the amendment
+rule is for what the measurement *converts*.
+
 ## What actually works, and what does not
 
-The load-bearing finding, and it should shape every deliverable.
+Three findings, and each should shape every deliverable.
 
-Across the eleven review rounds that produced this evidence, every mechanism that
-caught a defect **on its first run** bound the document to something outside
-itself: criterion-identifier parity between spec and plan, assumption-citation
-parity in both directions, claims bound to a live symbol table, and mutation
-proofs. The rules that lived only as prose — the cognitive-load simplification,
-the cut-before-adding razor, the observable-outcome rule — were loaded in context
-throughout and fired never.
+Across the eleven review rounds recorded at `e1bdde746` that produced this
+evidence, every mechanism that caught a defect **on its first run** bound the
+document to something outside itself: criterion-identifier parity between spec
+and plan, assumption-citation parity in both directions, claims bound to a live
+symbol table, and mutation proofs. The rules that lived only as prose were loaded
+in context throughout and fired never.
 
-So a rule's value here is not how well it is written. It is whether it binds to
-code, to a sibling document, or to a mutation.
+So a rule's value here is not how well it is written. It is whether it binds to a
+sibling document (both parity checks), to code (the symbol table), or to a
+mutation.
+
+**A fourth target is a lean, not a finding.** A measurement taken before the claim
+is committed would bind the same way, and if it does, a bounded spike belongs in
+authoring and not only in review. Nothing in the corpus above exhibits it: the one
+pre-commitment rule this repository ships is step 5a, whose firing the appetited
+measurement is what settles. Reject this without touching the three above.
+
+**The second finding: a loop can fail to converge over a wrong mechanism.** The
+review question was "is this contract correct?" when the answer needed was "is
+this the right mechanism?" Correctness review over a wrong mechanism has no
+stopping point: every defect it finds is real, and every repair adds surface to a
+design that should not exist. The exhibit is the razor bullet below — several
+rounds spent refining an inline-restatement design this repository had already
+rejected — and decisively, the attempt ended in abandonment rather than repair.
+The discriminator is not viability in the abstract. It is concrete and cheap: has
+this repository already solved this responsibility, and does the mechanism match
+it?
+
+**The third finding: a readiness gate that checks presence cannot tell whether
+the next stage can work.** The same question belongs wherever authoring hands
+off, and it is the consumer's to ask rather than the producer's to assert — is
+this brief spec-authoring ready, is `new-spec`'s input spec-authoring ready, is
+this spec and plan implementable. A developer accepting a user story already asks
+the third. The gate this brief passed asks none of them: it verifies that
+Outcome, In scope and Non-goals exist, not that an author can write from them,
+which is why every review round so far passed a brief whose own first slice was
+unwritable. Presence, not activation, one layer up.
 
 ## Why rules here do not activate
 
 Four instances, all from work in this repository.
 
-- **Cognitive-load and cut-before-adding** were routed from the root context the
-  whole time. The artifacts authored under them were long and dense with precise
-  claims — the opposite of what they ask.
+- **Cognitive-load simplification** was routed from the root context the whole
+  time. The artifacts authored under it were long and dense with precise
+  claims — the opposite of what it asks.
 - **The observable-outcome rule** says a criterion naming a helper or a call
   sequence belongs in the plan. It was read, cited to reviewers as governing
   authority, and broken repeatedly.
@@ -126,11 +185,11 @@ silently does nothing is worse than an absent one.
 Ready review decides. Recorded this way so a reviewer can disagree with the
 conclusion without re-deriving the evidence.
 
-**A dedicated worker guarantees the rule activates, and that is the case for
-one.** A rule in a template may or may not fire. A step a worker performs either
-ran or did not — observably, and not by self-report. **The invocation is the
-activation.** Any rule restatable as a delegated step becomes
-activation-guaranteed; rules that can only be prose are the hard case.
+**A worker guarantees retrieval, not recognition — and retrieval was never the
+failure.** A rule in a template may or may not fire; a step a worker performs
+either ran or did not, observably and not by self-report. That gain is real, but
+it lands on the half that already worked. Rules that can only be prose are the
+hard case.
 
 **Scope: an ownership survey before criteria are written.** It returns a
 *landscape* — what exists in the area, what each component owns, which are
@@ -156,7 +215,7 @@ then manifests, agent and skill definitions, ownership-declaring references, wit
 reading the tree as the explicit expensive floor; a spec author wants decision
 records, conventions, prior specs, distilled topics, with asking the owner as the
 floor. The *contract* for using any such surface already exists in
-`knowledge-surfaces.md` — detect by **capability rather than name**, treat
+`packs/architect/.apm/skills/architect-design/references/knowledge-surfaces.md` — detect by **capability rather than name**, treat
 retrieved context as attributed and untrusted, degrade visibly when none is
 usable. Capability-not-name admits whatever indexer an adopter has without naming
 vendors. The survey cites that contract rather than restating it. The architect
@@ -199,9 +258,9 @@ test. Two moments, so not one worker.
   already recognise precedents reliably — the known misses being unlucky rather
   than typical. Or if a knowledge surface returns ownership directly, leaving
   nothing to organise.
-- **The satisfiability probe is unnecessary if** widening the existing
-  disconfirming-evidence step actually fires. That is an activation question and
-  the same measurement answers it.
+- **The satisfiability probe is unnecessary if** the existing
+  disconfirming-evidence step actually fires today. That is an activation
+  question and the same measurement answers it.
 - **A designer agent becomes necessary only if** one of the two existing owners
   turns out not to cover its half — which would be a finding about that owner,
   not grounds for a third agent beside it.
@@ -220,14 +279,11 @@ brief carries. Its categories, in the order they matter:
    where an owner already exists. Precedes every other shape, because no
    criterion craft rescues it. Its counter-intuitive repair: shortening or
    single-homing a long restatement is the *wrong* fix.
-2. **The criterion cannot fail** — absence claims without a positive control,
-   negative paths passing on an unstubbed collaborator, bounds asserted over a
-   domain that cannot vary them, instruments blind to their own layer.
+2. **The criterion cannot fail.**
 3. **The criterion is unsatisfiable or contradicts a sibling.**
 4. **The criterion decays** — exact counts over a growing corpus, line citations
    in portable artifacts, figures derived from other figures.
-5. **The criterion is too big** — past roughly 150 words it holds several
-   contracts, and a fix in one clause silently contradicts another.
+5. **The criterion is too big.**
 6. **The property is not mechanizable** — a gate over a judgment, or an artifact
    measuring itself.
 
@@ -249,7 +305,7 @@ The abandoned spec is the demonstration: authored with no brief and no workspace
 entry, nothing objected for its whole life, and registering it mid-flight
 *satisfied* the only detector that would have flagged it.
 
-So a test at the trigger, before any body is written: is there a defined outcome
+So a test before any body is written: is there a defined outcome
 or is this still shaping; what upstream does it descend from and is that upstream
 Ready; are load-bearing unknowns still open; and if there is no upstream, is
 direct authoring justified against the durability triggers and recorded rather
@@ -257,8 +313,23 @@ than assumed. **On a gap, redirect to `author-delivery-brief create`** rather th
 refuse — an agent told no finds another route, and that skill already refuses to
 invent missing content.
 
-Open by design: whether the test can be mechanical at all, and where it fires so
-it cannot be discharged the way the registration check was.
+**The ask fires at the routing decision, before `new-spec` is entered**, and its
+answer is recorded. A gate then asserts declared shape only — a claimed upstream
+resolves to a `Ready` brief, or the direct-authoring justification is recorded —
+while a named human owns whether the answer is true. Naming an upstream cannot
+discharge it, because that upstream must exist and be `Ready`. Recording is
+presence, not activation: the activation measurement is what tells the two apart
+here. Its failure mode is that the ask never fires, leaving the gate to catch a
+claimed upstream that does not resolve but never a resolvable one nobody
+considered.
+
+**An open unknown has two dispositions, not one:** a bounded spike that closes
+it, or the redirect. The instrument has step 5a's shape — cheapest disconfirming
+evidence, uncommitted — but not its position: 5a runs inside `new-spec`, and this
+runs at the routing decision, against a risk unknown rather than a draft
+criterion. Which ran and what it returned is recorded; whether it closed the
+unknown is that same named human's call. Its failure mode is the spike that
+becomes the work — an unbounded probe is shaping under another name.
 
 ## The LLD: no change
 
@@ -277,8 +348,8 @@ evidence, one fixture or measurement or read-only probe, uncommitted — so a
 criterion making a claim about live behaviour gets its probe **before the spec
 gate**, against the criterion's satisfiability rather than the plan's mechanism.
 A scope change to a rule that exists, no new artifact, and it composes with the
-pressure test and the survey as three answers to "what must be true before
-criteria are written." No LLD change is recommended; this is answered, not open.
+pressure test and the survey as three answers to "what must be true before the
+criteria are committed at the spec gate."
 
 ## Risks
 
@@ -290,34 +361,38 @@ criteria are written." No LLD change is recommended; this is answered, not open.
   answering whether the spec was warranted. A gate at creation can fail the same
   way.
 - **The rubric grows into doctrine on one instance.** A rule was shipped from
-  this same evidence, as a minor release, and withdrawn a day later as unearned.
+  this same evidence, as a minor release, and withdrawn the same day as unearned.
   The hypothesis is recorded in `[backlog].open` with what would earn it.
+
 ## Rabbit holes
 
 - **Do not mechanize a judgment.** "Is this criterion well-founded?" is not a
   predicate. Where the same gate is defeated twice by different surfaces, split
-  it: the gate asserts declared shape and required fields, a named human owns the
-  soundness call.
+  it, as § "The pressure test at spec creation" does.
 - **Do not verify guidance by parsing the guidance.** A check that a sentence
   exists in a file proves presence, which is the thing already known.
 - **Do not let the rubric become a review checklist.** It is authoring guidance.
   Handed to reviewers it becomes a source of nits, which is the problem it exists
   to reduce.
-## Ready gaps
 
-- **No appetite is set**, and activation's answer changes it.
-- **No slices are proposed.** `continue` selects them. The retrospective
-  activation measurement is the natural first, and it can run before any of the
-  rest is designed.
-- **Where the pressure test fires is undecided**, and it is the open design
-  question that matters most — see the boundary section above.
 ## Spec map
 
-None. No slices confirmed, no spec derived.
+| Spec | Status |
+| --- | --- |
+|  |  |
+
+No slice is confirmed and no spec is authored. Two initial slices are *proposed*,
+in order: the activation measurement, then the pre-creation
+pressure test — whose gate half is mechanical by construction, while its routing
+ask is prose in a routing surface, the class this brief says does not fire. Both halves
+wait on the activation measurement, for the reason § Appetite gives. What else this brief slices into
+is not knowable before the measurement reports.
+
 ## Provenance
 
 - Source: repository origin. Distilled from this repository's memory, its
   `docs/knowledge/` topics, and one abandoned delivery attempt whose spec and
   plan are preserved at commit `e1bdde746`.
-- Promoted from a shaping intent of the same slug on 2026-09-02, which was itself
-  split out of `docs/product/briefs/work-loop-next-action.md`.
+- Promoted on 2026-09-02 from a shaping intent of the same slug, added at
+  `082285e73` and removed by that promotion; it was itself split out of
+  `docs/product/briefs/work-loop-next-action.md`.
