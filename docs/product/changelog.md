@@ -54,6 +54,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.22.1] — 2026-09-02
+
+### Highlights
+
+- **Evidence from a run now has a place to go that the approved plan does not.**
+  Once a plan is approved it is pinned, so a task that asked for its own
+  observed result to be written back into it could never be satisfied. Plans
+  now keep the obligation and a sibling verification ledger keeps the
+  observation — the mutation that was applied, the check that went red, the
+  digest that was compared. The guidance that suggested an approved plan could
+  still be reworked said so in six places; all six now agree with what the tool
+  actually enforces, and a check fails if any one of them drifts back.
+
 ## [core][2.22.0] — 2026-09-02
 
 ### Highlights
