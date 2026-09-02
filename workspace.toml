@@ -2107,7 +2107,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · composition floors shipped; seven runtime profiles remain"
+milestone = "M2 · composition floors shipped; slices 3c, 3d and 3e remain — see the brief's slice table"
 
 ["ini-009".brief_queue]
 executing = [

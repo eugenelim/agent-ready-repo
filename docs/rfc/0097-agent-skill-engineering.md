@@ -778,3 +778,91 @@ record. Corrections are appended here, Approver-signed.
   discarded on 2026-09-01 rather than shipped against a charter under
   correction.
 
+- **2026-09-02 (Approver: eugenelim) — § *D6* is narrowed in one respect only. A
+  surface's routing work — stage 3's "update maintainer and authoring guides to
+  route reusable questions to the pack" — may proceed without waiting on other
+  surfaces. Everything measured stays repository-wide: stages 1 and 2 remain
+  one-time preconditions, stage 3's task-fixture run is still measured against
+  Gate 4's aggregate and stage 4's deletions are still admitted against it, and
+  no obligation changes.**
+
+  The decision this RFC records — that duplicated explanatory practice moves to
+  the corpus while repository facts, enforcement, and adapter mechanics stay with
+  their owners — stands unchanged.
+
+  **What is narrowed.** One reading, and only one: that a surface's guidance may
+  not be routed to the pack until the earlier stages have completed *for other
+  surfaces*. Read that way, § *D6* couples unrelated surfaces to each other's
+  slowest dependency — a maintainer guide whose replacement route is ready cannot
+  be pointed at the pack because a different surface's route is not. That coupling
+  is removed, and only for that clause.
+
+  Stage 3's second clause — "run task fixtures against old and new routes" — and
+  stage 4's deletion are not narrowed. Both answer to Gate 4, which is
+  repository-wide — the fixture run is measured against it, the deletion admitted
+  against it — so a surface may be *routed* independently and is still
+  *compared and collapsed* against the whole fixture set. What changes is the unit
+  the routing work is quantified over, not any obligation, and not what Gate 4
+  requires before a deletion lands.
+
+  **Everything else § *D6* states is unchanged, without exception.** That
+  includes, and is not limited to, every obligation in each of the four stages,
+  the § *Guidance disposition* table with its columns' force intact, the
+  definition of "Collapse" and its four prohibitions, and § *Changed authoring
+  journeys*. § *D6*'s order stands both within and between its stages; a surface
+  routed early still reaches stages 3 and 4 in order. This clause is deliberately
+  universal rather than an enumeration: an enumeration can omit an obligation and
+  thereby remove it by silence, and a universal preservation cannot.
+
+  **The self-host precondition is retained, not removed.** § *D6*:418, the
+  matching statement in § *Reviewer brief*:18, and the sequence described in the
+  planned architecture document all continue to require the pack to be installed
+  in this repository's self-hosted projections before any duplicated guidance is
+  deleted. That requirement is independently implied: stage 4 admits deletion only
+  where parity evidence exists, and § *Experiment / validation*'s Gate 4 measures
+  parity with cold-agent fixtures run in this repository, which cannot reach a
+  replacement route that is not installed. What those statements no longer carry
+  is a cross-surface gate.
+
+  **The relief is sequencing, not gate satisfaction — and that limit is real.**
+  Gate 4 remains a repository-wide instrument: it records one baseline before
+  migration. At § *Experiment / validation*:603 it states: "**Success:** Every
+  post-migration fixture satisfies all baseline checklist items with no new
+  predeclared critical error; always-loaded guidance lines decrease; no
+  executable enforcement or repository fact moves from its owner; and the median
+  bytes loaded across the fixed fixtures is lower than the baseline handbook
+  path." That condition is conjunctive and aggregate. Those aggregates are
+  unchanged and not re-scoped per surface. There is one baseline and one
+  anchor for it: the recording § *Experiment / validation*:602 requires "before
+  migration", taken before any stage-3 routing changes what it measures. It is
+  not re-recorded as routing or collapses accumulate.
+
+  That measurement unit does not alter the consequence of failure, and the two
+  are not the same scope. Gate 4 at § *Experiment / validation*:605 blocks only
+  the affected guidance deletion or footprint collapse, rather than the pack
+  release or another gate's milestone. A per-surface blast radius and a
+  repository-wide measurement coexist, and this erratum changes neither.
+
+  That limit is stated explicitly because leaving it implicit is what made an
+  earlier draft of this erratum overstate: a single surface's collapse generally
+  cannot discharge Gate 4 on its own. Collapsing only maintainer guides moves no
+  always-loaded lines, and improving one of six fixtures need not move their
+  median. Surfaces may therefore reach stage 4 independently, but the deletions
+  they authorise are admitted against the aggregate gate — in practice together,
+  or once the aggregate can register the change. Creating a per-surface parity
+  instrument, or re-scoping :603's aggregates to the affected fixtures, would be a
+  new decision and is **not** made here.
+
+  This narrowing does not make Gate 4 advisory, shorten its fixture set, or permit
+  deleting guidance whose replacement route is absent, untested, or unmeasured.
+  § *Risks*' "Self-host collapse removes essential always-on guidance" row and its
+  mitigation stand, as does
+  [INI-009](../product/initiatives/ini-009-agent-skill-engineering.md)'s rule that
+  footprint deletion is gated by cold-agent task parity and retrieval
+  measurements.
+
+  **Retroactive effect: none.** No shipped slice relied on the narrowed reading:
+  the foundation, corpus, languages-and-execution and composition-floors slices
+  reference § *D6* nowhere, delete no guidance, and collapse nothing. Which slice
+  discharges which stage obligation is recorded in the delivery brief and in
+  INI-009, not here.
