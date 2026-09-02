@@ -481,11 +481,30 @@ platform is present in an adopter's environment without this brief naming
 vendors it cannot verify, and it degrades to file reading as the floor rather
 than as the plan.
 
-So the survey delegates its source selection to that contract instead of
-restating it — which is this brief applying its own rule to itself, to the same
-file whose delegation form started this. What the survey adds on top is only what
-that contract does not cover: what to inventory, how to organise it by owner, and
-what to report per component.
+**The surface set is role-scoped, and the roles here want different things.** An
+ownership survey and a spec author are asking different questions, so they should
+not consult the same ranked list:
+
+| Role | Question | Surfaces, in priority order | Floor when none is usable |
+| --- | --- | --- | --- |
+| Ownership survey, pre-authoring | What exists here and who owns it | A code index or codebase model; module and pack manifests; agent and skill definitions; reference docs that *declare* ownership; architecture docs | Read the tree — expensive, and explicitly the floor |
+| Spec author | What has already been ruled on, and what constrains me | Decision records; conventions; prior specs in the area; distilled knowledge topics | Ask the owner — which is the pressure test's redirect |
+
+The architect pack is the precedent and also the warning. It ships **three**
+`knowledge-surfaces.md` files, one per skill, each role-scoped — so per-role
+surface sets are established practice. But two of the three open with the same
+sentence, duplicating the common half. Copying that shape naively would
+re-acquire the restatement problem this brief exists to name.
+
+So the recommendation improves on the precedent rather than following it: **one
+owned contract for the common part** — detect by capability, treat retrieved
+context as attributed and untrusted, degrade visibly — **plus a per-role surface
+set and floor** that cites it. That is the delegation form applied properly, and
+it is what the architect pack nearly does.
+
+What the survey adds on top of the common contract is only what the contract does
+not cover: which surfaces in which order for this role, what to inventory, how to
+organise it by owner, and what to report per component.
 
 **What is unknown.** Whether a forwards-looking ownership search is reliable
 enough to trust, and what it costs per spec. Both are answerable with a cheap
