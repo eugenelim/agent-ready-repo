@@ -67,7 +67,12 @@ mutation-table row rather than a task's Done-when.
 | `local-gate-ci-parity` | 275 | plan `## Changelog` and the PR description | plan Changelog |
 | `workspace-backlog-reconciliation` | 42 | "its output recorded here" | command output |
 
-**6 of 376 pre-existing plans, 7 task-level sites.** This excludes this
+**6 of 376 pre-existing plans, 8 obligation sites.** Seven of the eight are a
+task's `Done when:` statement; the eighth, `cooling-scope-closure:136`, states
+the obligation in a mutation-table row instead, which is why Instrument B —
+which parses only `Done when:` — cannot see it. An earlier draft of this note
+said "7 task-level sites", counting only the Done-whens while the table listed
+all eight; the table is right and the unit was unstated. This excludes this
 delivery's plan from both numerator and denominator.
 
 ## What the distribution changes
@@ -89,6 +94,52 @@ Two consequences for the contract:
    corpus frequency.
 2. The template's `## Changelog` instruction is phase-scoped to `Drafting`,
    because it is the single most common source of the defect.
+
+## How AC3's closed set was established
+
+AC3 claims its six-source set is closed. That claim is measured, not asserted.
+The boundary is stated in the repository in **two different vocabularies**, so
+one sweep alone under-counts:
+
+**Sweep 1 — the licence vocabulary.** Alternate on "Drafting` or `Executing"
+and "allowed to change as you learn", over `--include="*.md"` in `packs/`,
+`guides/` and the root:
+
+```
+grep -rn 'Drafting` or `Executing\|allowed to change as you learn' --include="*.md" packs/ guides/ *.md
+```
+
+Files: the convention seed twice (§ *A spec directory freezes as a unit* and
+§ 4), the new-plan template, and
+`guides/core/explanation/why-the-plan-owns-the-lld.md`.
+
+**Sweep 2 — the pinned/exempt vocabulary.** Alternate on "normalized out",
+"normalised out", "stays pinned", "immutable in substance", "bookkeeping is
+exempt" and "substantive edit", over the same trees:
+
+```
+grep -rlniE "normalized out|normalised out|stays pinned|immutable in substance|bookkeeping is exempt|substantive edit" --include="*.md" packs/ guides/ docs/CONVENTIONS.md *.md
+```
+
+Files: `guides/core/how-to/plan-and-execute-non-trivial-work.md`,
+`references/pre-execute-review.md`, `references/state-schema.md`.
+
+Union: **six existing files**, plus `references/delivery-contract-lifecycle.md`
+which newly states it. AC3's six rule-bearing members cover all of these except
+the how-to, whose two clauses carry their own mutations, and
+`work-loop/SKILL.md`, which is verified as a pointer only.
+
+Excluded, with reason:
+
+- The three `**/references/agentbundle-layout.md` copies match the second sweep
+  on "stays pinned", but that phrase describes a **path** (`briefs` stays
+  pinned at `docs/product/briefs/`), not the plan hash. Not boundary surfaces.
+- The nine `packs/core/tests/skills/work-loop/fixtures/corpus/*/plan.md`
+  matches are frozen historical fixtures, not guidance.
+
+Searching only the licence phrasing would have missed `state-schema.md`, which
+is the most precise statement of the boundary in the repository — and which
+review round 3 caught as the sixth source for exactly that reason.
 
 ## False-positive warning for a later reader
 
