@@ -31,7 +31,8 @@ The second defect reached `origin/main` in PR #1210, which merged during the
 review round. The repair for it on this branch — `fix(core)!: consume
 reconciliation's cooled verdict in closeout`, `5463ff3ee` at the time of
 writing — added no test: it was verified by a manual probe that was never
-committed as a guard. That is the gap AC34 and AC35 close.
+committed as a guard. AC34 and AC35 close two of the classes that gap covers;
+a third is registered rather than contracted, below.
 
 ### Measured differential
 
@@ -48,10 +49,23 @@ Both trees run their own `workspace-status` against identical fixtures: one
 | legacy `spec/<slug>`, uncooled | `settle-closeout-blockers` | `settle-closeout-blockers` |
 | bare slug + record | **`invoke-close-work`, `all_specs_shipped=true`** | `settle-closeout-blockers`, `false` |
 
-Four classes agree; the divergence is confined to the bare slug the canonical
-layer refuses to model at all (`unsupported_legacy`). On `origin/main` an
-initiative whose last queue item is such an entry reports every spec shipped and
-is offered closeout, while reconciliation reports the item unrouted.
+The five rows are three entry classes crossed with cooled/uncooled, not five
+classes. Of the three measured, two agree across both trees; the divergence is
+confined to the bare slug the canonical layer refuses to model at all
+(`unsupported_legacy`). On `origin/main` an initiative whose last queue item is
+such an entry reports every spec shipped and is offered closeout, while
+reconciliation reports the item unrouted.
+
+A fourth class was not measured here and is not closed by this amendment: a
+canonical entry of a non-spec `kind` whose `path` collides with the stored form
+of a legacy entry. Because `parse_workspace_entry` shape-constrains `path` only
+for `kind = "spec"` and `kind = "brief"`, and the closeout seam transports its
+verdict as a raw path string rather than entry identity, the cooled legacy entry
+drags the uncooled one out of the closeout count. Review measured it on this tree
+with both controls. It is registered as
+`closeout-cooled-exclusion-keys-on-a-raw-path-string` in `[backlog].open` rather
+than contracted, because the fix changes what the seam carries and is not a
+contract edit alone.
 
 ### Exposure
 
@@ -59,3 +73,9 @@ The defect needs a cooled bare-slug `work.*` entry. This repository has neither
 precondition today: `docs/lifecycle/` holds only `README.md` (zero cooling
 records), and no `work.*` collection holds a string-form entry. The repair
 therefore ships with its guard on the ordinary path rather than as a hotfix.
+
+The fourth class registered above shares both preconditions and adds a third —
+two `work.*` entries of one initiative sharing a raw path string, of which this
+repository has none. It is deferred on measured reachability, not on judgement,
+and it grants no privilege: anyone who can add the colliding entry can already
+delete the entry it hides.

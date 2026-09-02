@@ -230,11 +230,12 @@ a green for the wrong reason.
   it, produces an `unsupported_legacy` finding at `canonical.findings`, reports
   `closeout.all_specs_shipped` `false` and that initiative's
   `initiatives[].queue_empty` `false`, and does not report
-  `closeout.next_action` `invoke-close-work`. Replacing only that entry with its
-  canonical `docs/specs/<slug>/spec.md` form, over the same record, reports
-  `all_specs_shipped` `true` — the positive control proving the record does cool
-  that artifact, so the negative result is the refusal to model the entry and not
-  an empty cooled set.
+  `closeout.next_action` `invoke-close-work`. Replacing only that entry with a
+  canonical target-table entry for the same artifact, over the same record,
+  reports `all_specs_shipped` `true`, and that replacement fixture with
+  `docs/lifecycle/` removed reports `all_specs_shipped` `false`. The pair is the
+  control: together they attribute the exclusion to the record rather than to
+  the entry's shape, so the criterion cannot pass over an empty cooled set.
 
 ### The retired Wave 6 pin
 
@@ -368,13 +369,18 @@ a green for the wrong reason.
   without being cross-checked against the artifact it names.
 - [ ] **AC31 — The release surface agrees.** `packs/core/pack.toml`'s version,
   `packs/core/.claude-plugin/plugin.json`'s `version`, and the `[core]`
-  changelog heading that stands topmost in the file — which carries a date —
-  are one identical value whose parsed
+  changelog heading that stands topmost in the file are one identical value
+  whose parsed
   `(major, minor, patch)` tuple is strictly greater than `(2, 19, 0)` — the
   version `origin/main` carries at this contract's approval, not the merge base
   it was first drafted against. The release checklist re-derives the number from
   `git show origin/main:packs/core/pack.toml` immediately before the commit,
-  because a fixed floor cannot see a version main takes after approval.
+  because a fixed floor cannot see a version main takes after approval, and
+  the recorded floor is that re-derivation's input rather than the gate. A
+  topmost `[core]` heading carrying no date fails this criterion; a dated
+  heading below it does not satisfy it. The topmost heading is the first line
+  matching `^## \[core\]\[`, whose date may stand anywhere in that line, so a
+  heading naming a second artifact before the date is still selected.
 
 ## Follow-ons
 
