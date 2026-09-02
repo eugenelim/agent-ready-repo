@@ -6,9 +6,11 @@ sealed-baseline replacement and the measured evidence that made it necessary.
 
 ## Owner approval
 
-The scope owner approved the amendment on 2026-09-02, after reviewing the
-proposed AC34–AC37 delta, the new plan task T9, the transition sequence, and the
-cost (two further human gates, a fresh spec-stage review, and a re-seal). The
+The scope owner approved the amendment on 2026-09-01, after reviewing the
+proposed delta, the new plan task T9, the transition sequence, and the cost (two
+further human gates, a fresh spec-stage review, and a re-seal). Review then
+withdrew two of the four proposed criteria; the owner approved the narrowed
+delta — AC34 and AC35, with AC31 amended in place — the same day. The
 owner separately directed that the entry-class defect be repaired within this
 delivery rather than deferred, since the amendment already reopens the seam.
 
@@ -26,9 +28,10 @@ shape a `work.*` collection accepts. Two successive defects passed all 33 green
 criteria in that same blind spot.
 
 The second defect reached `origin/main` in PR #1210, which merged during the
-review round. The repair for it on this branch added no test: it was verified by
-a manual probe that was never committed as a guard. That is the gap AC34–AC36
-close.
+review round. The repair for it on this branch — `fix(core)!: consume
+reconciliation's cooled verdict in closeout`, `5463ff3ee` at the time of
+writing — added no test: it was verified by a manual probe that was never
+committed as a guard. That is the gap AC34 and AC35 close.
 
 ### Measured differential
 

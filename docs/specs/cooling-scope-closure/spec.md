@@ -34,8 +34,9 @@ does not model and which this delivery preserves rather than replaces.
 One diagnosis gap is accepted rather than closed. When the cooled reading is
 incomplete because a record's review date could not be judged, the run withholds
 closeout without naming the record that caused it: that path emits no finding,
-and every way of naming it is closed to this delivery — a new finding code is a
-`Never do`, and adding a key to `cooling` or `closeout` is `Ask first`. The
+and this delivery names it nowhere. A new finding code is a `Never do`, so that
+route is closed; adding a key to `cooling` or `closeout` is `Ask first`, a
+question this delivery declined to put rather than a route ruled out. The
 maintainer's recourse is `close-work`'s own retrieval. The gap predates this
 delivery, which only promoted an existing flag to a blocker.
 
@@ -216,6 +217,24 @@ a green for the wrong reason.
   `closeout` block is present with `paused` `true` and `next_action`
   `resume-or-keep-paused`, and `initiatives[]` carries no entry for that
   initiative.
+- [ ] **AC34 — A cooled legacy-shaped queue entry is excluded from both
+  consumers.** An initiative whose only `work.queue` entry is the bare string
+  `spec/<slug>`, where `docs/specs/<slug>/spec.md` exists and a lifecycle record
+  names it, reports `closeout.all_specs_shipped` `true` and that initiative's
+  `initiatives[].queue_empty` `true`. The identical fixture with no lifecycle
+  record reports both `false`, so the criterion fails on an implementation that
+  excludes the entry unconditionally as well as on one that never excludes it.
+- [ ] **AC35 — An entry the canonical layer refuses to model is not excluded.**
+  An initiative whose only `work.queue` entry is a bare slug carrying no `spec/`
+  prefix, where `docs/specs/<slug>/spec.md` exists and a lifecycle record names
+  it, produces an `unsupported_legacy` finding at `canonical.findings`, reports
+  `closeout.all_specs_shipped` `false` and that initiative's
+  `initiatives[].queue_empty` `false`, and does not report
+  `closeout.next_action` `invoke-close-work`. Replacing only that entry with its
+  canonical `docs/specs/<slug>/spec.md` form, over the same record, reports
+  `all_specs_shipped` `true` — the positive control proving the record does cool
+  that artifact, so the negative result is the refusal to model the entry and not
+  an empty cooled set.
 
 ### The retired Wave 6 pin
 
@@ -348,39 +367,14 @@ a green for the wrong reason.
   reads cleanly moves an initiative toward an affirmative closeout recommendation
   without being cross-checked against the artifact it names.
 - [ ] **AC31 — The release surface agrees.** `packs/core/pack.toml`'s version,
-  `packs/core/.claude-plugin/plugin.json`'s `version`, and the topmost dated
-  `[core]` changelog heading are one identical value whose parsed
+  `packs/core/.claude-plugin/plugin.json`'s `version`, and the `[core]`
+  changelog heading that stands topmost in the file — which carries a date —
+  are one identical value whose parsed
   `(major, minor, patch)` tuple is strictly greater than `(2, 19, 0)` — the
   version `origin/main` carries at this contract's approval, not the merge base
   it was first drafted against. The release checklist re-derives the number from
   `git show origin/main:packs/core/pack.toml` immediately before the commit,
   because a fixed floor cannot see a version main takes after approval.
-
-- [ ] **AC34 — A cooled legacy-shaped queue entry is excluded from both
-  consumers.** An initiative whose only `work.queue` entry is the bare string
-  `spec/<slug>`, with a lifecycle record naming `docs/specs/<slug>/spec.md`,
-  reports `closeout.all_specs_shipped` `true` and that initiative's
-  `initiatives[].queue_empty` `true`. The identical fixture with no lifecycle
-  record reports both `false`, so the criterion fails on an implementation that
-  excludes the entry unconditionally as well as on one that never excludes it.
-- [ ] **AC35 — An entry the canonical layer refuses to model is not excluded.**
-  An initiative whose only `work.queue` entry is a bare slug carrying no `spec/`
-  prefix, with a lifecycle record naming the `docs/specs/<slug>/spec.md` that
-  slug would resolve to, produces an `unsupported_legacy` finding at
-  `canonical.findings`, reports `closeout.all_specs_shipped` `false` and that
-  initiative's `initiatives[].queue_empty` `false`, and does not report
-  `closeout.next_action` `invoke-close-work`. Closeout never offers to close an
-  initiative whose remaining work reconciliation declines to route.
-- [ ] **AC36 — Closeout's cooled verdict is reconciliation's.** For every
-  `work.*` entry in a workspace, the paths the closeout derivation excludes are
-  exactly the memberships the canonical layer reports as cooled. The criterion
-  compares the two verdicts directly rather than re-checking either against a
-  fixture expectation, so it fails whenever an entry class is excluded by one
-  layer and counted by the other — including a class no fixture enumerates.
-- [ ] **AC37 — The release assertion binds to the topmost heading.** AC31's
-  dated-heading check reads the topmost `[core]` changelog heading and fails when
-  that heading carries no date. A dated heading further down the file does not
-  satisfy it.
 
 ## Follow-ons
 
