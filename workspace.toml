@@ -172,6 +172,10 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
+  # RFC-0096 Wave 7a-ii. Registering this withdraws ini-002's closeout
+  # eligibility until it ships, which is the truthful state: the 2026-09-01
+  # erratum leaves three Wave 7 slices open.
+  {path = "docs/specs/dependency-scoped-completion-receipts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Project the dependency-scoped four-field completion receipt from the citing local need, so a dependant on a closed-out and pruned delivery resolves instead of reporting missing_dependency", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/status-projection-and-context-exclusion/spec.md"}]},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -232,6 +236,7 @@ backlog = []
 [backlog]
 open = [
   {path = "docs/specs/cooling-scope-closure/notes/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Nine findings that survived adjudication across three review rounds on the withdrawn cooling-scope-closure amendment, each carrying what was measured: the missing entry-class criteria, the raw-path-string closeout seam, AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships, the unpinned alias axis, a withheld closeout that cannot name its record, and cooling.load_record reporting a missing confinement helper as an invalid record", needs = []},
+  {path = "docs/specs/dependency-scoped-completion-receipts/notes/follow-ons.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two follow-ons discovered while building the completion receipt, registered here because RFC-0096's Errata is Approver-signed and predates them: a lifecycle record cannot state that an artifact's workspace entry was removed, so a correct prune and a file deleted with its entry orphaned are indistinguishable; and RFC-0096 section 5 lists Reclassified as a post-closeout state while delivery-lifecycle-record.schema.json publishes four values without it", needs = []},
   # Surfaced 2026-08-29 by the security review of spec-dir confinement (PR #1156).
   # loop-cohort and loop-engine both canonicalize a --spec-dir and check it is
   # under the repo root BEFORE using it, but nothing binds the later file
