@@ -21,7 +21,7 @@ transcribed, so it cannot drift from the state machine it describes.
 artifact notice when a review loop was not converging, and failed partly by
 assuming one thing could do both. Detecting and responding to non-convergence is
 a separate, and much less settled, problem: it is shaped at
-[`docs/product/intents/agent-loop-non-convergence.md`](../intents/agent-loop-non-convergence.md),
+[`agent-authoring-input-quality.md`](../intents/agent-authoring-input-quality.md) and [`agent-loop-escalation-recovery.md`](../intents/agent-loop-escalation-recovery.md),
 where the response is still competing hypotheses rather than a decision. Nothing
 in this brief waits on it.
 
@@ -33,7 +33,9 @@ in this brief waits on it.
   for every state the loop can be in — checked by comparing both, not by
   asserting it.
 - No component gains the ability to declare a review clean that could not
-  previously do so.
+  previously do so — checked by enumerating who can emit that event before and
+  after, not by asserting the absence. An absence with nothing to compare it
+  against is the shape that passes while the control is missing.
 
 ## Scope / Non-goals
 
@@ -51,7 +53,7 @@ in this brief waits on it.
 - Reducing the always-loaded instruction surface. That depends on this outcome
   and is separate work.
 - Rewriting the review protocol's artifact conventions.
-- Detecting or responding to a non-converging review loop. Separate shaping item,
+- Detecting or responding to a non-converging review loop. Separate shaping items,
   linked above. This brief must not acquire a claim about review passes the loop
   did not record — that assumption is what ended the prior attempt.
 
@@ -77,9 +79,10 @@ because re-deriving them would cost rounds.
 The process-wide claim is rejected. "Opens nothing else" is neither truthful nor
 useful: a cold process executing the loop's guard module opens many files beyond
 any set a contract would name, all of them interpreter and standard-library
-loading, and the natural instrument sees none of them under a test runner. The
-count is deliberately not stated — it moved by a factor of three between a warm
-and a cold measurement, and it varies with the interpreter.
+loading, and the natural instrument sees none of them under a test runner. No
+count is stated here, including a comparative one: the figure moved between a
+warm and a cold measurement of the same code, and it varies with the
+interpreter.
 
 Two invariants replace it:
 
@@ -91,8 +94,12 @@ Two invariants replace it:
 > readers. Interpreter imports, standard-library loading, and repository-root
 > discovery are outside this claim.
 
-"Application-directed" is to be defined mechanically — by call origin or by target
-derivation — not by an informal exemption list. Verification must:
+"Application-directed" needs a mechanical definition — call origin or target
+derivation are the two candidates — rather than an informal exemption list. That
+it *can* be defined mechanically is unproven, and proving it is part of the work:
+if two attempts at the predicate are each defeated by a different surface, the
+property is a judgment and the response is to split it, not to widen the
+definition a third time. Verification must:
 
 - bootstrap all imports **before** starting the application-I/O trace;
 - trace opens, stats, enumeration, and symlink resolution **separately**;
@@ -203,6 +210,12 @@ Not process boilerplate — these are the three habits that produced the failure
   a decision, do not state it. Where it does, name its oracle and expect to
   re-measure it. Two figures in this brief's own first draft moved within a day.
 
+A rubric of the specific shapes that have produced findings in this repository —
+criteria that cannot fail, that are unsatisfiable, that decay, that are too big,
+and that are not mechanizable at all — is in the authoring-quality shaping item
+linked above, together with what to write instead of each. Read it before
+authoring criteria, not after a reviewer cites one.
+
 **These three habits are themselves rules, and rules here have a track record of
 not activating.** The cognitive-load simplification and the cut-before-adding
 razor were both in the authoring agent's context throughout the abandoned
@@ -215,7 +228,7 @@ Whoever authors from this brief should assume the same of the three habits above
 state them, and then find the point in the loop where something actually changes
 if they are ignored. If this work adds any guidance of its own, it ships with an
 activation point and a way to tell activation from presence, or it does not ship.
-The general problem is shaped in the non-convergence item linked above.
+The general problem is shaped in the authoring-quality item linked above.
 
 ## Decision authority
 
@@ -224,7 +237,7 @@ The general problem is shaped in the non-convergence item linked above.
   favoured the former; it was taken against an abandoned draft and should be
   re-confirmed at the Ready review rather than inherited.
 - Anything about detecting or responding to non-convergence is decided in the
-  shaping item, not here. If a Ready review finds itself ruling on that, the
+  shaping items, not here. If a Ready review finds itself ruling on that, the
   split has leaked and the ruling belongs on the other side of it.
 
 ## Ready gaps

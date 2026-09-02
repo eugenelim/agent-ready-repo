@@ -45,14 +45,20 @@ parent    = "INI-001"
 ["ini-002".shaping_queue]
 active  = []
 backlog = [
-  # Raised 2026-09-02, split out of the work-loop-next-action brief. Outcome is
-  # NOT defined: detecting a non-converging review loop is close to free, but
-  # deciding what to do about it is unsolved and carries six competing
-  # hypotheses. Kept out of the delivery brief so the tractable reporting half
-  # does not wait on an open problem -- bundling those two is what the abandoned
-  # spec did. Several hypotheses are measurable against review artifacts already
-  # on disk from past loops, so the first spikes are retrospective.
-  {path = "docs/product/intents/agent-loop-non-convergence.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Shape how an agent loop responds once it detects it is not converging: detection is cheap and shippable alone, the response is six competing hypotheses (round cap, finding-composition signal, repair-size bound, artifact split, escalating the review question, oracle-first authoring) needing spikes before any contract", needs = []},
+  # Raised 2026-09-02, split out of the work-loop-next-action brief and then
+  # split again: prevention and escalation are different flavours of work.
+  # `shape` -- designable now against evidence already in the repository. Carries
+  # the failure-point rubric, the AC and plan-task instructions, and the
+  # pre-creation pressure test that redirects to author-delivery-brief on a gap.
+  # Only PARTIALLY solves non-convergence, deliberately: a better contract still
+  # gets things wrong, and its sibling owns what happens then.
+  {path = "docs/product/intents/agent-authoring-input-quality.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make authored specs and plans good enough that a review loop has less to find, and refuse to open one over an undefined outcome: a rubric of the criterion shapes that have produced findings here, authoring instructions for ACs and tasks, and a pressure test at spec creation that redirects to brief authoring when the upstream is missing or unready", needs = []},
+  # `research` -- outcome NOT defined. What a loop does when it discovers the
+  # artifact above it is wrong, at any phase, and which level it returns to.
+  # Six competing hypotheses; two are measurable retrospectively against review
+  # artifacts already on disk, so the first spikes are cheap. Blocked on nothing,
+  # and its detection half can ship alone.
+  {path = "docs/product/intents/agent-loop-escalation-recovery.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Decide what a work-loop does when PLAN, EXECUTE, GATES, or REVIEW discovers the contract above it is wrong -- which artifact level to return to and on what signal, against six competing hypotheses none of which is validated, plus the detection half that is small enough to ship on its own", needs = [{type = "local", kind = "intent", path = "docs/product/intents/agent-authoring-input-quality.md"}]},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   {path = "docs/product/intents/ini-002-initiative-brief.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reconcile Platform Core's accepted proposal, shipped milestones, and remaining adoption work into one living initiative brief", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-place-bet/spec.md"}]},
