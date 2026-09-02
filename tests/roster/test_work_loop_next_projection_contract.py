@@ -329,6 +329,39 @@ def test_every_assumption_a_criterion_cites_actually_exists() -> None:
     assert declared, "no identified assumptions parsed — the citation check would be vacuous"
 
 
+def test_the_guard_facts_a3_and_a4_rest_on_still_hold() -> None:
+    """Bind the symbol-level claims, because the citation check binds only names.
+
+    A3 was inverted for a full round -- it said the engine independently refuses
+    the clean event at the cap -- and the identifier check above would not have
+    noticed, because the identifier was present and cited the whole time. That
+    matters more than a documentation slip: an inverted A3 is an argument for
+    weakening AC10a, which is the projection's only false-clean backstop.
+
+    Scope is deliberate. Only the facts that are symbol-level and that a
+    criterion depends on are asserted here; A4's "no hash comparison" and A5's
+    loader behaviours are natural-language predicates over function bodies with
+    no mechanical seam, and pinning prose for them would be the general
+    non-contradiction check this module already declines to write.
+    """
+    guards = _load_engine()._GUARDS
+    assert ("spec-plan", "reviewers-clean") not in guards, (
+        "A3 says spec-plan's clean edge is unguarded, so AC10a is its only backstop; "
+        "a guard now exists and A3's grounding is stale"
+    )
+    assert guards.get(("code", "reviewers-clean")).__name__ == (
+        "_guard_check_spec_status_on_code_review"
+    ), "A3 says code's clean edge carries only a Status-token check"
+    for mode in ("code", "spec-plan"):
+        assert guards.get((mode, "findings-remain")).__name__ == "_guard_check_phase_review", (
+            f"A3 places the cap-consulting guard on {mode}'s findings-remain, not on its clean edge"
+        )
+    assert not any(event == "spec-ready" for _, event in guards), (
+        "A4 says nothing guards spec-ready, which is why the Draft reset AC11c pins "
+        "is the whole of the mitigation"
+    )
+
+
 def test_the_assumption_citation_check_can_fail() -> None:
     """Prove both directions redden, since the check above is green by design."""
     dangling = "A criterion citing **A99**.\n## Assumptions\n- Technical (**A1**): body\n"

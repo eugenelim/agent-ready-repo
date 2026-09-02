@@ -13,7 +13,7 @@
     through at `:964-966`. Tests: `test_loop_engine.py:1037`
     (`test_status_json_after_init`).
   - Analogous implementation 2 — id-keyed idempotency with form validation:
-    `loop-cohort.py:1540` (`cmd_record_attempt`), form check at `:1557-1558`.
+    `loop-cohort.py:1542` (`cmd_record_attempt`), form check at `:1559-1560`.
     This is the shipped precedent for the `run_id` and `cycle_id` form checks,
     not code this plan changes.
   - Analogous implementation 3 — bounded, confined artifact reading and reason
@@ -135,7 +135,7 @@ rather than answer from state that is mid-write.
 | Current architecture — `loop-infrastructure.md` | T9 | Entrypoint section names the verb as read-only | Doc matches the shipped verb set |
 | Current product truth — the skill payload | T1, T4, T8, T12 | `make build-self-dry-run` clean | Source edited, projections regenerated |
 | User-facing promise — the core how-to | T10 | Adopter description of resuming through the verb | Guide describes shipped behavior |
-| Operations — the QA transcripts | T11 | Two transcripts at `notes/qa-transcripts.md` | Both committed with their scope boundary |
+| Operations — the QA transcripts | T11 | Two transcripts, one per file, at `notes/qa-transcript-{1,2}.md` | Both committed with their scope boundary |
 | Release history — the changelog | T12 | Free-standing dated entry with `### Highlights` | Entry at top level; highlights projection regenerated |
 | Reusable learning | T12 | `project-knowledge` receipt or recorded unavailability | Receipt recorded or unavailability named |
 
@@ -238,12 +238,20 @@ None added. Both suites already run in `make test`.
   (the exit convention).
 - Every interpolated external scalar is capped and delimited, and the whole reason
   is capped, at the guard module's existing bounds; a planted oversized `run_id`
-  reaches stderr truncated and quoted (AC14).
+  reaches stderr truncated and marked (AC14).
+- A control sequence planted in a state-file value reaches stderr escaped, not
+  verbatim, at a **zero-exit** row: P7's `run_id` and P8's `(state,
+  last_event)` pair do not travel the non-zero refusal path AC14's bound reuses
+  (AC14a). Mechanism: route both zero-exit reasons through the same shared
+  neutralisation the guard module already applies, rather than escaping per
+  call site.
 - `--json` is required: the verb invoked without it exits non-zero and writes
   nothing to stdout, so no second output form exists (AC7, second half).
 - The subparser is registered beside the four existing verbs (AC21).
 - Mutation proofs: routing one reason to stdout reddens the channel case; removing
-  the cap, and removing the delimiters, each redden an AC14 case.
+  the cap, and removing the marker, each redden an AC14 case; removing the
+  escaping reddens AC14a while leaving every AC14 case green, which is the pair
+  that shows length and neutralisation are not the same control.
 - `stub: true` — one compilable red assertion that the verb exits 0 and prints
   parseable JSON for a freshly initialised `code`-mode run.
 
@@ -611,7 +619,11 @@ now run, rather than appending the new one beside the old.
   resume, confirm a correct next action with no double increment.
 - Both transcripts state what the sessions do not exercise (AC24).
 
-**Approach:** write both to `notes/qa-transcripts.md`. Use a throwaway spec
+**Approach:** write each run to its own file, `notes/qa-transcript-1.md` and
+`notes/qa-transcript-2.md`. One file per transcript is required, not
+cosmetic: Half A scans below a transcript's header, so two transcripts in one
+file would put the second's recorded needle literals inside the first's scan
+region and match `/Users/` every time. Use a throwaway spec
 directory, remove it afterwards, and confirm `git status` is clean. Write
 repository-relative paths only; the privacy convention forbids committing
 user-specific filesystem paths, and the verb's own stderr interpolates absolute
@@ -636,7 +648,7 @@ fan-out paths are covered by unit cases and are not exercised here.
   no outcome line, fails Half B.
 
 **Done when:** both transcripts are committed with their scope boundary stated,
-each carrying Half A's recorded needle set and Half B's outcome line, and neither
+each in its own file, carrying Half A's recorded needle set and Half B's outcome line naming the command run, and neither
 carrying an account name, hostname, or organisation domain anywhere.
 
 ### T12: the release surface is consistent
@@ -645,13 +657,16 @@ carrying an account name, hostname, or organisation domain anywhere.
 
 **Tests:** goal-based.
 - A free-standing dated entry at `##` with a `### Highlights` block, and both
-  version files reading the same value one minor above the base branch's (AC25).
+  version files reading the same value, computed by AC25's formula. AC25 is the
+  single home of that formula; this task reads it rather than restating it,
+  because the origin is *this branch's* highest released `core` version and not
+  the base branch's — the branch already carries one unrelated release (AC25).
 - The drift gate reports no drift and the highlights projection matches the entry
   (AC26).
 
-**Approach:** diff the version against the base branch before committing;
-regenerate both projections rather than editing either; run the gate chain with a
-clean build directory.
+**Approach:** compute the version by AC25's formula, reading the origin it
+names rather than diffing against the base branch; regenerate both projections
+rather than editing either; run the gate chain with a clean build directory.
 
 **Done when:** versions agree, the entry sits at top level, and both projections
 are regenerated.
@@ -705,8 +720,10 @@ are regenerated.
 - **The projection answers from mid-write state.** T6 detects both crash artifacts
   by presence and stops. The residual torn two-file read is accepted and recorded
   in the spec's Assumptions.
-- **A peer worktree takes the version.** Re-checked against the base before
-  commit.
+- **A peer worktree takes the version.** Recomputed by AC25's formula
+  immediately before commit. This already fired once: main released `core`
+  2.21.0 while this branch held the same number, and the version files
+  auto-merged because both sides wrote identical text.
 - **A peer session is editing the same skill tree.** Re-checked before T8.
 - **Concurrent gate runs void results.** Gates run serialized and never while a
   worker is editing.

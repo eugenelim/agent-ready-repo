@@ -43,7 +43,7 @@ five statements to it.
 | Current architecture | Applicable — the subsystem doc enumerates engine verbs, so a new verb makes it drift on landing | `docs/architecture/loop-infrastructure.md` | Repository maintainer | Entrypoint section names the verb and its read-only status | Doc describes the shipped verb set |
 | Current product truth | Applicable — the skill payload is the product, and the shipped resumption reference changes | `packs/core/.apm/skills/work-loop/**` and its regenerated projections | Repository maintainer | `make build-self-dry-run` reports no drift | Source edited, projections regenerated, drift gate clean |
 | User-facing promise | Applicable — adopters drive these commands by hand | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | Repository maintainer | Adopter description of resuming through the verb | Guide describes shipped behavior |
-| Operations | Applicable — the manual-QA transcripts are the only evidence the assembled route works | `docs/specs/work-loop-next-projection/notes/qa-transcripts.md` | Implementing agent | Two recorded transcripts with actions, states, and exit codes | Both transcripts committed at that path |
+| Operations | Applicable — the manual-QA transcripts are the only evidence the assembled route works | `docs/specs/work-loop-next-projection/notes/qa-transcript-1.md` and `notes/qa-transcript-2.md` | Implementing agent | Two recorded transcripts with actions, states, and exit codes | Both transcripts committed, one per file |
 | Release history | Applicable — a new public verb changes what a consumer can do, and a `contracts/` change requires a release indicator | `docs/product/changelog.md` free-standing dated entry with a `### Highlights` block | Repository maintainer | Entry at top level, not nested under `[Unreleased]` | Entry present at `##`, highlights projection regenerated |
 | Reusable learning | Applicable — the state-versus-judgment split generalises | Routed through `project-knowledge` at the loop's capture gates | Implementing agent | Capture receipt, or a recorded `project-knowledge unavailable` | Receipt recorded or unavailability named |
 | Decision rationale | Not applicable — the verb is an internal of one subsystem, which a spec owns | — | — | — | — |
@@ -145,11 +145,11 @@ the earliest, so two conforming implementations cannot disagree.
 
 **Why no amendment carve-out exists.** A contract amendment preserves the review
 counters by design, so an amended contract can re-enter `SPEC-PLAN-REVIEW` with a
-budget already spent. An earlier revision suppressed `cap-reached` there. That was
-wrong, and the reason is worth keeping: suppressing a *report* does not make the
-projection silent, it makes it answer something else — `spec.review` — and the
-engine still refuses `findings-remain`, so the record named one continuation that
-could not be taken. D5 now reports what it reads, everywhere. An amended contract
+budget already spent. **D5 reports what it reads, everywhere**, and suppressing
+`cap-reached` there would not make the projection silent — it would make it
+answer something else, `spec.review`, while the engine still refuses
+`findings-remain`, so the record would name one continuation that could not be
+taken. An amended contract
 at a spent budget lands on `await-replan-decision`, which is a stop for a human,
 not a dead end.
 
@@ -194,10 +194,10 @@ verb must finish it."
 
 **Why P1 refuses rather than emitting a record.** P1's own trigger case is an
 interrupted `init`, which leaves no `engine-state.json` — and P6's note below
-explains why no record can be built without one. An earlier draft had P1 exit
-zero with a `halt` record, which was unconstructible in exactly the state the row
-exists to catch. Refusing keeps every zero-exit row downstream of P6's
-well-formedness proof, so AC7's and AC9's "on a zero exit" clauses are total. A
+explains why no record can be built without one — so a zero-exit `halt` record
+here would be unconstructible in exactly the state the row exists to catch.
+Refusing keeps every zero-exit row downstream of P6's well-formedness proof, so
+AC7's and AC9's "on a zero exit" clauses are total. A
 crash artifact is also not a routed action: the answer is "run a writing verb",
 which stderr states and no `next` field could carry.
 
@@ -238,10 +238,21 @@ the run it has to admit: at one transition per second without pause, it is over
 table `complete_with` is derived from.
 
 **P3's light-mode marker.** With HTML comments removed, a line in `spec.md`
-*before its first `##` heading* matching
-`^[\s>*_`-]*Mode[\s*_`]*:[\s*_`]+light(?![\w-])`, case-insensitively. The
-colon and at least one following separator are both required, and the trailing
-guard rejects a hyphen, so neither `Modelight` nor `light-weight` matches. The
+*before its first `##` heading* matching this pattern, case-insensitively:
+
+```text
+^[\s>*_`-]*Mode[\s*_`]*:[\s*_`]+light(?![\w-])
+```
+
+The pattern is fenced rather than held in a code span because it contains
+backticks of its own: inside a single-backtick span CommonMark pairs the runs
+left to right, which splits the pattern across code and emphasis runs and
+swallows the following two sentences. The fence is the only form that renders
+byte-identical to the pattern the implementation must carry.
+
+The colon and at least one following separator are both required, and the
+trailing guard rejects a hyphen, so neither `Modelight` nor `light-weight`
+matches. The
 zone restriction is load-bearing: the marker is discussed in the body of specs
 that are about it, and those mentions must not route a run to P3. A spelling
 outside this form is not a marker; P4 then surfaces the ambiguity rather than
@@ -291,7 +302,7 @@ spec" would drop an obligation in two of them.
 - **R2, a rejected gate.** Reset `spec.md` to `Draft` and `plan.md` to `Drafting`,
   then revise and fire `spec-ready`. Nothing in the engine enforces this — there
   is no `spec-ready` guard — so it is an agent obligation, and the consequence of
-  skipping it is recorded in assumption **A4**.
+  skipping it is recorded in assumption **A5**.
 - **R3, a contract amendment.** Authority and the completed-task pins are already
   discharged by the transition that produced this state, so they are not owed
   here. What is owed is the same `Draft`/`Drafting` reset, an amendment confined
@@ -577,7 +588,7 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC11c — the bypass mitigation stays stated.** The reference R2 and R3
   name in `load` states, in text a grep finds, that `spec.md` returns to `Draft`
   and `plan.md` to `Drafting` before `spec-ready` is fired. Existence of the file
-  is AC11b's subject and is not enough here: assumption **A4** records that
+  is AC11b's subject and is not enough here: assumption **A5** records that
   nothing in the engine enforces this reset and that skipping it lets one
   resumption cross both human gates, so the reset instruction is the whole of the
   mitigation. An edit that removes it from the reference fails this criterion.
@@ -608,6 +619,17 @@ the command could not compute a record at all, and emits none.
   guard module already applies; assumption **A1** records what that control
   actually emits, and **A2** records why the `argv` clause binds this verb's own
   new code and has no instance today.
+- [ ] **AC14a — neutralised stderr.** A control sequence planted in a state-file
+  value reaches stderr escaped, not verbatim. P7 and P8 exit **zero**, so their
+  reasons do not travel the non-zero refusal path whose escaping AC14's bound
+  reuses, and both interpolate values P6 does not form-check — `run_id` at P7 and
+  the `(state, last_event)` pair at P8. Planting an `ESC [ 2 J` sequence and a
+  forged success line in `engine-state.json`'s `last_event`, and observing it
+  verbatim on P8's stderr, fails this criterion. Length is AC14's subject and is
+  not enough on its own: an implementation that truncates and marks without
+  escaping is green on AC14 while forging a tool result into the supervising
+  agent's captured transcript, which is the documented reason the shared
+  escaping control exists.
 
 ### Reads
 
@@ -615,14 +637,23 @@ the command could not compute a record at all, and emits none.
   subcommand's handler to its return — the counting origin, which excludes
   interpreter startup and the engine's own module imports — the verb opens no
   file outside a declared set: both state files, both artifact Status files, and
-  the canonical status parser **in whichever form the loader actually opens**,
-  its source or its `__pycache__` bytecode. Both forms are in the set because the
+  **the two Python modules the handler loads by path** — the shared guard module
+  and the canonical status parser — each **in whichever form the loader actually
+  opens**, its source or its `__pycache__` bytecode. The guard module belongs in
+  the set for the same reason the parser does and is easy to miss for the same
+  reason: it is loaded lazily *from inside the handler*, by the identical
+  `spec_from_file_location` and `exec_module` mechanism, and so falls inside this
+  criterion's counting window rather than before it. Both forms of each are in the
+  set because the
   loader consults the cache when one is present and falls back to the source when
   it is not, so a set naming only the source is satisfied on a cold tree and
   violated on a warm one — a criterion whose verdict turns on `__pycache__` state
-  rather than on the verb. An open outside the set fails this criterion. The
-  Assumption **A5** records why the parser is in the set and what residual comes
-  with it.
+  rather than on the verb. An open outside the set fails this criterion. **The
+  claim is over in-process opens**, which is the class an open-tracer can
+  observe; the resolver's `git rev-parse` subprocess is outside the claim and is
+  carried as a stated residual rather than left to satisfy the criterion by being
+  invisible to its instrument. Assumption **A4** records why each module is in the
+  set and what residuals come with them.
 - [ ] **AC15a — reads only what it needs.** Each artifact Status file is opened
   only on a run whose state consumes it; a run needing neither opens neither, and
   a run that always opens both fails this criterion. **One carve-out:** with no
@@ -637,7 +668,11 @@ the command could not compute a record at all, and emits none.
   or repair at either.
 - [ ] **AC15d — confinement precedes the probes.** An argument resolving outside
   the repository, and one escaping through a symlink, are each refused with no
-  record and no filesystem access under that argument — including P1's glob. A
+  record and no filesystem access **strictly beneath** that argument — P1's
+  glob being the access this bars. "Strictly beneath" is meant literally and
+  excludes the argument itself and its ancestors: canonicalising the argument
+  walks those, and that walk is how the symlink escape is detected, so a
+  criterion barring it would forbid its own confinement mechanism. A
   run that probes under an out-of-repository argument before refusing fails this
   criterion. The pending-events stat is under a root the argument does not reach,
   so AC15c rather than this criterion is what bounds it.
@@ -665,13 +700,16 @@ the command could not compute a record at all, and emits none.
   identifiers in that column are exactly the **union across both modes** of the
   Routing actions whose `(mode, engine state, last_event)` key matches that row's
   `(last_event, state)` pair, with both sides parsed rather than transcribed.
-  Changing one identifier fails this criterion. Three shipped rows need more than
-  a column: the two spec-plan `DONE` rows, whose prose describes a conditional
-  reset the projection answers as `complete`, and the `gates-clean`/`CODE-REVIEW`
-  row, whose prose tells a resuming agent to re-run the reviewer fan-out — the
-  instruction R25 exists to suppress once the review budget is spent. That row's
-  prose gains the budget branch, so no shipped row prescribes an action its own
-  identifier column contradicts.
+  Changing one identifier fails this criterion. **Exactly one shipped row needs
+  more than a column:** the `gates-clean`/`CODE-REVIEW` row, whose prose tells a
+  resuming agent to re-run the reviewer fan-out — the instruction R25 exists to
+  suppress once the review budget is spent. That row's prose gains the budget
+  branch, so no shipped row prescribes an action its own identifier column
+  contradicts. The two spec-plan `DONE` rows are **not** in that set: their prose
+  describes a conditional reset the projection answers as `complete`, and the
+  reset is a human-initiated path the projection cannot observe, so the
+  identifier column is the whole of what they owe and their prose stands
+  unchanged.
 - [ ] **AC20.** The consumer's trust posture is stated on the surface an agent has
   loaded **whenever it consumes a record**, not in a reference only one row's
   `load` names — only `await-merge-decision` loads the resumption reference, so
@@ -755,11 +793,20 @@ the command could not compute a record at all, and emits none.
   where the needle list lives, so scanning it would make the check false by
   construction. Recording these as literals rather than deriving them is what
   makes the check reproducible: a needle computed at check time passes vacuously
-  on every machine but the one that wrote the transcript. **The header is
-  therefore closed by construction, not merely excluded:** it may contain only
-  this needle list and Half B's outcome line, and nothing free-form. A header
-  carrying any other content fails this criterion, because an excluded region
-  that admits prose is where a device name or a path lands unscanned.
+  on every machine but the one that wrote the transcript.
+
+  **The header has a mechanical boundary and each transcript is its own file.**
+  The header is the run's opening fenced block, and the scan region is
+  everything after that fence's close to end of file. Both are needed: without
+  the fence there is no edge, so 'below its header' names no region an
+  implementer can compute; and with two transcripts in one file the first
+  transcript's region would contain the second's header, whose recorded
+  literals include `/Users/` and `/home/` — a guaranteed match on the very
+  needles the exclusion exists to permit. Each transcript therefore lives in
+  its own file under `notes/`. The header is also closed by construction: it
+  may contain only this needle list and Half B's outcome line, and nothing
+  free-form, because an excluded region that admits prose is where a device
+  name or a path lands unscanned.
 
   **Half B — host-derived, and never written down.** The authoring OS account
   name, the authoring machine hostname, and the organisation domain token are
@@ -783,6 +830,14 @@ the command could not compute a record at all, and emits none.
   outcome line. Half B's are a non-zero match count, a scanned count below three,
   a missing outcome line, and a planted identifier in the header. No
   repository-wide lint backstops either half.
+
+  **Each half names where it runs and records what it ran.** Half A is a
+  script committed beside the transcripts, so "re-runnable by anyone" is a
+  property of a file rather than a claim; Half B runs at authoring time only,
+  because its needles resolve from the authoring environment. Each transcript's
+  outcome line records the command invoked alongside its result, so a reader
+  can tell a check that passed from one that was never run — a count with no
+  command behind it is indistinguishable from a count someone typed.
 - [ ] **AC25.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
   `[Unreleased]`, containing a `### Highlights` block; and `packs/core/pack.toml`
@@ -862,14 +917,14 @@ contract that depends on this one; they are not deferred work from this checklis
   (source: `loop-engine.py:943-961` and `:964-966`; the Boundaries *Ask first*
   entry on shared engine output)
 - Technical (**A3**): AC10a's omission is the only backstop on all three branches, not
-  two.** An earlier draft of this Assumption said the engine's phase guard
-  independently refuses the clean event at the cap. That is backwards, and the
-  correction strengthens the criterion rather than weakening it: `_GUARDS` maps
-  both modes' `findings-remain` to the cap-consulting `_guard_check_phase_review`
-  and maps `("code", "reviewers-clean")` only to a spec-Status-token check, with
-  no `("spec-plan", "reviewers-clean")` entry at all. So at the cap the engine
-  refuses the *repair* event and still accepts the *clean* one — which is what
-  the Routing prose has said all along. At `stasis` nothing anywhere reads the
+  two — including at the cap, where it is tempting to assume the engine helps.
+  It does not: `_GUARDS` maps both modes' `findings-remain` to the
+  cap-consulting `_guard_check_phase_review` and maps `("code",
+  "reviewers-clean")` only to a spec-Status-token check, with no `("spec-plan",
+  "reviewers-clean")` entry at all. At the cap the engine therefore refuses the
+  *repair* event and still accepts the *clean* one, which is what the Routing
+  prose has said all along. A roster check binds these three facts to the live
+  `_GUARDS` table, because this Assumption is what AC10a's rationale rests on. At `stasis` nothing anywhere reads the
   fingerprint pair; at `malformed` the verb could not read the budget and so
   cannot know the review is unspent. On every branch this projection is the only
   thing standing between an unresolved review and a declared clean. Advertising
@@ -880,9 +935,14 @@ contract that depends on this one; they are not deferred work from this checklis
   spec-plan mode the edge has no guard at all (source: `_GUARDS` in
   `loop-engine.py:894-909`, which registers no `("spec-plan",
   "reviewers-clean")` entry)
-- Technical (**A5**): reading a Status through the canonical reader loads and executes
-  `scripts/lint-spec-status.py`, which is why AC15 declares five files rather than
-  four. Two residuals come with it and neither is closed here. The loader `lstat`s
+- Technical (**A4**): the handler loads and executes **two** sibling modules by
+  path — `scripts/_loop_guards.py`, which supplies every blessed reader, and
+  `scripts/lint-spec-status.py`, which the canonical status reader in turn
+  executes to parse a Status line. Both are loaded lazily from inside the handler,
+  so both sit inside AC15's counting window, and each may be opened as source or
+  as `__pycache__` bytecode; that is why AC15's declared set is not just the four
+  data files. Two residuals come with the loaders and neither is closed here. Each
+  loader `lstat`s
   the module path and refuses a non-regular file, saves and restores
   `sys.dont_write_bytecode` so it writes no bytecode of its own, and requires the
   symbols the guard path uses so a truncated module fails to load rather than
@@ -904,7 +964,7 @@ contract that depends on this one; they are not deferred work from this checklis
   `.state-*.json.tmp` is deliberately not a halting condition, because no recovery
   routine exists for it and halting would wedge the loop permanently (source:
   `_statelock.py:122-124`; `loop-cohort.py:177`)
-- Technical (**A4**): an unreset `Approved` after a rejected plan gate auto-fires
+- Technical (**A5**): an unreset `Approved` after a rejected plan gate auto-fires
   the spec gate, and this contract mirrors that rather than introducing it. Nothing guards
   `spec-ready`, so if R2's status reset is skipped after `plan-rejected`,
   `spec.md` still reads `Approved` when the run re-reaches `SPEC-HUMAN-GATE`; D1
@@ -930,12 +990,12 @@ contract that depends on this one; they are not deferred work from this checklis
 - Technical: the two state files keep their owners, so the projection reads engine
   state through the engine's own reader and cohort state through the shared guard
   API (source: `_loop_guards.py` names `engine-state` only in two comments;
-  `loop-cohort.py` in two, at `:94` and `:1920`)
+  `loop-cohort.py` in two, at `:96` and `:2061`)
 - Technical: the canonical Markdown status reader raises for a file it cannot read
   and returns nothing for a file with no recognised Status line, which is why D1
   and D2 collapse every other outcome into one `other` value (source:
   `_loop_guards.py` `read_md_status` at `:891-923`)
-- Technical: the light-mode marker regex P1 names was validated against the live
+- Technical: the light-mode marker regex P3 defines was validated against the live
   corpus before this contract was opened: over `docs/specs/*/spec.md` with HTML
   comments stripped, it matches in the pre-`##` zone for exactly those specs that
   carry a real marker and no others. The count is deliberately not written here:
@@ -967,8 +1027,11 @@ contract that depends on this one; they are not deferred work from this checklis
   (source: `references/state-schema.md` field table)
 - Technical: the widest record the tables can produce measures 331 bytes
   serialized compact, comfortably inside the bound AC13 states — `cohort.record-attempt` at `CODE-IMPLEMENTATION`, carrying a
-  UUID `cycle_id` and one `load` entry — so the bound AC13 states leaves 209%
-  headroom while still detecting an embedded state dump. AC13 declares itself the
+  UUID `cycle_id` and one `load` entry — so the bound AC13 states leaves
+  roughly three times that measurement in headroom while still detecting an
+  embedded state dump. The percentage is not written out: it is a function of
+  AC13's literal, so restating it would give that literal a second home under a
+  different name. AC13 declares itself the
   single home of that figure, so the literal is not repeated here. The bound is asserted in
   the suite rather than enforced as a runtime refusal, because a refusal would
   leave the loop with no next action (source: a serialization measurement over
