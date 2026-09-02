@@ -8,7 +8,71 @@ is the contract this delivery ships.
 Run `cc200010-b3b1-43ca-a3f4-05e0f3301623`, code mode.
 `approved_spec_hash=e57bec981b37…`, `approved_plan_hash=8840dc2e1241…`.
 
-## T3's mutation proofs — eight of eight kill the guard
+## The first guard was inadequate, and eight green proofs hid it
+
+**Superseded — read this before the table below.** The first version of
+`tests/roster/test_verification_ledger_contract.py` asserted only that each
+governing source said substantive edits end at approval. It asserted **nothing**
+about the ledger destination — the delivery's entire point. Independent quality
+review raised it as a Blocker and I confirmed it by experiment: deleting the
+ledger-routing clause from the convention seed, from the plan template, or from
+the pre-execute note each left the guard at `4 passed`.
+
+The eight proofs in the table below were all *replacements* of the mutability
+clause, so not one of them could see a *deletion* of the routing clause. Eight
+green mutations produced confidence that was not earned. That is the failure
+mode this repository calls a control that cannot fail, and it survived my own
+review because I checked that the mutations reddened rather than asking what
+class of regression they could not reach.
+
+Two further defects, both confirmed by experiment on the real tree:
+
+- **Under-broad.** Appending "A maintainer may revise task text after approval
+  when execution reveals new facts" — a licence the hash guard genuinely
+  refuses — left the guard green, because its negative check keyed on the token
+  `` `Executing` `` rather than on the permission.
+- **Over-broad.** Appending "`Executing` remains a legal status after approval,
+  but a substantive edit is still refused" — a *correct* clarification — turned
+  it red, because the check matched mere co-occurrence of `edit` and
+  `` `Executing` `` under `DOTALL`.
+
+Quality review raised nine further defects on the same file: a template region
+truncated at its first HTML comment so two of three template edits were
+unguarded; `_between` failing open to end-of-file on a missing terminator, which
+made the `state-schema.md` region overrun by 69 lines; whitespace normalisation
+that left blockquote markers in place, so a pure re-wrap reddened the suite and
+forced clauses to be split into separately satisfiable fragments; a shared
+failure message that named neither file nor clause and was emitted for two
+opposite causes; and a hash-pin "proof" that was nine exact source substrings of
+`_loop_guards.py` rather than its behaviour.
+
+### What replaced it
+
+The guard now asserts **two independently killable halves per source** — the
+pinned clause and the routing clause — loads `_loop_guards.py` and **exercises**
+it (the exemption does not move the digest; a substantive edit does) instead of
+pinning its source text, extracts regions by heading, bold paragraph lead, or
+whole file with every shape failing loudly rather than widening, strips
+blockquote and list leaders before comparing so a re-wrap is invisible, and
+names the file and the failing clause in every message.
+
+### Coverage after the rewrite
+
+| Class | Count | Result |
+| --- | --- | --- |
+| Routing-clause deletion (the blind spot) | 5 | all redden |
+| Retired-licence replacement | 7 | all redden |
+| False-positive probes that must stay green | 2 | both green |
+| **Known limit — additive licence in new wording** | 1 | **still passes** |
+
+The known limit is deliberate and documented in the module. `RETIRED_LICENCES`
+is a bounded regression backstop against the specific wordings that caused this
+defect, not a proof that no new permission can be phrased. Proving prose free of
+an arbitrary permission is not mechanisable; claiming otherwise would rebuild
+the same false confidence in a new place. AC3 claims only reversion detection,
+which is what the twelve killing mutations establish.
+
+## The superseded eight proofs, kept for the record
 
 The plan requires eight killing mutations against
 `tests/roster/test_verification_ledger_contract.py`. Each was applied to the
