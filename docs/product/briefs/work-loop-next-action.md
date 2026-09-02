@@ -223,8 +223,9 @@ The general problem is shaped in the non-convergence item linked above.
   projection" and "one component owns both halves". A prior owner decision
   favoured the former; it was taken against an abandoned draft and should be
   re-confirmed at the Ready review rather than inherited.
-- The review protocol's owner decides U1, because a persisted pre-EXECUTE counter
-  would be its state, not the query's.
+- Anything about detecting or responding to non-convergence is decided in the
+  shaping item, not here. If a Ready review finds itself ruling on that, the
+  split has leaked and the ruling belongs on the other side of it.
 
 ## Ready gaps
 
