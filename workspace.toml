@@ -48,9 +48,12 @@ backlog = [
   # `research` -- outcome NOT defined. What a loop does when it discovers the
   # artifact above it is wrong, at any phase, and which level it returns to.
   # Six competing hypotheses; two are measurable retrospectively against review
-  # artifacts already on disk, so the first spikes are cheap. Blocked on nothing,
-  # and its detection half can ship alone.
-  {path = "docs/product/intents/agent-loop-escalation-recovery.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Decide what a work-loop does when PLAN, EXECUTE, GATES, or REVIEW discovers the contract above it is wrong -- which artifact level to return to and on what signal, against six competing hypotheses none of which is validated, plus the detection half that is small enough to ship on its own", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/agent-authoring-input-quality.md"}]},
+  # artifacts already on disk, so the first spikes are cheap. `needs` is empty
+  # deliberately: an earlier edge to the prevention brief made this BLOCKED with
+  # unsatisfied_dependency, which was wrong -- the relationship is shared evidence,
+  # not sequencing, and the retrospective spikes run today. Cross-referenced in
+  # prose instead.
+  {path = "docs/product/intents/agent-loop-escalation-recovery.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Decide what a work-loop does when PLAN, EXECUTE, GATES, or REVIEW discovers the contract above it is wrong -- which artifact level to return to and on what signal, against six competing hypotheses none of which is validated, plus the detection half that is small enough to ship on its own", needs = []},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   {path = "docs/product/intents/ini-002-initiative-brief.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reconcile Platform Core's accepted proposal, shipped milestones, and remaining adoption work into one living initiative brief", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-place-bet/spec.md"}]},

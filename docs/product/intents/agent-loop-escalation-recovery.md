@@ -18,6 +18,20 @@ Prevention is the sibling brief,
 designable now. This one is not: the response is competing hypotheses that need
 spikes before any contract.
 
+**This item is not blocked on that brief.** The relationship is shared evidence,
+not sequencing — the activation analysis lives there, and two of the hypotheses
+below read the same review artifacts. Both are on disk today, so the first spikes
+here can run before anything ships there. An earlier workspace edge asserted a
+dependency and made this item undispatchable; that was wrong and was removed.
+
+**Where it may eventually touch the projection.** The reason someone first put
+non-convergence inside the `next` brief is that `next` is what an agent asks each
+turn, so it is the natural surface to *display* a stop. That remains true and is
+recorded so it is not rediscovered: if a response adopted here needs an agent-
+facing surface, `next` is the candidate carrier. It is a possible future consumer
+relationship, not a dependency in either direction, and the projection's brief
+keeps enforcement out of scope.
+
 ## Scope: any phase, any level
 
 The discovery can surface at PLAN, EXECUTE, GATES, or REVIEW, and the decision is
