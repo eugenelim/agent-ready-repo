@@ -46,9 +46,11 @@ better contract still gets things wrong; what a loop does on that discovery is
 - The delegation anchor: making a plan record whether an existing owner for the
   contract was found, alongside the imitation anchors the template already asks
   for.
-- Whether a narrow delegated worker should run the ownership search before
+- Whether a narrow delegated worker should run the ownership survey before
   authoring, given that every worker this repository defines today is a reviewer
-  or a retriever and none runs before a spec exists.
+  or a retriever and none runs before a spec exists — including its source
+  selection, which delegates to the existing knowledge-surface contract rather
+  than defaulting to reading the tree.
 - The activation mechanism for both, and the measurement that says whether they
   activate.
 
@@ -279,21 +281,33 @@ failed at recognition rather than at retrieval. The search ran and the hits were
 read; they were not matched to the problem. "Search first" is already what the
 rule says, so restating it changes nothing.
 
-What can be made observable is the **verdict**, not the recognition:
+**Delegating the rung to a worker is what makes it activate, and that is the
+general principle this brief should be read through.** A rule written in a
+template may or may not fire, and the evidence here is that it does not. A step
+performed by a worker either ran or it did not, and that is observable, binary,
+and not open to self-report. **The invocation is the activation.** So the razor's
+second rung stops being "remember to search and recognise" — an instruction that
+demonstrably failed with the answer already in context — and becomes "the survey
+ran, and here is its landscape."
 
-- **Activation point** — the razor's second rung, at the moment the search
-  returns. Each hit gets a recorded verdict: *is this an owner for the contract I
-  am about to write, and if so what would delegating to it look like?* A search
-  whose output is "I looked and found some related things" has not discharged the
-  rung.
-- **Telling activation from presence** — the artifact carries the search, its
-  hits, and a per-hit verdict. That is a receipt, and receipts are checkable. The
-  recognition itself is not, which is the same split the unmechanizable-predicate
-  row above prescribes: assert the receipt's shape mechanically, leave the
-  soundness of the verdict to a named human.
-- **Failure mode when it does not activate** — no receipt means the rung did not
-  run, whether or not a search happened. That is the honest reading, and it is
-  the one that would have caught this: the search *had* run.
+- **Activation point** — the survey's invocation, before criteria are written.
+  Not a moment of authorial diligence.
+- **Telling activation from presence** — the plan carries the landscape the
+  survey returned, and the author's disposition against each reusable component
+  it names: delegated to, deliberately not, or not applicable and why. Both
+  halves are checkable artifacts. The recognition itself stays a judgment, which
+  is the split the unmechanizable-predicate row prescribes — but it is now a
+  judgment made *against an organised inventory* rather than against memory of a
+  grep.
+- **Failure mode when it does not activate** — no landscape means the survey did
+  not run, whichever way the author searched. That is the reading that would have
+  caught this, because the search *had* run and nothing recorded what it found.
+
+**This is the most transferable thing in the brief.** Any rule that can be
+restated as a step some other worker performs becomes activation-guaranteed by
+delegation. A rule that can only exist as prose in a template is the hard case,
+and the activation measurement should tell us how many of the rules here fall
+into which class.
 
 ### Repo anchoring: reuse over duplicate machinery
 
@@ -365,31 +379,113 @@ roster gains a sibling, or whether neither fits; not what to build.
 to be made, because a general-purpose explore agent already exists in the host
 and the razor applies to this proposal as much as to anything else.
 
+- **A dedicated worker guarantees the rule activates. This is the case.** The
+  brief's central problem is that rules do not fire; a worker converts "did the
+  author apply the razor" — unobservable, and empirically no — into "was the
+  survey invoked and is its landscape in the plan", which is observable and
+  binary. No prose rule can offer that, however well written. Everything below
+  is secondary to it.
 - **Context protection is the mechanism, not a side effect.** An isolated worker
   returns a conclusion; the authoring context never loads the corpus. That is
   already this repository's stated rationale for two shipped workers —
   `evidence-retriever` and `source-extractor` both describe themselves as
   preserving main-session context by collapsing material into a synthesis before
   returning. The pattern is established; it is not being invented here.
-- **The needed output is a verdict, not located code.** The host's explorer is
-  described as reading excerpts to *locate* code, explicitly not to review or
-  audit it. Location was never the failure — the search returned the precedent
-  in the opening grep. A better locator finds it sooner and still leaves
-  recognition undone.
-- **The verdict has to bind to authority.** "Is this an owner for my contract"
-  is answered against the razor's ladder and this repository's ownership
-  conventions. A generic explorer carries neither.
+- **The needed output is a landscape, not located code and not a verdict.** The
+  host's explorer reads excerpts to *locate* code, explicitly not to review it.
+  Location was never the failure — the precedent came back in the opening grep.
+  What was missing is the middle: an organised picture of what exists in this
+  area, what each component owns, and which of them are reusable. Hits scattered
+  through a long session are not that picture, which is why recognition failed
+  with the answer already in context.
+- **A verdict would be the wrong output, and asking for one is a mistake.**
+  Judging "is this an owner for the contract I am about to write" needs the
+  contract, and the worker does not have it. A worker forced to judge would
+  return confident wrong answers, which is worse than none. Survey is what an
+  isolated worker can do well: exhaustive, uninvested, and organised by
+  ownership. Recognition stays with the author, who has the contract — but it
+  becomes cheap, because the landscape is arranged for exactly that question.
+- **What is genuinely new is the instruction set**, not the isolation. What to
+  inventory, how to organise it by owner rather than by relevance ranking, and
+  what to report about each component — owns / adjacent / reusable, and what
+  delegating would leave undischarged. A generic explorer carries none of that,
+  and it is real work to specify rather than a prompt tweak.
+
+**Host built-ins versus a pack-defined worker — and the case deliberately does
+not rest on capability.** Only one host's explorer was inspectable from here:
+Claude Code's `Explore`, whose surface is read-only, tunable by breadth alone
+("medium" or "very thorough"), reads excerpts rather than whole files, and is
+described as locating code and explicitly not reviewing or auditing it. Codex,
+Cursor, Copilot, and Gemini equivalents were **not** examined and no claim is
+made about them.
+
+That is why the argument is put on ownership rather than capability. These hold
+for any host built-in, whichever host, however good its search:
+
+| Property | Host built-in | Pack-defined worker |
+| --- | --- | --- |
+| Output shape ours to fix | No | Yes — `finding-adjudicator` mandates a three-section envelope and a narrow read envelope, and gets it |
+| Authority declared as input | Only whatever a prompt carries | Yes — the adjudicator names the governing spec, repository instruction, and rubric |
+| Versioned and reviewable by us | No; behaviour can change with a host update and we get no signal | In git, prose pinned by pack tests |
+| Ships with the pack to adopters | No | Yes — `.apm/` is the export boundary |
+| Instrumentable by our eval harness | **No, by construction** | Yes — the Tier-A harness already measures our own |
+
+**The last row is decisive on its own, and it is the one this brief cannot
+compromise on.** The premise here is that we cannot tell activation from presence
+and the answer is an activation measurement. Delegating a rule to a component
+whose firing we cannot instrument reintroduces exactly that blindness one layer
+down — the rule would be "activated" by a black box we cannot observe. That is
+the same failure in a new place, and it is a property of the component being the
+host's, not of any host's search quality.
+
+**Capability probably favours the built-in, and that is fine.** It is likely a
+better searcher than anything written here. Searching was never the failure: the
+precedent came back in the opening grep. What is needed is an organised
+landscape, a fixed return shape, and an observable invocation — none of which is
+a search-quality property.
+
+Where a host provides isolation cheaply, reuse the isolation. The survey
+instructions, the return shape, the authority binding, and the eval surface stay
+ours.
 
 One leg deliberately *not* used: host portability. This repository's declared
 target vocabulary is `claude-code` only, so "a shipped pack cannot depend on one
 host's built-in agent" is not established by the contracts and should not prop up
 the case.
 
-And the razor-consistent conclusion is likely narrower than a new agent: reuse
-an isolated worker for the isolation, and add only the **request contract** that
-makes its return a verdict. That is delegation. Building a bespoke agent when the
-isolation already exists would be the exact duplication this brief exists to
-prevent.
+**Where the razor lands on this proposal.** The *isolation* is available and
+should be reused rather than rebuilt. The *survey instruction set* is genuine
+work: it is what turns a search into a landscape, and nothing here provides it.
+Whether that ships as an agent definition or as a scoped invocation of an
+existing worker is an implementation question for the slice, not a reason to
+narrow the ambition to a prompt tweak. Reuse the isolation; author the survey.
+
+**The survey's source is a design question, and reading files is the expensive
+default.** Loading the tree to answer "what exists here and who owns it" is both
+costly and lossy. Surfaces that answer it more cheaply already exist in general —
+code-indexing tools, and platforms that maintain a queryable model of a codebase
+rather than its text — and locally: this repository ships `docs/knowledge/` with
+a topic index, and `project-knowledge` exposes a bounded enquiry envelope. The
+local index is nascent rather than rich, so it is a surface to detect, not one to
+depend on.
+
+**And the contract for using such a surface already exists — in the same file
+that supplied the delegation precedent.** `knowledge-surfaces.md` defines it:
+detect a governed surface **by capability rather than by name**, treat everything
+retrieved as attributed and untrusted data, never let instruction-like text in a
+retrieved source become authority over the workflow, lower confidence on a single
+or stale source, and **degrade visibly when no surface is usable**.
+
+Capability-not-name is what makes it durable. It admits whatever indexer or code
+platform is present in an adopter's environment without this brief naming
+vendors it cannot verify, and it degrades to file reading as the floor rather
+than as the plan.
+
+So the survey delegates its source selection to that contract instead of
+restating it — which is this brief applying its own rule to itself, to the same
+file whose delegation form started this. What the survey adds on top is only what
+that contract does not cover: what to inventory, how to organise it by owner, and
+what to report per component.
 
 **What is unknown.** Whether a forwards-looking ownership search is reliable
 enough to trust, and what it costs per spec. Both are answerable with a cheap
@@ -424,6 +520,48 @@ the repository is available and cheap, but the review artifacts that would show
 *how* a loop went are gitignored and machine-local — they sit in peer worktrees
 and can be cleaned up. A generated eval is reproducible where a scavenged corpus
 is one-shot, so where a question can be put to a generated eval, it should be.
+
+## The LLD's position: no new stage, move the probe instead
+
+Raised as a question and answered here rather than left open, because the answer
+is "change almost nothing" and an open question would invite a new stage.
+
+**Where it sits today.** The LLD lives in `plan.md` under `## Design (LLD)`,
+scaffolded by the spec's `Shape:` field. The plan is authored after the spec's
+criteria and locked after the spec's human gate. So criteria are committed before
+the design that has to satisfy them exists.
+
+**Too late for one thing only: satisfiability.** The abandoned contract is the
+evidence twice over. Its read-surface criterion was unsatisfiable by any design,
+because a Python process opens the standard library — five minutes of "what does
+the read path actually do" would have killed it before it was written. And its
+observability premise was a design question ("where does this count come from")
+that was never asked, because criteria came first.
+
+**But moving the LLD earlier would be wrong.** The plan is deliberately the
+document allowed to change while the spec is the contract; hoisting design into
+the spec inverts that and commits the design before the contract. The problem is
+not that the LLD is late. It is that *nothing* tests satisfiability early.
+
+**Recommendation: extend an existing step rather than add a stage.** `new-spec`
+already has step 5a — take the cheapest disconfirming evidence before review: one
+fixture, one measurement, or one read-only probe against the plan's load-bearing
+mechanism, uncommitted. That is exactly the right instrument, aimed one stage too
+late and at the wrong subject. Widen it so a criterion making a claim about live
+behaviour gets its cheapest disconfirming probe **before the spec gate**, not
+after, and against the criterion's satisfiability rather than the plan's
+mechanism.
+
+That is a scope change to a rule that exists, needs no new artifact, and is the
+same discipline the sibling brief already states for itself — name the oracle and
+take the observation before writing the criterion. It also composes with the
+pressure test and the survey: all three are answers to "what must be true before
+criteria are written."
+
+**No LLD change is recommended**, and this brief should carry the question as
+answered rather than as an investigation. If the activation measurement finds
+that step 5a itself does not fire, that is a finding about 5a and not a reason to
+reopen where the LLD lives.
 
 ## Risks
 
