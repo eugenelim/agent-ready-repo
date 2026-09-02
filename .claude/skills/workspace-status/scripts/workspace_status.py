@@ -66,6 +66,7 @@ extract_spec_status: Any = None
 extract_spec_status_with_fingerprint: Any = None
 parse_workspace: Any = None
 run_canonical_reconciliation: Any = None
+cooled_work_entry_paths: Any = None
 canonical_repository_identity: Any = None
 _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
@@ -121,6 +122,7 @@ def _bind_engine() -> bool:
         ),
         "parse_workspace": engine_mod.parse_workspace,
         "run_canonical_reconciliation": engine_mod.run_canonical_reconciliation,
+        "cooled_work_entry_paths": engine_mod.cooled_work_entry_paths,
         "canonical_repository_identity": engine_mod.canonical_repository_identity,
         "_safe_spec_path": engine_mod._safe_spec_path,
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
@@ -740,41 +742,27 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _surviving_work(
-    initiative: Any,
-    root: Path | None,
-    cooled: frozenset[Path],
-) -> tuple[list, list]:
+def _surviving_work(initiative: Any, cooled_paths: set[str]) -> tuple[list, list]:
     """Return the single derivation both closeout consumers read.
 
-    Membership is decided from `entry.slug`, not `entry.path`. A work entry may
-    be canonical (`docs/specs/<slug>/spec.md`) or legacy-shaped (`spec/<slug>`),
-    and `_spec_slug_from_workspace_path` already normalises both; resolving the
-    raw path instead sends a legacy entry to `<root>/spec/<slug>`, which can
-    never equal the cooled `<root>/docs/specs/<slug>/spec.md`. That left a cooled
-    legacy entry excluded from `canonical.legacy_memberships` while both closeout
-    consumers still counted it -- two answers in one response, which is the
-    disagreement this helper exists to close. The engine resolves the same class
-    the same way in `_legacy_canonical_alias` and in the type-2 scan's cooled
-    skip.
+    `cooled_paths` is reconciliation's own verdict for this initiative, keyed on
+    the raw workspace path string, so closeout and the canonical layer agree by
+    construction. Deciding here instead — by re-deriving an artifact path from an
+    entry — picks one mapping and disagrees with reconciliation on every entry
+    class that maps differently or not at all: a legacy `spec/<slug>` entry, a
+    bare slug the canonical layer refuses to model, and a non-spec kind each
+    resolve differently, and getting any one wrong puts two answers in one
+    response.
     """
-    queue = initiative.work.queue
-    active = initiative.work.active
-    if root is None or not cooled:
-        return queue, active
-
-    def _cooled(entry) -> bool:
-        return _safe_spec_path(root, entry.slug) in cooled
-
     return (
-        [entry for entry in queue if not _cooled(entry)],
-        [entry for entry in active if not _cooled(entry)],
+        [entry for entry in initiative.work.queue if entry.path not in cooled_paths],
+        [entry for entry in initiative.work.active if entry.path not in cooled_paths],
     )
 
 
 def _closeout_projection(
     result,
-    root: Path | None,
+    cooled_by_initiative: dict[str, set[str]],
     *,
     dueness_failed: bool = False,
 ) -> dict | None:
@@ -799,7 +787,7 @@ def _closeout_projection(
     initiative = active[0]
     paused = initiative.status == "paused"
     surviving_queue, surviving_active = _surviving_work(
-        initiative, root, result.cooled
+        initiative, cooled_by_initiative.get(initiative.slug, set())
     )
     all_specs_shipped = not (surviving_queue or surviving_active)
     # A record whose dueness could not be judged is an incomplete run just as
@@ -837,11 +825,22 @@ def _build_json(root: Path, result, mode: str) -> dict:
     # resolution matches the engine's is_need_satisfied, which checks all active
     # entries regardless of type. Each entry carries ini_slug to avoid cross-initiative
     # slug collisions (two initiatives may share an initiative-scoped shaping slug).
+    # Reconciliation's own cooled verdict, read from the same workspace bytes it
+    # parses. Closeout consumes it rather than re-deriving a path per entry, so
+    # the two layers cannot disagree about which entries a cooled set removed.
+    workspace_bytes = _migration_read_bytes(root, "workspace.toml")
+    if workspace_bytes is None:
+        raise UnsafeMigrationPathError
+    cooled_by_initiative = cooled_work_entry_paths(
+        tomllib.loads(workspace_bytes.decode("utf-8")), root, result.cooled
+    )
     active_shaping_entries: list[dict] = []
     for ini in result.initiatives:
         if ini.status != "active":
             continue
-        surviving_queue, _ = _surviving_work(ini, root, result.cooled)
+        surviving_queue, _ = _surviving_work(
+            ini, cooled_by_initiative.get(ini.slug, set())
+        )
         initiatives_out.append({
             "slug": _public_ini_slug(ini.slug),
             "name": "workspace.toml",
@@ -934,7 +933,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
         closeout = _closeout_projection(
-            result, root, dueness_failed=bool(unreadable)
+            result, cooled_by_initiative, dueness_failed=bool(unreadable)
         )
         if closeout is not None:
             output["closeout"] = closeout

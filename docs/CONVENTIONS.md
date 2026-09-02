@@ -478,8 +478,15 @@ mechanical rule.
   review and human approval before implementation resumes.
 - **Historical deferral token.** Frozen specs may still contain older inline
   `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
-  resolve to a `slug` field in `workspace.toml [backlog].open`; Wave 7 owns any
-  historical migration. Do not use this marker as a new shipping exception. A
+  resolve to an entry in `workspace.toml [backlog].open` of *either* shape: a
+  legacy record's `slug` field, or a canonical record's `path` through
+  `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
+  on its owning directory and any other artifact on its file stem. New entries
+  take the canonical shape; the write-side ratchet in
+  `tests/roster/test_workspace_status_projection.py` caps the legacy-shaped
+  count and must not be raised. A canonical entry's `path` must name an
+  artifact that exists, so a deferral with no artifact of its own points at the
+  document recording it. Do not use this marker as a new shipping exception. A
   follow-on recorded only in a PR comment rots; the register or external
   artifact is the stable pointer. Run `workspace-status` to see open backlog
   items.
