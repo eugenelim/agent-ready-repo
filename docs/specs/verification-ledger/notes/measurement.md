@@ -5,7 +5,10 @@ delivery's verification ledger — it records the corpus measurement that
 established the defect class, taken before the spec was approved. Execution
 observations belong in `verification-ledger.md`.
 
-Measured 2026-09-02 at merge commit `98df5599c`, `packs/core` 2.22.0.
+The commit-tree baseline is `98df5599c`, `packs/core` 2.22.0. Instrument A
+ran against that 376-plan tree. Instrument B ran later against the working tree
+at that baseline plus this delivery's then-uncommitted pair, whose plan raised
+its population to 377; this distinction is material to its raw result.
 
 ## What was counted
 
@@ -16,10 +19,10 @@ a **post-approval write to a hash-pinned artifact** — `plan.md`
 `sha256_canonical_contract`, so only the status token and progress-checkbox
 brackets survive normalisation.
 
-Denominator: **376** `plan.md` files under `docs/specs/` before this spec
-directory existed. `find docs/specs -type f -name plan.md | wc -l` returns 377
-once `docs/specs/verification-ledger/plan.md` is present; the 376 figure
-excludes this delivery's own plan.
+The adjudicated denominator is **376** `plan.md` files in the commit tree before
+this spec directory existed. The then-working tree carried 377 plans because it
+also contained this delivery's uncommitted plan; the final numerator and
+denominator both exclude that plan.
 
 ## Two instruments were required
 
@@ -40,8 +43,9 @@ filename rather than by "here" or "this plan":
 ### Instrument B — structural `Done when:` parser
 
 Parsed each `Done when:` statement, then tested whether its destination is a
-frozen artifact, with a filter for the negated sense. Returned 8 plans.
-**It produced two false positives** its negation filter failed to exclude:
+frozen artifact, with a filter for the negated sense. It ran over 377
+working-tree plans and returned 8. **It produced two false positives** its
+negation filter failed to exclude:
 
 - `status-projection-and-context-exclusion/plan.md:638` — states the values
   "live there and are **not repeated here**", the opposite sense
@@ -63,19 +67,26 @@ mutation-table row rather than a task's Done-when.
 | `local-gate-ci-parity` | 275 | plan `## Changelog` and the PR description | plan Changelog |
 | `workspace-backlog-reconciliation` | 42 | "its output recorded here" | command output |
 
-**6 of 376 plans, 7 task-level sites.**
+**6 of 376 pre-existing plans, 7 task-level sites.** This excludes this
+delivery's plan from both numerator and denominator.
 
 ## What the distribution changes
 
-Only **1 of 6** is a mutation table. **3 of 6** name `spec.md` or its acceptance
-criterion artifact field, and **3 of 6** name the plan's `## Changelog` — a
-write the plan template itself mandates ("When the plan changes meaningfully,
-add a dated entry").
+The classes overlap; they do not partition the union. **1 of 6** names a
+mutation table (`cooling-scope-closure`), **3 of 6** name the plan's
+`## Changelog` (`self-hosting`, `claude-plugins-manifest-correctness`,
+`local-gate-ci-parity`), **2 of 6** name `spec.md` or its acceptance-criterion
+artifact field (`self-hosting`, `stale-reference-corrections`), and **1 of 6**
+names “recorded here” (`workspace-backlog-reconciliation`). `self-hosting`
+belongs to both the Changelog and `spec.md` classes.
 
 Two consequences for the contract:
 
-1. The rule covers **both** frozen artifacts, not `plan.md` alone. Half the
-   corpus would survive a plan-only rule.
+1. The rule covers **both** frozen artifacts, not `plan.md` alone. A plan-only
+   rule leaves 1 of 6 wholly unaddressed (`stale-reference-corrections`) and 1
+   of 6 partially addressed (`self-hosting`). The guard's independent
+   `approved_spec_hash` comparison makes the extension correct regardless of
+   corpus frequency.
 2. The template's `## Changelog` instruction is phase-scoped to `Drafting`,
    because it is the single most common source of the defect.
 

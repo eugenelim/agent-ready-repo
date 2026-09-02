@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
-- **Repository anchors:** `packs/core/seeds/docs/CONVENTIONS.md` § *A spec directory freezes as a unit* and § 4 own the authoring rule; `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py:833-851,1129-1152` proves the scheduled-plan hash and `:1071-1081` the approved-spec hash; `docs/specs/cooling-scope-closure/notes/closeout-records.md` is the analogous ledger pattern; `.github/workflows/build-check.yml:366` establishes the remotely gated roster-test location. Named uncertainty: the guard test's final filename is selected during implementation under `tests/roster/`.
+- **Repository anchors:** `packs/core/seeds/docs/CONVENTIONS.md` § *A spec directory freezes as a unit* and § 4 own the authoring rule; `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py:833-851,1129-1152` proves the scheduled-plan hash and `:1071-1081` the approved-spec hash; `docs/specs/cooling-scope-closure/notes/closeout-records.md` is the analogous ledger pattern; `.github/workflows/build-check.yml:366` establishes the remotely gated roster-test location; `packs/AGENTS.md` § *Version bump rule* decides T5's required patch increment. Named uncertainty: the guard test's final filename is selected during implementation under `tests/roster/`.
 
 > **Plan contract:** this is implementation strategy, not execution evidence. It may change substantively only while `Drafting`, before `approve-plan` records its baseline. After approval, including while `Executing`, only status and task-progress bookkeeping are permitted; observations go to `docs/specs/<feature>/notes/verification-ledger.md`, which is not hash-pinned and needs no amendment to either approved artifact. A `Done when:` names a concrete observable, never a frozen artifact as an execution-evidence destination.
 
@@ -21,7 +21,7 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 
 ## Construction tests
 
-**Integration tests:** focused pytest of the new `tests/roster/` guard, then supervisor-selected repository gates. `build-check.yml` runs `python -m pytest tests/ -q`, while no workflow matches `packs/core/tests/skills/new-spec/`.
+**Integration tests:** focused pytest of the new `tests/roster/` guard, including its goal-based checks of pointer-only guidance, then supervisor-selected repository gates. `build-check.yml` runs `python -m pytest tests/ -q`, while no workflow matches `packs/core/tests/skills/new-spec/`.
 
 **Manual verification:** none. This delivery changes authoring contracts; the roster test and regeneration/release checks are the observable surfaces.
 
@@ -41,8 +41,8 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 ### Design decisions
 
 - The ledger is Markdown at `docs/specs/<feature>/notes/verification-ledger.md`. It holds observed mutations, red results, assertion text, digest comparisons, and deviations; `spec.md` criteria and `plan.md` task rows retain obligations. Traces to: AC1, AC2, AC3.
-- `packs/core/seeds/docs/CONVENTIONS.md` owns mutability. The template mirrors it; the public explanation carries one phase-qualified clause and a pointer to that owner; the lifecycle reference owns operational detail; and `work-loop/SKILL.md` only points there. Traces to: AC1, AC2.
-- The roster test reads the actual freeze guard as well as every governing authoring surface, testing their contradiction rather than a newly added phrase. Traces to: AC3.
+- `packs/core/seeds/docs/CONVENTIONS.md` owns mutability. The template mirrors it; the public explanation carries one phase-qualified clause and an in-tree pointer to the how-to; the how-to retains its existing immutability fact and names the ledger destination; the lifecycle reference owns operational detail. `work-loop/SKILL.md` and `pre-execute-review.md` are pointer-only links to that reference and state no independent licence or routing rule. Traces to: AC1, AC2.
+- The roster test reads the actual freeze guard and the four closed rule-bearing sources, testing their contradiction rather than a newly added phrase; it separately checks the pointer-only surfaces. Traces to: AC3.
 - **Prose-lint detector:** rejected because detection leaves the impossible state representable; the ledger removes it from the contract shape.
 - **A third freeze-guard exemption:** rejected because another carve-out repeats the category error; reducing existing exemptions is a separately governed follow-on.
 - **Engine change:** rejected because the guard, engine, and cohort already enforce the freeze; this delivery changes authoring and evidence routing only.
@@ -68,7 +68,7 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 **Approach:**
 - Correct the false `Drafting`-or-`Executing` substantive-edit licence in the convention owner and its § 4 restatement; add the verification-ledger entry to the existing `notes/` tree. State that both `spec.md` and `plan.md` are approved, hash-pinned artifacts whose obligations do not receive execution observations.
 - Change `packs/core/.apm/skills/new-spec/assets/plan.md` to match the owner, limit changelog edits to Drafting, and prohibit `Done when:` from naming either frozen artifact as an execution-evidence destination.
-- Change `guides/core/explanation/why-the-plan-owns-the-lld.md` with one phase-qualified clause and a pointer to the convention owner; do not create an independent mutability rule there.
+- Change `guides/core/explanation/why-the-plan-owns-the-lld.md` with one phase-qualified clause and an in-tree pointer to `../how-to/plan-and-execute-non-trivial-work.md`; do not create an independent mutability rule there.
 - Add `## Verification ledger` to `references/delivery-contract-lifecycle.md`, covering contents, both immutable approved artifacts, and the ledger's unpinned/no-amendment status.
 
 **Done when:** AC1's governing authoring surfaces agree that execution observations are written to the sibling ledger, not to frozen `spec.md` or `plan.md`.
@@ -78,21 +78,22 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 **Depends on:** T1
 
 **Tests:**
-- no stub (goal-based check): T3 confirms the lifecycle reference is the operational source, and a focused source read confirms the work-loop pointer and mid-EXECUTE sentence use it without a fourth rule.
+- no stub (goal-based check): T3's roster guard verifies resolvable lifecycle-reference pointers in `work-loop/SKILL.md` and `pre-execute-review.md`, and verifies that neither carries an independent licence or observation-routing rule.
 
 **Approach:**
-- Add one or two lines in `work-loop/SKILL.md` Step 2 that point to the lifecycle reference for execution observations.
-- Add one sentence in `references/pre-execute-review.md` distinguishing an execution observation from a plan error and directing it to the ledger rather than surfacing-and-stopping.
+- Add one or two pointer-only lines in `work-loop/SKILL.md` Step 2 that link to the lifecycle reference; do not state an independent observation-routing rule.
+- In `references/pre-execute-review.md` § *Mid-EXECUTE re-plan*, **keep** the existing plan-error rule at :205-215 — "immutable in substance", the bookkeeping exemption, and "surface to the human and stop" are all correct and are the only work-loop surface that already is. Extend it: name `spec.md` alongside `plan.md`, and add a pointer-only link to the lifecycle reference for where an execution observation goes. Do not delete correct guidance and do not state an independent licence or observation-routing rule.
+- Add one ledger-destination clause to `guides/core/how-to/plan-and-execute-non-trivial-work.md`, retaining its existing immutability fact and pointing operational detail to the lifecycle reference.
 
-**Done when:** AC2's execution guidance routes observations to the lifecycle ledger procedure while preserving the amendment path for plan errors.
+**Done when:** AC2's how-to names the ledger destination, while work-loop and pre-execute guidance reach that procedure only through resolvable lifecycle-reference pointers and preserve the amendment path for genuine errors.
 
 ### T3: Guard the frozen-plan contradiction in a remotely gated roster test
 
 **Depends on:** T1
 
 **Tests:**
-- TDD: add `tests/roster/<verification-ledger guard>.py`. It reads `_loop_guards.py` to establish that both artifacts are canonically hashed and that `Executing` is legal post-approval, then reads the convention seed, plan template, lifecycle reference, and public explanation as one relationship. It fails if any source restores an Executing-time substantive-edit licence or lacks the ledger rule/pointer.
-- Mutation proof: independently restore the Executing-time substantive-edit licence in the convention seed, plan template, lifecycle reference, or public explanation, then run `pytest tests/roster/<verification-ledger guard>.py -q`. Expected failure text: `post-approval mutability guidance must agree with the approved-artifact hash guards`.
+- TDD: add `tests/roster/<verification-ledger guard>.py`. It reads `_loop_guards.py` to establish that both artifacts are canonically hashed and that `Executing` is legal post-approval, then reads the closed four-source set—convention seed, plan template, lifecycle reference, public explanation—as one relationship. It separately verifies the how-to's ledger clause and the pointer-only work-loop/pre-execute surfaces.
+- Mutation proof: independently restore the Executing-time substantive-edit licence in any closed rule-bearing source, then run `pytest tests/roster/<verification-ledger guard>.py -q`. Expected failure text: `post-approval mutability guidance must agree with the approved-artifact hash guards`.
 
 **Approach:**
 - Use section-scoped semantic assertions: prove the guard/source contradiction, not merely a new phrase.
@@ -143,6 +144,16 @@ This is a source-first core-pack documentation and test release. Regenerate proj
   artifacts, added the public explanation guide as a fourth governed surface,
   and replaced the loose term count with the adjudicated 6-of-376 measurement in
   [`notes/measurement.md`](notes/measurement.md). Reason: `spec.md` carries
-  `approved_spec_hash` on the same comparison, and 3 of the 6 measured sites
-  name `spec.md` or the plan `## Changelog` rather than a mutation table, so a
-  plan-only rule would have left half the corpus unaddressed.
+  `approved_spec_hash` on the same comparison, and the overlapping measurement
+  classes include three plan Changelog and two `spec.md` destinations; a
+  plan-only rule would leave one plan wholly and one partially unaddressed.
+- 2026-09-02: while `Drafting`, added the durable spec-index output, corrected
+  the measurement populations and overlap counts, and made work-loop and
+  pre-execute guidance pointer-only. Reason: the index is a new-spec-required
+  durable surface; Instrument B measured 377 working-tree plans; and only the
+  closed four-source rule set receives the contradiction mutations.
+- 2026-09-02: while `Drafting`, changed T2 from replacing to extending the
+  `pre-execute-review.md` § *Mid-EXECUTE re-plan* note. Reason: that note at
+  :205-215 already states the rule correctly and is the only work-loop surface
+  that does; it is incomplete in naming `plan.md` alone, not conflicting, so a
+  replacement would have deleted correct guidance.
