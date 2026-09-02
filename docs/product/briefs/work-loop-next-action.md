@@ -21,8 +21,10 @@ not transcribed, so it cannot drift from the state machine it describes.
 
 **Stopping.** The loop notices when it is not converging and says so, including
 during the spec-authoring phase before any code exists. Today it does not: a
-contract can spend ten review rounds in the same state with every persisted
-counter reading zero, because ordinary pre-EXECUTE results are not recorded.
+contract can spend ten review rounds in one state while every cohort counter
+reads zero, because ordinary pre-EXECUTE results are not recorded there. The
+rounds were not invisible — the protocol wrote an artifact per round the whole
+time — but nothing consulted them and nothing stopped.
 
 These are different problems with different owners, and a previous attempt failed
 by assuming one artifact could serve both. That failure is the reason this brief
@@ -36,8 +38,8 @@ exists and is documented under Rabbit holes.
   for every state the loop can be in — checked by comparing both, not by
   asserting it.
 - A non-converging authoring loop stops before a **fourth** findings-bearing
-  repair cycle and asks for owner-directed replanning, and that stop survives a
-  session restart. Per D1.
+  repair cycle and asks for owner-directed replanning, and the stop is not lost
+  when the agent's context is. Per D1.
 - No component gains the ability to declare a review clean that could not
   previously do so.
 
@@ -67,47 +69,58 @@ pre-EXECUTE review rounds without converging and was abandoned at
 apparent simplicity of "emit a JSON record".
 
 The reporting half is well understood and its hard part is already solved (see
-Provenance). The stopping half is not yet scoped and may be cheap or may require
-a persisted counter and a protocol change; the Ready review should not bundle
-them into one appetite.
+Provenance). The stopping half looks small — the signal it needs already exists
+on disk — but it is a protocol change and unscoped; the Ready review should not
+bundle the two into one appetite.
 
 ## Owner decisions
 
 Three load-bearing unknowns were open at Draft creation. All three are now closed
 by owner decision, recorded here as the governing rulings.
 
-### D1 — pre-EXECUTE non-convergence is enforced by a durable counter
+### D1 — the review protocol stops an unproductive authoring loop
 
-> Owner decision: pre-EXECUTE non-convergence is enforced by a durable
-> `pre_execute_repair_count` owned and updated by the review protocol. One count
-> represents one aggregated findings-bearing repair cycle. At three cycles, the
-> protocol stops before another reviewer dispatch and requires owner-directed
-> replanning. Session restart does not reset it. `next` neither infers nor
-> increments this counter.
+> Owner decision: pre-EXECUTE non-convergence is enforced by the review
+> protocol, not by `next`. After three aggregated findings-bearing repair cycles
+> on one contract, the protocol stops before dispatching another review and
+> requires owner-directed replanning. `next` neither infers nor increments
+> whatever the protocol counts; whether it eventually *displays* the stop is
+> optional projection behaviour.
 
-Counting rules, as decided:
+**What one count means.** One aggregated reviewer round that produced at least
+one sustained finding, counted once before revision begins — not per reviewer,
+not per finding, and not for clean, refuted-only, or evidence-only rounds. It
+counts unproductive repair cycles, not reviewer calls.
 
-- Increment **once** after an aggregated reviewer round produces at least one
-  sustained Blocker or Concern, and **before** revision begins.
-- Do **not** increment per reviewer, per finding, for clean or refuted-only
-  results, or for evidence-only retries.
-- Stop before dispatching another review once the count reaches **3**.
-- Persist across sessions.
-- Reset only by starting a new run, or by an explicit owner-authorised replan
-  recorded in the audit trail.
+**What must not happen.** The implementation-review budget is not reused for this.
+Spending it during spec authoring conflates two different loops with different
+appetites.
 
-The name counts failed repair cycles, not reviewer calls. `review_retry_count` is
-**not** reused: consuming the implementation-review budget during spec authoring
-conflates two different loops.
+**Durability: the evidence supports the cheap tier.** The observed failure was
+eleven rounds inside a single run, and the count was in fact already carried —
+by the forty-two artifacts the protocol writes under its own run directory,
+through a context compaction, with no new state anywhere. That tier survives
+compaction and session restart on the same machine and costs nothing, because
+those artifacts already exist.
 
-Whether `next` eventually *displays* that stop is optional projection behaviour.
-Enforcement does not belong there.
+Committed cross-session state answers a different question — surviving a clone or
+a machine change, and being auditable after the fact — and we have not observed
+that failure. Requiring it here would add a schema change, a migration, and a
+reset-authority decision to fix a problem the evidence does not show, and a
+persisted budget that never resets is its own hazard: a legitimate second attempt
+on the same contract inherits a spent one.
 
-*Consequence for slicing:* this decision requires a new persisted field in cohort
-state with a defined writer, a reset point, and an audit-trail entry — a change to
-the review protocol's own state, not to the projection. It is a separate slice
-from the reporting half and can be delivered first, because it fixes an
-operational failure that is happening now.
+So this brief fixes the **outcome and the threshold** and leaves the counting
+substrate to the slice that implements it, with one floor: whatever it counts must
+survive losing agent context, because compaction is routine rather than
+exceptional and an agent that forgets the count will start round twelve.
+
+*Consequence for slicing:* this is a change to the review protocol, not to the
+projection, and it is a separate slice that can ship first — it fixes an
+operational failure that is happening now. Its design decisions, for that slice
+rather than for this brief: where the count lives, whether it is derived from the
+existing artifacts or recorded explicitly, what resets it and on whose authority,
+and whether an audit trail is required.
 
 ### D2 — the read-surface claim is scoped to application-directed I/O
 
@@ -251,9 +264,10 @@ review can see what moved.
 
 **Closed by owner decision (see Owner decisions):**
 
-- ~~U1 — where the authoring stop lives.~~ D1: a durable
-  `pre_execute_repair_count` owned by the review protocol, stopping at three
-  cycles. This also confirms the shape — `next` neither infers nor increments it.
+- ~~U1 — where the authoring stop lives.~~ D1: the review protocol stops after
+  three unproductive repair cycles. This also confirms the shape — `next`
+  neither infers nor increments what it counts. The counting substrate is a
+  slice-level design decision, not a brief-level requirement.
 - ~~U2 — what a read-surface claim can assert.~~ D2: two invariants scoped to
   application-directed I/O; the process-wide claim is rejected and no file count
   is stated.
@@ -263,11 +277,14 @@ review can see what moved.
 
 **Remaining for the Ready review:**
 
-- **No appetite is set.** The two halves warrant separate ones: the counter is a
+- **No appetite is set.** The two halves warrant separate ones: the stop is a
   small protocol change that fixes a live operational failure; the projection is
   larger and has two prior failed attempts behind it.
-- **No slices are proposed.** `continue` selects them. D1's counter is the
-  natural first slice and can ship independently of the projection.
+- **No slices are proposed.** `continue` selects them. D1's stop is the natural
+  first slice and can ship independently of the projection.
+- **D1's counting substrate is undecided by design.** The slice that implements
+  the stop chooses it against D1's floor. Do not promote that choice into this
+  brief.
 - **Two bounded observations are still owed**, not as unknowns but as
   documentation the eventual specs need: an application-directed I/O trace with a
   positive control (per D2), and a trace of the current reader's behaviour on
