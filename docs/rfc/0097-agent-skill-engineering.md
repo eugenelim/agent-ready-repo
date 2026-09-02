@@ -694,3 +694,87 @@ record. Corrections are appended here, Approver-signed.
   and are missing their applicability limits. Adding them is a correction to
   shipped content owned by the next corpus slice, not a re-opening of the
   foundation spec, which remains `Shipped`.
+
+- **2026-09-01 (Approver: eugenelim) — § *D3* is narrowed. Runtime profiles are
+  chartered for the capabilities the published Agent Skills and Agent Plugins
+  specifications do not standardise, and for the surfaces those specifications
+  explicitly delegate to clients. They are not chartered to restate skill
+  behaviour the specification already fixes.**
+
+  The decision this RFC records — that portable guidance and runtime-specific
+  facts must be separated, dated and sourced rather than blended — stands
+  unchanged. What was over-scoped is the population of facts a profile covers.
+
+  D3's scope and D3's own rationale do not match. The rationale column reads
+  "Subagents, hooks, and plugins have no sufficiently uniform cross-runtime
+  contract", which is accurate and is confirmed by this RFC's own § *Plugins and
+  packaging*: the Agent Plugins v1 portable core "standardizes a root manifest,
+  Agent Skills, optional MCP configuration, confinement, versioning, and
+  component-level failure isolation while leaving installation, distribution,
+  enablement, permissions, sandboxing, and user experience to clients", and
+  "currently covers skills and MCP servers, not a universal hook or subagent
+  manifest". A specification that already fixes skill discovery, progressive
+  disclosure and manifest shape removes the need to profile those things per
+  runtime. The decision column nonetheless authorised eight full profiles whose
+  minimum coverage tables reach across skill behaviour as well.
+
+  The first delivery slice measured the gap. Of the seven capability rows the
+  shipped `claude-code` profile carries, four are the genuine unspecified
+  surface — `isolated-subagent-context` and `nesting-limits` for subagents,
+  `component-scoped-hooks` and `managed-hook-policy` for hooks. One,
+  `skill-preloading-versus-invocation`, describes progressive disclosure, which
+  the specification standardises. One, `worktree-isolation`, is a
+  repository-checkout property and not a skill-engineering fact at all. One,
+  `plugin-agent-restrictions`, is component precedence and remains in scope.
+  A profile-shaped answer was being produced for a specification-shaped
+  question.
+
+  **The narrowed charter.** A runtime profile covers exactly two populations:
+
+  - **The unspecified surface** — hook events, matchers, configuration scopes,
+    output protocols, trust prompts and managed-policy restrictions; subagent
+    context, delegation, nesting and concurrency; and precedence between
+    package-supplied and locally defined components. These have no portable
+    contract and a claim about them is only ever a dated observation.
+  - **The delegated surface** — the concerns the specification names as
+    client-owned: installation and discovery location, distribution,
+    enablement, permissions, sandboxing, and user experience. These are
+    specified to vary, so recording how a client realises them is not
+    duplication.
+
+  A capability whose behaviour the specification fixes does not take a profile
+  row. Where a runtime is believed to deviate from the specification, that is a
+  conformance defect to report against the runtime, not a profile row to
+  maintain in perpetuity.
+
+  **Consequent re-sizing.** The M2 eight-profile `complete-current` condition is
+  read against the narrowed required set, not against the minimum-coverage
+  tables in § *D3* as written; those tables are superseded for any row a
+  specification now fixes. The claim-lifecycle apparatus — four states, three
+  roll-up values, the ninety-day verification window, and the probe record —
+  was sized for the wider population and is re-derived by the slice that next
+  owns the ledger, which may find a narrower distinction sufficient.
+
+  **What this does not license.** It does not remove runtime profiles: the
+  hook and subagent gap is real and is the reason D3 exists. It does not lower
+  the evidence bar in § *D8*, change the provenance fields a profile row
+  carries, or permit an undated claim. It does not reopen
+  `agent-skill-engineering-composition-floors`, which remains `Shipped`; the
+  ledger it built is sound machinery over a population that turns out to be
+  smaller than chartered.
+
+  **Retroactive effect: none.** This narrowing binds profiles built after it and
+  unwinds nothing already shipped. The `claude-code` profile's
+  `skill-preloading-versus-invocation` and `worktree-isolation` rows are
+  **superseded** — outside the charter a later profile is built to, and retained
+  as shipped. They are sourced, dated and honestly classified; they are not
+  defects, and re-deriving the required-capability set to excise them would
+  disturb the measured records that bind this ledger for no gain in accuracy. No
+  slice inherits a correction. A profile authored under the narrowed charter
+  simply does not add rows of that kind.
+
+  `INI-009` slice 3b, which specified a router channel for reporting the wider
+  claim population, was drafted, reviewed to clean across five rounds, and
+  discarded on 2026-09-01 rather than shipped against a charter under
+  correction.
+
