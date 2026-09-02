@@ -408,6 +408,8 @@ Match discipline to verification mode:
 
 **Controlled full-mode amendment:** use the exact authority, evidence, recovery, reapproval, and rescheduling [contract](references/delivery-contract-lifecycle.md).
 
+**Execution observations:** follow the [verification-ledger procedure](references/delivery-contract-lifecycle.md#verification-ledger).
+
 **EXECUTE contract-grounding gate (universal — light and full).** Before generating code against a contract you do not hold, acquire it via [`contract-acquisition`](../contract-acquisition/SKILL.md) (one gate, one skill — extend it, never fork a parallel skill). Two surfaces: **(1) infra** — CLI invocation, IaC resource, or app code on a managed runtime against an unfamiliar platform; **(2) software** — code against an unfamiliar internal framework or third-party library whose contract (versioned signature, deprecation, call-order constraint) the agent does not hold. Not for familiar code. Not every import.
 
 **Frontend work.** When the FE trigger fired and `frontend-engineering` is installed, its craft rules govern HTML element selection, CSS tokens, accessibility patterns, and state completeness during EXECUTE; its GATES section defines verification commands. If absent, named skip applies.
