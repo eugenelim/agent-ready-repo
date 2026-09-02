@@ -29,7 +29,7 @@ distinguishes "my dependency shipped" from "my dependency went away".
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface contract | Applicable — the receipt is a published `workspace.toml` shape adopters write by hand | [`contracts/jsonschema/workspace-entry.schema.json`](../../../contracts/jsonschema/workspace-entry.schema.json) | repository maintainer | AC1, AC2, AC3 pass against the shipped schema | The `receipt` object carries its four required properties and `additionalProperties: false` |
-| User documentation | Applicable — this is the adopter-facing reference for the `needs` shape, and a gate asserts it documents every finding code | [`guides/core/reference/workspace-toml-schema.md`](../../../guides/core/reference/workspace-toml-schema.md) and [`guides/core/how-to/close-and-disposition-work.md`](../../../guides/core/how-to/close-and-disposition-work.md) | repository maintainer | AC12 and AC13 pass | The reference documents the receipt and the new code and admits receipt-covered removal; the how-to states the closed vocabulary rather than the superseded "short outcome statement" |
+| User documentation | Applicable — this is the adopter-facing reference for the `needs` shape, and a gate asserts it documents every finding code | [`guides/core/reference/workspace-toml-schema.md`](../../../guides/core/reference/workspace-toml-schema.md) and [`guides/core/how-to/close-and-disposition-work.md`](../../../guides/core/how-to/close-and-disposition-work.md) | repository maintainer | AC12 and AC14 pass | The reference documents the receipt and the new code and admits receipt-covered removal; the how-to states the closed vocabulary rather than the superseded "short outcome statement" |
 | Maintainer procedure | Applicable — `close-work` produces the receipt and `workspace-status` consumes it; both state its contract | [`packs/core/.apm/skills/close-work/SKILL.md`](../../../packs/core/.apm/skills/close-work/SKILL.md) and [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | repository maintainer | AC12 and AC14 pass | `close-work` states the carrier, the vocabulary and the pinned grammars; `workspace-status` documents the new finding code with a reason and an action |
 | Decision rationale | Applicable — three distinct concepts are spelled `outcome` here and the choice among them is not reconstructible from code | [`docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md`](../../adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | repository maintainer | The ADR is `Accepted` and indexed in `docs/adr/README.md` | The ADR records the vocabulary, carrier, grammar-pin and finding-code choices |
 | Release history | Applicable — this changes shipped `packs/core` behaviour and instructions | [`docs/product/changelog.md`](../../product/changelog.md) `[core]` entry | repository maintainer | A dated `[core]` heading at the bumped version, topmost among `[core]` entries | The entry names the receipt shape and the tightened producer validation |
@@ -49,6 +49,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Read every pinned grammar out of `contracts/jsonschema/delivery-lifecycle-record.schema.json` at test time, never from a literal copied into a test.
 - Let the surviving-membership refusal win before any receipt is read, so a dependency whose entry is still present never resolves through a receipt.
 - Validate a receipt where a refusal scopes to the one dependency, so a bad receipt never removes the citing entry from the projection.
+- Omit an absent receipt from the routing-identity projection, so adding this field changes no existing workspace's identity.
 - Constrain the receipt's key set and value types before it reaches a serialized or hashed structure, and defer only its grammar and vocabulary to satisfaction time. Every need is `json.dumps`-serialized on every run, and `tomllib` yields `datetime.date` for an unquoted date, which would fail the whole projection rather than one dependency.
 - Treat a receipt as bounded untrusted `workspace.toml` text: validate every field before use, and never render an unvalidated value into agent context.
 - Carry the `Engine-Change-RFC: 0096` commit trailer, because `make build-self` reprojects both edited runtimes into `packages/agentbundle/agentbundle/_data/`.
@@ -72,31 +73,43 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 Every criterion names a concrete input and one observable shape: a schema
 accept/reject verdict, a finding code at a named JSON path, an equality
 comparison against a value read from a named shipped file, a producer return
-code, or a literal string present in whitespace-normalized text.
+code, a process exit code, or a literal string present in whitespace-normalized
+text.
 
-- **Schema shape and grammar pinning: TDD.** AC1–AC3 are pure predicates over
-  two JSON files, so they compress to a table of accepted and rejected documents
-  plus cross-file equality reads. AC3's comparison values are deliberately not
-  written here: they are read from the shipped lifecycle record at test time, so
-  restating them would create a third maintained copy that could pass green
-  while the two schemas disagreed.
-- **Satisfaction and refusal: TDD.** AC4–AC9 drive the engine over fixture
-  workspaces and read one finding code, a compressible invariant over a small
-  closed input set.
-- **Not every criterion can start red.** AC5 and AC8 are precedence pins that
-  hold against the unmodified repository; their discrimination exists only once
-  the new branch is present, so each is written after its branch and proved by
-  the mutation that removes the ordering. AC4, AC6, AC7 and AC9 start red.
+- **Every criterion starts red.** A local need carrying a `receipt` is rejected
+  by today's exact-set field check, so every engine fixture here fails to parse
+  before the change lands (probe B, fact 3). The schema criteria fail because the
+  `receipt` object does not exist, the producer criterion because
+  `close-work` validates none of the four fields, and the documentation criteria
+  because none of the required text is present. No criterion is a pin that
+  already holds.
+- **Schema and grammar pinning — AC1, AC2, AC3: TDD.** Pure predicates over two
+  JSON files, compressing to a table of accepted and rejected documents plus
+  cross-file equality reads. AC3's comparison values are deliberately not written
+  here: they are read from the shipped lifecycle record at test time, so
+  restating them would create a further maintained copy that could pass green
+  while the homes disagreed.
+- **Satisfaction, refusal and identity — AC4–AC11 and AC15: TDD.** Each drives
+  the engine over a fixture workspace and reads one finding code, one exit code,
+  or one serialized key set. A criterion asserting the *absence* of a finding
+  also asserts the citing entry's presence, because an entry that vanished and
+  one that resolved are otherwise indistinguishable — that is the trap probe B
+  fact 3 records.
 - **Fixture realism is load-bearing, not incidental.** AC5's fixture leaves the
-  target's `work.shipped` entry in place while AC4's removes it. Probe A in
-  [`notes/probes.md`](notes/probes.md) re-measured at this branch's base that a
-  surviving membership raises `missing_artifact`, lands the path in
-  `structurally_blocked_paths`, and refuses there before the absent-target
-  refusal is reached. A fixture that leaves the entry behind tests the wrong
-  refusal and passes for the wrong reason.
-- **Producer validation: TDD.** AC10 is a return-code assertion beside the
-  shipped Wave 4 receipt tests.
-- **Documentation: goal-based check.** AC11 and AC12 are literal-presence and
+  target's `work.shipped` entry in place while AC4's removes it. Probe A
+  re-measured at this branch's base that a surviving membership raises
+  `missing_artifact`, lands the path in `structurally_blocked_paths`, and refuses
+  there before the absent-target refusal is reached. A fixture that leaves the
+  entry behind tests the wrong refusal and passes for the wrong reason.
+- **AC15 asserts a pre-image, not a hash.** The routing identity is a digest, so
+  the only falsifiable statement about it is the shape of what is hashed. AC15
+  reads the serialized need payload directly. What it protects is concrete: that
+  payload is persisted as `repository_identity` in a migration ledger and bound
+  into each operation's digest, so a need gaining a key it never carried would
+  refuse every in-flight migration with `ledger_changed`.
+- **Producer validation — AC13: TDD.** A return-code assertion beside the shipped
+  Wave 4 receipt tests.
+- **Documentation — AC12 and AC14: goal-based check.** Literal-presence and
   gate-passing checks; a test asserting prose meaning would assert nothing.
 
 ## Acceptance Criteria
@@ -109,11 +122,12 @@ code, or a literal string present in whitespace-normalized text.
 - [ ] **AC6 — A dependency that did not land still refuses.** Given the AC4 fixture with `outcome` changed to `abandoned`, and again to `superseded`, the citing entry reports `unsatisfied_dependency` for that dependency.
 - [ ] **AC7 — A malformed receipt refuses without removing its entry.** Given the AC4 fixture with the receipt mutated to omit a required field, to carry an extra key, to hold a non-string value, to violate any one of the three pinned grammars, or to carry an `outcome` outside the closed vocabulary, the citing entry reports `invalid_completion_receipt` for that dependency and the citing entry remains present in `canonical.blocked`.
 - [ ] **AC8 — A receipt never breaks the run.** For every mutation enumerated in AC7, `status` and `reconcile` both exit 0 and report every other entry in the workspace unchanged against a receiptless control.
-- [ ] **AC9 — A present artifact resolves by its own status.** Given a local need carrying a `receipt` whose target artifact exists, a terminal target reports no finding for that dependency and a non-terminal target reports `unsatisfied_dependency`.
-- [ ] **AC10 — A present artifact never consults the receipt.** Given the AC9 fixture with a receipt that violates a pinned grammar, the citing entry reports no `invalid_completion_receipt` finding, because closeout writes the receipt before a later wave prunes the file and both existing at once is the ordinary transitional state.
+- [ ] **AC9 — A present artifact resolves by its own status.** Given a local need carrying a `receipt` whose target artifact exists, a terminal target leaves the citing entry in `canonical.ready` with no finding for that dependency, and a non-terminal target reports `unsatisfied_dependency`.
+- [ ] **AC10 — A present artifact never consults the receipt.** Given the AC9 terminal fixture with a receipt that violates a pinned grammar, the citing entry stays in `canonical.ready` and reports no `invalid_completion_receipt` finding.
 - [ ] **AC11 — A malformed completion receipt never reports the cross-repository code.** Given the AC7 fixtures, the citing entry's finding codes contain `invalid_completion_receipt` and do not contain `invalid_receipt`; and the shipped cross-repository fixture continues to report `invalid_receipt`.
 - [ ] **AC12 — The new code is documented in both required homes.** `packs/core/.apm/skills/workspace-status/SKILL.md` and `guides/core/reference/workspace-toml-schema.md` each carry an `invalid_completion_receipt` row with a reason and an action.
 - [ ] **AC13 — The producer refuses what the consumer would refuse.** For an authorized closeout call, `close-work` refuses to plan a completion receipt with `receipt-evidence-required` when any of its four fields violates its rule — `outcome` outside the closed vocabulary, or `delivery_id`, `completion_event` or `evidence_ref` outside its pinned grammar — and reaches `receipt-write-confirmation-required` only when all four are valid.
+- [ ] **AC15 — A need that carries no receipt is serialized as it is today.** In the routing-identity projection, the payload for a local need with no `receipt` key contains exactly `type`, `kind` and `path`, so the identity of a workspace using no receipts is unchanged by this delivery.
 - [ ] **AC14 — The adopter surfaces describe the current contract.** `guides/core/reference/workspace-toml-schema.md` shows a `local` need carrying a `receipt` with its four fields and states that a shipped entry may be removed while a live `needs` edge references it when every such edge carries a valid completion receipt; `guides/core/how-to/close-and-disposition-work.md` states the closed vocabulary in place of "a short outcome statement"; and `packs/core/.apm/skills/close-work/SKILL.md` names the receipt's carrier as the citing local need, lists the three `outcome` values, and states that the other three fields use the lifecycle record's grammars.
 
 ## Follow-ons
@@ -135,7 +149,7 @@ canonical `[backlog].open` entry whose artifact is
 
 ## Assumptions
 
-- Technical: the producer already ships — `plan_completion_receipt` builds the exact four-field receipt, refuses with `receipt-surface-required` and a `retain-exception` disposition when no compatible surface resolves, and requires a fresh authorization binding. (source: `packs/core/.apm/skills/close-work/scripts/close_work.py:688-735`; Wave 4 AC17 at `docs/specs/close-work-extraction-and-immediate-disposition/spec.md:457`.)
+- Technical: the producer already ships — `plan_completion_receipt` builds the exact four-field receipt, refuses with `receipt-surface-required` and a `retain-exception` disposition when no compatible surface resolves, and requires a fresh authorization binding. (source: `packs/core/.apm/skills/close-work/scripts/close_work.py:690-735`; Wave 4 AC17 at `docs/specs/close-work-extraction-and-immediate-disposition/spec.md:457`.)
 - Technical: the established compatible surface is the workspace coordination surface. (source: `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py:221,269` pass `runtime-coordination:workspace`, and `:254` uses the removal locator `runtime-coordination:workspace#receipt`.)
 - Technical: the lifecycle record already publishes three of the four fields as required, and does not publish `outcome`. (source: `contracts/jsonschema/delivery-lifecycle-record.schema.json:10,13,19,20,37`.)
 - Technical: before this delivery the producer validated all four fields only as bounded text of at most 512 characters, and the one shipped call that constructs a receipt successfully (`:222`) passes three values that fail the pinned grammars — `delivery_id` `delivery:wave4`, `completion_event` `work-loop:gates-clean`, and `evidence_ref` `evidence:current`. (source: `close_work.py:392-399`; `test_pause_receipts_and_initiative.py:219-236`.)
@@ -149,5 +163,7 @@ canonical `[backlog].open` entry whose artifact is
 - Product: `outcome` is the closed vocabulary `completed`, `abandoned`, `superseded` rather than free text, so a dependant can distinguish a delivery that landed from one that was abandoned. (source: user confirmation 2026-09-02; recorded in ADR-0103.)
 - Product: `completion_event` and `evidence_ref` are pinned to the lifecycle record's grammars, correcting the Wave 4 fixture that used unadmitted values. `delivery_id` is pinned by the same mechanism although the follow-on row named only the other two, because a receipt whose `delivery_id` cannot be joined to the lifecycle record cannot be traced to the closeout that wrote it. (source: user confirmation 2026-09-02.)
 - Product: the receipt rides as an optional object on the existing `local` need rather than a new `type` value, so the need discriminator is untouched. (source: user confirmation 2026-09-02.)
+- Technical: `canonical_repository_identity` serializes every need with `dataclasses.asdict`, which emits a field left at `None`, so a naive optional field would add `"receipt": null` to all 302 need records in this repository and change every workspace's identity. That value is persisted as `repository_identity` in a `work-intake-migration-ledger.v1` and bound into each operation's digest, which is re-checked at apply and rollback time, so an in-flight migration would refuse with `ledger_changed`. (source: measured 2026-09-02; `workspace_status_engine.py:1598-1601`, `workspace_status.py:1909,1917`.)
+- Product: the routing identity tracks content presence, not schema shape — an absent receipt is omitted from the projection, so identity moves only for a workspace that actually records one. (source: user confirmation 2026-09-02; recorded in ADR-0103.)
 - Product: the receipt is a self-assertion. Once the artifact is pruned there is nothing left to verify it against, and its trust rests on `workspace.toml` being a reviewed, committed file — the same trust the entry it replaces already carried. (source: user confirmation 2026-09-02; recorded in ADR-0103.)
 - Process: this spec is registered in `["ini-002".work].queue` before approval, which withdraws that initiative's closeout eligibility until it ships. (source: user confirmation 2026-09-02.)

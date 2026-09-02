@@ -112,6 +112,34 @@ cosmetic — `status-projection-and-context-exclusion`'s ticked AC57 uses
 `invalid_receipt`'s single-emitter property as a test oracle, and broadening the
 code would have falsified a criterion in a frozen spec.
 
+### The routing identity tracks content presence, not schema shape
+
+`canonical_repository_identity` serializes every dependency with
+`dataclasses.asdict`, which emits a field left at `None`. A naive optional
+`receipt` would therefore add `"receipt": null` to every need in every
+workspace — 302 of them in this repository — and change every adopter's routing
+identity, whether or not anyone records a receipt.
+
+That value is not cosmetic. It is persisted as `repository_identity` in a
+`work-intake-migration-ledger.v1` and bound into each operation's digest, which
+is re-checked at apply and rollback time. An identity that moved for everyone
+would refuse every in-flight legacy migration with `ledger_changed`, and each
+one would cost a human a fresh out-of-band confirmation.
+
+**The projection omits an absent optional field.** Identity exists to detect that
+repository state moved under a reviewed operation; adding a field nobody used did
+not move anyone's state, and a false positive there buys nothing. Identity moves
+only for a workspace that actually records a receipt, which is correct, because
+its content genuinely changed.
+
+The alternative — let the identity change once, and treat a schema change as
+genuinely a new identity — is coherent and was rejected on cost: it breaks every
+adopter mid-migration to signal something no adopter's content did.
+
+This is a convention, not a local fix. Every future optional field on a
+serialized identity structure follows the same rule, or the identity churns
+again and the next author has to rediscover why.
+
 ## Consequences
 
 A dependant on abandoned or superseded work keeps refusing, which is the point.
