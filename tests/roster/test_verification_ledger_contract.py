@@ -19,9 +19,10 @@ routing clause from three separate sources left it green, which made it a guard
 that could not fail for the delivery's central claim. Every clause below is
 therefore listed individually so a deletion of any one of them reddens.
 
-The closed set of rule-bearing sources is the six in `SOURCES`. `SKILL.md` is a
-pure pointer and carries no rule of its own; the how-to keeps its own
-pre-existing immutability statement plus a routing clause.
+The closed set of rule-bearing sources is six paths represented by eight
+guarded regions in `SOURCES`. `SKILL.md` is a pure pointer and carries no rule
+of its own; the how-to keeps its own pre-existing immutability statement plus a
+routing clause.
 """
 
 from __future__ import annotations
@@ -45,6 +46,15 @@ RETIRED_LICENCES = (
     "`Drafting` or `Executing`",
     "Drafting or Executing",
     "before ship, the plan is Living and you edit it freely",
+)
+
+#: Vocabulary a Step 2 restatement of the mutability rule would use. This is a
+#: bounded marker list, not proof that no rule can be phrased another way.
+RESTATED_RULE_MARKERS = (
+    "pinned in substance",
+    "immutable in substance",
+    "change substantively",
+    "hash-pinned",
 )
 
 
@@ -122,6 +132,22 @@ SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = 
         ("An observation produced by execution belongs in the sibling `notes/verification-ledger.md`",),
     ),
     (
+        "packs/core/seeds/docs/CONVENTIONS.md",
+        "**`plan.md` is the implementation strategy.**",
+        (
+            "It may change substantively only while `Drafting`; once approved, both it and `spec.md` are pinned except for lifecycle bookkeeping",
+        ),
+        (),
+    ),
+    (
+        "packs/core/seeds/docs/CONVENTIONS.md",
+        "**Lifecycle:** specs are",
+        (
+            "from approval onward the correction is the controlled-amendment path, not an in-flight edit",
+        ),
+        ("an observation produced by execution goes to the verification ledger",),
+    ),
+    (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
         None,
         (
@@ -140,6 +166,7 @@ SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = 
         (
             "notes/verification-ledger.md",
             "The ledger is not hash-pinned",
+            "needs no amendment to either approved artifact",
         ),
     ),
     (
@@ -295,6 +322,10 @@ def test_work_loop_points_at_the_procedure_without_restating_it() -> None:
         assert licence not in _flat(execute), (
             f"{relative}: Step 2 must not restate the mutability rule ({licence!r})"
         )
+    for marker in RESTATED_RULE_MARKERS:
+        assert marker not in _flat(execute), (
+            f"{relative}: Step 2 restates the mutability rule with marker {marker!r}"
+        )
 
 
 def test_the_ledger_destination_resolves_to_one_owning_reference() -> None:
@@ -326,6 +357,24 @@ def test_the_core_release_surfaces_agree() -> None:
     )
 
 
+#: Every guarded region, as `(path, anchor)`, pinned independently of `SOURCES`.
+#: Path membership alone is not enough once one path owns several regions: two
+#: rows of `CONVENTIONS.md` can become one and leave the distinct-path tuple
+#: unchanged, so the deleted region's clauses stop being asserted while every
+#: test stays green. That is the round-2 defect — a table that both defines and
+#: drives its own assertions — recurring one level down, so the regions are
+#: enumerated here too.
+AC3_REQUIRED_REGIONS = (
+    ("packs/core/seeds/docs/CONVENTIONS.md", "### A spec directory freezes as a unit, when the spec ships"),
+    ("packs/core/seeds/docs/CONVENTIONS.md", "**`plan.md` is the implementation strategy.**"),
+    ("packs/core/seeds/docs/CONVENTIONS.md", "**Lifecycle:** specs are"),
+    ("packs/core/.apm/skills/new-spec/assets/plan.md", None),
+    ("packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md", "## Verification ledger"),
+    ("guides/core/explanation/why-the-plan-owns-the-lld.md", "## The shape of the answer"),
+    ("packs/core/.apm/skills/work-loop/references/pre-execute-review.md", "## Mid-EXECUTE re-plan — Phase-1 note"),
+    ("packs/core/.apm/skills/work-loop/references/state-schema.md", "**What the pin covers.**"),
+)
+
 #: AC3's closed set, pinned independently of `SOURCES` so deleting a row from
 #: one cannot silently shrink the other.
 AC3_REQUIRED_SOURCES = (
@@ -346,17 +395,29 @@ LEDGER_DESTINATIONS = (
 
 
 def test_the_closed_source_set_keeps_every_member_ac3_names() -> None:
-    """Deleting a `SOURCES` row must fail here rather than shrink the guard.
+    """Deleting a path from `SOURCES` must fail here rather than shrink the guard.
 
-    `SOURCES` both defines and is iterated by the clause tests, so a removed row
-    takes its own assertions with it and every other test stays green. Pinning
-    membership to the criterion closes that.
+    A path may have several rows because independently guarded regions can be
+    far apart in one source. `SOURCES` both defines and is iterated by the
+    clause tests, so a removed path takes its own assertions with it and every
+    other test stays green. Pinning first-appearance path membership to the
+    criterion closes that without treating multiple regions as new sources.
     """
-    covered = tuple(relative for relative, _anchor, _pinned, _routing in SOURCES)
+    covered = tuple(
+        dict.fromkeys(relative for relative, _anchor, _pinned, _routing in SOURCES)
+    )
     assert covered == AC3_REQUIRED_SOURCES, (
         "SOURCES no longer matches AC3's closed set of six rule-bearing sources; "
         f"missing {sorted(set(AC3_REQUIRED_SOURCES) - set(covered))!r}, "
         f"unexpected {sorted(set(covered) - set(AC3_REQUIRED_SOURCES))!r}"
+    )
+
+    regions = tuple((relative, anchor) for relative, anchor, _pinned, _routing in SOURCES)
+    assert regions == AC3_REQUIRED_REGIONS, (
+        "SOURCES no longer guards every enumerated region; dropping one leaves "
+        "its clauses unasserted while the distinct-path tuple still matches. "
+        f"missing {sorted(set(AC3_REQUIRED_REGIONS) - set(regions))!r}, "
+        f"unexpected {sorted(set(regions) - set(AC3_REQUIRED_REGIONS))!r}"
     )
 
 
@@ -366,10 +427,16 @@ def test_every_routing_surface_names_one_canonical_destination() -> None:
     Carrying the word "ledger" is not agreement: a source could route an
     observation to `notes/execution-log.md` and still read plausibly.
     """
-    for relative, anchor, _pinned, routing in SOURCES:
+    for relative, _anchor, _pinned, routing in SOURCES:
         if not routing:
             continue
-        flat = _flat(_section(relative, anchor))
+        flat = _flat(
+            "\n".join(
+                _section(candidate, anchor)
+                for candidate, anchor, _pinned, _routing in SOURCES
+                if candidate == relative
+            )
+        )
         assert any(dest in flat for dest in LEDGER_DESTINATIONS), (
             f"{relative}: routes an execution observation somewhere other than the "
             f"canonical destination — expected one of {LEDGER_DESTINATIONS!r}"
