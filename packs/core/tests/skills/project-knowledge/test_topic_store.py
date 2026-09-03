@@ -126,7 +126,13 @@ def _commit(repo: Path) -> None:
     subprocess.run(["git", "commit", "-m", "test: publish knowledge"], cwd=repo, check=True)
 
 
-def _proposal_with_pending(repo: Path, store, **overrides: Any) -> dict[str, Any]:
+def _proposal_with_pending(
+    repo: Path,
+    store,
+    *,
+    existing_topic_bytes: bytes | None = None,
+    **overrides: Any,
+) -> dict[str, Any]:
     request = valid_capture_request(
         lesson=overrides.pop(
             "lesson",
@@ -136,8 +142,24 @@ def _proposal_with_pending(repo: Path, store, **overrides: Any) -> dict[str, Any
     request["observed_at"] = "2026-08-13T12:34:56Z"
     receipt = store.seed_previously_admitted_capture(repo, request)
     return store.complete_mutation_proposal(
-        mutation_proposal(capture_id=receipt["capture_id"], **overrides)
+        mutation_proposal(capture_id=receipt["capture_id"], **overrides),
+        existing_topic_bytes=existing_topic_bytes,
     )
+
+
+def _hand_built_proposal_with_pending(
+    repo: Path, store, **overrides: Any
+) -> dict[str, Any]:
+    receipt = store.seed_previously_admitted_capture(repo, valid_capture_request())
+    proposal = mutation_proposal(capture_id=receipt["capture_id"], **overrides)
+    topic = store._topic_from_proposal(proposal)
+    proposal["topic_postimage_digest"] = store.PK.digest_bytes(
+        store._pretty_json_bytes(topic)
+    )
+    proposal["proposal_digest"] = store.PK.digest_bytes(
+        store._canonical_json_bytes(store._proposal_without_derived(proposal))
+    )
+    return proposal
 
 
 def test_ac10_topic_is_pretty_json_and_not_an_event_stream(repo: Path, store) -> None:
@@ -392,6 +414,9 @@ def test_ac14_interruption_never_changes_committed_query_snapshot(repo: Path, st
             "body": "Use the published contract as the durable handoff.",
         },
         expected_topic_digest=store.topic_digest_for_key(repo, "contracts/public-contracts"),
+        existing_topic_bytes=store.topic_path_for_key(
+            repo, "contracts/public-contracts"
+        ).read_bytes(),
     )
     with pytest.raises(store.KnowledgeStoreError):
         store.apply_guarded_mutation(repo, updated, interrupt_after="topic_replace")
@@ -509,16 +534,19 @@ def test_ac14_recovery_refuses_oversized_topic_before_comparison(repo: Path, sto
 def test_ac17_judgment_or_stale_precondition_leaves_semantic_files_unchanged(
     repo: Path, store
 ) -> None:
-    before = _semantic_bytes(repo)
+    topic_path = store.write_topic(repo, valid_topic())
+    base_bytes = topic_path.read_bytes()
     stale = _proposal_with_pending(
         repo,
         store,
-        expected_topic_digest={
-            "kind": "sha256-bytes-v1",
-            "sha256": "d" * 64,
-            "byte_length": 1,
-        },
+        expected_topic_digest=store.PK.digest_bytes(base_bytes),
+        existing_topic_bytes=base_bytes,
     )
+    changed_topic = valid_topic()
+    changed_topic["synthesis"]["body"] = "The base changed after proposal completion."
+    store.write_topic(repo, changed_topic)
+    store.rebuild_topic_map(repo)
+    before = _semantic_bytes(repo)
     unsafe = store.complete_mutation_proposal(mutation_proposal())
     unsafe["synthesis"]["body"] = "Contact user@example.com before promotion."
     for proposal, reason_code in ((unsafe, "privacy"), (stale, "postimage_mismatch")):
@@ -534,6 +562,141 @@ def test_ac17_judgment_or_stale_precondition_leaves_semantic_files_unchanged(
             | {"refusal_reason": "privacy"},
         )
     assert unknown_field.value.diagnostic["reason_code"] == "strict_parse"
+
+
+def test_promoted_update_accumulates_occurrences_and_returns_applied_id(
+    repo: Path, store
+) -> None:
+    first = _proposal_with_pending(repo, store)
+    first_result = store.apply_guarded_mutation(repo, first)
+    topic_path = store.topic_path_for_key(repo, first["topic_key"])
+    existing_topic_bytes = topic_path.read_bytes()
+    second = _proposal_with_pending(
+        repo,
+        store,
+        lesson="Use the complete evidence history when revising a topic.",
+        synthesis={
+            "kind": "pattern",
+            "body": "Use the complete evidence history when revising a topic.",
+        },
+        expected_topic_digest=store.PK.digest_bytes(existing_topic_bytes),
+        existing_topic_bytes=existing_topic_bytes,
+    )
+
+    second_result = store.apply_guarded_mutation(repo, second)
+
+    topic = json.loads(topic_path.read_bytes())
+    mutation_ids = [occurrence["mutation_id"] for occurrence in topic["occurrences"]]
+    assert mutation_ids == [first_result["mutation_id"], second_result["mutation_id"]]
+    assert second_result["mutation_id"] == store._mutation_id(second)
+    assert second_result["mutation_id"] != first_result["mutation_id"]
+
+
+def test_mutation_completion_refuses_existing_topic_digest_mismatch(
+    repo: Path, store
+) -> None:
+    topic_path = store.write_topic(repo, valid_topic())
+    existing_topic_bytes = topic_path.read_bytes()
+    proposal = mutation_proposal(
+        expected_topic_digest={
+            "kind": "sha256-bytes-v1",
+            "sha256": "d" * 64,
+            "byte_length": 1,
+        }
+    )
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.complete_mutation_proposal(
+            proposal,
+            existing_topic_bytes=existing_topic_bytes,
+        )
+
+    assert refused.value.diagnostic["reason_code"] == "postimage_mismatch"
+
+
+@pytest.mark.parametrize(
+    ("lifecycle", "retirement"),
+    (
+        ("unknown", None),
+        (
+            "retired",
+            {
+                "reason": "enforced",
+                "successors": [],
+                "coverage_verified": False,
+            },
+        ),
+    ),
+)
+def test_mutation_completion_validates_lifecycle_and_retirement(
+    store, lifecycle: str, retirement: dict[str, Any] | None
+) -> None:
+    proposal = mutation_proposal(lifecycle=lifecycle)
+    if retirement is not None:
+        proposal["retirement"] = retirement
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.complete_mutation_proposal(proposal)
+
+    assert refused.value.diagnostic["reason_code"] == "strict_parse"
+
+
+@pytest.mark.parametrize(
+    ("lifecycle", "retirement"),
+    (
+        ("unknown", None),
+        (
+            "retired",
+            {
+                "reason": "enforced",
+                "successors": [],
+                "coverage_verified": False,
+            },
+        ),
+    ),
+    ids=("invalid-lifecycle", "invalid-retirement"),
+)
+def test_guarded_mutation_validates_hand_built_lifecycle_and_retirement(
+    repo: Path,
+    store,
+    monkeypatch: pytest.MonkeyPatch,
+    lifecycle: str,
+    retirement: dict[str, Any] | None,
+) -> None:
+    overrides: dict[str, Any] = {"lifecycle": lifecycle}
+    if retirement is not None:
+        overrides["retirement"] = retirement
+    proposal = _hand_built_proposal_with_pending(repo, store, **overrides)
+    monkeypatch.setattr(store, "validate_topic", lambda topic: topic)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.apply_guarded_mutation(repo, proposal)
+
+    assert refused.value.diagnostic["reason_code"] == "strict_parse"
+
+
+def test_mutation_completion_refuses_occurrence_overflow(
+    repo: Path, store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(store.PK._BUDGETS, "topic_bytes", 1_000_000)
+    existing_topic = valid_topic()
+    existing_topic["occurrences"] = [
+        copy.deepcopy(existing_topic["occurrences"][0])
+        for _ in range(store.budget_contract()["occurrences_per_topic"])
+    ]
+    topic_path = store.write_topic(repo, existing_topic)
+    existing_topic_bytes = topic_path.read_bytes()
+    proposal = mutation_proposal(
+        expected_topic_digest=store.PK.digest_bytes(existing_topic_bytes)
+    )
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.complete_mutation_proposal(
+            proposal,
+            existing_topic_bytes=existing_topic_bytes,
+        )
+
+    assert refused.value.diagnostic["reason_code"] == "journal_capacity"
 
 
 def test_ac36_mutation_digest_graph_matches_fixed_cross_platform_vector(store) -> None:
