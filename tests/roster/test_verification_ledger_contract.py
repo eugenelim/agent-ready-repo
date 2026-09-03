@@ -86,7 +86,11 @@ def _section(relative: str, anchor: str | None) -> str:
         depth = len(anchor) - len(anchor.lstrip("#"))
         terminator = rf"\n#{{1,{depth}}}[ \t]"
     else:
-        terminator = r"\n[ \t]*\*\*\w|\n#{1,6}[ \t]"
+        # A bold *paragraph lead* is blank-line separated. Without that, a
+        # re-wrap that happens to push an inline bold span (`**Canonical
+        # form**`) to the start of a line truncates the region before the
+        # guarded clause and reddens the suite on a no-op edit.
+        terminator = r"\n\n[ \t]*\*\*\w|\n#{1,6}[ \t]"
     match = re.search(terminator, text[start:])
     end = start + match.start() if match else len(text)
     region = text[start:end]
