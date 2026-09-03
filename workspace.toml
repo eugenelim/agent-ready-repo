@@ -256,6 +256,9 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {slug = "credential-brokers-description-rewrite", source = "spec/pack-description-quality", summary = "Shipped by commit 1bdf7514d: credential-brokers is rewritten rather than skipped. The entry cannot leave [backlog].open: docs/specs/pack-description-quality/spec.md:76 is a frozen Shipped body carrying the (deferred:) marker that invariant (iv) resolves from [backlog].open only."},
+  {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep", summary = "Shipped by commit 6a2ca03d2, the credbroker frozen-pack RFC ref sweep erratum. The entry cannot leave [backlog].open: docs/specs/apm-internal-ref-sweep/spec.md:38 is a frozen Shipped body carrying a (deferred: credbroker-frozen-pack-ref-sweep) marker, and lint-spec-status invariant (iv) resolves that anchor from [backlog].open only."},
+  {slug = "architect-review-diagram-knowledge-surfaces", source = "spec/architect-knowledge-surfaces", summary = "Shipped by commits 556a6faf9 and 74ccf1a56; architect-review and architect-diagram both load their knowledge-surface references. The entry cannot leave [backlog].open: docs/specs/architect-knowledge-surfaces/spec.md:54 is a frozen Shipped body carrying the (deferred:) marker that invariant (iv) resolves from [backlog].open only."},
   # Hypothesis, not accepted work. Spiked 2026-09-01 in core 2.22.0 and REVERTED
   # the same day because the spike did not pay out.
   #
@@ -315,11 +318,10 @@ open = [
   # remote job runs this test at all, while local `make ci`
   # (test-after-build-check) walks the whole packs tree and fails on it.
   # Confirmed by running it in a clean origin/main worktree.
-  {slug = "pre-existing-new-spec-exact-clean-phrase-drift", source = "pre-flight/2026-09-01", summary = "packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py::test_spec_review_accepts_only_exact_clean_before_adjudication asserts four phrases and their order in packs/core/.apm/skills/new-spec/SKILL.md; the first, 'entire returned text value is exactly `Clean — ready to commit.`', is absent from that file, so the phrase pin has drifted from the skill it guards. Decide whether the skill regains the sentence or the test drops the pin, and put the new-spec suite behind a remote gate so the answer cannot drift again unseen"},
-  {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
-  {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
+  {slug = "pre-existing-new-spec-exact-clean-phrase-drift", source = "pre-flight/2026-09-01", summary = "test_spec_review_accepts_only_exact_clean_before_adjudication pins four phrases in new-spec/SKILL.md, but the exact-clean, do-not-persist, and non-exact-gateway phrases are absent and only the repair-order phrase remains. Restore the three contracts or update the test to the intended review protocol, and add the new-spec suite to a remote gate."},
+  {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the current non-blocking CAT-S003/CAT-S004 warning baseline across every warned path, including work-loop's over-500-line body. Re-measure the count when this is picked up; the recorded figure of 65 is stale."},
 
-  {slug = "rfc0099-execution-side-errata", source = "docs/specs/shaping-review-contracts/spec.md#follow-ons", summary = "Execution-side RFC-0099 errata split out of shaping-review-contracts on 2026-08-28 after pre-EXECUTE review found them unmapped to that spec's Objective: the root-cause cluster checkpoint after adjudication, the touched-seam cleanup-versus-neighboring-module boundary across work-loop/implementer/adversarial review/quality review, and claim minimization in the author and reviewer rubrics. Any work-loop/SKILL.md addition must respect its 990-of-1000 body-line CAT-S003 headroom"},
+  {slug = "rfc0099-execution-side-errata", source = "docs/specs/shaping-review-contracts/spec.md#follow-ons", summary = "Implement the two remaining execution-side RFC-0099 errata: a root-cause-cluster checkpoint after adjudication, and the touched-seam cleanup versus neighbouring-module boundary across work-loop, implementer, adversarial review, and quality review. Claim minimization has shipped. Re-measure CAT-S003 headroom first; work-loop/SKILL.md is currently 832 lines."},
   {slug = "amendment-redraft-shaping-gate", source = "RFC-0099 Errata 2026-08-30; docs/specs/sealed-baseline-replacement/ (Archived)", summary = "RFC-0099 section 7 puts shaping-reviewer at step 2 of the drafting sequence and a post-seal correction re-enters that sequence, so re-drafting after a contract-amendment owes a shaping pass. The work-loop drives SPEC-PLAN-DRAFTING in-loop rather than through new-spec, so the gate added to new-spec in PR #1171 does not cover it, and references/delivery-contract-lifecycle.md has zero occurrences of shaping. Until this lands an amendment reseals without the cold contract review the RFC requires. Re-homed here when sealed-baseline-replacement was archived; carries no state, schema, or transition change, so it belongs to the next change touching the work-loop re-drafting path. Any work-loop/SKILL.md addition must respect its CAT-S003 body-line headroom"},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
   {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
@@ -359,7 +361,7 @@ open = [
 
   # Blocker: the fix touches protected packages/agentbundle/**; its landing
   # commit needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "marketplace-envelope-config-authority", summary = "Make catalogue.toml the marketplace-envelope authority for all six render.py entrypoints, after deciding toml_emit's 'main' scaffold default", source = "spec/marketplace-generator-single-source (review blocker 3)"},
+  {slug = "marketplace-envelope-config-authority", source = "spec/marketplace-generator-single-source (review blocker 3)", summary = "Make catalogue.toml authoritative for marketplace branch and description across every public render path, including render_pack_files and render_packs_to_dir, after deciding whether toml_emit.py's main scaffold default may change."},
 
   # Blocker: the fix touches protected packages/agentbundle/**; its landing
   # commit needs an Engine-Change-RFC trailer naming a real RFC.
@@ -371,12 +373,12 @@ open = [
 
   # Blocker: the fix changes protected packages/agentbundle/** and needs an
   # Engine-Change-RFC trailer naming a real RFC.
-  {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", summary = "An empty or absent claude-plugin-branch makes a fork's install route resolve to upstream's repo and ref", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", source = "spec/marketplace-generator-single-source (review concern 4)", summary = "An empty claude-plugin-branch passes schema validation and leaves build_catalogue on the upstream claude-plugins-dist constant, so with unchanged upstream pack.links.repository values a fork's install route resolves upstream. An omitted key is rejected; an absent catalogue.toml separately uses hardcoded defaults."},
   # Unblocks when: a maintainer runs the canary arm; settings writes are theirs.
   # Deferred rather than bundled: closing it needs a repository-settings action
   # and a live canary run, neither of which is a code change this PR could
   # carry.
-  {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  {slug = "publish-control-evidence-freshness-unbounded", source = "spec/marketplace-generator-single-source (review concern 4)", summary = "Run and record the live ordinary-actor rejection canary, moving captured evidence to live_branch_negative_tested true, and decide whether live settings-side ruleset removal must also be detected. Freshness itself is now bounded at 30 and 90 days."},
   # Unblocks when: SAST rule authoring is in scope (sast-cwe-delta-review is
   # adjacent).
   # Deferred rather than bundled: bounding it needs a different instrument
@@ -421,7 +423,7 @@ open = [
   # non-relevant-diff event class remains unmeasured.
   # Fix: measure one docs/**-only PR without narrowing SAST_CONFIG, then record the result
   # against AC15.
-  {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11"},
+  {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11", summary = "Measure one docs-only PR without narrowing SAST_CONFIG and record the non-relevant-diff result against AC15. AC11's critical-path timing is already complete."},
 
   # Unverified: the concurrent-reclaimers case failed once in CI, passed the same-commit
   # rerun, and passed 3/3 locally.
@@ -506,7 +508,7 @@ open = [
   # that gates it; and a CODEOWNERS entry for .github/workflows/** plus the posture
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
-  {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
+  {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3", summary = "Evaluate and, if accepted, apply a repository ruleset that resolves the required workflow from a pinned ref. The CODEOWNERS route was declined: this repository cannot enforce code-owner review without blocking its sole maintainer."},
   # PARTIALLY CLOSED. The duplication this entry was opened for was created by
   # the change that gave four posture tests mutation matrices, so that change
   # paid it: ci-security, pack-evals, build-check-windows and CodeQL now share
@@ -536,7 +538,7 @@ open = [
   # pages' crafted-input predicates, decide whether the four-element tuple joins
   # or stays out, and prove each caller's mutation count and family coverage is
   # unchanged — the same criterion the four already satisfy.
-  {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
+  {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout", summary = "Decide whether test-build-check-workflow.py, test-pages-workflow.py, and test-pages-concurrency.py converge on the shared posture harness while preserving build-check's bash differential, pages' crafted-input predicates, and pages-concurrency's four-element mutation shape."},
   # Added 2026-08-31 by the catalogue-tooling token-posture change, so the gap is
   # registered rather than assumed covered: tools/check-zizmor-excessive-permissions.py
   # filters on the `excessive-permissions` ident alone, so adding a workflow to its
@@ -549,21 +551,6 @@ open = [
   # are scoped to one), whether a sibling guard owns artipacked, or whether the broad
   # gate's floor drops for that ident alone.
   {slug = "workflow-posture-guard-coverage-gaps", source = "security+quality review of the posture assertion-proof change"},
-  # DECISION, recorded so it is not re-proposed: a GitHub merge queue was evaluated
-  # as the fix for branch protection's strict:true rebase-and-rerun thrash and was
-  # REJECTED. Two reasons, in order. (1) It does not address the complaint that
-  # motivated spec/ci-gate-parallelization — a merge queue leaves per-PR feedback
-  # latency exactly as it is; only job parallelism reduces the wait between pushing
-  # and seeing green. These are separate problems and conflating them cost a round of
-  # bad advice. (2) Requiring a queue makes GitHub's direct merge API
-  # (PUT /repos/{owner}/{repo}/pulls/{n}/merge) fail, so tool harnesses with a
-  # raise-PR / merge button break rather than degrade; integrating means moving them
-  # to the enqueuePullRequest GraphQL mutation. If that integration cost is ever paid,
-  # the setup is: add a `merge_group:` trigger to build-check.yml (without it the
-  # queue never sees a green required check and every PR is ejected on timeout), set
-  # strict=false since the queue supersedes it, and set the queue's status-check
-  # timeout well above the slowest required check.
-  {slug = "merge-queue-rejected-tooling-integration", source = "spec/ci-gate-parallelization Objective"},
 
   # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
   # package-suite fixture setup. First, pip/ensurepip cannot create its temporary
@@ -628,7 +615,7 @@ open = [
   # administrator authority.
   # Settle with an approver-authorized runnable second-uid mechanism or a
   # non-administrative isolation boundary.
-  {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
+  {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B", summary = "The browser endpoint is unauthenticated loopback TCP and current evidence indicates an actor set potentially wider than same-UID, while accepted disposition B remains narrower. Re-rule the exposure with an authorized second-UID or non-admin boundary experiment, or equivalent evidence."},
 
   # Unverified: the reference-consumer spike produced a null result because neither
   # browser channel supplied a discriminating authentication oracle.
@@ -666,12 +653,6 @@ open = [
   # spec note, since it changes what AC35's approval step means in practice.
   {slug = "publish-approval-preview-summary", source = "spec/claude-plugin-hook-parity AC35"},
 
-  # Current: make external-catalogue-smoke now reproduces Gate B from the committed
-  # fixture; the missing-local-target defect is complete.
-  # Decision remaining: keep it on demand, add it under build-check, or amend the
-  # make-ci prerequisite graph ADR-0096 pins (build-check, lint-ruff, lint-mypy,
-  # test-after-build-check) before chaining it directly into make ci.
-  {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
 
   # Current: the wheel places agentbundle/_data/install-marker.py at a non-importable
   # module path and check-wheel-contents reports W004.
@@ -710,19 +691,6 @@ open = [
   # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
   # an Engine-Change-RFC trailer naming a real RFC.
   {slug = "plugin-marketplace-content-hash", source = "spec/claude-plugin-route-scope"},
-  # Every other pack description was rewritten outcome-first; credential-brokers
-  # still opens "User-scope credential brokering: the credbroker library
-  # (pip-installed, in-process resolver...)" and names an internal path
-  # (~/.agentbundle/bin/), so it reads as the odd one out in the marketplace
-  # listing. Left alone deliberately: packs/credential-brokers/** is a protected
-  # tree under the catalogue-curation guard (RFC-0059 D6) with no carve-out, so
-  # editing it needs an `Engine-Change-RFC:` trailer naming a real RFC, and none
-  # covers display copy. It is already inside the 400-char ceiling (241), so this
-  # is polish, not a gate failure. Fix: fold the rewrite into whatever RFC next
-  # touches that pack. Note `test_credential_brokers_pack_install.py` pins the
-  # substrings credbroker / sso-broker / credential-setup / LLM-cooperative, so
-  # any rewrite must keep them.
-  {slug = "credential-brokers-description-rewrite", source = "spec/pack-description-quality AC4"},
   # Codex renders skill descriptions into a ~2% context budget and truncates to
   # fit, warning "Skill descriptions were shortened to fit the 2% skills context
   # budget" (observed on Codex CLI 0.146.0). The catalogue ships 122 skills whose
@@ -733,7 +701,7 @@ open = [
   # activation text). Fix direction: measure activation loss under truncation
   # before shortening anything, since the per-target 1024 cap was set to help
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
-  {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
+  {slug = "codex-skill-description-budget", source = "spec/pack-description-quality", summary = "Codex CLI 0.146.0 truncated skill descriptions to its skills-context budget. The catalogue now holds 137 skill descriptions rather than 122, so remeasure aggregate size and activation loss against the current Codex release before shortening activation-bearing text."},
 
   # Unverified: Ubuntu Python 3.12 once reported two entrants while one raised
   # StateLockLost; same-commit rerun, Python 3.11, and 3/3 local runs passed.
@@ -921,7 +889,7 @@ open = [
   #   decide explicitly that the pack lint should carry phantom-handoff detection
   #   generically instead of per-chain.
   # Unblocks when: picked up — no dependency.
-  {slug = "xd-chain-structural-invariants-uncovered", source = "spec/local-gate-ci-parity AC12"},
+  {slug = "xd-chain-structural-invariants-uncovered", source = "spec/local-gate-ci-parity AC12", summary = "Experience Design now has a 20-skill boundary matrix, refreshed frontmatter descriptions, and declared-inventory existence checks. The remaining gap is semantic drift: no gate verifies that backtick-quoted skill names in descriptions resolve across the catalogue, including legitimate cross-pack references, or that descriptions retain their matrix-required nearest-neighbour references."},
 
   # `tools/lint-ci-parity.py`'s per-step disposition roster does not catch a gate
   # added INSIDE a step that already carries a disposition — a second command on a
@@ -1123,14 +1091,6 @@ open = [
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
-  # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
-  # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
-  # __init__.py, _core.py, _vault.py). The pack is frozen by RFC-0013 (§4/§4d);
-  # the apm-internal-ref-sweep cleaned core + figma but left this frozen pack.
-  # Fix: a focused comment-only PR with explicit RFC-0013 approver sign-off, or fold
-  #   into apm-leak-lint-rfc when that RFC lands.
-  # Unblocks when: apm-leak-lint-rfc RFC is approved, or explicit approval obtained.
-  {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep"},
 
   # 4 tests fail locally because credbroker is not installed (`pip install -e ./packages/credbroker`
   # required). Pre-existing on origin/main (confirmed 2026-07-27):
@@ -1212,7 +1172,7 @@ open = [
   #   framework or duplicate slug.
   # Fix: take pack-by-pack (Tier 2 first — highest value, lowest cost).
   # Unblocks when: ANTHROPIC_API_KEY secret is configured in GitHub (Tier 5 activation).
-  {slug = "pack-eval-coverage-rollout"},
+  {slug = "pack-eval-coverage-rollout", summary = "Finish the pack-eval rollout: deterministic B-lite coverage for eligible contract skills, the remaining judge-rubric gaps, an ANTHROPIC_API_KEY calibration cycle, then a decision on regression-from-baseline gating. The core activation cases for capture-work, author-brief, receive-brief, and new-spec have shipped."},
 
   # spec/pack-activation-evals plan T8 (non-blocking follow-on). The converters
   # evals.json carry-over gate in build-check.yml enumerates covered skills by hand.
@@ -1232,7 +1192,7 @@ open = [
   #   packs/core/.apm/skills/work-loop/scripts/lint-traceability.py once the RFC-0048
   #   Decision-7 spike pins the traceability.json schema.
   # Unblocks when: the sidecar schema is pinned (RFC-0048 Decision-7 spike lands).
-  {slug = "sidecar-drift-hard-fail"},
+  {slug = "sidecar-drift-hard-fail", summary = "Promote matrix-to-artifact sidecar drift from warn-only to a hard violation now that the discovery-loop sidecar schema is pinned at version 0.1, and update the traceability-lint contract and tests that still describe the schema as unpinned."},
 
   # Unverified: walkthrough and projection checks pass, but four skills have not exercised
   # present, absent, sensitive, and brownfield detection through a live mock MCP tool.
@@ -1330,7 +1290,7 @@ open = [
   # Fix: open RFC-0046 + ADR-0036 for the integrity-pinning design; lean on existing
   #   SCA/lockfile-hash infrastructure rather than hand-rolling verification.
   # Unblocks when: someone opens the integrity-pinning RFC.
-  {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults"},
+  {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults", summary = "Implement RFC-0046 and ADR-0036's deferred layer-4 integrity work: resolve main to a full commit SHA and verify the fetched archive digest. Both decisions already exist and must not be reopened."},
 
   # Unverified: live APM installs for core, converters, and Copilot/Cursor/Gemini
   # characterization remain unrecorded.
@@ -1348,15 +1308,6 @@ open = [
   # Unblocks when: RFC is opened and approved.
   {slug = "apm-leak-lint-rfc", source = "spec/house-voice-writing-craft"},
 
-  # Boundary deferred from spec/architect-knowledge-surfaces (Shipped). Extending
-  # the consult-grounding step to architect-review or architect-diagram requires a
-  # separate RFC decision. The underlying architect-diagram knowledge-surfaces work
-  # shipped (pack 0.5.0 / ADR-0032). Slug retained: the Shipped spec's Boundaries
-  # block carries a live (deferred:) marker pointing here (lint-enforced).
-  # Fix: open an RFC explicitly scoping the architect-review/architect-diagram
-  #   grounding extension when the need arises.
-  # Unblocks when: a new RFC scopes the extension.
-  {slug = "architect-review-diagram-knowledge-surfaces", source = "spec/architect-knowledge-surfaces"},
 
   # packs/architect/.apm/skills/architect-review/references/rubric-well-architected.md
   # names four workload-class lenses: ML, GenAI/agentic, SaaS, serverless. GenAI/
@@ -1365,7 +1316,7 @@ open = [
   # Fix: a future RFC backs ML with lens-ml.md and SaaS with lens-saas.md, or removes
   #   the named-but-unbacked entries from the rubric.
   # Unblocks when: someone opens an RFC to add or remove the ML/SaaS lens.
-  {slug = "ml-saas-serverless-workload-class-lenses", source = "spec/agentic-well-architected-overlay"},
+  {slug = "ml-saas-serverless-workload-class-lenses", source = "spec/agentic-well-architected-overlay", summary = "Add a dedicated SaaS workload-class corpus concept, or remove SaaS from the rubric's claimed lens set. ML now routes to data-analytics-and-ml.md and serverless already has serverless.md."},
 
   # RFC-0063 OQ1 (ADR-0053 D4). Growth strategy (AARRR, PLG loops, PMF testing,
   # conversion architecture, SEO keyword-intent) was explicitly scoped out of the
@@ -1385,14 +1336,6 @@ open = [
   # Unblocks when: a pack maintainer wants to ship a user-scope hook.
   {slug = "user-scope-hooks-first-consumer"},
 
-  # spec/adapt-to-project is Shipped. APM-install-route and Claude-plugins-install-
-  # route adopters never hit the install-marker write, the session-start nudge, or
-  # the chained adapt.run because the spec is CLI-only by contract. RFC-0004 parity
-  # work would close this gap.
-  # Fix: open a parity RFC for APM/Claude-plugins install-route (modeled on RFC-0004
-  #   claude-plugins precedent).
-  # Unblocks when: APM/Claude-plugins adapter parity work is prioritised.
-  {slug = "adapt-to-project-apm-install-parity"},
 
   # spec/extraction-higher-tiers follow-on (RFC-0058 D5 / Open-Q3). D5 decides
   # pre-egress redaction is out of scope for Tier-3 — documents sent to the managed
@@ -1442,11 +1385,6 @@ open = [
   # recording manual verification under the existing notes directory.
   {slug = "extraction-msg-realworld-sample", source = "spec/extraction-msg-to-markdown-python-contract AC3"},
 
-  # Unverified: the contract still lacks a real Kiro recursion probe and an IDE-authored
-  # .kiro.hook vocabulary sample.
-  # Settle on a live Kiro install with Q6 and Q11 results before the contract bump and
-  # follow-on ADR.
-  {slug = "kiro-ide-hook-contract-probe"},
 
   # Unverified: documentation and generated-path checks pass, but a real Cursor tool has
   # not loaded the generated repo/user artifacts.
@@ -1498,7 +1436,7 @@ open = [
   # sessions and user-scope judgment rows.
   # Settle after APM install parity by recording the named real-adopter sessions in the
   # existing manual-QA matrix.
-  {slug = "adapt-to-project-ac4b-transcripts", needs = "backlog:adapt-to-project-apm-install-parity"},
+  {slug = "adapt-to-project-ac4b-transcripts", summary = "Capture real-adopter AC4b repo-scope class-2/3/4 rows 8-16 and user and APM rows 19-34. The stale premise that no user-scope-eligible pack ships needs updating before the named live transcripts are recorded."},
 
   # Unverified: hermetic manifest checks pass, but the graphical Claude client has not
   # completed the clean-profile marketplace lifecycle.
@@ -1512,7 +1450,7 @@ open = [
   # any clobber.
   # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
   # an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "plugin-root-name-collision-guard", source = "spec/claude-plugins-manifest-correctness AC10"},
+  {slug = "plugin-root-name-collision-guard", source = "spec/claude-plugins-manifest-correctness AC10", summary = "Add a Claude-plugin build preflight deriving reserved native component roots from contracts/distribution-routes.toml and rejecting collisions with skills/, agents/, commands/, and hooks/. Do not derive them from the retired adapter-contract fields or PRIMITIVE_DIRS."},
 
   # Current: Linear v1 has shipped; automatic AC comment write-back remains intentionally
   # absent pending real adopter demand.
@@ -1551,7 +1489,7 @@ open = [
   # not a ride-along.
   {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
-  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  {slug = "tools-test-runner-boundary", source = "spec/build-check-coverage-gaps review", summary = "Extend the runner/no-runner discipline to tools/test*.py. Re-inventory the current orphans; tools/test_guide_typed_asides.py is a sanctioned no-runner archival case, and every other uninvoked test needs a runner or a recorded no-runner disposition."},
   {slug = "e2e-spec-runner-boundary", summary = "docs-wayfinding.spec.ts is invoked by no Makefile line, workflow or package script; decide whether orphaned web/src/test/e2e specs get a runner or an explicit on-demand contract", source = "spec/site-browser-quality-gate review"},
 
   {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
@@ -1771,8 +1709,8 @@ open = [
   { slug = "rfc0088-adr-broker-deployment-model", source = "rfc/0088 follow-on list", summary = "Record the ADR choosing between library-owned broker and bound Playwright CLI as the broker deployment unit" },
   { slug = "rfc0088-adr-immutable-adapter-artifacts", source = "rfc/0088 follow-on list", summary = "Record the ADR establishing immutable adapter artifacts and no remote adapter catalogue in v1" },
   { slug = "rfc0088-convention-browser-session-lint", source = "rfc/0088 follow-on list", summary = "Add auth: browser-session taxonomy and its pack-lint contract to CONVENTIONS.md" },
-  { slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Spec 1: synthetic foundation/provider vertical — pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, install/admit/activate/upgrade/rollback/repair gate, user guide for login handoff and recovery" },
-  { slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction, authorization, and network/filesystem policy contracts; carries Q5's destination-credential-exposure declaration requirement" },
+  {slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Synthetic foundation and provider vertical: pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, an install/admit/activate/upgrade/rollback/repair gate, and a user guide for login handoff and recovery. Carries Q5's per-destination credential-exposure declaration."},
+  {slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Generic result and artifact, download, retention and quota, diagnostics, redaction, authorization, and network and filesystem policy contracts."},
   { slug = "rfc0088-spec-3-developer-workbench", source = "rfc/0088 follow-on list", summary = "Spec 3: developer workbench, supervised probes, packaging and provenance review, and repair workflow" },
 
   # The finding-adjudicator canonicalizes a cited path and checks confinement
@@ -1816,6 +1754,7 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope", summary = "Closed 2026-09-03 as fixed by commit 7f0d8a6014; Makefile:45-48 now carries the local counterpart of catalogue-tooling-ci-gates.yml Gate B."},
   {slug = "readme-pypi-whats-new-unenforced", source = "spec/guide-typed-asides-test-gate (review blocker 2)", summary = "Closed 2026-09-02 as fixed. tests/roster/test_okf_catalogue_discovery.py:56 asserts the What's-new heading names the current version in packages/agentbundle/README-pypi.md and pins it to pyproject and CLI_VERSION, so the obligation is machine-checked rather than prose. It is collected by the whole-tree pytest tests/ -q step at .github/workflows/catalogue-tooling-ci-gates.yml:100."},
   {slug = "cohort-seal-blocks-in-phase-plan-correction", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)", summary = "Closed 2026-09-02 as superseded. RFC-0099's 2026-08-30 erratum (approver eugenelim) retires the drift crossing and withdraws the clause that would have made a failed plan-current guard crossable, recording that no implementation is owed. Residual not tracked here: docs/CONVENTIONS.md still describes plans as changeable while Executing, a documentation correction against RFC-0099 rather than this tooling conflict."},
 
