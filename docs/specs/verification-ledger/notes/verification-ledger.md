@@ -56,14 +56,58 @@ whole file with every shape failing loudly rather than widening, strips
 blockquote and list leaders before comparing so a re-wrap is invisible, and
 names the file and the failing clause in every message.
 
-### Coverage after the rewrite
+### The rewrite was still hollow — a second review round
+
+An independent re-review of the rewrite returned **GUARD STILL HOLLOW** with
+four Blockers. Each was reproduced on the real tree before being fixed, and all
+four passed the guard as shipped:
+
+| Hole | Probe | Before |
+| --- | --- | --- |
+| `SOURCES` both defined and drove the clause tests, so deleting a row removed its own assertions | delete the `state-schema.md` row | `8 passed` |
+| Routing checks accepted any plausible phrasing, not a destination | point the convention at `notes/execution-log.md` | `8 passed` |
+| The status test asserted `"Executing"` appeared in the private `_LEGAL_AFTER_APPROVAL` table, never calling the guard | — | proves a string, not behaviour |
+| The release check took the first `[core]` heading *anywhere* | insert a heading between `[Unreleased]` and it | `8 passed` |
+
+Fixes: AC3's six paths are pinned independently of the loop that iterates them;
+every routing surface must name the canonical path or a resolvable pointer to
+the section owning it, and the convention seed now *names*
+`notes/verification-ledger.md` rather than describing it; the status test calls
+`assert_status_legal` on `tmp_path` fixtures (admits `Executing`, refuses a
+regressed `Drafting`) so this delivery's own artifacts cannot make it pass or
+fail for an unrelated reason; and the release check reads the first versioned
+heading after `[Unreleased]` and requires it to be core at the shipped version.
+
+### I destroyed my own uncommitted fixes with `git checkout`
+
+Worth recording because the instruction that prevents it was explicit. The
+mutation harness restores each mutated file with `git checkout -- <file>`. The
+first attempt at these four fixes was **uncommitted**, and one probe mutated
+the guard file itself — so the restore reverted the working tree to the last
+commit and silently discarded every fix. The symptom was subtle: subsequent
+probes reported `8 passed` where the fixed file has 12 tests, and the count was
+the only signal that the file under test was no longer the file I had written.
+
+The fixes were redone and **committed before any probe ran**. A restore-by-
+checkout harness is only safe against committed state; against uncommitted work
+it is a delete.
+
+### Coverage after both rounds
 
 | Class | Count | Result |
 | --- | --- | --- |
-| Routing-clause deletion (the blind spot) | 5 | all redden |
+| Routing-clause deletion (round-1 blind spot) | 5 | all redden |
 | Retired-licence replacement | 7 | all redden |
+| Closed-set membership deletion (round-2 blind spot) | 1 | reddens |
+| Ledger destination diverging from canonical | 1 | reddens |
+| Changelog adjacency broken | 2 | both redden |
 | False-positive probes that must stay green | 2 | both green |
 | **Known limit — additive licence in new wording** | 1 | **still passes** |
+
+Sixteen killing mutations across six classes, two false-positive probes, one
+documented limit. Two independent review rounds each found a class the previous
+round's proofs could not reach; both are recorded above rather than folded into
+a clean-looking total.
 
 The known limit is deliberate and documented in the module. `RETIRED_LICENCES`
 is a bounded regression backstop against the specific wordings that caused this

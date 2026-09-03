@@ -126,7 +126,7 @@ only while the plan is `Drafting`, and ends when the plan is approved. From
 approval, both `spec.md` and `plan.md` are pinned in substance. Only lifecycle
 bookkeeping — the preamble status token and task-progress checkboxes — may still
 be written. An observation produced by execution belongs in the sibling
-verification ledger, never in either approved artifact.
+`notes/verification-ledger.md`, never in either approved artifact.
 
 There are therefore **two stages, not one.** At plan approval the pair is
 *pinned in substance*: the contract stops moving so implementation cannot drift
