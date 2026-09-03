@@ -75,47 +75,112 @@ executing = [
 ]
 ready     = []
 draft     = [
-  # Ready candidate, not sealed. `author-delivery-brief continue` closed the
-  # owner's two open questions on 2026-09-02 -- appetite, and where the
-  # pre-creation pressure test fires -- and proposed, without confirming, two
-  # initial slices: the activation measurement, appetited first and alone, then
-  # the pre-creation pressure test. No slice is confirmed and no spec is
-  # authored. Ready waits on a revision-bound clean shaping review plus the
-  # owner's explicit confirmation; the status line stays Draft until both hold.
-  # Length: 3,582 words, up from 2,868 at Draft. The owner accepted the overage
-  # at 2,969 -- recording three decisions costs more than recording them open --
-  # and review added correctness fixes on top: two missing in-scope bullets, a
-  # corrected measurement subject, and four anchors for claims that did not
-  # resolve, against trims to the rubric categories and a duplicated rabbit
-  # hole. It does not license carrying the failure-point rubric, which this
-  # brief produces rather than contains.
-  # Owed at slice confirmation, not at the seal -- both carry a round-3
-  # reviewer verdict of "does not block Ready":
-  #   1. Name the assumption that the ownership survey can ship, observably run,
-  #      and still leave recognition failing. Every kill condition in the brief
-  #      is a necessity condition; none covers "it ran and did not work". Add it
-  #      as a Risks bullet before the survey becomes a confirmed slice.
-  #   2. Apply the guide shippability test (CONVENTIONS.md "A phase whose
-  #      tooling ships without its guide is not a complete slice"). No slice
-  #      names a guides/ artifact yet; the pressure test and the step-5a
-  #      widening both change documented author-facing behaviour.
-  #   3. The routing-decision spike added 2026-09-02 reuses step 5a's SHAPE,
-  #      not step 5a. 5a is a numbered step inside new-spec (SKILL.md:475,
-  #      between steps 5 and 6) and the spike fires before new-spec is entered,
-  #      so the two cannot be the same invocation. An earlier draft of this
-  #      comment recorded them as coupled; that was wrong, and round 5 caught
-  #      it. Killing the 5a widening leaves the routing spike intact. Keep the
-  #      two bounded-evidence instruments consistent in shape when either is
-  #      specified, but do not cut them as one slice.
-  # Promoted 2026-09-02 from a shaping intent of the same slug. Prevention:
-  # a rubric of the criterion and task shapes that have produced findings here,
-  # the authoring instructions derived from it, and a pressure test at spec
-  # creation that redirects to brief authoring when the upstream is unready.
-  # Carries its own activation design and measurement, because the load-bearing
-  # finding is that prose rules here do not fire -- what caught defects was
-  # parity checks, symbol binding, and mutation proofs. Its sibling
-  # agent-loop-escalation-recovery stays an intent: no defined outcome yet.
-  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on, and refuse to open one over an undefined outcome: a failure-point rubric, non-fragile AC and plan-task instructions, a pre-creation pressure test with a redirect to brief authoring, and the activation measurement that decides whether any of it can ship as written guidance", needs = []},
+  # Split 2026-09-02 at 5ff0d3b19. One brief became three. The predecessor had
+  # outgrown its shape by accumulating scope rather than prose: it went from
+  # (rubric + pressure test + survey + measurement) to (+ two more readiness
+  # boundaries + review sequencing + a second worker + sizing discipline).
+  # Its own third finding says a readiness
+  # gate that checks presence cannot tell whether the next stage can work -- and
+  # the predecessor was the exhibit, because its first slice was unwritable
+  # while seven review rounds passed it.
+  # The seam, decided by the owner and preserved here: M gates both siblings, so
+  # burying it in A would have blocked B on A's first slice. A owns sizing,
+  # because the abandoned contract sat above the 96th percentile on ACs and
+  # within 3% of the longest spec ever written here, and consumed eleven rounds
+  # without converging -- sizing is a lever on A's outcome. B consumes the
+  # sizing signal as a stall and gets no copy of the regenerator. A retains the
+  # findings corpus; M and B cite it rather than duplicating it.
+  # All three stay Draft. Ready needs a revision-bound clean shaping review plus
+  # the owner's explicit confirmation, per brief.
+  #
+  # M -- the activation measurement, appetited first and alone (owner decision,
+  # 5ff0d3b19). It gates A entirely and B's routing-ask half only. Separate
+  # because burying it in either sibling makes the other wait on that sibling's
+  # first slice for a report it does not otherwise depend on.
+  # Estimand widened to PORTABLE by owner decision 2026-09-02, after a headless
+  # Codex investigation (session 01a0651e-e82a-70b2-846f-8607b8268351) surveyed
+  # the corpus options. The report's own recommendation was the narrower local
+  # set; the owner took its stated falsifier instead -- the claim is now "does
+  # this mechanism work across adopter repositories", not only here.
+  # Consequences, all recorded in the brief: two strata that the report may
+  # never blend, because all three sibling verdicts are LOCAL and a blended
+  # score resolves none of them; a six-rule local floor M1 may not silently
+  # drop; and a fourth slice for the external stratum whose enlarged appetite is
+  # NOT yet confirmed. The local stratum alone unblocks A and B, so M4 can slip
+  # or be dropped without stranding either sibling.
+  # External-only and synthetic-only corpora were ruled nonviable, not on
+  # principle but on decidability: neither can return a verdict for this repo's
+  # anchoring rule, step 5a, or routing prose. Synthetic material enters as
+  # seeded TASKS and known-compliant/known-violating artifacts, never as rules.
+  # Corpus needs its own home: the harness's unit is a skill (all 96 eval homes
+  # under packs/*/.apm/skills/*/evals/, and pack_evals.py hard-codes both the
+  # coverage unit and that path), while half the local floor is root-context.
+  # Fabricating skills to host them would change the context being measured.
+  # Four proposed slices, none confirmed: corpus contract, corpus surface +
+  # runner mode, local run and report, external stratum. The decision rule is
+  # pre-registered on purpose -- M1 lands as its own reviewed change before M2
+  # runs anything, because the Phase 3 harness validates its grader live while
+  # that slice is built, so a co-located decision rule could be tuned to it.
+  # Capability of the cross-adapter-behavior-enforcement intent. Measured: the
+  # `--adapter` flag and the codex *judge* backend already ship, so only a
+  # detector that drives a non-Claude model is missing.
+  # Capabilities of the cross-adapter-behavior-enforcement intent, authored
+  # 2026-09-03. Ordered by what unblocks what: the two dispatch envelopes come
+  # first because policy has nowhere to arrive without them, then delivery, then
+  # the validator that makes arrival provable.
+  {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
+  {path = "docs/product/briefs/spec-author-agent.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give spec authoring a dispatched agent so the SPEC-PLAN phases have an envelope, reusing the implementer's delivery and enforcement path", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
+  {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
+  {path = "docs/product/briefs/policy-arrival-validator.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make policy delivery provable: a deterministic check that every phase-selected family has a verdict, with a precise-family compliance branch that can block", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/phase-scoped-policy-delivery.md"}]},
+  #
+  {path = "docs/product/briefs/multi-adapter-eval-runner.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Add a Codex detector so activation can be measured on a non-Claude model, keeping the default adapter and the scheduled workflow unchanged", needs = []},
+  #
+  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/policy-arrival-validator.md"}]},
+  #
+  # A -- keeps the predecessor's slug and file. Two artifacts outside this
+  # split's scope link to it by path (work-loop-next-action.md and the
+  # agent-loop-escalation-recovery intent), and neither was in scope to edit, so
+  # deleting the file would have broken both. Residual: the intent's sentence
+  # "the activation analysis lives there" now points one hop short -- the
+  # analysis moved to M, which A links in its first section.
+  # `needs` carries the M edge because A genuinely waits on M's report. This is
+  # sequencing, unlike the edge removed from agent-loop-escalation-recovery,
+  # where the relationship was shared evidence.
+  # Five proposed slices, none confirmed: A1 rubric + instructions, A2 sizing
+  # regenerator, A3 delegation anchor, A4 step-5a widening, A5 ownership survey
+  # (conditional). Owed at slice confirmation, carried forward from the
+  # predecessor's round-3 verdict of "does not block Ready":
+  #   1. The "ran and did not work" assumption is now a Risks bullet, but must
+  #      be answered before A5 is confirmed.
+  #   2. The guide shippability test (CONVENTIONS.md "A phase whose tooling
+  #      ships without its guide is not a complete slice") is unapplied. No
+  #      slice names a guides/ artifact yet.
+  #   3. A4 reuses step 5a's POSITION; B's routing spike reuses its SHAPE. 5a is
+  #      a numbered step inside new-spec (SKILL.md:475, between steps 5 and 6)
+  #      and the spike fires before new-spec is entered, so the two cannot be
+  #      the same invocation. Killing A4 leaves B's spike intact. Keep the two
+  #      consistent in shape when either is specified; never cut them as one
+  #      slice. B now owns the full statement of this; A points at it.
+  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric and the authoring instructions derived from it, a delegation anchor, sizing discipline shipped as a regenerator, the step-5a satisfiability widening, and a conditional ownership survey", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/guidance-activation-measurement.md"}]},
+  #
+  # B -- `needs` is deliberately empty. B1, the declared-shape gate, never
+  # depended on the activation measurement and can start in parallel with M
+  # (owner decision); a needs edge would mark the whole brief undispatchable and
+  # hide that. Only B2, the routing ask, waits on M's report, and the brief
+  # records that per slice. Five proposed slices, none confirmed: B1 gate, B2
+  # routing ask + spike-or-redirect disposition, B3 new-spec input readiness,
+  # B4 spec-and-plan-to-implementer readiness, B5 review sequencing.
+  # B3 and B4 are split although the owner's cut named them together: same
+  # question, two owning surfaces, and a two-file change resolves at roughly
+  # half the rate of a one-file change. Recorded as a sizing judgment, not a
+  # scope change.
+  # B3 and B4 carry a prose component whose activation is unmeasured. The owner
+  # gated only the routing ask on M's report, so these proceed without it; the
+  # brief records that as a risk rather than re-gating them.
+  # The non-goal on reviewers is narrowed by owner amendment: sequencing a
+  # readiness gate before review is in scope; the review lens and the
+  # adjudicator's contract stay out.
+  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
   # Authored 2026-09-01 by `author-delivery-brief create` after the
   # work-loop-next-projection spec was abandoned at e1bdde746, ten pre-EXECUTE
   # review rounds in, on a model error no clause repair could reach. Draft only:
@@ -290,6 +355,11 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Product-strategy parent of the three capability briefs below it, framed
+  # 2026-09-02. Re-gates them: the policy validator is the activation
+  # measurement's compliance test, so enforcement precedes measurement.
+  # Load-bearing unknown: no host is known to admit a blocking hook verdict.
+  {path = "docs/product/intents/cross-adapter-behavior-enforcement.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make a published behavior control run regardless of model or host by putting it on the pre-execution path rather than in prose: a structured policy primitive an adopter can extend, a blocking control whose per-host contract is established first, and a multi-adapter runner so a non-Claude model can be measured at all", needs = []},
   # Hypothesis, not accepted work. Spiked 2026-09-01 in core 2.22.0 and REVERTED
   # the same day because the spike did not pay out.
   #
