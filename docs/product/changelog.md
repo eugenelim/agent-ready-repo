@@ -79,6 +79,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This release moves every workspace's routing identity, so an in-flight legacy
   migration needs a fresh confirmation.
 
+## [core][2.23.0] — 2026-09-03
+
+### Highlights
+
+- **The deferral-token convention now states the rule the tooling enforces.** An
+  open register entry needs an artifact of its own in `Draft`, unless it is a
+  defect; it cannot point at the shipped document that recorded the deferral,
+  because a shipped or accepted carrier and an open register membership cannot
+  coexist. The previous wording directed authors to exactly that shape, so
+  following it produced a record the tooling refuses to route.
+- **The convention now warns that a deferral marker outlives its own record.** A
+  `(deferred: <slug>)` marker left in a body that later freezes pins its register
+  entry open permanently, because the frozen body can no longer be edited to
+  retire the marker.
+- **Removed a reference to a repository-only test path.** The clause pointed
+  adopters at a file that exists only in this repository, and at a count ceiling
+  that no longer exists.
+
 ## [core][2.22.0] — 2026-09-02
 
 ### Highlights

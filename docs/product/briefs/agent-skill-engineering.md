@@ -89,7 +89,7 @@ portable doctrine.
 
 ## Appetite
 
-One to two quarters, delivered as seven dependency-ordered slices across M0–M5. A
+One to two quarters, delivered as dependency-ordered slices across M0–M5. A
 slice that broadens the pack into generic developer productivity, embeds AgentBundle
 mechanics in portable guidance, or requires hosted retrieval leaves this programme
 until an approved amendment changes the boundary.
@@ -161,7 +161,7 @@ describes the target state but remains `PLANNED` until M5 verifies every section
 
 ## Confirmed delivery slices
 
-The accepted RFC confirms this dependency-ordered cut. Each slice materializes through
+The accepted RFC confirms this dependency-ordered cut. Sub-cuts within a confirmed follow-on are owner delivery-cut variances, each recorded in [INI-009](../initiatives/ini-009-agent-skill-engineering.md). Each slice materializes through
 `new-spec`, back-links this brief, and remains non-dispatchable until its canonical spec
 and plan are approved and registered under `ini-009`.
 
@@ -171,12 +171,15 @@ and plan are approved and registered under `ini-009`.
 | 1 — foundation | Portable pack; `frame`, `create`, and `update` modes; review/optimize workflow; secure deterministic router; foundational corpus and evaluations | Slice 0 |
 | 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology, retrieval baseline, and `knowledge-provider` authoring mode | Slice 1 |
 | 2b — languages and execution economics | Python/pytest and TypeScript/Node depth; CI, worktree, sandbox, lock, shared-host, and load-management practice | Slice 2a |
-| runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete | RFC-0097 D1, M2 availability rule |
+| runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete. Delivered by slice 3d. | RFC-0097 D1, M2 availability rule |
 | 3a — composition floors and pilot profile | Portable skills-plus-subagents, hooks, and plugin-package floors; the runtime capability-claim ledger with its four lifecycle states and profile roll-up; and a retrieval-dated Claude Code pilot profile | Slices 1–2 |
-| 3b — runtime profiles | Retrieval-dated Codex, GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles; the router's per-claim state and roll-up reporting together with the provider response contract change it requires; the subagent-composition and hook/plugin-design behavior fixtures; and the `runtime-package` mode | Slice 3a |
-| 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3b |
-| 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slice 4 |
-| 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slice 5 |
+| 3b — runtime profiles | **Discarded 2026-09-01**, drafted and reviewed clean across five rounds but not shipped, against a D3 charter then under correction (RFC-0097 § Errata, 2026-09-01). Its four residuals are re-homed with none orphaned, so each Follow-on that names this row resolves here: the seven remaining runtime profiles **and** the router's per-claim state and roll-up reporting with its provider response-contract change → **slice 3c**; the subagent-composition and hook/plugin-design behavior fixtures → **slice 3e**; the `runtime-package` mode and its corpus leaf → **slice 3d**. Those rows state the full scope of each. **This row is retained, not deleted:** the frozen `agent-skill-engineering-composition-floors` spec's ticked AC26 and its four Follow-ons resolve through it. | Slice 3a |
+| 3c — remaining runtime profiles and claim-state reporting | Retrieval-dated Codex, GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles, authored under the narrowed D3 charter; and the router's per-claim state and roll-up reporting together with the provider response-contract change it requires, designed once against all eight profiles. The reporting apparatus is **re-derived** under that narrowed charter before any envelope change and may be narrower than the four lifecycle states and three roll-up values slice 3a built. | Slice 3a |
+| 3d — runtime-package mode | The `runtime-package` authoring mode and its `compatibility-and-runtime-package-patterns` corpus leaf, whose recorded admission condition is the runtime profiles that make packaging claims verifiable | Slice 3c |
+| 3e — composition behavior fixtures | The subagent-composition and hook/plugin-design behavior fixtures RFC-0097's Gate 2 M2 measure names | Slice 3a |
+| 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3a |
+| 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slices 4 and 3c |
+| 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slices 5, 3d, and 3e — closeout asserts M2 complete and promotes the architecture to `CURRENT`, which requires the `runtime-package` mode and the composition behavior fixtures to exist |
 
 ## Spec map
 

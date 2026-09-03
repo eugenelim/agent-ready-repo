@@ -215,12 +215,17 @@ the guard was carried by punctuation rather than by code, so it is stated here.
   clean-round replay is a separate decision, owed its own record, and is
   deliberately excluded here. The obligation stays in force; this contract only
   makes the replay it guards mechanically safe.
-- Repository maintainer: `docs/specs/work-loop-next-projection/` — a
-  `loop-engine next --json` projection that would read the recorded id to decide a
-  resuming session's next action. Drafted, not approved: four review rounds
-  established that its routing contract needs expressing as a total
-  state-to-action table rather than as prose criteria. This spec is a prerequisite
-  and delivers standalone value without it.
+- Repository maintainer: a `loop-engine next --json` projection that would read
+  the recorded id to decide a resuming session's next action. **Retired
+  2026-09-02.** It was drafted as `docs/specs/work-loop-next-projection/` and
+  abandoned at commit `e1bdde746` after ten pre-EXECUTE review rounds, having
+  never been approved, implemented, or published — the spec asserted that its
+  review-budget discriminator could observe pre-EXECUTE spin, which the protocol
+  does not record. The outcome is re-scoped in
+  [`docs/product/briefs/work-loop-next-action.md`](../../product/briefs/work-loop-next-action.md);
+  the four normative tables, which survived independent re-derivation, are
+  preserved at that commit. This spec remains a prerequisite for that outcome and
+  delivers standalone value without it.
 
 ## Assumptions
 
