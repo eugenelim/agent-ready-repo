@@ -150,6 +150,28 @@ matching versions in **both** files, and
 Both files are therefore bumped for all three packs, and the plan's task scope
 is the record that was incomplete, not the rule.
 
+**The spec's lifecycle Status is pinned to `Draft` by AC14's own choice of
+collection.** T6a first recorded the Spec-map and index rows as `Implementing`,
+which is what the work actually is. Two gates disagree, in opposite directions,
+and only running both finds the fixed point:
+
+- `lint-brief-coverage` fails with "the Spec map is stale (auto-derived; do not
+  hand-edit the Status column)" unless the brief's Spec-map row equals the
+  spec's own `- **Status:**`.
+- The reconciliation engine at
+  `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2925-2926`
+  raises `impossible_transition` with detail `queue spec status` for any
+  `work.queue` spec whose status is `Implementing` or `Shipped`. `work.active`
+  requires exactly `Implementing`; `work.shipped` requires exactly `Shipped`.
+
+AC14 names `work.queue` explicitly, so the status must be `Draft` or `Approved`,
+and the Spec map must then repeat it. `Draft` is what the twelve-round-reviewed
+contract carried, so it stands; inventing an `Approved` transition here would
+assert a gate that never fired. Both `docs/specs/README.md` and the Spec map
+therefore read `Draft`. Nothing in this slice moves the spec to `Shipped` — that
+transition belongs to close-out, and it will require moving the entry from
+`work.queue` to `work.shipped` in the same change.
+
 **`spec.md`'s `- **Brief:**` header lost its backticks.** T6a's queue
 registration is what surfaced this. Reconciliation resolves a queued entry's
 *artifact parent* from that header, and the value was written as an inline code
