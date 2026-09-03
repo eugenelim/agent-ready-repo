@@ -467,3 +467,58 @@ That attempt also raised an exception between mutating and restoring, so it left
 the guard file mutated on disk. The file was committed, so `git checkout --` on
 that one path restored it with no uncommitted work at risk, and the rewritten
 probe puts the restore in a `finally` block.
+
+## Post-gates review: three more holes, two of them mine to make
+
+The implementation review of T6 sustained three findings. All three were
+reachable, and all three were introduced by the repairs earlier in this same
+task.
+
+| # | Hole | Before the fix | After |
+| --- | --- | --- | --- |
+| R6-F1 | the `Done when:` redirection half was asserted by nothing | deleting "; use the verification ledger." → `13 passed` | `1 failed` |
+| R6-F2 | the `> **Plan contract:**` blockquote region ran to `## Approach`, absorbing two HTML comment blocks | relocating a pinned clause into a comment → `13 passed` | `1 failed` |
+| R6-F3 | a duplicate anchor was taken silently by `index` | injecting an earlier copy carrying the clauses → `13 passed` | `3 failed` |
+
+**R6-F1 is the reclassification done inconsistently.** When three clauses moved
+from `routing` to `pinned`, the Lifecycle and `## Changelog` rows carried their
+ledger-naming words across and the `Done when:` row kept only the prohibition.
+The ledger note above claimed "Each file's path still lives in another of its
+regions, so nothing lost coverage" — true of the *path*, false of the *words*.
+Both halves are pinned now.
+
+**R6-F2 is an anchor shape nobody had exercised.** `_section` dispatched a
+blockquote to the bold-lead terminator, which matches neither a blockquote end
+nor a comment boundary, so the region widened to the next heading. Round 3 had
+recorded the *inverse* of this defect — a region truncated at its first HTML
+comment — which is why the boundary is governed rather than free. A blockquote
+anchor now ends at the first non-blockquoted line; verified the region holds the
+six contract lines, no comment text, and both pinned clauses.
+
+**R6-F3 is the extractor contradicting its own docstring.** It promised that
+"every shape fails loudly on a missing anchor or terminator rather than
+widening", but asserted only presence and then took the first occurrence. An
+injected earlier copy would be read instead of the operative paragraph, and the
+real one could then point execution evidence at `spec.md` — which the absence
+check cannot see, because `spec.md` is not a `notes/*.md` path. Extraction now
+requires exactly one occurrence.
+
+### Cumulative coverage at `da611c6f8`
+
+**19 killing mutations and 2 innocent-edit probes**, re-run in full after the
+three fixes with no regression: the 16 recorded above plus R6-F1, R6-F2 and
+R6-F3. Unmutated baseline `13 passed`. Every restoration verified with
+`git diff --quiet`.
+
+### The probe harness left the tree dirty again
+
+A two-minute foreground timeout sent SIGTERM mid-mutation and the harness
+restored inline rather than in a `finally`, so `SKILL.md` was left carrying
+K11's mutation. The next run refused to start — "tree dirty at start" — which is
+the check working. The file was committed, so one path-scoped restore fixed it,
+and the harness now restores in a `finally`.
+
+That is the third distinct way a probe has corrupted state in this delivery:
+`replace("", x, 1)` prepending, an exception between mutate and restore, and now
+a signal between mutate and restore. The invariant that caught all three was the
+same one — never trust a harness's own report, ask git.
