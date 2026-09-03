@@ -14,6 +14,19 @@ RFC-0088 defines three mandatory implementation specifications before its founda
 
 ## What this absorbs
 
+### rfc0088-adr-broker-deployment-model
+
+- Record the ADR that chooses the broker deployment unit: a library-owned broker plus bound Playwright CLI.
+- Unblocks when: an approver separately authorises implementation of the named item.
+
+### rfc0088-adr-immutable-adapter-artifacts
+
+- Record the ADR that establishes immutable adapter artifacts with no remote adapter catalogue in v1.
+
+### rfc0088-convention-browser-session-lint
+
+- Amend `docs/CONVENTIONS.md` with the `auth: browser-session` taxonomy and its pack-lint contract.
+
 ### rfc0088-spec-1-foundation-provider-vertical
 
 Author the synthetic foundation and provider vertical specification. It covers a pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, an install/admit/activate/upgrade/rollback/repair gate, and a user guide for login handoff and recovery. It carries Q5's per-destination credential-exposure declaration. RFC-0088 labels this “Spec 1 — foundation delivery and lifecycle” at `docs/rfc/0088-web-pilot-foundation.md:798`; it must pass before the first foundation pack can merge.

@@ -1,25 +1,17 @@
-# Complete the digital product chain follow-ons
+# Add a digital-product-maker profile
 
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0071 D3a](../../rfc/0071-digital-experience-doctrine.md)
-- **Authority:** [RFC-0062 OQ1](../../rfc/0062-content-design-and-copy-direction-skills.md)
 
 ## Outcome
 
-Digital product practitioners have the remaining skill, profile, guide, and review-governance follow-ons represented as future work after the Digital Experience Doctrine initiative.
+Digital product makers have a portable profile for the complete four-discipline toolkit.
 
 ## Opportunity
 
-The accepted design-system-foundations direction has not shipped, the catalogue has no end-to-end digital-product-maker profile, and `experience-reviewer` does not yet review the content briefs produced by `content-design`.
+The catalogue's three user-scope profiles do not serve the digital-product-maker persona.
 
 ## What this absorbs
-
-### design-system-foundations-skill-gap
-
-RFC-0071 D3a accepted Option A: a new `design-system-foundations` skill. Implementation is tracked as `spec/xd-design-system-foundations` in `ini-003`. This entry closes when `spec/xd-design-system-foundations` ships.
-
-Unblocks when: `spec/xd-design-system-foundations` is Shipped.
 
 ### digital-product-profile
 
@@ -31,18 +23,12 @@ The proposed `digital-product` user-scope profile is `product-strategy+product-e
 
 Unblocks when: all `ini-003` specs ship, because the skill set must be final before guide content is authored and premature guide content will drift.
 
-### experience-reviewer-content-brief-scope
-
-RFC-0062 OQ1 records a follow-on: extend `experience-reviewer` to include content briefs (`type: content-brief`) as a reviewable artifact type. RFC-0062's `content-design` skill produces that artifact. The recorded fix is a follow-on RFC extending RFC-0062 to add `content-brief` to the `experience-reviewer` reviewable-artifact set. The RFC-0062 `content-design-skill` spec is Shipped, so this item is actionable.
-
-Unblocks when: the follow-on RFC extends the reviewable-artifact set.
-
 ## Assumptions
 
-- The group combines three independently actionable follow-ons; Claude should split it before delivery planning if one consumer outcome is required.
+- No accepted decision authorises a new user-scope profile yet; the profile follows the Digital Experience Doctrine initiative shipping. The gap is concrete because the existing `solution-architect`, `inception`, and `full-ceremony` profiles do not serve the digital-product-maker persona.
 
 ## Source
 
 - Mode: repo-origin
 - Locator: workspace.toml
-- Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+- Revision: 768c0a90b87e635220c3c784d7cdae67644d7e1d

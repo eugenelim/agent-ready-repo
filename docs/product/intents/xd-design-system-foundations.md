@@ -31,6 +31,14 @@ The current design-system method stops at deriving a taxonomy, while projects st
 
 - The full-mode spec must set the DTCG 2025.10 compatibility posture and fallback for tooling that cannot export that format (RFC-0071 OQ1).
 
+## What this absorbs
+
+### design-system-foundations-skill-gap
+
+RFC-0071 D3a accepted Option A: a new `design-system-foundations` skill. Implementation is tracked as `spec/xd-design-system-foundations` in `ini-003`. This entry closes when `spec/xd-design-system-foundations` ships.
+
+Unblocks when: `spec/xd-design-system-foundations` is Shipped.
+
 ## Source
 
 - Mode: repo-origin

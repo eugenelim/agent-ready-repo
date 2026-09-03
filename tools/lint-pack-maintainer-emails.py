@@ -36,8 +36,8 @@ nothing**.
 
 **Why exit 2 exists.** A run that gated nothing must not read identically to a
 run that gated everything — the failure this repository has been bitten by
-elsewhere (see ``[backlog].open`` ``curation-guard-silent-base-skip``, a false
-green reproduced three times in one session). So finding no ``pack.toml`` at
+elsewhere (a false green reproduced three times in one session by the catalogue
+curation guard, since fixed). So finding no ``pack.toml`` at
 all is an error here, not a pass. ``find_violations`` stays a pure function
 returning ``[]``; the fail-closed decision lives in ``main``, where the
 operator's intent — "lint this root" — is what went unmet.

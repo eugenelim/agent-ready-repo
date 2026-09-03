@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Level:** feature
-- **Authority:** [RFC-0071 D2](../../rfc/0071-digital-experience-doctrine.md)
+- **Authority:** [RFC-0071 Area C and D2](../../rfc/0071-digital-experience-doctrine.md)
 
 ## Outcome
 
