@@ -351,3 +351,40 @@ Whether governance history belongs inside AC3's universe is a contract
 question, not a test question. Both `spec.md` and `plan.md` are hash-pinned and
 sealed, so narrowing that sentence needs controlled amendment, reapproval and
 resealing. That is an owner decision and it is where this delivery stopped.
+
+## A follow-on I raised and then measured away
+
+The approved spec carried a follow-on asking whether the approval pin's
+status-token and progress-checkbox exemptions should shrink. While amending the
+contract I sharpened it into a claimed *type defect*: that
+`canonical_contract(ac_section_only=False)` normalizes checkbox brackets
+**file-wide** for `plan.md`, so a semantic change wearing checkbox markup would
+pass the pin. `_loop_guards.py:781` records the reason as corpus shape rather
+than semantics — "A plan has no such section: every checkbox in it is task
+progress, and four plans here carry them, so a plan is normalized file-wide".
+
+Measured before asserting it, and the measurement refuses the claim.
+
+Still exactly **4 of 376** plans carry a checkbox, and every one of the four is
+in a progress position: `## Finish-time checklist`
+(`agentbundle-first-value-handoff`), `## Commit checklist`
+(`catalogue-wave1-contract-convergence`), and `## Tasks` (`kiro-ide-hook`,
+`queue-add`). **Zero sit in a governed position.**
+
+The asymmetry between the two callers is principled, not sloppy. A spec has a
+governed section the pin must protect — a checkbox under `## Boundaries` is a
+`Never do` item — so the spec side is bounded to Acceptance Criteria and the
+comment names that hazard explicitly. A plan has no such section, so a file-wide
+checkbox exemption exposes nothing. Only the bracket contents normalize; the
+constraint text stays pinned either way.
+
+`frozen-spec-supersession:45` had already reasoned "No new exemption is needed",
+which is the opposite direction and does not dispose of a shrink request. The
+razor does: an addition that is not genuinely needed is skipped and said once.
+There is also no live carrier for it — `work-loop-in-process-guards` owns
+`_loop_guards.py` and is `Shipped`, and `cooling-scope-closure`, the only
+unshipped spec citing the freeze section, touches the seam in zero files.
+
+Recorded because the reasoning is the durable part: I reached the type defect by
+pattern-matching this delivery's own shape-versus-role theme onto a neighbouring
+mechanism, and the corpus said the mechanism was calibrated to its real usage.

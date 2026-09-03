@@ -63,8 +63,7 @@ One canonical source is the sole normative statement of the boundary. Three surf
 
 ## Follow-ons
 
-- core-pack maintainer: separate governed evidence artifact — assess whether the status-token and progress-checkbox canonicalisation exemptions should shrink. This delivery does not touch the guard or its exemption list.
-- backlog maintainer: the canonical `[backlog].open` entry for `docs/specs/cooling-scope-closure/notes/review-findings.md` remains open. This delivery closes the authoring-discipline half of its finding 1 — new plans are directed away from naming a frozen artifact as an execution-evidence destination — but not that finding's own recommendation, an approval-time detector, which this spec's `Never do` forbids and the plan rejects because detection leaves the impossible state representable. Finding 1's "nothing currently detects one at approval time" therefore remains true after this ships, and its other eight findings are untouched.
+None. The one candidate — shrinking the approval pin's canonicalisation exemptions — was measured and dismissed; see [`notes/verification-ledger.md`](notes/verification-ledger.md).
 
 ## Assumptions
 
