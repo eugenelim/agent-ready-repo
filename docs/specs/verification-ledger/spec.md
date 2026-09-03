@@ -15,7 +15,7 @@
 
 An implementer records execution observations without changing either approved, hash-pinned delivery artifact. `spec.md` acceptance criteria and `plan.md` task rows name obligations to discharge; `docs/specs/<feature>/notes/verification-ledger.md` records post-approval mutations, red results, assertion text, digest comparisons, and deviations.
 
-One canonical source is the sole normative statement of the boundary. Three surfaces named in AC2 keep a consistent statement of their own because each is already correct and relied on elsewhere; every remaining operational site reaches the owner by pointer rather than restating it. Five review rounds established that distributed prose restatements cannot be held in agreement mechanically: widening a guarded region let one site's clause satisfy another's, and widening a phrase marker rejected correct prose. The reasoning and the rejected alternatives are in [`notes/redesign-decision.md`](notes/redesign-decision.md).
+One canonical source is the sole normative statement of the boundary. Three surfaces named in AC2 keep a consistent statement of their own because each is already correct and relied on elsewhere; every remaining operational site reaches the owner by pointer rather than restating it. Five review rounds established that distributed prose restatements cannot be held in agreement mechanically: widening a guarded region let one site's clause satisfy another's, and widening a phrase marker rejected correct prose. The reasoning and the rejected alternatives are in [`notes/redesign-decision.md`](notes/redesign-decision.md). This buys a smaller guarantee on purpose: the guard proves one canonical definition, a named pointer roster, one mechanism statement, and the real hash behaviour — not that arbitrary prose anywhere cannot contradict the boundary.
 
 ## Durable Outputs
 
@@ -64,9 +64,7 @@ One canonical source is the sole normative statement of the boundary. Three surf
 ## Follow-ons
 
 - core-pack maintainer: separate governed evidence artifact — assess whether the status-token and progress-checkbox canonicalisation exemptions should shrink. This delivery does not touch the guard or its exemption list.
-- backlog maintainer: the canonical `[backlog].open` entry for `docs/specs/cooling-scope-closure/notes/review-findings.md` remains open because this delivery closes only finding 1 of its nine findings.
-- decision-record maintainer: `docs/adr/0061-loop-infrastructure-phase-1.md:12` states that "any post-approval plan change requires a full reset", which predates guarded baseline replacement and now reads stale beside RFC-0099 and ADR-0099. Out of scope here; this delivery neither cites nor relies on it.
-- core-pack maintainer: this contract deliberately gives up global contradiction detection. The guard proves one canonical definition, a named pointer roster, one mechanism statement, and the real hash behaviour — not that arbitrary prose anywhere cannot contradict the boundary. Widening that claim needs a mechanism that does not depend on matching prose sentences.
+- backlog maintainer: the canonical `[backlog].open` entry for `docs/specs/cooling-scope-closure/notes/review-findings.md` remains open. This delivery closes the authoring-discipline half of its finding 1 — new plans are directed away from naming a frozen artifact as an execution-evidence destination — but not that finding's own recommendation, an approval-time detector, which this spec's `Never do` forbids and the plan rejects because detection leaves the impossible state representable. Finding 1's "nothing currently detects one at approval time" therefore remains true after this ships, and its other eight findings are untouched.
 
 ## Assumptions
 
