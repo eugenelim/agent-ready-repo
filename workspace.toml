@@ -315,22 +315,6 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 ["ini-003".work]
 active  = []
 queue   = [
-  # User-confirmed initiative fit; retained legacy route pending human-authored migration selection and spec materialization.
-  {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
-  {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
-  {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-  {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-  {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
-  {path = "spec/cross-pack-experience-eval", needs = [
-    "work:spec/product-strategy-adoption-doctrine",
-    "work:spec/product-engineering-shaping-doctrine",
-    "work:spec/xd-skill-boundaries",
-    "work:spec/xd-design-system-foundations",
-    "work:spec/xd-ia-archetypes-objects",
-    "work:spec/xd-state-reviewer-doctrine",
-    "work:spec/frontend-engineering-doctrine-update",
-  ]},
-  {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
   {path = "docs/specs/shaping-review-contracts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Cold-review intent, delivery-brief, and spec contracts without adding shaping-loop state", needs = [{type = "local", kind = "spec", path = "docs/specs/core-guidance-artifact-routing/spec.md"}]},
@@ -339,9 +323,24 @@ shipped = [
   {path = "docs/specs/frontend-engineering-doctrine-update/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "frontend-engineering-doctrine-update", needs = []},
   {path = "docs/specs/xd-skill-boundaries/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-skill-boundaries", needs = []},
 ]
+["ini-003".brief_queue]
+executing = []
+ready     = []
+draft     = [
+  {path = "docs/product/briefs/digital-experience-doctrine-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Frame the remaining Digital Experience Doctrine outcomes as one Draft delivery brief", needs = []},
+]
+
 ["ini-003".shaping_queue]
 active  = []
-backlog = []
+backlog = [
+  {path = "docs/product/intents/product-strategy-adoption-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Make product strategy carry an adoption hypothesis, causal metrics, and experience handoff", needs = [{type = "local", kind = "spec", path = "docs/specs/digital-experience-contract/spec.md"}]},
+  {path = "docs/product/intents/product-engineering-shaping-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Make product-engineering bets thin, observable, evidence-led, and learning-oriented", needs = [{type = "local", kind = "spec", path = "docs/specs/digital-experience-contract/spec.md"}]},
+  {path = "docs/product/intents/xd-design-system-foundations.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Establish a working design-system foundation after XD boundaries and the experience contract are settled", needs = [{type = "local", kind = "spec", path = "docs/specs/digital-experience-contract/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/xd-skill-boundaries/spec.md"}]},
+  {path = "docs/product/intents/xd-ia-archetypes-objects.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Give experience design a shared method for page archetypes and product-object mapping", needs = [{type = "local", kind = "spec", path = "docs/specs/digital-experience-contract/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/xd-skill-boundaries/spec.md"}]},
+  {path = "docs/product/intents/xd-state-reviewer-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Evaluate experience states with a reviewer doctrine grounded in information architecture", needs = [{type = "local", kind = "spec", path = "docs/specs/xd-skill-boundaries/spec.md"}, {type = "local", kind = "intent", path = "docs/product/intents/xd-ia-archetypes-objects.md"}]},
+  {path = "docs/product/intents/cross-pack-experience-eval.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Prove the digital-product workflow through one cross-pack golden-path evaluation", needs = [{type = "local", kind = "intent", path = "docs/product/intents/product-strategy-adoption-doctrine.md"}, {type = "local", kind = "intent", path = "docs/product/intents/product-engineering-shaping-doctrine.md"}, {type = "local", kind = "spec", path = "docs/specs/xd-skill-boundaries/spec.md"}, {type = "local", kind = "intent", path = "docs/product/intents/xd-design-system-foundations.md"}, {type = "local", kind = "intent", path = "docs/product/intents/xd-ia-archetypes-objects.md"}, {type = "local", kind = "intent", path = "docs/product/intents/xd-state-reviewer-doctrine.md"}, {type = "local", kind = "spec", path = "docs/specs/frontend-engineering-doctrine-update/spec.md"}]},
+  {path = "docs/product/intents/digital-product-guides-update.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Publish integrative guidance for the validated digital-product workflow", needs = [{type = "local", kind = "intent", path = "docs/product/intents/cross-pack-experience-eval.md"}]},
+]
 
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
@@ -1967,10 +1966,6 @@ name      = "Catalogue Contracts, Composition, Semantics, and Discovery"
 status    = "active"
 milestone = "M2 · Authoring Discovery + Information Architecture"
 
-["ini-007".shaping_queue]
-active = []
-backlog = []
-
 ["ini-007".work]
 active  = [
   {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
@@ -1994,12 +1989,23 @@ shipped = [
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
-  # User-confirmed initiative fit; retained legacy route pending human-authored migration selection and spec materialization.
-  {path = "spec/catalogue-search-verb", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
-  {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
-  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "work:spec/documentation-entry-navigation"]},
-  {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
-  {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/documentation-entry-navigation"]},
+]
+
+["ini-007".brief_queue]
+executing = []
+ready     = []
+draft     = [
+  {path = "docs/product/briefs/catalogue-discovery-and-release-integrity.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Frame the remaining catalogue discovery and release-integrity outcomes as one Draft delivery brief", needs = []},
+]
+
+["ini-007".shaping_queue]
+active = []
+backlog = [
+  {path = "docs/product/intents/catalogue-search-verb.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Expose a catalogue search verb over the neutral semantic index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}]},
+  {path = "docs/product/intents/catalogue-wave5-release-integrity.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Protect catalogue releases with digests, comparisons, and same-version mutation refusal", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}]},
+  {path = "docs/product/intents/catalogue-wave6-technical-docs-ia.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Create an author-focused technical documentation route for building a catalogue", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
+  {path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Give prospective adopters an evaluator-oriented catalogue marketing surface", needs = [{type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave6-technical-docs-ia.md"}]},
+  {path = "docs/product/intents/catalogue-wave9-migration-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Close the first-party catalogue migration after release and discovery outcomes are complete", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave5-release-integrity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-009 · Agent Skill Engineering
