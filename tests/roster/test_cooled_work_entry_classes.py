@@ -7,16 +7,28 @@ pins the sibling module's ``test_`` function-name set.
 
 import importlib.util
 import sys
+from pathlib import Path
 
 import pytest
-from test_status_projection_and_context_exclusion import (
-    ENGINE_PATH,
-    _reconcile_json,
-    _record,
-    _spec,
-    _tree,
-    _workspace,
-)
+
+# A bare sibling import resolves only under pytest's prepend import mode; this suite
+# must not depend on the collector's mode.
+_HELPERS_PATH = Path(__file__).with_name("test_status_projection_and_context_exclusion.py")
+_helpers_spec = importlib.util.spec_from_file_location("cooled_work_entry_helpers", _HELPERS_PATH)
+assert _helpers_spec is not None and _helpers_spec.loader is not None
+_helpers_module = importlib.util.module_from_spec(_helpers_spec)
+sys.modules[_helpers_spec.name] = _helpers_module
+try:
+    _helpers_spec.loader.exec_module(_helpers_module)
+finally:
+    sys.modules.pop(_helpers_spec.name, None)
+
+ENGINE_PATH = _helpers_module.ENGINE_PATH
+_reconcile_json = _helpers_module._reconcile_json
+_record = _helpers_module._record
+_spec = _helpers_module._spec
+_tree = _helpers_module._tree
+_workspace = _helpers_module._workspace
 
 
 # Define this locally because Ruff rejects an imported fixture shadowed by a test parameter.
