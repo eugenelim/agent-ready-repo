@@ -73,7 +73,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 Every criterion names a concrete input and one observable shape: a schema
 accept/reject verdict, a finding code at a named JSON path, an equality
 comparison against a value read from a named shipped file, a producer return
-code, or a literal string present in whitespace-normalized text.
+code, presence of the citing path in a named `canonical` collection, or a
+literal string present in whitespace-normalized text.
 
 - **Every criterion starts red.** A local need carrying a `receipt` is rejected
   by today's exact-set field check, so every engine fixture here fails to parse
@@ -93,11 +94,12 @@ code, or a literal string present in whitespace-normalized text.
   *absence* of a finding also asserts the citing entry's presence, because an
   entry that vanished and one that resolved are otherwise indistinguishable —
   the trap probe B fact 3 records.
-- **AC4's and AC8's fixtures carry a second, receiptless local need**, which is
-  what AC14 reads: its target is an existing artifact with a terminal status, so
-  it resolves and the citing entry stays in `canonical.ready`. Without it, an
-  implementation that made the receipt mandatory would tick every other
-  criterion. AC7's fixtures do not carry one — their citing entry is blocked.
+- **Every engine fixture's citing entry carries a second, receiptless local
+  need**, which is what AC14 reads. Its target is an existing terminal artifact,
+  so it always resolves, whatever the first dependency does — which is why AC14
+  asserts only the absence of a finding for it and never which collection the
+  citing entry lands in. Without it, an implementation that made the receipt
+  mandatory would tick every other criterion.
 - **Fixture membership state is part of each criterion, not an implementation
   detail.** AC5's target keeps its `work.shipped` entry; AC4's, AC8's and AC9's
   targets have none. Probe A re-measured that a surviving membership raises
@@ -133,7 +135,7 @@ code, or a literal string present in whitespace-normalized text.
 - [ ] **AC11 — The new code is documented in both required homes.** `packs/core/.apm/skills/workspace-status/SKILL.md` and `guides/core/reference/workspace-toml-schema.md` each carry an `invalid_completion_receipt` row with a reason and an action.
 - [ ] **AC12 — The producer refuses what the consumer would refuse.** For an authorized closeout call, `close-work` refuses to plan a completion receipt with `receipt-evidence-required` when any of its four fields violates its rule — `outcome` outside the closed vocabulary, or `delivery_id`, `completion_event` or `evidence_ref` outside its pinned grammar — and reaches `receipt-write-confirmation-required` only when all four are valid.
 - [ ] **AC13 — The adopter surfaces describe the current contract.** `guides/core/reference/workspace-toml-schema.md` shows a `local` need carrying a `receipt` with its four fields and states that a shipped entry may be removed while a live `needs` edge references it when every such edge carries a valid completion receipt whose `outcome` is `completed`; `guides/core/how-to/close-and-disposition-work.md` states the closed vocabulary in place of "a short outcome statement"; and `packs/core/.apm/skills/close-work/SKILL.md` names the receipt's carrier as the citing local need and states the three `outcome` values and the lifecycle record's grammars in place of "Every field is a locator or a short outcome statement", which ADR-0103 supersedes.
-- [ ] **AC14 — A receiptless local need is unchanged.** In the AC4 and AC8 fixtures, the citing entry declares a second `local` need that carries no `receipt` key and whose target is an existing artifact with a terminal status; that entry parses, appears in `canonical.ready`, and reports no finding for that second dependency.
+- [ ] **AC14 — A receiptless local need is unchanged.** Every engine fixture's citing entry declares a second `local` need that carries no `receipt` key and whose target is an existing artifact with a terminal status. That entry parses, and no finding is reported for that second dependency.
 
 ## Follow-ons
 
