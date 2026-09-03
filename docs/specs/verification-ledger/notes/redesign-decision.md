@@ -67,15 +67,15 @@ conflict in favour of the spec's instinct.
 
 One authoring source defines the post-approval boundary. Every enumerated
 operational site carries a locally verifiable pointer to that source or to the
-ledger procedure, under a unique role identity with bounded start/end markers.
-Each role is asserted separately against its own target. No concatenation by
-path, no whole-file fallback, and no vocabulary-based restatement detector.
-`references/state-schema.md` stays unedited and keeps its own assertion.
+ledger procedure. No vocabulary-based restatement detector, and no assertion
+that one site can satisfy from another site's text.
 
-Pinned semantic prose falls from twelve sentences across eight files to **two
-sentences in two files** — the canonical convention statement and the unchanged
-state-schema mechanism sentence — plus ten structured pointer identities and one
-clean sentinel token.
+Pinned semantic prose falls from twelve sentences across eight files to **four
+sentences in four files**: the canonical convention statement, and the three
+statements that are already correct and stay — the public how-to's immutability
+sentence, `pre-execute-review.md`'s permitted-edit-set rule, and
+`state-schema.md`'s mechanism description. Everything else becomes a pointer
+assertion or a destination-absence assertion, plus one clean sentinel token.
 
 Each round-5 finding is closed by construction rather than patched: V1 and V2 by
 per-role targets, V3 by deleting `RESTATED_RULE_MARKERS`, V5 by giving
@@ -93,6 +93,32 @@ governing evidence outside the roster.
 
 It also cannot prove a reader followed or understood a correct pointer.
 
+### Two corrections to the design as first proposed
+
+The adviser's proposal was adopted with two changes, both made before the
+contract was amended.
+
+**It would have dropped two killing mutations.** It listed the public how-to
+and `references/pre-execute-review.md` as pointer sites. Round 2 established
+that `pre-execute-review.md:205-215` carries no cross-reference and
+independently states the permitted post-approval edit set, so it is
+rule-bearing; the how-to likewise retains its own immutability sentence.
+Treating either as a pure pointer would delete correct guidance and lose the
+mutation that catches its reversion. Both keep a guarded statement *and* a
+pointer.
+
+**It called for synthetic role markers everywhere; measurement says they are
+mostly unnecessary.** Six guarded sites are unique real Markdown headings and
+the template's `Done when:` instruction occurs exactly once, so seven of eleven
+need no marker at all. For the remainder the fix is assertion shape, not marked
+prose: region extraction only ever existed to stop one site satisfying
+another's claim, and asserting that **no non-canonical destination appears
+anywhere in the roster** achieves that with no anchor, immune to re-wrapping,
+because a link target is not prose. Measured on entry: `notes/*.md` across the
+eight roster files resolves to exactly one value, `notes/verification-ledger.md`.
+
+No markers are therefore added to shipped human-facing guidance.
+
 ### Rejected alternatives
 
 - **A structured policy record** (TOML naming the sealed artifacts, permitted
@@ -107,8 +133,16 @@ It also cannot prove a reader followed or understood a correct pointer.
 
 ## Residual risk accepted
 
-Pointer role markers are machinery added to human-facing shipped guidance so a
-test can locate a site. That is content shaped partly for the test rather than
-solely for the reader, and it is a real cost. It is accepted because the
-alternative — matching prose sentences — has now failed five times, and because
-a role marker carries no rule and cannot drift from one.
+Two risks remain, and neither is the marker cost, which the corrections above
+removed.
+
+**Absence-scanning has a blind spot.** It cannot notice a site that drops its
+pointer while a sibling pointer survives in the same file. T7 pairs it with a
+per-file pointer count or a heading-scoped presence check for the template's
+three instructions.
+
+**Four prose sentences are still matched as prose.** The owner statement and
+the three retained statements are pinned by content, so re-wording any of them
+still requires editing the guard. That is the irreducible core: something must
+pin the sentence that carries the rule. The reduction from twelve to four is
+the gain, not the elimination of the class.
