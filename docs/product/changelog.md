@@ -54,6 +54,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.23.0] — 2026-09-03
+
+### Highlights
+
+- **The deferral-token convention now states the rule the tooling actually
+  enforces.** An open backlog entry needs an artifact of its own in `Draft`,
+  unless it is a defect; it cannot point at the shipped document that recorded
+  the deferral, because a shipped or accepted carrier and an open backlog
+  membership cannot coexist. The previous wording directed authors to exactly
+  that shape, so following it produced a non-dispatchable record.
+- **The convention now warns that a deferral marker outlives its own entry.** A
+  `(deferred: <slug>)` marker left in a body that later freezes pins its backlog
+  entry open permanently, because the frozen body can no longer be edited to
+  retire the marker.
+- **Removed a reference to a repository-only test path.** The clause pointed
+  adopters at a file that exists only in this repository, and at a count ceiling
+  that no longer exists.
+
 ## [core][2.22.0] — 2026-09-02
 
 ### Highlights
