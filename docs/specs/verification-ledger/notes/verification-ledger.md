@@ -212,3 +212,142 @@ fails on a clean `origin/main` worktree and still fails here, with the same
 `1 failed, 52 passed` count before and after every task. It asserts a phrase in
 `packs/core/.apm/skills/new-spec/SKILL.md`, which this delivery does not touch.
 Registered as `pre-existing-new-spec-exact-clean-phrase-drift`.
+
+## Round 3: a false-positive sweep, and the terminator that was too eager
+
+Recorded late — commit `126eba299` shipped this fix but its evidence lived only
+in the commit message, which is exactly the gap this delivery exists to close.
+
+The guard had 16 confirmed killing mutations against only 2 confirmed
+innocent-edit probes. That imbalance is itself a finding: a guard that cries
+wolf gets weakened by the next maintainer, which is how this defect class
+returns. Sweeping for false positives found one.
+
+`_section`'s bold-lead terminator treated **any** line-initial `**` as a
+paragraph lead. Re-wrapping `state-schema.md` so that the inline span
+`**Canonical form**` began a line truncated the region before "Everything else
+stays pinned" and reddened the suite on an edit that changed no meaning. A real
+bold paragraph lead in that file is blank-line separated, so the terminator now
+requires `\n\n`. Verified in both directions: the re-wrap stays green, an
+inserted bold-lead paragraph still terminates the region, and the R6 killing
+mutation still reddens — the widened boundary does not let a deleted clause be
+satisfied from neighbouring prose.
+
+## Round 4: the guard read one region of the rule owner and none of the rest
+
+Two independent reviews, adversarial and repo-wide investigation. Baseline
+before any fix: `12 passed`.
+
+The convention seed states the post-approval boundary **three times**: in the
+section the guard anchors at (`:119-142`), again at `:402` where `plan.md` is
+introduced, and again in the `:417` Lifecycle paragraph. The first region ends
+at `### Superseding a frozen document` on `:143`, so the other two were unread.
+
+Measured, not argued: restoring the literal first entry of `RETIRED_LICENCES` —
+`` `Drafting` or `Executing` `` — into the rule owner itself at `:402` left the
+suite at **`12 passed`**. The delivery's own canonical source could be reverted
+without the guard noticing, which is precisely what AC3 claims to detect.
+
+Two further holes from the same root premise — the guard pins one sentence, so a
+restatement or truncation elsewhere in an enumerated file escapes it:
+
+- the lifecycle reference's no-amendment half was unasserted, so truncating
+  "The ledger is not hash-pinned, so recording an observation there needs no
+  amendment to either approved artifact." to its first clause stayed green
+  while AC1's guarantee disappeared;
+- AC2 requires `work-loop/SKILL.md` to state no rule of its own, but Step 2 was
+  checked only for the pointer and for retired licences, so a *correct*
+  restatement of the rule passed.
+
+### The fix reopened the round-2 defect one level down
+
+Letting one path own several regions made the closure test compare **distinct
+paths**. Deleting one of the two new seed rows therefore left the path tuple
+unchanged and its clauses unasserted, at `12 passed`. That is the round-2
+finding — a table that both defines and drives its own assertions — recurring
+at the region level. `AC3_REQUIRED_REGIONS` now enumerates the regions too.
+
+### Proofs at commit `3c06fdca9`
+
+Unmutated baseline `12 passed`. Each mutation applied alone to the committed
+tree, restored by writing back a **verbatim byte snapshot**, and every
+restoration verified with `git diff --quiet` against the committed blob — never
+by the harness's own report.
+
+| # | Region | Mutation | Observed | Test that failed |
+| --- | --- | --- | --- | --- |
+| M1 | seed `:402` | restore the `Drafting` or `Executing` licence | `2 failed, 10 passed` | `..._states_the_pinned_half` + `..._carries_a_retired_edit_licence` |
+| M2 | seed `:402` | delete the pinned clause | `1 failed, 11 passed` | `..._states_the_pinned_half` |
+| M3 | seed `:417` | licence the in-flight correction | `1 failed, 11 passed` | `..._states_the_pinned_half` |
+| M4 | seed `:417` | delete the routing clause | `1 failed, 11 passed` | `..._routes_observations_to_the_ledger` |
+| M5 | lifecycle ref | truncate the no-amendment half | `1 failed, 11 passed` | `..._routes_observations_to_the_ledger` |
+| M6 | `SKILL.md` Step 2 | add a *correct* rule restatement | `1 failed, 11 passed` | `..._points_at_the_procedure_without_restating_it` |
+| M7 | the guard itself | delete one of the two new seed regions | `1 failed, 11 passed` | `..._keeps_every_member_ac3_names` |
+| P1 | seed `:402` | re-wrap, no meaning change | `12 passed` | — stays green |
+| P2 | seed `:417` | re-wrap, no meaning change | `12 passed` | — stays green |
+| P3 | `SKILL.md` Step 2 | append an unrelated sentence | `12 passed` | — stays green |
+
+Before the fix, M1 returned `12 passed`. Only M1-M7 were re-run at this
+revision; the sixteen earlier proofs are not re-asserted here as fresh, and the
+cumulative claim is 23 killing-mutation runs and 5 innocent-edit probes across
+all rounds, not one campaign.
+
+### The harness reproduced the bug this file already warned about
+
+For the two deletion mutations the replacement text was `""`, so restoring with
+`replace(new, old, 1)` became `replace("", old, 1)` and **prepended** the clause
+ahead of the seed's `# Repository Conventions` heading — the same defect
+recorded above for M7 in round 1, in a harness written after reading that
+warning. The `git diff --quiet` check caught it and halted the run. Guarding
+`old == ""` is not enough; the harness now snapshots bytes and writes them back
+verbatim, which cannot express the fault at all.
+
+## Round 5: the round-4 fix introduced three defects of its own
+
+Two further independent reviews, adversarial and spec-drift. All five
+falsifiable findings were reproduced on the real tree before being accepted.
+
+| # | Finding | Observed | Attribution |
+| --- | --- | --- | --- |
+| V1 | the destination test concatenates every region of one path, so the `:417` paragraph can name `notes/execution-log.md` and be satisfied by `:128`'s canonical path | `12 passed` | **(b)** round-4 fix |
+| V2 | the plan template is one whole-file region, so its `Done when:` rule can route to a wrong path while the top-of-file Plan contract satisfies the destination check | `12 passed` | (a) pre-existing |
+| V3 | `change substantively` in `RESTATED_RULE_MARKERS` fires on ordinary Step 2 prose that grants no edit permission | `1 failed, 11 passed` | **(b)** round-4 fix |
+| V4 | the new-spec re-pin dropped the literal `` `Clean — ready to commit.` `` sentinel, so the clean-result contract can change unnoticed | `32 passed` | **(b)** commit `16102892a` |
+| V5 | the template's `## Changelog` rule — corrected by this delivery — is not independently guarded; reverting it to the `origin/main` wording reddens nothing | `12 passed` | (a) pre-existing |
+
+Three of the five are fix-induced. Under this repository's review protocol a
+(b)-dominant round is a stop condition, not another repair cycle, so the ship
+sequence halted here with the acceptance criteria unticked and nothing pushed.
+
+V3 is the round-3 lesson recurring: a marker list broad enough to catch a
+restatement is also broad enough to reject correct prose. V1 is the round-4
+lesson recurring: widening a comparison to accommodate one source weakens it
+for every source sharing that path.
+
+The transferable finding, now observed five rounds running: verifying that
+mutations redden is not the same as knowing which class they cannot reach, and
+each repair that widens a region or a marker list creates a new class. Pinning
+exact sentences across many prose regions has produced defects at roughly the
+rate the reviews close them.
+
+## AC3 was not tickable at the stop point
+
+The spec-drift review returned AC1 **DISCHARGED**, AC2 **DISCHARGED**,
+AC4 **DISCHARGED**, AC3 **NOT DISCHARGED**, for two reasons that differ in kind.
+
+V5 is a plain guard gap and is fixable by a test. The second is not: AC3's
+closing sentence — "a seventh surface stating the boundary is a defect in this
+criterion, not an omission the guard tolerates" — is unqualified, and accepted
+decision records state the same boundary (`docs/rfc/0099…:501`,
+`docs/adr/0099…:52`, `docs/rfc/0096…:365`, `docs/adr/0061…:12`). Editing
+`RFC-0099` to licence in-place edits leaves the guard green, because it never
+reads that path.
+
+The reviewer's argument that the public how-to also contradicts the closed set
+is **refuted**: AC3's next sentence gives the how-to its own killing mutation
+explicitly, so it is accounted for rather than omitted.
+
+Whether governance history belongs inside AC3's universe is a contract
+question, not a test question. Both `spec.md` and `plan.md` are hash-pinned and
+sealed, so narrowing that sentence needs controlled amendment, reapproval and
+resealing. That is an owner decision and it is where this delivery stopped.
