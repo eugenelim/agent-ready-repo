@@ -82,6 +82,11 @@ _COMPLETION_RECEIPT_FIELDS = frozenset(
     {"delivery_id", "outcome", "completion_event", "evidence_ref"}
 )
 _MALFORMED_COMPLETION_RECEIPT = "malformed-completion-receipt"
+# Matches close-work's MAX_TEXT_LENGTH so the producer cannot write a receipt
+# this parser then refuses. Bounded here rather than at satisfaction time: an
+# unbounded value is serialized into the routing identity on every run, long
+# before any grammar is applied to it.
+_COMPLETION_RECEIPT_MAX_FIELD_LENGTH = 512
 _COMPLETION_RECEIPT_DELIVERY_ID_RE = r"^[a-z0-9][a-z0-9-]{0,127}$"
 _COMPLETION_RECEIPT_EVENTS = ("merge", "release", "acceptance")
 _COMPLETION_RECEIPT_EVIDENCE_REF_RE = (
@@ -794,7 +799,10 @@ def _parse_dependency(raw: object) -> tuple[Dependency | None, list[RoutingFindi
             if (
                 not isinstance(raw_receipt, dict)
                 or set(raw_receipt) != _COMPLETION_RECEIPT_FIELDS
-                or not all(isinstance(value, str) for value in raw_receipt.values())
+                or not all(
+                    _is_bounded_text(value, _COMPLETION_RECEIPT_MAX_FIELD_LENGTH)
+                    for value in raw_receipt.values()
+                )
             ):
                 receipt = _MALFORMED_COMPLETION_RECEIPT
             else:

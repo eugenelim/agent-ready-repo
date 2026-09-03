@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import uuid
@@ -336,6 +337,93 @@ def test_the_engine_receipt_grammars_equal_the_lifecycle_records() -> None:  # A
     )
 
 
+def _plan_valid_receipt(**overrides: str):
+    """Plan one producer receipt whose issued authority matches its evidence_ref."""
+    fields = {
+        "delivery_id": "delivery-wave7a",
+        "outcome": "completed",
+        "completion_event": "release",
+        "evidence_ref": "commit:" + "a" * 40,
+        **overrides,
+    }
+    record = {
+        "authorized_actor_role": "repository-maintainer",
+        "grant_source": "policy:maintainer-closeout",
+        "action": "write-completion-receipt",
+        "resource": "runtime-coordination:workspace",
+        "evidence_ref": fields["evidence_ref"],
+        "host_session_provenance": "session:current",
+    }
+    fact = CLOSE_WORK.resolve_mutation_authority(
+        grant_record=record, authority_evidence_ref="authority:resolved-policy"
+    )
+    assert fact is not None
+    # evidence_ref is dual-purpose: the producer folds it into the equality check
+    # against the issued authority fact, so it is supplied once, by the record.
+    receipt_only = {k: v for k, v in fields.items() if k != "evidence_ref"}
+    return CLOSE_WORK.plan_completion_receipt(
+        live_dependency=True,
+        compatible_surface="runtime-coordination:workspace",
+        **receipt_only,
+        **record,
+        authority_fact=fact,
+    )
+
+
+def test_the_producer_accepts_every_published_outcome() -> None:  # AC12
+    """Narrowing the producer's vocabulary must redden something.
+
+    The refusal cases alone cannot catch narrowing: they stay green while
+    close-work silently rejects a legitimate `abandoned` or `superseded`
+    closeout. The members are read from the published schema rather than
+    restated, so a vocabulary change has one home.
+    """
+    published = _load(WORKSPACE_ENTRY_SCHEMA)["$defs"]["localNeed"]["properties"][
+        "receipt"
+    ]["properties"]["outcome"]["enum"]
+    assert len(published) == 3
+    for outcome in published:
+        result = _plan_valid_receipt(outcome=outcome)
+        assert result.code == "receipt-write-confirmation-required", outcome
+
+
+def test_the_producer_accepts_every_published_completion_event() -> None:  # AC12
+    """Every event the lifecycle record admits must reach confirmation."""
+    published = _load(LIFECYCLE_SCHEMA)["properties"]["completion_event"]["enum"]
+    assert len(published) == 3
+    for event in published:
+        result = _plan_valid_receipt(completion_event=event)
+        assert result.code == "receipt-write-confirmation-required", event
+
+
+@pytest.mark.parametrize(
+    "evidence_ref", ["commit:" + "a" * 40, "pr:123", "run:456"], ids=["commit", "pr", "run"]
+)
+def test_the_producer_accepts_every_evidence_ref_alternative(evidence_ref: str) -> None:  # AC12
+    """Each alternative is first checked against the record's own pattern.
+
+    The pattern cannot be enumerated, so each sample is validated against the
+    grammar read from the lifecycle record before it is offered to the producer.
+    A sample that stopped being valid would fail here rather than silently
+    weakening the acceptance claim.
+    """
+    pattern = _load(LIFECYCLE_SCHEMA)["$defs"]["evidenceRef"]["pattern"]
+    assert re.fullmatch(pattern, evidence_ref), evidence_ref
+    result = _plan_valid_receipt(evidence_ref=evidence_ref)
+    assert result.code == "receipt-write-confirmation-required"
+
+
+def test_the_engine_receipt_bound_equals_the_producers() -> None:
+    """A receipt close-work can write is one the engine will not refuse on length.
+
+    The producer bounds all four fields at its own MAX_TEXT_LENGTH before
+    constructing a receipt. If the engine bounded them lower, close-work could
+    emit a receipt the consumer then rejected — the exact asymmetry AC12 exists
+    to close, in the opposite direction.
+    """
+    assert CLOSE_WORK.MAX_TEXT_LENGTH == ENGINE._COMPLETION_RECEIPT_MAX_FIELD_LENGTH
+
+
 def test_workspace_entry_schema_fallback_digest_matches_the_shipped_schema() -> None:
     """The adopter-install fallback digest follows the shipped schema bytes."""
     digest = hashlib.sha256(WORKSPACE_ENTRY_SCHEMA.read_bytes()).hexdigest()
@@ -382,6 +470,13 @@ MALFORMED_RECEIPT_CASES = [
         id="evidence-ref-grammar",
     ),
     pytest.param({"receipt_changes": {"outcome": "Retired"}}, id="outcome-vocabulary"),
+    # Inside the pinned evidence_ref grammar — `pr:` plus digits — so the length
+    # bound is the only rule that can reject it. Without that bound the value
+    # reaches Dependency and is serialized into the routing identity every run.
+    pytest.param(
+        {"receipt_changes": {"evidence_ref": "pr:" + "9" * 600}},
+        id="over-long-evidence-ref",
+    ),
 ]
 
 
