@@ -1,0 +1,28 @@
+# Digital product integrative guides
+
+- **Status:** Draft
+- **Level:** feature
+- **Authority:** [RFC-0071 § Implementation sequence — M6](../../rfc/0071-digital-experience-doctrine.md)
+
+## Outcome
+
+Adopters can follow a coherent end-to-end digital-product guide and find the cross-pack intent and evidence needed to apply the complete experience workflow.
+
+## Opportunity
+
+Guidance exists within individual packs, but there is no integrative tutorial or intent index that explains how the disciplines combine into one digital-product outcome.
+
+## Assumptions
+
+- The cross-pack evaluation will establish the validated journey that the guides explain.
+
+## What the decision requires
+
+- Update user guides with intent indexes for each pack and a new end-to-end tutorial (RFC-0071 Reviewer brief).
+- Deliver M6 after the M5 cross-pack experience evaluation (RFC-0071 § Implementation sequence).
+
+## Source
+
+- Mode: repo-origin
+- Locator: docs/rfc/0071-digital-experience-doctrine.md
+- Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f

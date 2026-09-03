@@ -91,8 +91,7 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "--windows`, which a macOS/Linux `make ci` cannot reproduce.",
     "docs.yml":
         "Out of scope for this gate. `make pre-pr` overlaps much of it "
-        "incidentally, but nothing verifies that overlap — see workspace.toml "
-        "[backlog].open `ci-parity-docs-yml-out-of-scope`.",
+        "incidentally, but nothing verifies that overlap.",
     "catalogue-tooling-ci-gates.yml":
         "Out of scope; same backlog entry as docs.yml. Note: this one bites — "
         "its Gate B fixture is a synthetic external catalogue built by "

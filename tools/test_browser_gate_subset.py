@@ -62,9 +62,9 @@ EXCLUDED_BY_SCOPE: dict[str, str] = {
         "covers are already in this gate's matrix at all five widths in both themes "
         "for overflow, axe, fragments and skip-link order. RESIDUAL, stated plainly: "
         "no Makefile line, workflow or package script invokes this file, so it runs "
-        "on demand only. Registered as [backlog].open slug "
-        "e2e-spec-runner-boundary — a separate entry from tools-test-runner-boundary, "
-        "whose scope is tools/test*.py and so cannot discharge an e2e spec.",
+        "on demand only. The tools/test*.py runner discipline does not reach it: "
+        "that scope covers tools/test*.py, and no runner there can discharge an "
+        "e2e spec.",
 }
 
 EXCLUDED: dict[str, str] = {**EXCLUDED_WRITERS, **EXCLUDED_BY_SCOPE}

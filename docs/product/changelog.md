@@ -60,6 +60,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Work-loop now gives each scheduled plan task a bounded sequential implementer dispatch.** The controller retains lifecycle, review, and closeout ownership while the task brief carries its execution root and applicable craft guidance.
 
+## [core][2.23.1] — 2026-09-03
+
+### Highlights
+
+- **Closeout no longer offers to close an initiative that still has shaping or
+  delivery-brief work open.** Eligibility was read from the initiative's spec
+  work alone, so an initiative whose every spec had shipped was recommended for
+  closeout while its intents and draft delivery briefs were untouched. It now
+  reports a named blocker instead, and stops recommending the skill that
+  distils and dispositions.
+- **Both record shapes now count as remaining shaping work.** A shaping record
+  written in the canonical form was invisible to the check, which read only the
+  older shape — so an initiative whose remaining shaping work was written
+  entirely in the current form looked empty. Retiring a record now stops it
+  counting in both shapes alike, where before the two forms disagreed. A
+  shipped, withdrawn, or cancelled delivery brief is still correctly treated as
+  finished.
+
 ## [core][2.23.0] — 2026-09-03
 
 ### Highlights
