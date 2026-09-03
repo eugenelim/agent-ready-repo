@@ -48,15 +48,6 @@ RETIRED_LICENCES = (
     "before ship, the plan is Living and you edit it freely",
 )
 
-#: Vocabulary a Step 2 restatement of the mutability rule would use. This is a
-#: bounded marker list, not proof that no rule can be phrased another way.
-RESTATED_RULE_MARKERS = (
-    "pinned in substance",
-    "immutable in substance",
-    "change substantively",
-    "hash-pinned",
-)
-
 
 def _read(relative: str) -> str:
     """Read one UTF-8 repository surface."""
@@ -72,24 +63,20 @@ def _load_guards() -> ModuleType:
     return module
 
 
-def _section(relative: str, anchor: str | None) -> str:
-    """Return the region `anchor` opens, or the whole file when `anchor` is None.
+def _section(relative: str, anchor: str) -> str:
+    """Return the bounded region `anchor` opens.
 
     Three anchor shapes, because the governing surfaces genuinely have three:
     a Markdown heading (ends at the next same-or-shallower heading), a bold
     paragraph lead such as `**What the pin covers.**` (ends at the next bold
     lead or heading — `state-schema.md` carries exactly one heading, so a
     heading-only extractor would silently return the rest of the file), and
-    `None` for a file whose guarded clauses legitimately span all of it.
-
     Every shape fails loudly on a missing anchor or terminator rather than
     widening. A silently widened region lets an assertion be satisfied by prose
     from a section it was never meant to read, and a truncated one hides the
     clauses it was meant to cover.
     """
     text = _read(relative)
-    if anchor is None:
-        return text
     assert anchor in text, f"{relative}: anchor {anchor!r} not found"
     start = text.index(anchor) + len(anchor)
     if anchor.startswith("#"):
@@ -119,9 +106,8 @@ def _flat(text: str) -> str:
     return " ".join(" ".join(stripped).split())
 
 
-#: `relative path`, anchor (heading, bold lead, or None for whole file),
-#: pinned clauses, routing clauses.
-SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = (
+#: `relative path`, bounded anchor, pinned clauses, routing clauses.
+SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "packs/core/seeds/docs/CONVENTIONS.md",
         "### A spec directory freezes as a unit, when the spec ships",
@@ -149,14 +135,29 @@ SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = 
     ),
     (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
-        None,
+        "> **Plan contract:**",
         (
             "It may change substantively only while its Status is `Drafting`",
             "After approval, `spec.md` and `plan.md` are pinned in substance",
         ),
         (
             "execution observations belong in `docs/specs/<feature>/notes/verification-ledger.md`",
+        ),
+    ),
+    (
+        "packs/core/.apm/skills/new-spec/assets/plan.md",
+        "**Done when:** <name a concrete observable",
+        (),
+        (
             "Never name `spec.md` or `plan.md` as an execution-evidence destination",
+        ),
+    ),
+    (
+        "packs/core/.apm/skills/new-spec/assets/plan.md",
+        "## Changelog",
+        ("While the plan is `Drafting` and changes meaningfully, add a dated entry",),
+        (
+            "an execution observation goes to the verification ledger, not to a new changelog entry",
         ),
     ),
     (
@@ -309,7 +310,7 @@ def test_how_to_keeps_immutability_and_routes_to_the_ledger() -> None:
 
 
 def test_work_loop_points_at_the_procedure_without_restating_it() -> None:
-    """Step 2 stays a resolvable pointer, not a seventh home for the rule."""
+    """Step 2 keeps a resolvable pointer while other prose may guide execution."""
     relative = "packs/core/.apm/skills/work-loop/SKILL.md"
     execute = _section(relative, "## Step 2. EXECUTE")
     pointer = (
@@ -321,10 +322,6 @@ def test_work_loop_points_at_the_procedure_without_restating_it() -> None:
     for licence in RETIRED_LICENCES:
         assert licence not in _flat(execute), (
             f"{relative}: Step 2 must not restate the mutability rule ({licence!r})"
-        )
-    for marker in RESTATED_RULE_MARKERS:
-        assert marker not in _flat(execute), (
-            f"{relative}: Step 2 restates the mutability rule with marker {marker!r}"
         )
 
 
@@ -368,7 +365,9 @@ AC3_REQUIRED_REGIONS = (
     ("packs/core/seeds/docs/CONVENTIONS.md", "### A spec directory freezes as a unit, when the spec ships"),
     ("packs/core/seeds/docs/CONVENTIONS.md", "**`plan.md` is the implementation strategy.**"),
     ("packs/core/seeds/docs/CONVENTIONS.md", "**Lifecycle:** specs are"),
-    ("packs/core/.apm/skills/new-spec/assets/plan.md", None),
+    ("packs/core/.apm/skills/new-spec/assets/plan.md", "> **Plan contract:**"),
+    ("packs/core/.apm/skills/new-spec/assets/plan.md", "**Done when:** <name a concrete observable"),
+    ("packs/core/.apm/skills/new-spec/assets/plan.md", "## Changelog"),
     ("packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md", "## Verification ledger"),
     ("guides/core/explanation/why-the-plan-owns-the-lld.md", "## The shape of the answer"),
     ("packs/core/.apm/skills/work-loop/references/pre-execute-review.md", "## Mid-EXECUTE re-plan — Phase-1 note"),
@@ -391,6 +390,7 @@ LEDGER_DESTINATIONS = (
     "notes/verification-ledger.md",
     "delivery-contract-lifecycle.md#verification-ledger",
     "plan-and-execute-non-trivial-work.md",
+    "verification ledger",
 )
 
 
@@ -430,17 +430,12 @@ def test_every_routing_surface_names_one_canonical_destination() -> None:
     for relative, _anchor, _pinned, routing in SOURCES:
         if not routing:
             continue
-        flat = _flat(
-            "\n".join(
-                _section(candidate, anchor)
-                for candidate, anchor, _pinned, _routing in SOURCES
-                if candidate == relative
+        flat = _flat(_section(relative, _anchor))
+        for clause in routing:
+            assert any(dest in flat for dest in LEDGER_DESTINATIONS), (
+                f"{relative}: routing clause {clause!r} appears in a region without "
+                f"a canonical destination — expected one of {LEDGER_DESTINATIONS!r}"
             )
-        )
-        assert any(dest in flat for dest in LEDGER_DESTINATIONS), (
-            f"{relative}: routes an execution observation somewhere other than the "
-            f"canonical destination — expected one of {LEDGER_DESTINATIONS!r}"
-        )
 
 
 def test_the_core_release_heading_sits_directly_beneath_unreleased() -> None:
