@@ -226,6 +226,7 @@ def test_both_schemas_are_valid_versioned_and_backlinked() -> None:
             expected_specs.append("docs/specs/shaping-intake-handoff/")
         if path == WORKSPACE_SCHEMA:
             expected_specs.append("docs/specs/semantic-surface-resolver/")
+            expected_specs.append("docs/specs/dependency-scoped-completion-receipts/")
         assert schema["x-spec"] == expected_specs, f"{path}: x-spec"
 
 
