@@ -388,3 +388,82 @@ unshipped spec citing the freeze section, touches the seam in zero files.
 Recorded because the reasoning is the durable part: I reached the type defect by
 pattern-matching this delivery's own shape-versus-role theme onto a neighbouring
 mechanism, and the corpus said the mechanism was calibrated to its real usage.
+
+## T6, after the contract was reduced to guard repair alone
+
+The amendment cut the prose restructuring once measurement showed the shipped
+guidance already correct, leaving one task: close V1, V2, V5 and V3 inside
+`tests/roster/test_verification_ledger_contract.py`. Unmutated baseline after
+the repair: **13 passed** (up one — the absence test below is new).
+
+### The first V1 repair was a control that could not fail
+
+The implementation reported V1 closed. The battery refused it: appending
+`` at `notes/execution-log.md` `` to the convention's `**Lifecycle:** specs are`
+paragraph still returned **`12 passed`**.
+
+The repair had added the bare words `verification ledger` to
+`LEDGER_DESTINATIONS` — the exact thing that test exists to reject. Its own
+docstring reads "Carrying the word 'ledger' is not agreement: a source could
+route an observation to `notes/execution-log.md` and still read plausibly." The
+allowlist was widened until the assertion could not fail, and the docstring then
+contradicted the code.
+
+Worth recording as its own class: **a green suite after a repair is not evidence
+the repair worked.** Only the mutation that motivated the repair is.
+
+### What actually closes V1
+
+Every clause test asserts *presence*, so a correct-looking clause that *also*
+names a wrong destination satisfies all of them. Absence is the mechanism that
+can fail: within each guarded region, any `notes/*.md` path must be the
+canonical one. Keyed on the path shape, not on a list of wrong paths, because
+the destination to catch is one nobody enumerated. Region-scoped, so it
+introduces no whole-file fallback. Measured on entry:
+`notes/verification-ledger.md` is the only such path in any guarded source.
+
+Three clauses moved from `routing` to `pinned` in the same pass, because they
+state a rule and name the ledger in words without carrying its path: the
+convention's Lifecycle paragraph, the template's `Done when:` prohibition, and
+the template's `## Changelog` instruction. Each file's path still lives in
+another of its regions, so nothing lost coverage.
+
+### Proofs at `099da68e7`
+
+Each mutation applied alone to the committed tree, restored from a verbatim byte
+snapshot, every restoration verified with `git diff --quiet`.
+
+| # | Target | Mutation | Observed | Test that failed |
+| --- | --- | --- | --- | --- |
+| V1 | seed Lifecycle | append a non-canonical destination beside the correct clause | `1 failed, 12 passed` | `..._names_a_non_canonical_ledger_path` |
+| V2 | template `Done when:` | repoint to `notes/execution-log.md` | `1 failed, 12 passed` | `..._names_a_non_canonical_ledger_path` |
+| V5 | template `## Changelog` | revert to the `origin/main` wording | `1 failed, 12 passed` | `..._states_the_pinned_half` |
+| V3 | `SKILL.md` Step 2 | add correct prose using "change substantively" | `13 passed` | — stays green, was `1 failed` |
+| K1 | seed freeze section | restore the `Executing` licence | `2 failed, 11 passed` | pinned_half + retired_licence |
+| K2 | seed § 4 strategy | restore the licence | `2 failed, 11 passed` | pinned_half + retired_licence |
+| K3 | seed Lifecycle | licence the in-flight correction | `1 failed, 12 passed` | pinned_half |
+| K4 | template `Plan contract` | drop the `Drafting` qualifier | `1 failed, 12 passed` | pinned_half |
+| K5 | template `## Changelog` | drop the phase scoping | `1 failed, 12 passed` | pinned_half |
+| K6 | lifecycle reference | truncate the no-amendment half | `1 failed, 12 passed` | routes_observations |
+| K7 | public how-to | repoint the ledger clause | `1 failed, 12 passed` | how_to_keeps_immutability |
+| K8 | `pre-execute-review.md` | licence edits while `Executing` | `1 failed, 12 passed` | pinned_half |
+| K9 | `state-schema.md` | replace "Everything else stays pinned" | `1 failed, 12 passed` | pinned_half |
+| K10 | public explanation | drop the phase qualifier | `1 failed, 12 passed` | pinned_half |
+| K11 | `SKILL.md` Step 2 | remove the pointer | `1 failed, 12 passed` | points_at_the_procedure |
+| K12 | the guard itself | delete one whole `SOURCES` row | `1 failed, 12 passed` | keeps_every_member_ac3_names |
+| P1 | seed § 4 strategy | re-wrap | `13 passed` | — stays green |
+| P2 | seed Lifecycle | re-wrap | `13 passed` | — stays green |
+
+Sixteen killing mutations, two innocent-edit probes.
+
+K12 had to be re-run to be worth anything. The first attempt deleted three lines
+of a fourteen-line row, leaving a malformed tuple, so the suite reddened on a
+syntax error rather than on the roster pin — six tests failed instead of one. A
+mutation that reddens for the wrong reason is not a proof. Re-run against a
+syntactically whole element, with the module verified to still parse, exactly
+`test_the_closed_source_set_keeps_every_member_ac3_names` fails.
+
+That attempt also raised an exception between mutating and restoring, so it left
+the guard file mutated on disk. The file was committed, so `git checkout --` on
+that one path restored it with no uncommitted work at risk, and the rewritten
+probe puts the restore in a `finally` block.
