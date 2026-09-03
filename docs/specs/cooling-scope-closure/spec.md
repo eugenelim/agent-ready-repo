@@ -323,12 +323,13 @@ a green for the wrong reason.
   `## 10. Risks and revisit conditions` heading is
   `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`.
 - [ ] **AC29 — The erratum records the four-slice split and what each slice
-  owns.** Whitespace-normalized, the RFC's § Errata contains `Approver:
-  eugenelim` **twice** — it occurs once today, in the 2026-08-27 entry, so one
-  occurrence cannot distinguish a signed new erratum from an unsigned one — and
-  contains `cooling-scope-closure` and each of the four literals AC26 requires of
-  the architecture surface. Its date is the date of the commit that adds it,
-  which the release checklist verifies rather than a test.
+  owns.** Whitespace-normalized, every entry in the RFC's § Errata carries an
+  `(Approver:` signature — an exact count goes stale on the next signed erratum,
+  and a lower bound is a dead control, because once the errata holds more entries
+  than the bound, stripping a signature still satisfies it — and contains
+  `cooling-scope-closure` and each of the four literals AC26 requires of the
+  architecture surface. Its date is the date of the commit that adds it, which
+  the release checklist verifies rather than a test.
 - [ ] **AC30 — The erratum registers the three open follow-ons and corrects the
   `cooling-brief-child-scope` basis.** The same erratum names
   `rfc0096-wave7a-ii-completion-receipts`,
