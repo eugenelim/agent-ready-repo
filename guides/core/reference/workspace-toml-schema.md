@@ -185,6 +185,18 @@ needs = [
 ]
 ```
 
+A local dependency on a delivery whose entry and artifact have been removed can
+carry a completion receipt on the citing edge:
+
+```toml
+needs = [
+  { type = "local", kind = "design", path = "docs/product/design/account-recovery.md", receipt = { delivery_id = "account-recovery-42", outcome = "completed", completion_event = "release", evidence_ref = "commit:0123456789abcdef0123456789abcdef01234567" } },
+]
+```
+
+The receipt requires exactly `delivery_id`, `outcome`, `completion_event`, and
+`evidence_ref`. A `defect`-kind need may not carry one.
+
 A cross-repository dependency is satisfied only by a reviewed local receipt in
 the containing brief. The dependency pins the local brief path, receipt id, and
 accepted revision:
@@ -446,10 +458,11 @@ and never deletes the canonical artifact.
 
 ## Compaction
 
-Shipped entries may be removed from the active index only when no live `needs`
-edge references them, no open parent references them, and closure evidence is
-durable in the canonical artifacts. Compaction removes only the index entry. It
-never deletes the canonical artifact or its Git history.
+A shipped entry may be removed while a live `needs` edge references it when
+every such edge carries a valid completion receipt whose `outcome` is
+`completed`. No open parent may reference the entry, and closure evidence must
+be durable in the canonical artifacts. Compaction removes only the index entry.
+It never deletes the canonical artifact or its Git history.
 
 ## Encoding
 

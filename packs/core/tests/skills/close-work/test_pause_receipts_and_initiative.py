@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 import importlib.util
-import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -14,12 +13,6 @@ SKILLS = PACK_ROOT / ".apm" / "skills"
 CLOSE_WORK_SCRIPT = SKILLS / "close-work" / "scripts" / "close_work.py"
 WORKSPACE_STATUS_SCRIPT = (
     SKILLS / "workspace-status" / "scripts" / "workspace_status_engine.py"
-)
-LIFECYCLE_SCHEMA = (
-    PACK_ROOT.parents[1]
-    / "contracts"
-    / "jsonschema"
-    / "delivery-lifecycle-record.schema.json"
 )
 
 
@@ -297,18 +290,6 @@ def test_each_other_invalid_receipt_field_is_refused() -> None:  # AC12
     for field, overrides in cases:
         result = _plan_receipt(close_work, **overrides)
         assert result.code == "receipt-evidence-required", field
-
-
-def test_close_work_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3
-    """The producer applies exactly the lifecycle record's three grammars."""
-    lifecycle = json.loads(LIFECYCLE_SCHEMA.read_text(encoding="utf-8"))
-    delivery_id = lifecycle["properties"]["delivery_id"]["pattern"]
-    completion_events = lifecycle["properties"]["completion_event"]["enum"]
-    evidence_ref = lifecycle["$defs"]["evidenceRef"]["pattern"]
-    close_work = _close_work()
-    assert delivery_id == close_work._COMPLETION_RECEIPT_DELIVERY_ID_RE
-    assert list(close_work._COMPLETION_RECEIPT_EVENTS) == completion_events
-    assert evidence_ref == close_work._COMPLETION_RECEIPT_EVIDENCE_REF_RE
 
 
 def test_missing_receipt_surface_and_self_asserted_effect_fail_closed() -> None:

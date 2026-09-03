@@ -20,6 +20,7 @@ LIFECYCLE_SCHEMA = ROOT / "contracts/jsonschema/delivery-lifecycle-record.schema
 WORKSPACE_ENTRY_SCHEMA = ROOT / "contracts/jsonschema/workspace-entry.schema.json"
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 STATUS_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
+CLOSE_WORK_PATH = ROOT / "packs/core/.apm/skills/close-work/scripts/close_work.py"
 DEPENDANT = "docs/specs/dependant/spec.md"
 PRUNED_DEPENDENCY = "docs/specs/pruned-dependency/spec.md"
 RECEIPTLESS_DEPENDENCY = "docs/specs/receiptless-dependency/spec.md"
@@ -41,6 +42,7 @@ def _load_module(path: Path, label: str) -> ModuleType:
 
 
 ENGINE = _load_module(ENGINE_PATH, "engine")
+CLOSE_WORK = _load_module(CLOSE_WORK_PATH, "close_work")
 
 
 def _write_spec(root: Path, path: str, status: str, *, plan: bool = False) -> None:
@@ -293,6 +295,29 @@ def test_the_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3
     assert receipt["delivery_id"]["pattern"] == lifecycle["properties"]["delivery_id"]["pattern"]
     assert receipt["completion_event"]["enum"] == lifecycle["properties"]["completion_event"]["enum"]
     assert receipt["evidence_ref"]["pattern"] == lifecycle["$defs"]["evidenceRef"]["pattern"]
+
+
+def test_the_producer_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3
+    """close-work applies exactly the three lifecycle-record receipt grammars.
+
+    This arm lives here rather than beside the other producer tests because
+    `tools/lint-pack-test-boundary.py` refuses a pack test that reads a
+    repository-level contract, and names `tests/roster` as its home. Keeping all
+    three arms in one file also means one lifecycle read backs all of them.
+    """
+    lifecycle = _load(LIFECYCLE_SCHEMA)
+    assert (
+        lifecycle["properties"]["delivery_id"]["pattern"]
+        == CLOSE_WORK._COMPLETION_RECEIPT_DELIVERY_ID_RE
+    )
+    assert (
+        lifecycle["properties"]["completion_event"]["enum"]
+        == list(CLOSE_WORK._COMPLETION_RECEIPT_EVENTS)
+    )
+    assert (
+        lifecycle["$defs"]["evidenceRef"]["pattern"]
+        == CLOSE_WORK._COMPLETION_RECEIPT_EVIDENCE_REF_RE
+    )
 
 
 def test_the_engine_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3

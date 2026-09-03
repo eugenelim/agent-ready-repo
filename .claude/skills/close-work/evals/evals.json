@@ -54,6 +54,18 @@
       "prompt": "Close this delivery brief: it stopped before execution began. A different brief was cancelled after one child shipped, and a third completed successfully.",
       "expected_output": "The agent proposes Withdrawn for the pre-execution stop, Cancelled for the brief with execution evidence, and Shipped for the successfully completed brief. It preserves every child status, treats each brief transition as an explicit closeout decision, and separately confirms the exact workspace and brief updates.",
       "assertions": ["Distinguishes Withdrawn from Cancelled by execution evidence", "Does not rewrite child statuses", "Does not infer Shipped from child rollup alone"]
+    },
+    {
+      "id": 10,
+      "prompt": "Reconcile the completion receipt and live dependencies in this workspace. State the receipt contract before proposing any closeout.",
+      "expected_output": "The agent identifies the citing local need in workspace.toml as the completion receipt's carrier. It states that outcome is restricted to completed, abandoned, or superseded, and that delivery_id, completion_event, and evidence_ref use the lifecycle record's published grammars. It does not move the receipt to a delivery record or a separate receipt store.",
+      "assertions": [
+        "Names the citing local need as the receipt carrier",
+        "States the completed, abandoned, and superseded outcome vocabulary",
+        "Uses the lifecycle record's published grammars for the other three fields",
+        "Does not create a separate receipt store"
+      ],
+      "files": ["evals/files/completion-receipt/workspace.toml"]
     }
   ]
 }

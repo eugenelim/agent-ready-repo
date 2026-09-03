@@ -12,4 +12,4 @@ be written. An empty row is an undischarged obligation, not a skip.
 | Skill | Owning task | What changed | Disposition |
 | --- | --- | --- | --- |
 | `workspace-status` | T2 | The `invalid_completion_receipt` finding code and the satisfaction-time receipt path | Eval 8 drives a malformed local completion receipt through the backend and requires the stable code, safe next action, and backend-owned verdict. |
-| `close-work` | T4 | The receipt paragraph's contract — carrier, closed vocabulary, and the lifecycle record's grammars, replacing "a short outcome statement" | _pending_ |
+| `close-work` | T4 | The receipt paragraph's contract — carrier, closed vocabulary, and the lifecycle record's grammars, replacing "a short outcome statement" | Eval 10 uses a receipt-bearing workspace fixture and requires the citing local need as carrier, the three allowed outcomes, and the lifecycle record's published grammars for the other fields. |
