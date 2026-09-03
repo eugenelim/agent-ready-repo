@@ -114,7 +114,7 @@ is a bounded regression backstop against the specific wordings that caused this
 defect, not a proof that no new permission can be phrased. Proving prose free of
 an arbitrary permission is not mechanisable; claiming otherwise would rebuild
 the same false confidence in a new place. AC3 claims only reversion detection,
-which is what the twelve killing mutations establish.
+which is what the sixteen killing mutations establish.
 
 ## The superseded eight proofs, kept for the record
 
