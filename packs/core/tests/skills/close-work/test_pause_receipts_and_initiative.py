@@ -6,6 +6,7 @@ import dataclasses
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Any
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILLS = PACK_ROOT / ".apm" / "skills"
@@ -47,6 +48,44 @@ def _authority(close_work, action: str, resource: str) -> dict[str, object]:
     )
     assert fact is not None
     return {**record, "authority_fact": fact}
+
+
+def _receipt_authority(close_work: Any, evidence_ref: str) -> dict[str, object]:
+    """Issue receipt authority whose binding matches the evidence under test."""
+    resource = "runtime-coordination:workspace"
+    record = {
+        "authorized_actor_role": "repository-maintainer",
+        "grant_source": "policy:maintainer-closeout",
+        "action": "write-completion-receipt",
+        "resource": resource,
+        "evidence_ref": evidence_ref,
+        "host_session_provenance": "session:current",
+    }
+    fact = close_work.resolve_mutation_authority(
+        grant_record=record,
+        authority_evidence_ref="authority:resolved-policy",
+    )
+    assert fact is not None
+    return {**record, "authority_fact": fact}
+
+
+def _plan_receipt(close_work: Any, **overrides: object) -> Any:
+    """Plan a receipt with matching issued authority and valid defaults."""
+    receipt_fields = {
+        "delivery_id": "delivery-wave4",
+        "outcome": "completed",
+        "completion_event": "release",
+        **overrides,
+    }
+    evidence_ref = receipt_fields.pop("evidence_ref", f"commit:{'a' * 40}")
+    arguments = {
+        "live_dependency": True,
+        "compatible_surface": "runtime-coordination:workspace",
+        **receipt_fields,
+    }
+    return close_work.plan_completion_receipt(
+        **arguments, **_receipt_authority(close_work, evidence_ref)
+    )
 
 
 def test_pause_is_reference_only_restorable_and_non_closing() -> None:
@@ -218,25 +257,39 @@ def test_pause_resume_revalidates_the_stored_overlay() -> None:
 
 def test_receipt_is_exactly_four_fields_and_dependency_scoped() -> None:
     close_work = _close_work()
-    surface = "runtime-coordination:workspace"
-    result = close_work.plan_completion_receipt(
-        live_dependency=True,
-        compatible_surface=surface,
-        delivery_id="delivery:wave4",
-        outcome="completed",
-        completion_event="work-loop:gates-clean",
-        **_authority(close_work, "write-completion-receipt", surface),
-    )
+    result = _plan_receipt(close_work)
     assert result.code == "receipt-write-confirmation-required"
-    assert dataclasses.asdict(result.receipt) == {
-        "delivery_id": "delivery:wave4",
+    receipt = dataclasses.asdict(result.receipt)
+    assert receipt == {
+        "delivery_id": "delivery-wave4",
         "outcome": "completed",
-        "completion_event": "work-loop:gates-clean",
-        "evidence_ref": "evidence:current",
+        "completion_event": "release",
+        "evidence_ref": f"commit:{'a' * 40}",
     }
     assert close_work.plan_completion_receipt(
-        live_dependency=False, compatible_surface=surface
+        live_dependency=False,
+        compatible_surface="runtime-coordination:workspace",
     ).code == "receipt-not-required"
+
+
+def test_a_receipt_field_outside_its_grammar_is_refused() -> None:  # AC12
+    """An authorized call still refuses a receipt whose field breaks its rule."""
+    close_work = _close_work()
+    result = _plan_receipt(close_work, completion_event="work-loop:gates-clean")
+    assert result.code == "receipt-evidence-required"
+
+
+def test_each_other_invalid_receipt_field_is_refused() -> None:  # AC12
+    """Each remaining receipt rule refuses an authorized malformed value."""
+    close_work = _close_work()
+    cases = (
+        ("outcome", {"outcome": "Retained"}),
+        ("delivery_id", {"delivery_id": "delivery:wave4"}),
+        ("evidence_ref", {"evidence_ref": "evidence:current"}),
+    )
+    for field, overrides in cases:
+        result = _plan_receipt(close_work, **overrides)
+        assert result.code == "receipt-evidence-required", field
 
 
 def test_missing_receipt_surface_and_self_asserted_effect_fail_closed() -> None:

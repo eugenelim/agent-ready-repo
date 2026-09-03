@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.23.1"
+          "version": "2.23.3"
         }
       ],
       "date": "2026-09-03",
-      "heading": "[core][2.23.1] — 2026-09-03",
-      "changelogAnchor": "core2231--2026-09-03",
+      "heading": "[core][2.23.3] — 2026-09-03",
+      "changelogAnchor": "core2233--2026-09-03",
       "highlights": [
         {
           "source": "**Evidence from a run now has a place to go that the approved plan does not.** Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted.",
@@ -22,6 +22,140 @@
             {
               "type": "text",
               "value": " Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.23.2"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.23.2] — 2026-09-03",
+      "changelogAnchor": "core2232--2026-09-03",
+      "highlights": [
+        {
+          "source": "**A local dependency can keep resolving after the delivery it names has been closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`, `completion_event`, and `evidence_ref` on the citing local need. Only `completed` satisfies the dependency; `abandoned` and `superseded` keep the refusal visible.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A local dependency can keep resolving after the delivery it names has been closed out and pruned."
+            },
+            {
+              "type": "text",
+              "value": " Put a completion receipt with "
+            },
+            {
+              "type": "code",
+              "value": "delivery_id"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "outcome"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "completion_event"
+            },
+            {
+              "type": "text",
+              "value": ", and "
+            },
+            {
+              "type": "code",
+              "value": "evidence_ref"
+            },
+            {
+              "type": "text",
+              "value": " on the citing local need. Only "
+            },
+            {
+              "type": "code",
+              "value": "completed"
+            },
+            {
+              "type": "text",
+              "value": " satisfies the dependency; "
+            },
+            {
+              "type": "code",
+              "value": "abandoned"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "superseded"
+            },
+            {
+              "type": "text",
+              "value": " keep the refusal visible."
+            }
+          ]
+        },
+        {
+          "source": "**Completion receipts now fail before they are written when their delivery result or evidence fields do not match the published contract.** This keeps a malformed receipt from becoming the only surviving account of a pruned dependency.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Completion receipts now fail before they are written when their delivery result or evidence fields do not match the published contract."
+            },
+            {
+              "type": "text",
+              "value": " This keeps a malformed receipt from becoming the only surviving account of a pruned dependency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.23.1"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.23.1] — 2026-09-03",
+      "changelogAnchor": "core2231--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open.** Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open."
+            },
+            {
+              "type": "text",
+              "value": " Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions."
+            }
+          ]
+        },
+        {
+          "source": "**Both record shapes now count as remaining shaping work.** A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Both record shapes now count as remaining shaping work."
+            },
+            {
+              "type": "text",
+              "value": " A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished."
             }
           ]
         }

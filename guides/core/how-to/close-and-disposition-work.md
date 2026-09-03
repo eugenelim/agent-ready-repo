@@ -220,13 +220,14 @@ checks as any other persisted change.
 
 A minimal completion receipt retains only the delivery ID, accepted outcome,
 completion event, and stable evidence reference, and only while a live dependency
-cites it. Every field is a locator or a short outcome statement: the receipt
-carries no requirements, rationale, source payload, artifact content, or personal
-identity, and references an evidence locator rather than a person. This matters
-because the receipt is written into a coordination surface that is normally
-committed. If the established coordination surface cannot carry that receipt, the
-delivery record stays as a retained exception. `workspace.toml` remains an index;
-it does not become the receipt, rationale, or cooling store.
+cites it. The receipt's `outcome` uses the closed vocabulary `completed`,
+`abandoned`, or `superseded`. The receipt carries no requirements, rationale,
+source payload, artifact content, or personal identity, and references an
+evidence locator rather than a person. This matters because the receipt is
+written into a coordination surface that is normally committed. If the
+established coordination surface cannot carry that receipt, the delivery record
+stays as a retained exception. `workspace.toml` remains an index; it does not
+become the receipt, rationale, or cooling store.
 
 ## Next step
 

@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.23.1] — 2026-09-03
+## [core][2.23.3] — 2026-09-03
 
 ### Highlights
 
@@ -65,6 +65,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   observation — the mutation that was applied, the check that went red, the
   digest that was compared. One convention states when substantive edits stop,
   and a check fails if that statement is reverted.
+
+## [core][2.23.2] — 2026-09-03
+
+### Highlights
+
+- **A local dependency can keep resolving after the delivery it names has been
+  closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`,
+  `completion_event`, and `evidence_ref` on the citing local need. Only
+  `completed` satisfies the dependency; `abandoned` and `superseded` keep the
+  refusal visible.
+- **Completion receipts now fail before they are written when their delivery
+  result or evidence fields do not match the published contract.** This keeps a
+  malformed receipt from becoming the only surviving account of a pruned
+  dependency.
+
+### Changed
+
+- A local need can carry a completion receipt with exactly `delivery_id`,
+  `outcome`, `completion_event`, and `evidence_ref`. A `defect`-kind need cannot
+  carry one.
+- The producer now validates `outcome` against `completed`, `abandoned`, and
+  `superseded`, and validates the other three fields against the lifecycle
+  record's published grammars.
+- This release moves every workspace's routing identity, so an in-flight legacy
+  migration needs a fresh confirmation.
+
+## [core][2.23.1] — 2026-09-03
+
+### Highlights
+
+- **Closeout no longer offers to close an initiative that still has shaping or
+  delivery-brief work open.** Eligibility was read from the initiative's spec
+  work alone, so an initiative whose every spec had shipped was recommended for
+  closeout while its intents and draft delivery briefs were untouched. It now
+  reports a named blocker instead, and stops recommending the skill that
+  distils and dispositions.
+- **Both record shapes now count as remaining shaping work.** A shaping record
+  written in the canonical form was invisible to the check, which read only the
+  older shape — so an initiative whose remaining shaping work was written
+  entirely in the current form looked empty. Retiring a record now stops it
+  counting in both shapes alike, where before the two forms disagreed. A
+  shipped, withdrawn, or cancelled delivery brief is still correctly treated as
+  finished.
 
 ## [core][2.23.0] — 2026-09-03
 

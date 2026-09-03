@@ -41,8 +41,8 @@ _SAST_DIRS_RE = re.compile(r"^SAST_DIRS\s*[:+?]*=\s*(.+)$", re.MULTILINE)
 #
 # The self-test compares these literals against its own copy, so it catches a
 # local edit. It cannot catch upstream drift: `tools/requirements-sast.txt` pins
-# `semgrep>=1.174,<2`, a floating range. Closing that is part of the deferred
-# decision tracked by the `sast-nosemgrep-has-no-form-lint` register entry.
+# `semgrep>=1.174,<2`, a floating range, so an upstream change to the accepted
+# suppression form would not be caught here.
 #
 # The identifiers above are backticked and the literals below are split on
 # purpose: this file must never contain the directive token in a shape Semgrep
