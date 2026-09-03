@@ -6,12 +6,13 @@
 > sequentially; use `loop-cohort schedule <spec-dir> --expect-run-id "$run_id"` for
 > topological order.
 
-**Default is sequential.** Supervisor mode computes the plan's full
-`Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and runs tasks in
-**topological order, single-agent, on every adapter** — it does *not*
-auto-fan-out. `schedule` also fails loud on a dependency cycle or a
-forward-reference (a task whose declared dep is authored later), so an
-ill-formed plan is caught at PLAN, not run out of order.
+**Default is sequential implementer dispatch.** Supervisor mode computes the
+plan's full `Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and, when an
+`implementer` subagent is installed, dispatches each plan task in topological
+order with one implementer at a time. It does *not* auto-fan-out. `schedule`
+also fails loud on a dependency cycle or a forward-reference (a task whose
+declared dep is authored later), so an ill-formed plan is caught at PLAN, not
+run out of order.
 
 This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
@@ -226,7 +227,7 @@ Read `loop-cohort status docs/specs/<feature> --json` for
 `current_wave_index` and `schedule_waves[current_wave_index]` to get the active
 task set. (`schedule` runs once during the G-plan sequence and persists the
 wave list; re-calling it resets `current_wave_index` to 0, erasing prior `wave
-advance` progress.) Execute sequentially — **parallel fan-out
+advance` progress.) Dispatch `implementer` tasks sequentially — **parallel fan-out
 (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**;
 those verbs exit non-zero. After all wave tasks are done, fire `wave-complete`
 before proceeding to GATES:
@@ -240,7 +241,9 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave
 If no `implementer`-matching subagent is installed in the consumer's
 IDE, drop back to single-agent mode: execute the independent tasks
 yourself, sequentially, in task-id order. Note the degradation in the
-final summary so the user sees the loop ran without parallelism.
+final summary so the user sees the loop ran without implementer dispatch.
+The missing capability is the subagent, not parallelism — the installed path
+is sequential too.
 
 ## Cross-references
 
