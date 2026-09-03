@@ -1,7 +1,7 @@
 # Follow-ons this delivery discovered
 
 Three separately scoped items surfaced while building the dependency-scoped
-completion receipt. Neither belongs to its accepted contract. This document is
+completion receipt. None belongs to its accepted contract. This document is
 the artifact of the canonical `[backlog].open` entry
 `docs/specs/dependency-scoped-completion-receipts/notes/follow-ons.md`
 (`kind = "defect"`), which is their register — RFC-0096's 2026-09-01 Errata

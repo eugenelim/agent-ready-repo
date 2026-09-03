@@ -1,6 +1,6 @@
 # Spec: Dependency-scoped completion receipts
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6, §7 and §9 (Wave 7a-ii, registered in its 2026-09-01 Errata); [ADR-0103](../../adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md); `close-work-extraction-and-immediate-disposition` (Shipped and frozen, live dependency — its AC17 ships the producer this spec constrains); `status-projection-and-context-exclusion` (Shipped and frozen, live dependency — its ticked AC57 rests on `invalid_receipt` having one emitter, which this spec preserves); `thirty-day-cooling-and-retirement` (Shipped and frozen — its lifecycle record publishes the three grammars this spec pins; a contract citation, not a declared `needs` edge); `workspace-routing-invariants` (Shipped — its *Ask first* boundary governs adding a finding code, and its § Canonical findings table is the public refusal contract)
@@ -32,7 +32,7 @@ distinguishes "my dependency shipped" from "my dependency went away".
 | User documentation | Applicable — this is the adopter-facing reference for the `needs` shape, and a gate asserts it documents every finding code | [`guides/core/reference/workspace-toml-schema.md`](../../../guides/core/reference/workspace-toml-schema.md) and [`guides/core/how-to/close-and-disposition-work.md`](../../../guides/core/how-to/close-and-disposition-work.md) | repository maintainer | AC11 and AC13 pass | The reference documents the receipt and the new code and admits removal covered by a `completed` receipt; the how-to states the closed vocabulary rather than the superseded "short outcome statement" |
 | Maintainer procedure | Applicable — `close-work` produces the receipt and `workspace-status` consumes it; both state its contract | [`packs/core/.apm/skills/close-work/SKILL.md`](../../../packs/core/.apm/skills/close-work/SKILL.md) and [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | repository maintainer | AC11 and AC13 pass | `close-work` states the carrier, the vocabulary and the pinned grammars; `workspace-status` documents the new finding code with a reason and an action |
 | Decision rationale | Applicable — three distinct concepts are spelled `outcome` here and the choice among them is not reconstructible from code | [`docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md`](../../adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | repository maintainer | The ADR is `Accepted` and indexed in `docs/adr/README.md` | The ADR records the vocabulary, carrier, grammar-pin and finding-code choices |
-| Release history | Applicable — this changes shipped `packs/core` behaviour and instructions | [`docs/product/changelog.md`](../../product/changelog.md) `[core]` entry | repository maintainer | A dated `[core]` heading at the bumped version, topmost among `[core]` entries | The entry names the receipt shape, the tightened producer validation, and that this release moves every workspace's routing identity so an in-flight legacy migration needs a fresh confirmation |
+| Release history | Applicable — this changes shipped `packs/core` behaviour and instructions | [`docs/product/changelog.md`](../../product/changelog.md) `[core]` entry | repository maintainer | A dated `[core]` heading at the bumped version topmost among `[core]` entries, `pack.toml` and `.claude-plugin/plugin.json` agreeing, and the `/now/` projection regenerated when the entry carries Highlights | The entry names the receipt shape, the tightened producer validation, and that this release moves every workspace's routing identity so an in-flight legacy migration needs a fresh confirmation |
 | Current product truth | Not applicable — the receipt states no promise or boundary a product-truth surface owns; the published behaviour is the interface contract and the adopter reference above | — | — | — | — |
 | Current architecture | Not applicable — no module, layer or ownership boundary moves; the change adds one branch inside an existing resolver | — | — | — | — |
 | Operations | Not applicable — no runbook, deployment or alerting surface changes | — | — | — | — |
@@ -93,9 +93,11 @@ code, or a literal string present in whitespace-normalized text.
   *absence* of a finding also asserts the citing entry's presence, because an
   entry that vanished and one that resolved are otherwise indistinguishable —
   the trap probe B fact 3 records.
-- **Every engine fixture carries one receiptless local need beside the
-  receipt-bearing one**, which is what AC14 reads. Without it, making the receipt
-  mandatory would tick every other criterion.
+- **AC4's and AC8's fixtures carry a second, receiptless local need**, which is
+  what AC14 reads: its target is an existing artifact with a terminal status, so
+  it resolves and the citing entry stays in `canonical.ready`. Without it, an
+  implementation that made the receipt mandatory would tick every other
+  criterion. AC7's fixtures do not carry one — their citing entry is blocked.
 - **Fixture membership state is part of each criterion, not an implementation
   detail.** AC5's target keeps its `work.shipped` entry; AC4's, AC8's and AC9's
   targets have none. Probe A re-measured that a surviving membership raises
@@ -130,8 +132,8 @@ code, or a literal string present in whitespace-normalized text.
 - [ ] **AC10 — A malformed completion receipt never reports the cross-repository code.** Given the AC7 fixtures, the citing entry's finding codes contain `invalid_completion_receipt` and do not contain `invalid_receipt`.
 - [ ] **AC11 — The new code is documented in both required homes.** `packs/core/.apm/skills/workspace-status/SKILL.md` and `guides/core/reference/workspace-toml-schema.md` each carry an `invalid_completion_receipt` row with a reason and an action.
 - [ ] **AC12 — The producer refuses what the consumer would refuse.** For an authorized closeout call, `close-work` refuses to plan a completion receipt with `receipt-evidence-required` when any of its four fields violates its rule — `outcome` outside the closed vocabulary, or `delivery_id`, `completion_event` or `evidence_ref` outside its pinned grammar — and reaches `receipt-write-confirmation-required` only when all four are valid.
-- [ ] **AC14 — A receiptless local need is unchanged.** Given a workspace whose citing entry declares a `local` need carrying no `receipt` key, that entry parses, appears in `canonical.ready`, and reports no finding — the same result the unmodified engine produces for it.
 - [ ] **AC13 — The adopter surfaces describe the current contract.** `guides/core/reference/workspace-toml-schema.md` shows a `local` need carrying a `receipt` with its four fields and states that a shipped entry may be removed while a live `needs` edge references it when every such edge carries a valid completion receipt whose `outcome` is `completed`; `guides/core/how-to/close-and-disposition-work.md` states the closed vocabulary in place of "a short outcome statement"; and `packs/core/.apm/skills/close-work/SKILL.md` names the receipt's carrier as the citing local need and states the three `outcome` values and the lifecycle record's grammars in place of "Every field is a locator or a short outcome statement", which ADR-0103 supersedes.
+- [ ] **AC14 — A receiptless local need is unchanged.** In the AC4 and AC8 fixtures, the citing entry declares a second `local` need that carries no `receipt` key and whose target is an existing artifact with a terminal status; that entry parses, appears in `canonical.ready`, and reports no finding for that second dependency.
 
 ## Follow-ons
 

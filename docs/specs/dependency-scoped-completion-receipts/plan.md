@@ -1,7 +1,7 @@
 # Plan: Dependency-scoped completion receipts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0096 §6/§7 and [`docs/CONVENTIONS.md`](../../CONVENTIONS.md) § 4 *Contracts* govern the published shape. The cross-repository receipt is the analogous production implementation: `$defs/crossRepoNeed` in `contracts/jsonschema/workspace-entry.schema.json`, validated by `_validated_receipt_match` and `_cross_repo_receipt_satisfied` in `workspace_status_engine.py`, exercised by `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py` and `tests/roster/test_workspace_status_projection.py`. Named deviation: that analogue emits `invalid_receipt`, which this delivery must not reuse (ADR-0103 records why it cannot be broadened).
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
@@ -76,7 +76,9 @@ Five mechanisms the criteria do not give away:
 - **AC7's non-string fixture is an unquoted TOML date.** `tomllib` yields
   `datetime.date` and `json.dumps` refuses it, so without the parser's value-type
   check the value reaches `Dependency`, the run exits 2 and emits no finding at
-  all — which is why AC7 asserts the exit code alongside the code.
+  all — so AC7's `canonical.blocked` clause is what kills that mutant, the citing
+  path being absent from every collection. The suite also asserts exit 0 on every
+  engine fixture as a plan-owned guard; no criterion states it.
 - **AC10's negative clause rests on a shipped positive oracle.**
   `tests/roster/test_status_projection_and_context_exclusion.py:1007-1009` already
   asserts that a cross-repository fixture reports `invalid_receipt`, and its
@@ -144,8 +146,7 @@ Nothing else reaches `Dependency`. Every need is serialized on every run —
 `canonical_repository_identity` sorts needs by `json.dumps(need, sort_keys=True)`
 (`:1598-1601`) — and `tomllib` yields `datetime.date` for an unquoted date, which
 `json.dumps` refuses; the `TypeError` maps to `configuration_mismatch` and exit 2,
-emptying `ready`, `blocked` and `active`. `Dependency` is `frozen=True`, so a
-mapping value would also make it unhashable. The shape check must not *fail* the
+emptying `ready`, `blocked` and `active`. The shape check must not *fail* the
 entry: the caller returns `None` for the whole entry on any need finding (`:869`)
 and `blocks_dependencies` covers only `invalid_entry` and `invalid_artifact_path`
 (`:2418-2420`), which would delete the citing entry and leave its own dependants
@@ -242,11 +243,11 @@ def test_the_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3
 
 **Depends on:** T1
 
-**Touches:** packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py, packs/core/.apm/skills/workspace-status/SKILL.md, guides/core/reference/workspace-toml-schema.md (finding-code row only), packages/agentbundle/agentbundle/_data/workspace_status_engine.py, .agents/skills/workspace-status/**, .claude/skills/workspace-status/**, tests/roster/test_dependency_scoped_completion_receipts.py
+**Touches:** packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py, packs/core/.apm/skills/workspace-status/SKILL.md, guides/core/reference/workspace-toml-schema.md (finding-code row only), docs/specs/dependency-scoped-completion-receipts/notes/finding-code-review.md, packages/agentbundle/agentbundle/_data/workspace_status_engine.py, .agents/skills/workspace-status/**, .claude/skills/workspace-status/**, tests/roster/test_dependency_scoped_completion_receipts.py
 
 **Tests:** TDD. Verifies AC4–AC11, AC14, and AC3's engine arm.
 - One fixture generator, one `keep_membership` flag, per § Construction tests.
-- AC7 additionally asserts the citing path is still in `canonical.blocked` and that both invocations exit 0.
+- AC7 additionally asserts the citing path is still in `canonical.blocked`. Exit 0 is asserted across every engine fixture as a plan-owned guard, not as part of any criterion.
 - The shipped cross-repository suite runs unchanged as AC10's positive control.
 - AC8 and AC9 use a target whose artifact exists and whose workspace membership is absent, which is the state that reaches the branch.
 - Every fixture carries a second, receiptless local need, which AC14 reads.
@@ -263,7 +264,7 @@ def test_a_completed_receipt_satisfies_a_pruned_dependency(tmp_path):  # AC4
 **Approach:**
 - Carry the receipt through the parser as validated strings or a malformed sentinel, per § *Behavior & rules*; decide grammar, vocabulary and the sentinel at satisfaction time.
 - Add `invalid_completion_receipt` to the engine's finding table with its next action, and document it in **both** required homes in this task — `workspace-status/SKILL.md` § 1a and `guides/core/reference/workspace-toml-schema.md`. `tests/roster/test_workspace_status_projection.py:488-495` iterates both over the same code set, so splitting them across tasks leaves this task red.
-- Record the *Ask first* review `workspace-routing-invariants` requires for a new finding code, and note that its § Canonical findings table does not enumerate this code.
+- Record the *Ask first* review `workspace-routing-invariants` requires for a new finding code in `notes/finding-code-review.md`, together with the note that its § Canonical findings table does not enumerate this code and that its directory is frozen (`plan.md` is `Done`), so the omission is deliberate rather than missed.
 - Update `_WORKSPACE_ENTRY_SCHEMA_DIGEST` (`:1445`) to the digest of the schema T1 changed. It is the adopter-install fallback used when the contract file is absent (`:1574-1582`), currently equal to the file byte-for-byte, and nothing in-repo compares the two, so the drift would be silent.
 - Run `FORCE=1 make build-self` in this task to resync the `_data/`, `.agents/` and `.claude/` copies.
 
@@ -292,26 +293,28 @@ def test_a_receipt_field_outside_its_grammar_is_refused() -> None:  # AC12
 - Rewrite the one call that constructs a receipt successfully — `:222` and its `asdict` assertion at `:231-236` — whose `delivery_id` `delivery:wave4`, `completion_event` `work-loop:gates-clean` and `evidence_ref` `evidence:current` all fail their pinned grammars. Six other `plan_completion_receipt` call sites need no change: `:237`, `:244`, `:267`, `:277` and `:799` return before construction, and `:811` already asserts `receipt-evidence-required` on an empty `delivery_id`, though its `completion_event` `event:shipped` becomes a second reason.
 - Run `FORCE=1 make build-self` in this task to resync the `_data/`, `.agents/` and `.claude/` copies.
 
-**Done when:** AC12 is green, AC3 is green in all three homes, and `pytest packs/core/tests/skills/close-work/ -q` is green.
+**Done when:** AC12 is green, AC3 is green in all three homes, `pytest packs/core/tests/skills/close-work/ -q` is green, and the two producer mutation rows — *The producer's grammars equal the lifecycle record's* and *The producer applies the same four rules* — have their observed red recorded in `notes/mutation-proofs.md`.
 
 ### T4: Ship the adopter reference and the release surface
 
 **Depends on:** T3
 
-**Touches:** guides/core/reference/workspace-toml-schema.md, guides/core/how-to/close-and-disposition-work.md, packs/core/.apm/skills/close-work/SKILL.md, packs/core/pack.toml, docs/product/changelog.md
+**Touches:** guides/core/reference/workspace-toml-schema.md, guides/core/how-to/close-and-disposition-work.md, packs/core/.apm/skills/close-work/SKILL.md, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md, web/src/lib/now-highlights.generated.json, docs/specs/README.md
 
 **Tests:** Goal-based check. Verifies AC13.
 - `no stub (goal-based check)`
-- Literal-presence greps for the receipt example, the compaction sentence, the how-to's vocabulary sentence, the three `close-work` statements, the absence of "a short outcome statement" from `close-work/SKILL.md`, and the changelog's routing-identity sentence.
+- Literal-presence greps over **whitespace-normalized** text for the receipt example, the compaction sentence, the how-to's vocabulary sentence, the three `close-work` statements, and the changelog's routing-identity sentence — plus the absence of "a short outcome statement" from `close-work/SKILL.md`. Normalization is load-bearing for the absence check: that sentence wraps mid-phrase in the source, so a raw grep reports it absent before any edit and the check passes on the unchanged file.
 - `python3 tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guide-titles.py`.
 
 **Approach:**
+- Decide and state the `Highlights` disposition for this entry. It publishes a new `workspace.toml` field and a new finding code, so `packs/AGENTS.local.md` obliges one; when a `### Highlights` block is written, regenerate `web/src/lib/now-highlights.generated.json` in this task, because `tools/test_build_site_routing.py` fails `make test` on a stale projection and no other task touches it. A `none` verdict is recorded with its reason rather than skipped.
+- Move the `docs/specs/README.md` row from `Approved` to `Shipped` at ship time.
 - Document the receipt in `workspace-toml-schema.md` § *Dependencies* beside the cross-repository block, and correct its § *Compaction* so a receipt-covered `needs` edge no longer blocks entry removal. The finding-code row landed in T2.
 - Replace `close-and-disposition-work.md`'s "a short outcome statement" with the closed vocabulary; it currently reproduces the contract ADR-0103 supersedes.
 - Update `close-work/SKILL.md`'s receipt paragraph. The engine's stale cross-repo deferral slug is **not** renamed here: that comment describes the still-open cross-repository cooled deferral, retagging it with this delivery's closing slug would be stale on arrival, and the same spelling survives inside a frozen spec directory. It is recorded in `notes/follow-ons.md` instead.
-- Bump `packs/core/pack.toml`, re-deriving from `origin/main` at that moment, and add the dated `[core]` changelog entry topmost among `[core]` headings. The entry names the receipt shape, the tightened producer validation, and that this release moves every workspace's routing identity so an in-flight legacy migration needs a fresh confirmation.
+- Bump the core version in **both** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`, re-deriving from `origin/main` at that moment. The two must agree: `packs/AGENTS.md` requires it and the deep catalogue lint fails the build on a mismatch, which is why the last core release commit moved both files. Then add the dated `[core]` changelog entry topmost among `[core]` headings. The entry names the receipt shape, the tightened producer validation, and that this release moves every workspace's routing identity so an in-flight legacy migration needs a fresh confirmation.
 
-**Done when:** AC13 is green, `python3 tools/validate_guides.py` and `python3 tools/check-guide-index.py` pass, and `make ci` is green.
+**Done when:** AC13 is green, `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, the `docs/specs/README.md` row reads `Shipped`, `python3 tools/validate_guides.py` and `python3 tools/check-guide-index.py` pass, and `make ci` is green.
 
 ## Mutation proofs
 
