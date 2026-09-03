@@ -216,6 +216,32 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 9,
+      "prompt": "Show workspace status and explain why the dependant cannot start.",
+      "expected_output": "The agent invokes the workspace-status backend and reports its invalid_completion_receipt finding for docs/specs/pruned-dependency/spec.md. It includes the backend-provided next action: replace it with a valid reviewed completion receipt for that dependency. The agent does not parse the receipt or re-derive the verdict independently.",
+      "assertions": [
+        "Invokes the backend rather than independently parsing the receipt",
+        "Surfaces invalid_completion_receipt for the dependency target",
+        "Reports the backend-provided safe next action",
+        "Does not re-derive or replace the backend verdict"
+      ],
+      "files": [
+        "evals/files/invalid-completion-receipt/workspace.toml",
+        "evals/files/invalid-completion-receipt/docs/specs/dependant/spec.md",
+        "evals/files/invalid-completion-receipt/docs/specs/dependant/plan.md",
+        "evals/files/invalid-completion-receipt/docs/specs/receiptless-dependency/spec.md"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "invalid_completion_receipt",
+          "docs/specs/pruned-dependency/spec.md",
+          "Replace it with a valid reviewed completion receipt for that dependency."
+        ],
+        "output_excludes": ["Traceback", "workspace-status error:"]
+      }
     }
   ]
 }

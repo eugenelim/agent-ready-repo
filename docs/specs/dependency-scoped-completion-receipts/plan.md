@@ -1,0 +1,504 @@
+# Plan: Dependency-scoped completion receipts
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** RFC-0096 §6/§7 and [`docs/CONVENTIONS.md`](../../CONVENTIONS.md) § 4 *Contracts* govern the published shape. The cross-repository receipt is the analogous production implementation: `$defs/crossRepoNeed` in `contracts/jsonschema/workspace-entry.schema.json`, validated by `_validated_receipt_match` and `_cross_repo_receipt_satisfied` in `workspace_status_engine.py`, exercised by `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py` and `tests/roster/test_workspace_status_projection.py`. Named deviation: that analogue emits `invalid_receipt`, which this delivery must not reuse (ADR-0103 records why it cannot be broadened).
+
+> **Plan contract:** this is the implementation strategy. Unlike the spec, this
+> document is allowed to change as you learn — while its Status is `Drafting`
+> or `Executing`. When it changes substantially (a different approach, not just
+> a re-ordering), note why in the changelog at the bottom. Once it is `Done`
+> and the spec is `Shipped`, the directory freezes as a unit.
+
+## Approach
+
+Registration first so the work can dispatch, then four layers, each leaving the
+repository working: the published shape, the consumer that reads it, the
+producer that must not emit what the consumer would refuse, then the records.
+
+The consumer lands after the schema because the schema is what an adopter writes
+by hand and what the engine's validator must agree with. The producer lands
+after the consumer because tightening `plan_completion_receipt` rewrites a
+shipped Wave 4 fixture, and doing that before the consumer exists would leave a
+window where the fixture asserts a grammar nothing reads.
+
+## Constraints
+
+- `plan.md` is hash-pinned once `loop-cohort approve-plan` persists it. No task
+  may require writing to this file afterwards. Observed mutation results go to
+  [`notes/mutation-proofs.md`](notes/mutation-proofs.md), which is not pinned.
+- Three projection homes, not two. `packs/core/.apm/` is the source of truth;
+  `.agents/` and `.claude/` are ordinary projections; and
+  `packages/agentbundle/agentbundle/_data/` holds packaged runtime *pairs* for
+  both edited scripts, synced only on `make build-self`'s real-write path
+  (`self_host.py:88-115`). The resync therefore runs in the same task as each
+  runtime edit, not once at the end — otherwise
+  `tests/roster/test_workspace_status_projection.py` fails on drift and the
+  layer does not leave the repository working. `run_self_host` refuses a dirty
+  tree (`self_host.py:1300-1303`) and the bare target passes `--write` without
+  `--force`, so the command is `FORCE=1 make build-self`. It rewrites the
+  `.agents/` and `.claude/` copies too, which each task's `Touches:` names.
+- Those `_data/` pairs sit under the curation guard's `ENGINE_PREFIX` with
+  carve-outs only for `build/recipes/` and `/tests/` (`:82-83`), so every commit
+  touching either runtime carries `Engine-Change-RFC: 0096`.
+- `docs/specs/close-work-extraction-and-immediate-disposition/` is frozen
+  (`plan.md` `Done`, `spec.md` `Shipped`). No task edits it. Its quoted fixture
+  values are history, and the running fixture lives only in
+  `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`.
+- Re-derive the next core version from `origin/main:packs/core/pack.toml`
+  immediately before the commit; a peer worktree may have bumped it meanwhile.
+- Two skills change non-cosmetically, so `packs/AGENTS.md`'s "a non-cosmetic pack
+  update also updates that pack's eval harness" applies twice. The obligation is
+  split by the task that changes the measured contract: T2 owns
+  `workspace-status`, T4 owns `close-work`. No gate enforces the rule and no
+  count floor or id-shape check constrains either `evals.json`, so the addition
+  is additive and its only proof is each task's `Done when:`. The harnesses
+  project into `.agents/` and `.claude/` — both already inside those tasks'
+  `Touches:` globs and their `FORCE=1 make build-self` — and not into
+  `packages/agentbundle/agentbundle/_data/`, which carries runtime scripts only.
+  A disposition that cannot be written as a case is recorded in
+  [`notes/eval-coverage.md`](notes/eval-coverage.md), which is not pinned.
+
+## Construction tests
+
+New suite: `tests/roster/test_dependency_scoped_completion_receipts.py`, collected
+by `make test`'s `pytest tests/ -q` sweep. Producer assertions extend the shipped
+`packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py` rather
+than opening a second home for `plan_completion_receipt`'s contract.
+
+Five mechanisms the criteria do not give away:
+
+- **AC3's comparison values are read, not written, in all three homes.** The test
+  opens `contracts/jsonschema/delivery-lifecycle-record.schema.json`, reads the
+  three named JSON paths, and compares each against the published schema, the
+  engine's validator constants, and the producer's. A literal copied into the
+  test would pass while the homes disagreed.
+- **AC4 and AC5 share one fixture generator with one variable.** The generator
+  builds a workspace whose citing entry is `Approved` with an `Approved` sibling
+  plan — so its only possible refusal is its dependency — and takes a single
+  `keep_membership` flag; probe A in [`notes/probes.md`](notes/probes.md) owns
+  why that flag alone is the discriminator. Writing the two fixtures
+  independently is how a pair silently stops discriminating.
+- **AC7's entry-survival clause reads `canonical.blocked`.** Probe B in
+  [`notes/probes.md`](notes/probes.md) measured the discrimination: a
+  satisfaction-time dependency finding leaves the citing path in
+  `canonical.blocked`, while a parse-time finding removes it from every
+  collection and reports `invalid_entry` against the citing path instead.
+- **AC7's non-string fixture is an unquoted TOML date.** `tomllib` yields
+  `datetime.date` and `json.dumps` refuses it, so without the parser's value-type
+  check the value reaches `Dependency`, the run exits 2 and emits no finding at
+  all — so AC7's `canonical.blocked` clause is what kills that mutant, the citing
+  path being absent from every collection. The suite also asserts exit 0 on every
+  engine fixture as a plan-owned guard; no criterion states it.
+- **AC10's negative clause rests on a shipped positive oracle.**
+  `tests/roster/test_status_projection_and_context_exclusion.py:1007-1009` already
+  asserts that a cross-repository fixture reports `invalid_receipt`, and its
+  comment records that the code's presence is what proves the read path was
+  entered. That suite stays green unchanged, so no new baseline is captured — one
+  captured after the change could not fail.
+
+## Durable-output map
+
+| Spec durable output | Task | Evidence |
+| --- | --- | --- |
+| Interface contract (`workspace-entry.schema.json`) | T1 | AC1, AC2 green and AC3's schema arm green |
+| Maintainer procedure — the new code in both required homes | T2 | AC11 green |
+| User documentation (`workspace-toml-schema.md`, `close-and-disposition-work.md`) | T4 | AC13 green |
+| Maintainer procedure (`close-work/SKILL.md`) | T4 | AC13 green |
+| Decision rationale (ADR-0103) | T0 | Accepted and indexed |
+| Release history (`docs/product/changelog.md`) | T4 | Dated `[core]` entry at the bumped version, carrying all three claims the spec's closeout condition names |
+
+## Design (LLD)
+
+### Design decisions
+
+The receipt is an optional object on `$defs/localNeed` rather than a third need
+variant, so `Dependency.type` keeps exactly two values and no engine branch on
+`local` versus `cross-repo` is disturbed.
+
+A malformed completion receipt gets its own finding code,
+`invalid_completion_receipt`; ADR-0103 records why `invalid_receipt` cannot be
+broadened. Adding a code is an *Ask first* boundary in
+`workspace-routing-invariants`, so T2 records that review rather than assuming
+it.
+
+### Data & schema
+
+`receipt` is an object with `additionalProperties: false` and all four
+properties required when present. The three identifier grammars appear as values
+rather than a `$ref`, because a cross-file `$ref` would couple two independently
+versioned `contract_version` documents; AC3's three-way equality read is what
+keeps the copies honest.
+
+`localNeed` also gains a kind guard: a need whose `kind` is `defect` may not
+carry a `receipt`. `localNeed`'s `additionalProperties: false` cannot express
+that on its own — the constraint is between two sibling properties, not about
+unknown keys — so it needs a conditional subschema, and the accept/reject table
+is what pins it. The guard exists because `defect` is the one admitted kind whose
+satisfaction arm returns before the branch that reads a receipt; § *Behavior &
+rules* below records where. Publishing a field the consumer ignores on one enum
+value is the failure this refuses.
+
+### Interfaces & contracts
+
+`contracts/jsonschema/workspace-entry.schema.json` gains the `receipt` object and
+an `x-spec` entry naming this spec directory.
+
+### Behavior & rules
+
+Validation splits by kind, and the split is what keeps a bad receipt scoped to
+one dependency.
+
+**The local need's field check becomes required-plus-optional.**
+`_LOCAL_NEED_FIELDS` (`:79`) is compared with `set(raw) != _LOCAL_NEED_FIELDS`
+(`:761`) — exact equality — so adding `"receipt"` to that frozenset would make
+the receipt *mandatory on every local need* and reject every entry in the
+current `workspace.toml`. The check splits into a required set and an allowed
+set.
+
+**The parser constrains shape only.** It admits a `receipt` when its key set is
+exactly the four names and every value is a `str`, storing validated strings;
+anything else becomes a malformed-receipt sentinel. The sentinel must itself be
+JSON-serializable — a bare string constant, not an object — because
+`dataclasses.asdict` deep-copies a non-dataclass value through untouched, and an
+unserializable one reproduces the exit-2 failure this check exists to prevent.
+Nothing else reaches `Dependency`. Every need is serialized on every run —
+`canonical_repository_identity` sorts needs by `json.dumps(need, sort_keys=True)`
+(`:1598-1601`) — and `tomllib` yields `datetime.date` for an unquoted date, which
+`json.dumps` refuses; the `TypeError` maps to `configuration_mismatch` and exit 2,
+emptying `ready`, `blocked` and `active`. The shape check must not *fail* the
+entry: the caller returns `None` for the whole entry on any need finding (`:869`)
+and `blocks_dependencies` covers only `invalid_entry` and `invalid_artifact_path`
+(`:2418-2420`), which would delete the citing entry and leave its own dependants
+resolving from the file.
+
+**Satisfaction time decides grammar, vocabulary and the sentinel.** The branch
+goes *inside* the existing safety-finding guard, not after it:
+
+```
+    safety_finding = _dependency_metadata_safety_finding(...)     # :2686-2688
+    if safety_finding is not None:                                # :2689
+        if (not matches and dep.receipt is not None
+                and safety_finding.code == "missing_dependency"):
+            return _completion_receipt_satisfied(dep)
+        return False, safety_finding                              # :2690
+```
+
+Placing it after `:2690` would be unreachable for the case it serves: that line
+returns whenever the artifact is absent, which is AC4's fixture. It must also
+stay out of `_dependency_metadata_safety_finding`, which the `defect`-kind path
+at `:2658` shares. That sharing is why `defect` is refused in the schema rather
+than handled here: the `defect` arm (`:2641-2662`) calls the same helper and
+returns its finding at `:2659`, so a `defect` need with no `backlog.closed`
+membership and an absent artifact reports `missing_dependency` — AC4's exact
+refusal — without ever reaching `:2686`. Adding the branch to that arm too was
+the alternative the owner declined on 2026-09-02; it would widen the delivery to
+a second call site, and `close-work`'s producer is scoped to deliveries rather
+than backlog defects. The `structurally_blocked_paths` guard at `:2604` and the
+cooled return at `:2673` both stay ahead of it, which is what AC5 pins. Keeping
+it *inside* the guard is what AC9 and AC10 pin: a present artifact makes
+`safety_finding` `None`, so the body is never entered.
+
+### Failure, edge cases & resilience
+
+A receipt whose target artifact still exists is never validated and never read:
+closeout writes the receipt and a later wave prunes the file, so both existing at
+once is the ordinary transitional state. Gating on `missing_dependency` gives
+that for free — the branch is not reached. The accepted consequence, which AC9
+records: a hand-authored receipt is unchecked in exactly the window where it
+could still be repaired cheaply. The producer guard (AC12) covers every receipt
+`close-work` plans, and no repository gate validates the real `workspace.toml`
+against its schema, so a hand-written one is caught at prune time or not at all.
+
+### Dependencies & integration
+
+`evidence_ref` is dual-purpose in the producer. `_mutation_binding`
+(`close_work.py:474-521`) folds it into the equality check against the issued
+authority fact *before* the `try` block at `:724`, so an AC12 fixture that
+supplies a malformed `evidence_ref` while leaving `_authority`'s issued fact at
+`evidence:current` returns `authorization-required`, not
+`receipt-evidence-required`. The two must be re-issued in lockstep. That helper
+is shared across 20 call sites in the close-work suite, so T3 adds a
+receipt-scoped authority helper rather than changing the shared one.
+
+## Tasks
+
+### T0: Register the work and record the decision
+
+**Depends on:** none
+
+**Touches:** workspace.toml, docs/specs/README.md, docs/adr/
+
+**Tests:** Goal-based check. No AC — this is the dispatch precondition.
+- `no stub (goal-based check)`
+- `workspace-status status` reports this spec in `canonical.ready`.
+- `python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py --root .` passes.
+
+**Approach:** already discharged on this branch, before approval, because nothing dispatches from an unregistered spec. The queue entry is in `workspace.toml` under `["ini-002".work].queue`, the canonical `[backlog].open` entry names `notes/follow-ons.md` and left the legacy-shape count at 156 against a 160 ceiling, the index row is in `docs/specs/README.md`, and ADR-0103 is `Accepted` and indexed. Its `Related:` field was reduced to the RFC-0096 citation on 2026-09-02: `docs/CONVENTIONS.md:434-436` and `:159-161` make the spec end deliberately one-way, and the two feature-spec links it carried were the wrong direction. The owner authorized the edit on the measured ground that the record is absent from `origin/main`, so the post-acceptance immutability rule at `:263-266` protects no published reader; the AC17 evidence survives in § Context as `close_work.py:688` and the schema path. Nothing remains; the task is recorded so the dependency order reads correctly.
+
+**Done when:** `canonical.ready` contains `docs/specs/dependency-scoped-completion-receipts/spec.md`.
+
+### T1: Publish the receipt shape and pin its grammars
+
+**Depends on:** T0
+
+**Touches:** contracts/jsonschema/workspace-entry.schema.json, tests/roster/test_workspace_entry_contract.py, tests/roster/test_dependency_scoped_completion_receipts.py, docs/specs/dependency-scoped-completion-receipts/notes/mutation-proofs.md
+
+**Tests:** TDD. Verifies AC1, AC2, AC3.
+- Accept/reject table over the schema: need without `receipt`; four-key `receipt`; each single-key omission; a fifth key; each vocabulary value; four rejected `outcome` strings and the empty string; a receipt-bearing need at each of the five admitted kinds; a receipt-bearing `defect` need (rejected) and a receiptless `defect` need (accepted).
+- Three-way equality read against the lifecycle record's three JSON paths. The engine and producer arms are expected red until T2 and T3.
+
+```python
+# tests/roster/test_dependency_scoped_completion_receipts.py  (stub: true)
+def test_the_receipt_grammars_equal_the_lifecycle_records() -> None:  # AC3
+    """The published schema's three receipt grammars equal the lifecycle record's."""
+    lifecycle = _load(LIFECYCLE_SCHEMA)
+    receipt = _load(WORKSPACE_ENTRY_SCHEMA)["$defs"]["localNeed"]["properties"]["receipt"]["properties"]
+    assert receipt["delivery_id"]["pattern"] == lifecycle["properties"]["delivery_id"]["pattern"]
+    assert receipt["completion_event"]["enum"] == lifecycle["properties"]["completion_event"]["enum"]
+    assert receipt["evidence_ref"]["pattern"] == lifecycle["$defs"]["evidenceRef"]["pattern"]
+```
+
+**Approach:**
+- Add `receipt` to `$defs/localNeed` with the `defect` kind guard per § *Data & schema*; add this spec directory to `x-spec`.
+- Extend the exact-equality assertion at `tests/roster/test_workspace_entry_contract.py:164-167` that pins the `x-spec` list — it is equality, not superset, so it reddens otherwise.
+- Touch no runtime here. `_WORKSPACE_ENTRY_SCHEMA_DIGEST` must also follow the schema, but it lives in `workspace_status_engine.py` and its three projections, so editing it in T1 would leave the packaged-runtime byte-identity gate red in a task that runs no resync. It moves to T2.
+
+**Done when:** AC1–AC3's schema arm is green including both `defect` cases, `pytest tests/roster/test_workspace_entry_contract.py -q` is green, and the *schema grammars equal the lifecycle record's* mutation has its observed red recorded in `notes/mutation-proofs.md`.
+
+### T2: Read the receipt at satisfaction time
+
+**Depends on:** T1
+
+**Touches:** packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py, packs/core/.apm/skills/workspace-status/SKILL.md, packs/core/.apm/skills/workspace-status/evals/evals.json, packs/core/.apm/skills/workspace-status/evals/files/**, docs/specs/dependency-scoped-completion-receipts/notes/eval-coverage.md, guides/core/reference/workspace-toml-schema.md, docs/specs/dependency-scoped-completion-receipts/notes/finding-code-review.md, docs/specs/dependency-scoped-completion-receipts/notes/mutation-proofs.md, packages/agentbundle/agentbundle/_data/workspace_status_engine.py, .agents/skills/workspace-status/**, .claude/skills/workspace-status/**, tests/roster/test_dependency_scoped_completion_receipts.py — in `workspace-toml-schema.md` this task changes the finding-code row only
+
+**Tests:** Two modes, matching the spec's § Testing Strategy. TDD verifies AC4–AC10, AC14 and AC3's engine arm. Goal-based check verifies AC11.
+- `no stub (goal-based check)` for AC11: its artifact is the shipped projection gate `tests/roster/test_workspace_status_projection.py:488-495`, which iterates the engine's finding table over both required homes. Adding the code and its two rows is what turns it green; a new test asserting prose meaning would assert nothing. AC13 is T4's arm of the same mode.
+- One fixture generator, one `keep_membership` flag, per § Construction tests.
+- AC7 additionally asserts the citing path is still in `canonical.blocked`. Exit 0 is asserted across every engine fixture as a plan-owned guard, not as part of any criterion.
+- The shipped cross-repository suite runs unchanged as AC10's positive control.
+- AC8 and AC9 use a target whose artifact exists and whose workspace membership is absent, which is the state that reaches the branch.
+- Every fixture carries a second, receiptless local need whose target is an existing terminal artifact, which AC14 reads. It resolves in every fixture, so AC14 asserts only the absence of a finding for it.
+
+```python
+# tests/roster/test_dependency_scoped_completion_receipts.py  (stub: true)
+def test_a_completed_receipt_satisfies_a_pruned_dependency(tmp_path):  # AC4
+    """Entry gone and file gone: a valid completed receipt resolves the edge."""
+    result = _run_status(_fixture(tmp_path, keep_membership=False, outcome="completed"))
+    assert DEPENDANT in {entry["path"] for entry in result["canonical"]["ready"]}
+    assert _codes_for(result, DEPENDANT) == set()
+```
+
+**Approach:**
+- Carry the receipt through the parser as validated strings or a malformed sentinel, per § *Behavior & rules*; decide grammar, vocabulary and the sentinel at satisfaction time.
+- Add `invalid_completion_receipt` to the engine's finding table with its next action, and document it in **both** required homes in this task — `workspace-status/SKILL.md` § 1a and `guides/core/reference/workspace-toml-schema.md`. `tests/roster/test_workspace_status_projection.py:488-495` iterates both over the same code set, so splitting them across tasks leaves this task red.
+- Record the *Ask first* review `workspace-routing-invariants` requires for a new finding code in `notes/finding-code-review.md`, together with the note that its § Canonical findings table does not enumerate this code and that its directory is frozen (`plan.md` is `Done`), so the omission is deliberate rather than missed.
+- Update `_WORKSPACE_ENTRY_SCHEMA_DIGEST` (`:1445`) to the digest of the schema T1 changed. It is the adopter-install fallback used when the contract file is absent (`:1574-1582`), currently equal to the file byte-for-byte, and nothing in-repo compares the two, so the drift would be silent.
+- Add a `workspace-status` eval case for the new refusal, which
+  `packs/AGENTS.md`'s non-cosmetic-pack-update rule obliges. The harness takes a
+  per-case fixture directory (`evals/files/<name>/workspace.toml`, the shape
+  cases 3–5 already use), so the case is a fixture whose citing entry carries a
+  malformed receipt plus the assertions that the agent surfaces
+  `invalid_completion_receipt` with its next action and does not re-derive the
+  verdict itself. No count floor or id-shape gate constrains the file, so the
+  addition is additive. If the case cannot be written, record the measured
+  reason in [`notes/eval-coverage.md`](notes/eval-coverage.md) rather than
+  dropping the obligation.
+- Run `FORCE=1 make build-self` in this task to resync the `_data/`, `.agents/` and `.claude/` copies.
+
+**Done when:** AC4–AC11 and AC14 are green, AC3's engine arm is green, `_WORKSPACE_ENTRY_SCHEMA_DIGEST` equals the sha256 of the shipped schema (asserted in the new suite), `pytest tests/roster/test_workspace_status_projection.py -q` is green, `packs/core/.apm/skills/workspace-status/evals/evals.json` carries a case for `invalid_completion_receipt` (or `notes/eval-coverage.md` records the measured reason it cannot), and every mutation row naming AC3's engine arm or AC4–AC10 or AC14 has its observed red recorded in `notes/mutation-proofs.md`.
+
+### T3: Make the producer refuse what the consumer would refuse
+
+**Depends on:** T2
+
+**Touches:** docs/specs/dependency-scoped-completion-receipts/notes/mutation-proofs.md, packs/core/.apm/skills/close-work/scripts/close_work.py, packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py, packages/agentbundle/agentbundle/_data/close_work.py, .agents/skills/close-work/**, .claude/skills/close-work/**
+
+**Tests:** TDD. Verifies AC12 and AC3's producer arm.
+- Four refusal cases and one acceptance case, each through a receipt-scoped authority helper whose issued `evidence_ref` matches the value under test.
+
+```python
+# packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py  (stub: true)
+def test_a_receipt_field_outside_its_grammar_is_refused() -> None:  # AC12
+    """An authorized call still refuses a receipt whose field breaks its rule."""
+    close_work = _close_work()
+    result = _plan_receipt(close_work, completion_event="work-loop:gates-clean")
+    assert result.code == "receipt-evidence-required"
+```
+
+**Approach:**
+- Validate the four fields inside the existing `try`/`except ValueError` block so the refusal code is unchanged, and add the receipt-scoped authority helper described in § Dependencies & integration.
+- Rewrite the one call that constructs a receipt successfully — `:222` and its `asdict` assertion at `:231-236` — whose `delivery_id` `delivery:wave4`, `completion_event` `work-loop:gates-clean` and `evidence_ref` `evidence:current` all fail their pinned grammars. Six other `plan_completion_receipt` call sites need no change: `:237`, `:244`, `:267`, `:277` and `:799` return before construction, and `:811` already asserts `receipt-evidence-required` on an empty `delivery_id`, though its `completion_event` `event:shipped` becomes a second reason.
+- Run `FORCE=1 make build-self` in this task to resync the `_data/`, `.agents/` and `.claude/` copies.
+
+**Done when:** AC12 is green, AC3 is green in all three homes, `pytest packs/core/tests/skills/close-work/ -q` is green, and the two producer mutation rows — *The producer's grammars equal the lifecycle record's* and *The producer applies the same four rules* — have their observed red recorded in `notes/mutation-proofs.md`.
+
+### T4: Ship the adopter reference and the release surface
+
+**Depends on:** T3
+
+**Touches:** guides/core/reference/workspace-toml-schema.md, guides/core/how-to/close-and-disposition-work.md, packs/core/.apm/skills/close-work/SKILL.md, packs/core/.apm/skills/close-work/evals/evals.json, docs/specs/dependency-scoped-completion-receipts/notes/eval-coverage.md, .agents/skills/close-work/**, .claude/skills/close-work/**, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.md, web/src/lib/now-highlights.generated.json, docs/specs/README.md
+
+**Tests:** Goal-based check. Verifies AC13.
+- `no stub (goal-based check)`
+- Literal-presence greps over **whitespace-normalized** text for the receipt example, the `defect`-exclusion sentence, the compaction sentence, the how-to's vocabulary sentence, the three `close-work` statements, and **all three** of the changelog entry's required claims — the receipt shape, the tightened producer validation, and the routing-identity sentence — plus the absence of "a short outcome statement" from **both** `close-work/SKILL.md` and `close-and-disposition-work.md`. Three claims, not one: `spec.md`'s Release-history closeout condition names all three, and a check that reads only the routing-identity sentence leaves the other two asserted by nothing. Without the absence check, the how-to's presence grep passes while the sentence ADR-0103 supersedes survives beside its replacement. Normalization is load-bearing for the absence check: that sentence wraps mid-phrase in the source, so a raw grep reports it absent before any edit and the check passes on the unchanged file.
+- `python3 tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guide-titles.py`.
+
+**Approach:**
+- Decide and state the `Highlights` disposition for this entry. It publishes a new `workspace.toml` field and a new finding code, so `packs/AGENTS.local.md` obliges one; when a `### Highlights` block is written, regenerate `web/src/lib/now-highlights.generated.json` in this task, because `tools/test_build_site_routing.py` fails `make test` on a stale projection and no other task touches it. A `none` verdict is recorded with its reason rather than skipped.
+- Move the `docs/specs/README.md` row from `Approved` to `Shipped` at ship time.
+- Run `FORCE=1 make build-self` after the `close-work/SKILL.md` edit, on the same terms as T2 and T3. That file has `.agents/` and `.claude/` projections, and `make ci` runs the self-host drift check, which fails on a stale one — T3's resync predates this edit.
+- Document the receipt in `workspace-toml-schema.md` § *Dependencies* beside the cross-repository block, including that a `defect`-kind need may not carry one, and correct its § *Compaction* so a receipt-covered `needs` edge no longer blocks entry removal. The reference is where an adopter learns the kind constraint: no repository gate validates the real `workspace.toml` against its schema, so the published rejection is never enforced on a hand-written file. The finding-code row landed in T2.
+- Replace `close-and-disposition-work.md`'s "a short outcome statement" with the closed vocabulary; it currently reproduces the contract ADR-0103 supersedes.
+- Update `close-work/SKILL.md`'s receipt paragraph. The engine's stale cross-repo deferral slug is **not** renamed here: that comment describes the still-open cross-repository cooled deferral, retagging it with this delivery's closing slug would be stale on arrival, and the same spelling survives inside a frozen spec directory. It is recorded in `notes/follow-ons.md` instead.
+- Move `close-work`'s eval harness with that paragraph, which
+  `packs/AGENTS.md`'s non-cosmetic-pack-update rule obliges. The paragraph is the
+  contract an eval measures, and `evals/eval_queries.json` already activates on
+  "Reconcile the completion receipt and live dependencies", so the harness has a
+  receipt surface with no case behind it. The obligation lands here rather than
+  in T3 because this task is where the stated contract changes and it runs after
+  the producer is tightened, so one case can state the whole contract: the closed
+  vocabulary and the citing local need as the carrier. If the case cannot be
+  written, record the measured reason in
+  [`notes/eval-coverage.md`](notes/eval-coverage.md) rather than dropping the
+  obligation.
+- Bump the core version in **both** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`, re-deriving from `origin/main` at that moment. The two must agree: `packs/AGENTS.md` requires it and the deep catalogue lint fails the build on a mismatch, which is why the last core release commit moved both files. Then add the dated `[core]` changelog entry topmost among `[core]` headings. The entry names the receipt shape, the tightened producer validation, and that this release moves every workspace's routing identity so an in-flight legacy migration needs a fresh confirmation.
+
+**Done when:** AC13 is green, the `[core]` entry's three literal-presence checks — the receipt shape, the tightened producer validation, and the routing-identity sentence — all pass, `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, the `docs/specs/README.md` row reads `Shipped`, `packs/core/.apm/skills/close-work/evals/evals.json` carries a case for the receipt's closed vocabulary and its carrier (or `notes/eval-coverage.md` records the measured reason it cannot), `python3 tools/validate_guides.py` and `python3 tools/check-guide-index.py` pass, and `make ci` is green.
+
+## Mutation proofs
+
+One row per **guard**, not per criterion: several criteria share a guard, and a
+row naming a mutation no guard owns cannot kill. Each row states a single edit
+and the observation that edit actually produces — four rounds of review found
+predicted observations that the mutant does not emit, so a row whose observation
+was reasoned rather than derived from the surrounding control flow is a defect.
+
+AC1, AC2, AC11 and AC13 carry no row. AC1 and AC2 are schema verdicts whose
+subject *is* the guard, and AC11 and AC13 are documentation checks whose failure
+mode is omission rather than logic.
+
+| Guard | Criteria it holds up | Mutation (one edit) | Observation the mutant produces |
+| --- | --- | --- | --- |
+| The schema's grammars equal the lifecycle record's | AC3 | Change one character of the receipt's `evidence_ref` pattern in `workspace-entry.schema.json` | The equality read fails on the schema arm |
+| The engine's grammars equal the lifecycle record's | AC3 | Drop one value from the engine validator's `completion_event` set | The equality read fails on the engine arm |
+| The producer's grammars equal the lifecycle record's | AC3 | Loosen the producer's `delivery_id` pattern to `.*` | The equality read fails on the producer arm |
+| The local-need field check stays required-plus-optional | AC14 | Add `"receipt"` to `_LOCAL_NEED_FIELDS` instead of splitting required from allowed | `set(raw) != _LOCAL_NEED_FIELDS` becomes false for a receipt-bearing need and true for AC14's receiptless one, so AC14's entry reports `invalid_entry` and vanishes from all three collections |
+| The satisfaction branch exists | AC4 | Delete the branch | AC4's fixture reports `missing_dependency` and leaves `canonical.ready` |
+| The branch is reached only after the ordering guards | AC5 | Hoist the receipt check to the top of `_dependency_is_satisfied`, ahead of the `structurally_blocked_paths` guard and unconditional on `matches` | AC5's fixture reports no finding instead of `unsatisfied_dependency` |
+| Only `completed` satisfies | AC6 | Treat any vocabulary value as satisfying | AC6's `abandoned` and `superseded` fixtures report no finding |
+| The grammars refuse at satisfaction time | AC7 | Remove the three grammar checks from the satisfaction branch | AC7's malformed-`evidence_ref` fixture carries `outcome = "completed"`, so it is satisfied and reports **no finding** rather than `invalid_completion_receipt` |
+| The vocabulary refuses at satisfaction time | AC7 | Remove the vocabulary check from the satisfaction branch | AC7's `outcome = "Retired"` fixture falls through to the `completed`-only rule and reports `unsatisfied_dependency` rather than `invalid_completion_receipt` |
+| The parser emits a sentinel, not a finding | AC7 | Make the parser emit a finding for a malformed receipt instead of the sentinel | AC7's citing path is absent from every canonical collection and the run reports `invalid_entry` against it |
+| The parser constrains value types | AC7 | Remove the parser's value-type check so the raw mapping reaches `Dependency` | AC7's unquoted-date fixture exits 2 with `configuration_mismatch` and emits no `invalid_completion_receipt` at all |
+| The receipt is consulted only when the artifact is absent | AC8, AC9 | Move the receipt check to the top of the local-dependency arm, before the metadata probe, gated only on `dep.receipt is not None` | AC8's non-terminal fixture reports no finding instead of `unsatisfied_dependency`, and AC9's fixture reports `invalid_completion_receipt` |
+| The two receipt paths stay distinct | AC10 | Emit `invalid_receipt` from the completion-receipt validator | AC10's assertion that the citing entry's codes exclude `invalid_receipt` fails |
+| The producer applies the same four rules | AC12 | Remove the four field checks from `plan_completion_receipt` | AC12's four invalid calls return `receipt-write-confirmation-required` |
+
+## Rollout
+
+The schema change is additive: every existing `local` need remains valid, and no
+receipt exists anywhere in the repository today, so the tightened producer
+validation cannot reject a persisted record.
+
+This release does change every workspace's routing identity, because
+`canonical_repository_identity` folds in the byte digest of
+`contracts/jsonschema/workspace-entry.schema.json` (`:1731-1734`) and that file
+changes. An in-flight legacy migration ledger therefore refuses with
+`ledger_changed` and needs a fresh human confirmation. The owner has accepted
+that consequence, and no mitigation is attempted: any change to that published
+schema has the same effect, and `$defs/localNeed` carries
+`additionalProperties: false`, so a new optional need field cannot avoid
+changing it. `.workspace-migrations.json` does not exist in this repository, so
+nothing here is in flight. It belongs in the changelog entry, not in a guard.
+
+## Risks
+
+- **The grammar copies drift.** Mitigated by AC3 reading the lifecycle record at
+  test time in all three homes.
+- **The consumer has no producer until a later wave prunes anything.** Accepted:
+  a maintainer can write a receipt by hand today, and Wave 7c's fixtures need
+  this contract to exist before they can be real rather than hypothetical.
+- **A new untrusted-input parse path.** The receipt is attacker-influenced only
+  to the extent `workspace.toml` is, but it is a new parse of unvalidated text
+  rendered into agent context. A `security-reviewer` pass on the diff is
+  warranted and is recorded here as the routing decision, with
+  `path-and-file` and `exceptional-conditions` as the boundary modules.
+
+## Changelog
+
+- 2026-09-02 — Round 10 raised a finding the adjudicator could not settle: the
+  schema admitted a `receipt` on all six `artifactKind` values while the consumer
+  would honour it on five. Measured — a `defect` need with no `backlog.closed`
+  membership takes its own arm (`workspace_status_engine.py:2641-2662`), calls
+  the same `_dependency_metadata_safety_finding`, and returns `missing_dependency`
+  at `:2659`, which is AC4's exact refusal, without reaching the branch site at
+  `:2686`. No criterion named a fixture kind, so AC4 was true for five kinds and
+  false for the sixth. The owner chose to refuse `defect` in the published shape
+  rather than ship a field the consumer ignores or widen the delivery to a second
+  call site. AC1 carries the rejection, § Boundaries carries the *Never do*,
+  § Testing Strategy fixes every engine fixture at `kind = "spec"`, and AC13 and
+  T4 carry it into the adopter reference, which is the only place a hand-written
+  `workspace.toml` can learn it. The round's other finding — that the
+  branch-deletion row predicts the wrong collection state — was refuted: "leaves
+  `canonical.ready`" is intransitive and matches probe B.
+- 2026-09-02 — Round 9 sustained one blocker: T2 declared TDD over a range that
+  swallowed AC11, which the spec assigns a goal-based check whose artifact is the
+  shipped projection gate. T2 now declares both modes, in the form T4 already
+  uses. The round's other finding — that the parser-sentinel mutation row does
+  not determine the finding code it predicts — was refuted: probe B fact 1
+  measured that *any* parse-time need finding drops the citing entry at `:869`,
+  so AC7's `canonical.blocked` presence clause kills every variant of that
+  mutant, and the code half is incidental. The executed observation goes to
+  `notes/mutation-proofs.md`, which is unpinned, so a divergence stays
+  recordable.
+- 2026-09-02 — Round 8 sustained two blockers. The pack eval-harness obligation
+  had no owner at all: `packs/AGENTS.md` requires a non-cosmetic pack update to
+  move that pack's eval harness, two skills change non-cosmetically here, and a
+  search of the whole spec directory returned zero occurrences of "eval". T2 now
+  owns `workspace-status`'s and T4 owns `close-work`'s, split by the task that
+  changes the measured contract, with `notes/eval-coverage.md` as the writable
+  destination for a disposition that cannot be a case. Separately, T4's
+  changelog verification read only the routing-identity sentence while the
+  spec's closeout condition names three claims, so two of the three were
+  asserted by nothing; the literal-presence checks and T4's `Done when:` now
+  cover all three. Three further findings were refuted on the evidence: the
+  `Engine-Change-RFC` trailer is a rail rather than a work item, `guides/AGENTS.md`
+  § *Essential commands* is a pointer rather than a per-task declaration
+  contract, and the `_LOCAL_NEED_FIELDS` mutation row is stated against the
+  alternative implementation it deliberately names. The round's one sustained
+  concern was an owner call: ADR-0103's `Related:` field cited two feature specs
+  downward, and the owner chose to remove both. T0 records the edit and the
+  measured ground for it.
+- 2026-09-02 — Initial plan.
+- 2026-09-02 — Rewritten after review round 1. Receipt validation moved from the
+  need parser to satisfaction time; a new finding code replaced broadening
+  `invalid_receipt`; `_data/` was named as a third projection home; registration
+  moved to T0.
+- 2026-09-02 — Round 4 measured, rather than reasoned about, the premises the
+  previous round asserted, and three of them were false. `Dependency` already
+  carries three optional fields defaulting to `None`, so a receiptless local need
+  already serializes six keys — the identity criterion added in round 3 was
+  unsatisfiable, and the convention it rested on would have licensed dropping
+  those three and moving every existing identity. That criterion and the whole
+  identity decision are withdrawn; § Rollout now records the identity change as
+  accepted, since `additionalProperties: false` on the need means no field
+  addition can avoid it. The non-string receipt case folded into AC7; its
+  killing observation was later restated as the `canonical.blocked` clause, the
+  exit code becoming a plan-owned guard. Criteria renumbered 15 → 13.
+- 2026-09-02 — Rebuilt § Testing Strategy, § Tasks and § Mutation proofs as one
+  unit after round 3 reported that spot patches kept leaving stale companion
+  statements. The mutation table is now one row per *guard* rather than per
+  criterion, because several criteria share a guard and a row naming a mutation
+  no guard owns cannot kill. The routing-identity decision taken this round was
+  withdrawn the next one; the `_LOCAL_NEED_FIELDS` required/optional split is
+  named; the schema-digest edit moved from T1 to T2, where the resync runs.
+- 2026-09-02 — Patched after review round 2, which reported that the round-1
+  repairs introduced more than they fixed. The repairs were kept; three of their
+  consequences were not absorbed and are now: the parser constrains the receipt's
+  shape after all, because carrying a raw TOML value onto `Dependency` lets an
+  unquoted date fail `json.dumps` and empty the whole projection; the satisfaction
+  branch moved *inside* the safety-finding guard, because after `:2690` it is
+  unreachable for the absent-artifact case it exists to serve; and AC5's mutation
+  was replaced, because the old one was skipped by the branch's own `not matches`
+  gate and so could never redden it.

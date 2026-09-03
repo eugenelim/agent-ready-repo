@@ -77,6 +77,22 @@ _SOURCE_FIELDS = frozenset(
     {"mode", "ref", "revision", "parent", "coordination", "tracker_profile"}
 )
 _LOCAL_NEED_FIELDS = frozenset({"type", "kind", "path"})
+_LOCAL_NEED_ALLOWED_FIELDS = frozenset({*_LOCAL_NEED_FIELDS, "receipt"})
+_COMPLETION_RECEIPT_FIELDS = frozenset(
+    {"delivery_id", "outcome", "completion_event", "evidence_ref"}
+)
+_MALFORMED_COMPLETION_RECEIPT = "malformed-completion-receipt"
+# Matches close-work's MAX_TEXT_LENGTH so the producer cannot write a receipt
+# this parser then refuses. Bounded here rather than at satisfaction time: an
+# unbounded value is serialized into the routing identity on every run, long
+# before any grammar is applied to it.
+_COMPLETION_RECEIPT_MAX_FIELD_LENGTH = 512
+_COMPLETION_RECEIPT_DELIVERY_ID_RE = r"^[a-z0-9][a-z0-9-]{0,127}$"
+_COMPLETION_RECEIPT_EVENTS = ("merge", "release", "acceptance")
+_COMPLETION_RECEIPT_EVIDENCE_REF_RE = (
+    r"^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$"
+)
+_COMPLETION_RECEIPT_OUTCOMES = frozenset({"completed", "abandoned", "superseded"})
 _CROSS_REPO_NEED_FIELDS = frozenset(
     {"type", "kind", "path", "containing_brief", "receipt_id", "accepted_revision"}
 )
@@ -106,6 +122,9 @@ _FINDING_NEXT_ACTIONS = {
     "dependency_cycle": "Break the cycle through an explicit plan change.",
     "invalid_receipt": (
         "Replace it with a reviewed receipt matching the pinned dependency."
+    ),
+    "invalid_completion_receipt": (
+        "Replace it with a valid reviewed completion receipt for that dependency."
     ),
     "inactive_initiative": (
         "Reactivate the initiative explicitly or move the work through governance."
@@ -163,6 +182,7 @@ class Dependency:
     containing_brief: str | None = None
     receipt_id: str | None = None
     accepted_revision: str | None = None
+    receipt: dict[str, str] | str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -758,7 +778,10 @@ def _parse_dependency(raw: object) -> tuple[Dependency | None, list[RoutingFindi
         return None, [_finding("invalid_entry", detail="need must be an object")]
     dep_type = raw.get("type")
     if dep_type == "local":
-        if set(raw) != _LOCAL_NEED_FIELDS:
+        keys = set(raw)
+        if not _LOCAL_NEED_FIELDS.issubset(keys) or not keys.issubset(
+            _LOCAL_NEED_ALLOWED_FIELDS
+        ):
             return None, [_finding("invalid_entry", detail="local need fields are invalid")]
         kind = raw.get("kind")
         path = raw.get("path")
@@ -770,7 +793,21 @@ def _parse_dependency(raw: object) -> tuple[Dependency | None, list[RoutingFindi
             return None, [_finding("invalid_artifact_path", str(path), "spec need path")]
         if kind == "brief" and not _is_canonical_local_brief_path(path):
             return None, [_finding("invalid_artifact_path", str(path), "brief need path")]
-        return Dependency(type="local", kind=kind, path=path), []
+        receipt: dict[str, str] | str | None = None
+        if "receipt" in raw:
+            raw_receipt = raw.get("receipt")
+            if (
+                not isinstance(raw_receipt, dict)
+                or set(raw_receipt) != _COMPLETION_RECEIPT_FIELDS
+                or not all(
+                    _is_bounded_text(value, _COMPLETION_RECEIPT_MAX_FIELD_LENGTH)
+                    for value in raw_receipt.values()
+                )
+            ):
+                receipt = _MALFORMED_COMPLETION_RECEIPT
+            else:
+                receipt = {field: raw_receipt[field] for field in _COMPLETION_RECEIPT_FIELDS}
+        return Dependency(type="local", kind=kind, path=path, receipt=receipt), []
     if dep_type == "cross-repo":
         if set(raw) != _CROSS_REPO_NEED_FIELDS:
             return None, [_finding("invalid_entry", detail="cross-repo need fields are invalid")]
@@ -1443,7 +1480,7 @@ _TERMINAL_STATUS_BY_KIND = {
 _CANONICAL_INITIATIVE_RE = re.compile(r"^ini-\d{3}$")
 ROUTING_CONFIGURATION_VERSION = "workspace-routing.v1"
 _WORKSPACE_ENTRY_SCHEMA_DIGEST = (
-    "3531a8f8e26bcdbf0ec69357a9f6eeb8fe8f2039e2ab2cbcfb44555976ee0b67"
+    "b825a672cc70c674ac6d9b03cd05592621ea6f0cd765f271e05ea1c7d9c7a4a8"
 )
 _NORMALIZED_INTAKE_SCHEMA_DIGEST = (
     "fcc077be35e968260c733503dcc3f773b16b8782a24ad9584ffa16a6245ceb54"
@@ -2592,6 +2629,35 @@ def _dependency_metadata_safety_finding(
     return None
 
 
+def _completion_receipt_satisfied(
+    dep: Dependency,
+) -> tuple[bool, RoutingFinding | None]:
+    """Validate an absent local dependency's receipt and decide satisfaction."""
+    receipt = dep.receipt
+    if receipt == _MALFORMED_COMPLETION_RECEIPT or not isinstance(receipt, dict):
+        return False, _finding(
+            "invalid_completion_receipt", dep.path, "completion receipt shape is invalid"
+        )
+    if (
+        re.fullmatch(_COMPLETION_RECEIPT_DELIVERY_ID_RE, receipt["delivery_id"])
+        is None
+        or receipt["completion_event"] not in _COMPLETION_RECEIPT_EVENTS
+        or re.fullmatch(
+            _COMPLETION_RECEIPT_EVIDENCE_REF_RE, receipt["evidence_ref"]
+        )
+        is None
+        or receipt["outcome"] not in _COMPLETION_RECEIPT_OUTCOMES
+    ):
+        return False, _finding(
+            "invalid_completion_receipt", dep.path, "completion receipt value is invalid"
+        )
+    if receipt["outcome"] == "completed":
+        return True, None
+    return False, _finding(
+        "unsatisfied_dependency", dep.path, "dependency delivery did not complete"
+    )
+
+
 def _dependency_is_satisfied(
     dep: Dependency,
     workspace: dict,
@@ -2687,6 +2753,12 @@ def _dependency_is_satisfied(
         dep.path, dep.kind, metadata, root
     )
     if safety_finding is not None:
+        if (
+            not matches
+            and dep.receipt is not None
+            and safety_finding.code == "missing_dependency"
+        ):
+            return _completion_receipt_satisfied(dep)
         return False, safety_finding
     if brief_scope_unknown:
         # Deliberately after the safety check: a missing, unreadable or

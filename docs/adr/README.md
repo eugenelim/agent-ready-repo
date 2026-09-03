@@ -108,6 +108,7 @@
 | 0100 | [Direct skill sources classify after resolution and normalize into canonical packs](0100-direct-skill-source-classification-and-normalized-lifecycle.md) | Accepted |
 | 0101 | [Pack tests are isolated by default, grouped only by a declared compatibility class](0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md) | Accepted |
 | 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted |
+| 0103 | [The completion receipt carries a delivery outcome, not an artifact disposition, and rides on the citing dependency edge](0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | Accepted |
 
 ## Adding a new ADR
 

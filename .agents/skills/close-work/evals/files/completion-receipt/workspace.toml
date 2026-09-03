@@ -1,0 +1,17 @@
+["ini-001"]
+name = "Completion receipt fixture"
+status = "active"
+milestone = "receipt"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/dependant/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Dependant", needs = [
+    {type = "local", kind = "spec", path = "docs/specs/pruned-dependency/spec.md", receipt = {delivery_id = "pruned-dependency-42", outcome = "completed", completion_event = "release", evidence_ref = "commit:0123456789abcdef0123456789abcdef01234567"}},
+  ]},
+]
+active = []
+shipped = []
+
+[backlog]
+open = []
+closed = []
