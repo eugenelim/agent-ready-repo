@@ -1,7 +1,7 @@
 # Plan: sequential implementer dispatch
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0061 (Frozen; defers Phase 2 and
   `pending_transition`) and `docs/CONVENTIONS.md` § Supervisor mode.
   **An owner already exists for this responsibility:**

@@ -1,6 +1,6 @@
 # Spec: sequential implementer dispatch
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
@@ -100,49 +100,49 @@ contract file, and a prose edit has no red-green cycle.
 Every criterion names a literal string in a named file. A paraphrased criterion
 over prose cannot fail, because the implementer supplies the comparison value.
 
-- [ ] **AC1:** `work-loop/SKILL.md` § EXECUTE carries a dispatch declaration
+- [x] **AC1:** `work-loop/SKILL.md` § EXECUTE carries a dispatch declaration
       containing all four literals: `implementer`, `loop-cohort schedule`,
       `once per plan task`, and `one implementer at a time`.
-- [ ] **AC2:** the `description:` frontmatter of `implementer.md` contains
+- [x] **AC2:** the `description:` frontmatter of `implementer.md` contains
       neither `supervisor mode` nor `multiple tasks declaring`. Both clauses
       restrict the agent today; removing one and leaving the other ships a
       contract that still scopes it away from the normal path.
-- [ ] **AC3:** `implementer.md` names `the primary working tree` and
+- [x] **AC3:** `implementer.md` names `the primary working tree` and
       `an already-created worktree` as the execution roots the controller
       supplies, and names no third.
-- [ ] **AC4:** `implementer.md` names one commit owner per root: the controller
+- [x] **AC4:** `implementer.md` names one commit owner per root: the controller
       for the primary working tree, the agent inside an already-created
       worktree.
-- [ ] **AC5:** `implementer.md`'s inlining clause applies to every
+- [x] **AC5:** `implementer.md`'s inlining clause applies to every
       predicate-fired craft source, not only infra-flavored work. The clause is
       scoped to one source today, so a criterion that only checks the clause
       exists is already satisfied.
-- [ ] **AC6:** `implementer.md` states that a dispatch brief missing the task
+- [x] **AC6:** `implementer.md` states that a dispatch brief missing the task
       body, the execution root, the spec path, the plan path, or the
       verification mode is refused before the first implementation write.
-- [ ] **AC7:** `work-loop/SKILL.md` states that `frontend-engineering` craft is
+- [x] **AC7:** `work-loop/SKILL.md` states that `frontend-engineering` craft is
       inlined into the dispatch brief, and what happens when that pack is
       absent. This is the craft that can actually be absent: every row of
       § "Conditional-reference routing" points at work-loop's own `references/`,
       which ship with the skill.
-- [ ] **AC8:** none of the three asserting members still carries its recorded
+- [x] **AC8:** none of the three asserting members still carries its recorded
       contradiction: `supervisor-mode.md` and
       `packs/core/seeds/docs/CONVENTIONS.md` no longer contain
       `single-agent, on every adapter`, that same seed no longer describes
       Profile A as a `single-agent work-loop`, and `implementer.md` no longer
       states that all edits happen inside `.worktrees/<task-id>/`. All are red
       today; the plan records the literal per member.
-- [ ] **AC9:** the two members whose defect is omission rather than assertion
+- [x] **AC9:** the two members whose defect is omission rather than assertion
       each carry the missing statement — the `phase1-disabled-parallel-commands`
       record in `work-loop/evals/evals.json` names `implementer`, and
       `supervisor-mode.md`'s single-agent fallback is retained with its
       no-installed-subagent condition intact. Retention is the recorded
       disposition, not one permitted option among several.
-- [ ] **AC10:** `guides/core/how-to/plan-and-execute-non-trivial-work.md`
+- [x] **AC10:** `guides/core/how-to/plan-and-execute-non-trivial-work.md`
       contains both its existing literal `Parallel fan-out (\`dispatch-decision\`,
       \`worktree\`, \`auto-parallel\`) is disabled in Phase 1` and a new sentence
       naming `implementer` dispatch.
-- [ ] **AC11:** projecting `packs/core` lands `.claude/agents/implementer.md`
+- [x] **AC11:** projecting `packs/core` lands `.claude/agents/implementer.md`
       under the `claude-code` adapter and `.codex/agents/implementer.toml` under
       the `codex` adapter. The codex artifact is a TOML transform of the source
       markdown, not a copy.

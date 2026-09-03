@@ -3,7 +3,7 @@
 - **Slug:** `universal-implementer-dispatch`
 - **Received:** 2026-09-03
 - **Owner:** Repository maintainers
-- **Status:** Ready
+- **Status:** Executing
 - **Source / provenance:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 - **Parent intent:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 
@@ -434,7 +434,7 @@ once and preserve its current statement that parallel fan-out is disabled.
 
 | Spec | Status |
 | --- | --- |
-| sequential-implementer-dispatch | Draft |
+| sequential-implementer-dispatch | Shipped |
 
 [`sequential-implementer-dispatch`](../../specs/sequential-implementer-dispatch/spec.md)
 delivers U1. The Status column is auto-derived — do not hand-edit it. U3 and U2

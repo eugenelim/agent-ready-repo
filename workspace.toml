@@ -71,17 +71,20 @@ backlog = [
 # table here is not coerced: the engine accepts only a str or a list, so a table
 # raises invalid_workspace, which then stamps every canonical entry in the file.
 executing = [
-  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
-]
-ready     = [
   # Ready 2026-09-03. Draft -> Ready after a revision-bound clean shaping review
   # (three finding rounds, then a scoped verification pass) and the owner's
   # explicit confirmation. Slice U1 was confirmed separately the same day and is
   # registered in this initiative's work.queue; the brief stays Ready until that
   # spec reaches Implementing, at which point it becomes Executing.
   {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every spec-backed plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
+  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
+ready     = []
 draft     = [
+  # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:
+  # eight structural facts were learned by failing a gate. Derived-vs-accreted is
+  # the unmade decision; the owner ruled out a hand-maintained index.
+  {path = "docs/product/briefs/internal-repo-topology.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:da5dba1805619b36228067d456e1be6a96b0b89975536f9c0fe4a2fb2e62e698"}, summary = "Give agents this repository's structural topology up front -- generated-vs-source, content pins, published trees, bare-identifier fields -- derived or accreted rather than hand-maintained", needs = []},
   # Split 2026-09-02 at 5ff0d3b19. One brief became three. The predecessor had
   # outgrown its shape by accumulating scope rather than prose: it went from
   # (rubric + pressure test + survey + measurement) to (+ two more readiness
@@ -210,6 +213,9 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
+  # spec-authoring time by owner decision rather than at work-loop dispatch.
+  {path = "docs/specs/sequential-implementer-dispatch/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:9aaed0b51aafb824851b8adf47973188fa3a4ceb996367de0e2a57a96e018b28", parent = "docs/product/briefs/universal-implementer-dispatch.md"}, summary = "Route every spec-backed CODE-IMPLEMENTATION plan task through the implementer agent sequentially, admit the primary working tree as an execution root, and remove the four surfaces that deny it", needs = []},
   {path = "docs/specs/status-projection-and-context-exclusion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "20c0ba50ebad22651694bc6f43715ee0df1a3938"}, summary = "Project closeout state, due reviews and exceptions, and exclude cooled artifacts from ordinary orientation", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/thirty-day-cooling-and-retirement/spec.md"}]},
   {path = "docs/specs/rfc0099-migration-validation-record/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md"}, summary = "Waive RFC-0099's unrun adopter study, close activation and shaping-review fixture gaps, and publish the maintained seven-family fixture register", needs = []},
   {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
@@ -304,9 +310,6 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
-  # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
-  # spec-authoring time by owner decision rather than at work-loop dispatch.
-  {path = "docs/specs/sequential-implementer-dispatch/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:9aaed0b51aafb824851b8adf47973188fa3a4ceb996367de0e2a57a96e018b28", parent = "docs/product/briefs/universal-implementer-dispatch.md"}, summary = "Route every spec-backed CODE-IMPLEMENTATION plan task through the implementer agent sequentially, admit the primary working tree as an execution root, and remove the four surfaces that deny it", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
