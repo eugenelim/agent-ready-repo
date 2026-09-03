@@ -400,6 +400,9 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 
 **When a spec exists, bump its status to `Implementing`** if currently `Draft` or `Approved`. Do this before writing any code. Direct-light has no spec status to write; its decision record must already be complete before the first implementation write.
 
+**Sequential implementer dispatch.** In full mode, when `loop-cohort schedule`
+emits a plan task and an `implementer` subagent is installed, dispatch it once per plan task, with one implementer at a time. The controller supplies the execution root and retains scheduling, state transitions, final gates, review, retry, and closeout.
+
 Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. After the full-mode engine enters `CODE-IMPLEMENTATION`, materialize the approved stub from `plan.md` unchanged in the repository test location, verify byte identity, prove the intended red, and then fill deferred assertions; don't rewrite from scratch. Direct-light writes its red test here because it has no durable plan stub.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
@@ -824,6 +827,7 @@ Load when the predicate fires; don't load speculatively.
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
 | Pre-EXECUTE review full conditions or `approve-plan` gate | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
+| HTML/CSS/JS primary output | Inline `frontend-engineering` craft into the implementer dispatch brief when that pack is installed; when it is absent, record the named skip and continue without that craft. |
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |

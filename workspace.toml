@@ -73,7 +73,14 @@ backlog = [
 executing = [
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
-ready     = []
+ready     = [
+  # Ready 2026-09-03. Draft -> Ready after a revision-bound clean shaping review
+  # (three finding rounds, then a scoped verification pass) and the owner's
+  # explicit confirmation. Slice U1 was confirmed separately the same day and is
+  # registered in this initiative's work.queue; the brief stays Ready until that
+  # spec reaches Implementing, at which point it becomes Executing.
+  {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every spec-backed plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
+]
 draft     = [
   # Split 2026-09-02 at 5ff0d3b19. One brief became three. The predecessor had
   # outgrown its shape by accumulating scope rather than prose: it went from
@@ -128,7 +135,8 @@ draft     = [
   # 2026-09-03. Ordered by what unblocks what: the two dispatch envelopes come
   # first because policy has nowhere to arrive without them, then delivery, then
   # the validator that makes arrival provable.
-  {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
+  # universal-implementer-dispatch moved to `ready` 2026-09-03; the three briefs
+  # below still `needs` it, and a Ready predecessor satisfies that edge.
   {path = "docs/product/briefs/spec-author-agent.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give spec authoring a dispatched agent so the SPEC-PLAN phases have an envelope, reusing the implementer's delivery and enforcement path", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
   {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
   {path = "docs/product/briefs/policy-arrival-validator.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make policy delivery provable: a deterministic check that every phase-selected family has a verdict, with a precise-family compliance branch that can block", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/phase-scoped-policy-delivery.md"}]},
@@ -296,6 +304,9 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
+  # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
+  # spec-authoring time by owner decision rather than at work-loop dispatch.
+  {path = "docs/specs/sequential-implementer-dispatch/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:9aaed0b51aafb824851b8adf47973188fa3a4ceb996367de0e2a57a96e018b28", parent = "docs/product/briefs/universal-implementer-dispatch.md"}, summary = "Route every spec-backed CODE-IMPLEMENTATION plan task through the implementer agent sequentially, admit the primary working tree as an execution root, and remove the four surfaces that deny it", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
