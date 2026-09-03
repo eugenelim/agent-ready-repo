@@ -490,6 +490,43 @@ def test_the_engine_satisfies_on_every_evidence_ref_alternative(
     assert _codes_for(result, PRUNED_DEPENDENCY) == set()
 
 
+# Lifecycle-valid delivery ids that do not share the `delivery-` prefix every
+# other accepting fixture happens to carry. Without these, a narrowing added at
+# either application site that additionally demanded that prefix would leave the
+# exported constants untouched and the whole suite green.
+_UNPREFIXED_DELIVERY_IDS = ["rfc0096-wave7a-ii", "x9"]
+
+
+@pytest.mark.parametrize("delivery_id", _UNPREFIXED_DELIVERY_IDS)
+def test_the_engine_satisfies_on_delivery_ids_without_the_common_prefix(
+    tmp_path: Path, delivery_id: str
+) -> None:  # AC4
+    """The engine applies the record's delivery_id grammar, not a narrower one."""
+    pattern = _load(LIFECYCLE_SCHEMA)["properties"]["delivery_id"]["pattern"]
+    assert re.fullmatch(pattern, delivery_id), delivery_id
+    result = _run_status(
+        _fixture(
+            tmp_path,
+            keep_membership=False,
+            outcome="completed",
+            receipt_changes={"delivery_id": delivery_id},
+        )
+    )
+    assert DEPENDANT in {e["path"] for e in result["canonical"]["ready"]}
+    assert _codes_for(result, PRUNED_DEPENDENCY) == set()
+
+
+@pytest.mark.parametrize("delivery_id", _UNPREFIXED_DELIVERY_IDS)
+def test_the_producer_accepts_delivery_ids_without_the_common_prefix(
+    delivery_id: str,
+) -> None:  # AC12
+    """close-work applies the record's delivery_id grammar, not a narrower one."""
+    pattern = _load(LIFECYCLE_SCHEMA)["properties"]["delivery_id"]["pattern"]
+    assert re.fullmatch(pattern, delivery_id), delivery_id
+    result = _plan_valid_receipt(delivery_id=delivery_id)
+    assert result.code == "receipt-write-confirmation-required"
+
+
 def test_surviving_membership_refuses_before_the_receipt(tmp_path: Path) -> None:  # AC5
     """A target still registered as shipped cannot resolve through its receipt."""
     result = _run_status(_fixture(tmp_path, keep_membership=True, outcome="completed"))
