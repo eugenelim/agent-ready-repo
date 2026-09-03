@@ -1,0 +1,56 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-28T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-672269e26b45d0ceacecdd736dbdfb2f81a7ea4a584e4c1eada6a93c99a2e019",
+      "mutation_id": "a668a90b3d23d40cccf27ce18af299d18427f178f2c956f78e16a8567770e7b0",
+      "observed_at": "2026-08-28T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "lint-spec-status",
+      "source": {
+        "path": "docs/specs/direct-skill-repository-installation/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 48267,
+      "kind": "sha256-bytes-v1",
+      "sha256": "a039ea3ce95390277aa2571301fbd7eefebbd93702a526688de0c17d85e177bb"
+    },
+    "path": "docs/specs/direct-skill-repository-installation/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    "packs/core/.apm/skills/new-spec"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 54612,
+        "kind": "sha256-bytes-v1",
+        "sha256": "a0e09cd9057c0a845c560b52f4dfa6b88e7d567170f6276cde4694d26a1f4c1b"
+      },
+      "path": "docs/specs/direct-skill-repository-installation/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A spec whose subject is third-party input needs a corpus spike before its refusal criteria are written. One spec reached 24 acceptance criteria specifying what to reject and none specifying that real inputs succeed; sixteen review rounds never surfaced it. Cloning 18 and later 35 real public repositories and running the proposed classifier and bounds against them found three things at once: a shape gap where the two accepted layouts admitted only 7 of 13 legitimate sources and refused a widely used official repository of 127 skills; a bound whose origin was wrong, because depth measured from the enumeration root changed verdict when a publisher regrouped their directories; and confirmation that one refusal was correct, since the offending repository embedded vendored documentation mirrors. The corpus also distinguished genuine collections from vendored aggregates and plugin repositories, which is what justified holding a shape exclusion. Reviewers reason about the artifact; whether a layout exists in the wild and how deep real payloads nest are facts about the world. Add the corpus task beside the other spikes, record a verdict per input, and require every refusal to be attributable to a named shape exclusion or named budget.",
+    "kind": "pattern"
+  },
+  "title": "A spec whose subject is third-party input needs a corpus spike before its refusal criteria are written",
+  "topic_key": "a-spec-over-third-party-input-needs-a-corpus-spike-before-its-refusal-criteria"
+}

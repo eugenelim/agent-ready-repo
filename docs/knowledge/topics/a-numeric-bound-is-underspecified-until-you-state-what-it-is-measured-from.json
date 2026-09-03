@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-28T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-66cfcd1bbeeb8301a6aec017c097da7fac04b05db401975a2a0ed3b2bed43520",
+      "mutation_id": "dddc78ef8d803d5c50c0e6469385f7f64cd3b96e952f9761480b437bbd2c0bb0",
+      "observed_at": "2026-08-28T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "lint-spec-status",
+      "source": {
+        "path": "docs/rfc/0098-direct-skill-repository-installation.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 54612,
+      "kind": "sha256-bytes-v1",
+      "sha256": "a0e09cd9057c0a845c560b52f4dfa6b88e7d567170f6276cde4694d26a1f4c1b"
+    },
+    "path": "docs/specs/direct-skill-repository-installation/spec.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    "packs/core/.apm/skills/new-spec"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 13592,
+        "kind": "sha256-bytes-v1",
+        "sha256": "ed16992f66b8bbb5af162fddf896585c9fc7012eb08cc3f061f32b816113631c"
+      },
+      "path": "packs/core/.apm/skills/new-spec/assets/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A numeric bound is underspecified until you state what it is measured from, and the origin is usually the more serious defect. A path-depth bound of 10 measured from the enumeration root was layout-dependent: admitting an optional category directory consumed one level, so an identical payload measured deeper purely because its publisher grouped by topic, and the same source changed verdict on being reorganised. Measured from the leaf envelope instead, the bound means how deep a unit's own payload may nest and is invariant under choices the publisher is free to make. Fixing the origin mattered more than the number. Separately, five consecutive rounds produced dominated bounds, where two limits on one quantity left the dominated one unreachable and its diagnostic unsatisfiable. Before writing any limit, enumerate every other limit on the same quantity and compute which fires first for the boundary input, then state the enforcement mechanism that makes that ordering true. Never request a bound without specifying its value: twice a worker fabricated one, and a fabricated bound is worse than none because it looks like a decision.",
+    "kind": "gotcha"
+  },
+  "title": "A numeric bound is underspecified until you state what it is measured from, and the origin is the deeper defect",
+  "topic_key": "a-numeric-bound-is-underspecified-until-you-state-what-it-is-measured-from"
+}

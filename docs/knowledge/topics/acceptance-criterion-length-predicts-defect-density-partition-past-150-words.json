@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-28T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-dd970e5ce22ebcf34a91758119412c82c9922a65dc243aacd88905fc81338678",
+      "mutation_id": "3876af47f9cdbaff6c1acaafa6f3afab7062579401e94d47a01774794e0d302b",
+      "observed_at": "2026-08-28T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "lint-spec-status",
+      "source": {
+        "path": "docs/specs/direct-skill-repository-installation/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 54612,
+      "kind": "sha256-bytes-v1",
+      "sha256": "a0e09cd9057c0a845c560b52f4dfa6b88e7d567170f6276cde4694d26a1f4c1b"
+    },
+    "path": "docs/specs/direct-skill-repository-installation/spec.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    "packs/core/.apm/skills/new-spec"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 13592,
+        "kind": "sha256-bytes-v1",
+        "sha256": "ed16992f66b8bbb5af162fddf896585c9fc7012eb08cc3f061f32b816113631c"
+      },
+      "path": "packs/core/.apm/skills/new-spec/assets/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "Acceptance-criterion length predicts defect density. Across sixteen review rounds producing roughly sixty findings, the three longest ACs (365, 357 and 267 words) absorbed the large majority, while the median AC of 86 words was largely quiet. The mechanism is that a long AC holds several independent contracts under one checkbox, so a fix lands in one clause and silently contradicts another; that is why the round intended to consolidate introduced six of its own ten blockers. Re-partitioning those three into ten ACs took the maximum to 218 words and the median to 101 without adding or removing a requirement. Cap an AC at roughly 150 words and treat overflow as a signal to partition rather than to tighten prose: one checkbox must be one honestly-tickable contract. Measured against this repository's own corpus on 2026-09-03, 150 words is close to the existing p95: across 6,586 criteria under docs/specs the median is 35 words, p90 is 102, p95 is 149, and 324 criteria (4.9%) exceed 150. Verify a re-partition by grepping distinctive clauses of the original against the result; total word count should rise slightly from new titles and cross-references while no clause is lost.",
+    "kind": "pattern"
+  },
+  "title": "Acceptance-criterion length predicts defect density; treat overflow past ~150 words as a partition signal",
+  "topic_key": "acceptance-criterion-length-predicts-defect-density-partition-past-150-words"
+}
