@@ -38,6 +38,14 @@ IMMEDIATE_DISPOSITIONS = frozenset(
 POST_CLOSEOUT_RESULTS = frozenset(
     {"Cooling", "Retained", "Retired", "Reclassified", "ExternalAdvisory"}
 )
+_COMPLETION_RECEIPT_DELIVERY_ID_RE = r"^[a-z0-9][a-z0-9-]{0,127}$"
+_COMPLETION_RECEIPT_EVENTS = ("merge", "release", "acceptance")
+_COMPLETION_RECEIPT_EVIDENCE_REF_RE = (
+    r"^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$"
+)
+_COMPLETION_RECEIPT_OUTCOMES = frozenset(
+    {"completed", "abandoned", "superseded"}
+)
 _ISSUED_CONFIRMATIONS: dict[str, object] = {}
 _ISSUED_PREVIEWS: dict[str, object] = {}
 _CONFIRMED_PREVIEWS: set[str] = set()
@@ -722,11 +730,29 @@ def plan_completion_receipt(
     if binding is None or binding.resource != compatible_surface:
         return ReceiptResult("authorization-required")
     try:
+        receipt_delivery_id = _bounded_text("delivery_id", delivery_id)
+        receipt_outcome = _bounded_text("outcome", outcome)
+        receipt_completion_event = _bounded_text(
+            "completion_event", completion_event
+        )
+        receipt_evidence_ref = _bounded_text("evidence_ref", evidence_ref)
+        if not re.fullmatch(
+            _COMPLETION_RECEIPT_DELIVERY_ID_RE, receipt_delivery_id
+        ):
+            raise ValueError("delivery_id violates the lifecycle-record grammar")
+        if receipt_outcome not in _COMPLETION_RECEIPT_OUTCOMES:
+            raise ValueError("outcome is not a completion-receipt outcome")
+        if receipt_completion_event not in _COMPLETION_RECEIPT_EVENTS:
+            raise ValueError("completion_event is not a lifecycle-record event")
+        if not re.fullmatch(
+            _COMPLETION_RECEIPT_EVIDENCE_REF_RE, receipt_evidence_ref
+        ):
+            raise ValueError("evidence_ref violates the lifecycle-record grammar")
         receipt = CompletionReceipt(
-            delivery_id=_bounded_text("delivery_id", delivery_id),
-            outcome=_bounded_text("outcome", outcome),
-            completion_event=_bounded_text("completion_event", completion_event),
-            evidence_ref=_bounded_text("evidence_ref", evidence_ref),
+            delivery_id=receipt_delivery_id,
+            outcome=receipt_outcome,
+            completion_event=receipt_completion_event,
+            evidence_ref=receipt_evidence_ref,
         )
     except ValueError:
         return ReceiptResult("receipt-evidence-required")
