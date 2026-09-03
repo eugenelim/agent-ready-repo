@@ -347,13 +347,7 @@ open = [
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
-  # Unblocks when: someone decides whether the seal should admit a prose-only
-  # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
-  # blocked mid-run and landed only after an owner-authorized cohort re-seal.
-  {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
   {slug = "agent-skill-engineering-guide-and-docsurl", summary = "agent-skill-engineering is the only pack in GUIDE_OPTIONAL_PACKS and its site docsUrl points at the guides index; the planned docs slice must add guides/agent-skill-engineering/, link it from guides/README.md, drop the exemption, and repoint docsUrl", source = "spec/agent-skill-engineering-foundation AC21 (owner decision 2026-08-27)"},
-  # Unblocks when: the release checklist owner decides.
-  {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
   # Deferred rather than bundled: packages/agentbundle/ is a protected tree
   # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-
   # RFC:` trailer) and AGENTS.local.md requires a pyproject version bump for an
@@ -543,71 +537,6 @@ open = [
   # or stays out, and prove each caller's mutation count and family coverage is
   # unchanged — the same criterion the four already satisfy.
   {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
-  # Coverage gaps in the workflow posture guards that this change did NOT close.
-  # The ones it did close are gone from this list rather than left overstating:
-  # secret binding location, pack-evals job-level permissions, gitleaks failure
-  # propagation, the compute-and-discard checksum, the CodeQL trigger surface,
-  # the elevated-grant spelling enumeration, `pull_request_target` on codeql.yml,
-  # the Windows step-level bypass, and the bash-absent round-trip ordering are
-  # all now asserted with a mutation each. What remains needs either a different
-  # invariant or evidence this change does not have:
-  #  - Nothing pins the actionlint, zizmor, or check-zizmor-excessive-permissions
-  #    steps. Deleting them, appending `|| true`, dropping to `--min-severity
-  #    critical`, or narrowing the scanned path removes Actions-injection and
-  #    excessive-permissions coverage repo-wide with `make build-check` green.
-  #    zizmor is the ONLY control covering template injection in run bodies the
-  #    hand-written gitleaks checks do not reach. Left open because pinning it
-  #    means choosing which flags are load-bearing, which is a decision about
-  #    the scanner contract rather than about this harness.
-  #  - Registered by round-7 adjudication rather than closed: a JOB-level
-  #    `continue-on-error` on build-check-windows; a reusable-workflow route
-  #    binding ANTHROPIC_API_KEY via `secrets: inherit`; a second CodeQL job
-  #    granted `contents: write`, `id-token: write` or `read-all`, which the
-  #    two-token backstop does not match; and the backstop firing on a comment
-  #    that merely mentions a token. Each was adjudicated as neither created nor
-  #    claimed closed by this change.
-  #  - The checksum invariant is keyed on EXTRACTION. A non-extraction install
-  #    such as `curl -o /usr/local/bin/actionlint && chmod +x` or `curl … | sh`
-  #    is never audited. Closing it means re-keying the invariant on every
-  #    download, which is a different invariant, not a tightening of this one.
-  #  - No control asserts the absence of a repo-root `.gitleaks.toml` or a pinned
-  #    `--config`. Left open deliberately: gitleaks' config auto-load precedence
-  #    was never confirmed, and an assertion resting on an unverified premise is
-  #    the defect this whole change set exists to remove.
-  # Workflow-side, needing a repository-settings change and so not closable here:
-  # `ANTHROPIC_API_KEY` is repository-scoped with no GitHub Environment gate, so
-  # any write-access holder can dispatch pack-evals against an arbitrary ref with
-  # no second approver — the repo already gates `pypi` and `claude-plugin-publish`
-  # that way.
-  # To close: decide which of these earn assertions, in which guard, and accept
-  # that each widens what that posture test claims.
-  # Pre-flight, not diff-caused, and NOT STABLE LOCALLY: `make
-  # test-after-build-check` cannot be green in a worktree of this repository,
-  # whichever way the global editable-install state happens to sit. Measured both
-  # ways in one session, minutes apart, because a peer worktree installed the
-  # package in between:
-  #   no editable install        -> lint-editable-install PASSES, but
-  #     tools/test_marketplace_envelope_parity.py::
-  #     test_resolved_layer_refuses_a_module_from_another_tree FAILS: it asserts a
-  #     "provenance mismatch" when the finder resolves a SIBLING worktree, and with
-  #     nothing installed the child exits ModuleNotFoundError first. The child runs
-  #     with `-I`, so PYTHONPATH cannot satisfy it — only a real install can.
-  #   install -> another worktree -> lint-editable-install FAILS by design
-  #     (ADR-0094: this repository imports both packages from source), which is
-  #     what was observed, pointing at 30-day-cooling-specs.
-  # So the two gates are mutually exclusive here and the outcome is owned by
-  # whichever worktree bootstrapped last. Neither file is touched by the work that
-  # registered this, and both are byte-identical to origin/main, so main is red the
-  # same way.
-  # Deliberately NOT repaired by `pip uninstall -y agentbundle`, which the guard
-  # names as the permanent fix: it rewrites state shared by every worktree, the
-  # guard itself says to do it only when no peer gate is running, and 13 peer gate
-  # processes were live when this was measured. It is the owner's call, not a
-  # side effect of an unrelated PR.
-  # To close: decide whether the parity test should skip when no install is
-  # present — which would make the no-install state fully green and consistent with
-  # ADR-0094 — or whether the local gate should provision per worktree.
-  {slug = "pre-existing-marketplace-parity-needs-an-editable-agentbundle", source = "pre-flight/2026-08-28"},
   # Added 2026-08-31 by the catalogue-tooling token-posture change, so the gap is
   # registered rather than assumed covered: tools/check-zizmor-excessive-permissions.py
   # filters on the `excessive-permissions` ident alone, so adding a workflow to its
@@ -1882,44 +1811,17 @@ open = [
   # decides which topics land in which tier.
   {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
   {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Align standalone new-spec review with existing measurement and adjudication controls, add finding-origin attribution, and surface lint gate scope", needs = []},
-  # Framing matters here and my first draft got it wrong: this is not flake and
-  # not a coin flip. `load/core` is 0.2 on every run and the failing ranges are
-  # tight (0.19s, 0.06s, 0.42s), so these are stable measurements sitting on the
-  # bound -- you do not raise a bound to absorb variance that is not there. The
-  # ceiling was derived on py3.11 (RFC-0098 E16 records 1.92-2.12s when 5s was
-  # set, ~60% headroom) and is enforced on a 3.11/3.12 matrix where 3.12 has
-  # 0-4%. The load skip cannot protect it: the failing assertion is `cpu_median`
-  # at :166, unconditional; only the wall-clock assertion at :185 sits behind
-  # `load_per_core > 2.0`. Two cautions before anyone moves a number. (i) The
-  # open question is unprofiled and should stay a question -- py3.12 is normally
-  # faster than 3.11, so a ~2.8x slowdown is backwards from expectation and may
-  # be a real regression in the admission path rather than a mis-derived
-  # ceiling; if so the ceiling is only the messenger. (ii) RFC-0098 E21 records
-  # this exact ceiling being retired once on a 44.2s measurement, with both the
-  # measurement and the retirement later judged wrong. Profile first, then
-  # discuss numbers. Raising a Family-2 budget is Ask-first under AC36 anyway.
-  # Auditing trap: `gh run rerun --failed` overwrites a run's rolled-up
-  # conclusion, so run 33487510335 reports success -- read `--attempt 1`.
-  # Memory is not the binding dimension: the same harness asserts a 256 MiB
-  # ceiling and observes ~27 MiB, so wall-clock/CPU is the only side in play.
-  # Multi-run measurements credited to peer sessions work-loop-controller-fb and
-  # auto-backlog-review-run-2-20260831t1400-c6; the RFC errata and the
-  # assertion-site facts above are verified locally.
-  {slug = "agentbundle-ac36-cpu-ceiling-derived-on-wrong-interpreter", source = "ci/33487510335 att.1, 33520586244, 33479283513 (2026-09-01)", summary = "packages/agentbundle/tests/performance/test_direct_family2_budget_cost.py enforces a 5.0s CPU-time ceiling that RFC-0098 E16 derived from a 1.92-2.12s py3.11 measurement, against a CI matrix that also runs py3.12 where the same shape measures 4.78-5.08s -- three failures across three branches at load/core 0.2 with tight ranges, so the gate is decided by interpreter version rather than by the diff. Whether py3.12 is genuinely ~2.8x slower here (backwards from expectation, possibly a real admission-path regression) is unprofiled and must be settled before any bound moves; E21 records this ceiling already being retired once on a bad measurement"},
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
-  {slug = "roster-misses-agent-projection-drift", source = "reviewer-roster change (2026-08-31)", summary = "Closed 2026-09-02 by PR #1214. tests/roster/test_core_agent_projection.py renders the Claude and Codex adapters from the current packs/core/.apm/agents/ source into a temp tree and compares the committed .claude/agents/*.md and .codex/agents/*.toml against that output. The entry asked to extend the byte-for-byte comparison, which is why the gap survived a reading: a source-to-projection byte pin cannot express this invariant, because both surfaces are TRANSFORMED, not copied -- the Claude surface drops the metadata: frontmatter block and inserts an H1, the Codex surface is TOML, and only quality-engineer.md happens to be byte-identical to its source. Rendering the projector is the comparison that works. The expected set is derived rather than enumerated (core asserted in SELF_HOST_PACKS, then the source directory globbed), so a pack leaving the projection fails rather than passing on an empty iteration. The six other packs shipping .apm/agents/ are correctly out of scope: they are absent from SELF_HOST_PACKS and project nothing into this repository. Mutation-proven three ways, each reaching a different assertion and each needing its own run: appending a line to packs/core/.apm/agents/adversarial-reviewer.md reds the .claude arm; appending one to .codex/agents/adversarial-reviewer.toml reds the .codex arm, which the first mutation never reaches because it fails earlier; and removing .claude/agents/shaping-reviewer.md reds the set-equality assertion. Collected remotely by build-check.yml's `pytest tests/ -q` step, which walks the directory rather than naming files, so no new wiring was owed. No version bump: repository-only test tooling under tests/ is not a released artifact."},
+  {slug = "readme-pypi-whats-new-unenforced", source = "spec/guide-typed-asides-test-gate (review blocker 2)", summary = "Closed 2026-09-02 as fixed. tests/roster/test_okf_catalogue_discovery.py:56 asserts the What's-new heading names the current version in packages/agentbundle/README-pypi.md and pins it to pyproject and CLI_VERSION, so the obligation is machine-checked rather than prose. It is collected by the whole-tree pytest tests/ -q step at .github/workflows/catalogue-tooling-ci-gates.yml:100."},
+  {slug = "cohort-seal-blocks-in-phase-plan-correction", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)", summary = "Closed 2026-09-02 as superseded. RFC-0099's 2026-08-30 erratum (approver eugenelim) retires the drift crossing and withdraws the clause that would have made a failed plan-current guard crossable, recording that no implementation is owed. Residual not tracked here: docs/CONVENTIONS.md still describes plans as changeable while Executing, a documentation correction against RFC-0099 rather than this tooling conflict."},
 
-  {slug = "credbroker-socket-budget-float-tolerance", source = "docs/product/intents/credbroker-socket-budget-float-tolerance.md", summary = "Closed 2026-09-01 by PR #1206 (merged). The assertion compared the derived per-hop socket timeout against its 1.0s budget exactly, so Windows' 1.0000000000000142 reddened pytest credbroker (windows) and through it make build-check (windows) on a diff touching no credbroker path. The bound now carries a 1e-9 tolerance whose value has an origin rather than being tuned until green: the ULP of 1.0 is 2.22e-16 so the artifact is ~63 ULPs, a genuine overrun is a scheduling event with a millisecond floor, and 1e-9 sits ~70,000x above the artifact and ~1,000,000x below the smallest real overrun. Measured on the dev host the value is 0.9999804999679327, already 1.95e-5 under budget from elapsed time, so the assertion already carried four orders of magnitude more natural slack than the tolerance adds. An earlier draft used 2e-14, only 1.43x a single observation, and was rejected as too thin to survive a different timer. Mutation-proven: deleting the budget clamp in _sso.py reds that exact line with assert 5.0 <= (1.0 + 1e-09), and the neighbouring 0 < seen[-1] <= _DERIVE_SOCKET_TIMEOUT_S bound is untouched."},
 
-  {slug = "pre-existing-duplicate-pack-test-basenames", source = "pre-flight/2026-08-30", summary = "Closed 2026-09-01 as refuted. The measurement stands: pytest packs/<pack>/tests/skills --collect-only across every pack has 26 collection aborts, not the one the entry named (core 1, governance-extras 2, atlassian 13, converters 4, desk-research 6, agent-skill-engineering 0). But ADR-0101 (Accepted) names this exact import file mismatch on duplicate test_render.py as a known, measured failure and decides one process per skill directory as the answer, treating its loudness as a virtue against the silent subject-module collision; guides/_shared/reference/catalogue-authoring-standards.md § 4, which ships to adopters, tells pack authors two skills may reasonably both ship test_render.py. Renaming contradicts both. Atlassian's 13 are unfixable regardless: packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py hardcodes the four jira and three confluence-crawler SSO filenames and that tree needs an Engine-Change-RFC: trailer. --import-mode=importlib was tested and is not a free fix: it clears governance-extras and desk-research but takes core from 1 error to 17, because those suites depend on prepend-mode sys.path insertion. Reopening this means an RFC amending ADR-0101 and the adopter standard, not another sweep."},
 
-  {slug = "reviewer-agent-vacuous-assertion-coverage", source = "docs/product/intents/reviewer-agent-vacuous-assertion-coverage.md", summary = "Closed 2026-09-01 in core 2.20.1, delivered narrower than drafted. quality-engineer.md gains the four shapes as items 4-7 of Test design (empty-set without a positive control; a negative case green from an unstubbed collaborator; a source-substring control pin; prose standing in for a captured baseline), renumbering that list to 34. The intent's second half was dropped and the intent amended to match: docs/CONVENTIONS.md's reviewer-model table, amended by 9b9d470ef (core 2.20.0), gives quality-engineer exclusive ownership of test strength, whether an assertion can fail, and the proposed security-reviewer obligation is exactly that lens; shape 3 carries the security substance in the agent that owns the lens and no compensating pointer was added to security-reviewer.md, by owner decision. The intent's line-count assumption was also stale: quality-engineer.md was 492 lines not 464, and the 500-line warn threshold it cited applies to SKILL.md under .apm/skills/, never to .apm/agents/."},
 
-  {slug = "lint-spec-status-scope-to-changed-specs", source = "spec/sso-store-transition-serialization pre-flight", summary = "Closed 2026-08-31 by PR #1188 in core 2.17.3. Measured on this repo at 423 specs, load ~12: the exhaustive sweep (now --all, byte-identical work to the old default) runs 30.8-32.5s and the scoped default runs 2.0-2.1s. An earlier 46s/42s baseline was taken at load 44-124 and is not comparable; --all at matched load is the honest before-number. The entry's 2m16s was a different machine and was not reproduced. Its soundness claim was WRONG in both directions. It predicted only the repo-wide warn-only pass would narrow; in fact invariant (iii) does not narrow at all (182 warnings in both modes), and invariant (iv) MUST NOT be scoped -- its second input is workspace.toml, so closing a [backlog].open entry invalidates the marker in every spec citing it, none of which need have changed. (iv) is HARD, 76 markers are live, and closing an entry is the routine close-work operation, so (iv) now runs repo-wide beside (iii) in one shared pass. What narrows is the per-spec warn-only output for unchanged specs: 34 (v) and 18 (i) warnings, all of which --all still reports. Four fail-open defects were found by running the code, three of them by independent review: git diff reported tracked changes only so a NEW uncommitted spec was skipped (12 tests catch the fix); git diff reported repo-root-relative paths so a subdirectory --root dropped every spec and gated nothing (--relative); neither git call used -z so a path needing quoting was dropped; and both summary lines printed a bare clean verdict while having selected zero specs. The scope-report and the None-means-full-sweep contract were themselves unasserted -- mutating either left all 82 tests green -- and now have named controls. Three tests whose subject is an UNCHANGED spec pass all_specs=True with the reason recorded; their assertions are unchanged"},
 
 
   {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings", summary = "Closed 2026-08-31 by PR #1186 in core 2.17.2, both halves now evidenced. TIMING (the entry's own reproduction, which the first draft of this closure only inferred): the coherence check it measured at 22-31s of a 30s budget over 65 topics now runs in 0.68s over 76 committed topic files, because batching the per-topic git ls-tree into one ls-tree -r -z had already shipped -- _read_committed_topic_map calls the batched _committed_blob_ids and the only single-object caller left is _committed_blob_size. DIAGNOSTICS landed here: an elapsed deadline refused as journal_capacity with recovery_action fix_request and retryable false, all three wrong. deadline_exceeded now carries retryable=true so _diagnostic derives retry. THREE of the four subprocess.TimeoutExpired catch sites report it (_git_read, _git_read_bounded, _committed_blobs_by_id); the fourth is deliberate and pinned by a named test -- resolve_worktree_root IS the confinement proof, so an unfinished check stays a non-retryable confinement refusal rather than inviting a loop against an unbounded boundary check. Review also caught that the first revision made capture WORSE: _committed_path_exists, _committed_v1_map_is_coherent and _git_object_algorithm each converted the new refusal into False or a sha1 default, so _assert_v1_writer_allowed -- the gate on all four writer paths including capture -- re-refused as staged_dual_writer. A _reraise_deadline helper closes all three, mutation-proven. Preserved: byte-limit refusals stay journal_capacity, genuine incoherence stays map_mismatch, and no other refusal's retryability changed. RESIDUAL, not blocking this closure: no consumer reads the retryable field yet -- work-loop SKILL.md gives no retry instruction -- so the field is honest metadata rather than an automatic retry"},
@@ -1928,11 +1830,8 @@ closed = [
 
   {slug = "tdd-stub-replaces-prose", source = "docs/product/intents/tdd-stub-replaces-prose.md", summary = "Closed 2026-08-30 as delivered in core 2.16.3. The accepted semantic rule stands: exact executable test code replaces behavior-restating prose. PLAN now owns bounded, no-network, timeout-limited, filesystem-confined validation from disposable scratch and writes no repository test; failed compile or intended-red proof blocks approval unless the closed implementation-discovered exception applies. Code-mode EXECUTE materializes the approved payload only after CODE-IMPLEMENTATION, using an explicit one-terminal-newline byte contract, then completes red-green-refactor. RFC-0028 errata, conventions, architecture, adopter guides, evals, projections, and regression tests carry the durable result"},
 
-  {slug = "contract-amendment-pre-wave-window", source = "docs/product/intents/contract-amendment-pre-wave-window.md", summary = "Closed 2026-08-29 as a bug fix in core 2.15.5. contract-amendment refused until a task had completed, so the pre-wave window — baseline sealed, current_wave_index 0, review finding a defect before wave 1 — had no legal correction route. RFC-0099 section 7 (Accepted 2026-08-27) declares that route legal from implementation, verification, or review with no completed-work precondition; the guard landed 2026-08-26 in be51a9847, one day earlier, and was never re-checked when the decision landed. Four guards, not the three the intent named: the fourth was parse_completed_task_evidence_entries rejecting an empty tuple. missing_evidence remains the sole enforcer and is mutation-proven — neutering it fails exactly one test. Two deliberately written assertions had to be removed, contradicting the intent's assumption that no test asserted the refusal"},
 
-  {slug = "core-seed-placeholder-shapes", source = "docs/product/intents/core-seed-placeholder-shapes.md", summary = "Closed 2026-08-29 as refuted; no change made. All three named seeds already declare their shapes at lint.py:378-380, added by fd59e28c6 — the same commit the intent says introduced them. catalogue lint and catalogue verify are both clean on a tree at 27e7430e9. The three CAT-V-002 errors reproduce only under the bare agentbundle console script, which resolves to a stale 0.40.0 site-packages wheel whose lint.py lacks all three keys; the intent's detached-origin/main verification was invalid because the module never came from the worktree. Expected under ADR-0094, which accepts this skew as normal rather than a defect"},
 
-  {slug = "build-site-fence-info-string-opens-a-comment", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1153. parse_changelog_releases now commits comment state only AFTER the fence-opener match, so a `<!--` in an opener's info string is sample text rather than a cross-line comment. Three mutation-verified cases, including one that is the sole catcher of the plausible wrong fix (suppressing comment state on any line containing a fence marker)"},
 
   {slug = "loop-cohort-resolve-spec-dir-confinement", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1156. loop-cohort's _resolve_spec_dir is now at parity with loop-engine's: reject `..`, resolve, read the repo root with the git relocation variables stripped, then relative_to(repo_root). The entry's named helper (append-knowledge.py's confine()) does not exist; parity was the fix. _get_repo_root stays duplicated because _loop_guards.py contracts that no public function spawns a process and assigns confinement to each caller's own resolver"},
 
@@ -1948,31 +1847,6 @@ closed = [
 
   {slug = "architect-okf-bundle-root-missing-license", source = "spec/okf-authoring-projection (adversarial review, reproduced)", summary = "Closed by spec/okf-follow-ons; architect's authored OKF root declares the shared content licence, distinguishes source from projection, and passes discovery and show with a regression test. Owner review by architect's maintainer is still outstanding and is required before architect becomes the INI-009 M3 integration pilot; see the variance record in docs/product/initiatives/ini-009-agent-skill-engineering.md"},
 
-  # Two of the three sites that read comment syntax in parse_changelog_releases
-  # are now code-span aware. The run scan of lint-spec-status.py's
-  # `_code_span_ranges` was COPIED into `_backtick_runs` rather than imported --
-  # tools/ must not couple to a content-pinned pack tree -- and its pairing half
-  # is interleaved with comment detection instead of applied whole-line, because
-  # a whole-line span list cannot express "a comment's interior contributes no
-  # delimiters". The third site, the `-->` search inside an open
-  # comment, deliberately stays blind and now carries a comment saying so:
-  # Markdown is not parsed inside an HTML comment, so masking there would be a
-  # NEW bug. build-site keeps its raise where lint-spec-status returns what it
-  # has; that divergence is intentional and commented at both ends.
-  # Also closed the measurement gap that let this reach production: nothing
-  # asserted a release-count FLOOR, and _MAROONED_RELEASE_BASELINE is an upper
-  # bound on a different population that passes when releases collapse to zero.
-  # One residual is reported rather than stripped: leftmost-wins pairing is
-  # CommonMark-faithful, so an UNBALANCED backtick pairs into a following real
-  # comment and that comment's body publishes as code where the old whole-line
-  # regex stripped it. Rendering stays CommonMark; the new
-  # `code_span_split_comments` diagnostic fails the required suite on it, since
-  # this pipeline errs toward withholding. Fires only when a span cuts a
-  # comment in half -- an enclosed or closer-less mention is the ordinary shape.
-  # Separately found and NOT fixed here: the fence-info-string collapse, filed
-  # as build-site-fence-info-string-opens-a-comment. Pre-existing, different
-  # root cause, and the fence state machine was explicitly out of scope.
-  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
 
   # Carries forward the accepted consequence the open entry recorded, because
   # this closed entry is now the only place in the repository that holds it:
@@ -2021,13 +1895,10 @@ closed = [
 
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
 
-  {slug = "sso-ac11-windows-kill-arm", source = "spec/sso-store-transition-serialization AC11", summary = "Closed by dropping the os.name != 'posix' skipif from test_a_killed_holder_leaves_the_profile_usable and driving the kill through Popen.kill(), which is TerminateProcess on Windows -- the arm runs in build-check-windows.yml's `pytest credbroker (windows)` job, so the runner limitation the entry offered as the alternative does not exist. The two platforms now assert different things rather than the same thing twice: POSIX takes budget_s=0, measured at 1ms against 2001ms for budget_s=2, so it proves the lock is free the instant the holder is reaped; Windows keeps the bounded retry path AC11 actually promises there. AC11 was discharged in the frozen spec following the e2f6da41b precedent -- box checked, deferral marker removed, status commentary rewritten in past tense, criterion proper untouched"},
 
-  {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 
   {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains", summary = "Closed by enforcement rather than parsing: invariant (vi) requires `- **Acceptance Criteria:** none — <reason>` when a spec has no AC section, diff-triggered and grandfathered so no frozen body or adopter corpus is retroactively gated. The scan found four such specs, not three -- two were not opt-out candidates at all but had spelled their criteria as a bold label the collector could not read. Also lands one supported heading (exact, near-miss warned), a hard error for a commented-out section, specific diagnostics for every attempted opt-out shape, base-ref verification, and a warning for an unreadable spec"},
 
-  {slug = "spec-ac-text-normalization", source = "spec/spec-ac-gate-and-fixture-domains follow-on (PR #1139, #1145)", summary = "Closed by deciding the shape rather than parsing it: a commented-out Acceptance-Criteria section is not supported in any position, so the criterion collector never meets one and its comment-blindness stops being a latent divergence. Criteria that no longer apply are deleted; git history holds superseded ones. The four withdrawn parsing attempts are recorded in PR #1139"}
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
