@@ -6,10 +6,10 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-08-28T00:00:00Z",
-    "state": "fresh"
+    "checked_at": "2026-09-03T14:00:00Z",
+    "state": "retired"
   },
-  "lifecycle": "active",
+  "lifecycle": "retired",
   "occurrences": [
     {
       "capture_id": "kco-202608-672269e26b45d0ceacecdd736dbdfb2f81a7ea4a584e4c1eada6a93c99a2e019",
@@ -22,6 +22,18 @@
       "source": {
         "path": "docs/specs/direct-skill-repository-installation/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202609-5cfd914b4f913dc9d5b2a04884905c7d7f4a77527f0932375d1f00f80b70c629",
+      "mutation_id": "20addbcaba5b6a6f7c518f8d97bcc1b3c01db8c2efbd38936fbe48fc55e590a2",
+      "observed_at": "2026-09-03T14:00:00Z",
+      "producer": "project-knowledge",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "packs/core/.apm/skills/new-spec/SKILL.md"
+      }
     }
   ],
   "owning_source": {
@@ -31,6 +43,13 @@
       "sha256": "a039ea3ce95390277aa2571301fbd7eefebbd93702a526688de0c17d85e177bb"
     },
     "path": "docs/specs/direct-skill-repository-installation/plan.md"
+  },
+  "retirement": {
+    "coverage_verified": true,
+    "reason": "enforced",
+    "successors": [
+      "packs/core/.apm/skills/new-spec/SKILL.md"
+    ]
   },
   "schema_version": "knowledge-topic.v1",
   "scopes": [

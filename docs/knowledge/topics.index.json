@@ -328,17 +328,17 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "f048b91092932359e015cbbf8f9ba27e25fed593"
+        "object_id": "844e0dc86271dc66ccb690ee45800de8d13553b8"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-08-28T00:00:00Z",
-        "state": "fresh"
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/a-numeric-bound-is-underspecified-until-you-state-what-it-is-measured-from.json",
       "scopes": [
         "docs/specs",
@@ -490,7 +490,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c89d6350e1add0c2360bfd1416e98441fef418aa"
+        "object_id": "7b43563271e5a161e100909b979eee54c4bcb762"
       },
       "competency_facets": [
         "CQ-DESIGN",
@@ -498,10 +498,10 @@
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-28T00:00:00Z",
-        "state": "fresh"
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/a-spec-over-third-party-input-needs-a-corpus-spike-before-its-refusal-criteria.json",
       "scopes": [
         "docs/specs",
@@ -649,17 +649,17 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "844bdfe9da1fad41656a2a6acf1a3637df6e8588"
+        "object_id": "d74a6de50cc967b9b50e41e0fb286976bccd2d89"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-28T00:00:00Z",
-        "state": "fresh"
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/acceptance-criterion-length-predicts-defect-density-partition-past-150-words.json",
       "scopes": [
         "docs/specs",
