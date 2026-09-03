@@ -1,6 +1,6 @@
 # Spec: Dependency-scoped completion receipts
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6, §7 and §9 (Wave 7a-ii, registered in its 2026-09-01 Errata); [ADR-0103](../../adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md); `close-work-extraction-and-immediate-disposition` (Shipped and frozen, live dependency — its AC17 ships the producer this spec constrains); `status-projection-and-context-exclusion` (Shipped and frozen, live dependency — its ticked AC57 rests on `invalid_receipt` having one emitter, which this spec preserves); `thirty-day-cooling-and-retirement` (Shipped and frozen — its lifecycle record publishes the three grammars this spec pins; a contract citation, not a declared `needs` edge); `workspace-routing-invariants` (Shipped — its *Ask first* boundary governs adding a finding code, and its § Canonical findings table is the public refusal contract)
