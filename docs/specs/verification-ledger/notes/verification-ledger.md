@@ -569,3 +569,35 @@ closed.
 **21 killing mutations and 3 innocent-edit probes.** Unmutated baseline
 `13 passed`. Every restoration verified with `git diff --quiet`, and the harness
 now restores in a `finally`.
+
+## DECIDE, and the contract proving itself
+
+Round 8 returned `Clean — ready to commit.` with both findings refuted. The
+second refutation is the one worth keeping: a `do not follow` mutation on the
+public explanation's pointer **does** leave the suite green, but that pointer is
+in neither AC3's enumerated killability set nor the retained-statement group,
+AC2 obliges the explanation only to "reach that procedure through a resolvable
+pointer", and `plan.md:74` directs it not to create an independent mutability
+rule. Pinning an affirmative rule-shaped span there would fight the approved
+construction. A green mutation outside what a criterion claims is not a hole —
+that distinction is what AC3's narrowing bought.
+
+At DECIDE the delivery exercised its own contract. Four acceptance-criterion
+checkboxes were ticked and both status tokens rewritten — `spec.md` to `Shipped`
+and `plan.md` to `Done` — directly into two hash-pinned artifacts, and both
+guards stayed green:
+
+```
+loop-cohort: plan check-current OK for verification-ledger
+loop-cohort: schedule check-current OK for verification-ledger
+```
+
+That is the status-token and progress-checkbox exemption doing precisely the job
+this delivery documents, on this delivery's own artifacts, at the moment it
+mattered. It is also the reason the follow-on proposing to shrink that exemption
+was measured and dismissed: every completion in this repository depends on it.
+
+Every observation in this file — 21 killing mutations, 3 innocent-edit probes,
+eight review rounds, three harness corruptions, one false repair and two false
+alarms of my own — was written here rather than into either approved artifact.
+Neither hash moved across any of it. That was the delivery's whole claim.
