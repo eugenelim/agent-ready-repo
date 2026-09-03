@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.23.1] — 2026-09-03
+## [core][2.23.2] — 2026-09-03
 
 ### Highlights
 
@@ -78,6 +78,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   record's published grammars.
 - This release moves every workspace's routing identity, so an in-flight legacy
   migration needs a fresh confirmation.
+
+## [core][2.23.1] — 2026-09-03
+
+### Highlights
+
+- **Closeout no longer offers to close an initiative that still has shaping or
+  delivery-brief work open.** Eligibility was read from the initiative's spec
+  work alone, so an initiative whose every spec had shipped was recommended for
+  closeout while its intents and draft delivery briefs were untouched. It now
+  reports a named blocker instead, and stops recommending the skill that
+  distils and dispositions.
+- **Both record shapes now count as remaining shaping work.** A shaping record
+  written in the canonical form was invisible to the check, which read only the
+  older shape — so an initiative whose remaining shaping work was written
+  entirely in the current form looked empty. Retiring a record now stops it
+  counting in both shapes alike, where before the two forms disagreed. A
+  shipped, withdrawn, or cancelled delivery brief is still correctly treated as
+  finished.
 
 ## [core][2.23.0] — 2026-09-03
 

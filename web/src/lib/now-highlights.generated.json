@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.23.1"
+          "version": "2.23.2"
         }
       ],
       "date": "2026-09-03",
-      "heading": "[core][2.23.1] — 2026-09-03",
-      "changelogAnchor": "core2231--2026-09-03",
+      "heading": "[core][2.23.2] — 2026-09-03",
+      "changelogAnchor": "core2232--2026-09-03",
       "highlights": [
         {
           "source": "**A local dependency can keep resolving after the delivery it names has been closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`, `completion_event`, and `evidence_ref` on the citing local need. Only `completed` satisfies the dependency; `abandoned` and `superseded` keep the refusal visible.",
@@ -91,6 +91,45 @@
             {
               "type": "text",
               "value": " This keeps a malformed receipt from becoming the only surviving account of a pruned dependency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.23.1"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.23.1] — 2026-09-03",
+      "changelogAnchor": "core2231--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open.** Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open."
+            },
+            {
+              "type": "text",
+              "value": " Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions."
+            }
+          ]
+        },
+        {
+          "source": "**Both record shapes now count as remaining shaping work.** A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Both record shapes now count as remaining shaping work."
+            },
+            {
+              "type": "text",
+              "value": " A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished."
             }
           ]
         }
