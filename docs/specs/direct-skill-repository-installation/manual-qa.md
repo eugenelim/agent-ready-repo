@@ -65,7 +65,7 @@ and appeared only when the real CLI ran.
 ## Not exercised
 
 `upgrade`, `list-installed`, `show`, and `uninstall` for direct rows are not
-built; AC4, AC7, AC9, AC22, and AC30 stay unticked for that reason.
+built; AC4, AC7, AC9, AC22, and AC30 left the spec's final list by approved amendment on 2026-09-01 for that reason, each routed to a named owner in the spec's Follow-ons.
 
 **Superseded, 2026-09-01.** During this session the receipt printed an
 `uninstall --skill` line the CLI does not accept, so the `uninstall:` line in

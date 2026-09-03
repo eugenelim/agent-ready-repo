@@ -59,7 +59,7 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | Digest ambiguity | Resolved | u64be length prefixes; a committed vector pair proves `("ab", b"c")` and `("a", b"bc")` digest differently. |
 | Digest re-baselined by a newer build | Resolved | A foreign prefix refuses comparison and directs reinstallation rather than recomputing. |
 | Two envelopes collapsing to one digest entry | Resolved | The preimage uses the full relative path from the source root, never the leaf identity. |
-| Capability widening on upgrade | **Pending the lifecycle command surface** | The comparison engine exists and is tested — re-consent on any change to tools, `SKILL.md` digest, skill identity set, payload digests, boundaries, or credentialed status, with acceptance tied to a pin over the exact displayed difference set — but it has no production caller, because `upgrade` does not yet handle a direct row. AC30 is unticked for the same reason. |
+| Capability widening on upgrade | **Pending the lifecycle command surface** | The comparison engine exists and is tested — re-consent on any change to tools, `SKILL.md` digest, skill identity set, payload digests, boundaries, or credentialed status, with acceptance tied to a pin over the exact displayed difference set — but it has no production caller, because `upgrade` does not yet handle a direct row. AC30 left the final list for the same reason and is owned by `direct-lifecycle-capability-reconsent` in `workspace.toml [backlog].open`. |
 | Unreadable old data treated as unchanged | Resolved | Drift is `unknown`, which refuses even with the acceptance flag. |
 | New runtime dependency | Resolved | None added. The direct modules are stdlib-only; a fresh import leaves `yaml` absent. |
 
@@ -92,7 +92,7 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | **AST06** SSRF | Resolved | See the outbound-acquisition module. |
 | **AST07** Version drift | Resolved | `source-revision` and `source-digest` recorded per row; updates are decided by digest, never by a recorded version string. |
 | **AST08** Poor scanning | Resolved | Static architecture controls over the direct modules, each paired with a mutation fixture that fails if the control is removed. |
-| **AST09** Governance | **Partly pending** | The diagnostic-code table is published in full and lint-checked for set equality against the registry, and every install records a state row carrying its canonical source, revision, and digest. `list-installed`, `show`, and `uninstall --skill` do **not** yet handle a direct row, so an installed direct skill is recorded but not yet inspectable or removable through the CLI. |
+| **AST09** Governance | **Partly pending** | The diagnostic-code table is published in full and lint-checked for set equality against the registry, and every install records a state row carrying its canonical source, revision, and digest. `list-installed`, `show`, and `uninstall --skill` do **not** yet handle a direct row, so an installed direct skill is recorded but not yet inspectable or removable through the CLI. Owners for the unbuilt surfaces: `list-installed` rendering is `direct-lifecycle-display`, per-skill inspection is `direct-lifecycle-capability-inspection`, `uninstall --skill` is `direct-lifecycle-uninstall-skill`, and the upgrade route is `docs/specs/direct-skill-lifecycle/`. Removal through `uninstall --pack <identity> --yes` does work today, as the Unresolved-blockers section records. |
 | **AST10** Missing security metadata | Resolved | `metadata.boundaries` and `metadata.credentialed` are read, reported in the capability block, and compared on upgrade in both directions. |
 
 ---
@@ -101,8 +101,9 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 
 None that are unstated. Two rows above are **pending** rather than resolved, and
 both depend on the same unbuilt surface — `upgrade`, `list-installed`, `show`,
-and `uninstall` for direct rows — which is why AC4, AC7, AC9, AC22, and AC30 are
-unticked in the spec. Until that lands, an installed direct skill is recorded in
+and `uninstall` for direct rows — which is why AC4, AC7, AC9, AC22, and AC30 left the spec's final list by approved
+amendment on 2026-09-01; the spec is Shipped with every remaining criterion met, and each
+departed criterion is routed to a named owner in its Follow-ons. Until that lands, an installed direct skill is recorded in
 state but cannot be inspected or upgraded through the CLI. Removal does work:
 `uninstall --pack <identity> --yes` resolves a direct row by its state key and
 removes both the projected files and the row, and as of 2026-09-01 the receipt
