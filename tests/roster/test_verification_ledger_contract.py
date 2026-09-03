@@ -77,13 +77,19 @@ def _section(relative: str, anchor: str) -> str:
     clauses it was meant to cover.
     """
     text = _read(relative)
-    occurrences = text.count(anchor)
-    assert occurrences == 1, (
-        f"{relative}: anchor {anchor!r} occurs {occurrences} times, expected exactly "
-        "one — `index` would silently take the first, so an injected earlier copy "
-        "could carry the pinned clauses while the real region went unread"
+    # Count and start offset come from one line-anchored match, so uniqueness and
+    # extraction cannot disagree. A raw `count` plus a raw `index` disagree in both
+    # directions: a prose cross-link — this template already carries
+    # ``[`## Rollout`](#rollout)`` beside the real heading — would redden the suite
+    # on a documentation-only edit, while an earlier occurrence inside a comment
+    # would still be taken as the region start. All ten anchors are line-initial.
+    matches = list(re.finditer(rf"^{re.escape(anchor)}", text, re.MULTILINE))
+    assert len(matches) == 1, (
+        f"{relative}: anchor {anchor!r} occurs {len(matches)} times at the start of a "
+        "line, expected exactly one — an injected structural duplicate would be "
+        "extracted while the real region went unread"
     )
-    start = text.index(anchor) + len(anchor)
+    start = matches[0].end()
     if anchor.startswith(">"):
         # A blockquote contract line ends where the blockquote does. The bold-lead
         # terminator matched neither a blockquote end nor an HTML comment, so the
@@ -172,7 +178,12 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
             # only the prohibition left ("; use the verification ledger.")
             # asserted by nothing, and deleting it kept all thirteen green.
             "Never name `spec.md` or `plan.md` as an execution-evidence destination",
-            "use the verification ledger",
+            # One contiguous span across the semicolon, not the bare tail. Pinning
+            # `use the verification ledger` alone was satisfied by its own
+            # negation: inserting one word — "; never use the verification
+            # ledger." — kept the substring present and the suite green while the
+            # shipped instruction said the opposite.
+            "execution-evidence destination; use the verification ledger",
         ),
         (),
     ),
