@@ -1000,9 +1000,9 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
-  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
   {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
   {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
