@@ -2,6 +2,7 @@
 
 - **Status:** Draft
 - **Level:** feature
+- **Authority:** [RFC-0071 D8](../../rfc/0071-digital-experience-doctrine.md)
 
 ## Outcome
 
@@ -18,5 +19,5 @@ The product-strategy pack has useful strategy methods but does not yet require t
 ## Source
 
 - Mode: repo-origin
-- Locator: workspace.toml
+- Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f

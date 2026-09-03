@@ -4,6 +4,7 @@
 - **Received:** 2026-09-03
 - **Owner:** Repository maintainers (`ini-003`)
 - **Status:** Draft
+- **Authority:** [RFC-0071 § Implementation sequence](../../rfc/0071-digital-experience-doctrine.md)
 
 ## Outcome
 
@@ -31,3 +32,9 @@ It is Draft because no delivery slices are proposed yet.
 **Non-goals**
 
 - Proposing implementation slices, specs, or plans for any of these intents.
+
+## Source
+
+- Mode: repo-origin
+- Locator: docs/rfc/0071-digital-experience-doctrine.md
+- Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
