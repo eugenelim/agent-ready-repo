@@ -54,6 +54,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.23.2] — 2026-09-03
+
+### Highlights
+
+- **A local dependency can keep resolving after the delivery it names has been
+  closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`,
+  `completion_event`, and `evidence_ref` on the citing local need. Only
+  `completed` satisfies the dependency; `abandoned` and `superseded` keep the
+  refusal visible.
+- **Completion receipts now fail before they are written when their delivery
+  result or evidence fields do not match the published contract.** This keeps a
+  malformed receipt from becoming the only surviving account of a pruned
+  dependency.
+
+### Changed
+
+- A local need can carry a completion receipt with exactly `delivery_id`,
+  `outcome`, `completion_event`, and `evidence_ref`. A `defect`-kind need cannot
+  carry one.
+- The producer now validates `outcome` against `completed`, `abandoned`, and
+  `superseded`, and validates the other three fields against the lifecycle
+  record's published grammars.
+- This release moves every workspace's routing identity, so an in-flight legacy
+  migration needs a fresh confirmation.
+
 ## [core][2.23.1] — 2026-09-03
 
 ### Highlights

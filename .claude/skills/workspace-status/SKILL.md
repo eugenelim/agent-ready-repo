@@ -187,6 +187,7 @@ identifier to the repository root without checking it is a path first.
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
 | `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
+| `invalid_completion_receipt` | A local completion receipt has the wrong fields, value types, grammar, or outcome. | Replace it with a valid reviewed completion receipt for that dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
 
