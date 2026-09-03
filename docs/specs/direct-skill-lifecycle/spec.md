@@ -1,6 +1,6 @@
 # Spec: Direct skill identity and upgrade
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0098 (D4, D5, D6)
@@ -159,7 +159,7 @@ Each row names the parent criterion or RFC decision this criterion discharges, a
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — AC4 changes a shipped refusal and AC3 adds a public CLI flag RFC-0098 D6 does not enumerate | `docs/adr/` | scope owner | One ADR covering both: the identity tuple citing D4, and `--source` as the only route that moves a commit-pinned row, citing D4's re-resolution clause and D6's closed grammar | ADR `Accepted`, named in `Constrained by:`, asserted by a check that exits non-zero when absent |
+| Decision rationale | Applicable — AC4 changes a shipped refusal, AC3 adds a public CLI flag RFC-0098 D6 does not enumerate, and AC7 takes over a clause a frozen spec still carries | `docs/adr/` | scope owner | One ADR covering three: the identity tuple citing D4; `--source` as the only route that moves a commit-pinned row, citing D4's re-resolution clause and D6's closed grammar; and the parent spec's AC12 re-derive clause passing to AC7, which is the decision its frozen `Status` line points at. Per § *Cite upward, never downward* the ADR does not cite either spec back | ADR `Accepted`, named in `Constrained by:`, asserted by a check that exits non-zero when absent |
 | Interface compatibility | Applicable — `upgrade` gains a selector and `--source` | `packages/agentbundle/agentbundle/cli.py` argument grammar | work-loop | AC1's parser tests | Every usage error exits 2 and every not-installed lookup exits 1 with a registered code; the author-facing examples are `direct-lifecycle-author-documentation`'s |
 | User-facing promise | Applicable | `packages/agentbundle/README-pypi.md`, `docs/product/changelog.md` | work-loop | Release entry naming the upgrade route and the changed refusal | Release-surface roster test green |
 | Release history | Applicable | `packages/agentbundle/CHANGELOG.md`, `docs/product/changelog.md` | work-loop | Entries under the released version | Roster test green |
