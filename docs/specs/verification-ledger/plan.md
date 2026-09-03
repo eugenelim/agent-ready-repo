@@ -143,7 +143,7 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 - Give the lifecycle reference, the public explanation, and `work-loop/SKILL.md` Step 2 a pointer each. The how-to's mid-flight section and `references/pre-execute-review.md` § *Mid-EXECUTE re-plan* keep their **retained rule statements** as well as a pointer; round 2 established that `pre-execute-review.md:205-215` independently states the permitted edit set and is rule-bearing, not pointer-only, so treating it as a pure pointer would delete correct guidance and drop a killing mutation. `references/state-schema.md` takes no edit.
 - Add no synthetic marker where existing structure already addresses a site. Measured: six of the guarded sites are unique real headings, and the template's `Done when:` instruction occurs exactly once. Only the convention's § 4 paragraphs, `state-schema.md` (one heading in the whole file), and the template's opening `Plan contract` blockquote lack a natural address, and T7 resolves those by assertion shape rather than by marking the prose. Nothing added cites anything under `docs/specs/`, so shipped pack content stays free of internal-governance citations.
 
-**Done when:** every site AC2 enumerates resolves to the canonical owner or the lifecycle procedure through its own role, and the convention is the only place a rule is stated.
+**Done when:** every site AC2 enumerates resolves to the canonical owner or the lifecycle procedure, and the convention is the only *normative* statement of the boundary — the three surfaces AC2 names keep their existing statements.
 
 ### T7: Rebuild the roster guard on per-role assertions
 

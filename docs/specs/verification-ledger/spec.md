@@ -15,7 +15,7 @@
 
 An implementer records execution observations without changing either approved, hash-pinned delivery artifact. `spec.md` acceptance criteria and `plan.md` task rows name obligations to discharge; `docs/specs/<feature>/notes/verification-ledger.md` records post-approval mutations, red results, assertion text, digest comparisons, and deviations.
 
-One canonical source states the boundary, and every operational site reaches it by pointer rather than restating it. Five review rounds established that distributed prose restatements cannot be held in agreement mechanically: widening a guarded region let one site's clause satisfy another's, and widening a phrase marker rejected correct prose. The reasoning and the rejected alternatives are in [`notes/redesign-decision.md`](notes/redesign-decision.md).
+One canonical source is the sole normative statement of the boundary. Three surfaces named in AC2 keep a consistent statement of their own because each is already correct and relied on elsewhere; every remaining operational site reaches the owner by pointer rather than restating it. Five review rounds established that distributed prose restatements cannot be held in agreement mechanically: widening a guarded region let one site's clause satisfy another's, and widening a phrase marker rejected correct prose. The reasoning and the rejected alternatives are in [`notes/redesign-decision.md`](notes/redesign-decision.md).
 
 ## Durable Outputs
 
@@ -35,7 +35,7 @@ One canonical source states the boundary, and every operational site reaches it 
 
 - Keep obligations in `spec.md` acceptance criteria or `plan.md` task rows; write execution-produced observations to the sibling verification ledger.
 - Treat `packs/core/seeds/docs/CONVENTIONS.md` as the source of the projected `docs/CONVENTIONS.md`, regenerated through the existing self-host build.
-- Keep the convention as sole mutability-rule owner. Every other operational site carries a pointer to it or to the lifecycle procedure, and states no rule of its own.
+- Keep the convention as the sole *normative* mutability-rule owner. The three surfaces AC2 names keep their existing consistent statements and stay guarded; every other operational site carries a pointer to the owner or to the lifecycle procedure and states no rule of its own.
 
 ### Ask first
 
@@ -51,7 +51,7 @@ One canonical source states the boundary, and every operational site reaches it 
 ## Testing Strategy
 
 - **Authoring contradiction: TDD.** A remotely gated `tests/roster/` test exercises the real freeze guard, pins the owner and the three retained statements, and proves each enumerated pointer independently. How a site is addressed and how cross-satisfaction is prevented are implementation choices the plan selects on measured evidence, not properties this spec fixes.
-- **Documentation, execution-pointer, and projection wiring: goal-based check.** The roster guard verifies the six closed rule-bearing sources, the how-to's two clauses, and `work-loop/SKILL.md`'s pointer; `FORCE=1 make build-self` regenerates projections after source changes, and existing pack/repository gates validate the generated and release surfaces.
+- **Documentation, execution-pointer, and projection wiring: goal-based check.** The roster guard verifies the canonical owner, the three retained statements, and each enumerated pointer; `FORCE=1 make build-self` regenerates projections after source changes, and existing pack/repository gates validate the generated and release surfaces.
 - **Release surface: goal-based check.** Existing release tests verify core pack/plugin version parity and require a current `now` projection whenever the release has a `Highlights` subsection.
 
 ## Acceptance Criteria
