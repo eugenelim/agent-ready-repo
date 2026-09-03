@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.23.0"
+          "version": "2.23.1"
         }
       ],
       "date": "2026-09-03",
-      "heading": "[core][2.23.0] — 2026-09-03",
-      "changelogAnchor": "core2230--2026-09-03",
+      "heading": "[core][2.23.1] — 2026-09-03",
+      "changelogAnchor": "core2231--2026-09-03",
       "highlights": [
         {
           "source": "**A local dependency can keep resolving after the delivery it names has been closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`, `completion_event`, and `evidence_ref` on the citing local need. Only `completed` satisfies the dependency; `abandoned` and `superseded` keep the refusal visible.",
