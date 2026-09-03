@@ -522,3 +522,50 @@ That is the third distinct way a probe has corrupted state in this delivery:
 `replace("", x, 1)` prepending, an exception between mutate and restore, and now
 a signal between mutate and restore. The invariant that caught all three was the
 same one — never trust a harness's own report, ask git.
+
+## Round 7: the fixes to the fixes
+
+Two of three sustained. Both were defects *in the round-6 repairs*, which is the
+third consecutive round where the repair introduced the next finding.
+
+**R7-F1 — a bare substring is satisfied by its own negation.** R6-F1's repair
+pinned the tail `use the verification ledger`. Inserting one word into the
+template — `; never use the verification ledger.` — keeps that substring present,
+so the suite stayed at `13 passed` while the shipped instruction said the
+opposite of the boundary. Nothing else in that region could see it: the row
+carries no routing clause, `RETIRED_LICENCES` has no match, and there is no
+`notes/*.md` path for the absence check to read. Now pinned as one contiguous
+span across the semicolon: `execution-evidence destination; use the
+verification ledger`. Mutation → `1 failed`.
+
+**R7-F3 — uniqueness and extraction could disagree.** R6-F3's repair made the
+*count* shape-blind (`text.count`) while extraction stayed raw (`text.index`),
+so the two disagreed in both directions. A documentation-only edit would redden
+the suite: the template already carries ``[`## Rollout`](#rollout)`` beside the
+real heading, so the same authored form applied to `## Changelog` is the round-3
+false-positive shape reproduced, not a hypothetical. And an earlier occurrence
+inside a comment would still be taken as the region start, reopening what R6-F3
+closed. Both now come from one line-anchored match, so they cannot disagree.
+Verified all ten anchors are line-initial exactly once.
+
+Proved in both directions, which is what the earlier rounds kept failing to do:
+
+| Probe | Edit | Result |
+| --- | --- | --- |
+| R7-F1 | negate the redirection, all substrings still present | `1 failed` |
+| R7-F3 killer | inject a structural duplicate `## Changelog` heading | `3 failed` |
+| R7-F3 false-positive | add a prose cross-link mentioning `` `## Changelog` `` | `13 passed` — stays green |
+
+**R7-F2 was refuted**, and the refutation is worth keeping: the blockquote
+terminator's lazy-continuation concern rests on an edit shape absent from the
+artifact, both blockquotes in the file carry the marker on every line, `_flat`
+strips markers so an ordinary re-wrap stays green, and the failure mode would be
+a loud red naming the file rather than a green hole. Adding CommonMark block
+parsing to a prose-matching guard would also re-approach the widening R6-F2
+closed.
+
+### Cumulative at `76e6edd31`
+
+**21 killing mutations and 3 innocent-edit probes.** Unmutated baseline
+`13 passed`. Every restoration verified with `git diff --quiet`, and the harness
+now restores in a `finally`.
