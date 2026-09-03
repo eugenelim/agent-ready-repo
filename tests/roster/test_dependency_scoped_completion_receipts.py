@@ -437,6 +437,59 @@ def test_a_completed_receipt_satisfies_a_pruned_dependency(tmp_path):  # AC4
     assert _codes_for(result, DEPENDANT) == set()
 
 
+def test_the_engine_satisfies_on_every_published_completion_event(tmp_path: Path) -> None:  # AC4
+    """Narrowing the engine's event rule must redden something.
+
+    `_fixture` fixes one event, so without this every engine case proves the
+    satisfying path for `merge` alone: narrowing the validator's application to
+    `!= "merge"` would refuse valid `release` and `acceptance` receipts with
+    `invalid_completion_receipt` while the whole suite stayed green. This is the
+    consumer twin of the producer coverage, and the same asymmetry the producer
+    mutation exposed. Members are read from the lifecycle record, not restated.
+    """
+    published = _load(LIFECYCLE_SCHEMA)["properties"]["completion_event"]["enum"]
+    assert len(published) == 3
+    for event in published:
+        result = _run_status(
+            _fixture(
+                tmp_path / event,
+                keep_membership=False,
+                outcome="completed",
+                receipt_changes={"completion_event": event},
+            )
+        )
+        assert DEPENDANT in {e["path"] for e in result["canonical"]["ready"]}, event
+        assert _codes_for(result, PRUNED_DEPENDENCY) == set(), event
+
+
+@pytest.mark.parametrize(
+    "evidence_ref",
+    ["commit:" + "b" * 40, "pr:7", "run:99"],
+    ids=["commit", "pr", "run"],
+)
+def test_the_engine_satisfies_on_every_evidence_ref_alternative(
+    tmp_path: Path, evidence_ref: str
+) -> None:  # AC4
+    """Each alternative is checked against the record's grammar, then accepted.
+
+    The pattern cannot be enumerated, so each sample is validated against the
+    grammar read from the lifecycle record before the engine sees it; a sample
+    that stopped being valid fails here rather than weakening the claim.
+    """
+    pattern = _load(LIFECYCLE_SCHEMA)["$defs"]["evidenceRef"]["pattern"]
+    assert re.fullmatch(pattern, evidence_ref), evidence_ref
+    result = _run_status(
+        _fixture(
+            tmp_path,
+            keep_membership=False,
+            outcome="completed",
+            receipt_changes={"evidence_ref": evidence_ref},
+        )
+    )
+    assert DEPENDANT in {e["path"] for e in result["canonical"]["ready"]}
+    assert _codes_for(result, PRUNED_DEPENDENCY) == set()
+
+
 def test_surviving_membership_refuses_before_the_receipt(tmp_path: Path) -> None:  # AC5
     """A target still registered as shipped cannot resolve through its receipt."""
     result = _run_status(_fixture(tmp_path, keep_membership=True, outcome="completed"))
