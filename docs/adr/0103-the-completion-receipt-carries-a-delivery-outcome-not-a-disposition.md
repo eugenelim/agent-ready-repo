@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-02
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 (the receipt's four fields and its per-citation lifetime); [`close-work-extraction-and-immediate-disposition`](../specs/close-work-extraction-and-immediate-disposition/spec.md) AC17 (which shipped the producer this decision constrains); [`dependency-scoped-completion-receipts`](../specs/dependency-scoped-completion-receipts/spec.md) (the contract this decision governs)
+- **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 (the receipt's four fields and its per-citation lifetime)
 
 ## Decision summary
 
