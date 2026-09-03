@@ -54,6 +54,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.24.1] — 2026-09-03
+
+### Fixed
+
+- Corrected the workspace-status closeout failure-path comment to say that an unreadable record withholds the affirmative without naming the record.
+
 ## [core][2.24.0] — 2026-09-03
 
 ### Highlights

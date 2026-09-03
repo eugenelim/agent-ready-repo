@@ -61,7 +61,7 @@ exact observable it must produce.
 | `user-documentation` (workflow instructions) | Applicable: the agent-rendered closeout gate reads the changed facts | [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | maintainer | AC14, AC15, AC16, AC32 | Closeout verifies the exclusion statement, the narrowed rationale, the withholding rule, and the two retained conditions |
 | `capability-evidence` (frozen live dependencies) | Applicable: two frozen spec directories are depended on and neither may change | Wave 6's and Wave 5's `docs/specs/` directories | maintainer | AC23's digest table | Closeout verifies every listed digest |
 | `release-history` | Applicable: a shipped Core capability | [`docs/product/changelog.md`](../../product/changelog.md) | maintainer | AC31 | Closeout verifies the three release surfaces agree |
-| `project-knowledge` | Conditional and intentionally unresolved until implementation produces reusable learning | — | `project-knowledge` gate | The gate's receipt, or an explicit not-applicable finding | Closeout requires one of the two |
+| `project-knowledge` | Resolved: no reusable learning; see the delivery-local closeout record | [notes/closeout-records.md](notes/closeout-records.md) | `project-knowledge` gate | The gate's receipt, or an explicit not-applicable finding | Closeout requires one of the two |
 
 ## Boundaries
 
