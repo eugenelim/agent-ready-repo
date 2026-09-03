@@ -1,6 +1,6 @@
 # Spec: architect-knowledge-surfaces
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (§ Acceptance criteria's register anchor `architect-review-diagram-knowledge-surfaces` was closed by commits 556a6faf9 and 74ccf1a56; not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -51,7 +51,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Ask first
 
 - Extending the consult step to `architect-review` or `architect-diagram`
-  (deferred: architect-review-diagram-knowledge-surfaces).
+  (deferred: architect-review-diagram-knowledge-surfaces — closed 2026-09-03 by 556a6faf9 and 74ccf1a56).
 - Introducing any declared registry, shared-config file, or `~/.agentbundle`
   lookup for knowledge surfaces.
 - Any edit to `docs/CONVENTIONS.md` or `docs/CHARTER.md` (would require an RFC).

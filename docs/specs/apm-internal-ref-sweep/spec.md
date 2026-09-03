@@ -2,7 +2,7 @@
 
 Mode: light (no risk trigger fired — mechanical prose/comment cleanup, single logical task, familiar territory; owner directed light mode).
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (§ Acceptance criteria's register anchor `credbroker-frozen-pack-ref-sweep` was closed by commit 6a2ca03d2; not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** inline (light mode)
 - **Constrained by:** none
@@ -35,7 +35,7 @@ left for a separate pass.
 - [x] `make build-self` zero drift; `make build-check`, `lint-skill-spec`, `lint-packs`, the touched script self-tests all pass.
 - [x] No behavior change: every edit is comment/docstring/prose only (code paths untouched).
 - [x] All real carve-outs left intact: spec-driven workflow vocabulary (`docs/specs/<feature>/…`, `docs/rfc/`, `docs/adr/`), real IETF RFCs (`RFC-9457`, `RFC-1918`), template placeholders, and `test-lint-spec-status.py` fixture data.
-- [ ] `credential-brokers` `.apm/**` RFC citations (setup.py, user-libs/credbroker) are **not** swept here (deferred: credbroker-frozen-pack-ref-sweep).
+- [ ] `credential-brokers` `.apm/**` RFC citations (setup.py, user-libs/credbroker) are **not** swept here (deferred: credbroker-frozen-pack-ref-sweep — closed 2026-09-03 by 6a2ca03d2).
 
 ## Tasks
 
