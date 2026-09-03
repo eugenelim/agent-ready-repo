@@ -765,7 +765,7 @@ def _closeout_projection(
     cooled_by_initiative: dict[str, set[str]],
     *,
     dueness_failed: bool = False,
-    canonical_evaluations: list[dict],
+    canonical_shaping_records: list[dict],
 ) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
@@ -804,26 +804,34 @@ def _closeout_projection(
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
-    # Shaping residue is read from BOTH layers because neither sees the other's
-    # entries. `initiative.shaping` carries only legacy-shaped records:
-    # `_parse_supported_shaping_entry` drops anything whose parse is not
-    # `legacy_entry`, so every canonical `{path, kind}` shaping entry is absent
-    # from it. Reading only that field reported an initiative whose entire
-    # shaping queue is canonical as having none. `brief_queue` has no such
-    # split. `.shipped`, `.withdrawn` and `.cancelled` are terminal and are not
-    # residue; the brief-dependency terminal set is deliberately not reused
-    # here, because it counts `Ready` and `Executing` as terminal, which answers
-    # "is this dependency satisfied", not "is this brief closed".
+    # Shaping residue is read from the reconciled record layers, never from
+    # `initiative.shaping`, and both shapes go through one predicate so they
+    # cannot disagree. Two reasons, and each rules out the other source:
+    #
+    #   - `initiative.shaping` holds ONLY legacy-shaped records, because
+    #     `_parse_supported_shaping_entry` drops anything whose parse is not
+    #     `legacy_entry`. Reading it alone reported an initiative whose shaping
+    #     entries are all canonical as having none.
+    #   - `initiative.shaping` is also built straight from the raw TOML with no
+    #     cooling filter, while `evaluations` and `legacy_memberships` both drop
+    #     cooled memberships. Mixing the two gave one answer for a cooled
+    #     canonical entry and the opposite for the same cooled entry written in
+    #     the legacy shape.
+    #
+    # `evaluations` carries the canonical entries and `legacy_memberships` the
+    # supported legacy ones; together they are the whole shaping membership,
+    # already cooled-filtered on both sides.
+    #
+    # `brief_queue` has no such split. `.shipped`, `.withdrawn` and `.cancelled`
+    # are terminal and are not residue. The brief *dependency* terminal set is
+    # deliberately not reused here: it counts `Ready` and `Executing` as
+    # terminal, which answers "is this dependency satisfied", not "is this
+    # brief closed".
     brief_queue = initiative.brief_queue
-    shaping_residue = (
-        initiative.shaping.active
-        or initiative.shaping.backlog
-        or any(
-            evaluation["ini_slug"] == initiative.slug
-            and evaluation["collection"]
-            in {"shaping_queue.active", "shaping_queue.backlog"}
-            for evaluation in canonical_evaluations
-        )
+    shaping_residue = any(
+        record["ini_slug"] == initiative.slug
+        and record["collection"] in {"shaping_queue.active", "shaping_queue.backlog"}
+        for record in canonical_shaping_records
     )
     if (
         shaping_residue
@@ -966,7 +974,10 @@ def _build_json(root: Path, result, mode: str) -> dict:
             result,
             cooled_by_initiative,
             dueness_failed=bool(unreadable),
-            canonical_evaluations=canonical["evaluations"],
+            canonical_shaping_records=[
+                *canonical["evaluations"],
+                *canonical["legacy_memberships"],
+            ],
         )
         if closeout is not None:
             output["closeout"] = closeout

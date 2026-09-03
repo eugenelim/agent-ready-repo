@@ -36,38 +36,80 @@ def _entry(path: str, kind: str) -> str:
     )
 
 
+def _shipped_spec_entry(root: Path, *, parent: str | None = None) -> str:
+    """Write the one Shipped spec every fixture needs, optionally brief-owned.
+
+    `parent` attributes the spec to a brief via `source.parent`. A
+    `brief_queue.executing` entry is only valid when a child is `Implementing`
+    or `Shipped`, so an executing-brief fixture without this is not an executing
+    brief at all — it reconciles as `impossible_transition` and would prove
+    nothing about residue. Attributing the already-Shipped spec satisfies the
+    rule while keeping `all_specs_shipped` true, which is what isolates the
+    residue blocker.
+    """
+    spec = root / "docs/specs/shipped/spec.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    spec.write_text("# Shipped spec\n\n- **Status:** Shipped\n", encoding="utf-8")
+    (spec.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    source = '{ mode = "repo-origin" }'
+    if parent is not None:
+        source = f'{{ mode = "repo-origin", parent = "{parent}" }}'
+    return (
+        '{ path = "docs/specs/shipped/spec.md", kind = "spec", source = '
+        + source
+        + ', summary = "Shipped spec", needs = [] }'
+    )
+
+
 def _write_workspace(
     root: Path,
     *,
     shaping_backlog: bool = False,
+    shaping_active: bool = False,
     legacy_shaping_backlog: bool = False,
+    legacy_shaping_active: bool = False,
     brief_collection: str | None = None,
 ) -> None:
     """Write an all-shipped workspace with the requested initiative residue."""
-    spec = root / "docs/specs/shipped/spec.md"
-    spec.parent.mkdir(parents=True)
-    spec.write_text("# Shipped spec\n\n**Status:** Shipped\n", encoding="utf-8")
-    (spec.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    brief_path = None
+    if brief_collection is not None:
+        brief_path = f"docs/product/briefs/{brief_collection}-brief.md"
+    # `executing` and `cancelled` are the two collections that assert execution
+    # evidence is PRESENT, so only those two claim the shipped spec as a child.
+    # The others assert it is absent and must not.
+    shipped_entry = _shipped_spec_entry(
+        root, parent=brief_path if brief_collection in {"executing", "cancelled"} else None
+    )
 
-    # A legacy-shaped record is the ONLY thing `initiative.shaping` carries, so
-    # it is the only input that exercises that half of the residue condition.
-    shaping = '{slug = "legacy-shape-item", type = "shape"}' if legacy_shaping_backlog else ""
-    if shaping_backlog:
-        shaping = _entry("docs/product/intents/open-intent.md", "intent")
+    def _canonical_shaping() -> str:
         intent = root / "docs/product/intents/open-intent.md"
         intent.parent.mkdir(parents=True, exist_ok=True)
-        intent.write_text("# Open intent\n\n**Status:** Draft\n", encoding="utf-8")
+        intent.write_text("# Open intent\n\n- **Status:** Draft\n", encoding="utf-8")
+        return _entry("docs/product/intents/open-intent.md", "intent")
+
+    # A legacy-shaped record and a canonical one reach the projection through
+    # different reconciled layers, so each shape needs its own fixture.
+    legacy = '{slug = "legacy-shape-item", type = "shape"}'
+    active = ""
+    backlog = ""
+    if shaping_backlog:
+        backlog = _canonical_shaping()
+    if shaping_active:
+        active = _canonical_shaping()
+    if legacy_shaping_backlog:
+        backlog = legacy
+    if legacy_shaping_active:
+        active = legacy
 
     brief_section = ""
     if brief_collection is not None:
-        brief_path = f"docs/product/briefs/{brief_collection}-brief.md"
         brief = root / brief_path
         brief.parent.mkdir(parents=True, exist_ok=True)
         # The brief lifecycle status must match its collection exactly, or the
         # entry reconciles as `impossible_transition` and the fixture proves
         # nothing about residue.
         status = brief_collection.capitalize()
-        brief.write_text(f"# Brief\n\n**Status:** {status}\n", encoding="utf-8")
+        brief.write_text(f"# Brief\n\n- **Status:** {status}\n", encoding="utf-8")
         brief_section = (
             '\n["ini-001".brief_queue]\n'
             f"{brief_collection} = [{_entry(brief_path, 'brief')}]\n"
@@ -84,11 +126,11 @@ def _write_workspace(
                 '["ini-001".work]',
                 'queue = []',
                 'active = []',
-                f"shipped = [{_entry('docs/specs/shipped/spec.md', 'spec')}]",
+                f"shipped = [{shipped_entry}]",
                 '',
                 '["ini-001".shaping_queue]',
-                'active = []',
-                f"backlog = [{shaping}]" if shaping else "backlog = []",
+                f"active = [{active}]",
+                f"backlog = [{backlog}]",
                 brief_section,
             ]
         ),
@@ -172,6 +214,42 @@ def test_ready_brief_blocks_closeout(tmp_path: Path) -> None:
     _write_workspace(tmp_path, brief_collection="ready")
 
     assert "initiative-residue" in _closeout(tmp_path)["closeout_blockers"]
+
+
+def test_canonical_active_shaping_blocks_closeout(tmp_path: Path) -> None:
+    _write_workspace(tmp_path, shaping_active=True)
+
+    closeout = _closeout(tmp_path)
+
+    assert closeout["all_specs_shipped"] is True
+    assert "initiative-residue" in closeout["closeout_blockers"]
+    assert closeout["initiative_eligible"] is False
+
+
+def test_legacy_active_shaping_blocks_closeout(tmp_path: Path) -> None:
+    _write_workspace(tmp_path, legacy_shaping_active=True)
+
+    assert "initiative-residue" in _closeout(tmp_path)["closeout_blockers"]
+
+
+def test_withdrawn_brief_is_not_closeout_residue(tmp_path: Path) -> None:
+    """`withdrawn` is terminal. Without this, adding it to the condition passes."""
+    _write_workspace(tmp_path, brief_collection="withdrawn")
+
+    closeout = _closeout(tmp_path)
+
+    assert "initiative-residue" not in closeout["closeout_blockers"]
+    assert closeout["initiative_eligible"] is True
+
+
+def test_cancelled_brief_is_not_closeout_residue(tmp_path: Path) -> None:
+    """`cancelled` is terminal. Without this, adding it to the condition passes."""
+    _write_workspace(tmp_path, brief_collection="cancelled")
+
+    closeout = _closeout(tmp_path)
+
+    assert "initiative-residue" not in closeout["closeout_blockers"]
+    assert closeout["initiative_eligible"] is True
 
 
 def test_shaping_and_brief_residue_emit_one_blocker(tmp_path: Path) -> None:

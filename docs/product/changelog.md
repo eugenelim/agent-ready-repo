@@ -67,8 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Both record shapes now count as remaining shaping work.** A shaping record
   written in the canonical form was invisible to the check, which read only the
   older shape — so an initiative whose remaining shaping work was written
-  entirely in the current form looked empty. A shipped, withdrawn, or cancelled
-  delivery brief is still correctly treated as finished.
+  entirely in the current form looked empty. Retiring a record now stops it
+  counting in both shapes alike, where before the two forms disagreed. A
+  shipped, withdrawn, or cancelled delivery brief is still correctly treated as
+  finished.
 
 ## [core][2.23.0] — 2026-09-03
 

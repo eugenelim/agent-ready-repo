@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "workspace status",
-      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog — 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently — all classification and backlog data comes from the backend JSON.",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start \u2014 spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog \u2014 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently \u2014 all classification and backlog data comes from the backend JSON.",
       "assertions": [
         "Invokes the backend script rather than independently parsing workspace.toml or recomputing the DAG",
         "Reports the active initiative name from the JSON output ('Example Initiative')",
@@ -12,11 +12,24 @@
         "Renders a dynamically counted two-item Backlog section from repo_backlog.open",
         "Reports example-build as [build] before example-shape as [shape]"
       ],
-      "files": ["evals/files/workspace.toml"],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
       "expect": {
         "produces": [],
-        "output_contains": ["Example Initiative", "Backlog", "2 open item", "[build]", "example-build", "[shape]", "example-shape"],
-        "output_excludes": ["Traceback", "workspace-status error:"]
+        "output_contains": [
+          "Example Initiative",
+          "Backlog",
+          "2 open item",
+          "[build]",
+          "example-build",
+          "[shape]",
+          "example-shape"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -28,11 +41,20 @@
         "Reports the workspace_fingerprint from the plan JSON",
         "Distinguishes automatic_operations from manual_findings"
       ],
-      "files": ["evals/files/workspace.toml"],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
       "expect": {
-        "produces": [".workspace-repair-plan.json"],
-        "output_contains": ["repair-plan"],
-        "output_excludes": ["Traceback", "workspace-status error:"]
+        "produces": [
+          ".workspace-repair-plan.json"
+        ],
+        "output_contains": [
+          "repair-plan"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -43,11 +65,17 @@
         "Uses repo_backlog.open from the backend JSON as the repository backlog contract",
         "Does not render a Backlog section for an empty repository backlog"
       ],
-      "files": ["evals/files/empty/workspace.toml"],
+      "files": [
+        "evals/files/empty/workspace.toml"
+      ],
       "expect": {
         "produces": [],
         "output_contains": [],
-        "output_excludes": ["Backlog —", "Traceback", "workspace-status error:"]
+        "output_excludes": [
+          "Backlog \u2014",
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -59,11 +87,22 @@
         "Reports the intent entry as [shape] and the defect entry as [build]",
         "Preserves source order"
       ],
-      "files": ["evals/files/target/workspace.toml"],
+      "files": [
+        "evals/files/target/workspace.toml"
+      ],
       "expect": {
         "produces": [],
-        "output_contains": ["Backlog", "[shape]", "docs/product/intents/example.md", "[build]", "docs/specs/example-defect/spec.md"],
-        "output_excludes": ["Traceback", "workspace-status error:"]
+        "output_contains": [
+          "Backlog",
+          "[shape]",
+          "docs/product/intents/example.md",
+          "[build]",
+          "docs/specs/example-defect/spec.md"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -83,8 +122,19 @@
       ],
       "expect": {
         "produces": [],
-        "output_contains": ["tracker-origin", "example-service", "remote-rev-2", "remote-rev-1", "unknown"],
-        "output_excludes": ["Outcome", "Example Approver", "Traceback", "workspace-status error:"]
+        "output_contains": [
+          "tracker-origin",
+          "example-service",
+          "remote-rev-2",
+          "remote-rev-1",
+          "unknown"
+        ],
+        "output_excludes": [
+          "Outcome",
+          "Example Approver",
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -96,11 +146,20 @@
         "Directs the user to close-work for closeout",
         "Performs no write, compaction, or deletion"
       ],
-      "files": ["evals/files/workspace.toml"],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
       "expect": {
         "produces": [],
-        "output_contains": ["close-work"],
-        "output_excludes": ["deleted", "compacted", "Traceback", "workspace-status error:"]
+        "output_contains": [
+          "close-work"
+        ],
+        "output_excludes": [
+          "deleted",
+          "compacted",
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
@@ -113,28 +172,49 @@
         "Names shipped, withdrawn, and cancelled terminal collections",
         "Treats a Shipped child as execution evidence without automatic brief closure"
       ],
-      "files": ["evals/files/workspace.toml"],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
       "expect": {
         "produces": [],
-        "output_contains": ["Executing"],
-        "output_excludes": ["Traceback", "workspace-status error:"]
+        "output_contains": [
+          "Executing"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     },
     {
       "id": 8,
       "prompt": "Show whether this all-shipped initiative can be closed and what I should do next.",
-      "expected_output": "The agent uses the workspace-status closeout projection. It reports that initiative-residue blocks closeout while shaping_queue has an active or backlog entry, even when work.queue and work.active are empty. It directs the user to settle closeout blockers rather than invoke close-work, and makes no write or lifecycle decision.",
+      "expected_output": "The agent uses the workspace-status closeout projection. The initiative's only spec is Shipped, so all_specs_shipped is true, yet initiative-residue blocks closeout because shaping_queue.backlog still holds a Draft intent. It directs the user to settle closeout blockers rather than invoke close-work, and makes no write or lifecycle decision.",
       "assertions": [
         "Uses the backend closeout projection rather than deriving eligibility from work collections alone",
+        "Reports all_specs_shipped as true while still refusing closeout",
         "Reports initiative-residue as a closeout blocker",
         "Directs the user to settle closeout blockers rather than invoke close-work",
         "Performs no write, compaction, deletion, or lifecycle transition"
       ],
-      "files": ["evals/files/residue/workspace.toml"],
+      "files": [
+        "evals/files/residue/workspace.toml",
+        "evals/files/residue/docs/specs/example-shipped/spec.md",
+        "evals/files/residue/docs/specs/example-shipped/plan.md",
+        "evals/files/residue/docs/product/intents/open-intent.md"
+      ],
       "expect": {
         "produces": [],
-        "output_contains": ["initiative-residue", "settle-closeout-blockers"],
-        "output_excludes": ["deleted", "compacted", "Traceback", "workspace-status error:"]
+        "output_contains": [
+          "initiative-residue",
+          "settle-closeout-blockers"
+        ],
+        "output_excludes": [
+          "deleted",
+          "compacted",
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     }
   ]

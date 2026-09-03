@@ -26,7 +26,7 @@
           ]
         },
         {
-          "source": "**Both record shapes now count as remaining shaping work.** A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished.",
+          "source": "**Both record shapes now count as remaining shaping work.** A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished.",
           "segments": [
             {
               "type": "strong",
@@ -34,7 +34,7 @@
             },
             {
               "type": "text",
-              "value": " A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished."
+              "value": " A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. Retiring a record now stops it counting in both shapes alike, where before the two forms disagreed. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished."
             }
           ]
         }
