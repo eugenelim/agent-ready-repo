@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
-- **Brief:** [`docs/product/briefs/universal-implementer-dispatch.md`](../../product/briefs/universal-implementer-dispatch.md)
+- **Brief:** docs/product/briefs/universal-implementer-dispatch.md
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
