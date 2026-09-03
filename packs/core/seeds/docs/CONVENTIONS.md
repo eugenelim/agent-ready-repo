@@ -493,14 +493,17 @@ mechanical rule.
   legacy record's `slug` field, or a canonical record's `path` through
   `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
   on its owning directory and any other artifact on its file stem. New entries
-  take the canonical shape; the write-side ratchet in
-  `tests/roster/test_workspace_status_projection.py` caps the legacy-shaped
-  count and must not be raised. A canonical entry's `path` must name an
-  artifact that exists, so a deferral with no artifact of its own points at the
-  document recording it. Do not use this marker as a new shipping exception. A
-  follow-on recorded only in a PR comment rots; the register or external
-  artifact is the stable pointer. Run `workspace-status` to see open backlog
-  items.
+  take the canonical shape. A canonical `[backlog].open` entry must name an
+  artifact that exists *and* whose `Status` is `Draft`, unless its `kind` is
+  `defect`, which admits any carrier that is not `Closed`. A deferral with no
+  artifact of its own therefore takes a Draft artifact of its own; it cannot
+  point at the shipped document that records it, because a shipped or accepted
+  carrier and an open backlog membership cannot coexist. Do not use this marker
+  as a new shipping exception: a marker left in a body that later freezes pins
+  its entry in `[backlog].open` permanently, since the frozen body cannot be
+  edited to retire it. A follow-on recorded only in a PR comment rots; the
+  register or external artifact is the stable pointer. Run `workspace-status`
+  to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which

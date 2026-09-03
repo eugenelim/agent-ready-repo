@@ -5,15 +5,15 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.22.1"
+          "version": "2.23.1"
         }
       ],
-      "date": "2026-09-02",
-      "heading": "[core][2.22.1] — 2026-09-02",
-      "changelogAnchor": "core2221--2026-09-02",
+      "date": "2026-09-03",
+      "heading": "[core][2.23.1] — 2026-09-03",
+      "changelogAnchor": "core2231--2026-09-03",
       "highlights": [
         {
-          "source": "**Evidence from a run now has a place to go that the approved plan does not.** Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. The guidance that suggested an approved plan could still be reworked said so in six places; all six now agree with what the tool actually enforces, and a check fails if any one of them drifts back.",
+          "source": "**Evidence from a run now has a place to go that the approved plan does not.** Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted.",
           "segments": [
             {
               "type": "strong",
@@ -21,7 +21,75 @@
             },
             {
               "type": "text",
-              "value": " Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. The guidance that suggested an approved plan could still be reworked said so in six places; all six now agree with what the tool actually enforces, and a check fails if any one of them drifts back."
+              "value": " Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.23.0"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.23.0] — 2026-09-03",
+      "changelogAnchor": "core2230--2026-09-03",
+      "highlights": [
+        {
+          "source": "**The deferral-token convention now states the rule the tooling enforces.** An open register entry needs an artifact of its own in `Draft`, unless it is a defect; it cannot point at the shipped document that recorded the deferral, because a shipped or accepted carrier and an open register membership cannot coexist. The previous wording directed authors to exactly that shape, so following it produced a record the tooling refuses to route.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The deferral-token convention now states the rule the tooling enforces."
+            },
+            {
+              "type": "text",
+              "value": " An open register entry needs an artifact of its own in "
+            },
+            {
+              "type": "code",
+              "value": "Draft"
+            },
+            {
+              "type": "text",
+              "value": ", unless it is a defect; it cannot point at the shipped document that recorded the deferral, because a shipped or accepted carrier and an open register membership cannot coexist. The previous wording directed authors to exactly that shape, so following it produced a record the tooling refuses to route."
+            }
+          ]
+        },
+        {
+          "source": "**The convention now warns that a deferral marker outlives its own record.** A `(deferred: <slug>)` marker left in a body that later freezes pins its register entry open permanently, because the frozen body can no longer be edited to retire the marker.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The convention now warns that a deferral marker outlives its own record."
+            },
+            {
+              "type": "text",
+              "value": " A "
+            },
+            {
+              "type": "code",
+              "value": "(deferred: <slug>)"
+            },
+            {
+              "type": "text",
+              "value": " marker left in a body that later freezes pins its register entry open permanently, because the frozen body can no longer be edited to retire the marker."
+            }
+          ]
+        },
+        {
+          "source": "**Removed a reference to a repository-only test path.** The clause pointed adopters at a file that exists only in this repository, and at a count ceiling that no longer exists.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Removed a reference to a repository-only test path."
+            },
+            {
+              "type": "text",
+              "value": " The clause pointed adopters at a file that exists only in this repository, and at a count ceiling that no longer exists."
             }
           ]
         }

@@ -136,6 +136,62 @@ variances:
   rule: `runtime-package` remains unavailable until M2 package-lifecycle claims
   and runtime-profile gates pass; the 2b spec's `Never do` boundary therefore
   excludes it from that successor slice.
+- **2026-09-02 — slice 3b is discarded and re-cut into 3c, 3d, and 3e.** The
+  original slice bundled seven runtime profiles, the router's per-claim state and
+  roll-up reporting with its provider response-contract change, two composition
+  behavior fixtures, and the `runtime-package` mode. It was drafted, reviewed
+  clean across five rounds, and discarded on 2026-09-01 rather than shipped
+  against a D3 charter then under correction. Its four residuals are re-homed
+  with none orphaned. The brief's retained slice-3b row is the canonical statement
+  of that mapping, because the frozen spec's four Follow-ons resolve through it.
+  **Authority:** RFC-0097 § Errata, 2026-09-01 (D3 narrowing), which
+  records the discard; and the frozen
+  [`agent-skill-engineering-composition-floors`](../../specs/agent-skill-engineering-composition-floors/spec.md)
+  spec's `Contract:` field, which assigns the claim-state reporting to "the slice
+  that completes the eight profiles" — slice 3c under this cut. That spec's
+  ticked AC26 requires the brief to carry a slice-3b row with its own `Ships`
+  cell and hard predecessor, so the row is **re-pointed and retained**, not
+  deleted; its four Follow-ons continue to resolve through it.
+
+  Three consequences of this cut are recorded here, each labelled by how it was
+  reached:
+  - **The three-way distribution — owner decision, not a derivation.** The cited authorities
+    fix that the claim-state reporting belongs with the profiles; nothing
+    requires the behavior fixtures and the `runtime-package` mode to separate
+    into 3e and 3d rather than into one successor slice.
+  - **Slice 4's hard predecessor changes from `Slices 1 and 3b` to
+    `Slices 1 and 3a`,** because slice 4 needs the composition floors and the
+    capability ledger that 3a shipped, and nothing 3b would have shipped.
+    `docs/specs/agent-skill-engineering-consumer-integrations/spec.md` cites this
+    entry for that cell and **must not ship before this change lands**; the
+    slice-table cell is owned here, not there.
+  - **Slices 5 and 6 gain predecessors on the re-cut slices — owner sequencing
+    decision.** Slice 6's edges on 3d and 3e are derived: closeout asserts M2
+    complete and promotes the architecture to `CURRENT`, which those slices
+    supply. Slice 5's edge on 3c is *not* derived, and the two six-element sets it
+    might seem to rest on are not in correspondence. § *Guidance disposition*
+    names six **surfaces**; Gate 4 names six **fixtures**; "runtime-extension
+    selection" is a fixture, not a surface. The surface it exercises is
+    *Maintainer/skill-author guides*, whose migrate cell carries runtime
+    capability selection alongside four other items. So the profiles are needed
+    before that surface collapses, and gating the whole of slice 5 on 3c is a
+    conservative owner call rather than a derivation. Before these edges, slices
+    3d and 3e were terminal — 3c already had 3d as a successor — and the cut could
+    not express its own closure condition.
+- **2026-09-02 — RFC-0097 § D6 is narrowed by erratum.** The narrowing's scope is
+  stated in [RFC-0097 § Errata, 2026-09-02](../../rfc/0097-agent-skill-engineering.md#errata)
+  and is not restated here, so there is one statement of it. What this initiative
+  records is only the consequence for delivery: this initiative's rule that
+  footprint deletion is gated by cold-agent task parity and retrieval measurements
+  is unchanged, and no slice's obligations move. **Authority:** that erratum,
+  Approver-signed.
+
+  This change edits `docs/rfc/0097-agent-skill-engineering.md` and the delivery
+  brief, which are the recorded parents of five `sha256-bytes-v1` source pins in
+  `workspace.toml`. Those pins are **deliberately left unmoved**: they record the
+  bytes each queued item was reviewed against, and re-pinning them here would
+  assert a re-review that did not happen. The next `work-intake refresh`
+  adjudicates the resulting drift. No gate consumes these pins today.
 
 ## Links
 

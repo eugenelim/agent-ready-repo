@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.22.1] — 2026-09-02
+## [core][2.23.1] — 2026-09-03
 
 ### Highlights
 
@@ -63,9 +63,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   observed result to be written back into it could never be satisfied. Plans
   now keep the obligation and a sibling verification ledger keeps the
   observation — the mutation that was applied, the check that went red, the
-  digest that was compared. The guidance that suggested an approved plan could
-  still be reworked said so in six places; all six now agree with what the tool
-  actually enforces, and a check fails if any one of them drifts back.
+  digest that was compared. One convention states when substantive edits stop,
+  and a check fails if that statement is reverted.
+
+## [core][2.23.0] — 2026-09-03
+
+### Highlights
+
+- **The deferral-token convention now states the rule the tooling enforces.** An
+  open register entry needs an artifact of its own in `Draft`, unless it is a
+  defect; it cannot point at the shipped document that recorded the deferral,
+  because a shipped or accepted carrier and an open register membership cannot
+  coexist. The previous wording directed authors to exactly that shape, so
+  following it produced a record the tooling refuses to route.
+- **The convention now warns that a deferral marker outlives its own record.** A
+  `(deferred: <slug>)` marker left in a body that later freezes pins its register
+  entry open permanently, because the frozen body can no longer be edited to
+  retire the marker.
+- **Removed a reference to a repository-only test path.** The clause pointed
+  adopters at a file that exists only in this repository, and at a count ceiling
+  that no longer exists.
 
 ## [core][2.22.0] — 2026-09-02
 

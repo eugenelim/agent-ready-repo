@@ -9,7 +9,6 @@ Coverage:
 
 from __future__ import annotations
 
-import collections
 import hashlib
 import importlib.util
 import json
@@ -915,62 +914,24 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
 
 
-class RepositoryLifecycleRatchetTests(unittest.TestCase):
-    """Ratchet the repository's own workspace.toml against lifecycle drift.
+class RepositoryHealthTests(unittest.TestCase):
+    """Action signals over the repository's own workspace.toml.
 
-    Nothing else in CI runs the reconciliation engine over the real
-    `workspace.toml`, so the fail-closed findings that core 2.12.4 drove to zero
-    could silently return. This asserts the repaired state directly.
+    `workspace.toml` is a living action dashboard, not an archive: entries
+    arrive, get dispositioned, and leave. Every assertion here is therefore
+    zero-tolerance on state that is *currently broken*, and none of them counts
+    how much legacy content the file happens to hold. A count ceiling pins a
+    snapshot of hand-authored content that is expected to change on almost
+    every edit, so it nags without preventing drift and has to be re-measured
+    rather than reasoned about.
 
-    The excluded codes are the known, deliberately non-empty compatibility
-    backlog -- `unsupported_legacy` and `legacy_entry` are retained legacy
-    records scheduled as later cleanup groups, and `missing_plan` /
-    `unsatisfied_dependency` track real queued work. They are ratcheted by
-    count below rather than required to be zero.
+    Engine *behaviour* -- that these codes are raised at all, and that each
+    finding stays individually attributable -- is proven against synthetic
+    fixtures in `WorkspaceEngineFixtureTests`, not against this file.
+
+    This class remains the only place CI runs the reconciliation engine over
+    the real `workspace.toml`, which is why the fail-closed set stays here.
     """
-
-    #: Legacy-shaped entries per collection, measured at core 2.12.4. Lower is
-    #: always allowed; higher fails. `[backlog].closed` is deliberately absent:
-    #: it is append-only history, every closure record there is legacy-shaped by
-    #: established practice, and ratcheting it would nag on every future
-    #: closure without preventing any drift.
-    _LEGACY_SHAPE_CEILINGS = {
-        "backlog.open": 160,
-        "ini-002.shaping_queue.backlog": 1,
-        "ini-002.work.shipped": 1,
-    }
-
-    @staticmethod
-    def _is_legacy_shaped(entry: object) -> bool:
-        """A bare string, or an inline table with no `path` key."""
-        if isinstance(entry, str):
-            return True
-        return isinstance(entry, dict) and "path" not in entry
-
-    def _legacy_counts(self) -> dict[str, int]:
-        with (REPO_ROOT / "workspace.toml").open("rb") as handle:
-            data = tomllib.load(handle)
-        counts: dict[str, int] = {}
-        for key, section in data.items():
-            if not (isinstance(section, dict) and key.startswith("ini-")):
-                continue
-            for name in ("work", "shaping_queue", "brief_queue"):
-                sub = section.get(name)
-                if not isinstance(sub, dict):
-                    continue
-                for list_name, entries in sub.items():
-                    if isinstance(entries, str):
-                        entries = [entries] if entries else []
-                    if not isinstance(entries, list):
-                        continue
-                    total = sum(1 for e in entries if self._is_legacy_shaped(e))
-                    if total:
-                        counts[f"{key}.{name}.{list_name}"] = total
-        open_entries = data.get("backlog", {}).get("open", [])
-        total = sum(1 for e in open_entries if self._is_legacy_shaped(e))
-        if total:
-            counts["backlog.open"] = total
-        return counts
 
     def _canonical(self):
         engine = _load_workspace_status_engine()
@@ -978,6 +939,7 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
         return engine.run_canonical_reconciliation(workspace, REPO_ROOT)
 
     def test_no_fail_closed_lifecycle_findings(self) -> None:
+        """Codes that always mean the repository is currently broken."""
         canonical = self._canonical()
         for code in (
             "missing_artifact",
@@ -988,62 +950,95 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
             "invalid_entry",
             "invalid_workspace",
             "dependency_cycle",
+            # An artifact's status and its lifecycle membership cannot coexist.
+            # Zero-tolerance rather than ceilinged: any occurrence is a real
+            # contradiction, and repointing a backlog entry at a Shipped or
+            # Accepted carrier raises exactly one per entry.
+            "impossible_transition",
         ):
             offenders = sorted(f.path for f in canonical.findings if f.code == code)
             self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
 
-    def test_legacy_shaped_entries_do_not_grow(self) -> None:
-        """New work must be registered canonically, not by copying a neighbour.
 
-        This is the write-side ratchet: legacy records are retained
-        deliberately as later cleanup groups, but no collection may gain one.
+class WorkspaceEngineFixtureTests(unittest.TestCase):
+    """Engine behaviour, proven on synthetic workspaces.
+
+    These assert what the engine *does*, so they belong on fixture data whose
+    shape the test controls. Asserting them against the repository's own file
+    made them hostage to whatever legacy content it currently held.
+    """
+
+    def _engine(self):
+        return _load_workspace_status_engine()
+
+    def _reconcile_body(self, body: str, root: Path | None = None):
+        if root is None:
+            root = Path(tempfile.mkdtemp())
+            self.addCleanup(shutil.rmtree, root, True)
+        (root / "workspace.toml").write_text(body, encoding="utf-8")
+        engine = self._engine()
+        return engine.run_canonical_reconciliation(
+            engine.parse_workspace(root / "workspace.toml"), root
+        )
+
+    def test_legacy_records_are_individually_attributable(self) -> None:
+        """Each legacy record names itself, never the containing file.
+
+        The diagnostic property core 2.12.4 established: a reader must be able
+        to route one finding to one record, so findings must not collapse onto
+        `workspace.toml`.
         """
-        counts = self._legacy_counts()
-        for collection, total in sorted(counts.items()):
-            ceiling = self._LEGACY_SHAPE_CEILINGS.get(collection, 0)
-            self.assertLessEqual(
-                total,
-                ceiling,
-                f"{collection} now holds {total} legacy-shaped entries "
-                f"(ceiling {ceiling}). Register the new entry canonically as "
-                f"{{path, kind, source, summary, needs}} -- see the shape "
-                f"guidance at the top of workspace.toml. Do not raise this "
-                f"ceiling to make the check pass.",
-            )
-
-    def test_tolerated_finding_counts_do_not_regress(self) -> None:
-        """Fail-open finding classes stay bounded, so drift cannot hide in them."""
-        canonical = self._canonical()
-        counts = collections.Counter(f.code for f in canonical.findings)
-        for code, ceiling in (
-            ("legacy_entry", 2),
-            # Restored to 8 on 2026-08-31. The ninth had been INI-009 slice 2b
-            # declaring its real dependency on slice 2a, raised with owner
-            # approval because dropping the edge would have made a blocked slice
-            # look startable. That edge cleared when 2a shipped and the measured
-            # count returned to 8, so the slot is retired rather than left as
-            # silent headroom.
-            ("unsatisfied_dependency", 8),
-            ("missing_plan", 5),
-            # A shipped child is execution evidence, so open programme briefs
-            # whose currently materialized slices are all shipped remain valid
-            # in `brief_queue.executing`. No tolerated transition drift remains.
-            ("impossible_transition", 0),
-        ):
-            self.assertLessEqual(
-                counts.get(code, 0),
-                ceiling,
-                f"{code} rose above its 2.12.4 ceiling: {counts.get(code, 0)}",
-            )
-
-    def test_every_legacy_finding_is_individually_attributable(self) -> None:
-        """The 2.12.4 diagnostic property, asserted against the real file."""
-        canonical = self._canonical()
+        canonical = self._reconcile_body(
+            "[backlog]\n"
+            "open = [\n"
+            '  {slug = "alpha-legacy", source = "spec/one AC1"},\n'
+            '  {slug = "beta-legacy", source = "spec/two AC2"},\n'
+            '  {slug = "gamma-legacy", source = "spec/three AC3"},\n'
+            "]\n"
+            "closed = []\n"
+        )
         legacy = [f for f in canonical.findings if f.code == "unsupported_legacy"]
         identifiers = [f.path for f in legacy]
-        self.assertNotIn("workspace.toml", identifiers,
-                         "findings collapsed back onto the containing file")
         self.assertEqual(
-            len(set(identifiers)), len(identifiers),
+            len(legacy), 3, f"expected one finding per legacy record: {identifiers}"
+        )
+        self.assertNotIn(
+            "workspace.toml",
+            identifiers,
+            "findings collapsed back onto the containing file",
+        )
+        self.assertEqual(
+            len(set(identifiers)),
+            len(identifiers),
             "two legacy records share one identifier",
+        )
+        self.assertEqual(
+            sorted(identifiers), ["alpha-legacy", "beta-legacy", "gamma-legacy"]
+        )
+
+    def test_canonical_backlog_entry_needs_a_draft_artifact(self) -> None:
+        """A non-defect `[backlog].open` entry requires `Status: Draft`.
+
+        This is the rule that makes repointing a deferral at the shipped spec
+        which records it impossible, and it is why the file's shape guidance
+        directs a deferral to a Draft artifact of its own.
+        """
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, True)
+        spec = root / "docs" / "specs" / "alpha" / "spec.md"
+        spec.parent.mkdir(parents=True)
+        spec.write_text("# Alpha\n\n- **Status:** Shipped\n", encoding="utf-8")
+        canonical = self._reconcile_body(
+            "[backlog]\n"
+            "open = [\n"
+            '  {path = "docs/specs/alpha/spec.md", kind = "intent", '
+            'source = {mode = "repo-origin"}, summary = "s", needs = []},\n'
+            "]\n"
+            "closed = []\n",
+            root=root,
+        )
+        self.assertIn(
+            "impossible_transition",
+            {f.code for f in canonical.findings},
+            "a Shipped artifact cannot back an open backlog entry",
         )
