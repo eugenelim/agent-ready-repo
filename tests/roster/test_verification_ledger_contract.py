@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import pathlib
 import re
 from pathlib import Path
 from types import ModuleType
@@ -83,9 +84,9 @@ def _section(relative: str, anchor: str | None) -> str:
     start = text.index(anchor) + len(anchor)
     if anchor.startswith("#"):
         depth = len(anchor) - len(anchor.lstrip("#"))
-        terminator = rf"\n#{{1,{depth}}} "
+        terminator = rf"\n#{{1,{depth}}}[ \t]"
     else:
-        terminator = r"\n\*\*[A-Z]|\n#{1,6} "
+        terminator = r"\n[ \t]*\*\*\w|\n#{1,6}[ \t]"
     match = re.search(terminator, text[start:])
     end = start + match.start() if match else len(text)
     region = text[start:end]
@@ -114,7 +115,7 @@ SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = 
             "only while the plan is `Drafting`, and ends when the plan is approved",
             "both `spec.md` and `plan.md` are pinned in substance",
         ),
-        ("An observation produced by execution belongs in the sibling verification ledger",),
+        ("An observation produced by execution belongs in the sibling `notes/verification-ledger.md`",),
     ),
     (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
@@ -161,37 +162,61 @@ SOURCES: tuple[tuple[str, str | None, tuple[str, ...], tuple[str, ...]], ...] = 
 )
 
 
-def test_the_guard_pins_both_approved_artifacts_and_admits_executing() -> None:
-    """Exercise the real guard: `Executing` is legal, a substantive edit is not."""
+def test_the_status_guard_admits_executing_and_refuses_a_regressed_token(
+    tmp_path,
+) -> None:
+    """Call the real status guard, not its data table.
+
+    Asserting that `"Executing"` appears in `_LEGAL_AFTER_APPROVAL` proves a
+    string is present, not that the guard admits the status. Minimal fixtures
+    are used rather than this delivery's own artifacts, so a later edit to them
+    cannot make this pass or fail for a reason unrelated to the guard.
+    """
     guards = _load_guards()
 
-    legal = guards._LEGAL_AFTER_APPROVAL
-    assert "Executing" in legal["plan.md"], "plan.md must admit Executing after approval"
-    assert "Implementing" in legal["spec.md"], "spec.md must admit Implementing after approval"
+    def _write(spec_status: str, plan_status: str) -> pathlib.Path:
+        directory = tmp_path / f"{spec_status}-{plan_status}"
+        directory.mkdir()
+        (directory / "spec.md").write_text(
+            f"# Spec: fixture\n\n- **Status:** {spec_status}\n", encoding="utf-8"
+        )
+        (directory / "plan.md").write_text(
+            f"# Plan: fixture\n\n- **Status:** {plan_status}\n", encoding="utf-8"
+        )
+        return directory
 
-    spec_dir = ROOT / "docs/specs/verification-ledger"
-    baseline_plan = guards.sha256_canonical_contract(spec_dir / "plan.md")
-    baseline_spec = guards.sha256_canonical_contract(spec_dir / "spec.md")
+    legal = _write("Implementing", "Executing")
+    assert (
+        guards.assert_status_legal("probe", legal / "spec.md", legal / "plan.md") is None
+    ), "the guard must admit an Executing plan beside an Implementing spec"
 
-    # The two documented exemptions must not move the digest.
-    plan_text = (spec_dir / "plan.md").read_text(encoding="utf-8")
-    assert "- **Status:** Approved" in plan_text
-    exempt = plan_text.replace("- **Status:** Approved", "- **Status:** Executing", 1)
-    assert guards.canonical_contract(exempt, ac_section_only=False) == guards.canonical_contract(
-        plan_text, ac_section_only=False
+    regressed = _write("Implementing", "Drafting")
+    reason = guards.assert_status_legal(
+        "probe", regressed / "spec.md", regressed / "plan.md"
+    )
+    assert reason is not None and "Drafting" in reason, (
+        "the guard must refuse a plan whose status regressed out of the "
+        f"post-approval set; got {reason!r}"
+    )
+
+
+def test_a_substantive_edit_moves_the_pin_but_bookkeeping_does_not() -> None:
+    """The exemption every governing source describes, run against the real hasher."""
+    guards = _load_guards()
+    plan = "# Plan: fixture\n\n- **Status:** Approved\n\n## Approach\n\nOne step.\n"
+
+    def canon(text: str) -> str:
+        return guards.canonical_contract(text, ac_section_only=False)
+
+    assert canon(plan.replace("- **Status:** Approved", "- **Status:** Executing", 1)) == canon(
+        plan
     ), "the preamble status token must stay exempt from the pin"
-
-    # A substantive edit must move it. This is the property every governing
-    # source below describes in prose.
-    substantive = plan_text.replace(
-        "## Approach", "## Approach\n\nAn execution observation is recorded here.", 1
-    )
-    assert guards.canonical_contract(
-        substantive, ac_section_only=False
-    ) != guards.canonical_contract(plan_text, ac_section_only=False), (
-        "a substantive plan edit must move the canonical digest"
-    )
-    assert baseline_plan and baseline_spec, "both approved artifacts must hash"
+    assert canon(plan.replace("One step.", "One step.\n\n- [x] done\n", 1)) == canon(
+        plan.replace("One step.", "One step.\n\n- [ ] done\n", 1)
+    ), "progress checkboxes must stay exempt from the pin"
+    assert canon(
+        plan.replace("One step.", "One step. Record the observed red here.", 1)
+    ) != canon(plan), "a substantive plan edit must move the canonical digest"
 
 
 def test_every_governing_source_states_the_pinned_half() -> None:
@@ -294,4 +319,76 @@ def test_the_core_release_surfaces_agree() -> None:
     assert core_headings, "changelog carries no [core] release heading"
     assert core_headings[0] == pack, (
         f"topmost [core] changelog heading is {core_headings[0]}, not the shipped {pack}"
+    )
+
+
+#: AC3's closed set, pinned independently of `SOURCES` so deleting a row from
+#: one cannot silently shrink the other.
+AC3_REQUIRED_SOURCES = (
+    "packs/core/seeds/docs/CONVENTIONS.md",
+    "packs/core/.apm/skills/new-spec/assets/plan.md",
+    "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md",
+    "guides/core/explanation/why-the-plan-owns-the-lld.md",
+    "packs/core/.apm/skills/work-loop/references/pre-execute-review.md",
+    "packs/core/.apm/skills/work-loop/references/state-schema.md",
+)
+
+#: The canonical path, or a resolvable pointer to the section that owns it.
+LEDGER_DESTINATIONS = (
+    "notes/verification-ledger.md",
+    "delivery-contract-lifecycle.md#verification-ledger",
+    "plan-and-execute-non-trivial-work.md",
+)
+
+
+def test_the_closed_source_set_keeps_every_member_ac3_names() -> None:
+    """Deleting a `SOURCES` row must fail here rather than shrink the guard.
+
+    `SOURCES` both defines and is iterated by the clause tests, so a removed row
+    takes its own assertions with it and every other test stays green. Pinning
+    membership to the criterion closes that.
+    """
+    covered = tuple(relative for relative, _anchor, _pinned, _routing in SOURCES)
+    assert covered == AC3_REQUIRED_SOURCES, (
+        "SOURCES no longer matches AC3's closed set of six rule-bearing sources; "
+        f"missing {sorted(set(AC3_REQUIRED_SOURCES) - set(covered))!r}, "
+        f"unexpected {sorted(set(covered) - set(AC3_REQUIRED_SOURCES))!r}"
+    )
+
+
+def test_every_routing_surface_names_one_canonical_destination() -> None:
+    """A source may not invent its own ledger path.
+
+    Carrying the word "ledger" is not agreement: a source could route an
+    observation to `notes/execution-log.md` and still read plausibly.
+    """
+    for relative, anchor, _pinned, routing in SOURCES:
+        if not routing:
+            continue
+        flat = _flat(_section(relative, anchor))
+        assert any(dest in flat for dest in LEDGER_DESTINATIONS), (
+            f"{relative}: routes an execution observation somewhere other than the "
+            f"canonical destination — expected one of {LEDGER_DESTINATIONS!r}"
+        )
+
+
+def test_the_core_release_heading_sits_directly_beneath_unreleased() -> None:
+    """AC4 requires adjacency, which "first [core] heading anywhere" does not give."""
+    import tomllib
+
+    changelog = _read("docs/product/changelog.md")
+    following = re.findall(
+        r"^## \[([^\]]+)\]\[([^\]]+)\]",
+        changelog[changelog.index("## [Unreleased]") :],
+        re.MULTILINE,
+    )
+    assert following, "no versioned release heading follows [Unreleased]"
+    artifact, version = following[0]
+    pack = tomllib.loads(_read("packs/core/pack.toml"))["pack"]["version"]
+    assert artifact == "core", (
+        f"the heading directly beneath [Unreleased] is [{artifact}], not [core]"
+    )
+    assert version == pack, (
+        f"the heading directly beneath [Unreleased] is core {version}, "
+        f"not the shipped {pack}"
     )
