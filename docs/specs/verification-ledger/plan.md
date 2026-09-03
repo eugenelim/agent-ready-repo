@@ -10,7 +10,7 @@
 
 Correct one false premise at its source: the plan freezes in substance when `approve-plan` pins it, not when the feature ships. Add the sibling verification-ledger contract to the existing lifecycle reference, then make the template and small work-loop pointers route execution evidence there. A roster test joins the freeze guard to those authoring sources so reverting any one cannot silently restore the contradiction. Source changes precede projection regeneration, the index, and the release surface.
 
-**Amended 2026-09-03.** T1-T5 shipped the distributed-restatement design and it did not hold: five review rounds each found a real guard defect, and rounds 4 and 5 each introduced defects while repairing others. T6-T8 reanchor the same outcome on one canonical rule with guarded pointer roles. T1-T5 remain as executed; their sections are preserved unedited under the amendment.
+**Amended 2026-09-03.** T1-T5 shipped the distributed-restatement design and it did not hold: five review rounds each found a real guard defect, and rounds 4 and 5 each introduced defects while repairing others. The prose those tasks shipped is correct — measured against the merge-base, no surface carries the false premise in either vocabulary — so the defects are guard-side and T6 repairs them there. T1-T5 remain as executed; their sections are preserved unedited under the amendment.
 
 This plan is subject to the freeze it describes, as is its sibling `spec.md`. If implementation produces a mutation red, digest comparison, assertion text, or deviation, the executor writes it to `docs/specs/verification-ledger/notes/verification-ledger.md`; the approved artifacts name that destination but never contain the observation.
 
@@ -31,9 +31,9 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| canonical authoring rule — convention seed and projection | T1, T5, T6, T8 | roster test; self-host regeneration | generated projection agrees with seed |
-| portable verification-ledger procedure | T1, T2, T6 | roster test | every enumerated pointer role resolves |
-| executable contradiction guard | T3, T7 | mutation red and focused pytest | remote `tests/` gate includes it |
+| canonical authoring rule — convention seed and projection | T1, T5 | roster test; self-host regeneration | generated projection agrees with seed |
+| portable verification-ledger procedure | T1, T2 | roster test | the shipped pointers resolve to the ledger procedure |
+| executable contradiction guard | T3, T6 | mutation red and focused pytest | remote `tests/` gate includes it |
 | spec index | T4 | README row follows new-spec format | index points to this spec |
 | release history | T5 | version-parity and site-routing checks | topmost core entry and any highlights projection |
 | delivery-local execution evidence | execution after approval | ledger only when observations occur | ledger remains outside approved hash |
@@ -43,9 +43,9 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 ### Design decisions
 
 - The ledger is Markdown at `docs/specs/<feature>/notes/verification-ledger.md`. It holds observed mutations, red results, assertion text, digest comparisons, and deviations; `spec.md` criteria and `plan.md` task rows retain obligations. Traces to: AC1, AC2, AC3.
-- **Amended 2026-09-03.** `packs/core/seeds/docs/CONVENTIONS.md` is the sole normative statement of the boundary. Every other operational site carries a pointer to that owner or to the lifecycle ledger procedure. The public how-to and `references/pre-execute-review.md` additionally keep the correct rule statements they already had, and those stay guarded; `references/state-schema.md` keeps its mechanism description unedited. The superseded design had six surfaces restate the boundary "in their own operational terms"; five review rounds established that distributed restatements cannot be held in agreement mechanically, because every repair either widened a region until one site's clause satisfied another's or widened a phrase marker until it rejected correct prose. `references/state-schema.md` § *What the pin covers* stays unedited and describes the hash mechanism only. Traces to: AC1, AC2.
+- **Amended 2026-09-03, reduced the same day.** `packs/core/seeds/docs/CONVENTIONS.md` is the sole normative statement of the boundary; the how-to and `references/pre-execute-review.md` keep the correct statements they already had, and `references/state-schema.md` keeps its mechanism description unedited. T1-T2 already shipped that topology, and measurement against the merge-base confirms it: only the convention seed, the plan template and the public explanation ever carried the false premise in either vocabulary, and none of the eight surfaces carries it now. A first amendment proposed restructuring every surface into a pointer role; that was cut, because it reshaped correct shipped prose to make the test easier to write and the measured defects are all guard-side. Traces to: AC1, AC2.
 - **`references/state-schema.md` § *What the pin covers* (:128-141) is already correct and this delivery does not edit it.** It is the most precise statement of the boundary in the repository — "Everything else stays pinned: acceptance-criterion text, task text, `Depends on:` edges" — and it already covers both artifacts. It joins the guard's agreement set so a later edit there cannot contradict the owner while every other mutation still reddens; naming the ledger there too would be a seventh home for one fact. Traces to: AC3.
-- **Amended 2026-09-03.** The roster test exercises the real freeze guard, pins the single canonical statement, and checks each enumerated pointer role separately against its own target. Three properties are structural, not stylistic: no role may be satisfied from another site, no assertion may fall back to a whole file, and no check may key on general mutability vocabulary. Each was a measured defect, at V1, V2 and V3 respectively, in [`notes/verification-ledger.md`](notes/verification-ledger.md). Traces to: AC3.
+- **Amended 2026-09-03.** The roster test exercises the real freeze guard and pins each guarded clause against its own bounded region. Three properties are structural, not stylistic: no clause may be satisfied from another region — including another region of the same file — no assertion may fall back to a whole file, and no check may key on general mutability vocabulary. Each was a measured defect, at V1, V2 and V3 respectively, in [`notes/verification-ledger.md`](notes/verification-ledger.md). Traces to: AC3.
 - **Prose-lint detector:** rejected because detection leaves the impossible state representable; the ledger removes it from the contract shape.
 - **A third freeze-guard exemption:** rejected because another carve-out repeats the category error; reducing existing exemptions is a separately governed follow-on.
 - **Engine change:** rejected because the guard, engine, and cohort already enforce the freeze; this delivery changes authoring and evidence routing only.
@@ -130,48 +130,20 @@ This plan is subject to the freeze it describes, as is its sibling `spec.md`. If
 
 **Done when:** AC4's three release surfaces agree, the core changelog entry is topmost in the required position, and any applicable highlights projection is fresh.
 
-### T6: Make the convention the sole rule and every other site a pointer
+### T6: Close the three measured guard defects
 
-**Depends on:** T1, T2
-
-**Tests:**
-- no stub (goal-based check): T7 reads each site as its own role and fails when a role's pointer is absent, wrong, or satisfiable from elsewhere.
-
-**Approach:**
-- In `packs/core/seeds/docs/CONVENTIONS.md`, keep one canonical boundary statement under a stable anchor. Reduce the § 4 plan description and the `Lifecycle` paragraph to pointers at that anchor. Delete no correct guidance: the two-stage distinction (pinned in substance at approval, frozen when the spec ships) must survive, because three frozen specs and one owner decision cite the section for the ship-time freeze.
-- Give the new-plan template's `Plan contract`, `Done when:`, and `## Changelog` instructions a pointer each, so reverting any one of the three reddens on its own. `## Changelog` was unguarded and is the V5 defect.
-- Give the lifecycle reference, the public explanation, and `work-loop/SKILL.md` Step 2 a pointer each. The how-to's mid-flight section and `references/pre-execute-review.md` § *Mid-EXECUTE re-plan* keep their **retained rule statements** as well as a pointer; round 2 established that `pre-execute-review.md:205-215` independently states the permitted edit set and is rule-bearing, not pointer-only, so treating it as a pure pointer would delete correct guidance and drop a killing mutation. `references/state-schema.md` takes no edit.
-- Add no synthetic marker where existing structure already addresses a site. Measured: six of the guarded sites are unique real headings, and the template's `Done when:` instruction occurs exactly once. Only the convention's § 4 paragraphs, `state-schema.md` (one heading in the whole file), and the template's opening `Plan contract` blockquote lack a natural address, and T7 resolves those by assertion shape rather than by marking the prose. Nothing added cites anything under `docs/specs/`, so shipped pack content stays free of internal-governance citations.
-
-**Done when:** every site AC2 enumerates resolves to the canonical owner or the lifecycle procedure, and the convention is the only *normative* statement of the boundary — the three surfaces AC2 names keep their existing statements.
-
-### T7: Rebuild the roster guard on per-role assertions
-
-**Depends on:** T6
+**Depends on:** T3
 
 **Tests:**
-- TDD: rewrite `tests/roster/test_verification_ledger_contract.py`. Remove `RESTATED_RULE_MARKERS`, the whole-file `anchor=None` fallback, and the by-path region concatenation — each is a measured defect. Keep exercising `assert_status_legal` and `canonical_contract` against the real module rather than pinning its source text.
-- Mutation proof: one killing mutation per enumerated site. That means each pointer removed and each pointer repointed at a non-canonical destination; the canonical statement reverted; each of the three retained statements reverted — the how-to's immutability sentence, `pre-execute-review.md`'s permitted-edit-set rule, and `state-schema.md`'s `Everything else stays pinned`; the roster itself shrunk by one entry; and the `` `Clean — ready to commit.` `` sentinel changed at its classification site. Innocent-edit probes must include a re-wrap of the canonical sentence, an unrelated mention of a non-canonical path outside every role, and ordinary Step 2 prose using the words "change substantively". Record every observed result in [`notes/verification-ledger.md`](notes/verification-ledger.md), never here.
+- TDD: repair `tests/roster/test_verification_ledger_contract.py`. Remove the by-path region concatenation in the destination check (V1) and the whole-file `anchor=None` fallback for the plan template (V2); give the template's `Plan contract`, `Done when:` and `## Changelog` instructions one bounded region each, which closes V5; and delete `RESTATED_RULE_MARKERS`, whose general mutability vocabulary rejected correct Step 2 prose (V3). Keep exercising `assert_status_legal` and `canonical_contract` against the real module rather than pinning its source text.
+- Mutation proof: one killing mutation per guarded clause — the canonical convention statement; each of the three retained statements, being the how-to's immutability sentence, `pre-execute-review.md`'s permitted-edit-set rule, and `state-schema.md`'s `Everything else stays pinned`; each of the template's three instructions; the ledger procedure's path and its unpinned/no-amendment clause; `work-loop/SKILL.md`'s Step 2 pointer; and the guarded region roster itself. Innocent-edit probes must include a re-wrap of each bounded region and ordinary Step 2 prose using the words "change substantively". Record every observed result in [`notes/verification-ledger.md`](notes/verification-ledger.md), never here.
 
 **Approach:**
-- Prefer absence over region extraction. Region extraction existed only to stop one site satisfying another's claim, and it broke three times — a bold-lead terminator on a re-wrap, a heading region ending before two further restatements, and a whole-file fallback that let clauses borrow. Asserting that **no non-canonical destination appears anywhere in the roster** achieves the same end with no anchor at all and is immune to re-wrapping, because a link target is not prose. Measured: `notes/*.md` across the eight roster files resolves to exactly one value today, `notes/verification-ledger.md`, so the absence assertion is clean on entry. Use a bounded region only where one file must carry several independent pointers, and fail loudly rather than widening when an address is missing or ambiguous.
-- Absence-scanning cannot notice a site that drops its pointer while a sibling pointer survives in the same file, so pair it with a per-file pointer count or a heading-scoped presence check for the template's three instructions.
-- Pin the role roster independently of the table that drives the assertions, so deleting a role reddens instead of shrinking coverage. That defect recurred twice, at round 2 and at round 4's own fix.
+- Assert each clause against its own bounded region, and fail loudly on a missing or ambiguous anchor rather than widening. V1 and V2 were both widenings that let one region satisfy another's clause.
+- Keep the region roster pinned independently of the table that drives the assertions, so deleting a region reddens instead of shrinking coverage. That defect recurred twice — at review round 2, and again inside round 4's own fix.
+- Change no prose, no projection, and no release surface. Measurement against the merge-base shows the shipped guidance already correct, so this task is guard repair only. Dropping `RESTATED_RULE_MARKERS` also means the guard no longer claims `SKILL.md` is free of an independent rule; AC2 claims only a resolvable pointer, which is what remains mechanically checkable.
 
-**Done when:** AC3's guard is green unmutated, every planned killing mutation reddens the role it targets, and every innocent-edit probe stays green.
-
-### T8: Regenerate projections and re-verify the release surface
-
-**Depends on:** T6, T7
-
-**Tests:**
-- no stub (goal-based check): the convention projection is byte-identical to its seed, and the core release surfaces still agree.
-
-**Approach:**
-- After the source commit and on a clean worktree, run `FORCE=1 make build-self`; hand-edit no generated projection.
-- Re-read `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` at task start. Core is already at 2.22.1 from T5 against `origin/main`'s 2.22.0, so confirm whether this amendment's content changes need a further increment rather than assuming either answer.
-
-**Done when:** the projection matches its seed byte-for-byte and AC4's three release surfaces agree.
+**Done when:** AC3's guard is green unmutated, every planned killing mutation reddens the clause it targets, and every innocent-edit probe stays green.
 
 ## Rollout
 
@@ -216,7 +188,7 @@ This is a source-first core-pack documentation and test release. Regenerate proj
 - 2026-09-03: **contract amendment** under scope-owner authority
   ([`notes/redesign-decision.md`](notes/redesign-decision.md)). Replaced AC1-AC3
   and the two design decisions that required six surfaces to restate the
-  boundary, and added T6-T8. Reason: review rounds 4 and 5 measured five
+  boundary, and added one guard-repair task. Reason: review rounds 4 and 5 measured five
   defects in the shipped guard, three of them introduced by the round-4 repair.
   Reverting the literal retired licence into the rule owner's § 4 restatement
   left the suite at `12 passed`, and the template's corrected `## Changelog`
@@ -230,7 +202,15 @@ This is a source-first core-pack documentation and test release. Regenerate proj
   of the how-to's and `pre-execute-review.md`'s retained rule statements, which
   the proposed design had reclassified as pointers, and dropped synthetic role
   markers after measuring that existing structure addresses seven of eleven
-  sites.
+  sites. Reduced again the same day, before approval, on owner instruction to
+  apply the razor to the whole contract: the proposed prose restructuring was
+  cut entirely, leaving one guard-repair task. Measurement decided it — only the
+  convention seed, the plan template and the public explanation ever carried the
+  false premise in either vocabulary, all three corrections already shipped in
+  T1-T2, and V1, V2 and V5 are repairable inside the guard module. Round 4
+  sustained a Blocker on the first cut for leaving ten pointer-mandating clauses
+  and a dangling `Depends on:` behind; this entry records the reconciled
+  version.
 - 2026-09-02: while `Drafting`, added `references/state-schema.md` § *What the
   pin covers* as the sixth rule-bearing source (eight killing mutations), and
   corrected the site total from 7 to 8. Reason: review round 3, both findings
