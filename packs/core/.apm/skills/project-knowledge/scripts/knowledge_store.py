@@ -1514,7 +1514,10 @@ def _topic_from_proposal(
     occurrences = [*copy.deepcopy(existing_occurrences), occurrence]
     if len(occurrences) > budget_contract()["occurrences_per_topic"]:
         _refuse("journal_capacity")
-    lifecycle = proposal.get("lifecycle", "active")
+    default_lifecycle = (
+        "active" if existing_topic is None else existing_topic["lifecycle"]
+    )
+    lifecycle = proposal.get("lifecycle", default_lifecycle)
     freshness_state = {
         "active": "fresh",
         "needs_review": "review_required",
@@ -1539,6 +1542,12 @@ def _topic_from_proposal(
     }
     if "retirement" in proposal:
         topic["retirement"] = copy.deepcopy(proposal["retirement"])
+    elif (
+        existing_topic is not None
+        and lifecycle == "retired"
+        and "retirement" in existing_topic
+    ):
+        topic["retirement"] = copy.deepcopy(existing_topic["retirement"])
     return topic
 
 
@@ -1917,7 +1926,16 @@ def recover_guarded_mutation(repo_root: Path | str, proposal: dict[str, Any]) ->
             topic_path,
             budget_contract()["topic_bytes"],
         )
-        if PK.digest_bytes(actual_topic) != validated["topic_postimage_digest"]:
+        actual_digest = PK.digest_bytes(actual_topic)
+        if actual_digest == validated["topic_postimage_digest"]:
+            _verify_topic_postimage(actual_topic, validated)
+        elif actual_digest == validated["expected_topic_digest"]:
+            if existing_disposition is not None:
+                _refuse("postimage_mismatch")
+            return _apply_guarded_mutation_body(repo_root, validated) | {
+                "promoted_implies_topic_and_map": True
+            }
+        else:
             _refuse("postimage_mismatch")
         map_bytes = _rebuild_topic_map_unlocked(repo_root)
         parsed_map = json.loads(map_bytes.decode("utf-8"))
@@ -1928,6 +1946,22 @@ def recover_guarded_mutation(repo_root: Path | str, proposal: dict[str, Any]) ->
             _refuse("map_mismatch")
         _write_disposition(repo_root, validated)
     return {"promoted_implies_topic_and_map": True}
+
+
+def _verify_topic_postimage(
+    actual_topic: bytes,
+    validated: dict[str, Any],
+) -> None:
+    """Require the pinned topic bytes to carry the proposal's occurrence."""
+    if PK.digest_bytes(actual_topic) != validated["topic_postimage_digest"]:
+        _refuse("postimage_mismatch")
+    topic = _topic_from_bytes(actual_topic)
+    occurrence = topic["occurrences"][-1]
+    if (
+        occurrence["capture_id"] != validated["capture_id"]
+        or occurrence["mutation_id"] != _mutation_id(validated)
+    ):
+        _refuse("postimage_mismatch")
 
 
 def _verify_promoted_state(
@@ -1945,10 +1979,9 @@ def _verify_promoted_state(
         budget_contract()["topic_bytes"],
         missing_ok=True,
     )
-    if actual_topic is None or PK.digest_bytes(actual_topic) != validated[
-        "topic_postimage_digest"
-    ]:
+    if actual_topic is None:
         _refuse("postimage_mismatch")
+    _verify_topic_postimage(actual_topic, validated)
     map_path = _map_path(repo_root)
     expected_map = rebuild_map_bytes(knowledge_root(repo_root), repository_root=repo_root)
     actual_map = _read_regular_file_bounded(

@@ -447,6 +447,74 @@ def test_ac14_recovery_refuses_changed_synthesis_with_same_occurrence(repo: Path
     assert refused.value.diagnostic["reason_code"] == "postimage_mismatch"
 
 
+@pytest.mark.parametrize("verification_path", ("recovery", "promoted_state"))
+@pytest.mark.parametrize("mismatched_field", ("capture_id", "mutation_id"))
+def test_ac14_recovery_requires_the_promoted_occurrence(
+    repo: Path, store, verification_path: str, mismatched_field: str
+) -> None:
+    topic_path = store.write_topic(repo, valid_topic())
+    topic_bytes = topic_path.read_bytes()
+    proposal = _proposal_with_pending(
+        repo,
+        store,
+        expected_topic_digest=store.PK.digest_bytes(topic_bytes),
+        existing_topic_bytes=topic_bytes,
+    )
+    topic = json.loads(topic_bytes)
+    if mismatched_field == "capture_id":
+        topic["occurrences"][-1]["mutation_id"] = store._mutation_id(proposal)
+    else:
+        topic["occurrences"][-1]["capture_id"] = proposal["capture_id"]
+    forged_topic_bytes = store._pretty_json_bytes(store.validate_topic(topic))
+    topic_path.write_bytes(forged_topic_bytes)
+    store.rebuild_topic_map(repo)
+    proposal["topic_postimage_digest"] = store.PK.digest_bytes(forged_topic_bytes)
+    proposal["proposal_digest"] = store.PK.digest_bytes(
+        store._canonical_json_bytes(store._proposal_without_derived(proposal))
+    )
+
+    if verification_path == "promoted_state":
+        store._write_disposition(repo, proposal)
+        _partition, _capture, disposition = store._find_capture(
+            repo, proposal["capture_id"]
+        )
+        with pytest.raises(store.KnowledgeStoreError) as refused:
+            store._verify_promoted_state(repo, proposal, disposition)
+    else:
+        with pytest.raises(store.KnowledgeStoreError) as refused:
+            store.recover_guarded_mutation(repo, proposal)
+
+    assert refused.value.diagnostic["reason_code"] == "postimage_mismatch"
+
+
+def test_ac14_recovery_resumes_update_before_topic_replacement(repo: Path, store) -> None:
+    first = _proposal_with_pending(repo, store)
+    store.apply_guarded_mutation(repo, first)
+    topic_path = store.topic_path_for_key(repo, first["topic_key"])
+    existing_topic_bytes = topic_path.read_bytes()
+    update = _proposal_with_pending(
+        repo,
+        store,
+        lesson="Keep the full evidence history when recovery resumes an update.",
+        synthesis={
+            "kind": "pattern",
+            "body": "Keep the full evidence history when recovery resumes an update.",
+        },
+        expected_topic_digest=store.PK.digest_bytes(existing_topic_bytes),
+        existing_topic_bytes=existing_topic_bytes,
+    )
+
+    state = store.recover_guarded_mutation(repo, update)
+
+    topic = json.loads(topic_path.read_bytes())
+    assert state["promoted_implies_topic_and_map"] is True
+    assert store.PK.digest_bytes(topic_path.read_bytes()) == update[
+        "topic_postimage_digest"
+    ]
+    assert topic["occurrences"][-1]["capture_id"] == update["capture_id"]
+    assert topic["occurrences"][-1]["mutation_id"] == store._mutation_id(update)
+
+
 def test_ac14_recovery_revalidates_committed_activation(repo: Path, store) -> None:
     proposal = _proposal_with_pending(repo, store)
     with pytest.raises(store.KnowledgeStoreError):
@@ -590,6 +658,42 @@ def test_promoted_update_accumulates_occurrences_and_returns_applied_id(
     assert mutation_ids == [first_result["mutation_id"], second_result["mutation_id"]]
     assert second_result["mutation_id"] == store._mutation_id(second)
     assert second_result["mutation_id"] != first_result["mutation_id"]
+
+
+def test_promoted_update_preserves_retired_lifecycle_by_default(
+    repo: Path, store
+) -> None:
+    retirement = {
+        "reason": "enforced",
+        "successors": ["contracts/successor.json"],
+        "coverage_verified": True,
+    }
+    first = _proposal_with_pending(
+        repo,
+        store,
+        lifecycle="retired",
+        retirement=retirement,
+    )
+    store.apply_guarded_mutation(repo, first)
+    topic_path = store.topic_path_for_key(repo, first["topic_key"])
+    existing_topic_bytes = topic_path.read_bytes()
+    update = _proposal_with_pending(
+        repo,
+        store,
+        lesson="Retired knowledge can still gain supporting evidence.",
+        synthesis={
+            "kind": "pattern",
+            "body": "Retired knowledge can still gain supporting evidence.",
+        },
+        expected_topic_digest=store.PK.digest_bytes(existing_topic_bytes),
+        existing_topic_bytes=existing_topic_bytes,
+    )
+
+    store.apply_guarded_mutation(repo, update)
+
+    topic = json.loads(topic_path.read_bytes())
+    assert topic["lifecycle"] == "retired"
+    assert topic["retirement"] == retirement
 
 
 def test_mutation_completion_refuses_existing_topic_digest_mismatch(
