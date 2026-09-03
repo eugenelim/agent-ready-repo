@@ -1,6 +1,6 @@
 # Spec: Verification ledger
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -13,7 +13,9 @@
 
 ## Objective
 
-An implementer records execution observations without changing either approved, hash-pinned delivery artifact. `spec.md` acceptance criteria and `plan.md` task rows name obligations to discharge; `docs/specs/<feature>/notes/verification-ledger.md` records post-approval mutations, red results, assertion text, digest comparisons, and deviations. The canonical guidance states the boundary: substantive edits end at approval; an execution observation is ledger evidence, not an amendment.
+An implementer records execution observations without changing either approved, hash-pinned delivery artifact. `spec.md` acceptance criteria and `plan.md` task rows name obligations to discharge; `docs/specs/<feature>/notes/verification-ledger.md` records post-approval mutations, red results, assertion text, digest comparisons, and deviations.
+
+One canonical source states the boundary, and every operational site reaches it by pointer rather than restating it. Five review rounds established that distributed prose restatements cannot be held in agreement mechanically: widening a guarded region let one site's clause satisfy another's, and widening a phrase marker rejected correct prose. The reasoning and the rejected alternatives are in [`notes/redesign-decision.md`](notes/redesign-decision.md).
 
 ## Durable Outputs
 
@@ -21,7 +23,7 @@ An implementer records execution observations without changing either approved, 
 | --- | --- | --- | --- | --- | --- |
 | canonical authoring rule | Applicable | `packs/core/seeds/docs/CONVENTIONS.md` | core-pack maintainer | roster guard and regenerated projection | seed, projection, template, and public explanation agree on the post-approval boundary |
 | portable execution procedure | Applicable | `packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md` | work-loop maintainer | roster guard and focused pytest | reference defines the ledger and keeps obligations in frozen `spec.md` and `plan.md` |
-| executable contradiction guard | Applicable | `tests/roster/<new verification-ledger guard>.py` | test maintainer | mutation red and focused pytest | test rejects an Executing-time edit licence in a governing source |
+| executable contradiction guard | Applicable | `tests/roster/<new verification-ledger guard>.py` | test maintainer | mutation red and focused pytest | each enumerated pointer role, the canonical statement, and the real hash behaviour are independently killable |
 | spec index | Applicable | `docs/specs/README.md` | `new-spec` authoring workflow | row resolves to this spec directory | index names `verification-ledger` |
 | release history | Applicable | `docs/product/changelog.md` | release maintainer | version-parity and site-routing checks | topmost `[core]` release records this feature |
 | delivery-local evidence | Applicable after approval | `docs/specs/verification-ledger/notes/verification-ledger.md` | executor | observations and stable references | created when execution produces observations; outside both approved hashes |
@@ -33,7 +35,7 @@ An implementer records execution observations without changing either approved, 
 
 - Keep obligations in `spec.md` acceptance criteria or `plan.md` task rows; write execution-produced observations to the sibling verification ledger.
 - Treat `packs/core/seeds/docs/CONVENTIONS.md` as the source of the projected `docs/CONVENTIONS.md`, regenerated through the existing self-host build.
-- Keep the convention as mutability-rule owner; the template and lifecycle material point to it rather than creating competing definitions.
+- Keep the convention as sole mutability-rule owner. Every other operational site carries a pointer to it or to the lifecycle procedure, and states no rule of its own.
 
 ### Ask first
 
@@ -48,21 +50,23 @@ An implementer records execution observations without changing either approved, 
 
 ## Testing Strategy
 
-- **Authoring contradiction: TDD.** A new remotely gated `tests/roster/` test reads the freeze guard and governing authoring surfaces. It proves that both approved artifacts are hash-protected and that the sources direct post-approval observations to the ledger; it is a relationship test, not a phrase grep.
+- **Authoring contradiction: TDD.** A remotely gated `tests/roster/` test exercises the real freeze guard, pins the one canonical statement, and checks each enumerated pointer role separately against its own target. It never satisfies one role from another site, never falls back to a whole file, and carries no vocabulary-based restatement detector.
 - **Documentation, execution-pointer, and projection wiring: goal-based check.** The roster guard verifies the six closed rule-bearing sources, the how-to's two clauses, and `work-loop/SKILL.md`'s pointer; `FORCE=1 make build-self` regenerates projections after source changes, and existing pack/repository gates validate the generated and release surfaces.
 - **Release surface: goal-based check.** Existing release tests verify core pack/plugin version parity and require a current `now` projection whenever the release has a `Highlights` subsection.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Approved-artifact observations have a writable home.** The canonical convention, new-plan template, and lifecycle reference distinguish obligations in frozen `spec.md` and `plan.md` from observations recorded at `docs/specs/<feature>/notes/verification-ledger.md`; the reference states that the ledger is not hash-pinned and needs no amendment to either artifact.
-- [ ] **AC2 — Executing does not license substantive artifact edits.** The canonical convention and template permit substantive revision only before approval; the public explanation points in-tree to the how-to; the how-to and the pre-EXECUTE mid-EXECUTE note each already state this fact in their own operational terms and each names the ledger as the destination for an execution observation; and `work-loop/SKILL.md` reaches that procedure through a resolvable pointer, stating no rule of its own.
-- [ ] **AC3 — Each closed rule-bearing source kills the contradiction when reverted.** A remotely gated `tests/roster/` guard reddens when the corrected post-approval rule is independently reverted in any member of this closed set of six: the convention seed, the new-plan template, the lifecycle reference, the public explanation, the pre-EXECUTE mid-EXECUTE note, and the state-schema reference's `What the pin covers` — while the freeze guard protects the approved artifacts. The how-to's retained immutability statement and its ledger clause each carry their own killing mutation; `work-loop/SKILL.md` is verified only for a resolvable pointer and the absence of an independent rule. The set is closed by enumeration: a seventh surface stating the boundary is a defect in this criterion, not an omission the guard tolerates.
+- [ ] **AC1 — Approved-artifact observations have one writable procedure.** The canonical convention states that approved `spec.md` and `plan.md` retain obligations while an execution observation goes to `docs/specs/<feature>/notes/verification-ledger.md`; the lifecycle reference owns the ledger's contents, path, unpinned status, and the consequence that recording there needs no amendment to either approved artifact.
+- [ ] **AC2 — Operational guidance points at one authoring rule rather than restating it.** `packs/core/seeds/docs/CONVENTIONS.md` is the sole normative statement of the post-approval boundary. Each of these operational sites carries its own resolvable pointer to that owner or to the lifecycle ledger procedure, and states no competing rule: the convention's § 4 plan description and its `Lifecycle` paragraph; the new-plan template's `Plan contract`, `Done when:`, and `## Changelog` instructions; the lifecycle reference; the public explanation; the public how-to's mid-flight section; `references/pre-execute-review.md` § *Mid-EXECUTE re-plan*; and `work-loop/SKILL.md` Step 2. `references/state-schema.md` § *What the pin covers* is unchanged and remains the description of the hash mechanism, not a second rule.
+- [ ] **AC3 — Every enumerated role is guarded where it lives.** A remotely gated `tests/roster/` guard exercises the real status and canonical-hash behaviour, independently pins the canonical convention statement and `state-schema.md`'s `What the pin covers` clause, and requires exactly one correct pointer at each site AC2 enumerates. A pointer or destination satisfying one role must never satisfy another, no assertion may fall back to a whole file, and no check may key on general mutability vocabulary. The guarded roster is the current operational authoring and execution surface; accepted RFCs, ADRs, and other decision records are governing evidence outside it. New operational guidance that defines the boundary rather than pointing at it requires a contract amendment that adds a named guarded role.
 - [ ] **AC4 — The shipped core release is traceable.** Core pack and plugin versions are equal, and the topmost `[core]` heading immediately beneath `[Unreleased]` records this feature; a changed `Highlights` subsection has its `now` projection refreshed.
 
 ## Follow-ons
 
 - core-pack maintainer: separate governed evidence artifact — assess whether the status-token and progress-checkbox canonicalisation exemptions should shrink. This delivery does not touch the guard or its exemption list.
 - backlog maintainer: the canonical `[backlog].open` entry for `docs/specs/cooling-scope-closure/notes/review-findings.md` remains open because this delivery closes only finding 1 of its nine findings.
+- decision-record maintainer: `docs/adr/0061-loop-infrastructure-phase-1.md:12` states that "any post-approval plan change requires a full reset", which predates guarded baseline replacement and now reads stale beside RFC-0099 and ADR-0099. Out of scope here; this delivery neither cites nor relies on it.
+- core-pack maintainer: this contract deliberately gives up global contradiction detection. The guard proves one canonical definition, a named pointer roster, one mechanism statement, and the real hash behaviour — not that arbitrary prose anywhere cannot contradict the boundary. Widening that claim needs a mechanism that does not depend on matching prose sentences.
 
 ## Assumptions
 
@@ -71,4 +75,5 @@ An implementer records execution observations without changing either approved, 
 - Process: `docs/CONVENTIONS.md` is projected from `packs/core/seeds/docs/CONVENTIONS.md` (source: `packages/agentbundle/agentbundle/build/self_host.py:567-569`).
 - Process: `tests/roster/` is remote-gated, while `packs/core/tests/skills/new-spec/` has no workflow match (source: `.github/workflows/build-check.yml:366`; `rg -n 'packs/core/tests/skills/new-spec' .github/workflows`, no matches).
 - Product: the desired contract/ledger split, ledger path, and no-engine scope are confirmed by the task brief on 2026-09-02.
+- Product: the redesign from distributed prose restatements to one canonical rule with guarded pointer roles, and the narrowing of AC3's universe to current operational guidance, are authorized by the scope owner on 2026-09-03 (source: [`notes/redesign-decision.md`](notes/redesign-decision.md)).
 - Measurement: the adjudicated union is **6 of 376** pre-existing plans across 8 obligation sites — 7 task `Done when:` statements plus one mutation-table row (`cooling-scope-closure:136`), which is why the `Done when:` parser alone cannot see it. The overlapping classes are 1 mutation table, 3 plan `## Changelog` destinations, 2 `spec.md` or acceptance-criterion artifact destinations, and 1 “recorded here” destination. A plan-only rule leaves 1 of 6 wholly unaddressed and 1 of 6 partially addressed; both approved artifacts are in scope because the guard pins both, not because corpus frequency decides the rule. Instrument A covered the 376-plan commit tree; Instrument B covered the then-working tree's 377 plans and returned 8, including this delivery's own plan and one negated-sense false positive. The figure excludes this delivery from numerator and denominator (source: [`notes/measurement.md`](notes/measurement.md)).
