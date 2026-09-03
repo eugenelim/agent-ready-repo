@@ -6,10 +6,10 @@ import tempfile
 import tomllib
 from pathlib import Path
 
+import pytest
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import CONTRACT_PATH
-
 
 ROOT = Path(__file__).resolve().parents[4]
 CORE_PACK = ROOT / "packs/core"
@@ -22,6 +22,12 @@ def test_core_implementer_projects_to_its_native_claude_and_codex_paths() -> Non
     adapters, one adapter emitting both artifacts, or one emitting nothing would
     all leave the same two files present.
     """
+    if not CORE_PACK.is_dir():
+        # This tree is published: the export-boundary gate builds an sdist and
+        # runs these tests inside it, where the engine ships without the
+        # catalogue corpus it projects. The claim is a repository-checkout
+        # invariant, so it is skipped rather than silently passing.
+        pytest.skip("packs/core is absent — running from a published artifact")
     contract = load_contract(CONTRACT_PATH)
     expected = {
         "claude-code": ".claude/agents/implementer.md",

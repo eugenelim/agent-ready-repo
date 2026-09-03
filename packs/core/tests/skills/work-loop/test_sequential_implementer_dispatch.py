@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
 IMPLEMENTER = PACK_ROOT / ".apm" / "agents" / "implementer.md"

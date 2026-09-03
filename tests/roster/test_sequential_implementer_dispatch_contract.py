@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SUPERVISOR = ROOT / "packs/core/.apm/skills/work-loop/references/supervisor-mode.md"
 EVALS = ROOT / "packs/core/.apm/skills/work-loop/evals/evals.json"
