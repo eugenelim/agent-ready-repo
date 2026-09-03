@@ -130,8 +130,14 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "**Lifecycle:** specs are",
         (
             "from approval onward the correction is the controlled-amendment path, not an in-flight edit",
+            # A rule clause, not a router: this paragraph names the ledger in
+            # words and never carries its path, so it is pinned here rather than
+            # asserted against LEDGER_DESTINATIONS. Widening that tuple to admit
+            # the bare words "verification ledger" is what made this region's
+            # wrong-destination mutation pass at `12 passed`.
+            "an observation produced by execution goes to the verification ledger",
         ),
-        ("an observation produced by execution goes to the verification ledger",),
+        (),
     ),
     (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
@@ -147,18 +153,23 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
         "**Done when:** <name a concrete observable",
-        (),
         (
+            # Also a rule clause rather than a router: the instruction forbids a
+            # destination and names the ledger in words, without its path.
             "Never name `spec.md` or `plan.md` as an execution-evidence destination",
         ),
+        (),
     ),
     (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
         "## Changelog",
-        ("While the plan is `Drafting` and changes meaningfully, add a dated entry",),
         (
+            "While the plan is `Drafting` and changes meaningfully, add a dated entry",
+            # Rule clause, not a router: names the ledger in words, no path. The
+            # template's path lives in its `Plan contract` region.
             "an execution observation goes to the verification ledger, not to a new changelog entry",
         ),
+        (),
     ),
     (
         "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md",
@@ -390,8 +401,14 @@ LEDGER_DESTINATIONS = (
     "notes/verification-ledger.md",
     "delivery-contract-lifecycle.md#verification-ledger",
     "plan-and-execute-non-trivial-work.md",
-    "verification ledger",
 )
+
+#: A region may name the canonical ledger and nothing else. Keyed on the `notes/`
+#: path shape rather than on a wrong-path list, because the failure to catch is a
+#: *new* destination nobody enumerated. Measured on entry: `notes/verification-
+#: ledger.md` is the only such path in any guarded source.
+CANONICAL_LEDGER_PATH = "notes/verification-ledger.md"
+LEDGER_PATH_RE = re.compile(r"notes/[A-Za-z0-9._-]+\.md")
 
 
 def test_the_closed_source_set_keeps_every_member_ac3_names() -> None:
@@ -422,10 +439,15 @@ def test_the_closed_source_set_keeps_every_member_ac3_names() -> None:
 
 
 def test_every_routing_surface_names_one_canonical_destination() -> None:
-    """A source may not invent its own ledger path.
+    """A routing surface must name the destination, not merely mention it.
 
     Carrying the word "ledger" is not agreement: a source could route an
-    observation to `notes/execution-log.md` and still read plausibly.
+    observation to `notes/execution-log.md` and still read plausibly. So a row
+    carries a `routing` clause only when its region states a path or a
+    resolvable link; a region that names the ledger in prose alone is a rule
+    clause and is pinned instead. Admitting the bare words "verification
+    ledger" into `LEDGER_DESTINATIONS` to make such a row pass is what let a
+    wrong-destination mutation sit at `12 passed`.
     """
     for relative, _anchor, _pinned, routing in SOURCES:
         if not routing:
@@ -435,6 +457,24 @@ def test_every_routing_surface_names_one_canonical_destination() -> None:
             assert any(dest in flat for dest in LEDGER_DESTINATIONS), (
                 f"{relative}: routing clause {clause!r} appears in a region without "
                 f"a canonical destination — expected one of {LEDGER_DESTINATIONS!r}"
+            )
+
+
+def test_no_guarded_region_names_a_non_canonical_ledger_path() -> None:
+    """A region may name the canonical ledger and no other `notes/` destination.
+
+    This is what catches a *correct-looking* clause that routes somewhere else.
+    The clause tests above all assert presence, so appending " at
+    `notes/execution-log.md`" to a region left every one of them satisfied and
+    the suite at `12 passed`. Absence is region-scoped, not file-scoped, so it
+    adds no whole-file fallback.
+    """
+    for relative, anchor, _pinned, _routing in SOURCES:
+        region = _section(relative, anchor)
+        for found in LEDGER_PATH_RE.findall(region):
+            assert found == CANONICAL_LEDGER_PATH, (
+                f"{relative}: region {anchor!r} names {found!r}, which is not the "
+                f"canonical {CANONICAL_LEDGER_PATH!r}"
             )
 
 
