@@ -77,9 +77,21 @@ def _section(relative: str, anchor: str) -> str:
     clauses it was meant to cover.
     """
     text = _read(relative)
-    assert anchor in text, f"{relative}: anchor {anchor!r} not found"
+    occurrences = text.count(anchor)
+    assert occurrences == 1, (
+        f"{relative}: anchor {anchor!r} occurs {occurrences} times, expected exactly "
+        "one — `index` would silently take the first, so an injected earlier copy "
+        "could carry the pinned clauses while the real region went unread"
+    )
     start = text.index(anchor) + len(anchor)
-    if anchor.startswith("#"):
+    if anchor.startswith(">"):
+        # A blockquote contract line ends where the blockquote does. The bold-lead
+        # terminator matched neither a blockquote end nor an HTML comment, so the
+        # region ran on to the next heading and swallowed two comment blocks —
+        # which let a pinned clause be satisfied from commentary a template filler
+        # deletes, with the suite green.
+        terminator = r"\n(?![ \t]*>)"
+    elif anchor.startswith("#"):
         depth = len(anchor) - len(anchor.lstrip("#"))
         terminator = rf"\n#{{1,{depth}}}[ \t]"
     else:
@@ -155,8 +167,12 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "**Done when:** <name a concrete observable",
         (
             # Also a rule clause rather than a router: the instruction forbids a
-            # destination and names the ledger in words, without its path.
+            # destination and names the ledger in words, without its path. Both
+            # halves are pinned — the prohibition and the redirection. Pinning
+            # only the prohibition left ("; use the verification ledger.")
+            # asserted by nothing, and deleting it kept all thirteen green.
             "Never name `spec.md` or `plan.md` as an execution-evidence destination",
+            "use the verification ledger",
         ),
         (),
     ),
