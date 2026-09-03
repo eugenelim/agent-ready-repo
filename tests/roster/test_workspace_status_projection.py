@@ -134,8 +134,7 @@ def _product_release_heading_version(text: str, name: str) -> str:
 # heading when D3 was accepted; every one is invisible to the `/now/` projection
 # permanently, because nothing ever moves an entry out. Their promotion needs
 # per-section artifact attribution (48 genuinely-unreleased bare sections are
-# interleaved across three `[Unreleased]` regions) and is tracked in
-# `workspace.toml [backlog].open` as `changelog-promote-marooned-entries`.
+# interleaved across three `[Unreleased]` regions).
 #
 # This is a RATCHET, not a floor: it may only ever go DOWN. It is the mechanical
 # enforcement of D3 — the correspondence check in

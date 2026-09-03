@@ -89,9 +89,7 @@ def _repo_root() -> Path:
 #     and Digital-Experience-Contract copy parity by
 #     tools/catalogue/check_contract_parity.py. The other three — chain
 #     completeness, phantom-handoff resolution, boundary-guard adjacency —
-#     have no successor; recorded in workspace.toml [backlog].open as
-#     `xd-chain-structural-invariants-uncovered` rather than dropped in
-#     silence.
+#     have no successor.
 #
 #   llm-judge-cross-pack-eval (was tools/test-llm-judge-cross-pack-eval.py)
 #     Dropped because the check moved, not because it was lost. The judge

@@ -1,0 +1,20 @@
+["ini-001"]
+name      = "Residue Initiative"
+status    = "active"
+milestone = "M1"
+
+# Every spec this initiative owns has shipped, so `all_specs_shipped` is true
+# on real evidence rather than on an empty collection. The only work left is
+# the shaping entry below, which is what closeout must still block on.
+["ini-001".work]
+queue   = []
+active  = []
+shipped = [
+  { path = "docs/specs/example-shipped/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "A shipped spec", needs = [] },
+]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/open-intent.md", kind = "intent", source = { mode = "repo-origin" }, summary = "An unfinished intent blocks closeout", needs = [] },
+]
