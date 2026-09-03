@@ -61,7 +61,12 @@ conflict in favour of the spec's instinct.
    ADRs receive no equivalent qualification, which is why they falsify the
    sentence and the how-to does not.
 
-## Chosen design
+## Design first chosen, then cut the same day
+
+**Superseded — read this before the rest of the section.** The design below was
+chosen, then cut before approval on owner instruction to apply the razor to the
+whole contract. It is kept because the decision trail matters, not because it
+describes what ships. What ships is in *What was actually chosen* below.
 
 **Candidate 1 — one canonical rule, site-local pointer roles.**
 
@@ -131,15 +136,50 @@ No markers are therefore added to shipped human-facing guidance.
   better than the current guard, but it retains the distributed-prose topology
   that produced five review rounds.
 
+## What was actually chosen
+
+Measurement against the merge-base `1134701ba` refused the restructuring. Across
+both vocabularies of the false premise, only three surfaces ever carried it — the
+convention seed (3 literal licence hits plus 16 "change as you learn"/Living),
+the plan template (1), and the public explanation (1). The lifecycle reference,
+`pre-execute-review.md`, `state-schema.md`, the public how-to and
+`work-loop/SKILL.md` carried it in **neither**. All three corrections shipped in
+T1-T2, and no surface carries it today.
+
+The three open defects are therefore all guard-side, and all three are repairable
+inside `tests/roster/test_verification_ledger_contract.py` with no prose,
+projection or release change: V1's by-path region concatenation, V2's whole-file
+fallback for the template, and V5's unguarded template `## Changelog`. V3's
+over-broad `RESTATED_RULE_MARKERS` is removed in the same pass.
+
+So the amendment reduces to **one guard-repair task**. Restructuring seven shipped
+files to make the test easier to write was content shaped for the test rather than
+the reader, which is the cost the corrections section below had already flagged
+and which measurement then showed was not buying anything.
+
+Dropping `RESTATED_RULE_MARKERS` also drops the guard's claim that
+`work-loop/SKILL.md` is free of an independent rule. AC2 now claims only a
+resolvable pointer there, because that is what stays mechanically checkable.
+
+Round 4 sustained a Blocker against the first attempt at this cut: it changed AC2
+alone and left the pointer mandate standing in ten other clauses plus a
+`Depends on:` edge to a deleted task, which would have left AC3 undischargeable —
+the same failure that authorised the redesign. The reconciled version is
+`894c94206`.
+
 ## Residual risk accepted
 
 Two risks remain, and neither is the marker cost, which the corrections above
 removed.
 
-**Absence-scanning has a blind spot.** It cannot notice a site that drops its
-pointer while a sibling pointer survives in the same file. T7 pairs it with a
-per-file pointer count or a heading-scoped presence check for the template's
-three instructions.
+**One prose sentence per governed clause is still matched as prose**, and the
+guard is still a prose-matching test — the reduction removed the restructuring,
+not that property.
+
+**A lapsed risk, kept for the record.** It cannot notice a site that drops its
+pointer while a sibling pointer survives in the same file. That risk lapsed
+with the cut: no task creates a pointer role, so nothing depends on
+absence-scanning.
 
 **Four prose sentences are still matched as prose.** The owner statement and
 the three retained statements are pinned by content, so re-wording any of them
