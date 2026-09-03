@@ -267,9 +267,10 @@ consumer has no path to it and never loads it.
   derivation and precedents.
 - Technical: `architect-design` has no self-hosted projection; only `work-loop`'s
   is a criterion.
-- Process: this branch is rebased onto `origin/main`, which shipped `core 2.22.0`
-  after the branch was cut. The version literals are recorded from the rebased
-  tree in T0, not from the pre-rebase one.
+- Process: this branch is rebased onto `236ae549c`, the pinned baseline for the
+  whole implementation. `core` moved twice while this contract was in review
+  (2.21.0 → 2.22.0 → 2.23.0), so the version literals are recorded from the
+  rebased tree in T0 and the base is not re-synced until T6b.
 - Process: the step's prose is verified at review against the *Always do* list,
   and the plan names where that result is recorded. No criterion pins its
   wording; four rounds established that a spec pinning a phrase it also dictates

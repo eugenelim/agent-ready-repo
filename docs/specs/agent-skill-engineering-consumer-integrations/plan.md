@@ -103,7 +103,7 @@ the outcomes its reader needs.
 | Scaffold twin | `python3 tools/catalogue/sync_authoring_scaffold.py --write`; gated by `tools/test_scaffold_projection.py` at `Makefile:617` | those files |
 | Guides linter | `Makefile:620` runs the linter's *contract test*; the only real-tree scan is the path-filtered CI job at `.github/workflows/docs.yml:103-109` | those files |
 | CAT-V-019 | `consumers` (`packages/agentbundle/agentbundle/catalogue_tooling/verify.py:2117-2127`), self-target (`:2140`), semver (`:2150-2163`) unconditional; `providers` gated at `:2165`. Entry point `verify_catalogue(root)` at `:2224` | `packages/agentbundle/agentbundle/catalogue_tooling/verify.py` |
-| Version literals | **Recorded in the test module at T0**, not here — this branch is rebased onto `origin/main`, which shipped `core 2.22.0` after the branch was cut. Read each from the rebased tree with `git show origin/main:packs/<p>/pack.toml` and record the literal | `origin/main` |
+| Pinned baseline | `236ae549c`; `core 2.23.0`, `architect 0.15.5`, `agent-skill-engineering 0.4.0`. Recorded in the test module at T0. Do not re-fetch during implementation — the literals are only meaningful against one fixed base | the rebased tree at T0 |
 | `/now/` projection | `web/src/lib/now-highlights.generated.json`, gated by `tools/test_build_site_routing.py:2098,2128` via `Makefile:584`; stale only if an entry adds a `Highlights` subsection | those files |
 
 ## Construction tests
@@ -137,19 +137,29 @@ ungated half has no record.
 
 **Depends on:** none
 **Verification mode:** goal-based check
-**Touches:** (rebase only)
+**Touches:** tests/roster/test_agent_skill_engineering_consumer_integrations.py
+(the three literals only; T1 adds the assertions)
 
 **Tests:** `git merge-base --is-ancestor origin/main HEAD` succeeds; the three
-`pack.toml` versions read from the rebased tree match `origin/main`.
+`pack.toml` versions read from the rebased tree match the recorded literals.
 
-**Approach:** the `Depends on:` governance change has merged as `a43cc1f69`, and
-this branch is rebased onto it. What remains is to read each pack's current
-version from the rebased tree and record it as the merge-base literal T1 compares
-against. Record it only after the rebase: doing so before pins a number
-`origin/main` has already passed — `core` went 2.21.0 → 2.22.0 while this spec
-was in review.
+**Approach:** the `Depends on:` governance change has merged, and this branch is
+rebased onto **`236ae549c`**, which is the pinned baseline for the whole
+implementation. Read each pack's version from the rebased tree and record it as
+the merge-base literal AC10 compares against, in the precedent's shape
+(`test_thirty_day_cooling_and_retirement.py:1272`): a module constant whose
+trailing comment names the source path and the merge-base SHA.
 
-**Done when:** the branch is a descendant of `origin/main` and the three
+Record only after the rebase: doing so before pins a number `origin/main` has
+already passed. `core` moved twice while this contract was in review — 2.21.0 →
+2.22.0, then 2.23.0 — which is the whole reason this task exists.
+
+**Do not re-fetch or re-rebase during implementation.** The literals are only
+meaningful against one fixed base; re-syncing mid-flight invalidates them and
+silently re-reds AC10. Rebase again only after T6b, and re-record the literals if
+you do.
+
+**Done when:** the branch is a descendant of the pinned baseline and the three
 literals are recorded in the test module.
 
 ### T1: The suite is red, with each assertion labelled by class
