@@ -385,6 +385,14 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # RFC-0097:189's behavioural half -- "tested without this pack installed" --
+  # is not discharged by the consumer-integrations slice. For a prose consumer
+  # there is no runtime to exercise, and verify_catalogue over a provider-less
+  # catalogue runs a strict subset of the provider-present checks. RFC-0097:575
+  # offers a cheaper mode than an executable harness -- a fixture versioned with
+  # its expected result before the implementation runs, judged by an independent
+  # reviewer -- which that slice did not evaluate.
+  {slug = "agent-skill-engineering-provider-absence-behaviour", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Discharge the behavioural half of the provider-absence obligation: evaluate a pre-registered fixture-and-expected-result mode, judged by an independent reviewer, against an executable absence harness"},
   # Product-strategy parent of the three capability briefs below it, framed
   # 2026-09-02. Re-gates them: the policy validator is the activation
   # measurement's compliance test, so enforcement precedes measurement.
@@ -1095,6 +1103,7 @@ backlog = []
 active  = [
 ]
 queue   = [
+  { path = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Wire work-loop and architect-design to the installed agent-skill-engineering provider with a bounded request-inlining step, and publish the seam's diagnostic vocabulary to an installed surface", needs = [] },
 ]
 shipped = [
   { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md" }] },

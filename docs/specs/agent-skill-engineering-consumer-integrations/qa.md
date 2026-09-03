@@ -122,14 +122,28 @@ is the only reading under which AC2 and AC5 are satisfiable together, because
 substring. The exemption is commented in place so a later reader does not
 "fix" it back into a contradiction.
 
-## Deviation from the plan's task scope
+## Two deviations from the plan's task scope
 
+**`.claude-plugin/plugin.json` is bumped alongside `pack.toml`.**
 `packs/AGENTS.md:45-47` requires every non-cosmetic `.apm/**` change to bump
-matching versions in **`pack.toml` and `.claude-plugin/plugin.json`**, and
+matching versions in **both** files, and
 `tests/roster/test_thirty_day_cooling_and_retirement.py` asserts that parity for
 `core`. The plan's T6b *Touches* named only `pack.toml (version field only)`.
 Both files are therefore bumped for all three packs, and the plan's task scope
 is the record that was incomplete, not the rule.
+
+**`spec.md`'s `- **Brief:**` header lost its backticks.** T6a's queue
+registration is what surfaced this. Reconciliation resolves a queued entry's
+*artifact parent* from that header, and the value was written as an inline code
+span. A backticked string is not a repository-relative path, so registering the
+spec raised `invalid_artifact_path` — which **is** in the fail-closed set that
+`tests/roster/test_workspace_status_projection.py:939-957` enforces, so AC14 and
+a green repository could not both hold while the backticks stood. Attributed by
+running the engine over `HEAD:workspace.toml` and over the working tree with the
+same repository root: the finding appears only after registration. All four
+sibling `agent-skill-engineering-*` specs already write the header unbackticked;
+this spec was the only one that did not. The edit changes no criterion, boundary
+or assumption — only the delimiter on a header field.
 
 ## Residuals, registered rather than resolved
 

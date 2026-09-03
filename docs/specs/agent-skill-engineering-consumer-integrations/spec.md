@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
 - **Depends on:** satisfied by merge `a43cc1f69` (PR #1215), which owns the brief's slice table, `docs/specs/README.md`, `docs/product/findings/rfc-candidates.md` and `workspace.toml`'s ini-009 milestone; the *Ask first* list fences them for that reason.
-- **Brief:** `docs/product/briefs/agent-skill-engineering.md`
+- **Brief:** docs/product/briefs/agent-skill-engineering.md
 - **Discovery:** none
 - **Contract:** none — `agent-skill-engineering-reference/v1` is a semantic capability seam owned by the provider pack. This slice adds no request field, response status, or task kind. It publishes into that pack's projected reference the diagnostic vocabulary the seam already emits, which the consumers quote.
 - **Shape:** integration

@@ -193,6 +193,7 @@ promotes and approves them.
 | `agent-skill-engineering-corpus` | Shipped |
 | `agent-skill-engineering-languages-and-execution` | Shipped |
 | `agent-skill-engineering-composition-floors` | Shipped |
+| `agent-skill-engineering-consumer-integrations` | Implementing |
 
 ## Backlog and prerequisites
 
