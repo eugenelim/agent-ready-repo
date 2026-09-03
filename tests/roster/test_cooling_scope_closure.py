@@ -1005,7 +1005,18 @@ def test_ac29_erratum_records_four_wave_slices() -> None:
     """AC29: the signed erratum records the four Wave 7 slices."""
     errata = _normalized_rfc_errata()
 
-    assert errata.count("Approver: eugenelim") == 2
+    # AC29 wants one thing from this count: that a new erratum is signed. Its
+    # wording says "twice" because one occurrence pre-existed in the
+    # 2026-08-27 entry, so a single occurrence could not distinguish a signed
+    # new erratum from an unsigned one. An exact equality breaks on every
+    # later signed erratum — RFC-0096 gained a third on 2026-09-03 — and a
+    # >= 2 floor is worse than useless: with three entries it still passes
+    # when a signature is stripped, so it cannot fail for the reason it
+    # exists. Assert the property itself instead: every entry is signed.
+    entries = re.findall(r"- \*\*(\d{4}-\d{2}-\d{2})([^*]*)", errata)
+    assert len(entries) >= 2, entries
+    unsigned = [d for d, tail in entries if "(Approver:" not in tail]
+    assert unsigned == [], f"unsigned erratum entries: {unsigned}"
     for statement in (
         "cooling-scope-closure",
         "Wave 7a-i closes cooling scope",
