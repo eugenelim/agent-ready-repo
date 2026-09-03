@@ -54,6 +54,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.24.0] — 2026-09-03
+
+### Highlights
+
+- **Work-loop now gives each scheduled plan task a bounded sequential implementer dispatch.** The controller retains lifecycle, review, and closeout ownership while the task brief carries its execution root and applicable craft guidance.
+
 ## [core][2.23.2] — 2026-09-03
 
 ### Highlights

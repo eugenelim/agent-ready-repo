@@ -159,6 +159,8 @@ Once `approve-plan` runs (during the G-plan sequence after the plan approver fir
 
 Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 — those verbs exit non-zero without touching `state.json`. The full parallel-dispatch design (opt-in, gated, wave-scheduled) is documented in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md) for future phases.
 
+When an `implementer` subagent is installed, the controller dispatches each plan task sequentially, one implementer at a time, using the schedule order.
+
 ## Pitfalls
 
 :::caution
