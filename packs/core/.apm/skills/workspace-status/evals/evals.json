@@ -218,7 +218,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "prompt": "Show workspace status and explain why the dependant cannot start.",
       "expected_output": "The agent invokes the workspace-status backend and reports its invalid_completion_receipt finding for docs/specs/pruned-dependency/spec.md. It includes the backend-provided next action: replace it with a valid reviewed completion receipt for that dependency. The agent does not parse the receipt or re-derive the verdict independently.",
       "assertions": [
