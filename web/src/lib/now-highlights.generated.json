@@ -5,6 +5,45 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.23.1"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.23.1] — 2026-09-03",
+      "changelogAnchor": "core2231--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open.** Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout no longer offers to close an initiative that still has shaping or delivery-brief work open."
+            },
+            {
+              "type": "text",
+              "value": " Eligibility was read from the initiative's spec work alone, so an initiative whose every spec had shipped was recommended for closeout while its intents and draft delivery briefs were untouched. It now reports a named blocker instead, and stops recommending the skill that distils and dispositions."
+            }
+          ]
+        },
+        {
+          "source": "**Both record shapes now count as remaining shaping work.** A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Both record shapes now count as remaining shaping work."
+            },
+            {
+              "type": "text",
+              "value": " A shaping record written in the canonical form was invisible to the check, which read only the older shape — so an initiative whose remaining shaping work was written entirely in the current form looked empty. A shipped, withdrawn, or cancelled delivery brief is still correctly treated as finished."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.23.0"
         }
       ],

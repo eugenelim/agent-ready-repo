@@ -1,0 +1,15 @@
+["ini-001"]
+name = "Residue Initiative"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = []
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = [
+  { path = "docs/product/intents/open-intent.md", kind = "intent", source = { mode = "repo-origin" }, summary = "An unfinished intent blocks closeout", needs = [] },
+]

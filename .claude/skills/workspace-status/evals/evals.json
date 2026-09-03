@@ -119,6 +119,23 @@
         "output_contains": ["Executing"],
         "output_excludes": ["Traceback", "workspace-status error:"]
       }
+    },
+    {
+      "id": 8,
+      "prompt": "Show whether this all-shipped initiative can be closed and what I should do next.",
+      "expected_output": "The agent uses the workspace-status closeout projection. It reports that initiative-residue blocks closeout while shaping_queue has an active or backlog entry, even when work.queue and work.active are empty. It directs the user to settle closeout blockers rather than invoke close-work, and makes no write or lifecycle decision.",
+      "assertions": [
+        "Uses the backend closeout projection rather than deriving eligibility from work collections alone",
+        "Reports initiative-residue as a closeout blocker",
+        "Directs the user to settle closeout blockers rather than invoke close-work",
+        "Performs no write, compaction, deletion, or lifecycle transition"
+      ],
+      "files": ["evals/files/residue/workspace.toml"],
+      "expect": {
+        "produces": [],
+        "output_contains": ["initiative-residue", "settle-closeout-blockers"],
+        "output_excludes": ["deleted", "compacted", "Traceback", "workspace-status error:"]
+      }
     }
   ]
 }

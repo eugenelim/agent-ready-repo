@@ -765,6 +765,7 @@ def _closeout_projection(
     cooled_by_initiative: dict[str, set[str]],
     *,
     dueness_failed: bool = False,
+    canonical_evaluations: list[dict],
 ) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
@@ -803,6 +804,35 @@ def _closeout_projection(
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
+    # Shaping residue is read from BOTH layers because neither sees the other's
+    # entries. `initiative.shaping` carries only legacy-shaped records:
+    # `_parse_supported_shaping_entry` drops anything whose parse is not
+    # `legacy_entry`, so every canonical `{path, kind}` shaping entry is absent
+    # from it. Reading only that field reported an initiative whose entire
+    # shaping queue is canonical as having none. `brief_queue` has no such
+    # split. `.shipped`, `.withdrawn` and `.cancelled` are terminal and are not
+    # residue; the brief-dependency terminal set is deliberately not reused
+    # here, because it counts `Ready` and `Executing` as terminal, which answers
+    # "is this dependency satisfied", not "is this brief closed".
+    brief_queue = initiative.brief_queue
+    shaping_residue = (
+        initiative.shaping.active
+        or initiative.shaping.backlog
+        or any(
+            evaluation["ini_slug"] == initiative.slug
+            and evaluation["collection"]
+            in {"shaping_queue.active", "shaping_queue.backlog"}
+            for evaluation in canonical_evaluations
+        )
+    )
+    if (
+        shaping_residue
+        or (
+            brief_queue is not None
+            and (brief_queue.executing or brief_queue.ready or brief_queue.draft)
+        )
+    ):
+        blockers.append("initiative-residue")
     if cooling_context_visible:
         blockers.append("cooling-context-incomplete")
     projection = project_closeout_status(
@@ -933,7 +963,10 @@ def _build_json(root: Path, result, mode: str) -> dict:
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
         closeout = _closeout_projection(
-            result, cooled_by_initiative, dueness_failed=bool(unreadable)
+            result,
+            cooled_by_initiative,
+            dueness_failed=bool(unreadable),
+            canonical_evaluations=canonical["evaluations"],
         )
         if closeout is not None:
             output["closeout"] = closeout
