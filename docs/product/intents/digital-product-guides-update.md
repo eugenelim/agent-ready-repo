@@ -16,6 +16,11 @@ Guidance exists within individual packs, but there is no integrative tutorial or
 
 - The cross-pack evaluation will establish the validated journey that the guides explain.
 
+## What the decision requires
+
+- Update user guides with intent indexes for each pack and a new end-to-end tutorial (RFC-0071 Reviewer brief).
+- Deliver M6 after the M5 cross-pack experience evaluation (RFC-0071 § Implementation sequence).
+
 ## Source
 
 - Mode: repo-origin

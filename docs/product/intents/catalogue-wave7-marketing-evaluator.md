@@ -16,6 +16,16 @@ The marketing site does not yet offer an evaluator route or present neutral-inde
 
 - The technical documentation architecture will provide the evidence destinations linked from the evaluator surface.
 
+## What the decision requires
+
+- Add a marketing-site `/evaluate/` page covering open file-based formats, versioned contracts, deterministic verification and packaging, human gates, source ownership, adapter projection, release integrity, optional composition, and links to technical evidence (RFC-0076 D10).
+- Update catalogue and pack pages to use neutral-index facts for version, scope, adapters, lifecycle, optional integrations, and documentation links (RFC-0076 D10).
+- Render pack composition as a legible relationship view using the user-facing labels from D6 (RFC-0076 D10).
+
+## Non-goals
+
+- Do not turn the marketing site into raw schema documentation or broadly redesign its visual system (RFC-0076 D10).
+
 ## Source
 
 - Mode: repo-origin

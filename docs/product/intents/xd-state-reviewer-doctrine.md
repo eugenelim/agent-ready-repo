@@ -16,6 +16,13 @@ The current experience-reviewer and quality floor do not cover the needed state 
 
 - Information-architecture object and state guidance will provide the reviewer’s shared surface model.
 
+## What the decision requires
+
+- Extend `quality-floor.md` from 8 to 18 states (RFC-0071 Area D / M3d).
+- Restructure `design-review` (`experience-reviewer`) into cold-read, task-completion, and contract-review passes (RFC-0071 Area D).
+- Use blocker, concern, and suggestion severity tiers, and require rendered evidence when a rendered surface exists (RFC-0071 Area D).
+- Deliver M3d after M3c in the accepted implementation sequence (RFC-0071 § Implementation sequence).
+
 ## Source
 
 - Mode: repo-origin

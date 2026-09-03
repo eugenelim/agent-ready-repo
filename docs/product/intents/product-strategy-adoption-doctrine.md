@@ -16,6 +16,17 @@ The product-strategy pack has useful strategy methods but does not yet require t
 
 - The shipped Digital Experience Contract remains the shared outcome boundary for the doctrine.
 
+## What the decision requires
+
+- Require a 14-point strategy output structure with an adoption hypothesis: acquisition context, promise, proof, first action, first-success event, repeat-value behavior, and economic behavior where material (RFC-0071 Area B / D8).
+- Add `strategy-to-experience` with eight named fields covering recognition, problem, demonstration, objections, credible proof, secondary concepts, value-loop action, and what must be visibly true (RFC-0071 Area B).
+- Review for the eleven named anti-patterns, including vision-without-choices, target-everyone segment, launch-as-adoption, and validated-without-evidence (RFC-0071 Area B).
+- Use natural strategic-question triggers and near-misses for routine backlog shaping and copyediting without a strategy question (RFC-0071 Area B).
+
+## Non-goals
+
+- Growth operations—AARRR, PLG, PMF testing, experimentation operations, paid acquisition, lifecycle campaigns, and SEO—remain for a future growth pack; product-strategy owns the hypothesis, not the programs (RFC-0071 D8).
+
 ## Source
 
 - Mode: repo-origin

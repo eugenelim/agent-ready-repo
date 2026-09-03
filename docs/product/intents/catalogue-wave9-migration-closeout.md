@@ -16,6 +16,10 @@ The foundation, discovery, and presentation waves are delivered through separate
 
 - Closeout depends on the completed release-integrity and evaluator outcomes as well as the existing integration and documentation foundations.
 
+## What the decision requires
+
+- Wave 9 is the first-party migration and closeout wave; RFC-0076 states no finer requirements for this slice (RFC-0076 § Wave-to-decision mapping).
+
 ## Source
 
 - Mode: repo-origin

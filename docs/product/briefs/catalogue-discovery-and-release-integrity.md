@@ -16,6 +16,8 @@ It is Draft because no delivery slices are proposed yet.
 
 - The initiative’s five remaining outcomes are visible as independently shaped intents.
 - Their prerequisite order is explicit without asserting that any intent is ready for specification or implementation.
+- Wave 5 implements D8 release integrity, Wave 6 implements D9 docs-site IA, and Wave 7 implements D10 marketing evaluation (RFC-0076 § Wave-to-decision mapping).
+- Wave 8 converges README and CONTRIBUTING by applying D1–D4 without a new decision; Wave 9 performs first-party migration and closeout (RFC-0076 § Wave-to-decision mapping).
 
 ## Scope / Non-goals
 
@@ -30,6 +32,7 @@ It is Draft because no delivery slices are proposed yet.
 **Non-goals**
 
 - Proposing implementation slices, specs, or plans for any of these intents.
+- The RFC does not assign a new decision to Wave 8 (RFC-0076 § Wave-to-decision mapping).
 
 ## Source
 

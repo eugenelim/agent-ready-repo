@@ -16,6 +16,8 @@ It is Draft because no delivery slices are proposed yet.
 
 - The initiative’s remaining outcomes are visible as seven independently shaped intents.
 - Their prerequisite order is explicit without asserting that any intent is ready for specification or implementation.
+- Product-strategy adoption and product-engineering shaping are M2a and M2b after the shared contract; XD foundations and IA are M3b and M3c after M3a; state and reviewer doctrine is M3d after M3c (RFC-0071 § Implementation sequence).
+- Cross-pack evaluation is M5 after M2–M4, and integrative guides are M6 after M5 (RFC-0071 § Implementation sequence).
 
 ## Scope / Non-goals
 
@@ -32,6 +34,7 @@ It is Draft because no delivery slices are proposed yet.
 **Non-goals**
 
 - Proposing implementation slices, specs, or plans for any of these intents.
+- Growth operations, non-digital-experience packs, and changes to discovery-loop, work-loop, or new-spec logic remain outside RFC-0071 (RFC-0071 Non-goals).
 
 ## Source
 
