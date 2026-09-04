@@ -553,18 +553,25 @@ def test_guide_refusal_table_quotes_what_the_selector_emits(tmp_path):
             reg(families=[{**ok, "tier": "blocking"}]), "CODE-IMPLEMENTATION", None),
     }
 
-    undriven = documented - set(drivers)
-    assert not undriven, (
-        f"the guide documents refusal fragments with no driver here: "
-        f"{sorted(undriven)} — add a case or stop quoting the fragment")
+    # An empty parse must fail, not empty the work list. Without this the
+    # `undriven` check is vacuously satisfied and every driver below is skipped,
+    # so the test goes green having never run the selector — reachable through
+    # any edit that moves the first blank line after the header.
+    assert documented, (
+        f"parsed no refusal fragments from {guide_path.name} — the table's shape "
+        f"changed; fix the parse rather than letting this test assert nothing")
+    # Both directions: a documented fragment with no driver fails, and a driver
+    # for a fragment the guide no longer quotes fails too.
+    assert documented == set(drivers), (
+        f"guide and drivers disagree — documented-only: "
+        f"{sorted(documented - set(drivers))}, driver-only: "
+        f"{sorted(set(drivers) - documented)}")
 
     # The table elides variables as `X`, `Y`, `Z` and `...`. Require EVERY
     # literal segment between those placeholders, not the leading stem: for
     # "family 'Y' has tier ..." the stem alone is "family", which matches almost
     # any message and let two emitter rewordings pass their own mutation.
     for fragment, (registry, key, info) in drivers.items():
-        if fragment not in documented:
-            continue
         segments = [s.strip() for s in re.split(r"'?[XYZ]'?|\.\.\.", fragment)
                     if s.strip()]
         assert segments, f"{fragment!r} has no literal segment to match on"
