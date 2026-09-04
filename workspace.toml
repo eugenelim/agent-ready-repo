@@ -1093,7 +1093,7 @@ backlog = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · composition floors shipped; slices 3c, 3d and 3e remain — see the brief's slice table"
+milestone = "M3 · slice 4 consumer integrations shipped; 3c and 3e are unblocked and parallel, 3d needs 3c, 5 needs 3c, 6 closes — see the brief's slice table"
 
 ["ini-009".brief_queue]
 executing = [
