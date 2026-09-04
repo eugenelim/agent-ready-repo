@@ -503,49 +503,79 @@ def test_unterminated_fence_is_reported_as_such(tmp_path):
 
 
 def test_guide_refusal_table_quotes_what_the_selector_emits(tmp_path):
-    """Every documented refusal shape must match a message the emitter produces.
+    """Every fragment the guide's refusal table quotes is driven against the emitter.
 
-    The guide's table previously quoted `resolves to no file under Z` while the
-    selector emitted `confined to`. Nothing compared the two, so the row went
-    stale silently and would have sent an adopter hunting for a missing file
-    when the real cause was a locator reaching outside the root.
+    Coverage is self-policing: the fragment list is parsed out of the guide, and
+    a documented fragment with no driver fails rather than being skipped. An
+    earlier version drove four of six while its docstring claimed all of them,
+    which is the wording that would have stopped the next author noticing.
+
+    The table previously quoted `resolves to no file under Z` while the selector
+    emitted `confined to`. Nothing compared the two, so the row went stale
+    silently and would have sent an adopter hunting for a missing file when the
+    real cause was a locator reaching outside the root.
     """
-    guide = (REPO_ROOT
-             / "guides/core/reference/phase-scoped-policy-delivery.md").read_text(
-                 encoding="utf-8")
+    guide_path = REPO_ROOT / "guides/core/reference/phase-scoped-policy-delivery.md"
+    guide = guide_path.read_text(encoding="utf-8")
+    table = guide[guide.index("| What you see |"):]
+    table = table[:table.index("\n\n")]
+    # Every `code` span in the first column, including a cell listing two.
+    documented = {frag for row in table.splitlines()[2:]
+                  for frag in re.findall(r"`([^`]+)`", row.split("|")[1])}
+
     root = tmp_path / "root"
     root.mkdir()
     (root / "in.md").write_text("in\n", encoding="utf-8")
+    ok = {"id": "p", "tier": "advisory", "module": "seed:in.md"}
 
-    def registry(module: str, **over) -> dict:
-        base = {"schema_version": 1,
-                "families": [{"id": "p", "tier": "advisory", "module": module}],
+    def reg(**over) -> dict:
+        base = {"schema_version": 1, "families": [dict(ok)],
                 "selection": {"CODE-IMPLEMENTATION": ["p"]}}
         base.update(over)
         return base
 
-    # documented fragment -> (registry, key, info-string override)
-    cases = {
-        "unknown selection key": (registry("seed:in.md"), "NO-SUCH", None),
-        "resolves to no file confined to": (registry("seed:../out.md"),
-                                            "CODE-IMPLEMENTATION", None),
-        "disagrees with schema_version": (registry("seed:in.md"),
-                                          "CODE-IMPLEMENTATION",
-                                          "json policy-registry.v2"),
-        "duplicate family id": (
-            registry("seed:in.md",
-                     families=[{"id": "p", "tier": "advisory", "module": "seed:in.md"},
-                               {"id": "p", "tier": "advisory", "module": "seed:in.md"}]),
+    # documented fragment -> (registry, key, info-string override or None)
+    drivers = {
+        "unknown selection key 'X'": (reg(), "NO-SUCH", None),
+        "module 'Y' resolves to no file confined to Z": (
+            reg(families=[{**ok, "module": "seed:../out.md"}]),
             "CODE-IMPLEMENTATION", None),
+        "info string ... disagrees with schema_version": (
+            reg(), "CODE-IMPLEMENTATION", "json policy-registry.v2"),
+        "unsupported schema_version": (
+            reg(schema_version=2), "CODE-IMPLEMENTATION", "json policy-registry.v2"),
+        "duplicate family id": (
+            reg(families=[dict(ok), dict(ok)]), "CODE-IMPLEMENTATION", None),
+        "selection 'X' repeats a family id": (
+            reg(selection={"CODE-IMPLEMENTATION": ["p", "p"]}),
+            "CODE-IMPLEMENTATION", None),
+        "family 'Y' has tier ...": (
+            reg(families=[{**ok, "tier": "blocking"}]), "CODE-IMPLEMENTATION", None),
     }
-    for fragment, (reg, key, info) in cases.items():
-        assert fragment in guide, f"guide no longer documents {fragment!r}"
-        path = (_write_registry(tmp_path, reg, info) if info
-                else _write_registry(tmp_path, reg))
+
+    undriven = documented - set(drivers)
+    assert not undriven, (
+        f"the guide documents refusal fragments with no driver here: "
+        f"{sorted(undriven)} — add a case or stop quoting the fragment")
+
+    # The table elides variables as `X`, `Y`, `Z` and `...`. Require EVERY
+    # literal segment between those placeholders, not the leading stem: for
+    # "family 'Y' has tier ..." the stem alone is "family", which matches almost
+    # any message and let two emitter rewordings pass their own mutation.
+    for fragment, (registry, key, info) in drivers.items():
+        if fragment not in documented:
+            continue
+        segments = [s.strip() for s in re.split(r"'?[XYZ]'?|\.\.\.", fragment)
+                    if s.strip()]
+        assert segments, f"{fragment!r} has no literal segment to match on"
+        path = (_write_registry(tmp_path, registry, info) if info
+                else _write_registry(tmp_path, registry))
         proc = _run("--registry", str(path), "--root", str(root), key)
         assert proc.returncode != 0, f"{fragment}: not refused"
-        assert fragment in proc.stderr, (
-            f"guide documents {fragment!r} but the selector emitted:\n{proc.stderr}")
+        for segment in segments:
+            assert segment in proc.stderr, (
+                f"guide documents {fragment!r} (segment {segment!r} missing) but "
+                f"the selector emitted:\n{proc.stderr}")
 
 
 # --- T6: the guide's coverage half --------------------------------------------
