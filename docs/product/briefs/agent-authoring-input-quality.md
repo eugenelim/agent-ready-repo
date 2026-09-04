@@ -106,9 +106,8 @@ oversized, which was the symptom; the defect was product-strategy content in a
 capability container, and the repair was re-homing it as an intent rather than
 cutting it.
 
-This is the altitude analogue of rubric category 5, and the rubric states the
-pair rule: a criterion that is too big is cut; an artifact at the wrong
-altitude is moved.
+This is the altitude analogue of rubric class 5, and the rubric states the pair
+rule that distinguishes cutting a criterion from re-homing an artifact.
 
 ### Corpus
 
@@ -151,9 +150,9 @@ establishes a criteria *floor*.
 
 ### Why no regenerator
 
-Rejected: a regenerator slice. Rubric category 4 below is "the criterion decays
-— exact counts over a growing corpus", and every figure here is a percentile of
-416 specs measured 2026-09-02. Decay is real but cheap to answer: two of the six
+Rejected: a regenerator slice. Rubric class 4 is the decay class, and the
+shipped rubric states it; every figure here is a percentile of 416 specs
+measured 2026-09-02, so the class applies to this section. Decay is real but cheap to answer: two of the six
 rows are repo-derived percentiles, the rest are imported measurements, the corpus
 grows slowly, and a hand measurement is one command. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
@@ -199,10 +198,10 @@ guide, and the eight requirements smells of Femmer et al. (2017). Its result is
 load-bearing for the rubric rather than decorative: **six classes have no
 equivalent in any of the three frames** — the design should have delegated, the
 criterion decays, it targets a projection, it cuts a non-waivable control, it
-hand-enumerates a derivable set, and draft narration. Four of them share one
-cause — an agent reader of a document written for a human reader — which that
-section states once and this brief does not restate; the other two have their
-own, given in its table. Those six must be taught; the rest can cite a frame.
+hand-enumerates a derivable set, and draft narration. Most of them share one
+cause — an agent reader of a document written for a human reader — and that
+section names which, so this brief does not. Those six must be taught; the rest
+can cite a frame.
 
 The survey also names the one clear import we lack — a criterion *syntax*, for
 which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
@@ -766,10 +765,12 @@ What shipping early costs, recorded rather than glossed:
   The ablation found four of the six already reachable from shipped guidance,
   so their marginal value is diagnosis rather than detection, and the
   commissioned survey records vendor guidance that an over-long instruction
-  file gets half-ignored. The six ship whole anyway, because a rubric worked
-  *in order* needs every class present to reach the one that fires — a
-  four-class file plus three pointers is not shorter to read. Revisit if the
-  activation report shows the later classes never firing.
+  file gets half-ignored. The six ship whole anyway for one reason: the rubric
+  is worked **in order** and stops at the first class that fires, so every
+  class has to be present and in place for the ordering to mean anything.
+  Replacing the four already-reachable classes with pointers would keep the
+  ordering only by making the reader follow a pointer mid-sequence. Revisit if
+  the activation report shows the later classes never firing.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same single consumer, same
   precedent — § "A1 home" still governs.

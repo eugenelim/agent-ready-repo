@@ -168,11 +168,12 @@ would run against prose whose author chose the wording.
 
 **Move.** Ship it as advisory guidance and say so, or convert it to a
 mechanical proxy and accept that the proxy is what you get. Do not gate on it.
-Where a lexical predicate over authored prose has been measured, its false
-positives have run high enough that such detectors are built to triage
-candidates for a human rather than to issue verdicts — and the rate varied by
-corpus and language, so calibrate rather than assume one. A check that cannot
-be calibrated is delivered as guidance and never blocks.
+Published measurements of a lexical predicate over authored prose disagree
+enough between corpora and languages that no single false-positive rate carries
+across them, and the low end has been low enough that such detectors are built
+to triage candidates for a human rather than to issue verdicts. So calibrate a
+check on your own corpus before proposing to block on it, and treat a check
+that cannot be calibrated as guidance that never blocks.
 
 **Two classes sit here and cannot be moved out.**
 

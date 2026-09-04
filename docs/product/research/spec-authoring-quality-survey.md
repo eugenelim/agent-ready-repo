@@ -359,8 +359,8 @@ authoring rubric may promise.
 | --- | --- |
 | An acceptance-criteria count ceiling has adjacent-regime evidence for its shape. Keep it a screening threshold and name the transfer gap; drop any claim that no evidence exists. | §2, arXiv:2505.07591 and arXiv:2509.21051 |
 | Independent review is load-bearing, with a measured effect size. Warm self-review stays disqualified. | §2, arXiv:2606.05976 |
-| The one-primary-surface bound now has three independent sources and a named cause: localization. | §2, Agentless and SWE-bench Pro |
-| Six failure classes cannot be imported from requirements engineering and must be taught. Four of them share one cause, named once in § 1 § "Where our classes have no prior-art home"; the other two have their own, given in that section's table. | §1 |
+| The one-primary-surface bound now has three independent sources. Its per-stage figures are measured; that localization rather than repair is where the success is lost is a synthesis, not a measurement. | §2, Agentless and SWE-bench Pro |
+| Six failure classes cannot be imported from requirements engineering and must be taught. The shared cause, and which classes it covers, is stated in § 1 § "Where our classes have no prior-art home"; the rest have their own, in that section's table. | §1 |
 | A criterion syntax is the one clearly missing import. Adopt EARS shapes as an optional aid, never a gate — the evidence is practitioner-grade. | §1 |
 | No set-level criteria checks exist here. 29148's set-level characteristics are the frame if that gap is taken. | §1 |
 | The 8,500-to-2,100-token figure is a practitioner report, not a measurement. Relabel it where it is cited as measured. | §2, Augment writeup |

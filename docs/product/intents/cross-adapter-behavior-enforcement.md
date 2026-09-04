@@ -179,12 +179,13 @@ human rather than issuing verdicts*
 re-validation on English financial-domain requirements reported far higher
 precision, so that survey rates the ceiling **domain- and language-dependent
 rather than intrinsic**, `[moderate]` for transfer. The transferable part is
-the design response, not the rate: where a lexical predicate over authored
-prose has been measured, its false-positive rate has been high enough that the
-tool was built to advise rather than block, and it varied enough between
-corpora that a family must be **calibrated on its own corpus** before anyone
-proposes blocking on it. That is the same conclusion the local 27.4%
-measurement reached, by a different route.
+the design response, not the rate. Across the measurements that survey
+reports — Femmer's German-language corpus, the later English re-validation, and
+this repository's own 27.4% calibration — the false-positive rate varies too
+much to carry between corpora, and its low end was low enough that the tool
+shipped to advise rather than to block. So a family must be **calibrated on its
+own corpus** before anyone proposes blocking on it. Two of those three
+measurements reached this repository's design rule independently.
 
 What would have to be true:
 

@@ -399,29 +399,38 @@ def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:
     the derivation instruction is present, and that no repository-only locator
     is.
 
-    Named blind spot: this checks *locators*, not figures. A bare numeral
-    assertion is not available here because the rubric's own class headings
-    (`## 1.` … `## 6.`) are numerals, so a repo-derived percentile written
-    without a path would pass. Enforced at review instead.
+    Two named blind spots, both enforced at review instead. First, this checks
+    *locators*, not figures: a bare-numeral assertion is not available because
+    the rubric's own class headings (`## 1.` … `## 6.`) are numerals, so a
+    repo-derived percentile written without a path would pass. Second, the
+    locator tuple below is a sample of the prefixes seen in practice, not a
+    closed set — the prohibition it enforces is stated generally, so a locator
+    shape nobody has written yet passes.
     """
     text = flattened(RUBRIC)
     assert "Ship the derivation, not the value" in text
     assert "measure your own shipped corpus" in text
-    # Every repository-only surface the shipped-content prohibition reaches,
-    # not just the four the first draft happened to list.
+    # A deny-list of the repository-only prefixes seen in practice. It is a
+    # sample, not a closed set: the prohibition it enforces is stated generally,
+    # so a locator shape absent from this tuple still passes. Widen on sight.
     for locator in (
-        "docs/product/",
-        "docs/specs/",
-        "docs/adr/",
-        "docs/rfc/",
-        "docs/knowledge/",
-        "docs/guides/",
-        "guides/core/",
+        "docs/",
+        "guides/",
         "packs/",
+        "packages/",
+        "profiles/",
+        "tools/",
+        "tests/",
+        "web/",
+        "contracts/",
+        ".context/",
+        "workspace.toml",
+        "Makefile",
         "AGENT_RULES.md",
+        "AGENTS.md",
         "CONVENTIONS.md",
         "CHARTER.md",
-        "workspace.toml",
+        "ARCHITECTURE.md",
         "RFC-00",
         "ADR-00",
     ):
