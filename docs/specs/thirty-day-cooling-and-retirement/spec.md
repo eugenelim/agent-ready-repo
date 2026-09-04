@@ -1,6 +1,6 @@
 # Spec: Thirty-day cooling and retirement
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by ADR-0105 — AC22's transition table now includes the retained-to-Reclassified edge; everything else stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6 and §9; `close-work-extraction-and-immediate-disposition` (Shipped, live dependency); `semantic-surface-resolver` (Shipped)

@@ -263,10 +263,10 @@ Cooling context is excluded from ordinary orientation. `status` and `reconcile`
 carry a `cooling` block — `due_count`, the named due list, every loaded record,
 and the retention exceptions — and a `closeout` block whenever an initiative is active or paused; with
 every initiative closed the `closeout` key is absent rather than empty. `explain` and
-`repair-plan` carry neither. An artifact named by a `Cooling` or `Retired`
-lifecycle record is neither scanned nor dispatchable, and its body is never
-opened; `Retained` and `ExternalAdvisory` artifacts stay visible because someone
-still owes work against them. Read `closeout.cooling_context_visible` before
+`repair-plan` carry neither. An artifact named by a `Cooling`, `Retired`, or
+`Reclassified` lifecycle record is neither scanned nor dispatchable, and its
+body is never opened; `Retained` and `ExternalAdvisory` artifacts stay visible
+because someone still owes work against them. Read `closeout.cooling_context_visible` before
 trusting that exclusion happened: it is `false` only when the cooled set
 resolved cleanly, and `true` when any lifecycle record or the cooling module
 could not be read. `true` means the exclusion is *incomplete*, not that it did

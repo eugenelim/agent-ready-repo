@@ -60,6 +60,7 @@ _TRANSITIONS = frozenset(
         (("retain-exception", "Retained"), ("retain-exception", "Retained")),
         (("retain-exception", "Retained"), ("cool-30-days", "Cooling")),
         (("retain-exception", "Retained"), ("retain-exception", "Retired")),
+        (("retain-exception", "Retained"), ("retain-exception", "Reclassified")),
         (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
     }
 )
@@ -328,7 +329,7 @@ def validate_payload(payload: object) -> CoolingResult:
         not _is_one_of(payload["disposition"], {"cool-30-days", "retain-exception"})
         or not _is_one_of(
             payload["post_closeout_result"],
-            {"Cooling", "Retained", "Retired", "ExternalAdvisory"},
+            {"Cooling", "Retained", "Retired", "Reclassified", "ExternalAdvisory"},
         )
     ):
         return CoolingResult(code="record-invalid")
@@ -900,6 +901,38 @@ def review_exception(
             disposition=disposition,
             post_closeout_result=post_closeout_result,
             exception=exception,
+        )
+    except (TypeError, ValueError):
+        return CoolingResult(code="exception-envelope-invalid")
+    return update_record(
+        root=root,
+        prior=record,
+        proposed=proposed,
+        candidates=candidates,
+        authority_binding=authority_binding,
+    )
+
+
+def reclassify_record(
+    record: CoolingRecord,
+    acceptance: object,
+    *,
+    root: Path,
+    candidates: object,
+    authority_binding: object,
+) -> CoolingResult:
+    """Persist a retained record with its supplied durable-owner acceptance."""
+    if not isinstance(acceptance, dict):
+        return CoolingResult(code="exception-envelope-invalid")
+    supplied = acceptance.get("exception", acceptance)
+    if not _exception_is_valid(supplied):
+        return CoolingResult(code="exception-envelope-invalid")
+    try:
+        proposed = _proposed_record(
+            record,
+            disposition="retain-exception",
+            post_closeout_result="Reclassified",
+            exception=supplied,
         )
     except (TypeError, ValueError):
         return CoolingResult(code="exception-envelope-invalid")

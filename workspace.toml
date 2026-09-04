@@ -220,6 +220,7 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  {path = "docs/specs/reclassified-lifecycle-result/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Carry Reclassified in the lifecycle record by pairing it with retain-exception, reachable only from a retained record on a supplied acceptance and terminal thereafter", needs = []},
 ]
 shipped = [
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
