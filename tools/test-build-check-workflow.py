@@ -1266,6 +1266,11 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
           re.search(r"^  pull_request:\s*$", text, re.M) is not None)
     check("trigger-push-main",
           re.search(r"^  push:\s*\n    branches: \[main\]\s*$", text, re.M) is not None)
+    # spec/remote-gate-dispatch AC1. Asserted here rather than as a new conjunct on
+    # an existing family: the trigger can be removed independently of the other two,
+    # so it needs a family that can fail on its own.
+    check("trigger-workflow-dispatch",
+          re.search(r"^  workflow_dispatch:\s*$", text, re.M) is not None)
     # The last instance of the ladder's shape, found by applying its own prediction rather
     # than by waiting for a reviewer: a POSITIVE substring check over a block is satisfied
     # by that text appearing ANYWHERE in the block — including inside a `run:` body. So
@@ -1907,6 +1912,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("  pull_request:\n", "  pull_request_target:\n")),
     ("drop-push-trigger", "trigger-push-main",
      lambda t: re.sub(r"\n  push:\n    branches: \[main\]", "", t)),
+    ("drop-workflow-dispatch-trigger", "trigger-workflow-dispatch",
+     lambda t: re.sub(r"\n  workflow_dispatch:", "", t)),
     # The `if:`-disables-a-step class (post-implementation security review). A falsy
     # step-level `if:` is as total as continue-on-error and no scanner flags it.
     ("if-false-on-anchor", "anchor-no-if",

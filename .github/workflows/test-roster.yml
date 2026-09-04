@@ -1,0 +1,86 @@
+name: test-roster
+
+# On-demand parallel run of the roster suite (spec/remote-gate-dispatch).
+#
+# WHY SEPARATE FROM test-corpus.yml. That surface runs `make test`, which reaches
+# the roster through its `tests/` sweep and is the authoritative equivalent of the
+# local gate. This one runs the roster ALONE and IN PARALLEL, which is a different
+# invocation with a different claim. Keeping them apart means neither has to
+# pretend to be the other, and a dispatcher picks the one they want.
+#
+# WHAT A GREEN RUN PROVES: the roster's own assertions passed. It does not stand
+# in for `make test`, and it is not a required status check.
+#
+# THE PARALLEL-SAFETY EVIDENCE. Worker execution was blocked until 2026-09-04 by a
+# single defect, now fixed: tests/roster/test_workspace_status_projection.py passed
+# a `Path` to `unittest.subTest`, and pytest-xdist ships subtest parameters to the
+# controller through execnet, which cannot serialize a `Path` and failed the case
+# with an execnet DumpError under `-n`. With that stringified, a local parallel run
+# reported the same 1236 passed / 46 subtests as serial. Those local timings are
+# NOT quoted here: they were taken on a machine at roughly 19x CPU oversubscription
+# and are not transferable to a runner. This job's first run is the first honest
+# measurement.
+
+on:
+  # No other trigger, and no `inputs:`.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-roster-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  roster:
+    name: roster (parallel)
+    runs-on: ubuntu-latest
+    # ESTIMATE. Replace with the first recorded run plus headroom. Deliberately
+    # lower than test-corpus.yml's: this is one suite, not the whole target.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          set -euo pipefail
+          # pytest-xdist supplies `-n`. It is declared in tools/requirements.txt
+          # rather than installed ad hoc here, so the dependency audit reaches it.
+          python -m pip install --upgrade pip
+          python -m pip install pytest -r tools/requirements.txt
+          python -m pip install './packages/credbroker[crypto]'
+
+      - name: Probe provisioning (fail closed, not skip)
+        run: |
+          set -euo pipefail
+          for mod in yaml jsonschema tomlkit httpx cryptography argon2 xdist; do
+            python -c "import $mod" || { echo "::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          for exe in git sh openssl; do
+            command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing"; exit 1; }
+          done
+          echo "provisioning probe: all measured availability conditions present"
+
+      # `-n auto` rather than a literal: xdist derives the worker count from the
+      # runner's own CPU count, so it cannot drift if GitHub changes the standard
+      # runner's specification. A hardcoded number would be a second copy of a
+      # fact the runner already knows.
+      #
+      # `--dist loadfile` keeps every case in a module on one worker. The suite has
+      # a recorded history of order sensitivity — a `sys.path` leak once made two
+      # roster cases fail alone and pass in a combined run at the same commit — so
+      # file-level grouping is the conservative distribution, not the fastest one.
+      #
+      # `-rs` prints skip reasons. The roster is the one place this surface can
+      # afford it: unlike `make test`, nothing here has to match a local
+      # invocation's output, so a skip is visible instead of silent.
+      - name: pytest tests/roster (parallel)
+        run: python -m pytest tests/roster/ -q -rs -n auto --dist loadfile

@@ -13,6 +13,7 @@ live in [RFCs](../rfc/).
 - [`loop-infrastructure.md`](loop-infrastructure.md) — work-loop execution state and controls.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md) — intake, artifacts, and workspace routing.
 - [`workspace-mcp/design.md`](workspace-mcp/design.md) — per-session workspace MCP service.
+- [`verification-graph.md`](verification-graph.md) — measured facts: local gate graph, remote workflow fleet, required contexts, and platform classification.
 - [`security.md`](security.md) — security-review posture.
 - [`credentials.md`](credentials.md) — brokers, storage, and trust boundaries.
 - [`knowledge-capture.md`](knowledge-capture.md) — capture, distillation, and enquiry.

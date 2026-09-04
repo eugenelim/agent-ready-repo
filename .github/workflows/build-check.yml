@@ -10,6 +10,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # On-demand reach (spec/remote-gate-dispatch AC1). A dispatch selects a ref and
+  # GitHub pins it, so this makes the whole chain — including `gate-sast`, which
+  # runs every leg of `make sast`: bandit, pip-audit, semgrep and the npm audit —
+  # reachable from a pushed branch without opening a pull request. Partial
+  # evidence only: a dispatched run is not a required status check and says
+  # nothing about the checks a pull request must pass.
+  #
+  # No `inputs:`. The workflow needs none, and an absent input surface cannot be
+  # interpolated into a shell.
+  workflow_dispatch:
 
 # AC12: contents: read is sufficient — every step reviewed: no token use, no
 # artifact upload/download, no PR comment, no push.
