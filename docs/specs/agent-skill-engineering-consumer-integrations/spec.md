@@ -20,7 +20,7 @@ provider, and are unchanged in every other respect. Neither reaches it today.
 
 Each consumer gains a bounded step that **inlines its own request**, following
 the repository's one cross-pack precedent for consuming an optional provider:
-`architect-review/SKILL.md:107-120` consuming core's `project-knowledge`. That
+`architect-review/SKILL.md:104-120` consuming core's `project-knowledge`. That
 step names the seam, states the request as a literal shape, bounds the call to
 one query with no refinement, forbids locating the provider's implementation, and
 fixes the receipt to record on absence.
@@ -81,7 +81,7 @@ judgement, and the plan names the artifact that records it.
 ### Always do
 
 The consumer step is bounded and **inlines its own request**, following the one
-admissible cross-pack precedent (`architect-review/SKILL.md:107-120`). It states:
+admissible cross-pack precedent (`architect-review/SKILL.md:104-120`). It states:
 
 - **when** to invoke — the task concerns a skill, a skill script or evaluation,
   agent-loop orchestration, a hook, or a plugin, and not otherwise;
@@ -153,59 +153,59 @@ consumer has no path to it and never loads it.
 
 ## Acceptance Criteria
 
-- [ ] **AC1** *(external)* `provider-contract.md` states exactly the set of distinct
+- [x] **AC1** *(external)* `provider-contract.md` states exactly the set of distinct
       non-null `expected.diagnostic` values in `provider-cases.json`, and no
       other value appearing under any `diagnostic` key in that fixture.
-- [ ] **AC2** *(external)* Each consumer body contains the literal
+- [x] **AC2** *(external)* Each consumer body contains the literal
       `agent-skill-engineering-reference/v1`.
-- [ ] **AC3** *(external, plus authored-statement assignment)* Each consumer body contains
+- [x] **AC3** *(external, plus authored-statement assignment)* Each consumer body contains
       `skill-eval-ci` plus exactly one further member of the task-kind set stated
       in `provider-contract.md` — `skill-authoring` for `work-loop`,
       `agent-extension-design` for `architect-design` — and no other member. The
       set is external; which two each consumer sends is authored here and is a
       review judgement.
-- [ ] **AC4** *(external)* Each consumer body contains the diagnostic that
+- [x] **AC4** *(external)* Each consumer body contains the diagnostic that
       `provider-cases.json`'s zero-candidate case expects.
-- [ ] **AC5** *(external, base-green guard)* Neither consumer body contains the owning pack's product name
+- [x] **AC5** *(external, base-green guard)* Neither consumer body contains the owning pack's product name
       `agent-skill-engineering`, the literal `ase-okf-reference`, or a path into
       that pack — the ADR-0097 layout-independence rule.
-- [ ] **AC6** *(external)* `packs/core/pack.toml` declares a `[[pack.integrations]]`
+- [x] **AC6** *(external)* `packs/core/pack.toml` declares a `[[pack.integrations]]`
       entry with `pack = "agent-skill-engineering"`, `kind = "handoff"`, `consumers`
       containing `skill:work-loop`, and `fallback` containing the diagnostic
       `provider-cases.json`'s `absent` case expects.
-- [ ] **AC7** *(external)* `packs/architect/pack.toml` declares the same entry shape,
+- [x] **AC7** *(external)* `packs/architect/pack.toml` declares the same entry shape,
       including `kind = "handoff"`, with `consumers` containing
       `skill:architect-design`.
-- [ ] **AC8** *(external)* `verify_catalogue` reports no error over a staged catalogue
+- [x] **AC8** *(external)* `verify_catalogue` reports no error over a staged catalogue
       containing all three packs and over one omitting
       `agent-skill-engineering`, with both staged manifests asserted to carry the
       entries before the run.
-- [ ] **AC9** *(authored-statement)* `guides/_shared/reference/catalogue-authoring-standards.md`
+- [x] **AC9** *(authored-statement)* `guides/_shared/reference/catalogue-authoring-standards.md`
       § 11 states that where a target pack publishes a diagnostic vocabulary, the
       consuming pack's `fallback` repeats the target's diagnostic verbatim.
-- [ ] **AC10** *(external)* Each of `core`, `architect`, and `agent-skill-engineering`
+- [x] **AC10** *(external)* Each of `core`, `architect`, and `agent-skill-engineering`
       carries a `pack.toml` version strictly greater than the merge-base literal
       recorded in the test module, and equal to the version named by its own
       topmost entry in `docs/product/changelog.md`.
-- [ ] **AC11** *(same-slice, base-green guard)* `.claude/skills/work-loop/SKILL.md` and
+- [x] **AC11** *(same-slice, base-green guard)* `.claude/skills/work-loop/SKILL.md` and
       `.agents/skills/work-loop/SKILL.md` are byte-identical to
       `packs/core/.apm/skills/work-loop/SKILL.md`.
-- [ ] **AC12** *(same-slice, base-green guard)* The `_data/catalogue-scaffold/` twin of
+- [x] **AC12** *(same-slice, base-green guard)* The `_data/catalogue-scaffold/` twin of
       `catalogue-authoring-standards.md` is byte-identical to its repository-root
       original.
-- [ ] **AC13** *(authored-statement)* `docs/architecture/agent-skill-engineering.md` § 11
+- [x] **AC13** *(authored-statement)* `docs/architecture/agent-skill-engineering.md` § 11
       *Last verified* carries a paragraph for this slice, in the form the 2a, 2b
       and composition-floors entries use, naming the two wired consumers.
-- [ ] **AC14** *(same-slice)* This spec is registered in `workspace.toml`'s
+- [x] **AC14** *(same-slice)* This spec is registered in `workspace.toml`'s
       `["ini-009".work].queue` array, in a `docs/specs/README.md` row stating its
       shape and its criterion and task counts derived from `spec.md` and
       `plan.md`, and in the brief's `Spec map`.
-- [ ] **AC15** *(same-slice)*
+- [x] **AC15** *(same-slice)*
       `docs/specs/agent-skill-engineering-consumer-integrations/qa.md` exists,
       carries a `## Review ledger`, and records a result for each of the three
       review-walk items for `work-loop` and for `architect-design`, naming the
       reviewing session.
-- [ ] **AC16** *(same-slice)* `workspace.toml`'s `[backlog].open` contains the `{slug =
+- [x] **AC16** *(same-slice)* `workspace.toml`'s `[backlog].open` contains the `{slug =
       "agent-skill-engineering-provider-absence-behaviour", source =
       "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons",
       summary = …}` entry for this Follow-on.
@@ -231,7 +231,7 @@ consumer has no path to it and never loads it.
   provider, because ADR-0097:171-177 expressly excludes same-pack routing —
   "their authored same-pack consumers may continue to address them statically
   because source, provider, and consumer share one pack ownership and delivery
-  boundary". The one such precedent is `architect-review/SKILL.md:107-120`
+  boundary". The one such precedent is `architect-review/SKILL.md:104-120`
   consuming core's `project-knowledge`: it inlines the envelope, bounds the call
   to one query, forbids locating the provider's implementation, and fixes the
   receipt. An earlier draft matched against the two same-pack examples

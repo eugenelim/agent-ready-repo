@@ -1,9 +1,9 @@
 # Plan: Agent skill engineering consumer integrations
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** the mechanism precedent is
-  `packs/architect/.apm/skills/architect-review/SKILL.md:107-120` — architect
+  `packs/architect/.apm/skills/architect-review/SKILL.md:104-120` — architect
   consuming core's `project-knowledge`, the repository's one cross-pack
   optional-provider consumption. The same-pack examples (`work-loop:388`,
   `architect-design:93`) are **not** admissible here; ADR-0097:171-177 excludes
@@ -43,7 +43,7 @@ field value; a bare citation is not a verdict.
 
 | Mechanism this slice adds | Closest admissible implementation | Verdict |
 | --- | --- | --- |
-| Consumer step invoking an optional cross-pack provider | `architect-review/SKILL.md:107-120` — architect consuming core's `project-knowledge`. It names the seam ("*submit exactly this strict shape through the public `project-knowledge --enquire` seam*"), inlines the envelope as literal JSON, bounds the call ("*The budget is one query and no refinement*"), forbids implementation discovery ("*Do not locate the provider's implementation or persistence; normal skill discovery is the only handoff*"), and fixes the receipt ("*record exactly `project-knowledge unavailable`*") | **Match on four, one recorded deviation.** Adopt the inlined request, the budget, the no-implementation-discovery rule and the fixed receipt. **Deviate** on naming: the precedent names an authored public seam, while this provider is a *generated router*, which ADR-0097:97-99 forbids a consumer from naming. Address by contract version instead |
+| Consumer step invoking an optional cross-pack provider | `architect-review/SKILL.md:104-120` — architect consuming core's `project-knowledge`. It names the seam ("*submit exactly this strict shape through the public `project-knowledge --enquire` seam*"), inlines the envelope as literal JSON, bounds the call ("*The budget is one query and no refinement*"), forbids implementation discovery ("*Do not locate the provider's implementation or persistence; normal skill discovery is the only handoff*"), and fixes the receipt ("*record exactly `project-knowledge unavailable`*") | **Match on four, one recorded deviation.** Adopt the inlined request, the budget, the no-implementation-discovery rule and the fixed receipt. **Deviate** on naming: the precedent names an authored public seam, while this provider is a *generated router*, which ADR-0097:97-99 forbids a consumer from naming. Address by contract version instead |
 | Same-pack routing — `work-loop:388` → `project-knowledge`; `architect-design:93` → its own `references/knowledge-surfaces.md` | — | **Not admissible**, per ADR-0097:171-177. Recorded because an earlier draft matched here |
 | Where the consumption contract lives | The admissible precedent keeps it **in the consumer**: `architect-review` states envelope, budget and receipt inline and delegates nothing to a file inside the provider's pack | **Match.** `provider-contract.md` is the provider pack's own statement, read by its authors and by AC1; a consumer never loads it and has no path to it |
 | External declaration `kind` | The two shipped anchors **disagree**: `packs/core/pack.toml:88-97` is `kind = "review"`; `packs/architect/pack.toml:82-91` — `project-knowledge-review-enquiry`, "*Bounded architecture-review knowledge enquiry*" — is `kind = "handoff"`. `guides/_shared/reference/catalogue-authoring-standards.md:530-535` defines `augment` as "*the target pack's skill is inlined into the consuming skill's workflow*", which a read-only provider call is not. It defines `input` as the target providing an artifact the declaring pack's skill reads; this consumer instead passes control to a discovered capability at a defined boundary, so it does not read a target-provided artifact | **Follow architect: `kind = "handoff"`** — the anchor for the identical responsibility. Pinned by AC6 and AC7 so the choice is reviewable after merge |
@@ -237,7 +237,7 @@ portable tree is already enforced by `test_pack_boundary.py`.
   `tests/roster/test_wave4_durable_outputs_and_release.py`,
   `tools/test_workspace_status.py`, `tools/lint-agents-md.py` and
   `tools/test-pre-pr.sh`. State the search used and its bound.
-- `tools/test_workspace_status.py:1632-1640` compares two SHA-256 section hashes
+- `tools/test_workspace_status.py:1631-1640` compares two SHA-256 section hashes
   scoped to Step 0 and the Finish checklist; a PLAN-step insert should not move
   them. Confirm.
 
@@ -367,7 +367,7 @@ every pack-source edit and runs from a committed tree.
   may continue to address them statically because source, provider, and consumer
   share one pack ownership and delivery boundary." The round-6 `work-loop:388` and
   `architect-design:93` population was not admissible. The admissible
-  cross-pack precedent, `architect-review/SKILL.md:107-120`, names the seam,
+  cross-pack precedent, `architect-review/SKILL.md:104-120`, names the seam,
   states the envelope literally, bounds one query with no refinement, forbids
   implementation discovery, and fixes the absence receipt. The consumer instead
   addresses the capability by contract version because ADR-0097:97-99 forbids

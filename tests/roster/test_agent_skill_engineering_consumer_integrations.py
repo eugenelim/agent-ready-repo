@@ -123,7 +123,6 @@ BOUND_SURFACES = (
 # `topic_ids`), so requiring one internal space excludes them without naming
 # them either.
 DIAGNOSTIC_LITERAL = re.compile(r"`([a-z][a-z0-9_.-]*(?: [a-z0-9_.-]+)+)`")
-PACK_PATH = re.compile(r"(?:packs/|/)agent-skill-engineering(?:/|`)")
 # One released changelog section: `[<artifact>][<version>]` segments joined by
 # ` / `, then the em dash and the date. Excludes `## [Unreleased]` and the
 # `## [1.0.0] — YYYY-MM-DD` template in the file's own header guidance, neither
@@ -380,6 +379,13 @@ def test_ac1_provider_contract_publishes_exactly_the_fixture_diagnostics() -> No
 def test_ac1_each_fixture_diagnostic_is_individually_recognized(diagnostic: str) -> None:
     """T1 turns this parser control green; T2 turns the publication check green."""
     planted = f"## Provider response\n\n- diagnostic `{diagnostic}`.\n"
+    # The shape-based domain is asserted directly. Checking only
+    # `_published_diagnostics` would leave these cases green with the regex
+    # neutered, because every planted literal is also a fixture value and the
+    # fixture-value scan alone satisfies them — so they would be named parser
+    # controls without controlling the parser.
+    section = _section(planted, "Provider response")
+    assert diagnostic in set(DIAGNOSTIC_LITERAL.findall(section))  # external-comparison
     assert _published_diagnostics(planted) == {diagnostic}  # external-comparison
 
 
@@ -466,7 +472,11 @@ def test_ac5_consumers_do_not_depend_on_the_provider_pack_layout(consumer: Path)
     without_contract_version = body.replace(CONTRACT_VERSION, "")
     assert "agent-skill-engineering" not in without_contract_version  # external-comparison
     assert "ase-okf-reference" not in body  # external-comparison
-    assert PACK_PATH.search(body) is None  # external-comparison
+    # No separate path assertion. Every path into that pack contains the bare
+    # product name, and the contract version is the only string carrying it
+    # legitimately, so a `packs/agent-skill-engineering/...` scan is dominated
+    # by the line above: no input reddens it without reddening that one first.
+    # A dominated assertion overstates a criterion's coverage.
 
 
 def test_ac6_core_manifest_declares_the_work_loop_handoff() -> None:
@@ -562,7 +572,9 @@ def test_ac10_pack_versions_exceed_the_floor_and_match_the_changelog(
     """T6b turns AC10 green by releasing all three packs above their T0 floors."""
     current = _version(manifest)
     topmost = _topmost_changelog_version(artifact)
-    assert topmost, f"no release heading in the changelog names {artifact!r}"
+    assert topmost, (  # external-comparison
+        f"no release heading in the changelog names {artifact!r}"
+    )
     assert current == topmost, (artifact, current, topmost)  # external-comparison
     assert _version_tuple(current) > _version_tuple(floor), (  # external-comparison
         f"{artifact} {current} does not advance past the merge-base floor {floor}"
@@ -592,6 +604,27 @@ def test_ac13_architecture_last_verified_names_both_consumers() -> None:
     # identifying token external even though the sentence is authored here.
     required = {CONTRACT_VERSION, "work-loop", "architect-design"}
     assert any(all(token in paragraph for token in required) for paragraph in paragraphs)  # authored-statement
+
+
+def test_ac14_rejects_the_two_match_shapes_that_can_never_resolve() -> None:
+    """Controls on AC14's two repairs, so neither rests on a comment.
+
+    Both mutations this catches were real. Reverting the queue test to
+    `SPEC_PATH in queue` compares a string against inline tables and is False
+    for every valid record, so AC14 could never go green. Reverting the row
+    test to a bare-slug match over-counts: the index records a hard predecessor
+    as a backticked slug, so a sibling already matches three lines for one row.
+    """
+    # A canonical queue entry is a table; a string membership test never sees it.
+    canonical = [{"path": SPEC_PATH, "kind": "spec"}]
+    assert SPEC_PATH not in canonical  # same-slice
+    assert [e for e in canonical if isinstance(e, dict) and e.get("path") == SPEC_PATH]  # same-slice
+
+    # A slug already cited as a predecessor matches more lines than its own row.
+    rows = SPECS_README.read_text(encoding="utf-8").splitlines()
+    sibling = "agent-skill-engineering-corpus"
+    assert len([r for r in rows if sibling in r]) > 1  # same-slice
+    assert len([r for r in rows if f"]({sibling}/spec.md)" in r]) == 1  # same-slice
 
 
 def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:

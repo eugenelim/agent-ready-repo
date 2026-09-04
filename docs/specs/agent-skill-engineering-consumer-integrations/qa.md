@@ -36,7 +36,7 @@ three items per consumer. This is that record.
 | --- | --- | --- | --- |
 | `work-loop` | Every *Always do* element is present and none is expanded beyond it | Pass | All seven elements map to the five sentences at `SKILL.md:399-403`: when and what to invoke in sentence 1, the inline request and the one-call budget in sentence 2, the handoff limit in sentence 3, the absence receipt in sentence 4, response treatment in sentence 5. Nothing outside the seven is asserted. |
 | `work-loop` | The invocation condition matches the stated trigger | Pass | "Only when the task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin … do not invoke it otherwise" — the spec's positive list verbatim, plus its "and not otherwise" clause. |
-| `work-loop` | The surrounding workflow is otherwise unchanged | Pass | `git diff --numstat` reports 8 insertions and **0 deletions**, in one hunk at `@@ -396,0 +397,8 @@`. No ordinal moved. Both SHA-256 section anchors that `tools/test_workspace_status.py:1630-1639` pins still match: the Step-0 window is lines 161-235 and the finish-checklist window is 709-731, so the insert at 397 falls outside both. |
+| `work-loop` | The surrounding workflow is otherwise unchanged | Pass | `git diff --numstat` reports 8 insertions and **0 deletions**, in one hunk at `@@ -396,0 +397,8 @@`. No ordinal moved. Both SHA-256 section anchors that `tools/test_workspace_status.py:1631-1640` pins still match: the Step-0 window is lines 161-235 and the finish-checklist window is 709-731, so the insert at 397 falls outside both. |
 | `architect-design` | Every *Always do* element is present and none is expanded beyond it | Pass | The same seven-to-five mapping at `SKILL.md:126-130`, with `agent-extension-design` as the primary task kind. Nothing outside the seven is asserted. |
 | `architect-design` | The invocation condition matches the stated trigger | Pass | Same sentence form and same trigger list as `work-loop`, scoped by "Only when" and "do not invoke it otherwise". |
 | `architect-design` | The surrounding workflow is otherwise unchanged | Pass | 6 insertions, **0 deletions**, one hunk at `@@ -125,0 +126,6 @@`, placed as the last paragraph of Procedure step 2. No ordinal moved; step `3.` is untouched. |
@@ -71,8 +71,15 @@ twenty-four showed it wrong for **eighteen**.
 
 Every acceptance criterion in this slice is exercised by one roster module, so a
 defective oracle is indistinguishable from a satisfied criterion. Four were
-found. Each repair ships with an executable control that fails when the defect
-returns, rather than a comment claiming it cannot.
+found, and each repair ships with a named executable control that reddens when
+the defect returns.
+
+That last sentence was false when first written here, and the correction is the
+point. Repairs 3 and 4 originally carried only a prose comment, while this
+paragraph claimed all four were control-backed — the exact "headline claims more
+than the body sustains" habit this work was told to watch for, committed in the
+document that exists to catch it. A later review measured it. Both now have a
+control, `test_ac14_rejects_the_two_match_shapes_that_can_never_resolve`.
 
 1. **AC1's published-set domain was calibrated to its own answers.** The loader
    matched `` `((?:knowledge|provider) …)` `` — anchored on the seven expected
@@ -124,15 +131,28 @@ substring. The exemption is commented in place so a later reader does not
 
 ## Three deviations from the plan's task scope
 
-**Each pack's eval harness gains two cases.** `packs/AGENTS.md:60` requires a
+**Each pack's eval harness gains three cases.** `packs/AGENTS.md:60` requires a
 non-cosmetic pack update to update that pack's eval harness. The first reading
 here was that `work-loop` has none, because core's `[pack.evals] skills` list
-does not name it — that was wrong: `evals/evals.json` exists for both consumers,
-and PR `11c280073`, which shipped the *analogous* `project-knowledge-review-enquiry`
-integration, added exactly two cases to `work-loop`'s harness for that mechanism.
-Two cases per consumer therefore ship here on the same pattern: the
-relevant-topic path and the absent-or-refused path. Nothing gates this — no
-`make` target runs `evals.json` — so it is recorded rather than assumed.
+does not name it — wrong: `evals/evals.json` exists for both consumers.
+
+The size of this out-of-plan change was then set from a miscount, and correcting
+it changed what shipped. PR `11c280073`, which shipped the analogous
+`project-knowledge-review-enquiry` integration, added **five** cases to
+`work-loop`'s harness — `review-enquiry-relevant-candidate`,
+`-unavailable-or-abstaining`, `-hostile-authority-manipulation`,
+`-misleading-counterclaim`, `-rerun-budget` — plus 72 lines to
+`architect-review`'s and four dedicated prose-boundary test modules. This record
+first said "exactly two", and two were what shipped.
+
+The omission that mattered was the hostile-authority path: it is precisely what
+each step's untrusted-evidence sentence exists to govern, so leaving it
+unexercised meant the harness did not test the obligation most likely to be
+violated. A third case per consumer now covers it. The remaining two precedent
+cases (`-misleading-counterclaim`, `-rerun-budget`) are not carried: this seam
+has no refinement budget to exceed — the step allows exactly one call — and no
+counterclaim surface, because the response is never weighed against a competing
+retrieved claim. Nothing gates any of this; no `make` target runs `evals.json`.
 
 The insert is textual, not a `json.dumps` round-trip. `work-loop`'s harness has
 **mixed** unicode encoding, some strings escaped and some literal, so it was
