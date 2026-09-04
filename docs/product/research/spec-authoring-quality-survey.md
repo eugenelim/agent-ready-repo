@@ -8,9 +8,13 @@ control in an agent's loop. Independent desk research; every claim carries a
 source and a confidence tag. Retained so briefs and skills can cite it rather
 than restate it.
 
-Confidence tags are `[high]`, `[moderate]`, `[low]`, `[uncertain]`. Applied-mode
-overlay: peer review is not a downgrade factor for practitioner sources;
-survivorship bias and stale prior art are.
+Confidence tags rank how far a claim can be trusted, strongest first:
+`[high]`, `[moderate]`, `[low]`. Two further tags mark claims that are not
+graded on that scale because no single source states them — `[synthesis]`, a
+conclusion drawn across cited material, and `[inference]`, a deduction from it.
+Both inherit the weakest confidence of what they rest on, so neither outranks
+`[low]` on its own. Applied-mode overlay: peer review is not a downgrade factor
+for practitioner sources; survivorship bias and stale prior art are.
 
 ---
 
@@ -99,9 +103,11 @@ blocking on it, and advises until then. `[synthesis]`
 ### Where our classes have no prior-art home
 
 Mapping this repository's shaping failure classes onto the three frames leaves
-six with no equivalent. That is the survey's most useful single result for
-authoring guidance, because it says which classes cannot be imported and must
-be taught.
+**five with no equivalent, and a sixth — draft narration — with only a weak
+one.** That is the survey's most useful single result for authoring guidance,
+because it says which classes cannot be imported and must be taught. The table
+below marks the five with `none.`; read the sixth row's match as too weak to
+import from.
 
 | Our class | Nearest prior art |
 | --- | --- |
@@ -118,10 +124,10 @@ be taught.
 | **Targets a projection rather than its source** | **none.** No frame distinguishes generated from authored artifacts |
 | **Cuts a non-waivable control** | **none.** 29148 *necessary* asks whether a requirement is needed, never whether removing one drops a safety control |
 | **Derivable enumeration** | **none.** No frame asks whether a hand-written set has a machine-readable source |
-| **Draft narration** | weakest match: INCOSE concision. Neither frame addresses tense or superseded reasoning, because neither assumes a reader who cannot tell current from historical |
+| **Draft narration** | weakest match: INCOSE concision, which trims words rather than stale reasoning. None of the three frames addresses tense or superseded content, because none assumes a reader who cannot tell current from historical |
 
-**Four of the unmatched classes share one cause** — decays, targets a
-projection, draft narration, and derivable enumeration. Prior art assumes a
+**Four of the six share one cause** — decays, targets a projection, draft
+narration, and derivable enumeration. Prior art assumes a
 **human** reader of a **hand-maintained** document, and an agent reader cannot
 tell a projection from a source, a stale citation from a live one, or a
 superseded paragraph from a current one. The other two have their own causes,
@@ -360,7 +366,7 @@ authoring rubric may promise.
 | An acceptance-criteria count ceiling has adjacent-regime evidence for its shape. Keep it a screening threshold and name the transfer gap; drop any claim that no evidence exists. | §2, arXiv:2505.07591 and arXiv:2509.21051 |
 | Independent review is load-bearing, with a measured effect size. Warm self-review stays disqualified. | §2, arXiv:2606.05976 |
 | The one-primary-surface bound now has three independent sources. Its per-stage figures are measured; that localization rather than repair is where the success is lost is a synthesis, not a measurement. | §2, Agentless and SWE-bench Pro |
-| Six failure classes cannot be imported from requirements engineering and must be taught. The shared cause, and which classes it covers, is stated in § 1 § "Where our classes have no prior-art home"; the rest have their own, in that section's table. | §1 |
+| Five failure classes have no equivalent in requirements engineering and a sixth has only a weak one, so all six must be taught. The shared cause, and which classes it covers, is stated in § 1 § "Where our classes have no prior-art home"; the rest have their own, in that section's table. | §1 |
 | A criterion syntax is the one clearly missing import. Adopt EARS shapes as an optional aid, never a gate — the evidence is practitioner-grade. | §1 |
 | No set-level criteria checks exist here. 29148's set-level characteristics are the frame if that gap is taken. | §1 |
 | The 8,500-to-2,100-token figure is a practitioner report, not a measurement. Relabel it where it is cited as measured. | §2, Augment writeup |

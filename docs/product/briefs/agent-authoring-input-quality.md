@@ -195,13 +195,13 @@ a slice against the number of entries here.
 § 1, which maps every class onto ISO/IEC/IEEE 29148:2018's nine
 individual-requirement and five set-level characteristics, INCOSE's 42-rule
 guide, and the eight requirements smells of Femmer et al. (2017). Its result is
-load-bearing for the rubric rather than decorative: **six classes have no
+load-bearing for the rubric rather than decorative: **five classes have no
 equivalent in any of the three frames** — the design should have delegated, the
-criterion decays, it targets a projection, it cuts a non-waivable control, it
-hand-enumerates a derivable set, and draft narration. Most of them share one
-cause — an agent reader of a document written for a human reader — and that
-section names which, so this brief does not. Those six must be taught; the rest
-can cite a frame.
+criterion decays, it targets a projection, it cuts a non-waivable control, and
+it hand-enumerates a derivable set — **and a sixth, draft narration, has only a
+weak one**, too weak to import from. Most of the six share one cause — an agent
+reader of a document written for a human reader — and that section names which,
+so this brief does not. All six must be taught; the rest can cite a frame.
 
 The survey also names the one clear import we lack — a criterion *syntax*, for
 which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
@@ -323,34 +323,23 @@ the registry; and whether the predicate survives contact with a corpus, since
 
 ### The derivability rule: nothing hand-enumerated that is derivable; nothing precise that is decoration
 
-> **Recorded, not shaped.** Out of scope for any confirmed slice; sizes nothing;
-> changes no rubric category yet. Owner decision, 2026-09-04.
+> **Shaped and shipped.** Both clauses of this rule are now rubric class 4's
+> sub-text, and **the shipped rubric owns them**; this subsection keeps only the
+> two exhibits that produced it. It is distinct from the numbered
+> cut-before-adding razor elsewhere in this brief, which has rungs.
 
-Two clauses, and the second is not implied by the first.
+**Exhibit for the first clause, on hand-enumerating a derivable set.** See
+§ "Completeness proved by decomposition", where proving a hand-written
+enumeration covered its machine-readable source consumed about a third of a
+review corpus.
 
-This rule is distinct from the numbered cut-before-adding razor elsewhere in
-this brief, which has rungs; this one has two clauses and no rungs.
-
-**Nothing hand-enumerated that is derivable.** If a set has a machine-readable
-source, read it. Authoring a parallel enumeration creates a completeness
-obligation that did not previously exist, cannot be discharged by more
-machinery, and decays on the next upstream edit. See § "Completeness proved by
-decomposition" for the exhibit where proving the enumeration consumed about a
-third of a review corpus.
-
-**Nothing precise that is decoration.** A precise figure or enumeration that no
-criterion depends on is not rigour; it is surface that decays and that every
-review round re-litigates for no gain. The test is whether deleting the number
-changes any acceptance criterion, gate, or decision. If not, delete it or
-replace it with the derivation. Exhibit: authoring one delivery brief produced
-seven wrong counts — elicitation points, request kinds, owed edges, capability
-briefs, brief statuses, the dispatch set, dispatch sites — **twice inside the
-edit that was fixing a previous instance**. Not one of the seven was load-bearing
-for a criterion. Guidance had been read and acknowledged in the same session,
-which is the argument for enforcement over restatement.
-
-The clauses fail differently: the first produces a *wrong* set, the second
-produces a *true but pointless* one. Trimming fixes neither.
+**Exhibit for the second clause, on precision that is decoration.** Authoring
+one delivery brief produced seven wrong counts — elicitation points, request
+kinds, owed edges, capability briefs, brief statuses, the dispatch set,
+dispatch sites — **twice inside the edit that was fixing a previous instance**.
+Not one of the seven was load-bearing for a criterion. Guidance had been read
+and acknowledged in the same session, which is the argument for enforcement
+over restatement.
 
 ### The impacted-flow trace, as an authoring practice
 
@@ -466,13 +455,11 @@ already exists, the spec being the owner of what done means. It is worth a
 separate entry only because the tell is different: category 1's usual shape is
 one obligation restated across several consumers, whereas here it is restated
 *down a level*, into an artifact whose review rubric cannot evaluate it. The
-brief-level control is one question at authoring time: **does this section
-decide something, or name something for the spec to decide?** A brief names
-gaps; closing one early converts a bounded gate into unbounded review surface.
-
-The repair is subtraction, and category 1's warning applies to it too:
-shortening the restatement is the wrong fix. Moving it to the owning artifact is
-the fix.
+brief-level control is the question rubric class 1 states, asked of a brief's
+sections rather than a spec's: the rubric owns that question and the
+counter-intuitive repair that goes with it. What is specific to brief altitude
+is only the tell — the restatement runs *down a level*, into an artifact whose
+review rubric cannot evaluate it.
 
 ### Presence-only gates
 
@@ -507,8 +494,10 @@ carries.
 **The shipped rubric owns the class text.** As of 2026-09-04 the six classes,
 their tells, their moves and class 1's counter-intuitive repair live in
 `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`; read
-them there. This brief keeps only the class *names*, because its slicing,
-sizing and enforcement arguments below refer to them by number:
+them there. This brief keeps the class *names*, because its slicing, sizing
+and enforcement arguments below refer to them by number, plus the exhibits that
+produced the classes — the findings corpus above and § "The derivability rule".
+It states no class's rule text:
 
 1. The design should have delegated — precedes every other class.
 2. The criterion cannot fail.
@@ -762,7 +751,9 @@ What shipping early costs, recorded rather than glossed:
   its eval. The rubric adds no selector, which is tolerable only because its
   classes are worked in order and class 3's tells gate the move.
 - **Six classes ship at a length the change's own evidence argues against.**
-  The ablation found four of the six already reachable from shipped guidance,
+  The [ablation](../research/spec-authoring-rubric-ablation.md), which scored
+  a paired arm-A/arm-B run over six pre-registered defects, found four of the
+  six classes already reachable from shipped guidance,
   so their marginal value is diagnosis rather than detection, and the
   commissioned survey records vendor guidance that an over-long instruction
   file gets half-ignored. The six ship whole anyway for one reason: the rubric
@@ -877,6 +868,11 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 - Source: repository origin. Distilled from this repository's memory, its
   `docs/knowledge/` topics, and one abandoned delivery attempt whose spec and
   plan are preserved at commit `e1bdde746`.
+- Measurement of the shipped rubric, run 2026-09-04:
+  [`spec-authoring-rubric-ablation.md`](../research/spec-authoring-rubric-ablation.md).
+  A paired ablation over six pre-registered defects; it establishes that two
+  classes flip on the rubric's presence and four are already reachable without
+  it, and records its own length confound and n.
 - Prior-art basis, commissioned 2026-09-04 and discharging the desk-research
   item this brief owed:
   [`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md).
