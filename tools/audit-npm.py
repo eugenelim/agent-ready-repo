@@ -436,7 +436,7 @@ def run_audit_with_retry(
     return report
 
 
-def run_canary_probe() -> None:
+def run_canary_probe(*, audit=None) -> None:
     """Prove the advisory endpoint answers, before trusting a clean result.
 
     Writes a throwaway lockfile pinning the canary and audits it. Nothing is
@@ -467,7 +467,16 @@ def run_canary_probe() -> None:
         probe_dir = Path(tmp)
         (probe_dir / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
         (probe_dir / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
-        if not canary_is_live(run_audit(probe_dir)):
+        # Retried like any other query. The probe's two failure modes are
+        # distinct and the code already separates them: a *valid* report that
+        # omits the advisory is silence, which `canary_is_live` returns False
+        # for and which no amount of re-asking should paper over; a detail-free
+        # error is npm failing to produce a report at all, which `_require_report`
+        # raises on. Only the second is re-asked. Leaving this call a single ask
+        # is what let a registry limit red the gate three times in a row: the
+        # probe runs first, so it failed before the lockfile audit was reached.
+        ask = audit or run_audit_with_retry
+        if not canary_is_live(ask(probe_dir)):
             raise AuditError(
                 f"the advisory endpoint reported nothing for {CANARY_PACKAGE}@"
                 f"{CANARY_VERSION} ({CANARY_ADVISORY}), which has carried a published "
