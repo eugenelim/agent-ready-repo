@@ -1,6 +1,6 @@
 ---
 name: fe-status
-description: Orient skill — read the current surface's evidence manifest, known exceptions, and gate history to return a surface-state summary against the frontend engineering quality floor.
+description: Orient skill — read the current surface's evidence manifest, known exceptions, and gate history to return a surface-state summary against the frontend engineering quality floor. Triggers on "what is the frontend quality status of this surface", "show me the latest gate history and known exceptions", "what should we fix before changing this existing page".
 ---
 
 # Skill: fe-status

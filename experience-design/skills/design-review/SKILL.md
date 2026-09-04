@@ -1,6 +1,6 @@
 ---
 name: design-review
-description: "Use when someone asks to critique an existing rendered screen, flow, or mockup for usability, quality-floor, clarity, and aesthetic-fit problems. Produces a severity-rated findings list grounded in the actual artifact. Use `creative-direction` to name a new visual direction, `information-architecture` to design hierarchy, and `design-system` to derive tokens. Reviewing product strategy or choosing a bet is upstream strategy work; framing the work belongs to `frame-intent`; reviewing code defects or implementation quality belongs to frontend engineering."
+description: "Use when someone asks to critique an existing rendered screen, flow, or mockup for usability, quality-floor, clarity, and aesthetic-fit problems. Produces a severity-rated findings list grounded in the actual artifact. Use `creative-direction` to name a new visual direction, `information-architecture` to design hierarchy, and `design-system` to derive tokens. Reviewing product strategy or choosing a bet is upstream strategy work; framing the work belongs to `frame-intent`; reviewing code defects or implementation quality belongs to frontend engineering. Triggers on \"review this checkout flow for usability problems\", \"critique this landing page mockup against our design principles\", \"what's wrong with this rendered dashboard\"."
 ---
 
 # Skill: design-review

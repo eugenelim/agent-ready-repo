@@ -1,6 +1,6 @@
 ---
 name: design-principles
-description: "Use when a design team asks for durable rules that turn journey evidence and opportunity pains into consistent decisions across sprints. Produces 3–5 named design principles, each with rationale and an arbitration test. Use `creative-direction` for visual goals, `design-system` for token taxonomy, and `design-review` to evaluate existing work. Target segments and product positioning belong to product strategy; choosing and scoping a bet belongs to product engineering; encoding rules in components belongs to frontend engineering."
+description: "Use when a design team asks for durable rules that turn journey evidence and opportunity pains into consistent decisions across sprints. Produces 3–5 named design principles, each with rationale and an arbitration test. Use `creative-direction` for visual goals, `design-system` for token taxonomy, and `design-review` to evaluate existing work. Target segments and product positioning belong to product strategy; choosing and scoping a bet belongs to product engineering; encoding rules in components belongs to frontend engineering. Triggers on \"turn these journey pains into design principles\", \"give us rules to settle recurring design debates\", \"what principles should guide this product\"."
 ---
 
 # Skill: design-principles

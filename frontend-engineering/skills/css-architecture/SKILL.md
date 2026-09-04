@@ -1,6 +1,6 @@
 ---
 name: css-architecture
-description: Organize CSS at scale using cascade layers, scoping strategies, and specificity budgets — preventing specificity wars, enabling safe deletion, and making CSS that other engineers can reason about.
+description: Organize CSS at scale using cascade layers, scoping strategies, and specificity budgets — preventing specificity wars, enabling safe deletion, and making CSS that other engineers can reason about. Triggers on "design the CSS architecture for this new codebase", "fix the specificity wars in our stylesheet", "refactor our cascade so rules can be deleted safely".
 ---
 
 # Skill: css-architecture

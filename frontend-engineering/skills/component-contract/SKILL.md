@@ -1,6 +1,6 @@
 ---
 name: component-contract
-description: Design a UI component's public interface — props/slots/events, controlled vs. uncontrolled ownership, composition patterns, lifecycle contract, and usage documentation — before writing any implementation.
+description: Design a UI component's public interface — props/slots/events, controlled vs. uncontrolled ownership, composition patterns, lifecycle contract, and usage documentation — before writing any implementation. Triggers on "design the public contract for a shared date picker", "define the props, events, and slots before we build this component", "review this shared component's API before we publish it".
 ---
 
 # Skill: component-contract
