@@ -14,8 +14,8 @@
 - `packages/credbroker/` is also Python standard-library-only and is the only
   credential path. Credentialed primitives use its public API and never read
   credential stores directly.
-- `web/` uses Astro 7.2.4; `docs-site/` uses Astro 7.2.4 with Starlight
-  0.41.7.
+- `web/` uses Astro 7.2.9; `docs-site/` uses Astro 7.2.9 with Starlight
+  0.41.10.
 - Portable contracts are TOML plus JSON Schema in `contracts/`; compatible
   changes preserve both the contract declaration and its schema validation.
 - Python quality tooling is pytest, ruff, and mypy. The SAST/SCA floor is
