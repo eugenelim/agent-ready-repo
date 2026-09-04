@@ -90,7 +90,7 @@ parser is safe.
 | What you see | What it means |
 | --- | --- |
 | `unknown selection key 'X'` | `X` is not an `engine-state.json.state` value or the reserved token. Selection never infers a phase from prose — check what the engine actually recorded. |
-| `module 'Y' resolves to no file under Z` | The locator is right but the file is not installed under `--root`, or `--root` points at the wrong tree. |
+| `module 'Y' resolves to no file confined to Z` | Either the file is not installed under `--root`, or it exists but is **reached from outside the boundary** — through `..`, an absolute path, a symlink that leaves the root, or a hard link to a file outside it. The second cause is the common one in a monorepo: check what the locator resolves to before assuming the file is missing. |
 | `info string ... disagrees with schema_version` | The fence's version token and the block's `schema_version` diverged. Both must move together. |
 | `unsupported schema_version` | The registry was written for a newer selector than the one installed. |
 | `duplicate family id` / `selection 'X' repeats a family id` | The same family appears twice. Selection is an ordered set. |

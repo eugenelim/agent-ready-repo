@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `references/policy-families.md` — five policy families, two `precise` and three `advisory`, and a selection map covering every legal work-loop phase plus the reserved `DIRECT-LIGHT` key for the light path, which records no phase of its own.
-- `scripts/select-policy-families.py` — prints one delivery record for a phase, and refuses before delivering anything when the registry is malformed: an unknown phase, a duplicate or unknown family, an unresolvable or wrongly namespaced module, a bad tier, or a version pair that disagrees.
+- `scripts/select-policy-families.py` — prints one delivery record for a phase, and refuses before delivering anything when the registry is malformed: an unknown phase, a duplicate or unknown family, a module that is unresolvable, wrongly namespaced, or resolves outside the resolution root, a bad tier, or a version pair that disagrees.
 - `guides/core/reference/phase-scoped-policy-delivery.md` — how to declare a family, how to choose its tier, and how to read a refusal.
 
 ### Notes

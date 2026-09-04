@@ -98,12 +98,26 @@ def _selector_module():
     Spawning an interpreter per selection key spends the suite's time waiting
     rather than asserting, and gets worse on a loaded machine. The CLI envelope
     keeps its subprocess, because there the integration *is* the subject.
+
+    Swap in throwaway streams across the load. The selector reconfigures both
+    streams to UTF-8 at module scope, as every `.apm/` script must; run against
+    pytest's captured streams that replaces their `errors="replace"` with
+    `strict` for the rest of the session, so a surrogate in any later test's
+    captured output would raise inside capture. Same mechanism the sibling suite
+    uses for `loop-engine.py`, documented at `_loop_guards.py:613-621`.
     """
     import importlib.util
+    import io
 
     spec = importlib.util.spec_from_file_location("_selector", SELECTOR)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    saved_out, saved_err = sys.stdout, sys.stderr
+    sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.stdout, sys.stderr = saved_out, saved_err
     return module
 
 
@@ -175,8 +189,14 @@ def test_record_envelope_is_exact_with_a_null_assembled_digest():
 
     proc = _run(*REGISTRY_ARGS, keys[0])
     assert proc.returncode == 0, proc.stderr
-    assert proc.stderr == "", "diagnostics leaked to stdout's stream"
-    assert json.loads(proc.stdout)["selection_key"] == keys[0]
+    # F5: this reads stderr, so say stderr.
+    assert proc.stderr == "", "diagnostics leaked to stderr on the success path"
+    printed = json.loads(proc.stdout)
+    # AC5 claims the *printed* object's key set. Asserting only the in-process
+    # return would leave a fourth top-level key added in `main` undetected.
+    assert set(printed) == {"selection_key", "families", "assembled_brief_digest"}
+    assert printed["selection_key"] == keys[0]
+    assert printed["assembled_brief_digest"] is None
 
     for key in keys:
         record = _SELECTOR.build_record(registry, key, REPO_ROOT)
@@ -412,6 +432,40 @@ def test_module_escaping_root_is_refused(tmp_path):
         assert proc.stderr.startswith("select-policy-families:"), proc.stderr
 
 
+def test_a_tampered_helper_mirror_refuses_through_the_declared_channel(tmp_path):
+    """Absent, symlinked and truncated mirrors all report as refusals.
+
+    Two of the loader's three refusals are tamper detection. A control that
+    announces a detected substitution with a traceback and an empty stdout
+    breaks the contract every other refusal keeps, and `json.loads` over
+    stdout then raises instead of parsing.
+    """
+    import shutil
+
+    source = REPO_ROOT / "packs/core/.apm/skills/work-loop/scripts"
+    for label, sabotage in (
+        ("absent", lambda d: (d / "file_safety.py").unlink()),
+        ("symlink", lambda d: ((d / "file_safety.py").unlink(),
+                               (d / "file_safety.py").symlink_to(
+                                   source / "file_safety.py"))),
+        ("truncated", lambda d: (d / "file_safety.py").write_text(
+            "# partial\n", encoding="utf-8")),
+    ):
+        staged = tmp_path / label
+        shutil.copytree(source, staged)
+        sabotage(staged)
+        proc = subprocess.run(
+            [sys.executable, str(staged / "select-policy-families.py"),
+             "--registry", str(REGISTRY), "--root", str(REPO_ROOT),
+             "CODE-IMPLEMENTATION"],
+            capture_output=True, text=True, check=False,
+        )
+        assert proc.returncode != 0, f"{label}: accepted a tampered mirror"
+        assert proc.stderr.startswith("select-policy-families:"), (
+            f"{label} reported through the wrong channel:\n{proc.stderr}")
+        assert "Traceback" not in proc.stderr, f"{label} crashed:\n{proc.stderr}"
+
+
 # --- Malformed shapes leave through the documented channel -------------------
 
 def test_non_object_registry_shapes_refuse_rather_than_traceback(tmp_path):
@@ -446,6 +500,52 @@ def test_unterminated_fence_is_reported_as_such(tmp_path):
     # reports something else entirely. Measured: it survived its own mutation.
     message = proc.stderr.split("select-policy-families: ", 1)[1]
     assert message.startswith("unterminated fenced block"), message
+
+
+def test_guide_refusal_table_quotes_what_the_selector_emits(tmp_path):
+    """Every documented refusal shape must match a message the emitter produces.
+
+    The guide's table previously quoted `resolves to no file under Z` while the
+    selector emitted `confined to`. Nothing compared the two, so the row went
+    stale silently and would have sent an adopter hunting for a missing file
+    when the real cause was a locator reaching outside the root.
+    """
+    guide = (REPO_ROOT
+             / "guides/core/reference/phase-scoped-policy-delivery.md").read_text(
+                 encoding="utf-8")
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "in.md").write_text("in\n", encoding="utf-8")
+
+    def registry(module: str, **over) -> dict:
+        base = {"schema_version": 1,
+                "families": [{"id": "p", "tier": "advisory", "module": module}],
+                "selection": {"CODE-IMPLEMENTATION": ["p"]}}
+        base.update(over)
+        return base
+
+    # documented fragment -> (registry, key, info-string override)
+    cases = {
+        "unknown selection key": (registry("seed:in.md"), "NO-SUCH", None),
+        "resolves to no file confined to": (registry("seed:../out.md"),
+                                            "CODE-IMPLEMENTATION", None),
+        "disagrees with schema_version": (registry("seed:in.md"),
+                                          "CODE-IMPLEMENTATION",
+                                          "json policy-registry.v2"),
+        "duplicate family id": (
+            registry("seed:in.md",
+                     families=[{"id": "p", "tier": "advisory", "module": "seed:in.md"},
+                               {"id": "p", "tier": "advisory", "module": "seed:in.md"}]),
+            "CODE-IMPLEMENTATION", None),
+    }
+    for fragment, (reg, key, info) in cases.items():
+        assert fragment in guide, f"guide no longer documents {fragment!r}"
+        path = (_write_registry(tmp_path, reg, info) if info
+                else _write_registry(tmp_path, reg))
+        proc = _run("--registry", str(path), "--root", str(root), key)
+        assert proc.returncode != 0, f"{fragment}: not refused"
+        assert fragment in proc.stderr, (
+            f"guide documents {fragment!r} but the selector emitted:\n{proc.stderr}")
 
 
 # --- T6: the guide's coverage half --------------------------------------------

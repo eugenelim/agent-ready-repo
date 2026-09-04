@@ -300,6 +300,14 @@ def main(argv: list[str] | None = None) -> int:
     except RegistryError as exc:
         print(f"{PROGRAM}: {exc}", file=sys.stderr)
         return 1
+    except ImportError as exc:
+        # The sibling loader refuses an absent, non-regular or incomplete
+        # mirror. Two of those are tamper detection, so they must report
+        # through the declared channel rather than as a traceback — a control
+        # that announces a detected substitution by crashing is a worse
+        # control.
+        print(f"{PROGRAM}: {exc}", file=sys.stderr)
+        return 1
     print(json.dumps(record, indent=2))
     return 0
 
