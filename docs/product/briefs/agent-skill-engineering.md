@@ -249,29 +249,36 @@ available resolution and it was not available under the previous cut.
 **The maintenance obligation resolves.** One profile, for the runtime the
 maintainers use daily, is revalidatable. Eight were not.
 
-### What it still needs
+### How it was recorded
 
-**An RFC-0097 erratum, which only the RFC owner can record.** Four governed
-statements name the eight-profile commitment and cannot be changed from this
-brief:
+**RFC-0097 § Errata, 2026-09-04, Approver-signed.** The RFC is Accepted, so its
+body is Frozen — `docs/CONVENTIONS.md` allows a status change but not a body
+edit. Corrections are appended to § *Errata*, which is what the 2026-09-01 D3
+narrowing did and what this de-scope did too: purely additive, no frozen text
+altered. Four governed statements are superseded there by name rather than
+rewritten in place:
 
-| Location | Statement |
+| Location | Statement superseded |
 | --- | --- |
-| D3 decision row | "profiles for eight initial enterprise runtime surfaces" |
-| § *Capability-claim lifecycle* | "M2 is not complete until all eight profiles are `complete-current`" |
+| § *Decisions*, D3 cell | "profiles for eight initial enterprise runtime surfaces" |
+| § *D3* | "M2 is not complete until all eight profiles are `complete-current`" |
 | Gate 2 *Success* | "M2 additionally requires all eight profile documents to be `complete-current`" |
 | Gate sequencing | "M2 remains incomplete until the eight-profile condition passes" |
 
-The 2026-09-01 D3 narrowing used exactly this mechanism, so the precedent is in
-place. The initiative's own M2 milestone row also names "eight enterprise
-runtime profiles" and follows the erratum.
+The lifecycle apparatus is untouched: the four claim states, the roll-up values,
+the verification window and the probe record still govern whatever profiles
+exist. The initiative's M2 milestone row follows the erratum, and the
+`rfc-candidates.md` entry that first raised this — logged as an owner challenge,
+"this isn't browser compatibility" — records that the same argument has now been
+carried from per-row scope to the commitment itself.
 
-**One frozen forward pointer is orphaned and must be re-homed.** The
+**The orphaned forward pointer is re-homed by that erratum.** The frozen
 composition-floors spec's `Contract:` field assigns the router's claim-state
-reporting to "the slice that completes the eight profiles". No such slice will
-exist. The `3c-r` row above is where that obligation now resolves, and the
-erratum should re-point the phrase; the spec's Follow-ons already resolve
-through this brief's slice rows, which is the indirection built for this case.
+reporting to "the slice that completes the eight profiles", which will not
+exist. The erratum re-points that obligation to the `3c-r` row above, scoped to
+the ledger already shipped. The frozen spec's body is not edited; its Follow-ons
+resolve through this brief's slice rows, which is the indirection built for
+exactly this case.
 
 ### The divergence that justified profiling, and where it actually belongs
 
