@@ -63,6 +63,21 @@ The event is unavailable in spec-plan mode and outside `CODE-IMPLEMENTATION`.
 Required accepted work remains `Implementing`; session end, retry cap, stasis, or
 model judgment never invokes this transition or creates a follow-on.
 
+## Verification ledger
+
+Execution observations belong in a verification ledger, normally
+`docs/specs/<feature>/notes/verification-ledger.md` or the adopter's equivalent
+spec-directory layout. Create it only when execution produces an observation;
+it holds observed mutation reds, stub verdicts, assertion text, digest
+comparisons, manual-QA output, and any deviation from a task row's literal
+method.
+
+The approved `spec.md` and `plan.md` retain obligations only: acceptance
+criteria and task rows. The ledger is not hash-pinned, so recording an
+observation there needs no amendment to either approved artifact. A genuine
+specification or plan error is different and still follows the controlled
+amendment procedure above.
+
 ## Completion evidence handoff
 
 Before declaring an implementation review unit complete, prepare a bounded handoff

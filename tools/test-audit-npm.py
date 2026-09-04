@@ -275,6 +275,146 @@ def main() -> int:
     print("evaluate() — fail-closed (spec AC1a)")
     expect_error("error_payload_is_tool_error", lambda: m.evaluate(ERROR_PAYLOAD, {}))
     expect_error("missing_report_version_is_tool_error", lambda: m.evaluate(NO_VERSION, {}))
+
+    print("_require_report() — name the cause npm actually supplied")
+    MEASURED = {
+        "message": "request to https://registry.npmjs.org/-/npm/v1/security/"
+                   "advisories/bulk failed, reason: connect ECONNREFUSED",
+        "error": {"summary": "", "detail": ""},
+    }
+    try:
+        m.evaluate(MEASURED, {})
+        check("empty_error_names_the_sibling_message", False, "no AuditError raised")
+    except m.AuditError as exc:
+        check("empty_error_names_the_sibling_message", "ECONNREFUSED" in str(exc), str(exc))
+        check("empty_error_does_not_print_the_raw_dict", "'summary': ''" not in str(exc), str(exc))
+    for label, payload, wanted in (
+        ("summary", {"error": {"summary": "rate limited"}}, "rate limited"),
+        ("detail", {"error": {"summary": "", "detail": "bad gateway"}}, "bad gateway"),
+        ("code", {"error": {"summary": "", "detail": "", "code": "EAI_AGAIN"}}, "EAI_AGAIN"),
+    ):
+        try:
+            m.evaluate(payload, {})
+            check(f"error_{label}_is_reported", False, "no AuditError raised")
+        except m.AuditError as exc:
+            check(f"error_{label}_is_reported", wanted in str(exc), str(exc))
+
+    print("run_audit_with_retry() — re-ask a detail-free error, never launder one")
+    EMPTY = {"error": {"summary": "", "detail": ""}}
+    check("retryable_for_the_measured_empty_error", m.is_detail_free_error(EMPTY))
+    check("not_retryable_for_a_populated_code",
+          not m.is_detail_free_error({"error": {"code": "EAI_AGAIN"}}))
+    check("not_retryable_for_a_populated_summary",
+          not m.is_detail_free_error({"error": {"summary": "rate limited"}}))
+    check("not_retryable_for_a_clean_report", not m.is_detail_free_error(CLEAN))
+    check("not_retryable_for_a_non_dict_payload", not m.is_detail_free_error(["nope"]))
+
+    @contextlib.contextmanager
+    def _quiet():
+        """Swallow the retry notice so fixtures do not litter the gate's log."""
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            yield
+
+    def _sequence(*payloads):
+        """An audit stub that answers each payload in turn, counting calls."""
+        calls = []
+
+        def audit(_project_dir):
+            calls.append(1)
+            return payloads[min(len(calls) - 1, len(payloads) - 1)]
+
+        return audit, calls
+
+    audit, calls = _sequence(EMPTY, CLEAN)
+    with _quiet():
+        got = m.run_audit_with_retry(
+            pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None
+        )
+    check("retry_returns_the_clean_report_after_a_transient", got == CLEAN, repr(got))
+    check("retry_stopped_asking_once_clean", len(calls) == 2, f"calls={len(calls)}")
+
+    audit, calls = _sequence({"error": {"code": "EAI_AGAIN"}})
+    with _quiet():
+        m.run_audit_with_retry(pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None)
+    check("a_populated_error_is_asked_once", len(calls) == 1, f"calls={len(calls)}")
+
+    audit, calls = _sequence(CLEAN)
+    with _quiet():
+        m.run_audit_with_retry(pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None)
+    check("a_clean_report_is_asked_once", len(calls) == 1, f"calls={len(calls)}")
+
+    # The load-bearing one. Exhausting the retries must leave the gate exactly as
+    # a single failed attempt did: an error payload that `evaluate` refuses. If
+    # this ever passes a verdict instead of raising, the retry has turned a
+    # registry outage into "no vulnerabilities found" — the AC1a failure the two
+    # cases above exist to prevent.
+    audit, calls = _sequence(EMPTY)
+    with _quiet():
+        exhausted = m.run_audit_with_retry(
+            pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None
+        )
+    check("retry_exhausted_asked_every_attempt", len(calls) == 3, f"calls={len(calls)}")
+    check("retry_exhausted_returns_the_error_payload", exhausted == EMPTY, repr(exhausted))
+    expect_error(
+        "retry_exhausted_still_fails_closed", lambda: m.evaluate(exhausted, {})
+    )
+
+    # The canary probe is the site a registry limit actually reds, because it runs
+    # before the lockfile audit. Pin both of its failure modes: a detail-free
+    # error is re-asked, and silence — a valid report that simply omits the
+    # advisory — is not, because re-asking cannot cure a mirror that answers 200
+    # with no advisories.
+    canary_ok = _report((m.CANARY_PACKAGE, m.CANARY_VERSION,
+                         [_advisory(m.CANARY_PACKAGE, "high", "GHSA-canary", 1)]))
+    audit, calls = _sequence(EMPTY, canary_ok)
+    with _quiet():
+        m.run_canary_probe(audit=lambda d: m.run_audit_with_retry(
+            d, attempts=3, audit=audit, sleep=lambda _s: None))
+    check("canary_re_asks_a_detail_free_error", len(calls) == 2, f"calls={len(calls)}")
+
+    # Injecting the asker proves the probe uses what it is given — it says nothing
+    # about which asker it reaches for when given none, and that default is the
+    # thing a registry limit actually hits. Pin it by swapping the module's
+    # retrying asker for a stub and calling the probe with no argument: if the
+    # default reverts to the single-ask `run_audit`, the stub is never reached.
+    # Both askers are stubbed, so the case records *which* the default reaches
+    # and fails fast either way. Stubbing only the retrying one would let a
+    # reverted call site fall through to the real `run_audit`, sending the
+    # self-test to the registry for ten minutes to discover a one-word change.
+    reached = []
+
+    def _stub_retry(project_dir, **_kw):
+        reached.append("retry")
+        return canary_ok
+
+    def _stub_plain(project_dir, **_kw):
+        reached.append("plain")
+        return canary_ok
+
+    original_retry, original_plain = m.run_audit_with_retry, m.run_audit
+    try:
+        m.run_audit_with_retry, m.run_audit = _stub_retry, _stub_plain
+        with _quiet():
+            m.run_canary_probe()
+    finally:
+        m.run_audit_with_retry, m.run_audit = original_retry, original_plain
+    check("canary_default_asker_is_the_retrying_one", reached == ["retry"], f"reached={reached}")
+
+    silent = {"auditReportVersion": 2, "vulnerabilities": {}}
+    audit, calls = _sequence(silent)
+    expect_error("canary_silence_is_not_re_asked", lambda: m.run_canary_probe(
+        audit=lambda d: m.run_audit_with_retry(
+            d, attempts=3, audit=audit, sleep=lambda _s: None)))
+    check("canary_silence_asked_once", len(calls) == 1, f"calls={len(calls)}")
+
+    slept = []
+    audit, _ = _sequence(EMPTY)
+    with _quiet():
+        m.run_audit_with_retry(
+            pathlib.Path(), attempts=3, audit=audit, sleep=slept.append
+        )
+    check("retry_backs_off_between_attempts", slept == [5, 10], f"slept={slept}")
     expect_error("non_dict_payload_is_tool_error", lambda: m.evaluate([], {}))
     expect_error("blocking_severity_without_via_is_tool_error",
                  lambda: m.evaluate(BLOCKING_WITHOUT_VIA, {}))

@@ -6,12 +6,12 @@
   one or two analogous production implementations; corresponding tests or
   construction path; named uncertainty/deviation — or `none — non-structural`>
 
-> **Plan contract:** this is the implementation strategy. Unlike the spec, this
-> document is allowed to change as you learn — while its Status is `Drafting`
-> or `Executing`. When it changes substantially (a different approach, not just
-> a re-ordering), note why in the changelog at the bottom. Once it is `Done`
-> and the spec is `Shipped`, the directory freezes as a unit
-> (or the adopter repository's equivalent document-lifecycle guidance).
+> **Plan contract:** this is the implementation strategy. It may change
+> substantively only while its Status is `Drafting`, before approval records its
+> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
+> only lifecycle bookkeeping is permitted, and execution observations belong in
+> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
+> equivalent). A genuine artifact error follows the controlled-amendment path.
 
 <!-- Existing plans without this field remain valid. Treat its absence as a
 named assurance gap during structural review, not a universal lint failure. -->
@@ -229,8 +229,9 @@ could pick it up and complete it without follow-up questions:
 - <step 2>
 
 **Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Not "looks good" or "feature
-  works".>
+  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
+  an execution-evidence destination; use the verification ledger. Not "looks
+  good" or "feature works".>
 
 ### T2: <task name>
 
@@ -268,9 +269,11 @@ slow the database", "this changes a behavior X teams depend on".
 ## Changelog
 
 <!--
-When the plan changes meaningfully, add a dated entry. This isn't bureaucracy —
-it's how a reviewer (or a returning agent) understands why the current plan
-looks different from yesterday's plan.
+While the plan is `Drafting` and changes meaningfully, add a dated entry. This
+isn't bureaucracy — it's how a reviewer (or a returning agent) understands why
+the current plan looks different from yesterday's plan. After approval this
+section is pinned like the rest of the plan: an execution observation goes to
+the verification ledger, not to a new changelog entry.
 
 - YYYY-MM-DD: initial plan
 - YYYY-MM-DD: switched from approach A to B because <reason>
