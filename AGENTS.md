@@ -47,9 +47,9 @@ git push -u origin HEAD && B="$(git branch --show-current)"  # dispatch precondi
 gh workflow run build-check.yml --ref "$B"  # chain + bandit/pip-audit/semgrep/npm
 gh workflow run test-corpus.yml --ref "$B"  # make test
 gh workflow run test-roster.yml --ref "$B"  # roster suite, parallel
-gh workflow run pages.yml       --ref "$B"  # site and browser build
-# ^ DISPATCH these: verdict-only, so remote. Partial evidence, never a required check.
-make build-self && make bootstrap-sites  # LOCAL: these WRITE files you then read
+gh workflow run pages.yml       --ref "$B"  # site+browser. All 4: partial evidence, never required
+python3 -m pytest <only the suite you touched> -q  # local; `make test` runs ~80 suites, minutes
+make build-self && make bootstrap-sites  # local: these WRITE files you then read
 ```
 
 ## Coding conventions
