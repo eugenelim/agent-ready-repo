@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.15.5"
+version = "0.15.6"
 description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"
@@ -89,3 +89,14 @@ providers = ["skill:project-knowledge"]
 when      = "An optional consequential CQ-REVIEW question is declared after the artifact, scope, mode, and rubric are fixed and before the rubric walk."
 purpose   = "Supply untrusted candidate checks through core's public read-only enquiry seam without changing architecture-review authority."
 fallback  = "If the provider is absent, emit project-knowledge unavailable and complete the independently grounded review without fallback persistence."
+
+[[pack.integrations]]
+id        = "skill-engineering-reference-handoff"
+pack      = "agent-skill-engineering"
+kind      = "handoff"
+role      = "Bounded agent-extension design reference enquiry"
+consumers = ["skill:architect-design"]
+providers = ["skill:ase-okf-reference"]
+when      = "An architect-design task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin."
+purpose   = "Supply attributed, untrusted skill-engineering evidence through the versioned provider contract without changing architect-design authority or review gates."
+fallback  = "If the provider refuses, preserve its diagnostic; if no candidate is eligible, record knowledge provider unavailable and complete architect-design's pre-existing baseline unless its own safety check failed."

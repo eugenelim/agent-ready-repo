@@ -866,3 +866,70 @@ record. Corrections are appended here, Approver-signed.
   reference § *D6* nowhere, delete no guidance, and collapse nothing. Which slice
   discharges which stage obligation is recorded in the delivery brief and in
   INI-009, not here.
+
+- **2026-09-04 (Approver: eugenelim) — § *D3*'s eight-profile commitment is
+  retired. Runtime profiles beyond the shipped `claude-code` one become an open
+  extension rather than a delivery obligation, and per-runtime compatibility is
+  not this pack's subject.**
+
+  The decision this RFC records — that portable guidance and runtime-specific
+  facts must be separated, dated and sourced rather than blended — stands
+  unchanged, as does the 2026-09-01 narrowing of *which* facts a profile covers.
+  What is retired is the *count*, and with it the obligation to hold eight vendor
+  surfaces current.
+
+  This RFC already identified the reason. § *Risks & what would make this wrong*
+  states: "The largest honest drawback is maintenance: a useful runtime-profile
+  corpus creates an obligation to track change. If no owner can revalidate the
+  eight initial enterprise surfaces, M1 may ship the portable floor, but M2
+  remains incomplete." The remedy chosen there was to leave M2 permanently
+  incomplete. That trades a real deliverable for a standing gap against surfaces
+  nobody is revalidating. This erratum narrows the commitment instead, so M2 can
+  complete honestly.
+
+  The pack's subject is authoring reusable agent skills. Subagents and plugins
+  stay in scope, because an author cannot decide when to hand work to an isolated
+  worker without knowing isolated context exists and what does not return from
+  it — but that is a portable *concept*, and conceptually it is the same across
+  runtimes. The audience writes Claude agents and Claude skills, so that is the
+  vocabulary the corpus teaches; another contributor may add other runtime
+  guidance without a further charter change, because the profile mechanism, the
+  claim states and the roll-up already shipped. Per-runtime delivery mechanics
+  remain AgentBundle's concern, where they are already measured and tested.
+
+  **What is superseded.** The body above is preserved, so these four statements
+  are corrected here rather than edited:
+
+  - § *Decisions* — D3's decision cell, "profiles for eight initial enterprise
+    runtime surfaces". Read as: a capability-keyed common floor, one shipped
+    reference profile, and further profiles as an open extension.
+  - § *D3* — "M2 is not complete until all eight profiles are
+    `complete-current`". Read as: M2 requires the shipped profile to be
+    `complete-current`; absent profiles are not an M2 condition.
+  - § *Experiment / validation*, Gate 2 *Success* — "M2 additionally requires
+    all eight profile documents to be `complete-current`". Retired on the same
+    terms.
+  - § *Experiment / validation*, gate sequencing — "M2 remains incomplete until
+    the eight-profile condition passes". Retired; no eight-profile condition
+    remains to pass.
+
+  The lifecycle apparatus itself is untouched: the four claim states, the
+  roll-up values, the verification window and the probe record all continue to
+  govern whatever profiles exist.
+
+  **One forward pointer is re-homed.** The frozen
+  `agent-skill-engineering-composition-floors` spec's `Contract:` field assigns
+  the router's per-claim state and roll-up reporting, and the provider
+  response-contract change it needs, to "the slice that completes the eight
+  profiles". No such slice will exist. That obligation now belongs to the
+  `3c-r` row of `docs/product/briefs/agent-skill-engineering.md`, scoped to the
+  ledger already shipped rather than to eight profiles. The frozen spec's body
+  is not edited; its Follow-ons resolve through that brief's slice rows, which
+  is the indirection built for this case.
+
+  **What this does not license.** It does not remove runtime profiles, and it
+  does not lower the evidence bar in § *D8* or change the provenance fields a
+  profile row carries. A profile that is authored is held to the same standard;
+  there are simply fewer of them required. It does not reopen the same-pack OKF
+  boundary ADR-0093 governs, and it does not license restating in the corpus any
+  delivery mechanic that belongs to AgentBundle.

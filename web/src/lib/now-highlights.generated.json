@@ -5,6 +5,130 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.1] — 2026-09-04",
+      "changelogAnchor": "core2251--2026-09-04",
+      "highlights": [
+        {
+          "source": "When a `work-loop` task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "When a "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory."
+            }
+          ]
+        },
+        {
+          "source": "Without that pack installed, `work-loop` records `knowledge provider unavailable` and completes the same planning work it did before.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Without that pack installed, "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and completes the same planning work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.6"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[architect][0.15.6] — 2026-09-04",
+      "changelogAnchor": "architect0156--2026-09-04",
+      "highlights": [
+        {
+          "source": "When an `architect-design` task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "When an "
+            },
+            {
+              "type": "code",
+              "value": "architect-design"
+            },
+            {
+              "type": "text",
+              "value": " task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used."
+            }
+          ]
+        },
+        {
+          "source": "Without that pack installed, the procedure records `knowledge provider unavailable` and produces the same design work it did before.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Without that pack installed, the procedure records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and produces the same design work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agent-skill-engineering",
+          "version": "0.4.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[agent-skill-engineering][0.4.1] — 2026-09-04",
+      "changelogAnchor": "agent-skill-engineering041--2026-09-04",
+      "highlights": [
+        {
+          "source": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.0"
         }
       ],
