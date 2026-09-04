@@ -276,6 +276,29 @@ def main() -> int:
     expect_error("error_payload_is_tool_error", lambda: m.evaluate(ERROR_PAYLOAD, {}))
     expect_error("missing_report_version_is_tool_error", lambda: m.evaluate(NO_VERSION, {}))
 
+    print("_require_report() — name the cause npm actually supplied")
+    MEASURED = {
+        "message": "request to https://registry.npmjs.org/-/npm/v1/security/"
+                   "advisories/bulk failed, reason: connect ECONNREFUSED",
+        "error": {"summary": "", "detail": ""},
+    }
+    try:
+        m.evaluate(MEASURED, {})
+        check("empty_error_names_the_sibling_message", False, "no AuditError raised")
+    except m.AuditError as exc:
+        check("empty_error_names_the_sibling_message", "ECONNREFUSED" in str(exc), str(exc))
+        check("empty_error_does_not_print_the_raw_dict", "'summary': ''" not in str(exc), str(exc))
+    for label, payload, wanted in (
+        ("summary", {"error": {"summary": "rate limited"}}, "rate limited"),
+        ("detail", {"error": {"summary": "", "detail": "bad gateway"}}, "bad gateway"),
+        ("code", {"error": {"summary": "", "detail": "", "code": "EAI_AGAIN"}}, "EAI_AGAIN"),
+    ):
+        try:
+            m.evaluate(payload, {})
+            check(f"error_{label}_is_reported", False, "no AuditError raised")
+        except m.AuditError as exc:
+            check(f"error_{label}_is_reported", wanted in str(exc), str(exc))
+
     print("run_audit_with_retry() — re-ask a detail-free error, never launder one")
     EMPTY = {"error": {"summary": "", "detail": ""}}
     check("retryable_for_the_measured_empty_error", m.is_detail_free_error(EMPTY))

@@ -248,9 +248,20 @@ def _require_report(report: object) -> dict:
     if not isinstance(report, dict):
         raise AuditError(f"audit output is not a JSON object (got {type(report).__name__})")
     if "error" in report:
-        detail = report["error"]
-        if isinstance(detail, dict):
-            detail = detail.get("summary") or detail.get("code") or detail
+        # npm 11 loses its own exception: it throws a bare string, so the JSON
+        # formatter emits `{"summary": "", "detail": ""}` and leaves the reason in
+        # the sibling `message`. Try every field; the empty dict is truthy, so it
+        # must come last or it short-circuits `message`.
+        raw = report["error"]
+        detail: object = raw
+        if isinstance(raw, dict):
+            detail = (
+                raw.get("summary")
+                or raw.get("detail")
+                or raw.get("code")
+                or report.get("message")
+                or raw
+            )
         raise AuditError(
             f"npm audit reported an error instead of a report: "
             f"{detail or report.get('message') or '(no detail)'}"
@@ -373,29 +384,18 @@ def run_audit(project_dir: Path) -> object:
         ) from exc
 
 
-#: How many times to re-ask npm for a report when it answers with an error that
-#: carries no detail at all. Measured, not imagined: on 2026-09-04 `npm audit`
-#: returned `{"error": {"summary": "", "detail": ""}}` for the bulk query after
-#: roughly ten minutes, on a GitHub runner and on a maintainer's machine, while
-#: the canary's single-package query answered normally — a registry-side limit on
-#: the large request. Two CI attempts and two local runs failed that way; a third
-#: local run succeeded unchanged.
+#: Re-ask only a detail-free error — npm's shape for "the advisory request threw".
+#: Measured 2026-09-04: four failures across CI and local, one success unchanged.
 RETRY_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = 5
 
 
 def is_detail_free_error(report: object) -> bool:
-    """Is this the empty-`error` payload that a transient registry limit returns?
+    """Does this payload claim an error and then say nothing about it?
 
-    Deliberately narrow. A populated error — a code, a summary, a message — is
-    reported as-is and never retried, because it is evidence about the failure
-    rather than an absence of evidence. Only a payload that claims an error and
-    then says nothing about it is treated as worth re-asking.
-
-    This predicate decides *whether to ask again*. It never decides a verdict:
-    `_require_report` still raises on every error payload, so an exhausted retry
-    fails the gate exactly as a single attempt did. Retrying cannot turn an
-    error into a clean result — it can only spend more time before failing.
+    Narrow on purpose: a populated error is evidence about the failure, so it is
+    reported as-is. Decides only whether to ask again, never a verdict —
+    `_require_report` still raises, so an exhausted retry fails as one attempt did.
     """
     if not isinstance(report, dict) or "error" not in report:
         return False
@@ -467,14 +467,9 @@ def run_canary_probe(*, audit=None) -> None:
         probe_dir = Path(tmp)
         (probe_dir / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
         (probe_dir / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
-        # Retried like any other query. The probe's two failure modes are
-        # distinct and the code already separates them: a *valid* report that
-        # omits the advisory is silence, which `canary_is_live` returns False
-        # for and which no amount of re-asking should paper over; a detail-free
-        # error is npm failing to produce a report at all, which `_require_report`
-        # raises on. Only the second is re-asked. Leaving this call a single ask
-        # is what let a registry limit red the gate three times in a row: the
-        # probe runs first, so it failed before the lockfile audit was reached.
+        # Retried too. Silence — a valid report omitting the advisory — is caught
+        # by `canary_is_live` and re-asking cannot cure it; only a detail-free
+        # error is. This probe runs first, so a single ask here red the gate thrice.
         ask = audit or run_audit_with_retry
         if not canary_is_live(ask(probe_dir)):
             raise AuditError(
