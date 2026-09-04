@@ -327,6 +327,9 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     direct_args.adapter = selection.row.adapter
     direct_args.source_revision = None
     direct_args._upgrade_source_digest = selection.row.source_digest
+    direct_args._upgrade_source_path = selection.row.source_path
+    direct_args._upgrade_owned_files = selection.row.files
+    direct_args._direct_verb = "upgrade"
     if needs_consent and not sys.stdin.isatty():
         direct_args._upgrade_noninteractive_refusal = _refuse_direct_upgrade(
             DiagnosticCode.CAT_D008,

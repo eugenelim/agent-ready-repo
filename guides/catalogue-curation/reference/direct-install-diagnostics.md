@@ -40,6 +40,8 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D023` | A standalone skill upgrade could not read required state, select a usable installed manifestless row, obtain its recorded source, or use the requested output form |
 | `CAT-D024` | A standalone skill upgrade matched more than one scope; pass `--scope repo` or `--scope user` |
 | `CAT-D025` | A standalone skill upgrade matched more than one adapter; pass `--adapter <adapter>` |
+| `CAT-D026` | A standalone skill upgrade re-resolved its source, but the recorded source path no longer identifies the installed skill |
+| `CAT-D027` | A standalone skill upgrade found destination bytes that match neither its incoming content nor the digest recorded by the installed row |
 
 ## Reading a refusal
 
@@ -61,3 +63,4 @@ admitted; only a greater value refuses.
 An integrity refusal is never reported as a budget breach: a symlink inside
 a skill folder is a link, not an oversized one, and it carries its own code
 and the path it was found at.
+

@@ -11,6 +11,7 @@ Coverage:
 from __future__ import annotations
 
 import hashlib
+import shlex
 import types
 from pathlib import Path
 
@@ -135,6 +136,16 @@ def _tree_digests(root: Path) -> dict[str, bytes]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+def _run_printed_command(command: str) -> int:
+    """Execute one rendered agentbundle command through the real CLI parser."""
+
+    from agentbundle import cli
+
+    argv = shlex.split(command)
+    assert argv[0] == "agentbundle"
+    return cli.main(argv[1:])
 
 
 def test_direct_skill_requires_matching_installed_row(tmp_path, capsys):
@@ -262,6 +273,251 @@ def test_direct_skill_upgrade_succeeds(
     assert hashlib.sha256(state_path.read_bytes()).digest() != state_before
 
 
+def test_direct_skill_upgrade_plans_writes_and_removals_without_catalogue(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    from agentbundle.commands import upgrade
+
+    storage = tmp_path_factory.mktemp("direct-upgrade-plan")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    skill = _write_direct_skill(source_tree)
+    references = skill / "references"
+    references.mkdir()
+    obsolete = references / "obsolete.md"
+    obsolete.write_text("old\n")
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    obsolete.unlink()
+    scripts = skill / "scripts"
+    scripts.mkdir()
+    (scripts / "added.py").write_text("print('new')\n")
+    acquisition.publish("example/skills", "release", source_tree)
+    before = _tree_digests(target)
+
+    def _catalogue_must_not_resolve(*_args, **_kwargs):
+        raise AssertionError("standalone skill upgrade must not resolve a catalogue")
+
+    monkeypatch.setattr(upgrade, "resolve_catalogue", _catalogue_must_not_resolve)
+    monkeypatch.setattr(
+        upgrade, "resolve_catalogue_uri", _catalogue_must_not_resolve
+    )
+    assert _upgrade_direct(target, "--dry-run") == 0
+    preview = capsys.readouterr()
+    assert "write .claude/skills/example/SKILL.md" in preview.out
+    assert "write .claude/skills/example/scripts/added.py" in preview.out
+    assert "remove .claude/skills/example/references/obsolete.md" in preview.out
+    assert _tree_digests(target) == before
+
+    assert _upgrade_direct(target, "--yes") == 0
+    applied = capsys.readouterr()
+    assert "remove .claude/skills/example/references/obsolete.md" in applied.out
+    assert (target / ".claude/skills/example/SKILL.md").read_text().endswith(
+        "# second\n"
+    )
+    assert (target / ".claude/skills/example/scripts/added.py").read_text() == (
+        "print('new')\n"
+    )
+    projected_obsolete = target / ".claude/skills/example/references/obsolete.md"
+    assert projected_obsolete.read_text() == "old\n"
+    assert projected_obsolete.parent.is_dir()
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_direct_skill_upgrade_refuses_an_unsafe_destination_before_planning(
+    tmp_path, capsys, dry_run
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    (references / "unsafe.md").write_text("# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    projected_skill = target / ".claude/skills/example/SKILL.md"
+    unsafe_projection = target / ".claude/skills/example/references/unsafe.md"
+    outside = tmp_path / "outside.md"
+    outside.write_text("# adopter bytes\n")
+    unsafe_projection.unlink()
+    unsafe_projection.symlink_to(outside)
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    (references / "unsafe.md").write_text("# second\n")
+    before = _tree_digests(target)
+    outside_before = hashlib.sha256(outside.read_bytes()).digest()
+
+    flags = ("--dry-run",) if dry_run else ("--yes",)
+    assert _upgrade_direct(target, *flags) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D009" in refusal.err
+    assert ".claude/skills/example/references/unsafe.md" in refusal.err
+    assert "upgrade plan" not in refusal.out
+    assert _tree_digests(target) == before
+    assert hashlib.sha256(outside.read_bytes()).digest() == outside_before
+    assert unsafe_projection.is_symlink()
+    assert projected_skill.read_text().endswith("# first\n")
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_direct_skill_upgrade_refuses_an_edited_incoming_destination(
+    tmp_path, capsys, dry_run
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    projection = target / ".claude/skills/example/SKILL.md"
+    projection.write_text("# adopter edit\n")
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    before = _tree_digests(target)
+
+    flags = ("--dry-run",) if dry_run else ("--yes",)
+    assert _upgrade_direct(target, *flags) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D027" in refusal.err
+    assert ".claude/skills/example/SKILL.md" in refusal.err
+    assert "upgrade plan" not in refusal.out
+    assert _tree_digests(target) == before
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_direct_skill_upgrade_reapplies_admission_before_planning(
+    tmp_path, monkeypatch, capsys, dry_run
+):
+    from agentbundle import direct_source
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    before = _tree_digests(target)
+    calls: list[Path] = []
+    validate = direct_source.validate_direct_source
+
+    def _observe(candidate: Path):
+        calls.append(candidate)
+        return validate(candidate)
+
+    monkeypatch.setattr(direct_source, "validate_direct_source", _observe)
+
+    flags = ("--dry-run",) if dry_run else ("--yes",)
+    assert _upgrade_direct(target, *flags) == 0
+    assert calls == [source]
+    captured = capsys.readouterr()
+    assert "upgrade plan" in captured.out
+    if dry_run:
+        assert _tree_digests(target) == before
+    else:
+        assert _tree_digests(target) != before
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_direct_skill_upgrade_refuses_an_edited_removal_destination(
+    tmp_path, capsys, dry_run
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    doomed = references / "doomed.md"
+    doomed.write_text("publisher\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    projected_doomed = target / ".claude/skills/example/references/doomed.md"
+    projected_doomed.write_text("adopter\n")
+    doomed.unlink()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    before = _tree_digests(target)
+
+    flags = ("--dry-run",) if dry_run else ("--yes",)
+    assert _upgrade_direct(target, *flags) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D027" in refusal.err
+    assert "doomed.md" in refusal.err
+    assert "upgrade plan" not in refusal.out
+    assert _tree_digests(target) == before
+
+
+@pytest.mark.parametrize("terminal", ["moved", "removed"])
+def test_direct_skill_missing_source_path_remediation_reaches_terminal_state(
+    tmp_path, tmp_path_factory, monkeypatch, capsys, terminal
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp(f"direct-missing-path-{terminal}")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    original_source = tmp_path / "original-source"
+    _write_direct_skill(original_source)
+    other = original_source / "skills" / "other"
+    other.mkdir()
+    (other / "SKILL.md").write_text("---\nname: other\n---\n# other\n")
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", original_source)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    before = _tree_digests(target)
+
+    updated_source = tmp_path / "updated-source"
+    updated_other = updated_source / "skills" / "other"
+    updated_other.mkdir(parents=True)
+    (updated_other / "SKILL.md").write_text("---\nname: other\n---\n# other\n")
+    if terminal == "moved":
+        renamed = updated_source / "skills" / "renamed"
+        renamed.mkdir()
+        (renamed / "SKILL.md").write_text("---\nname: renamed\n---\n# moved\n")
+    acquisition.publish("example/skills", "release", updated_source)
+
+    assert _upgrade_direct(target, "--yes") == 1
+    wet_refusal = capsys.readouterr()
+    assert "CAT-D026" in wet_refusal.err
+    assert "skills/example" in wet_refusal.err
+    assert _tree_digests(target) == before
+
+    assert _upgrade_direct(target, "--dry-run") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D026" in refusal.err
+    assert "skills/example" in refusal.err
+    assert _tree_digests(target) == before
+
+    remediation = next(
+        line.removeprefix("  → ")
+        for line in refusal.err.splitlines()
+        if line.startswith("  → moved: ")
+    )
+    moved_line, removed_line = remediation.removeprefix("moved: ").split(
+        "; removed: ", 1
+    )
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    if terminal == "moved":
+        uninstall_command, install_command = moved_line.split(" then ", 1)
+        assert _run_printed_command(uninstall_command) == 0
+        assert _run_printed_command(
+            install_command.replace("<new-source-path>", "renamed")
+        ) == 0
+        state = load_state(target / ".agentbundle-state.toml")
+        assert state.row("renamed", "claude-code") is not None
+        assert state.row("example", "claude-code") is None
+        assert not (target / ".claude/skills/example/SKILL.md").exists()
+    else:
+        assert _run_printed_command(removed_line) == 0
+        state = load_state(target / ".agentbundle-state.toml")
+        assert state.row("example", "claude-code") is None
+        assert not (target / ".claude/skills/example/SKILL.md").exists()
+
+
 def test_remote_direct_skill_requires_yes_before_acquisition(
     tmp_path, tmp_path_factory, monkeypatch, capsys
 ):
@@ -302,7 +558,8 @@ def test_local_direct_skill_requires_yes_before_replacement(tmp_path, capsys):
     assert _tree_digests(target) == before
 
 
-def test_direct_skill_no_update_reports_stdout(tmp_path, capsys):
+@pytest.mark.parametrize("flags", [(), ("--dry-run",)])
+def test_direct_skill_no_update_reports_stdout(tmp_path, capsys, flags):
     source = tmp_path / "source"
     target = tmp_path / "target"
     _write_direct_skill(source)
@@ -310,9 +567,10 @@ def test_direct_skill_no_update_reports_stdout(tmp_path, capsys):
     capsys.readouterr()
     before = _tree_digests(target)
 
-    assert _upgrade_direct(target) == 0
+    assert _upgrade_direct(target, *flags) == 0
     captured = capsys.readouterr()
     assert "No update available for example." in captured.out
+    assert "upgrade plan" not in captured.out
     assert _tree_digests(target) == before
 
 
@@ -328,7 +586,7 @@ def test_direct_skill_no_update_still_refuses_adopter_edit(tmp_path, capsys):
 
     assert _upgrade_direct(target, "--yes") == 1
     refusal = capsys.readouterr()
-    assert "CAT-D009" in refusal.err
+    assert "CAT-D027" in refusal.err
     assert "No update available" not in refusal.out
     assert _tree_digests(target) == before
 
@@ -348,7 +606,7 @@ def test_direct_skill_dry_run_prints_plan_without_mutation(tmp_path, capsys):
 
     assert _upgrade_direct(target, "--dry-run") == 0
     captured = capsys.readouterr()
-    assert "would install (dry run" in captured.out
+    assert "upgrade plan" in captured.out
     assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
     assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
 

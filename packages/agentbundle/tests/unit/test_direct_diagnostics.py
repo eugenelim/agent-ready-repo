@@ -290,6 +290,7 @@ def _emitted_codes(tmp_path) -> set[str]:
         DirectInstallError,
         Selection,
         _refuse_foreign_owner,
+        _select_upgrade_skill,
         run_direct_install,
         sanitise_publisher_value,
         select_collection_skills,
@@ -493,6 +494,21 @@ def _emitted_codes(tmp_path) -> set[str]:
     _record(lambda: _select(one_row, one_row))
     _record(lambda: _select(two_adapters))
 
+    class _UpgradeArgs:
+        skill = ["example"]
+        output = str(tmp_path)
+        scope = "repo"
+        adapter = "claude-code"
+
+    _record(
+        lambda: _select_upgrade_skill(
+            _UpgradeArgs(),
+            classification=admitted,
+            source_string=str(collection),
+            source_path="skills/missing",
+        )
+    )
+
     # --- installed identity at another ref ---------------------------------
     ref_root = tmp_path / "different-ref"
     ref_skill = _skill(ref_root / "skills" / "alpha", "alpha")
@@ -527,6 +543,23 @@ def _emitted_codes(tmp_path) -> set[str]:
             "claude-code",
             second_ref,
             [(".claude/skills/alpha/SKILL.md", (ref_skill / "SKILL.md").read_bytes())],
+        )
+    )
+    projected = ref_target / ".claude/skills/alpha/SKILL.md"
+    projected.write_text("# adopter edit\n")
+    _record(
+        lambda: _refuse_foreign_owner(
+            ref_target,
+            ref_selection,
+            ref_classification,
+            ".claude/skills",
+            "repo",
+            "claude-code",
+            first_ref,
+            [(".claude/skills/alpha/SKILL.md", (ref_skill / "SKILL.md").read_bytes())],
+            upgrade_owned_files={
+                ".claude/skills/alpha/SKILL.md": {"sha": "0" * 64}
+            },
         )
     )
     return emitted

@@ -72,17 +72,17 @@ class DirectCodeTableLintTests(unittest.TestCase):
         registry = self.tmp / REGISTRY
         text = registry.read_text(encoding="utf-8")
         text = text.replace(
-            '    CAT_D025 = "CAT-D025"',
-            '    CAT_D026 = "CAT-D026"   # a newly registered refusal\n'
-            '    CAT_D025 = "CAT-D025"',
+            '    CAT_D027 = "CAT-D027"',
+            '    CAT_D090 = "CAT-D090"   # a newly registered refusal\n'
+            '    CAT_D027 = "CAT-D027"',
         ).replace(
-            "        DiagnosticCode.CAT_D025,\n    }",
-            "        DiagnosticCode.CAT_D025,\n        DiagnosticCode.CAT_D026,\n    }",
+            "        DiagnosticCode.CAT_D027,\n    }",
+            "        DiagnosticCode.CAT_D027,\n        DiagnosticCode.CAT_D090,\n    }",
         )
         registry.write_text(text, encoding="utf-8")
         result = _run(self.tmp)
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("CAT-D026", result.stderr)
+        self.assertIn("CAT-D090", result.stderr)
 
     def test_a_non_literal_registry_is_refused(self) -> None:
         # The lint reads the frozenset by `ast` parse rather than importing it,

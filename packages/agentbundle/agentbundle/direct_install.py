@@ -572,6 +572,84 @@ def run_direct_install(args, source: Path | str) -> int:
             forget_remote_root_identity(acquired_root)
 
 
+def _missing_upgrade_path_refusal(
+    args: object,
+    *,
+    source_string: str,
+    source_path: object,
+) -> DirectInstallError:
+    """Build recovery for a recorded envelope path the source no longer admits."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    root = str(getattr(args, "output", ".") or ".")
+    scope = str(getattr(args, "scope", None) or "repo")
+    adapter = str(getattr(args, "adapter", None) or "claude-code")
+    remove_command = recovery_command(
+        "agentbundle",
+        "uninstall",
+        "--pack",
+        name,
+        "--root",
+        root,
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--yes",
+    )
+    install_command = recovery_command(
+        "agentbundle",
+        "install",
+        source_string,
+        "--skill",
+        "<new-source-path>",
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--output",
+        root,
+        "--yes",
+    )
+    rendered_path = str(source_path) if source_path is not None else "<missing>"
+    return _refuse(
+        DiagnosticCode.CAT_D026,
+        f"recorded source path {rendered_path!r} no longer admits skill {name!r}; "
+        "for a moved collection skill, replace <new-source-path> with the new "
+        "path's final skill-name segment",
+        path=rendered_path,
+        remediation=(
+            f"moved: {remove_command} then {install_command}; "
+            f"removed: {remove_command}"
+        ),
+    )
+
+
+def _select_upgrade_skill(
+    args: object,
+    *,
+    classification: DirectClassification,
+    source_string: str,
+    source_path: object,
+) -> Selection:
+    """Select the installed envelope by its recorded admitted path."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    matches = [
+        skill
+        for skill in classification.skills
+        if _candidate_source_coordinates(classification, skill)[1] == source_path
+        and skill.name == name
+    ]
+    if len(matches) == 1 and isinstance(source_path, str):
+        return Selection(tuple(matches), explicit=True)
+    raise _missing_upgrade_path_refusal(
+        args, source_string=source_string, source_path=source_path
+    )
+
+
 def _install_admitted_source(
     args, *, source: Path, source_string: str, revision: str | None
 ) -> int:
@@ -583,6 +661,24 @@ def _install_admitted_source(
         validate_direct_source,
     )
 
+    if hasattr(args, "_upgrade_source_path"):
+        from agentbundle.catalogue_tooling.file_safety import (
+            UnsafeContentError,
+            validate_confined_directory,
+        )
+
+        source_path = args._upgrade_source_path
+        try:
+            if not isinstance(source_path, str):
+                raise UnsafeContentError("recorded source path is missing")
+            validate_confined_directory(source, source / source_path)
+        except (OSError, UnsafeContentError):
+            refusal = _missing_upgrade_path_refusal(
+                args, source_string=source_string, source_path=source_path
+            )
+            _print_refusal(refusal.diagnostic, verb="upgrade")
+            return 1
+
     admission = validate_direct_source(source)
     if not admission.ok:
         for diagnostic in admission.diagnostics:
@@ -592,12 +688,20 @@ def _install_admitted_source(
     assert classification is not None
 
     try:
-        selection = select_collection_skills(
-            classification,
-            source=source_string,
-            requested=getattr(args, "skill", None),
-            all_skills=bool(getattr(args, "all_skills", False)),
-        )
+        if not hasattr(args, "_upgrade_source_path"):
+            selection = select_collection_skills(
+                classification,
+                source=source_string,
+                requested=getattr(args, "skill", None),
+                all_skills=bool(getattr(args, "all_skills", False)),
+            )
+        else:
+            selection = _select_upgrade_skill(
+                args,
+                classification=classification,
+                source_string=source_string,
+                source_path=args._upgrade_source_path,
+            )
     except DirectInstallError as exc:
         # The listing is built OUTSIDE this handler on purpose. It renders
         # publisher values, so it can raise its own refusal — and computed here
@@ -614,9 +718,14 @@ def _install_admitted_source(
             # AC18: a disallowed candidate value refuses the whole invocation
             # rather than being elided, because a partial listing would print
             # `--all-skills` recovery covering more than the reader was shown.
-            _print_refusal(listing_refusal.diagnostic)
+            _print_refusal(
+                listing_refusal.diagnostic,
+                verb=getattr(args, "_direct_verb", "install"),
+            )
             return 1
-        _print_refusal(exc.diagnostic)
+        _print_refusal(
+            exc.diagnostic, verb=getattr(args, "_direct_verb", "install")
+        )
         if listing:
             # AC18: publisher values appear only inside the delimiters, emitted
             # by the one helper the consent summary also uses.
@@ -647,7 +756,9 @@ def _install_admitted_source(
         # paths on stderr.
         diagnostic = getattr(exc, "diagnostic", None)
         if diagnostic is not None:
-            _print_refusal(diagnostic)
+            _print_refusal(
+                diagnostic, verb=getattr(args, "_direct_verb", "install")
+            )
         else:
             print(
                 f"install: [{DiagnosticCode.CAT_D019.value}] {exc}",
@@ -782,6 +893,14 @@ def _summarise_and_project(
                 safety.assert_portable_name(segment)
             planned.append((relpath, measured.data))
 
+    upgrade_owned_files = getattr(args, "_upgrade_owned_files", None)
+    planned_paths = {relpath for relpath, _projected_bytes in planned}
+    removed = (
+        sorted(set(upgrade_owned_files) - planned_paths)
+        if upgrade_owned_files is not None
+        else []
+    )
+
     _refuse_foreign_owner(
         projection_root,
         selection,
@@ -791,6 +910,7 @@ def _summarise_and_project(
         adapter,
         source_string,
         planned,
+        upgrade_owned_files=upgrade_owned_files,
     )
 
     if upgrade_digest is not None and digest == upgrade_digest:
@@ -798,12 +918,20 @@ def _summarise_and_project(
         print(f"No update available for {selected_name}.")
         return 0
 
+    if upgrade_owned_files is not None:
+        print("\nupgrade plan:")
+        for relpath, _projected_bytes in sorted(planned):
+            print(f"  write {escape_path_value(relpath)}")
+        for relpath in removed:
+            print(f"  remove {escape_path_value(relpath)}")
+
     if getattr(args, "dry_run", False):
         # AC25: a preview writes nothing at all, and says which files it would
         # have written so the reader can check before consenting.
-        print("\nwould install (dry run — nothing written):")
-        for relpath, _projected_bytes in planned:
-            print(f"  {escape_path_value(relpath)}")
+        if upgrade_owned_files is None:
+            print("\nwould install (dry run — nothing written):")
+            for relpath, _projected_bytes in planned:
+                print(f"  {escape_path_value(relpath)}")
         return 0
 
     if not getattr(args, "yes", False) and not sys.stdin.isatty():
@@ -1105,6 +1233,44 @@ def _destination_holds_foreign_content(
     return on_disk not in state.shas_for(relpath)
 
 
+def _upgrade_destination_is_edited(
+    root: Path,
+    relpath: str,
+    incoming: bytes | None,
+    recorded_sha: str | None,
+) -> bool:
+    """True when measurable destination bytes match neither upgrade baseline."""
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        sha256_confined_regular_file,
+    )
+
+    try:
+        on_disk = sha256_confined_regular_file(root, root / relpath)
+    except FileNotFoundError:
+        return False
+    except UnsafeContentError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return False
+        raise _refuse(
+            DiagnosticCode.CAT_D009,
+            f"{relpath} could not be inspected safely: {exc}",
+            path=relpath,
+            remediation="Repair or remove the unsafe destination before upgrading.",
+        ) from None
+    except OSError as exc:
+        raise _refuse(
+            DiagnosticCode.CAT_D009,
+            f"{relpath} could not be inspected safely: {exc}",
+            path=relpath,
+            remediation="Repair or remove the unsafe destination before upgrading.",
+        ) from None
+    if incoming is not None and on_disk == hashlib.sha256(incoming).hexdigest():
+        return False
+    return recorded_sha is None or on_disk != recorded_sha
+
+
 def _refuse_foreign_owner(
     projection_root: Path,
     selection: Selection,
@@ -1114,6 +1280,8 @@ def _refuse_foreign_owner(
     adapter: str,
     source_string: str,
     planned: list[tuple[str, bytes]],
+    *,
+    upgrade_owned_files: dict[str, dict[str, str]] | None = None,
 ) -> None:
     """Refuse to overwrite a row or a directory this source does not own.
 
@@ -1222,16 +1390,81 @@ def _refuse_foreign_owner(
                     "no later install, upgrade, or uninstall can resolve."
                 ),
             )
-        if _destination_holds_foreign_content(
-            projection_root, relpath, projected_bytes, state
-        ):
-            raise _refuse(
-                DiagnosticCode.CAT_D009,
-                f"{relpath} already exists and no install put its content there",
-                path=relpath,
-                remediation=(
+        recorded = upgrade_owned_files.get(relpath) if upgrade_owned_files is not None else None
+        recorded_sha = recorded.get("sha") if recorded is not None else None
+        edited = (
+            _upgrade_destination_is_edited(
+                projection_root, relpath, projected_bytes, recorded_sha
+            )
+            if upgrade_owned_files is not None
+            else _destination_holds_foreign_content(
+                projection_root, relpath, projected_bytes, state
+            )
+        )
+        if edited:
+            code = (
+                DiagnosticCode.CAT_D027
+                if upgrade_owned_files is not None
+                else DiagnosticCode.CAT_D009
+            )
+            if upgrade_owned_files is not None:
+                rerun = recovery_command(
+                    "agentbundle",
+                    "upgrade",
+                    "--skill",
+                    selection.skills[0].name,
+                    "--root",
+                    str(projection_root),
+                    "--scope",
+                    scope,
+                    "--adapter",
+                    adapter,
+                    "--yes",
+                )
+                remediation = (
+                    "Move the adopter-edited file aside before upgrading, then run "
+                    f"{rerun}."
+                )
+            else:
+                remediation = (
                     "Move or delete the existing file first. It is either "
                     "hand-authored or locally edited, and this source would "
                     "replace it with publisher content silently."
-                ),
+                )
+            raise _refuse(
+                code,
+                f"{relpath} already exists and no install put its content there",
+                path=relpath,
+                remediation=remediation,
             )
+
+    if upgrade_owned_files is None:
+        return
+    for relpath in sorted(set(upgrade_owned_files) - {path for path, _data in planned}):
+        recorded_sha = upgrade_owned_files[relpath].get("sha")
+        if not _upgrade_destination_is_edited(
+            projection_root, relpath, None, recorded_sha
+        ):
+            continue
+        rerun = recovery_command(
+            "agentbundle",
+            "upgrade",
+            "--skill",
+            selection.skills[0].name,
+            "--root",
+            str(projection_root),
+            "--scope",
+            scope,
+            "--adapter",
+            adapter,
+            "--yes",
+        )
+        raise _refuse(
+            DiagnosticCode.CAT_D027,
+            f"{relpath} is adopter-edited and the new source would remove it",
+            path=relpath,
+            remediation=(
+                "Move the adopter-edited file aside before upgrading, then run "
+                f"{rerun}."
+            ),
+        )

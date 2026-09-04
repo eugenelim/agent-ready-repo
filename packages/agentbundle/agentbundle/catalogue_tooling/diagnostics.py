@@ -77,6 +77,8 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D023 = "CAT-D023"   # standalone skill upgrade cannot select a usable row
     CAT_D024 = "CAT-D024"   # standalone skill upgrade needs scope disambiguation
     CAT_D025 = "CAT-D025"   # standalone skill upgrade needs adapter disambiguation
+    CAT_D026 = "CAT-D026"   # re-resolved source no longer contains the installed skill path
+    CAT_D027 = "CAT-D027"   # standalone upgrade would replace adopter-edited bytes
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -110,6 +112,8 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D023,
         DiagnosticCode.CAT_D024,
         DiagnosticCode.CAT_D025,
+        DiagnosticCode.CAT_D026,
+        DiagnosticCode.CAT_D027,
     }
 )
 
