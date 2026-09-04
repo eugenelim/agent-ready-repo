@@ -1,6 +1,6 @@
 # Spec: phase-policy registry and deterministic selector
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0093
@@ -99,6 +99,12 @@ surface because they can only be observed after a real build.
 | The record identifies and fingerprints the teaching text an agent would read | TDD, unit | Resolution and digesting are pure functions over files present in the tree |
 | A malformed registry fails before delivery | TDD, unit | Each refusal is a separate authored bad input with its own expected exit status |
 | The registry reaches both adapters and selects correctly there | Goal-based, integration | Only a real two-adapter build shows where a file lands and what a projected copy selects |
+
+**Stub tally.** Stubs cover AC3, AC6, AC7 and AC8 — one contract-surface
+assertion per TDD task. AC1, AC2, AC4 and AC5 are uncovered by a stub and build
+out behind those four in EXECUTE. AC9 and the guide and release obligations are
+`no stub (goal-based check)`: their outcomes are only observable after a real
+build or are already verified by a shipped gate.
 
 AC9 compares each projected copy against a literal sequence rather than against
 the other projection. § "Assumptions" carries that reasoning and is its single

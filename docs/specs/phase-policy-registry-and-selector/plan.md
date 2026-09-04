@@ -1,7 +1,7 @@
 # Plan: phase-policy registry and deterministic selector
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - Convention source: root [`AGENTS.md`](../../../AGENTS.md) and
     [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md), whose authored source
@@ -77,6 +77,25 @@ digest is computed over assembled text; those are D2 and D3. And
 - The brief's appetite: one shared registry and one selector.
 - `CAT-S004` bounds the skill layout to `scripts`, `references`, `assets`,
   `evals`.
+
+## Stub validation
+
+All four stubs below were extracted to disposable scratch outside the repository
+test tree, with `PACK_ROOT` and `REPO_ROOT` pinned at the real pack and
+repository so the failure would be the absent subject rather than a wrong
+fixture path.
+
+- **Compile:** `python3 -m py_compile` over the combined file — passed.
+- **Red:** `python3 -m pytest -q` — `4 failed in 0.59s`, zero passed and zero
+  skipped. Each failure is the intended one: `FileNotFoundError` on
+  `references/policy-families.md` for the registry stubs, and
+  `can't open file … scripts/select-policy-families.py: [Errno 2]` for the
+  selector stubs.
+
+The scratch copy is not committed. No repository test file exists yet; EXECUTE
+materializes these blocks unchanged into
+`packs/core/tests/skills/work-loop/test_policy_family_registry.py` and verifies
+byte identity before filling deferred assertions.
 
 ## Construction tests
 
@@ -164,7 +183,55 @@ no reusable helper, so the selector carries its own minimal extraction.
   `TextIOWrapper` so the caller's stream is untouched. Reuse that mechanism; the
   spike that proved the ten states ran outside a capturing harness and does not
   cover this.
-- No stub is authored here. `new-spec` step 4 is a pointer and self-check only —
+```python
+# STUB: AC3 — the selection map is exactly the declared eleven-key mapping
+# Stored and validated in PLAN's T1 Tests: subsection. The literal mapping is
+# the durable contract surface: it is what fails when a registry keeps every
+# key and selects nothing.
+import json
+import re
+from pathlib import Path
+
+PACK_ROOT = Path(__file__).resolve().parents[3]
+REGISTRY = PACK_ROOT / ".apm/skills/work-loop/references/policy-families.md"
+
+AUTHORING = ["observable-outcome", "repository-anchoring", "new-spec-step-5a",
+             "the-razor", "cognitive-load"]
+IMPLEMENTING = ["the-razor", "cognitive-load"]
+
+
+def _registry_block() -> dict:
+    text = REGISTRY.read_text(encoding="utf-8")
+    match = re.search(r"^```json policy-registry\.v1\n(.*?)^```", text,
+                      re.MULTILINE | re.DOTALL)
+    assert match, "no `json policy-registry.v1` fenced block in policy-families.md"
+    return json.loads(match.group(1))
+
+
+def test_selection_map_is_the_declared_mapping():
+    selection = _registry_block()["selection"]
+
+    assert selection == {
+        "SPEC-PLAN-DRAFTING": AUTHORING,
+        "SPEC-PLAN-REVIEW": AUTHORING,
+        "CODE-IMPLEMENTATION": IMPLEMENTING,
+        "CODE-VERIFICATION": IMPLEMENTING,
+        "CODE-REVIEW": IMPLEMENTING,
+        "DIRECT-LIGHT": IMPLEMENTING,
+        "SPEC-HUMAN-GATE": [],
+        "PLAN-HUMAN-GATE": [],
+        "SPEC-PLAN-APPROVED": [],
+        "CODE-HUMAN-GATE": [],
+        "DONE": [],
+    }
+```
+
+- test_selection_map_is_the_declared_mapping (AC3)
+  stub: true
+- The remaining T1 obligations (AC1, AC2, AC4) build out behind that stub in
+  EXECUTE; the stub is the contract surface, not the finished matrix.
+- `new-spec` step 4 authored no stub, and was right not to: it is a pointer and
+  self-check only —
   `work-loop` PLAN owns exact stub code, its compile pass, and its recorded red
   (`work-loop/SKILL.md:286`, `references/tdd-stubs.md:2-5`). Each TDD task below
   carries its `Tests:` intent; the stub blocks and the spec's covered /
@@ -203,6 +270,39 @@ Restore by editing.
   second run of the selector. A same-code comparison proves only determinism,
   which a reversed-but-deterministic selector also satisfies.
 
+```python
+# STUB: AC6 — the emitted id sequence equals the registry's declared list
+# Stored and validated in PLAN's T2 Tests: subsection. Comparing against the
+# registry, not against a second run, is the whole point: a deterministically
+# reversed selector satisfies "stable across runs".
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SELECTOR = PACK_ROOT / ".apm/skills/work-loop/scripts/select-policy-families.py"
+REGISTRY = PACK_ROOT / ".apm/skills/work-loop/references/policy-families.md"
+REPO_ROOT = PACK_ROOT.parents[1]
+
+
+def test_emitted_order_equals_declared_order():
+    key = "SPEC-PLAN-DRAFTING"
+    proc = subprocess.run(
+        [sys.executable, str(SELECTOR), "--registry", str(REGISTRY),
+         "--root", str(REPO_ROOT), key],
+        capture_output=True, text=True, check=False,
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    emitted = [f["id"] for f in json.loads(proc.stdout)["families"]]
+    declared = _registry_block()["selection"][key]
+    assert emitted == declared
+```
+
+- test_emitted_order_equals_declared_order (AC6)
+  stub: true
+
 **Approach:**
 - Add the script with its two options and one positional key.
 - Extract the fenced block under CommonMark rules, validate the version pair,
@@ -234,6 +334,28 @@ reversal reddens the ordering case.
   exists to prevent — with every case still green.
 - One case asserts the emitted `tier` and `module` against the registry record
   for the same `id`, not merely their presence.
+
+```python
+# STUB: AC7 — each emitted entry equals its registry record plus a real digest
+# Stored and validated in PLAN's T3 Tests: subsection. Comparing tier and module
+# against the registry is what a presence-only assertion misses: a selector
+# reporting every family as `advisory` passes the weaker form.
+import hashlib
+
+
+def test_emitted_entry_equals_registry_record_with_digest():
+    record = {f["id"]: f for f in _registry_block()["families"]}
+    entry = _select("CODE-IMPLEMENTATION")["families"][0]
+    source = record[entry["id"]]
+
+    assert entry["tier"] == source["tier"]
+    assert entry["module"] == source["module"]
+    resolved = _resolve(source["module"], REPO_ROOT)
+    assert entry["module_digest"] == hashlib.sha256(resolved.read_bytes()).hexdigest()
+```
+
+- test_emitted_entry_equals_registry_record_with_digest (AC7)
+  stub: true
 
 **Approach:**
 - Resolve `skill:` and `seed:` locators by first-existing candidate, then digest
@@ -279,6 +401,25 @@ own case.
   a bare substring: the script name appears in argv echoes, so a substring check
   can pass while the message is missing.
 
+```python
+# STUB: AC8 — an unknown selection key is refused on stderr with a non-zero exit
+# Stored and validated in PLAN's T4 Tests: subsection. The prefix is asserted at
+# the start of the stream, not as a bare substring: the script name appears in
+# argv echoes, so a substring check can pass while the message is missing.
+def test_unknown_selection_key_is_refused():
+    proc = subprocess.run(
+        [sys.executable, str(SELECTOR), "--registry", str(REGISTRY),
+         "--root", str(REPO_ROOT), "NO-SUCH-PHASE"],
+        capture_output=True, text=True, check=False,
+    )
+
+    assert proc.returncode != 0
+    assert proc.stderr.startswith("select-policy-families:")
+```
+
+- test_unknown_selection_key_is_refused (AC8)
+  stub: true
+
 **Approach:**
 - Validate in the order a reader hits it: version pair, family-table integrity,
   locator namespaces, selection-map integrity, then the key.
@@ -303,6 +444,8 @@ exactly its own case.
   distinguish a swap from a correct result.
 - It returns rather than skips when the corpus is absent, per § Construction
   tests.
+- `no stub (goal-based check)` — the outcome is only observable after a real
+  two-adapter build, so there is no unit-level red to earn first.
 - It passes `--registry` the projected copy and `--root` the repository root.
   Those must be different trees: `ADAPTERS[adapter](...)` emits pack artifacts
   only, and seeds reach a consumer through the separate `scaffold` command, so a
@@ -335,6 +478,9 @@ not merely check that two projections agree.
 - `tools/validate_guides.py` covers the frontmatter half.
 - The heading and identifier coverage assertions live in T1's suite, so the
   family list has one assertion home shared by registry and guide.
+- `no stub (goal-based check)` — `tools/validate_guides.py` is the verification
+  one-liner for the frontmatter half, and the coverage half earns its red inside
+  T1's already-stubbed suite rather than a second one.
 
 **Approach:**
 - Follow the house shape of `guides/core/reference/spec-shape-and-lld.md`:
@@ -355,6 +501,8 @@ not merely check that two projections agree.
 **Tests:**
 - `lint-brief-coverage.py` and the roster's version-parity assertion cover this
   task; no new test is written.
+- `no stub (goal-based check)` — every obligation here is verified by an existing
+  gate, so authoring a stub would duplicate a shipped assertion.
 
 **Approach:**
 - Bump both core manifests together; add the changelog section directly beneath

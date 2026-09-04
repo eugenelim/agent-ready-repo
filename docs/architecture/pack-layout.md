@@ -165,7 +165,7 @@ The pack-authored primitives declared in the adapter contract
 
 | Primitive | On-disk path | Notes |
 | --- | --- | --- |
-| `skill` | `.apm/skills/<name>/SKILL.md` (+ optional `scripts/`, `references/`, `assets/`, `evals/`) | [agentskills.io](https://agentskills.io/specification)-compliant. `evals/` holds two authored source files: `eval_queries.json` (Tier-A activation evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B output-quality evals). |
+| `skill` | `.apm/skills/<name>/SKILL.md` (+ optional `scripts/`, `references/`, `assets/`, `evals/`) | [agentskills.io](https://agentskills.io/specification)-compliant. `evals/` holds two authored source files: `eval_queries.json` (Tier-A activation evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B output-quality evals). `references/` is normally prose an agent loads, but may also carry an authored machine-read block a sibling script parses — `work-loop`'s `policy-families.md` is the shipped case. |
 | `agent` | `.apm/agents/<name>.md` | Frontmatter declares `name`, `description`, `tools`, `model`, and source-only `metadata` (stripped at the Claude Code projection seam); body is the system prompt. |
 | `hook-body` | `.apm/hooks/<name>.{py,sh}` | The executable. The bundler projects to each harness's hook directory. |
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | Declarative binding of a body to an editor event. |
