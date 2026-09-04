@@ -224,6 +224,13 @@ active  = [
 shipped = [
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
   # spec-authoring time by owner decision rather than at work-loop dispatch.
+  # Slice D1 of phase-scoped-policy-delivery, shipped 2026-09-04. Registered
+  # here because a brief's child scope is derived from its registered spec
+  # memberships: without this entry the brief sits in `executing` with no
+  # execution evidence, which the canonical reconciliation reports as an
+  # impossible_transition. `reconcile` does not catch it; the roster's
+  # fail-closed lifecycle test does.
+  {path = "docs/specs/phase-policy-registry-and-selector/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/phase-scoped-policy-delivery.md", revision = "sha256-bytes-v1:a737f4f9dda60bd2bc611217146fecd763e372893d5d0e6af24c55c0d5554dc3", parent = "docs/product/briefs/phase-scoped-policy-delivery.md"}, summary = "Declare which policy families each work-loop phase teaches and turn one selection key into the ordered families it selects, with each family's tier, its teaching-text locator and a confined digest of the file that carries the rule", needs = []},
   {path = "docs/specs/sequential-implementer-dispatch/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:9aaed0b51aafb824851b8adf47973188fa3a4ceb996367de0e2a57a96e018b28", parent = "docs/product/briefs/universal-implementer-dispatch.md"}, summary = "Route every spec-backed CODE-IMPLEMENTATION plan task through the implementer agent sequentially, admit the primary working tree as an execution root, and remove the four surfaces that deny it", needs = []},
   {path = "docs/specs/status-projection-and-context-exclusion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "20c0ba50ebad22651694bc6f43715ee0df1a3938"}, summary = "Project closeout state, due reviews and exceptions, and exclude cooled artifacts from ordinary orientation", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/thirty-day-cooling-and-retirement/spec.md"}]},
   {path = "docs/specs/rfc0099-migration-validation-record/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md"}, summary = "Waive RFC-0099's unrun adopter study, close activation and shaping-review fixture gaps, and publish the maintained seven-family fixture register", needs = []},
