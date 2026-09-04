@@ -102,7 +102,7 @@ lifecycle projections and policy decisions, and performs any separately confirme
 effect.
 
 Direct-light completion uses the same evidence shape from its active-session
-decision record, temporary plan, gates, and bounded review result. A session-local
+decision record, temporary plan, gates, and review result. A session-local
 plan is not a closeout record and is not resumable after context loss. If the plan is local-only or PR-only, the
 handoff must name a stable evidence owner outside the temporary record before that
 record can be disposed.

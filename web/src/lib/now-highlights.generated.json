@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.2"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.2] — 2026-09-04",
+      "changelogAnchor": "core2252--2026-09-04",
+      "highlights": [
+        {
+          "source": "**Light-mode review now runs until it is clean instead of stopping after a fixed number of rounds.** A loop that is converging finishes. At the third round and every second round after, the loop asks whether findings are getting fewer and smaller, and keeps going while they are. A loop that is no longer converging asks whether the reviewed construct should exist at all and puts that choice to the person who asked for the work, rather than sending a small change through the heavier mode.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Light-mode review now runs until it is clean instead of stopping after a fixed number of rounds."
+            },
+            {
+              "type": "text",
+              "value": " A loop that is converging finishes. At the third round and every second round after, the loop asks whether findings are getting fewer and smaller, and keeps going while they are. A loop that is no longer converging asks whether the reviewed construct should exist at all and puts that choice to the person who asked for the work, rather than sending a small change through the heavier mode."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.1"
         }
       ],
