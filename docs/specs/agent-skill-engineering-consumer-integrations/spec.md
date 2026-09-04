@@ -100,9 +100,13 @@ admissible cross-pack precedent (`architect-review/SKILL.md:104-120`). It states
   generated router path, persistence, or corpus; ordinary capability discovery is
   the only handoff;
 - **when the response is refused** — a response failing its shape, topic cap,
-  provenance, or authority checks is refused *before* any of its content is
-  used, quoted, or cited, and rejected or hostile body text — `topic_ids`
-  included — never reaches an artifact or a diagnostic;
+  provenance, or authority checks, **or carrying a diagnostic outside the
+  published vocabulary**, is refused *before* any of its content is used,
+  quoted, or cited, and rejected or hostile body text — `topic_ids` included —
+  never reaches an artifact or a diagnostic. The fifth check is not redundant:
+  `provider-cases.json`'s `credential-shaped` case is well-formed, returns zero
+  topics, claims no authority and carries complete provenance, so the first four
+  all pass and only this one refuses it;
 - **what to record on absence or refusal** — a diagnostic drawn from the
   vocabulary `provider-contract.md` publishes, never a provider-authored
   string, and `knowledge provider unavailable` when no candidate is eligible —

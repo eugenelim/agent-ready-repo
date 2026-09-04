@@ -38,10 +38,10 @@ the re-walk, not the original.
 
 | Consumer | Walk item | Result | Evidence |
 | --- | --- | --- | --- |
-| `work-loop` | Every *Always do* element is present and none is expanded beyond it | Pass | All eight elements map to the six sentences at `SKILL.md:399-404`: when and what to invoke in sentence 1, the inline request and the one-call budget in sentence 2, the handoff limit in sentence 3, the refusal rule in sentence 4, the published-vocabulary receipt and baseline continuation in sentence 5, response treatment in sentence 6. Nothing outside the eight is asserted. |
+| `work-loop` | Every *Always do* element is present and none is expanded beyond it | Pass | All eight elements map to the six sentences at `SKILL.md:399-404`: when and what to invoke in sentence 1, the inline request and the one-call budget in sentence 2, the handoff limit in sentence 3, the refusal rule in sentence 4, the published-vocabulary receipt and baseline continuation in sentence 5, response treatment in sentence 6. Re-derived from the element list rather than restated: sentence 4 enforces **five** refusal checks, and element 6 names all five. It named four until round 18 caught the gap, which mattered because the fifth is the only one that refuses `credential-shaped`. Nothing outside the eight is asserted. |
 | `work-loop` | The invocation condition matches the stated trigger | Pass | "Only when the task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin … do not invoke it otherwise" — the spec's positive list verbatim, plus its "and not otherwise" clause. |
 | `work-loop` | The surrounding workflow is otherwise unchanged | Pass | Measured against the merge base rather than the previous commit, so an intermediate rewrite cannot hide in the arithmetic: `git diff -U0 236ae549c HEAD` yields **one** hunk, `@@ -396,0 +397,9 @@`, 9 insertions and **0 deletions**. No ordinal moved. Both SHA-256 section anchors that `tools/test_workspace_status.py:1631-1640` pins still match, and they are regex-delimited rather than line-numbered, so the insert shifts the finish-checklist window (now 710-733) without changing a byte of it; the Step-0 window at 161-236 is untouched. |
-| `architect-design` | Every *Always do* element is present and none is expanded beyond it | Pass | The same eight-to-six mapping at `SKILL.md:126-131`, with `agent-extension-design` as the primary task kind. Nothing outside the eight is asserted. |
+| `architect-design` | Every *Always do* element is present and none is expanded beyond it | Pass | The same eight-to-six mapping at `SKILL.md:126-131`, with `agent-extension-design` as the primary task kind, and the same five-check refusal sentence re-derived against element 6. Nothing outside the eight is asserted. |
 | `architect-design` | The invocation condition matches the stated trigger | Pass | Same sentence form and same trigger list as `work-loop`, scoped by "Only when" and "do not invoke it otherwise". |
 | `architect-design` | The surrounding workflow is otherwise unchanged | Pass | Against the merge base, **one** hunk: `@@ -125,0 +126,7 @@`, 7 insertions and **0 deletions**, placed as the last paragraph of Procedure step 2. No ordinal moved; step `3.` is untouched. |
 
@@ -62,6 +62,7 @@ would not load when this seam runs.
 | 15 — whole branch, adversarial | 11 | 11 | 0 |
 | 16 — whole branch, security | 6 | 6 | 0 |
 | 17 — the security amendment | 10 | 10 | 0 |
+| 18 — the closed-set fix, narrow scope | 1 | 1 | 0 |
 
 Round 14's repair-origin ratio was **0 of 3**: every finding was a defect in the
 worker's original draft, none was introduced by a round-13 repair. That ratio,
@@ -96,6 +97,17 @@ inline and refuse any response carrying a diagnostic outside it. Walked against
 the fixture, all three response-side refusal cases — `over-cap`,
 `prompt-injected`, `credential-shaped` — now reach
 `knowledge provider response refused` from the step alone.
+
+**Round 18 caught what that fix left behind, and it is the same class of error
+one turn later.** The step grew a fifth refusal check — a diagnostic outside the
+closed set — while *Always do* element 6 still enumerated four. So the step
+asserted an obligation the contract did not license; this walk recorded
+"Nothing outside the eight is asserted" as Pass when it was not; and the very
+commit that bounded the *Never do* carve-out to "the eight elements stated there
+and nothing else" was the commit that breached its own bound. Element 6 now
+names five, and these walk rows are re-derived from the element list rather than
+restating the previous verdict — restating is how the false Pass survived a
+round.
 
 **The root cause was structural, and it is worth stating plainly.** Every
 response-side control lived in `provider-contract.md`. The spec placed that file
