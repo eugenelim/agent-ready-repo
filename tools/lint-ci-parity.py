@@ -86,6 +86,18 @@ IN_SCOPE = None
 
 WORKFLOW_SCOPE: dict[str, str | None] = {
     "build-check.yml": IN_SCOPE,
+    "test-corpus.yml":
+        "Out of scope, and deliberately so. It invokes `make test` undecomposed, "
+        "so it cannot diverge from the local target the way an extracted lane "
+        "could — there is nothing for a parity check to compare. Dispatch-only: "
+        "it runs on no pull request, so it gates nothing and claims nothing "
+        "beyond what `make test` claims (spec/remote-gate-dispatch).",
+    "test-roster.yml":
+        "Out of scope. It runs one suite in parallel, which is deliberately NOT "
+        "equivalent to any local invocation: `make test` reaches the roster "
+        "serially through its `tests/` sweep. Parity is not the claim, so a "
+        "parity check would assert a correspondence this surface disclaims. "
+        "Dispatch-only (spec/remote-gate-dispatch).",
     "build-check-windows.yml":
         "Windows runner; drives `agentbundle catalogue self-host --check "
         "--windows`, which a macOS/Linux `make ci` cannot reproduce.",

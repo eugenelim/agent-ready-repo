@@ -43,12 +43,13 @@ required artifacts, planning, verification, review, recovery, and completion.
 ## Build and test commands
 
 ```bash
-make bootstrap-sites   # one-time npm deps for make test and site-link-check
-python3 -m pytest packages/<pkg>/tests/ -q
-make lint-ruff
-make build-self
-SKIP_SAST=1 make build-check
-make ci
+git push -u origin HEAD && B="$(git branch --show-current)"  # dispatch precondition
+gh workflow run build-check.yml --ref "$B"  # chain + bandit/pip-audit/semgrep/npm
+gh workflow run test-corpus.yml --ref "$B"  # make test
+gh workflow run test-roster.yml --ref "$B"  # roster suite, parallel
+gh workflow run pages.yml       --ref "$B"  # site and browser build
+# ^ DISPATCH these: verdict-only, so remote. Partial evidence, never a required check.
+make build-self && make bootstrap-sites  # LOCAL: these WRITE files you then read
 ```
 
 ## Coding conventions

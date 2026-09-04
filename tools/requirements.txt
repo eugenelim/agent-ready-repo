@@ -12,3 +12,11 @@ tomlkit==0.15.1  # workspace-status repair-apply (comment-preserving TOML write)
 # interpreter skips AC3 while reporting green.
 build>=1.0
 setuptools>=77  # matches packages/agentbundle build-system.requires
+httpx>=0.27  # `make test` gates on `import httpx` before the Atlassian skill
+             # suites, whose tracker transports need it. Same bound as the six
+             # pack skill manifests that already declare it, so the two cannot
+             # disagree. Declared here rather than installed in a workflow so
+             # `audit-requirements.py --tools-manifests` reaches it.
+pytest-xdist>=3.8  # supplies `-n` for the parallel roster surface
+                   # (.github/workflows/test-roster.yml). Declared rather than
+                   # installed ad hoc for the same audit-reach reason as httpx.
