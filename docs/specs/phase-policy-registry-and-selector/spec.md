@@ -1,6 +1,6 @@
 # Spec: phase-policy registry and deterministic selector
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0093
@@ -128,19 +128,19 @@ contract rather than construction, because V1 must know which file was digested;
 it sits outside the checklist because a search order is a call sequence, and a
 criterion bundling two algorithms is not one predicate.
 
-- [ ] **AC1:** `packs/core/.apm/skills/work-loop/references/policy-families.md`
+- [x] **AC1:** `packs/core/.apm/skills/work-loop/references/policy-families.md`
       carries exactly one fenced block, its info string is the literal
       `json policy-registry.v1`, it parses as JSON, and its `schema_version` is
       the integer `1` such that the info string's trailing token is `v` followed
       by that integer.
-- [ ] **AC2:** that block's `families` array is exactly these five records, by
+- [x] **AC2:** that block's `families` array is exactly these five records, by
       `id`, `tier`, and `module`, in this order — `observable-outcome` /
       `precise` / `skill:new-spec/assets/spec.md`; `repository-anchoring` /
       `precise` / `skill:new-spec/assets/plan.md`; `new-spec-step-5a` /
       `advisory` / `skill:new-spec/SKILL.md`; `the-razor` / `advisory` /
       `seed:AGENTS.md`; `cognitive-load` / `advisory` /
       `seed:.agents/rules/cognitive-load.md`.
-- [ ] **AC3:** that block's `selection` object is exactly this mapping —
+- [x] **AC3:** that block's `selection` object is exactly this mapping —
       `SPEC-PLAN-DRAFTING` and `SPEC-PLAN-REVIEW` each to
       `["observable-outcome", "repository-anchoring", "new-spec-step-5a", "the-razor", "cognitive-load"]`;
       `CODE-IMPLEMENTATION`, `CODE-VERIFICATION` and `CODE-REVIEW` each to
@@ -148,28 +148,28 @@ criterion bundling two algorithms is not one predicate.
       `["the-razor", "cognitive-load"]`; and `SPEC-HUMAN-GATE`,
       `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`, `CODE-HUMAN-GATE` and `DONE` each
       to `[]`.
-- [ ] **AC4:** the `selection` object's key set equals the set of state strings
+- [x] **AC4:** the `selection` object's key set equals the set of state strings
       reachable as a transition source or target in
       `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`, plus the literal
       key `DIRECT-LIGHT`, with that state set obtained from `loop-engine.py`
       rather than transcribed into the test or read from the registry.
-- [ ] **AC5:** `select-policy-families.py --registry <file> --root <dir> <key>`
+- [x] **AC5:** `select-policy-families.py --registry <file> --root <dir> <key>`
       exits `0` and writes to stdout one JSON object and nothing else, whose
       top-level keys are exactly `selection_key`, `families`, and
       `assembled_brief_digest`, with `selection_key` equal to the positional key
       argument and `assembled_brief_digest` `null` for every key. Diagnostics go
       to stderr on every path, so `json.loads` over the whole of stdout succeeds.
-- [ ] **AC6:** for every selection key, the `id` sequence of the printed
+- [x] **AC6:** for every selection key, the `id` sequence of the printed
       `families` array equals that key's list in the registry's `selection`
       object, element for element and in the same order.
-- [ ] **AC7:** each printed family entry equals that `id`'s record in the
+- [x] **AC7:** each printed family entry equals that `id`'s record in the
       registry's `families` array — same `tier`, same `module` — extended with a
       `module_digest` holding the SHA-256 of the file that record's `module`
       resolves to under `--root`, as 64 lowercase hexadecimal characters with no
       prefix, matching the repository idiom pinned at
       `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py:505`
       (`_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")`).
-- [ ] **AC8:** the selector exits non-zero, printing a message beginning with the
+- [x] **AC8:** the selector exits non-zero, printing a message beginning with the
       literal `select-policy-families:` to stderr, for each of these registry or
       argument states — an unknown selection key; a `families` array containing a
       duplicate `id`; a `selection` entry naming an `id` absent from `families`;
@@ -188,7 +188,7 @@ criterion bundling two algorithms is not one predicate.
       info-string member requires a *supported* `schema_version` with a
       mismatched info string — `json policy-registry.v2` with
       `schema_version: 1`.
-- [ ] **AC9:** building `packs/core` lands `policy-families.md` at
+- [x] **AC9:** building `packs/core` lands `policy-families.md` at
       `.claude/skills/work-loop/references/policy-families.md` under the
       `claude-code` adapter and at
       `.agents/skills/work-loop/references/policy-families.md` under `codex`,

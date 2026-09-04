@@ -376,7 +376,7 @@ semantic fields, and the Spec map may be empty.
 
 | Spec | Status |
 | --- | --- |
-| phase-policy-registry-and-selector | Implementing |
+| phase-policy-registry-and-selector | Shipped |
 
 [`phase-policy-registry-and-selector`](../../specs/phase-policy-registry-and-selector/spec.md)
 delivers D1. The Status column is auto-derived — do not hand-edit it. D2 and D3
