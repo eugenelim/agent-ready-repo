@@ -6,6 +6,7 @@ gate: review-experience-designs
 reviews:
   - independent evidence audit (Codex, fresh session) — 16 findings
   - experience-reviewer cold design pass — MAJOR REWRITE, 6 blockers, 16 majors, 8 minors, 3 nits
+  - shaping-reviewer on the intent — Findings, 12, four blocking admission
 updated: 2026-09-04
 ---
 
@@ -51,34 +52,39 @@ the axis change — and the contracts between artifacts not.
 | 5 | Zone 4 required station costs "sourced never written" from a source that **has none** | Zone 4 now states what each station asks of a team. Only station 2 carries durations, cited. For the other four the surface **names the evidence boundary**, which is what principle 2's tradeoff prescribes. |
 | 6 | S6 was unreachable from the surface its own journey stage names | **S1 zone 10 → S6 added**, plus the transition row. And a **new steel-thread assertion (1c)** now checks that every screen is reachable from the surface its stage names — 1b was too weak to catch this. |
 
-### Majors: 10 fixed, 6 left owed
+### Majors: 14 fixed, 2 genuinely owed
 
 Fixed: the direction marker and terminus placement on the tracker spur (2); arc
 type dominance, now the heaviest type after the title (3); the state count,
 settled as four rendering states plus two cross-state requirements (4); all
 eleven gate-code dispositions enumerated, where the deck previously covered nine
-while asserting the count was discharged (5); the collapse width stated as design
-intent tied to label legibility (6); the brand register's grounding labels, now
-all four honestly directional (7); the spur detached from any step's baseline
-(8); headline candidates drafted as gate input (9); the link-preview strings
-reworked to lead with the reader's situation and the refusals (10); the
+while asserting the count was discharged (5); the collapse width, first stated as
+intent and then corrected against a render (6); the brand register's grounding
+labels, now all four honestly directional (7); the spur detached from any step's
+baseline (8); headline candidates drafted as gate input (9); the link-preview
+strings reworked to lead with the reader's situation and the refusals (10); the
 above-fold reading-pattern argument re-made against the real seven-element
 inventory (11); the path page's register over-claim narrowed to a sourcing rule
-(12); station spacing evened out (14); S6's inherited canvas states and clipboard
-degradation (15); and the twenty-minute promise made conditional on its build
-item (16).
+(12); the disclosure-ceiling inconsistency resolved by naming the distinction as
+ours — staged versus progressive disclosure — rather than borrowing it from a
+citation that does not support it (13); station spacing evened out (14); S6's
+inherited canvas states and clipboard degradation (15); the twenty-minute promise
+made conditional on its build item (16); plus minors 2, 3, 4, 7 and 8.
 
-**Left owed, with reasons:**
+**Genuinely owed — both need something outside this repository:**
 
-| # | Major | Why it is owed rather than fixed |
+| # | Owed | Why it cannot be closed here |
 | --- | --- | --- |
-| 1 | The sanitiser premise is unverified upstream and hardened downstream | The composition record now states the *correct* mechanism for `<img>`-embedded SVG — no host cascade, no page stylesheet — and keeps the hedge. **V1 remains owed**: a probe in a real README. It cannot be closed by writing. |
-| 13 | The two-level disclosure ceiling forbids a third canvas level and permits a third documentation level, from one citation | A real inconsistency. Resolving it needs a decision about whether the distinction is *ours* (staged versus progressive disclosure) or the source's. Recorded as an open question rather than papered over with a rationalisation. |
-| — | Minor 3 — a contrast row filed under "text pairs" that is a non-text measurement | Cosmetic in an artifact that was rebuilt anyway; the new tables separate them correctly. |
-| — | Minor 4 — "three places or four" for the station names | Downstream of blocker 2; recount belongs with the next edit of those artifacts. |
-| — | Minor 5 — the primary success metric has no baseline | **Correct and unfixable here.** The explain-it-back baseline requires the champion interview, which has not run. Already recorded as owed in the build handoff. |
-| — | Minor 8 — the above-fold proof signal duplicates zone 2's first proof | A live design question for `conversion-design`: whether the pinned band alone carries it. Flagged, not decided. |
-| — | Nits 1–3 | Judgement calls, recorded in the reviewer's own framing. |
+| Major 1 | **V1 — does the canvas survive GitHub's Markdown sanitiser?** | The composition record now states the *correct* binding mechanism for an `<img>`-embedded SVG — no host cascade, no page stylesheet — and keeps the hedge. But the sanitiser's actual behaviour needs a probe rendered in a real README. **No amount of writing closes it.** |
+| Minor 5 | **The primary success metric has no baseline.** | The explain-it-back baseline requires the champion interview, which has not run. The instrument exists; the reading does not. |
+
+Nits 1–3 remain judgement calls in the reviewer's own framing, not defects.
+
+**A correction to this document.** It previously said "6 left owed" and listed
+four items that had already been fixed in a later round. The table was written
+before those fixes and never updated — which is precisely the defect class this
+whole response is about, occurring inside the tracking of that defect class.
+Found by re-checking each row against the files rather than trusting the table.
 
 ### What both reviewers independently praised
 
