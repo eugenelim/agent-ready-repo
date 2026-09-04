@@ -11,6 +11,8 @@ _WORK_LOOP = (
     / "work-loop"
     / "SKILL.md"
 )
+_LIGHT_MODE_REFERENCE = "references/light-mode.md"
+_LIGHT_MODE = _WORK_LOOP.parent / "references" / "light-mode.md"
 _RESUMPTION_REFERENCE = "references/session-resumption.md"
 _RESUMPTION = _WORK_LOOP.parent / "references" / "session-resumption.md"
 _SECURITY_REVIEWER = _WORK_LOOP.parents[2] / "agents" / "security-reviewer.md"
@@ -52,16 +54,26 @@ def _section(body: str, start: str, end: str) -> str:
 def test_direct_light_is_session_local_and_fail_closed() -> None:
     """Pin direct-light authority, durability, and workspace-dispatch limits.
 
-    Scoped to the two operative regions: the direct-light procedure and route,
-    and Step 0's orientation. See `_section`.
+    The procedure and route obligations are scoped to the reference's procedure
+    region, which ends at `## Loop deltas`; the two Step 0 statements stay
+    scoped to their own `_section` window. See `_section`.
     """
     raw = _WORK_LOOP.read_text(encoding="utf-8")
     operative = _section(raw, "**Light mode**", "## Step 1. PLAN")
     finish = _section(raw, "## Finish checklist", "## FIX")
     body = _normalized(raw)
 
-    # These must appear in the operative direct-light/Step-0 region, not merely
-    # somewhere in the file.
+    # The direct-light procedure and route are disclosed progressively: SKILL.md
+    # routes to the reference rather than inlining them. Assert each obligation
+    # where it now lives, and that SKILL.md still reaches it — an extraction that
+    # orphans the procedure must fail here rather than pass by absence.
+    assert _LIGHT_MODE.is_file(), _LIGHT_MODE
+    assert _LIGHT_MODE_REFERENCE in operative
+    light = _section(
+        _LIGHT_MODE.read_text(encoding="utf-8"),
+        "## The four trims",
+        "## Loop deltas",
+    )
     for required in (
         "explicit trusted invocation is the authority",
         "emit a user-visible, session-only decision record",
@@ -69,15 +81,18 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
         "Eligibility is a conjunction",
         "Durability is a disjunction",
         "Direct execution being unavailable never creates a brief",
-        "It cannot select a route, assert its own eligibility, declare a trigger"
-        " inapplicable, or widen scope.",
-        "A matching or conflicting canonical item surfaces the conflict",
-        "A direct-light run is not resumable through `workspace-status`",
         "Direct-light does **not** invoke `new-spec`; create `docs/specs/`;"
         " create a sibling plan;",
         "Do not backfill a fake implementation chronology.",
         "gates cannot be repaired in-session, stop, Surface the situation,"
         " and escalate",
+    ):
+        assert _normalized(required) in light, required
+
+    # These two stay in Step 0, which owns invocation-shape routing.
+    for required in (
+        "A matching or conflicting canonical item surfaces the conflict",
+        "A direct-light run is not resumable through `workspace-status`",
     ):
         assert _normalized(required) in operative, required
 
@@ -100,11 +115,24 @@ def test_direct_light_confines_locators_at_the_acting_surface() -> None:
     take, which is indistinguishable from no control when an agent starts here.
     """
 
-    body = _normalized(_WORK_LOOP.read_text(encoding="utf-8"))
+    # Scoped to the region above mode selection, because the rule governs reads
+    # that happen before a route is chosen. A whole-file search would stay green
+    # if the rule were demoted into a conditionally loaded reference, which is
+    # the regression this test exists to catch.
+    body = _section(
+        _WORK_LOOP.read_text(encoding="utf-8"),
+        "**Confine every locator before using it.**",
+        "## Select: light or full mode",
+    )
 
     for required in (
         "Confine every locator before using it.",
-        "Direct-light may be entered here without passing through `work-intake`",
+        "including direct-light, which may be entered without passing through"
+        " `work-intake`",
+        # Hoisted with the confinement rule: it governs risk-trigger assessment,
+        # which happens before any reference is loaded.
+        "It cannot select a route, assert its own eligibility, declare a trigger"
+        " inapplicable, or widen scope.",
         "resolve it with native real-path resolution and prove it stays inside"
         " the repository root",
         "reject absolute paths, drive-letter paths, backslashes, empty segments,"
@@ -185,7 +213,7 @@ def _table_rows(body: str, start: str, end: str) -> list[str]:
 def test_each_eligibility_conjunct_is_stated_with_a_consequence(conjunct: str) -> None:
     """One case per conjunct, so dropping any single one turns a named test red."""
     rows = _table_rows(
-        _WORK_LOOP.read_text(encoding="utf-8"),
+        _LIGHT_MODE.read_text(encoding="utf-8"),
         "| Required condition",
         "Durability is a disjunction",
     )
@@ -199,7 +227,7 @@ def test_each_eligibility_conjunct_is_stated_with_a_consequence(conjunct: str) -
 def test_each_durability_trigger_is_stated_with_a_reason(trigger: str) -> None:
     """One case per trigger. AC5 requires each to route durable on its own."""
     rows = _table_rows(
-        _WORK_LOOP.read_text(encoding="utf-8"),
+        _LIGHT_MODE.read_text(encoding="utf-8"),
         "| Durability trigger",
         "Direct execution being unavailable",
     )
@@ -215,7 +243,7 @@ def test_the_predicate_tables_have_no_unpinned_rows() -> None:
     conjunct or eleventh trigger went entirely uncovered — an enumeration that
     only checks the things it already knows about.
     """
-    body = _WORK_LOOP.read_text(encoding="utf-8")
+    body = _LIGHT_MODE.read_text(encoding="utf-8")
     eligibility = _table_rows(body, "| Required condition", "Durability is a disjunction")
     durability = _table_rows(body, "| Durability trigger", "Direct execution being unavailable")
     assert len(eligibility) == len(_ELIGIBILITY_CONJUNCTS), (
@@ -260,3 +288,76 @@ def test_agent_security_routing_excludes_ordinary_prompt_wording() -> None:
     ) in body
     assert "Merely touching unchanged existing I/O does not fire this reviewer" in body
     assert "ordinary prompt wording that changes none of the LLM/agent surfaces above" in body
+
+
+# ── The replacement review rule ──────────────────────────────────────────────
+#
+# The retired bound ("single bounded pass; one re-review; then escalate to full
+# mode") was held in place by tests. Replacing it edited those tests, so without
+# this sweep the retired bound could return unnoticed — which is not
+# hypothetical: four surviving restatements of it cleared two manual greps and a
+# full green suite, one of them only because the phrase wrapped across a line
+# break.
+#
+# This is an absence sweep and nothing more. Property tests over the rule's
+# prose were tried here and removed: asserting that a sentence is present cannot
+# catch the regression that adds a qualifier to a different sentence, so they
+# read as guarantees while being unable to fail for the reason they named.
+#
+# Corpus: work-loop's own shipped files plus `packs/core/DESIGN.md`. It stops
+# there because a pack test must stay inside its owning pack, so the retired
+# bound's other reached surfaces — `guides/` and the docs site — and sibling
+# `packs/core` skills that mention light-mode routing are guarded by review,
+# not by this test.
+
+_RETIRED_BOUND_PHRASES = (
+    "single bounded pass",
+    "single bounded adversarial",
+    "one bounded review",
+    "one bounded adversarial",
+    "bounded adversarial pass",
+    "single adversarial pass",
+    "bounded review result",
+    "exactly one re-review",
+    "permitted blocker re-review",
+    "1 re-review",
+)
+
+_PACK_ROOT = _WORK_LOOP.parents[3]
+
+
+def _swept_surfaces() -> list[Path]:
+    """Every `packs/core` surface that has stated light mode's review rule.
+
+    `DESIGN.md` and `evals/evals.json` are included because that is where two of
+    the four survivors actually sat; a sweep over only the skill body would have
+    been placed where the defect was not.
+    """
+    return [
+        _WORK_LOOP,
+        *sorted((_WORK_LOOP.parent / "references").glob("*.md")),
+        _WORK_LOOP.parent / "evals" / "evals.json",
+        _PACK_ROOT / "DESIGN.md",
+    ]
+
+
+@pytest.mark.parametrize("phrase", _RETIRED_BOUND_PHRASES)
+def test_no_shipped_surface_restates_the_retired_review_bound(phrase: str) -> None:
+    """Normalized, so a phrase wrapping across a line break cannot hide.
+
+    One case per phrasing, because a grep that missed a variant is how the bound
+    survived before, and a single joined assertion would name only the first hit.
+    Each phrase names the review bound specifically — "single bounded" alone also
+    matches "a single bounded logical change", which is a live and correct scope
+    statement in this same reference.
+    """
+    surfaces = _swept_surfaces()
+    missing = [str(path) for path in surfaces if not path.is_file()]
+    assert not missing, f"swept corpus names paths that do not exist: {missing}"
+
+    offenders = sorted(
+        path.name
+        for path in surfaces
+        if phrase in _normalized(path.read_text(encoding="utf-8")).lower()
+    )
+    assert not offenders, f"retired review bound {phrase!r} survives in: {offenders}"

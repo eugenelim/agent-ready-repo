@@ -251,12 +251,12 @@
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
-      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and one bounded adversarial review; then hand off the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace entry, or loop state.",
+      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and adversarial review rounds to clean; then hand off the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace entry, or loop state.",
       "assertions": [
         "Selects direct-light from the explicit current request",
         "Emits all six decision-record fields before implementation",
         "Keeps the plan session-local and creates no durable artifact or workspace entry",
-        "Retains ordinary gates and one bounded adversarial review",
+        "Retains ordinary gates and adversarial review rounds to clean",
         "Produces the five-field evidence-bearing handoff"
       ]
     },
