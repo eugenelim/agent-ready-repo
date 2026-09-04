@@ -155,7 +155,7 @@ split or an explicit owner decision.
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
 | D1 | The phase-policy registry and deterministic selector, producing the delivery record above from `engine-state.json.state` | the work-loop policy-delivery boundary, with registry data in its blessed `references/` tree and one selector in `scripts/` | table-driven tests cover every legal FSM state, reject malformed or duplicate families, and prove identical registry bytes and selected identifiers in built `claude-code` and `codex` projections | `guides/core/reference/phase-scoped-policy-delivery.md` | 8 | none |
-| D2 | Spec-author delivery — inline D1's selected teaching into the spec-author dispatch brief and pass the exact assembled artifact to the arrival gate | the `spec-author` dispatch envelope created by capability 2 | an end-to-end fixture enters a `SPEC-PLAN-*` state, dispatches on each tested adapter, and proves the validated brief contains exactly D1's selected ordered family set | `guides/core/reference/phase-scoped-policy-delivery.md` | 7 | after D1 and capability 2 |
+| D2 | Spec-author delivery — inline D1's selected teaching into the spec-author dispatch brief and pass the exact assembled artifact to the arrival gate | the `spec-author` dispatch envelope created by S1 | an end-to-end fixture enters a `SPEC-PLAN-*` state, dispatches on each tested adapter, and proves the validated brief contains exactly D1's selected ordered family set | `guides/core/reference/phase-scoped-policy-delivery.md` | 7 | after D1 and S1 |
 | D3 | Implementer delivery — inline D1's selected teaching into every sequential implementer brief and pass the exact assembled artifact to the arrival gate | the work-loop sequential implementer-dispatch envelope created by capability 1 | an end-to-end fixture enters each implementation-bearing state, dispatches on each tested adapter, and proves no selected family is dropped, duplicated, or substituted | `guides/core/reference/phase-scoped-policy-delivery.md` | 7 | after V1 and capability 1 |
 
 D1 changes adopter-visible policy declaration and diagnostics, so it names the
@@ -201,12 +201,38 @@ primitive exceeds it and returns to shaping.
 
 ## Ready gaps (Draft only)
 
-- **BLOCKER — capability 1 has not supplied the sequential implementer
-  envelope.** D3 cannot name its final callable surface or end-to-end fixture
-  until `universal-implementer-dispatch` lands.
-- **BLOCKER — capability 2 has not supplied the spec-author envelope.** D2
-  cannot name its final callable surface or end-to-end fixture until
-  `spec-author-agent` lands.
+- **Open — D3's end-to-end fixture surface is not chosen.** The envelope
+  premise of the former blocker here is **discharged**: U1 shipped the
+  sequential implementer envelope in `d7cf1b741` —
+  `work-loop/SKILL.md` lines 403-404 declare sequential `implementer` dispatch,
+  `implementer.md` carries the two execution roots and the pre-write refusal,
+  and
+  [`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)
+  is `Shipped`. Amended 2026-09-04: this bullet previously read "capability 1
+  has not supplied the sequential implementer envelope", which the shipped
+  slice falsified. What remains genuinely open is D3's own fixture surface, and
+  the `capability 1 → U1` gating token at the D3 slice row above, which
+  [`universal-implementer-dispatch.md`](universal-implementer-dispatch.md)
+  lines 301-305 record as owed to this brief's owner.
+- **BLOCKER — S1 has not supplied the spec-author envelope.** D2 cannot name
+  its final callable surface until
+  [`spec-author-agent.md`](spec-author-agent.md) S1 lands. Amended from
+  "capability 2" on 2026-09-03: what D2 consumes is the *envelope*, which is
+  S1's deliverable, and gating on the whole capability made D2 appear to wait
+  on S2 as well. This matches the slice-granular precedent that brief already
+  set for its own U1 gate, and the same `capability N → slice` amendment
+  [`universal-implementer-dispatch.md`](universal-implementer-dispatch.md)
+  records as owed for D3.
+
+  **A second edge remains, and it does reach S2.** D2's Verification column
+  names a fixture that "enters a `SPEC-PLAN-*` state" and dispatches from it.
+  Entering a `SPEC-PLAN-*` engine state and dispatching there is S2's
+  deliverable, not S1's — S1 is the `new-spec` dispatch site and touches
+  nothing under `work-loop/`. So D2's *envelope* dependency is S1 and its
+  *end-to-end fixture* dependency is S2. Narrowing the gating token does not
+  settle the fixture, and this brief's owner owes that decision before D2 is
+  confirmed: either the fixture is re-scoped to what S1 can exercise, or D2's
+  gating admits S2 for the fixture alone.
 - **Open — the registry schema and exact files under the work-loop skill's
   blessed `references/` tree are not chosen.** No policy-family registry exists
   in runtime sources. Search:
