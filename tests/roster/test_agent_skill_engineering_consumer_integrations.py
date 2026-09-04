@@ -23,15 +23,20 @@ T0 records the merge-base version literals below; T1 adds the assertions.
 # `test_thirty_day_cooling_and_retirement.py:1626-1629`.
 #
 # `core` moved twice while this contract was in review (2.21.0 -> 2.22.0 ->
-# 2.23.0), and six more times while the slice was implemented against a pinned
-# baseline (2.23.1 through 2.24.3). These literals are RE-RECORDED after the
-# rebase off that baseline, which is what T0 required: a stale floor lets an
-# unbumped pack satisfy AC10. Left at 2.23.0, the floor would have been cleared
-# by main's own 2.24.3 with no bump from this slice at all.
+# 2.23.0) and eight more times while the slice was implemented and rebased
+# (2.23.1 through 2.24.4). These literals are RE-RECORDED on every rebase, which
+# is what T0 required: a stale floor lets an unbumped pack satisfy AC10. Left at
+# 2.23.0 the floor would have been cleared by main's own release with no bump
+# from this slice at all.
+#
+# The second rebase also caught a collision the floor alone does not: this slice
+# had claimed 2.24.4, and main then shipped 2.24.4 as a different code state.
+# One version string naming two code states is why the bump moved to 2.24.5
+# rather than being reused.
 
-MERGE_BASE_CORE_VERSION = "2.24.3"  # packs/core/pack.toml at merge base f4e62f5a6
-MERGE_BASE_ARCHITECT_VERSION = "0.15.5"  # packs/architect/pack.toml at merge base f4e62f5a6
-MERGE_BASE_ASE_VERSION = "0.4.0"  # packs/agent-skill-engineering/pack.toml at merge base f4e62f5a6
+MERGE_BASE_CORE_VERSION = "2.24.4"  # packs/core/pack.toml at merge base fddce3c61
+MERGE_BASE_ARCHITECT_VERSION = "0.15.5"  # packs/architect/pack.toml at merge base fddce3c61
+MERGE_BASE_ASE_VERSION = "0.4.0"  # packs/agent-skill-engineering/pack.toml at merge base fddce3c61
 
 import json  # noqa: E402
 import re  # noqa: E402
