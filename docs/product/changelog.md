@@ -54,6 +54,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.24.3] — 2026-09-04
+
+### Highlights
+
+- **A lesson that a rule or a control has since absorbed can be retired where it
+  lives.** Distillation now carries the lifecycle and the retirement record, so a
+  topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or
+  `invalidated`, naming the successor that took the lesson over. A retired topic
+  stays in place for history and stops being offered as current guidance.
+- **A topic keeps every occurrence that produced it.** Reconciling a second
+  observation into an existing topic appends to its provenance instead of
+  replacing it, so the record of what was seen, and when, survives revision.
+
 ## [product-engineering][0.13.9] — 2026-09-03
 
 ### Highlights
@@ -112,19 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Added `Triggers on` example utterances to all nine skill descriptions.
-
-## [core][2.24.3] — 2026-09-04
-
-### Highlights
-
-- **A lesson that a rule or a control has since absorbed can be retired where it
-  lives.** Distillation now carries the lifecycle and the retirement record, so a
-  topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or
-  `invalidated`, naming the successor that took the lesson over. A retired topic
-  stays in place for history and stops being offered as current guidance.
-- **A topic keeps every occurrence that produced it.** Reconciling a second
-  observation into an existing topic appends to its provenance instead of
-  replacing it, so the record of what was seen, and when, survives revision.
 
 ## [core][2.24.2] — 2026-09-03
 
