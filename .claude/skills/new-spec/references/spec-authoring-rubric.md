@@ -189,7 +189,9 @@ check that cannot be calibrated is delivered as guidance and never blocks.
 ## Optional: a criterion syntax
 
 Fixed clause order makes a missing trigger or a missing response visible
-without judgement. Five shapes cover most criteria:
+without judgement. Five shapes cover most criteria — these are the EARS
+patterns (Easy Approach to Requirements Syntax), named so you can look up the
+originals:
 
 | Shape | Form |
 | --- | --- |
