@@ -9,6 +9,10 @@ order: 4
 status: stable
 ---
 
+**Mode: tracker-authoritative.** This guide assumes Jira holds the team's real
+backlog. If `docs/product/` is canonical and Jira is only for reporting, use
+[repo-first projection](README.md#which-mode-are-you-in) instead.
+
 The Atlassian pack is one conversational layer over several focused workflows.
 
 You ask in team language. The agent selects the smallest workflow that can answer safely: orient first, improve unclear work when needed, and write only after the requested change is explicit.

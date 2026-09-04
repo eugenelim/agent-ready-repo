@@ -9,6 +9,10 @@ order: 3
 status: stable
 ---
 
+**Mode: tracker-authoritative.** This reference assumes Jira holds the team's
+real backlog. If `docs/product/` is canonical and Jira is only for reporting,
+use [repo-first projection](README.md#which-mode-are-you-in) instead.
+
 Look up what a skill reads, what it writes, what requires confirmation, and what its limits are. Use the intent index to find the right skill by what you want to accomplish.
 
 :::tip[TRY ASKING]

@@ -7,9 +7,20 @@ kind: how-to
 
 # Authenticate Jira and Confluence with an SSO web session
 
+**Mode: tracker-authoritative.** This guide belongs to the Atlassian journey
+where Jira holds the team's real backlog. If `docs/product/` is canonical and
+Jira is only for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
+instead.
+
 **Use this when:** Your Atlassian Data Center instance blocks personal access tokens and requires corporate SSO sign-in for Jira reads or Confluence space crawls.
 **Prerequisites:** The `jira` or `confluence-crawler` skill installed; an enterprise-edited `references/sso-config.toml` pointing at your corporate instance.
 **Result:** A registered SSO session in the broker's secured store so both skills authenticate via captured web session instead of a token — and a `jira.py check` that re-establishes it, headlessly, when it expires.
+
+Ask the agent to guide the user-run registration:
+
+```text
+Help me register a read-only SSO web session for Jira and Confluence on our Data Center instance.
+```
 
 On an Atlassian **Data Center** instance fronted by corporate SSO where personal
 access tokens are blocked, [`jira`](../../../packs/atlassian/.apm/skills/jira/)
@@ -151,3 +162,10 @@ companion rather than clobbering your instance config; `adapt-to-project` then
 walks you through merging any new upstream keys into your edited file. So an
 org's pre-baked config survives upgrades — you reconcile new connection-param
 keys deliberately, you don't lose them.
+
+## What you have now
+
+You have a registered SSO profile in the broker's secured store and a successful
+connectivity check for the configured Atlassian instance. The cookie path is
+read-only: use it for Jira reads and Confluence crawls, and run the named
+registration command yourself when an expired identity-provider session needs a browser.

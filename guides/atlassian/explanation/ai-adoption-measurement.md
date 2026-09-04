@@ -7,6 +7,11 @@ kind: explanation
 
 # Measuring AI adoption with flow metrics
 
+**Mode: tracker-authoritative.** This explanation assumes Jira holds the team's
+real backlog and delivery history. If `docs/product/` is canonical and Jira is
+only for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
+instead.
+
 The `flow-metrics` and `ai-adoption-report` skills answer one question: **are the teams that use AI coding assistants delivering differently from the teams that aren't?** This doc explains the measurement model, why self-certification produces trustworthy data, what the metrics actually tell you, and where the limits of this approach sit.
 
 ## The two-skill workflow

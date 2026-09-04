@@ -9,6 +9,10 @@ order: 1
 status: stable
 ---
 
+**Mode: tracker-authoritative.** This tutorial assumes Jira holds the team's
+real backlog. If `docs/product/` is canonical and Jira is only for reporting,
+use [repo-first projection](README.md#which-mode-are-you-in) instead.
+
 By the end of this tutorial, you will have followed a complete Atlas team workflow: seen the whole backlog, identified what is ready, improved three stories, applied two approved Jira updates, and produced a stand-up summary — all from a single conversation.
 
 **Time:** 30 minutes. **Starts read-only** — Jira is not changed until step 10.
