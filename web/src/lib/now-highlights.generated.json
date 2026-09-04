@@ -5,6 +5,53 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.1] — 2026-09-04",
+      "changelogAnchor": "core2251--2026-09-04",
+      "highlights": [
+        {
+          "source": "**A durable owner accepting an artifact now survives the session that recorded it.** The lifecycle record carries `Reclassified`, so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A durable owner accepting an artifact now survives the session that recorded it."
+            },
+            {
+              "type": "text",
+              "value": " The lifecycle record carries "
+            },
+            {
+              "type": "code",
+              "value": "Reclassified"
+            },
+            {
+              "type": "text",
+              "value": ", so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against."
+            }
+          ]
+        },
+        {
+          "source": "**It is reached deliberately and only once.** Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "It is reached deliberately and only once."
+            },
+            {
+              "type": "text",
+              "value": " Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.0"
         }
       ],

@@ -54,6 +54,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.1] — 2026-09-04
+
+### Highlights
+
+- **A durable owner accepting an artifact now survives the session that recorded
+  it.** The lifecycle record carries `Reclassified`, so "this left delivery and
+  someone else owns it now" persists as readable state instead of being lost at
+  closeout. A reclassified artifact keeps its file where its record says it is,
+  drops out of ordinary orientation, is never due for a retention review, and is
+  not counted among the obligations someone still owes delivery work against.
+- **It is reached deliberately and only once.** Reclassification is available
+  only from a record already retained under an exception, only when the durable
+  owner's acceptance is supplied and validated at the transition, and never
+  again afterwards — nothing transitions out of it, and no deletion route admits
+  a lifecycle record. It is not gated on a date, because a durable owner
+  accepting an artifact is not a day-30 event.
+
 ## [core][2.25.0] — 2026-09-04
 
 ### Highlights
@@ -71,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
 
+
 ## [core][2.24.4] — 2026-09-04
 
 ### Added
@@ -83,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `delivery-brief` mode now checks altitude, asking of each section whether it decides something or names something for the spec to decide. The modes either side of it checked altitude and brief review did not, so a brief carrying spec-level content drew correctness findings and never the one finding that mattered.
 - An ownership finding now outranks criterion craft. The reviewer reports it alone and stops reviewing that section, and the stated repair is to move the text to its owning artifact rather than shorten or narrow it.
 - A spec is no longer faulted for leaving the implementation change DAG to its plan.
+
 ## [core][2.24.3] — 2026-09-04
 
 ### Highlights

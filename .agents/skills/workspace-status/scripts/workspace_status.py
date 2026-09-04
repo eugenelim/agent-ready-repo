@@ -691,7 +691,7 @@ def _cooling_projection(result) -> dict:
         # left the whole run as `configuration_mismatch` and exit 2.
         try:
             due_now = (
-                record.post_closeout_result != "Retired"
+                record.post_closeout_result not in {"Retired", "Reclassified"}
                 and result.cooling_module.is_due(record, result.now).due
             )
         except Exception:

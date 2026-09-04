@@ -15,7 +15,7 @@
     "aliases": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/locator"}},
     "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "disposition": {"enum": ["cool-30-days", "retain-exception"]},
-    "post_closeout_result": {"enum": ["Cooling", "Retained", "Retired", "ExternalAdvisory"]},
+    "post_closeout_result": {"enum": ["Cooling", "Retained", "Retired", "Reclassified", "ExternalAdvisory"]},
     "completion_event": {"enum": ["merge", "release", "acceptance"]},
     "completion_evidence_ref": {"$ref": "#/$defs/evidenceRef"},
     "completed_on": {"$ref": "#/$defs/calendarDate"},
