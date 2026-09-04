@@ -273,6 +273,155 @@ def test_direct_skill_upgrade_succeeds(
     assert hashlib.sha256(state_path.read_bytes()).digest() != state_before
 
 
+@pytest.mark.parametrize(
+    ("installed_ref", "installed_revision", "wanted_ref", "wanted_revision"),
+    [
+        ("a" * 40, "a" * 40, "b" * 40, "b" * 40),
+        ("aaaaaaa", "a" * 40, "bbbbbbb", "b" * 40),
+        ("release-1", "1" * 40, "release-2", "2" * 40),
+    ],
+    ids=("sha", "abbreviated-sha", "ref"),
+)
+def test_direct_skill_source_override_moves_each_remote_ref_kind(
+    tmp_path,
+    tmp_path_factory,
+    monkeypatch,
+    capsys,
+    installed_ref,
+    installed_revision,
+    wanted_ref,
+    wanted_revision,
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp(f"direct-source-override-{wanted_ref[:7]}")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    first_tree = tmp_path / "first"
+    second_tree = tmp_path / "second"
+    _write_direct_skill(first_tree)
+    _write_direct_skill(second_tree, "# second\n")
+    repository = "git+https://github.com/example/skills"
+    installed_source = f"{repository}@{installed_ref}"
+    wanted_source = f"{repository}@{wanted_ref}"
+    acquisition.publish(
+        "example/skills", installed_ref, first_tree, revision=installed_revision
+    )
+    acquisition.publish(
+        "example/skills", wanted_ref, second_tree, revision=wanted_revision
+    )
+    target = tmp_path / "target"
+    assert _install_direct(installed_source, target) == 0
+    capsys.readouterr()
+
+    assert _upgrade_direct(target, "--source", wanted_source, "--yes") == 0
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source == wanted_source
+    assert row.source_revision == wanted_revision
+    assert (target / ".claude/skills/example/SKILL.md").read_text().endswith(
+        "# second\n"
+    )
+
+
+def test_direct_skill_source_override_refuses_a_local_row(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    before = _tree_digests(target)
+
+    remote = "git+https://github.com/example/skills@release-2"
+    assert _upgrade_direct(target, "--source", remote, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D028" in refusal.err
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_source_override_refuses_a_different_repository(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    storage = tmp_path_factory.mktemp("direct-source-other-repository")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    _write_direct_skill(source_tree)
+    installed = "git+https://github.com/example/skills@release-1"
+    supplied = "git+https://github.com/other/skills@release-2"
+    acquisition.publish("example/skills", "release-1", source_tree)
+    acquisition.publish("other/skills", "release-2", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(installed, target) == 0
+    capsys.readouterr()
+    acquisition.calls.clear()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target, "--source", supplied, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D029" in refusal.err
+    assert acquisition.calls == []
+    assert _tree_digests(target) == before
+
+
+def test_different_ref_install_remediation_executes_from_another_directory(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp("direct-ref-remediation")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    first_tree = tmp_path / "first"
+    second_tree = tmp_path / "second"
+    _write_direct_skill(first_tree)
+    _write_direct_skill(second_tree, "# wanted\n")
+    first = "git+https://github.com/example/skills@release-1"
+    wanted = "git+https://github.com/example/skills@release-2"
+    acquisition.publish("example/skills", "release-1", first_tree, revision="1" * 40)
+    acquisition.publish("example/skills", "release-2", second_tree, revision="2" * 40)
+    target = tmp_path / "installation root"
+    assert _install_direct(first, target) == 0
+    capsys.readouterr()
+
+    assert _install_direct(wanted, target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D022" in refusal.err
+    recovery_line = next(
+        line for line in refusal.err.splitlines() if line.startswith("  → Run ")
+    )
+    suffix = " to move the installed skill to this ref."
+    command = recovery_line.removeprefix("  → Run ").removesuffix(suffix)
+    assert shlex.split(command) == [
+        "agentbundle",
+        "upgrade",
+        "--skill",
+        "example",
+        "--source",
+        wanted,
+        "--root",
+        str(target),
+        "--scope",
+        "repo",
+        "--adapter",
+        "claude-code",
+        "--yes",
+    ]
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    assert _run_printed_command(command) == 0
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source == wanted
+    assert row.source_revision == "2" * 40
+    assert (target / ".claude/skills/example/SKILL.md").read_text().endswith(
+        "# wanted\n"
+    )
+
+
 def test_direct_skill_upgrade_plans_writes_and_removals_without_catalogue(
     tmp_path, tmp_path_factory, monkeypatch, capsys
 ):

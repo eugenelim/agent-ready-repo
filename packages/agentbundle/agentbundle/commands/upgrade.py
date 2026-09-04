@@ -245,6 +245,51 @@ def _select_direct_skill_row(
     return _DirectSkillSelection(selected_scope, selected_root, row)
 
 
+def _select_direct_upgrade_source(
+    name: str, row: PackState, supplied_source: str | None
+) -> tuple[str, bool]:
+    """Choose the re-resolution source after enforcing the stored identity."""
+
+    from agentbundle.direct_install import _direct_identity, _split_git_https_ref
+
+    recorded_source = row.source
+    if not isinstance(recorded_source, str):
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"{name!r} has no recorded source for standalone upgrade",
+            name=name,
+        )
+    if supplied_source is None:
+        return recorded_source, False
+    if (
+        _split_git_https_ref(recorded_source) is None
+        and not recorded_source.startswith("git+https://")
+    ):
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D028,
+            f"{name!r} is installed from a local source; --source cannot replace it",
+            name=name,
+            remediation="Re-run without --source to re-resolve the recorded local source.",
+        )
+    recorded_identity = _direct_identity(
+        row.source_kind, recorded_source, row.source_path
+    )
+    supplied_identity = _direct_identity(
+        row.source_kind, supplied_source, row.source_path
+    )
+    if supplied_identity != recorded_identity:
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D029,
+            f"--source for {name!r} names a different repository",
+            name=name,
+            remediation=(
+                "Use the installed repository with the wanted ref, or uninstall "
+                "the existing identity first."
+            ),
+        )
+    return supplied_source, True
+
+
 def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     """Select one manifestless row and reuse the direct-install lifecycle path."""
 
@@ -297,13 +342,11 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
         _print_direct_upgrade_refusal(refusal)
         return 1
 
-    source = selection.row.source
-    if not isinstance(source, str):
-        refusal = _refuse_direct_upgrade(
-            DiagnosticCode.CAT_D023,
-            f"{name!r} has no recorded source for standalone upgrade",
-            name=name,
+    try:
+        source, source_overridden = _select_direct_upgrade_source(
+            name, selection.row, getattr(args, "source", None)
         )
+    except DirectUpgradeError as refusal:
         _print_direct_upgrade_refusal(refusal)
         return 1
     needs_consent = not getattr(args, "yes", False) and not getattr(
@@ -330,6 +373,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     direct_args._upgrade_source_path = selection.row.source_path
     direct_args._upgrade_owned_files = selection.row.files
     direct_args._direct_verb = "upgrade"
+    direct_args._upgrade_source_overridden = source_overridden
     if needs_consent and not sys.stdin.isatty():
         direct_args._upgrade_noninteractive_refusal = _refuse_direct_upgrade(
             DiagnosticCode.CAT_D008,

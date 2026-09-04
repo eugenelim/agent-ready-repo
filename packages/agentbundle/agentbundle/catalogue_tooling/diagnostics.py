@@ -79,6 +79,8 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D025 = "CAT-D025"   # standalone skill upgrade needs adapter disambiguation
     CAT_D026 = "CAT-D026"   # re-resolved source no longer contains the installed skill path
     CAT_D027 = "CAT-D027"   # standalone upgrade would replace adopter-edited bytes
+    CAT_D028 = "CAT-D028"   # source override requested for a locally installed skill
+    CAT_D029 = "CAT-D029"   # source override names a different direct identity
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -114,6 +116,8 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D025,
         DiagnosticCode.CAT_D026,
         DiagnosticCode.CAT_D027,
+        DiagnosticCode.CAT_D028,
+        DiagnosticCode.CAT_D029,
     }
 )
 

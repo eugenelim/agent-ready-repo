@@ -911,6 +911,9 @@ def _summarise_and_project(
         source_string,
         planned,
         upgrade_owned_files=upgrade_owned_files,
+        upgrade_source_overridden=bool(
+            getattr(args, "_upgrade_source_overridden", False)
+        ),
     )
 
     if upgrade_digest is not None and digest == upgrade_digest:
@@ -1282,6 +1285,7 @@ def _refuse_foreign_owner(
     planned: list[tuple[str, bytes]],
     *,
     upgrade_owned_files: dict[str, dict[str, str]] | None = None,
+    upgrade_source_overridden: bool = False,
 ) -> None:
     """Refuse to overwrite a row or a directory this source does not own.
 
@@ -1345,7 +1349,7 @@ def _refuse_foreign_owner(
                     "existing row owns."
                 ),
             )
-        if source_changed:
+        if source_changed and not upgrade_source_overridden:
             command = recovery_command(
                 "agentbundle",
                 "upgrade",

@@ -42,6 +42,8 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D025` | A standalone skill upgrade matched more than one adapter; pass `--adapter <adapter>` |
 | `CAT-D026` | A standalone skill upgrade re-resolved its source, but the recorded source path no longer identifies the installed skill |
 | `CAT-D027` | A standalone skill upgrade found destination bytes that match neither its incoming content nor the digest recorded by the installed row |
+| `CAT-D028` | A standalone skill upgrade was given a source override for a row installed from a local path |
+| `CAT-D029` | A standalone skill upgrade was given a source override that names a different repository identity |
 
 ## Reading a refusal
 

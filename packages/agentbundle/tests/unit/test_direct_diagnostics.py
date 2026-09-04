@@ -284,6 +284,7 @@ def _emitted_codes(tmp_path) -> set[str]:
     from agentbundle.commands.upgrade import (
         DirectUpgradeError,
         _select_direct_skill_row,
+        _select_direct_upgrade_source,
     )
     from agentbundle.config import PackState, State
     from agentbundle.direct_install import (
@@ -493,6 +494,27 @@ def _emitted_codes(tmp_path) -> set[str]:
     _record(lambda: _select(empty_state))
     _record(lambda: _select(one_row, one_row))
     _record(lambda: _select(two_adapters))
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example",
+            direct_row,
+            "git+https://github.com/example/skills@release-2",
+        )
+    )
+    remote_row = PackState(
+        installed_version=direct_row.installed_version,
+        source="git+https://github.com/example/skills@release-1",
+        source_kind="skill",
+        source_path=direct_row.source_path,
+        source_digest=direct_row.source_digest,
+    )
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example",
+            remote_row,
+            "git+https://github.com/other/skills@release-2",
+        )
+    )
 
     class _UpgradeArgs:
         skill = ["example"]

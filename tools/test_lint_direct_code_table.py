@@ -71,13 +71,17 @@ class DirectCodeTableLintTests(unittest.TestCase):
         # set grows, so this is the direction that matters most.
         registry = self.tmp / REGISTRY
         text = registry.read_text(encoding="utf-8")
+        # Anchored on the FIRST member, which never moves. Anchoring on the
+        # current last member made every task that registers a code edit this
+        # fixture, and the injected ordinal is held far above any real
+        # allocation for the same reason.
         text = text.replace(
-            '    CAT_D027 = "CAT-D027"',
+            '    CAT_D001 = "CAT-D001"',
             '    CAT_D090 = "CAT-D090"   # a newly registered refusal\n'
-            '    CAT_D027 = "CAT-D027"',
+            '    CAT_D001 = "CAT-D001"',
         ).replace(
-            "        DiagnosticCode.CAT_D027,\n    }",
-            "        DiagnosticCode.CAT_D027,\n        DiagnosticCode.CAT_D090,\n    }",
+            "        DiagnosticCode.CAT_D001,",
+            "        DiagnosticCode.CAT_D001,\n        DiagnosticCode.CAT_D090,",
         )
         registry.write_text(text, encoding="utf-8")
         result = _run(self.tmp)
