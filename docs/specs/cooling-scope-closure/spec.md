@@ -61,7 +61,7 @@ exact observable it must produce.
 | `user-documentation` (workflow instructions) | Applicable: the agent-rendered closeout gate reads the changed facts | [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | maintainer | AC14, AC15, AC16, AC32 | Closeout verifies the exclusion statement, the narrowed rationale, the withholding rule, and the two retained conditions |
 | `capability-evidence` (frozen live dependencies) | Applicable: two frozen spec directories are depended on and neither may change | Wave 6's and Wave 5's `docs/specs/` directories | maintainer | AC23's digest table | Closeout verifies every listed digest |
 | `release-history` | Applicable: a shipped Core capability | [`docs/product/changelog.md`](../../product/changelog.md) | maintainer | AC31 | Closeout verifies the three release surfaces agree |
-| `project-knowledge` | Conditional and intentionally unresolved until implementation produces reusable learning | — | `project-knowledge` gate | The gate's receipt, or an explicit not-applicable finding | Closeout requires one of the two |
+| `project-knowledge` | Resolved: no reusable learning; see the delivery-local closeout record | [notes/closeout-records.md](notes/closeout-records.md) | `project-knowledge` gate | The gate's receipt, or an explicit not-applicable finding | Closeout requires one of the two |
 
 ## Boundaries
 
@@ -323,12 +323,13 @@ a green for the wrong reason.
   `## 10. Risks and revisit conditions` heading is
   `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`.
 - [ ] **AC29 — The erratum records the four-slice split and what each slice
-  owns.** Whitespace-normalized, the RFC's § Errata contains `Approver:
-  eugenelim` **twice** — it occurs once today, in the 2026-08-27 entry, so one
-  occurrence cannot distinguish a signed new erratum from an unsigned one — and
-  contains `cooling-scope-closure` and each of the four literals AC26 requires of
-  the architecture surface. Its date is the date of the commit that adds it,
-  which the release checklist verifies rather than a test.
+  owns.** Whitespace-normalized, every entry in the RFC's § Errata carries an
+  `(Approver:` signature — an exact count goes stale on the next signed erratum,
+  and a lower bound is a dead control, because once the errata holds more entries
+  than the bound, stripping a signature still satisfies it — and contains
+  `cooling-scope-closure` and each of the four literals AC26 requires of the
+  architecture surface. Its date is the date of the commit that adds it, which
+  the release checklist verifies rather than a test.
 - [ ] **AC30 — The erratum registers the three open follow-ons and corrects the
   `cooling-brief-child-scope` basis.** The same erratum names
   `rfc0096-wave7a-ii-completion-receipts`,

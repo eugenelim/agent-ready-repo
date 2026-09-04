@@ -697,7 +697,8 @@ def _cooling_projection(result) -> dict:
         except Exception:
             # Degrading to "not due" silently under-reported the maintainer's
             # queue while `cooling_context_visible` still claimed a clean run.
-            # The finding both names the record and flips that claim.
+            # This arm flips `cooling_context_visible` through `dueness_failed`,
+            # withholds the affirmative, and emits no finding naming the record.
             due_now = False
             unreadable_records.append(record)
         records.append({
