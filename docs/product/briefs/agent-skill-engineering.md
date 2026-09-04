@@ -154,10 +154,36 @@ until an approved amendment changes the boundary.
 [RFC-0097](../../rfc/0097-agent-skill-engineering.md) is Accepted and governs the
 product boundary, ordered follow-on cut, and acceptance conditions.
 [ADR-0093](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
-governs same-pack OKF compilation. The provider-mediated cross-pack knowledge boundary
-is the first new ADR owned by this programme. The planned
+governs same-pack OKF compilation.
+[ADR-0097](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
+is Accepted and governs the provider-mediated cross-pack knowledge boundary — the
+first new ADR owned by this programme, recorded in slice 0 and first consumed by
+slice 4. The planned
 [agent skill engineering architecture](../../architecture/agent-skill-engineering.md)
 describes the target state but remains `PLANNED` until M5 verifies every section.
+
+## Shipped so far
+
+Five of the eleven slice rows below are delivered; the `Spec map` carries each
+one's status, derived from its linked spec rather than maintained here.
+
+| Slice | Delivered |
+| --- | --- |
+| 0 — governance and compiler prerequisites | ADR-0097 recorded and Accepted. Both named OKF compiler prerequisites — `okf-index-title-interpolation-unescaped` and `okf012-nondeterminism-guard-untested` — were closed by `docs/specs/okf-follow-ons/spec.md`, so this slice inherited them satisfied. |
+| 1 — foundation | The portable pack with `frame`, `create` and `update` modes, the review/optimize workflow, the deterministic generated router, and the foundational corpus with its activation and behaviour evaluations. |
+| 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology accounting, the retrieval baseline, and the `knowledge-provider` authoring mode. |
+| 2b — languages and execution economics | Python/pytest and TypeScript/Node depth for skill scripts, evaluations and pack verification, plus execution-economics topics for local runs, CI, worktrees, locks, shared hosts and load detection. |
+| 3a — composition floors and pilot profile | The three portable composition floors (skills-plus-subagents, hooks, plugin package), the runtime capability-claim ledger, and the retrieval-dated Claude Code pilot profile — three probed capabilities and four sourced-but-unprobed. |
+| 4 — consumer integrations | `work-loop` and `architect-design` each reach the installed provider through a bounded step that inlines its own request, addressed by contract version because ADR-0097 forbids a consumer naming a generated router. The seam's seven-value diagnostic vocabulary reaches an installed surface, both packs declare the seam, and `catalogue-authoring-standards.md` § 11 carries the obligation for the next consumer. |
+
+Slice 3b is discarded rather than shipped; its row below is the canonical record
+and states where each of its four residuals went.
+
+**Not yet started.** Slices 3c, 3d, 3e, 5 and 6 exist only as rows in the table
+below. None has a spec, a plan, an intent, or a `workspace.toml` work entry, and
+`["ini-009".work].queue` is empty by the rule in *Derived work* — a confirmed
+slice is a decomposition target, not permission to dispatch. **3c and 3e are
+both unblocked**, since their only hard predecessor is shipped slice 3a.
 
 ## Confirmed delivery slices
 
