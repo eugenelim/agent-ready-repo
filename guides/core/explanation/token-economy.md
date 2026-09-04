@@ -93,5 +93,5 @@ don't pay for it where it isn't. The mode *is* the token posture, made explicit.
 ## Where to read next
 
 - [The core pack as a system](core-pack.md) — the parts that make up the loop, and how the cold reviewer fits the rest.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale for light vs. full mode.
+- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale for light vs. full mode.
 - [Why the plan owns the LLD](why-the-plan-owns-the-lld.md) — another place the loop spends a little up front to avoid a wasted round.

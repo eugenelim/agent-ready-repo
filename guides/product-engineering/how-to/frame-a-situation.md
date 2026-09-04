@@ -17,6 +17,12 @@ it is and where to take it next.
 
 **Skill:** `frame-situation` (PE pack, user scope)
 
+```text
+Frame this situation: three teams hand-roll export retention rules, so compliance reviews take weeks and produce inconsistent results.
+```
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
+
 ---
 
 ## When to use `frame-situation` vs `frame-intent`
@@ -81,19 +87,30 @@ is differentiating.
 
 ## What to do with the workspace.toml suggestion
 
-After `frame-situation` completes, the skill prints a TOML snippet like:
+After `frame-situation` completes, the skill prints a TOML snippet. A
+dispatchable entry carries the five canonical fields — `path`, `kind`, `source`,
+`summary`, and `needs`:
 
 ```toml
-{slug = "agent-skill-discovery-gap", type = "shape"},
+{path = "docs/product/intents/agent-skill-discovery-gap.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
 ```
 
-Add this to your active initiative's `[shaping_queue]` backlog in `workspace.toml`.
-Two ways:
+Add this to your active initiative's `[shaping_queue]` backlog in
+`workspace.toml`. Two ways:
 
-1. **`queue-add`** — run the `queue-add` skill and it will prompt you through the
-   entry and write it to the right place.
-2. **Manual edit** — open `workspace.toml`, find `[ini-NNN.shaping_queue]`, and
+1. **Ask the agent** — it routes through `work-intake`, which writes the
+   canonical artifact and registers the entry for you:
+
+   ```text
+   Remember the situation finding for agent skill discovery as shaping work.
+   ```
+
+2. **Manual edit** — open `workspace.toml`, find `["ini-NNN".shaping_queue]`, and
    add the entry to the `backlog` array.
+
+A short `{slug = "...", type = "shape"}` entry is the legacy shape. It still
+reads during the compatibility window but is **never dispatchable**, so
+`workspace-status` cannot offer it as work.
 
 Once added, `workspace-status` will surface it as a ready `shape`-typed item and
 suggest running `identify-opportunities` (or the appropriate entry-point skill).
@@ -104,4 +121,10 @@ suggest running `identify-opportunities` (or the appropriate entry-point skill).
 
 - `frame-intent` — for feature-scoped or known-outcome work
 - `identify-opportunities` — step 2 of the shaping sequence
-- `queue-add` — for adding entries to `workspace.toml [shaping_queue]`
+- `work-intake` — the front door for registering an entry in
+  `workspace.toml [shaping_queue]`
+
+## What you have now
+
+- A classified signal with a Wardley capability assessment and a recommended entry point into the shaping sequence.
+- Register its canonical artifact through `work-intake`, then follow the recommended next shaping skill.

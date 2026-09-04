@@ -35,14 +35,14 @@ Before a signal enters this sequence, it is made durable. The [work intake](../h
 
 ### Tracker intake
 
-A PM who lives in a tracker (Linear, Jira, GitHub Issues) takes a shorter path into the brief queue. The tracker-brief-intake skill fetches the issue, maps its metadata to DoR fields, and prompts interactively for anything the tracker issue does not capture (Appetite, Rabbit holes, Instrumentation). The brief enters `[brief_queue].draft` with an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
+A PM who lives in a tracker takes a shorter path into the brief queue. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief enters `[brief_queue].draft` with an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
 
 All three paths converge here: a DoR-ready brief in the queue. From there, `author-delivery-brief continue` decomposes confirmed slices into specs and routes them to `[work].queue` for an engineer or agent to execute.
 
 **Source journey maps:**
-[product-strategist-sets-direction](../../../product/journeys/product-strategist-sets-direction.md) ·
-[product-engineer-shapes-initiative](../../../product/journeys/product-engineer-shapes-initiative.md) ·
-[pm-intakes-from-tracker](../../../product/journeys/pm-intakes-from-tracker.md)
+[product-strategist-sets-direction](../../../docs/product/journeys/product-strategist-sets-direction.md) ·
+[product-engineer-shapes-initiative](../../../docs/product/journeys/product-engineer-shapes-initiative.md) ·
+[pm-intakes-from-tracker](../../../docs/product/journeys/pm-intakes-from-tracker.md)
 
 ---
 
@@ -67,8 +67,8 @@ The initiative path and the ad-hoc path differ at session start and at ship. On 
 The initiative path is the right default whenever the spec belongs to an initiative queue — the coordination overhead is near-zero and the write-back makes the team's queue state reliable for everyone who comes next. The ad-hoc path is appropriate for genuinely standalone tasks that would not belong in a brief.
 
 **Source journey maps:**
-[engineer-adopts-coordination](../../../product/journeys/engineer-adopts-coordination.md) ·
-[engineer-runs-work-loop](../../../product/journeys/engineer-runs-work-loop.md)
+[engineer-adopts-coordination](../../../docs/product/journeys/engineer-adopts-coordination.md) ·
+[engineer-runs-work-loop](../../../docs/product/journeys/engineer-runs-work-loop.md)
 
 ---
 
@@ -101,4 +101,4 @@ The harness reads the queue, dispatches an item, monitors for gates, routes gate
 The swarm extension of this journey — coordinated pipelines where a supervisor agent allocates specs to executor agents in parallel — is not yet covered here. (deferred: role-journey-agent-swarm-section)
 
 **Source journey map:**
-[agent-executes-spec](../../../product/journeys/agent-executes-spec.md)
+[agent-executes-spec](../../../docs/product/journeys/agent-executes-spec.md)

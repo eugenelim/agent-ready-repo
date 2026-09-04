@@ -20,6 +20,10 @@ and `work-loop`.
 
 You have an idea or a request and you want to turn it into a spec your delivery loop can build, without skipping the thinking. Install the `product-engineering` pack, then:
 
+```text
+Shape this feature intent: workspace owners need export retention controls so compliance requests no longer require manual work.
+```
+
 :::note
 **Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`; for that route see [*Frame a product vision*](frame-a-product-vision.md) and [*Shape a product strategy*](shape-a-product-strategy.md). `frame-intent` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
 :::
@@ -97,3 +101,8 @@ the `Contract:` seam pins the detailed contract at spec authoring time.
 ---
 
 **Business-unit / cross-component.** When a capability spans many component repos, `decompose-intent` slices the feature intent **per component** into one brief per repo, coordinated from a value-stream meta-repo via `align-value-stream`. See the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
+
+## What you have now
+
+- A de-risked feature intent that records its outcome, opportunity, and assumptions.
+- A route to `new-spec` for one independently shippable feature, or to a coordinating brief for multi-spec or cross-repository work.

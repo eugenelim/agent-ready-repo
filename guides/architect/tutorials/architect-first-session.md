@@ -11,8 +11,9 @@ You will finish with a corrected current-state map, evidence coverage, an
 attention heat map, and one selected next investigation. Start with this exact
 request:
 
-> Assess architecture and provide an action plan. Begin in survey mode, stop
-> after the attention heat map, and do not create files.
+```text
+Assess architecture and provide an action plan in survey mode, stopping after the attention heat map without creating files.
+```
 
 The survey reads the repository but does not run its code or change it. You make
 two decisions: whether the conceptual map is right, and which hotspot deserves
@@ -92,3 +93,9 @@ future-state choice, move to [Shape an architecture concept](../how-to/shape-an-
 If you want a durable normative foundation rather than an assessment, follow
 [Create and use your `reference.md`](create-your-reference-architecture.md) as a
 separate journey.
+
+## What you have now
+
+You have a chat-only survey with a corrected current-state map, evidence
+coverage, and selected hotspots. Choose one hotspot for standard-depth
+investigation, or begin a separate reference-architecture journey.

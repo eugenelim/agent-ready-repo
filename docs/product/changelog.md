@@ -70,6 +70,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
+
+## [core][2.24.4] — 2026-09-04
+
+### Added
+
+- `shaping-reviewer` now checks a named set of recurring authoring defects in every mode, as a `Check | Tell | Fix shape` table. It covers an obligation authored where an owner already exists, a criterion that cannot fail, a criterion that decays, a numeric bound with no measurement origin, refusals with no valid input that must succeed, a set copied from an authoritative source, and exact detail that changes no decision.
+- Each mode gained a readiness question the previous presence checks could not answer: whether an author could actually produce the artifact below it — a narrower intent, a spec for each confirmed slice, or a design that satisfies every criterion.
+
+### Changed
+
+- `delivery-brief` mode now checks altitude, asking of each section whether it decides something or names something for the spec to decide. The modes either side of it checked altitude and brief review did not, so a brief carrying spec-level content drew correctness findings and never the one finding that mattered.
+- An ownership finding now outranks criterion craft. The reviewer reports it alone and stops reviewing that section, and the stated repair is to move the text to its owning artifact rather than shorten or narrow it.
+- A spec is no longer faulted for leaving the implementation change DAG to its plan.
 ## [core][2.24.3] — 2026-09-04
 
 ### Highlights
@@ -82,6 +95,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A topic keeps every occurrence that produced it.** Reconciling a second
   observation into an existing topic appends to its provenance instead of
   replacing it, so the record of what was seen, and when, survives revision.
+
+## [product-engineering][0.13.9] — 2026-09-03
+
+### Highlights
+
+- **Shaping skills now suggest a workspace entry that can actually be picked
+  up.** `frame-situation` and `diverge-solutions` printed a short legacy form
+  that is never dispatchable, so an entry added exactly as instructed never
+  surfaced as ready work. Both now print the canonical five-field entry and
+  route registration through `work-intake`.
+- **A reference to a command that no longer exists is gone.** The skills
+  pointed at a retired skill name, so following the instruction did nothing.
+
+### Changed
+
+- Added `Triggers on` example utterances where they were missing, and corrected
+  the workspace-entry guidance in `frame-situation`, `diverge-solutions`, and
+  their examples.
+
+## [product-strategy][0.2.5] — 2026-09-03
+
+### Highlights
+
+- **The OKR cascade now writes a workspace entry that can be picked up.**
+  `run-okr-cascade` records each gap it finds, and it was writing a legacy form
+  that is never dispatchable — so every gap it recorded was invisible to the
+  shaping room it was recording into. It now writes the canonical five-field
+  entry.
+
+### Changed
+
+- Corrected the gap-entry format in `run-okr-cascade` and its cross-pack routing
+  reference.
+
+## [experience-design][2.0.3] — 2026-09-03
+
+### Highlights
+
+- **Every experience-design skill now tells you how to start it.** None of the
+  pack's twenty skills documented an example phrase, so a person had to guess
+  the wording and the agent had nothing to match against. Each skill now carries
+  two to four phrases someone would actually type, sharpened so neighbouring
+  skills in a twenty-skill pack do not claim the same request.
+
+### Changed
+
+- Added `Triggers on` example utterances to all twenty skill descriptions.
+
+## [frontend-engineering][0.2.2] — 2026-09-03
+
+### Highlights
+
+- **Every frontend-engineering skill now tells you how to start it.** As with
+  experience-design, none of the nine skills documented an example phrase. Each
+  now carries example utterances that match what the skill genuinely handles.
+
+### Changed
+
+- Added `Triggers on` example utterances to all nine skill descriptions.
 
 ## [core][2.24.2] — 2026-09-03
 

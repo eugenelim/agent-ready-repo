@@ -1,6 +1,6 @@
 [pack]
 name = "product-strategy"
-version = "0.2.4"
+version = "0.2.5"
 description = "The questions someone will ask before they fund the work. SWOT, Five Forces, PESTLE, BCG, OKRs, a PRFAQ — each one ending in a committed document rather than a deck."
 readme = "README.md"
 display_name = "Product Strategy"

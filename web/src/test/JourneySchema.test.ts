@@ -53,6 +53,37 @@ describe('generated journey identity contracts', () => {
     }));
   });
 
+  it('carries youType through so the page can render what to type', () => {
+    const result = journeySchema.safeParse({
+      ...generatedJourney,
+      contract: { ...generatedJourney.contract, youType: 'Start the example.' },
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('journey with youType unexpectedly failed');
+    expect(result.data.contract.youType).toBe('Start the example.');
+  });
+
+  it('rejects a whitespace-only youType, matching journey_validator.py', () => {
+    // A "what to type" row with nothing to type is worse than no row. The
+    // Python validator rejects this with strip(); Zod must agree, or the two
+    // gates disagree on the same journey.
+    const result = journeySchema.safeParse({
+      ...generatedJourney,
+      contract: { ...generatedJourney.contract, youType: '   ' },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('still parses a journey that declares no youType', () => {
+    const result = journeySchema.safeParse(generatedJourney);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('journey without youType unexpectedly failed');
+    expect(result.data.contract.youType).toBeUndefined();
+  });
+
   it('permits a hand-authored display-only legacy journey', () => {
     const { decisionGateIds: _semanticIds, ...legacyContract } = generatedJourney.contract;
 

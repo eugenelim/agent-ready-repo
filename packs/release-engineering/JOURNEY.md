@@ -9,6 +9,7 @@ prerequisitePacks:
   - core
 contract:
   useItWhen: "A build-loop PR is adversarial-review-clean and ready to go to production."
+  youType: "Run the release loop for this build."
   youProvide: "A merged, adversarial-review-clean inner build-loop output."
   youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and a convergence-verified prod ship."
   yourDecisions:

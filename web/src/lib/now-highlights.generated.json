@@ -117,6 +117,155 @@
     {
       "packages": [
         {
+          "name": "product-engineering",
+          "version": "0.13.9"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[product-engineering][0.13.9] — 2026-09-03",
+      "changelogAnchor": "product-engineering0139--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Shaping skills now suggest a workspace entry that can actually be picked up.** `frame-situation` and `diverge-solutions` printed a short legacy form that is never dispatchable, so an entry added exactly as instructed never surfaced as ready work. Both now print the canonical five-field entry and route registration through `work-intake`.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Shaping skills now suggest a workspace entry that can actually be picked up."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "frame-situation"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "diverge-solutions"
+            },
+            {
+              "type": "text",
+              "value": " printed a short legacy form that is never dispatchable, so an entry added exactly as instructed never surfaced as ready work. Both now print the canonical five-field entry and route registration through "
+            },
+            {
+              "type": "code",
+              "value": "work-intake"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        },
+        {
+          "source": "**A reference to a command that no longer exists is gone.** The skills pointed at a retired skill name, so following the instruction did nothing.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A reference to a command that no longer exists is gone."
+            },
+            {
+              "type": "text",
+              "value": " The skills pointed at a retired skill name, so following the instruction did nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "product-strategy",
+          "version": "0.2.5"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[product-strategy][0.2.5] — 2026-09-03",
+      "changelogAnchor": "product-strategy025--2026-09-03",
+      "highlights": [
+        {
+          "source": "**The OKR cascade now writes a workspace entry that can be picked up.** `run-okr-cascade` records each gap it finds, and it was writing a legacy form that is never dispatchable — so every gap it recorded was invisible to the shaping room it was recording into. It now writes the canonical five-field entry.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The OKR cascade now writes a workspace entry that can be picked up."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "run-okr-cascade"
+            },
+            {
+              "type": "text",
+              "value": " records each gap it finds, and it was writing a legacy form that is never dispatchable — so every gap it recorded was invisible to the shaping room it was recording into. It now writes the canonical five-field entry."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "experience-design",
+          "version": "2.0.3"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[experience-design][2.0.3] — 2026-09-03",
+      "changelogAnchor": "experience-design203--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Every experience-design skill now tells you how to start it.** None of the pack's twenty skills documented an example phrase, so a person had to guess the wording and the agent had nothing to match against. Each skill now carries two to four phrases someone would actually type, sharpened so neighbouring skills in a twenty-skill pack do not claim the same request.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Every experience-design skill now tells you how to start it."
+            },
+            {
+              "type": "text",
+              "value": " None of the pack's twenty skills documented an example phrase, so a person had to guess the wording and the agent had nothing to match against. Each skill now carries two to four phrases someone would actually type, sharpened so neighbouring skills in a twenty-skill pack do not claim the same request."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "frontend-engineering",
+          "version": "0.2.2"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[frontend-engineering][0.2.2] — 2026-09-03",
+      "changelogAnchor": "frontend-engineering022--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Every frontend-engineering skill now tells you how to start it.** As with experience-design, none of the nine skills documented an example phrase. Each now carries example utterances that match what the skill genuinely handles.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Every frontend-engineering skill now tells you how to start it."
+            },
+            {
+              "type": "text",
+              "value": " As with experience-design, none of the nine skills documented an example phrase. Each now carries example utterances that match what the skill genuinely handles."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.24.2"
         }

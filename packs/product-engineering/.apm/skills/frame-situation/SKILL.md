@@ -79,12 +79,21 @@ provides. Do not block artifact emission. Apply the same degrade if
 Artifact shape: frontmatter (`type: situation-framing`, `slug`, `signal`, `date`,
 `finding-type`, `shaping-entry`), then sections — Signal, Finding, Wardley
 Assessment table, Recommended Entry Point, Step 2 readiness (when absent),
-Suggested workspace.toml entry (TOML snippet + direction to add via `queue-add`
-or manually).
+Suggested workspace.toml entry (TOML snippet + direction to register it through
+`work-intake`, or to add it by hand).
 
-**6. Suggest workspace.toml entry.** Print the `{slug = "<slug>", type = "shape"}`
-TOML snippet. Direct the user to add it to `[ini-NNN.shaping_queue]` backlog.
-Do **not** write to `workspace.toml`.
+**6. Suggest workspace.toml entry.** Print a canonical five-field entry — `path`,
+`kind`, `source`, `summary`, `needs` — because a short `{slug, type}` entry is the
+legacy shape and is never dispatchable:
+
+```toml
+{path = "<output_dir>/shaping/<slug>/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},
+```
+
+Direct the user to register it through `work-intake`, which materializes the
+canonical artifact and writes the entry, or to add it to the
+`["ini-NNN".shaping_queue]` backlog by hand. Do **not** write to
+`workspace.toml`.
 
 ## Anti-patterns to refuse
 

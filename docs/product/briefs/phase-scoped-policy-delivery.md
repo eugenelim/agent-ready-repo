@@ -218,15 +218,22 @@ Settled 2026-09-03, and the wording above is that amendment:
   envelope, matching the precedent already set by `spec-author-agent.md`'s S1
   ("after **U1** defines the shared envelope contract"). It does not gate on U2,
   U3, or the sibling brief as a whole.
-- **D2 gates on S1**, the slice that creates the `spec-author` envelope D2
-  inlines into. It does *not* gate on S2. D2's fixture "enters a `SPEC-PLAN-*`
-  state", and `spec-author-agent.md` § "Proposed slices" settles that boundary by
-  request kind rather than by caller: "S1 handles a create request from any
-  caller, **including work-loop's first drafting entry**, and S2 handles only a
-  repair request carrying sustained findings." Work-loop's first drafting entry
-  is in `SPEC-PLAN-DRAFTING`, so S1 alone satisfies D2's fixture. Gating on S2
-  would pull sustained-finding repair into D2's prerequisites for no reason — a
-  softer instance of the same phantom deadlock.
+- **D2's gating token is S1, and a second edge reaches S2.** The *envelope* D2
+  inlines into is S1's deliverable, so the token names S1 rather than the whole
+  capability. But D2's Verification column names a fixture that "enters a
+  `SPEC-PLAN-*` state" and dispatches from it, and entering an engine state and
+  dispatching there is S2's surface: `spec-author-agent.md` gives S1
+  `packs/core/.apm/agents/spec-author.md` and `new-spec/SKILL.md`, while
+  `work-loop/SKILL.md` is S2's. So D2's envelope dependency is S1 and its
+  end-to-end fixture dependency is S2.
+
+  Narrowing the token does not settle the fixture. Before D2 is confirmed its
+  owner owes that decision: either re-scope the fixture to what S1 can exercise,
+  or let D2's gating admit S2 for the fixture alone. Recorded here rather than
+  resolved, because it does not bear on D1. This correction came from a
+  concurrent revision of this brief on `main`; an earlier reading here concluded
+  S1 alone sufficed, on the ground that S1 handles work-loop's first drafting
+  entry — true of the request kind, but not of the surface the fixture drives.
 
 ## Constraints / Appetite
 

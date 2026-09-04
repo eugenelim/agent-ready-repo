@@ -17,6 +17,10 @@ the artifact `map-capabilities` will reason against.
 
 **Skill:** `place-bet` (PE pack, user scope)
 
+```text
+De-risk this self-service export-retention approach, then place a bet if its kill condition survives.
+```
+
 ---
 
 ## When to use `place-bet` vs `de-risk-intent`
@@ -25,6 +29,8 @@ the artifact `map-capabilities` will reason against.
 alternatives. Run both when the bet rests on a fragile assumption worth testing
 first; skip `de-risk-intent` when the risk is accepted rather than worth
 investigating.
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
 
 | Step | Skill | Purpose |
 |---|---|---|
@@ -126,3 +132,8 @@ the absence of a structured artifact is visible in the audit trail.
 - `explore-options` — an alternative way to surface options for the betting table
 - `map-capabilities` — step 6; uses `bet.md` as the anchor for capability mapping
 - `work-intake` — records the suggested transition through canonical artifact-first intake
+
+## What you have now
+
+- A committed `bet.md` at `<output_dir>/shaping/<slug>/bet.md` with the chosen option, appetite, rationale, risks, and assumptions.
+- `map-capabilities` can now use that bet as the anchor for the next shaping step.

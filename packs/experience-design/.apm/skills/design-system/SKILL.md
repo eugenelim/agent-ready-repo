@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: "Use when an approved aesthetic direction exists and someone asks how to name and organize semantic tokens, spacing, type, or color scales. Produces a token taxonomy and rationale; it does not implement token values. Use `creative-direction` to establish the vibe, `information-architecture` for page hierarchy, and `design-review` to evaluate an existing surface. Product differentiation belongs to product strategy; framing a design-system initiative belongs to `frame-intent`; implementing tokens or components belongs to `frontend-engineering`."
+description: "Use when an approved aesthetic direction exists and someone asks how to name and organize semantic tokens, spacing, type, or color scales. Produces a token taxonomy and rationale; it does not implement token values. Use `creative-direction` to establish the vibe, `information-architecture` for page hierarchy, and `design-review` to evaluate an existing surface. Product differentiation belongs to product strategy; framing a design-system initiative belongs to `frame-intent`; implementing tokens or components belongs to `frontend-engineering`. Triggers on \"derive a semantic token taxonomy from this aesthetic direction\", \"organize our spacing, type, and color scales by role\", \"design the token system without choosing implementation values\"."
 ---
 
 # Skill: design-system

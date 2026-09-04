@@ -1,6 +1,6 @@
 ---
 name: documentation-design
-description: "Use when someone asks how a documentation site, help center, API reference, or guide set should be organized so readers reach first value. Produces content-type, information-architecture, and navigation specifications that scale with the corpus. Use `conversion-design` for marketing surfaces and `informational-design` for editorial reading surfaces. Organization-level documentation strategy is upstream; shaping a docs-platform initiative belongs to product engineering; authoring the technical content or building the site and theme belongs elsewhere."
+description: "Use when someone asks how a documentation site, help center, API reference, or guide set should be organized so readers reach first value. Produces content-type, information-architecture, and navigation specifications that scale with the corpus. Use `conversion-design` for marketing surfaces and `informational-design` for editorial reading surfaces. Organization-level documentation strategy is upstream; shaping a docs-platform initiative belongs to product engineering; authoring the technical content or building the site and theme belongs elsewhere. Triggers on \"design the navigation and content types for our API docs\", \"structure this help center so readers reach first value\", \"choose the right information architecture for our 250-page guide set\"."
 ---
 
 # Skill: documentation-design

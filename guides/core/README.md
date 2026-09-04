@@ -9,6 +9,10 @@ kind: explanation
 
 `core` is the flagship pack: one front door for durable work intake, then a loop your agent can't cut corners in. Describe the work in ordinary language; `work-intake` routes it to the right artifact and lifecycle state. Approved specs continue through hard gates and cold review.
 
+```text
+Start work on adding export retention controls for workspace owners.
+```
+
 New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) is the *why* — the leverage has moved off the prompt and onto the loop. [The `core` pack as a system](explanation/core-pack.md) is the full map. Then build something with [plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md).
 
 ## Tutorials

@@ -9,6 +9,7 @@ tagline: "Strategy seat upstream of every initiative — committed artifacts."
 prerequisitePacks: []
 contract:
   useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
+  youType: "Run an OKR cascade from our company OKRs."
   youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
   youReceive: "Committed SWOT, PRFAQ, OKR-derived gap entries in workspace.toml, ux-strategy.md, and content-strategy.md."
   yourDecisions:

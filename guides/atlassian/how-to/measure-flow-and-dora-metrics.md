@@ -7,9 +7,20 @@ kind: how-to
 
 # Measure flow and DORA metrics
 
+**Mode: tracker-authoritative.** This guide assumes Jira holds the team's real
+backlog and delivery history. If `docs/product/` is canonical and Jira is only
+for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
+instead.
+
 **Use this when:** You need cycle time, lead time, throughput, WIP, or other Flow Framework / DORA metrics for a Jira project, program, or portfolio — or an AI-adoption comparison report pairing two runs.
 **Prerequisites:** Jira credentials verified (`python scripts/jira.py check`); for Align scope, the `jira-align` skill installed and authenticated.
 **Result:** JSON metrics output for the scope and window, optionally paired into a Markdown adoption comparison report via `ai-adoption-report`.
+
+Ask for the measurement in team language:
+
+```text
+What's our cycle time this quarter for PROJ?
+```
 
 Compute cycle time, lead time, throughput, WIP, and the rest of the Flow Framework / DORA set over a Jira scope with [`flow-metrics`](../../../packs/atlassian/.apm/skills/flow-metrics/), then pair two runs into a comparison report with [`ai-adoption-report`](../../../packs/atlassian/.apm/skills/ai-adoption-report/).
 
@@ -115,4 +126,11 @@ The skill has two more modes:
 - **`ai-adoption-report` paths are literal** — no tilde or env-var expansion, and absolute paths outside the working directory exit 2.
 - **Cache staleness** — results cache at `.context/flow-metrics/cache/`. Pass `--no-cache` when the underlying Jira data has changed.
 
-For the full flag surface of both skills, see the [`atlassian` skills reference](../reference/atlassian-skills.md).
+For the full flag surface of both skills, see the [`atlassian` skills reference](../atlassian-skills.md).
+
+## What you have now
+
+You have read-only Jira flow measurements as JSON for the scope and window you
+named. If you compared runs, you also have the Markdown report and optional JSON
+sidecar at the paths you selected. Jira is unchanged; review the provenance and
+notes before using the numbers in a decision or adoption report.

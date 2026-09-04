@@ -1,6 +1,6 @@
 ---
 name: token-architecture
-description: Design and govern a three-tier CSS custom property token system (primitive → semantic → component), including semantic alias layers, light/dark theming, and DTCG-compatible source generation.
+description: Design and govern a three-tier CSS custom property token system (primitive → semantic → component), including semantic alias layers, light/dark theming, and DTCG-compatible source generation. Triggers on "design a three-tier token system for our web app", "audit our CSS tokens for hardcoded value drift", "add a semantic dark-theme alias layer", "export our tokens in DTCG format".
 ---
 
 # Skill: token-architecture

@@ -9,7 +9,7 @@ kind: reference
 
 `release-engineering` is the SRE/ops outer loop: deployed end-to-end validation above `work-loop`'s inner build loop. Where `core` validates that code works locally — it compiles, tests pass, the diff is clean — `release-engineering` validates that the **deployed whole** works: the integrated artifact, running in a real environment, observed through real telemetry.
 
-The pack ships two primitives: `release-lead` (the supervisor agent) and `release-loop` (the skill doctrine). Together they cover the full arc from "deploy-ready artifact" to "prod ship ratified by a human" — autonomously on ephemeral environments, and with an explicit consent gate at the only irreversible exit.
+The pack ships three primitives: `release-lead` (the supervisor agent), `release-loop` (the skill doctrine), and `define-slo` (which authors the OpenSLO document the release loop's readiness gate reads for error-budget status). Together they cover the full arc from "deploy-ready artifact" to "prod ship ratified by a human" — autonomously on ephemeral environments, and with an explicit consent gate at the only irreversible exit.
 
 **Before you start:** `release-engineering` hard-depends on `core`. Install `core` first.
 

@@ -11,6 +11,7 @@ prerequisitePacks:
   - governance-extras
 contract:
   useItWhen: "You're authoring or reconciling governed Terraform infrastructure — from intent to a digest-pinned, policy-clean plan."
+  youType: "Create Terraform for a staging and production environment."
   youProvide: "A plain-language infrastructure intent with target cloud, engine, environments, isolation model, and CI system."
   youReceive: "A digest-pinned Terraform plan with policy-pass evidence, security review, reversibility hints, and a release readiness record."
   yourDecisions:

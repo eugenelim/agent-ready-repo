@@ -1,6 +1,6 @@
 ---
 name: journey-mapping
-description: "Use when a team asks what an end user goes through across an experience, from one meaningful outcome to the next. Produces a customer journey map of stages, actions, touchpoints, emotions, pains, and opportunities, adjusted for the relevant platform. Use `service-blueprint` for backing services, `user-flow` to turn the journey into screens, and `process-mapping` for internal operations. Adoption strategy belongs to product strategy; selecting and scoping a bet belongs to product-engineering shaping; implementing journey screens belongs to `frontend-engineering`."
+description: "Use when a team asks what an end user goes through across an experience, from one meaningful outcome to the next. Produces a customer journey map of stages, actions, touchpoints, emotions, pains, and opportunities, adjusted for the relevant platform. Use `service-blueprint` for backing services, `user-flow` to turn the journey into screens, and `process-mapping` for internal operations. Adoption strategy belongs to product strategy; selecting and scoping a bet belongs to product-engineering shaping; implementing journey screens belongs to `frontend-engineering`. Triggers on \"map the customer journey from trial signup to first value\", \"show what a new admin goes through when setting up a workspace\", \"map the pains and opportunities in our returns experience\"."
 ---
 
 # Skill: journey-mapping

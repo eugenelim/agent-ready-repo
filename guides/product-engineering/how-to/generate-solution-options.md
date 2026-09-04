@@ -16,6 +16,12 @@ capability scope and need to surface the full option space before committing to
 a direction. The skill forces ≥3 structured, comparable options — the discipline
 that keeps `place-bet` (step 5) from just ratifying the first idea.
 
+```text
+Map the jobs, then generate solution options for teams that need consistent skill discovery across repositories.
+```
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
+
 ## When to reach for `diverge-solutions` vs `explore-options`
 
 The deciding question is: *do you need structured comparable options, or do you
@@ -117,3 +123,8 @@ slug-only entry into `workspace.toml`.
 **What happens next:** once the option is selected, the next step is validation
 (`de-risk-intent`, step 4). Run it on the selected option to pressure-test the
 dominant bet before `place-bet` commits the direction.
+
+## What you have now
+
+- A structured options artifact with comparable choices and retained rationale for parked or rejected alternatives.
+- The selected option can move to `de-risk-intent` before `place-bet` commits the direction.

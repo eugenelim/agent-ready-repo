@@ -16,6 +16,10 @@ first — so the journey maps and screens that follow have a vision to serve rat
 than inventing one per surface. This guide covers the two skills that set that
 direction: `define-ux-strategy` and `define-content-strategy`.
 
+```text
+Define the UX strategy and define the content strategy for our self-service onboarding.
+```
+
 It assumes the pack is installed. It also assumes you know the line this guide
 draws hard: strategy here sets the *system*, not the surface. Per-surface content
 design is out of scope, and this guide says exactly where that boundary sits.
@@ -78,6 +82,13 @@ because the experience vision should serve objectives strategy already committed
 But they don't depend on those artifacts to run — each commits independently. Run
 them when design is the next thing that will happen and you want it pointed in one
 direction.
+
+## What you have now
+
+You have `ux-strategy.md`, `content-strategy.md`, or both in
+`docs/product/shaping/`, with the direction that later design work should
+follow. Next, use that direction when you create journeys, screen flows, or
+surface content.
 
 ## See also
 

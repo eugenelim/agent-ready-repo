@@ -14,6 +14,11 @@ kind: how-to
 You need a defensible picture of where the product stands — internal position,
 competitive pressure, macro forces, portfolio mix — and you want each part
 committed as an artifact a stakeholder can read, not a slide that evaporates.
+
+```text
+Run a PESTLE scan, run Porter's Five Forces, and run a SWOT for our payments-market expansion.
+```
+
 Pillar 1 gives you four analysis frameworks, one per question. Run the ones the
 situation warrants; you rarely need all four in the same week.
 
@@ -105,6 +110,12 @@ These four are the *analysis* half of Pillar 1. The forcing functions that turn
 this picture into committed direction — the OKR cascade, the PRFAQ, stakeholder
 synthesis — are the other half; see
 [Cascade OKRs into the shaping queue](cascade-okrs-into-the-shaping-queue.md).
+
+## What you have now
+
+You have one or more committed analysis artifacts in `docs/product/shaping/`
+that answer the specific strategic questions you chose. Use the market picture
+to cascade objectives or set the direction for the next product decision.
 
 ## See also
 

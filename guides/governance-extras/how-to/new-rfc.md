@@ -19,6 +19,10 @@ You have a change in mind whose *direction* is not settled, and more than one pe
 
 For the surrounding system — where RFCs sit relative to ADRs, specs, and the loop that builds features once an RFC is accepted — read [the core pack as a system](../../core/explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.
 
+```text
+Use the new-rfc skill to propose a change to the release approval policy.
+```
+
 ## RFC vs. ADR — which one fits
 
 The two skills look adjacent but solve different problems. Get this right before you invoke either, or you'll write the wrong artifact twice.
@@ -31,7 +35,7 @@ The two skills look adjacent but solve different problems. Get this right before
 | Reject path | `Rejected` is a normal terminal state — the discussion was the point | A pre-acceptance ADR that doesn't earn `Accepted` just isn't committed; there's no `Rejected` state |
 | Trigger | The direction is unresolved and more than one owner must agree | The decision is made (or is being formally proposed) and has a concrete tradeoff |
 
-Quick rule: **RFCs propose; ADRs record.** If the discussion hasn't happened yet, you want an RFC. If the discussion is done and you're writing it down so the next maintainer can reconstruct it, you want an ADR. Both are covered by the lifecycle table in [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle).
+Quick rule: **RFCs propose; ADRs record.** If the discussion hasn't happened yet, you want an RFC. If the discussion is done and you're writing it down so the next maintainer can reconstruct it, you want an ADR. Both are covered by the lifecycle table in [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle).
 
 If you're recording a decision that's already settled, see [how to record a decision (ADR)](new-adr.md) instead.
 
@@ -44,9 +48,16 @@ If you're recording a decision that's already settled, see [how to record a deci
 - A working `docs/rfc/` directory. The skill creates one if it's missing, but the home for the file matters — the lifecycle rules in `docs/CONVENTIONS.md` only apply to RFCs at this path.
 - Web search available in your agent harness (Claude Code's `WebSearch`, or the equivalent elsewhere). The external prior-art sweep degrades gracefully without it — the skill says so explicitly rather than fabricating citations — but you lose half the research phase's value.
 
+## What to bring
+
+Bring the upstream material that shaped the proposal: a shaped intent from
+`docs/product/intents/`, a decision brief, a research survey or brief, or an
+architecture concept or reference architecture. Cite that artifact in the RFC;
+the citation is what makes the later decision traceable.
+
 ## When `new-rfc` is the right call
 
-Before invoking, check that the change clears one of these bars, lifted from [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc):
+Before invoking, check that the change clears one of these bars, lifted from [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc):
 
 - The direction is unresolved **and** more than one owner has to agree.
 - Someone explicitly asks for a proposal to be circulated.
@@ -197,7 +208,7 @@ The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejecte
 - **`Open`** — ready for reviewers. Update the frontmatter and push.
 - **`Final Comment Period`** — discussion is winding down; last call for objections.
 - **`Experimental`** (optional) — the proposal includes an `Experiment / validation` section and the trial is running; the RFC sits here, results pending in a linked spike note, until they land and it moves to a terminal status. Use only when an experiment is genuinely in flight.
-- **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
+- **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
 
 The skill also updates `docs/rfc/README.md` so the new file shows up in the index.
 
@@ -250,11 +261,17 @@ A published RFC can still need a correction later — a spec finds a gap, a late
 - **A decision that's already settled.** That's an ADR — see [how to record a decision (ADR)](new-adr.md). The `new-rfc` skill explicitly refuses to scaffold an RFC for an already-decided thing.
 - **Single-feature internals.** The contract for one feature lives in `docs/specs/<feature>/spec.md`, not in an RFC.
 
+## What you have now
+
+You have either the cheaper adequate route or a research-backed RFC at
+`docs/rfc/NNNN-<title>.md`, ready to circulate as `Open`. After acceptance,
+turn its concrete decisions into ADRs, specs, or convention changes.
+
 ## Related
 
 - [How to record a decision (ADR)](new-adr.md) — the inverse skill; use it when the discussion is done.
 - [How to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md) — what an accepted RFC's feature follow-on looks like.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where governance-extras fits relative to `core`.
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
-- [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) — the lifecycle, filename rule, and when-to / when-not-to.
-- [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
+- [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) — the lifecycle, filename rule, and when-to / when-not-to.
+- [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
