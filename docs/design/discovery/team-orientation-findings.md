@@ -145,6 +145,29 @@ to the canvas brief.
 Confirmed by fetch against the live page on 2026-09-04: eleven rendered
 occurrences.
 
+**A correction found in the intent's shaping review, and it is the packet's
+largest missed measurement.** The eleven are the *marketing* total. The
+**documentation surface publishes 94 gate-code occurrences across 14 files** in
+`guides/`, which is its authored source — and
+`guides/_shared/explanation/the-three-loops.md` does not merely mention them, it
+**defines them as the reader-facing vocabulary for human gates** (`- **G0** —
+Ratify the value seed`, and so on for G1.5, G2, G3, G5).
+
+That file was read early in Discover and quoted approvingly as the source of the
+prose handoff chain. It is simultaneously the largest violation of the principle
+this engagement exists to enforce, and the packet did not notice for the whole of
+its length.
+
+**What survives and what does not.** The six ordered paths in `guides/README.md`
+contain **zero** gate codes — verified — so the claim that they are the compliant
+vocabulary source still holds. The claim that the documentation surface is
+compliant does not.
+
+**Disposition:** the 94 are **out of scope** — they sit in guide bodies across 14
+files, which is a content programme rather than a redesign — but they must be
+named as out rather than left uncounted, and the zero-count acceptance check
+applies to the **marketing surface only**.
+
 | Component | Rendered codes | How they appear |
 | --- | --- | --- |
 | `ThreeLoops.astro` | 5 | `G3`, `G4` in the decorative pipeline chain; `G3`, `G4`, `G5` opening each loop's human-gate line |

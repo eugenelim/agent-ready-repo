@@ -110,8 +110,10 @@ Five things the design asserts and could not prove.
 1. **Interaction adds emphasis, never information.** The canvas's binding
    rendering has no script and no stylesheet. If deleting a behaviour loses
    meaning, it is out of contract.
-2. **Zero gate codes in adopter copy.** Eleven render today. The acceptance check
-   is a count, not a review opinion.
+2. **Zero gate codes in adopter copy on the marketing surface.** Eleven render
+   there today; the acceptance check is a count, not a review opinion. **Scoped
+   to marketing:** the documentation surface publishes 94 occurrences across 14
+   files in `guides/`, out of scope here and recorded in the discovery brief.
 3. **The two lifecycles must not merge.** Zones 4 and 5 stay separate; the
    canvas's text alternative keeps the work steps as a *nested* list. A flat list
    of thirteen items is the failure in text form.

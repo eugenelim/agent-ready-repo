@@ -214,6 +214,17 @@ D were named in the engagement; E, F, and G were found during discovery.
 
 ## Recorded findings that are real but out of scope
 
+- **The documentation surface publishes 94 gate-code occurrences across 14 files**
+  in `guides/`, its authored source — including
+  `guides/_shared/explanation/the-three-loops.md`, which *defines* them as the
+  reader-facing vocabulary for human gates. Found by the intent's shaping review,
+  after this packet had asserted eleven as the total across both surfaces. The six
+  ordered paths in `guides/README.md` contain zero, so the vocabulary-source claim
+  survives; the compliant-surface claim does not. Out of scope — a content
+  programme across 14 files — and the zero-count acceptance check is therefore
+  scoped to the marketing surface.
+
+
 - **Gate codes reach 9 generated content files** — 12 occurrences — under
   `web/src/content/journeys/` and `web/src/content/packs/`. Those carry
   `generated: true` and are produced from `packs/*/JOURNEY.md` by

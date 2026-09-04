@@ -94,7 +94,12 @@ The two production-side labels are near-verbatim from the published guide paths,
 which is the sourcing rule holding rather than a coincidence.
 
 **Acceptance check:** a count of rendered `G0`/`G1.5`/`G2`/`G3`/`G4`/`G5` strings
-on both surfaces, which must be **0**. Baseline 11. This is the check the build
+on the **marketing surface**, which must be **0**. Baseline 11.
+
+**Scoped to marketing after the intent's shaping review.** An earlier draft said
+"both surfaces". The documentation surface publishes 94 occurrences across 14
+files in `guides/`, which this engagement does not touch — so a both-surfaces
+zero-count was unachievable and would have failed the check it defined. This is the check the build
 handoff names, and it is mechanical rather than a review opinion.
 
 ---
