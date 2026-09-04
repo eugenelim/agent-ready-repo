@@ -76,18 +76,18 @@ executing = [
   # explicit confirmation. Slice U1 was confirmed separately the same day and is
   # registered in this initiative's work.queue; the brief stays Ready until that
   # spec reaches Implementing, at which point it becomes Executing.
+  # Executing 2026-09-03. Ready -> Executing when phase-policy-registry-and-selector
+  # reached Implementing; a brief with an Implementing child is Executing by the
+  # author-delivery-brief lifecycle. Draft -> Ready earlier the same day after a
+  # revision-bound clean shaping review (ten findings, four blocking, then two
+  # verification passes) and the owner's explicit confirmation. The gating
+  # amendment the sibling recorded as owed is discharged in the same change: D3
+  # gates on U1 and D2 on S1, at slice granularity. D2 and D3 stay unconfirmed.
+  {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
   {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every spec-backed plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
 ready     = [
-  # Ready 2026-09-03. Draft -> Ready after a revision-bound clean shaping review
-  # (one round of ten findings, four blocking, then two scoped verification
-  # passes) and the owner's explicit confirmation. The gating amendment the
-  # sibling brief recorded as owed is discharged in the same change: D3 now gates
-  # on U1 and D2 on S1, at slice granularity rather than capability granularity.
-  # Slice D1 is confirmed separately; the brief stays Ready until that spec
-  # reaches Implementing, at which point it becomes Executing.
-  {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
 ]
 draft     = [
   # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:

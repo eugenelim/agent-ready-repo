@@ -3,7 +3,7 @@
 - **Slug:** `phase-scoped-policy-delivery`
 - **Received:** 2026-09-03
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Ready
+- **Status:** Executing
 - **Source / provenance:** Repository-origin capability 3 from
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 - **Parent intent:**
@@ -369,7 +369,7 @@ semantic fields, and the Spec map may be empty.
 
 | Spec | Status |
 | --- | --- |
-| phase-policy-registry-and-selector | Draft |
+| phase-policy-registry-and-selector | Implementing |
 
 [`phase-policy-registry-and-selector`](../../specs/phase-policy-registry-and-selector/spec.md)
 delivers D1. The Status column is auto-derived — do not hand-edit it. D2 and D3
