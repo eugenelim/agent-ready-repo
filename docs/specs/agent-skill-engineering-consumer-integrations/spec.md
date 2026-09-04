@@ -1,6 +1,6 @@
 # Spec: Agent skill engineering consumer integrations
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
@@ -237,10 +237,17 @@ consumer has no path to it and never loads it.
 - [x] **AC13** *(authored-statement)* `docs/architecture/agent-skill-engineering.md` § 11
       *Last verified* carries a paragraph for this slice, in the form the 2a, 2b
       and composition-floors entries use, naming the two wired consumers.
-- [x] **AC14** *(same-slice)* This spec is registered in `workspace.toml`'s
-      `["ini-009".work].queue` array, in a `docs/specs/README.md` row stating its
-      shape and its criterion and task counts derived from `spec.md` and
-      `plan.md`, and in the brief's `Spec map`.
+- [x] **AC14** *(same-slice)* This spec is registered in exactly one
+      `["ini-009".work]` collection of `workspace.toml`, and in the one its own
+      `Status` requires — `queue` while `Draft` or `Approved`, `active` while
+      `Implementing`, `shipped` once `Shipped`. It is also registered in a
+      `docs/specs/README.md` row stating its shape and its criterion and task
+      counts derived from `spec.md` and `plan.md`, and in the brief's
+      `Spec map`. Amended at closeout: the criterion originally named `queue`
+      alone, which only its pre-closeout state can satisfy, because
+      `work.shipped` requires exactly `Shipped` while `work.queue` refuses it.
+      Binding the collection to the status instead is strictly stronger — it
+      also fails on duplicate membership and on the wrong room.
 - [x] **AC15** *(same-slice)*
       `docs/specs/agent-skill-engineering-consumer-integrations/qa.md` exists,
       carries a `## Review ledger`, and records a result for each of the three

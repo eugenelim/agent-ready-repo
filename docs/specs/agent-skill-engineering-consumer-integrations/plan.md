@@ -1,7 +1,7 @@
 # Plan: Agent skill engineering consumer integrations
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** the mechanism precedent is
   `packs/architect/.apm/skills/architect-review/SKILL.md:104-120` — architect
   consuming core's `project-knowledge`, the repository's one cross-pack

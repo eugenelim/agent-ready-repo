@@ -525,6 +525,19 @@ jobs:
       - name: pytest TDD stub lifecycle contract (roster-owned)
         run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
 
+      # agent-skill-engineering-consumer-integrations: the consumer half binds
+      # packs/core, packs/architect and packs/agent-skill-engineering plus
+      # docs/, guides/, packages/agentbundle/_data/ and workspace.toml, so
+      # lint-pack-test-boundary forbids it from any one pack's test tree. CI
+      # does not auto-discover roster tests, and `pytest tests/` reaches this
+      # module only through `make test` / `test-after-build-check`, which no CI
+      # job runs — so without this step the contract's 16 criteria are enforced
+      # on a local `make ci` and nowhere else.
+      - name: pytest agent-skill-engineering consumer integrations (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_agent_skill_engineering_consumer_integrations.py
+
       # curation QA + RFC template: the accelerator-pack admission rule spans
       # docs/CHARTER.md and packs/catalogue-curation, and the RFC template
       # guard's natural pack home (packs/governance-extras/tests/skills/

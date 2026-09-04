@@ -134,6 +134,17 @@ RELEASE_HEADING = re.compile(
     r"## \[[^\]]+\]\[[^\]]+\](?: / \[[^\]]+\]\[[^\]]+\])* — \d{4}-\d{2}-\d{2}"
 )
 STAGE_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc")
+# The engine's own status-to-collection rule, from
+# `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`:
+# `work.active` requires exactly `Implementing`, `work.shipped` exactly
+# `Shipped`, and `work.queue` refuses both. AC14 binds the room to the status
+# rather than naming one, so the criterion survives closeout.
+STATUS_ROOM = {
+    "Draft": "queue",
+    "Approved": "queue",
+    "Implementing": "active",
+    "Shipped": "shipped",
+}
 
 
 def _read_bound_surfaces() -> dict[Path, bytes]:
@@ -345,6 +356,14 @@ def _newest_release_version(artifact: str, lines: list[str]) -> str:
 def _workspace() -> dict[str, object]:
     """Parse the repository workspace registry."""
     return tomllib.loads(WORKSPACE.read_text(encoding="utf-8"))
+
+
+def _spec_status() -> str:
+    """Read the spec's lifecycle status token from its header."""
+    found = re.search(
+        r"^- \*\*Status:\*\*\s+(\w+)", SPEC.read_text(encoding="utf-8"), re.MULTILINE
+    )
+    return found.group(1) if found is not None else ""
 
 
 def _shape_and_counts() -> tuple[str, int, int]:
@@ -635,16 +654,26 @@ def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:
     shape, criteria, tasks = _shape_and_counts()
     assert shape and criteria > 0 and tasks > 0  # same-slice
 
-    workspace = _workspace()
-    initiative = workspace.get("ini-009")
-    work = initiative.get("work") if isinstance(initiative, dict) else None
-    queue = work.get("queue") if isinstance(work, dict) else None
-    assert isinstance(queue, list)  # same-slice
-    # Membership is matched on a canonical entry's `path` key. `SPEC_PATH in
-    # queue` would compare a string against inline tables and be False for
-    # every valid record, so the criterion could only have been satisfied by a
-    # bare string this file's own authoring rules reject as non-dispatchable.
-    assert [entry for entry in queue if isinstance(entry, dict) and entry.get("path") == SPEC_PATH]  # same-slice
+    # The collection is bound to the spec's own Status, not pinned to one room.
+    # `work.shipped` requires exactly `Shipped` and `work.queue` refuses it
+    # (`workspace_status_engine.py:2925`, fail-closed `impossible_transition`),
+    # so a criterion naming `queue` alone could only ever hold before closeout.
+    # Membership is matched on a canonical entry's `path` key: `SPEC_PATH in
+    # collection` would compare a string against inline tables and be False for
+    # every valid record.
+    status = _spec_status()
+    expected_room = STATUS_ROOM[status]
+    work = (_workspace().get("ini-009") or {}).get("work") or {}
+    rooms = {
+        room: [
+            entry
+            for entry in (work.get(room) or [])
+            if isinstance(entry, dict) and entry.get("path") == SPEC_PATH
+        ]
+        for room in ("active", "queue", "shipped")
+    }
+    assert sum(len(v) for v in rooms.values()) == 1, rooms  # same-slice
+    assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
 
     # The row is found by its link target, not by a bare-slug match. The README
     # records a hard predecessor as a backticked slug in the *Constrained by*
