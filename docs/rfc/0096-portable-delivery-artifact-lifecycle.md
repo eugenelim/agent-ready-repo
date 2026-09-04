@@ -394,3 +394,66 @@ record. Corrections are appended here, Approver-signed.
   Wave 6 registered the receipt work as
   `wave6-dependency-scoped-completion-receipts`; it is registered here as
   rfc0096-wave7a-ii-completion-receipts.
+
+- **2026-09-03 (Approver: eugenelim) — Wave 7b's portable classification
+  contract is withdrawn; the remaining work re-cuts into a mechanism half and a
+  repository-cleanup half.**
+
+  Section 8 makes classification the gate that moves an existing artifact into
+  the lifecycle model, and the 2026-09-01 Errata gave that work to Wave 7b as a
+  portable contract. Measured on 2026-09-03, that contract has no consumer this
+  repository can name, and the corpus it would migrate cannot be migrated.
+
+  `docs/specs/` holds 426 spec directories: 399 `Shipped`, 5 `Archived`, 18
+  carrying no `Status:` field, and 4 live. `docs/CONVENTIONS.md:111` classifies
+  a shipped spec as Frozen — "Immutable history. Status fields can change,
+  bodies cannot" — and `:456` licenses exactly one edit, a parenthetical on the
+  Status token. So 404 of 426 bodies are immutable by rule, and a migration that
+  rewrote them would contradict the convention this RFC defers to. Separately,
+  `docs/lifecycle/` holds no records at all, so the classification would not be
+  extending a partial corpus; it would be authoring one for a lifecycle nothing
+  has yet entered.
+
+  The portable contract is therefore withdrawn rather than deferred. Building it
+  now would design for an adopter that does not exist, which this repository
+  refuses. Section 8's statement that existing artifacts "retain current
+  treatment until Wave 7 classifies them" is left deliberately unimplemented:
+  existing artifacts keep their current treatment, and no wave now promises to
+  change that. If an adopter needs the migration, it returns as its own RFC with
+  that adopter as its evidence.
+
+  **Wave 7b keeps only its mechanism half.** It supplies the read-free parent
+  link that closes `cooling-brief-child-scope`, which remains a real gap: 99 of
+  114 workspace work entries (86%) declare no `source.parent`, and Wave 6
+  withdrew two conservative repairs because both refused brief dependencies
+  whenever any parentless spec cooled. `rfc0096-wave7b-historical-classification`
+  is closed as withdrawn.
+
+  **Wave 7c is unchanged and absorbs two schema follow-ons** that bite where it
+  works: `lifecycle-record-reclassified-gap` (section 5 lists `Reclassified`;
+  `delivery-lifecycle-record.schema.json` omits it from `post_closeout_result`)
+  and `lifecycle-record-entry-removal-fact`, which is 7c's own precondition —
+  a pruned artifact's workspace entry must be removed with its file, because a
+  surviving entry refuses at `structurally_blocked_paths` before the absent-
+  target refusal, so the completion receipt Wave 7a-ii shipped is never
+  consulted.
+
+  **Wave 7d is registered as repository cleanup, and produces no portable
+  contract.** Its objective is agent-context hygiene, not lifecycle governance:
+  `docs/specs/` is 1,103 files, 15.4 MB and 241,894 lines — roughly 3.85 million
+  tokens — and 211 of its 426 directories (49%) appear in no row of
+  `docs/specs/README.md`. That volume degrades the loops that read it. Wave 7d
+  inspects the corpus in clusters, separates quick wins from cases needing
+  investigation, and prunes or relocates using the mechanics Wave 7c ships.
+
+  Wave 7d moves conceptual solution and product approach only, and only where it
+  has no other home. It does not copy code, mechanics, or anything already
+  carried by a guide, an ADR, or an RFC; duplication across surfaces is drift,
+  and one source stays in charge. Its destination is the knowledge base under
+  ADR-0081's per-topic JSON model, which is curated deliberately and is not
+  loaded into model context automatically. Adopter-facing behaviour reaches
+  `guides/` by ordinary patching when a specific gap is found, never as a bulk
+  authoring effort derived from pruned specs.
+
+  Wave 7d depends on Wave 7c and is the last of the five slices. Wave 7a-i
+  remains in flight; Wave 7a-ii shipped at core 2.23.2.
