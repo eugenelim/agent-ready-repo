@@ -487,6 +487,60 @@ def test_ac14_recovery_requires_the_promoted_occurrence(
     assert refused.value.diagnostic["reason_code"] == "postimage_mismatch"
 
 
+@pytest.mark.parametrize(
+    "mismatched_field", ("lifecycle", "lifecycle_only", "retirement")
+)
+def test_ac14_recovery_requires_explicit_topic_state_to_match(
+    repo: Path, store, mismatched_field: str
+) -> None:
+    # `lifecycle_only` is the case that isolates the lifecycle comparison. The
+    # `lifecycle` case forges a retirement record too, so the retirement
+    # comparison alone still refuses it and the lifecycle guard can be deleted
+    # without reddening anything.
+    original_retirement = {
+        "reason": "enforced",
+        "successors": ["contracts/original.json"],
+        "coverage_verified": True,
+    }
+    proposal = _proposal_with_pending(
+        repo,
+        store,
+        lifecycle="retired" if mismatched_field == "retirement" else "active",
+        **(
+            {"retirement": original_retirement}
+            if mismatched_field == "retirement"
+            else {}
+        ),
+    )
+    with pytest.raises(store.KnowledgeStoreError):
+        store.apply_guarded_mutation(repo, proposal, interrupt_after="topic")
+    topic_path = store.topic_path_for_key(repo, proposal["topic_key"])
+    actual_topic_bytes = topic_path.read_bytes()
+    conflicting = copy.deepcopy(proposal)
+    if mismatched_field == "lifecycle_only":
+        # No retirement on either side, so only the lifecycle comparison can refuse.
+        conflicting["lifecycle"] = "needs_review"
+    elif mismatched_field == "lifecycle":
+        conflicting["lifecycle"] = "retired"
+        conflicting["retirement"] = original_retirement
+    else:
+        conflicting["retirement"] = {
+            "reason": "merged",
+            "successors": ["contracts/replacement.json"],
+            "coverage_verified": True,
+        }
+    conflicting["topic_postimage_digest"] = store.PK.digest_bytes(actual_topic_bytes)
+    conflicting["proposal_digest"] = store.PK.digest_bytes(
+        store._canonical_json_bytes(store._proposal_without_derived(conflicting))
+    )
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.recover_guarded_mutation(repo, conflicting)
+
+    assert store._mutation_id(conflicting) == store._mutation_id(proposal)
+    assert refused.value.diagnostic["reason_code"] == "postimage_mismatch"
+
+
 def test_ac14_recovery_resumes_update_before_topic_replacement(repo: Path, store) -> None:
     first = _proposal_with_pending(repo, store)
     store.apply_guarded_mutation(repo, first)
@@ -694,6 +748,49 @@ def test_promoted_update_preserves_retired_lifecycle_by_default(
     topic = json.loads(topic_path.read_bytes())
     assert topic["lifecycle"] == "retired"
     assert topic["retirement"] == retirement
+
+
+def test_promoted_update_materializes_retired_lifecycle_for_replacement_retirement(
+    repo: Path, store
+) -> None:
+    first_retirement = {
+        "reason": "enforced",
+        "successors": ["contracts/original.json"],
+        "coverage_verified": True,
+    }
+    first = _proposal_with_pending(
+        repo,
+        store,
+        lifecycle="retired",
+        retirement=first_retirement,
+    )
+    store.apply_guarded_mutation(repo, first)
+    topic_path = store.topic_path_for_key(repo, first["topic_key"])
+    existing_topic_bytes = topic_path.read_bytes()
+    replacement_retirement = {
+        "reason": "merged",
+        "successors": ["contracts/replacement.json"],
+        "coverage_verified": True,
+    }
+    update = _proposal_with_pending(
+        repo,
+        store,
+        lesson="Retired knowledge can point to its replacement.",
+        synthesis={
+            "kind": "pattern",
+            "body": "Retired knowledge can point to its replacement.",
+        },
+        retirement=replacement_retirement,
+        expected_topic_digest=store.PK.digest_bytes(existing_topic_bytes),
+        existing_topic_bytes=existing_topic_bytes,
+    )
+
+    assert update["lifecycle"] == "retired"
+    store.apply_guarded_mutation(repo, update)
+
+    topic = json.loads(topic_path.read_bytes())
+    assert topic["lifecycle"] == "retired"
+    assert topic["retirement"] == replacement_retirement
 
 
 def test_mutation_completion_refuses_existing_topic_digest_mismatch(

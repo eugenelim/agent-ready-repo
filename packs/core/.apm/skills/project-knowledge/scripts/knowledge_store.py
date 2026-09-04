@@ -1617,6 +1617,8 @@ def complete_mutation_proposal(
         ):
             _refuse("postimage_mismatch")
         existing_topic = _topic_from_bytes(existing_topic_bytes)
+        if "lifecycle" not in completed:
+            completed["lifecycle"] = existing_topic["lifecycle"]
     mutation_id = _mutation_id(completed)
     topic = _topic_from_proposal(completed, existing_topic=existing_topic)
     topic_postimage = _pretty_json_bytes(validate_topic(topic))
@@ -1717,7 +1719,8 @@ def _validate_mutation_proposal(proposal: Any) -> dict[str, Any]:
         retirement_probe = {"lifecycle": lifecycle}
         if "retirement" in proposal:
             retirement_probe["retirement"] = copy.deepcopy(proposal["retirement"])
-        _validate_retirement(retirement_probe)
+        if lifecycle != "retired" or "retirement" in proposal:
+            _validate_retirement(retirement_probe)
         PK.parse_digest(proposal["proposal_digest"])
         PK.parse_digest(proposal["topic_postimage_digest"])
         proposal_preimage = _proposal_without_derived(proposal)
@@ -1956,6 +1959,13 @@ def _verify_topic_postimage(
     if PK.digest_bytes(actual_topic) != validated["topic_postimage_digest"]:
         _refuse("postimage_mismatch")
     topic = _topic_from_bytes(actual_topic)
+    if "lifecycle" in validated and topic["lifecycle"] != validated["lifecycle"]:
+        _refuse("postimage_mismatch")
+    if (
+        "retirement" in validated
+        and topic.get("retirement") != validated["retirement"]
+    ):
+        _refuse("postimage_mismatch")
     occurrence = topic["occurrences"][-1]
     if (
         occurrence["capture_id"] != validated["capture_id"]
