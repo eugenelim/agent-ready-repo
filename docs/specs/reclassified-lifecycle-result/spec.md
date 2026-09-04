@@ -1,6 +1,6 @@
 # Spec: Reclassified lifecycle result
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096
@@ -129,69 +129,69 @@ JSON status payload, both of which a test reads more reliably than a person.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — The contract admits five results.** `post_closeout_result` in
+- [x] **AC1 — The contract admits five results.** `post_closeout_result` in
   `contracts/jsonschema/delivery-lifecycle-record.schema.json` accepts exactly
   `Cooling`, `Retained`, `Retired`, `Reclassified`, and `ExternalAdvisory`.
-- [ ] **AC2 — The validator admits the contract's set.** The set of
+- [x] **AC2 — The validator admits the contract's set.** The set of
   `post_closeout_result` values the record validator accepts equals the set the
   contract publishes.
-- [ ] **AC3 — A retained record reclassifies on a supplied acceptance, not on a
+- [x] **AC3 — A retained record reclassifies on a supplied acceptance, not on a
   date.** Given a persisted record with disposition `retain-exception` and result
   `Retained`, when a well-formed acceptance block is supplied, the persisted
   record carries disposition `retain-exception` and result `Reclassified`,
   whatever the current date.
-- [ ] **AC4 — The record carries the supplied acceptance.** The reclassified
+- [x] **AC4 — The record carries the supplied acceptance.** The reclassified
   record's `exception` block equals the block supplied at the transition.
-- [ ] **AC5 — Reclassification refuses a malformed acceptance.** A
+- [x] **AC5 — Reclassification refuses a malformed acceptance.** A
   reclassification whose supplied block is absent, is not an object, carries a
   key outside the exception envelope, or fails that envelope's vocabulary rules
   leaves the persisted record byte-unchanged and reports an invalid envelope.
-- [ ] **AC6 — Retention is the only route in.** The transition graph admits
+- [x] **AC6 — Retention is the only route in.** The transition graph admits
   exactly one edge whose destination is disposition `retain-exception` with
   result `Reclassified`, and that edge's source is disposition
   `retain-exception` with result `Retained`.
-- [ ] **AC7 — Reclassification is terminal.** The transition graph admits no
+- [x] **AC7 — Reclassification is terminal.** The transition graph admits no
   edge whose source is disposition `retain-exception` with result
   `Reclassified`.
-- [ ] **AC8 — Reclassification does not move the artifact.** After a record
+- [x] **AC8 — Reclassification does not move the artifact.** After a record
   reclassifies, a regular file remains at the locator that record names.
-- [ ] **AC9 — A reclassified artifact leaves ordinary orientation.** An artifact
+- [x] **AC9 — A reclassified artifact leaves ordinary orientation.** An artifact
   named by a lifecycle record with disposition `retain-exception` and result
   `Reclassified` is absent from the scanned, dispatchable set.
-- [ ] **AC10 — A reclassified artifact's body is not read.** Resolving status
+- [x] **AC10 — A reclassified artifact's body is not read.** Resolving status
   over that artifact opens no handle on the file its record names.
-- [ ] **AC11 — A reclassified record is never due.** The projection reports
+- [x] **AC11 — A reclassified record is never due.** The projection reports
   `due: false` for it on every date, because it excludes the result before
   comparing any date.
-- [ ] **AC12 — A reclassified record is not a live obligation.** It is absent
+- [x] **AC12 — A reclassified record is not a live obligation.** It is absent
   from the projected retention-exceptions list.
-- [ ] **AC13 — A reader that cannot recognise the result fails loudly.** When
+- [x] **AC13 — A reader that cannot recognise the result fails loudly.** When
   the resolving cooling module rejects `Reclassified`, the run reports
   `invalid_lifecycle_record` naming that record and reports cooling context as
   visible, rather than omitting the record silently.
-- [ ] **AC14 — The cooled-set prose accounts for every result.** The
+- [x] **AC14 — The cooled-set prose accounts for every result.** The
   `workspace-status` skill document states, for each of the five results,
   whether an artifact named by that record is excluded from orientation.
-- [ ] **AC15 — Every pinned digest names current bytes.** For each file in the
+- [x] **AC15 — Every pinned digest names current bytes.** For each file in the
   `cooling-scope-closure` AC23 pinned set, the digest recorded in that spec's
   table and the digest recorded in the roster test constant both equal the
   file's SHA-256.
-- [ ] **AC16 — The Core manifests agree.** `packs/core/pack.toml` and
+- [x] **AC16 — The Core manifests agree.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version.
-- [ ] **AC17 — The Core version advances.** That version is greater than the
+- [x] **AC17 — The Core version advances.** That version is greater than the
   version on the merge base.
-- [ ] **AC18 — The topmost Core changelog heading names the shipped version.**
+- [x] **AC18 — The topmost Core changelog heading names the shipped version.**
   The first `## [core][…]` heading in `docs/product/changelog.md` names the
   version both Core manifests carry.
-- [ ] **AC19 — The generated copies match the pack source.** Each regenerated
+- [x] **AC19 — The generated copies match the pack source.** Each regenerated
   `close-work` and `workspace-status` file under `.agents/`, `.claude/`, and
   `packages/agentbundle/agentbundle/_data/` is byte-identical to its
   `packs/core/.apm/` source.
-- [ ] **AC20 — The superseded transition criterion names its correction.**
+- [x] **AC20 — The superseded transition criterion names its correction.**
   `docs/specs/thirty-day-cooling-and-retirement/spec.md` and its sibling
   `plan.md` each carry a `Status` annotation naming the ADR that records the
   extended transition table and the part it supersedes.
-- [ ] **AC21 — The eval harness covers the reclassification outcome.** The
+- [x] **AC21 — The eval harness covers the reclassification outcome.** The
   `close-work` eval set contains a case whose expected behaviour is a retained
   record transitioning to result `Reclassified` on a validated durable-owner
   acceptance.

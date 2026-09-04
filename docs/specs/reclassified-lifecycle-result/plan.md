@@ -1,7 +1,7 @@
 # Plan: Reclassified lifecycle result
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/CONVENTIONS.md` § *Superseding a frozen document*
   (`:140-160`, `:456`) governs the AC22 correction; the shipped
   `("retain-exception", "ExternalAdvisory")` outcome at
