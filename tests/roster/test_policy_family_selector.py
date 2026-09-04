@@ -18,6 +18,7 @@ assertions — the contract the stubs pin — are unchanged.
 # reversed selector satisfies "stable across runs".
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -91,6 +92,24 @@ _SEED_ROOTS = ("", "packs/core/seeds")
 REGISTRY_ARGS = ["--registry", str(REGISTRY), "--root", str(REPO_ROOT)]
 
 
+def _selector_module():
+    """Import the selector once for assertions whose subject is not the CLI.
+
+    Spawning an interpreter per selection key spends the suite's time waiting
+    rather than asserting, and gets worse on a loaded machine. The CLI envelope
+    keeps its subprocess, because there the integration *is* the subject.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_selector", SELECTOR)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_SELECTOR = _selector_module()
+
+
 def _registry_block() -> dict:
     text = REGISTRY.read_text(encoding="utf-8")
     match = re.search(r"^```json policy-registry\.v1\n(.*?)^```", text,
@@ -145,11 +164,22 @@ def _base_registry() -> dict:
 # --- AC5: the record envelope -------------------------------------------------
 
 def test_record_envelope_is_exact_with_a_null_assembled_digest():
-    for key in _registry_block()["selection"]:
-        proc = _run(*REGISTRY_ARGS, key)
-        assert proc.returncode == 0, proc.stderr
-        assert proc.stderr == "", f"{key}: diagnostics leaked to stderr"
-        record = json.loads(proc.stdout)
+    """One real subprocess proves the CLI contract; the sweep runs in-process.
+
+    The subject of the CLI case is the integration — exit status, an empty
+    stderr, and stdout parsing as one JSON object. The per-key envelope shape is
+    settled by `build_record`, so it does not need 11 interpreter starts.
+    """
+    registry = _SELECTOR.load_registry(REGISTRY)
+    keys = list(registry["selection"])
+
+    proc = _run(*REGISTRY_ARGS, keys[0])
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stderr == "", "diagnostics leaked to stdout's stream"
+    assert json.loads(proc.stdout)["selection_key"] == keys[0]
+
+    for key in keys:
+        record = _SELECTOR.build_record(registry, key, REPO_ROOT)
         assert set(record) == {"selection_key", "families", "assembled_brief_digest"}
         assert record["selection_key"] == key
         assert record["assembled_brief_digest"] is None
@@ -202,9 +232,10 @@ def test_skill_locator_prefers_the_first_candidate_root(tmp_path):
 
 
 def test_every_selected_entry_matches_its_registry_record():
-    by_id = {f["id"]: f for f in _registry_block()["families"]}
-    for key in _registry_block()["selection"]:
-        for entry in _select(key)["families"]:
+    registry = _SELECTOR.load_registry(REGISTRY)
+    by_id = {f["id"]: f for f in registry["families"]}
+    for key in registry["selection"]:
+        for entry in _SELECTOR.build_record(registry, key, REPO_ROOT)["families"]:
             source = by_id[entry["id"]]
             assert entry["tier"] == source["tier"]
             assert entry["module"] == source["module"]
@@ -228,15 +259,22 @@ def test_selection_naming_an_unknown_family_is_refused(tmp_path):
     _refuse(_write_registry(tmp_path, registry))
 
 
+def _family(registry: dict, fid: str) -> dict:
+    """Address a family by id. Positional indices couple a fixture to AC2's order."""
+    return next(f for f in registry["families"] if f["id"] == fid)
+
+
 def test_unresolvable_module_is_refused(tmp_path):
     registry = _base_registry()
-    registry["families"][3]["module"] = "seed:no/such/file.md"
+    # `the-razor` on purpose: resolution runs only for a *selected* family, and
+    # CODE-IMPLEMENTATION selects it.
+    _family(registry, "the-razor")["module"] = "seed:no/such/file.md"
     _refuse(_write_registry(tmp_path, registry))
 
 
 def test_unknown_tier_is_refused(tmp_path):
     registry = _base_registry()
-    registry["families"][3]["tier"] = "blocking"
+    _family(registry, "the-razor")["tier"] = "blocking"
     _refuse(_write_registry(tmp_path, registry))
 
 
@@ -247,7 +285,7 @@ def test_unknown_module_namespace_is_refused(tmp_path):
     # when the namespace check is deleted. `http:AGENTS.md` resolves to the root
     # file under the seed search order, so only the namespace check can refuse it.
     registry = _base_registry()
-    registry["families"][3]["module"] = "http:AGENTS.md"
+    _family(registry, "the-razor")["module"] = "http:AGENTS.md"
     _refuse(_write_registry(tmp_path, registry))
 
 
@@ -271,6 +309,143 @@ def test_unsupported_schema_version_is_refused(tmp_path):
     registry = _base_registry()
     registry["schema_version"] = 2
     _refuse(_write_registry(tmp_path, registry, info="json policy-registry.v2"))
+
+
+# --- Containment: a locator may not read outside --root ----------------------
+
+def test_projected_file_safety_matches_the_agentbundle_canonical():
+    """Cross-tree parity: the pack copy is byte-identical to the engine helper.
+
+    The selector confines through the blessed helper rather than a local
+    canonicalize-then-prefix check, so the mirror must not drift from the
+    source that gets hardened.
+    """
+    mirror = REPO_ROOT / "packs/core/.apm/skills/work-loop/scripts/file_safety.py"
+    canonical = (REPO_ROOT
+                 / "packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py")
+
+    assert mirror.read_bytes() == canonical.read_bytes()
+
+
+def test_hard_link_into_root_is_refused(tmp_path):
+    """A hard link is canonically inside the boundary, so resolve() cannot see it.
+
+    `Path.resolve()` does not traverse hard links: a second link to an
+    out-of-root inode has a canonical path under the root and passes any
+    canonicalize-then-prefix check. The blessed helper refuses on `st_nlink > 1`,
+    which is the observable that distinguishes it.
+    """
+    secret = tmp_path / "outside_secret.txt"
+    secret.write_text("secret\n", encoding="utf-8")
+    root = tmp_path / "root"
+    root.mkdir()
+    os.link(secret, root / "hardlink.md")
+
+    registry = {
+        "schema_version": 1,
+        "families": [{"id": "probe", "tier": "advisory", "module": "seed:hardlink.md"}],
+        "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+    }
+    proc = _run("--registry", str(_write_registry(tmp_path, registry)),
+                "--root", str(root), "CODE-IMPLEMENTATION")
+
+    assert proc.returncode != 0, f"hard link was digested:\n{proc.stdout}"
+    assert proc.stderr.startswith("select-policy-families:"), proc.stderr
+
+
+def test_non_utf8_registry_is_refused_not_a_traceback(tmp_path):
+    path = tmp_path / "policy-families.md"
+    path.write_bytes(b"```json policy-registry.v1\n\xff\xfe not utf-8\n```\n")
+    proc = _run("--registry", str(path), "--root", str(REPO_ROOT), "K")
+
+    assert proc.returncode != 0
+    assert proc.stderr.startswith("select-policy-families:"), proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def test_control_sequences_in_a_module_cannot_repaint_the_refusal(tmp_path):
+    """File-controlled bytes reaching a terminal must not carry escape authority.
+
+    A raw ESC sequence in the candidate list can erase the line and rewrite it,
+    making a non-zero refusal read as a pass to an operator or a log scraper.
+    """
+    root = tmp_path / "root"
+    root.mkdir()
+    hostile = "seed:\x1b[2K\x1b[1;32mSUCCESS: all families resolved\x1b[0m/x.md"
+    registry = {
+        "schema_version": 1,
+        "families": [{"id": "probe", "tier": "advisory", "module": hostile}],
+        "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+    }
+    proc = _run("--registry", str(_write_registry(tmp_path, registry)),
+                "--root", str(root), "CODE-IMPLEMENTATION")
+
+    assert proc.returncode != 0
+    assert "\x1b" not in proc.stderr, "raw ESC reached stderr"
+
+
+def test_module_escaping_root_is_refused(tmp_path):
+    """`..`, absolute, and symlink-out locators all refuse.
+
+    `Path.__truediv__` discards the left operand when the right is absolute, so
+    joining alone confines nothing; and a symlink inside the boundary can still
+    point outside it, which is why containment is re-checked after resolving.
+    """
+    outside = tmp_path / "outside.txt"
+    outside.write_text("secret\n", encoding="utf-8")
+    root = tmp_path / "root"
+    root.mkdir()
+    link = root / "link.md"
+    link.symlink_to(outside)
+
+    for module in ("seed:../outside.txt", f"seed:{outside}",
+                   f"skill:{outside}", "seed:../../outside.txt",
+                   "seed:link.md"):
+        registry = {
+            "schema_version": 1,
+            "families": [{"id": "probe", "tier": "advisory", "module": module}],
+            "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+        }
+        proc = _run("--registry", str(_write_registry(tmp_path, registry)),
+                    "--root", str(root), "CODE-IMPLEMENTATION")
+        assert proc.returncode != 0, f"{module!r} was not refused:\n{proc.stdout}"
+        assert proc.stderr.startswith("select-policy-families:"), proc.stderr
+
+
+# --- Malformed shapes leave through the documented channel -------------------
+
+def test_non_object_registry_shapes_refuse_rather_than_traceback(tmp_path):
+    """Every refusal is a prefixed one-liner, never a stack trace."""
+    path = tmp_path / "policy-families.md"
+    for body in ("[1, 2, 3]", "null", '"a string"', "42",
+                 '{"schema_version": 1, "families": [1], "selection": {}}',
+                 '{"schema_version": 1, "families": [{"id": 1, "tier": "advisory",'
+                 ' "module": "seed:AGENTS.md"}], "selection": {}}',
+                 '{"schema_version": 1, "families": [{"id": "a", "tier": "advisory",'
+                 ' "module": 7}], "selection": {}}',
+                 '{"schema_version": 1, "families": [{"id": "a", "tier": "advisory",'
+                 ' "module": "seed:AGENTS.md"}], "selection": {"K": "not-a-list"}}'):
+        path.write_text(f"```json policy-registry.v1\n{body}\n```\n", encoding="utf-8")
+        proc = _run("--registry", str(path), "--root", str(REPO_ROOT), "K")
+        assert proc.returncode != 0, f"{body} was accepted"
+        assert proc.stderr.startswith("select-policy-families:"), (
+            f"{body} produced a traceback, not a refusal:\n{proc.stderr}")
+        assert "Traceback" not in proc.stderr
+
+
+def test_unterminated_fence_is_reported_as_such(tmp_path):
+    path = tmp_path / "policy-families.md"
+    path.write_text('```json policy-registry.v1\n{"schema_version": 1}\n',
+                    encoding="utf-8")
+    proc = _run("--registry", str(path), "--root", str(REPO_ROOT), "K")
+
+    assert proc.returncode != 0
+    # Assert the MESSAGE, not a substring of the whole stream. pytest derives
+    # tmp_path from the test's own name, so this file's path already contains
+    # "unterminated" — a bare `in proc.stderr` passes even when the selector
+    # reports something else entirely. Measured: it survived its own mutation.
+    message = proc.stderr.split("select-policy-families: ", 1)[1]
+    assert message.startswith("unterminated fenced block"), message
 
 
 # --- T6: the guide's coverage half --------------------------------------------

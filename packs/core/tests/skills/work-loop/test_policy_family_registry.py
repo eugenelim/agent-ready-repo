@@ -52,8 +52,13 @@ def test_selection_map_is_the_declared_mapping():
 
 def test_registry_carries_one_versioned_block_whose_tokens_agree():
     text = REGISTRY.read_text(encoding="utf-8")
-    tagged = re.findall(r"^```(json policy-registry\.v\d+)$", text, re.MULTILINE)
+    # AC1 says *exactly one fenced block*, not one registry-tagged block. Counting
+    # only tagged fences would leave a stray ```bash example green against a
+    # criterion it violates.
+    all_fences = re.findall(r"^```(.*)$", text, re.MULTILINE)
+    tagged = [f for f in all_fences if f.startswith("json policy-registry.")]
 
+    assert len(all_fences) == 2, f"expected one fence (open+close), saw {all_fences}"
     assert tagged == ["json policy-registry.v1"]
     assert _registry_block()["schema_version"] == 1
 

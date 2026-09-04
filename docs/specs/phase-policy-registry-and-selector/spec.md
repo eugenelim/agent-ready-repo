@@ -173,7 +173,11 @@ criterion bundling two algorithms is not one predicate.
       literal `select-policy-families:` to stderr, for each of these registry or
       argument states — an unknown selection key; a `families` array containing a
       duplicate `id`; a `selection` entry naming an `id` absent from `families`;
-      a selected family whose `module` resolves to no file under `--root`; a
+      a selected family whose `module` does not resolve to a regular file whose
+      canonical path stays under `--root` — covering an unresolvable target, a
+      `..`-bearing or absolute remainder, a symlink leaving the boundary, and a
+      hard link to an inode outside it, the last being canonically inside the
+      root and so invisible to a resolve-then-compare check; a
       `tier` that is neither `precise` nor `advisory`; a `module` whose namespace
       prefix is neither `skill:` nor `seed:`; a `selection` list repeating the
       same `id`; a fenced info string whose trailing token is not `v` followed by
@@ -238,6 +242,17 @@ criterion bundling two algorithms is not one predicate.
   § "Acceptance Criteria" → "Locator resolution" covers both by preferring the
   live file, and the difference between those two `seed:` candidates is what
   gives that order an oracle.
+- Technical: confinement is the repository's blessed helper, mirrored into the
+  skill's `scripts/` and loaded as a sibling — the pattern
+  `packs/core/.apm/skills/close-work/scripts/file_safety.py` already
+  establishes. A local canonicalize-then-prefix check was written first and
+  replaced: it missed hard links, the check-to-read swap window, Windows reparse
+  points, and a byte bound on the digest.
+- Technical: a `seed:` locator resolves against the repository root, so it can
+  name any confined file in the tree rather than only seed material. That reach
+  is deliberate — `the-razor` is root `AGENTS.md` — and is stated in the registry
+  reference so a reviewer reading a registry change knows what a locator can
+  reach.
 - Technical: `claude-code` projects skills to `.claude/skills/` and `codex` to
   `.agents/skills/` (`contracts/adapter.toml:188` and `:515`), and both roots are
   present here — but all three `skill:` candidates in this repository are

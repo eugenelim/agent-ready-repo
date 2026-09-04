@@ -106,5 +106,6 @@ state, so there is no FSM value to key on. It is a declared constant, and it is
 the only reserved token.
 
 **An empty result for a gate or terminal state is correct.** If a state that
-*should* teach something returns nothing, the `selection` map has been thinned —
-compare it against the registry suite's literal expectation.
+*should* teach something returns nothing, the `selection` map has been thinned.
+Compare the map against what you expect that phase to teach; an empty list is a
+deliberate answer only for the gate and terminal states listed above.

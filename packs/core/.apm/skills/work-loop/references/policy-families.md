@@ -18,23 +18,32 @@ block for the selector; the block is the authority and the only thing tests pin.
 | `tier` | `precise` or `advisory`. Only a `precise` family may block; an advisory family is taught and reported, never enforced. There is no intermediate tier. |
 | `module` | A **logical locator**, not a path: `skill:<name>/<relative-path>` or `seed:<relative-path>`. It names the file that *owns* the rule. |
 
-A locator rather than a path, because this registry ships to adopters. The same
-rule lives at `packs/core/.apm/skills/…` here and at `.claude/skills/…` or
-`.agents/skills/…` on an install, so a raw path would resolve nowhere for a real
-consumer. Resolution order is fixed by the spec, not by this file.
+A locator rather than a path, because the same rule sits at a different place in
+every install: a skill's files land under `.claude/skills/` or `.agents/skills/`
+depending on the adapter. A raw path would resolve nowhere for some consumer.
 
-`module` names the rule's **authoring owner**. Where a projection and its seed
-both exist, the seed is that owner — `.agents/rules/cognitive-load.md` is a
-generated copy of `packs/core/seeds/.agents/rules/cognitive-load.md`, so the
-locator is `seed:`-namespaced. Resolution deliberately reads whichever copy the
-acting agent would see, which is a separate question from ownership.
+**What a locator can reach.** A `seed:` locator resolves against the repository
+root, so it can name any file in the tree, not only seed material — `the-razor`
+is the root `AGENTS.md`. That reach is deliberate, and it is the reason a
+registry change deserves the same review as code: an entry naming a sensitive
+file would put that file's digest in the delivery record. Resolution refuses
+anything outside the root, including through a symlink or a hard link, so the
+reach stops at the tree boundary.
+
+`module` names the rule's **authoring owner** — the file a maintainer edits to
+change the rule. Where a generated copy and the file it was generated from both
+exist, the source is the owner. Resolution is a separate question: it reads
+whichever copy the acting agent would actually see, preferring an installed or
+repository-root copy over a build source, and it refuses any target that leaves
+the resolution root.
 
 ## What a selection key means
 
 The key is `engine-state.json.state` whenever a loop exists. Every legal FSM
 state has an entry; the state set is owned by
-[`scripts/loop-engine.py`](../scripts/loop-engine.py)'s transition tables, and a
-state added there without an entry here is a defect the registry suite catches.
+[`scripts/loop-engine.py`](../scripts/loop-engine.py)'s transition tables. Adding
+a state there without adding an entry here is a defect — the selector has no
+answer for that phase and refuses.
 
 `DIRECT-LIGHT` is the one reserved constant. The light path creates no engine
 state, so it has no FSM value to key on — the token is a declared constant, never
@@ -44,7 +53,8 @@ An empty list is a deliberate answer, not a gap. The human-gate and terminal
 states (`SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`,
 `CODE-HUMAN-GATE`, `DONE`) select nothing because no agent authors an artifact
 while the loop waits in them. Emptying any *other* key silently stops delivering
-policy, which is why the selection map is pinned as a literal.
+policy for that phase, so pin the map's expected contents in whatever test suite
+covers this registry rather than trusting a review to notice.
 
 ## The registry
 
