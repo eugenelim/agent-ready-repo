@@ -714,17 +714,34 @@ ships with fewer.
 
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | The failure-point rubric and the authoring instructions derived from it — **shipped early, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, consumed by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | **discharged out of order** — the gating below was not satisfied |
+| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, consumed by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | 6 | after A1 |
 | A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | 6 | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | 10 | **conditional** — after M, and only if the kill conditions above do not fire |
 
-### A1 shipped ahead of its gating, by owner instruction
+### A rubric candidate exists, and A1 stays open
 
-Owner instruction, 2026-09-04: build the rubric now. A1's Gating cell had named
-three upstreams — the activation report and the two policy briefs — and none had
-reported, so the slice was taken **out of order and without its Ready gate**.
-What that costs, recorded rather than glossed:
+Owner instruction, 2026-09-04: build the rubric now, track it, and **do not let
+it replace an existing slice**. So `new-spec` ships
+`references/spec-authoring-rubric.md` as a **measured candidate for A1's
+delivery mechanism, not as A1's discharge.** A1 remains an open slice, still
+gated on the activation report and the two policy briefs; nothing below should
+be read as satisfying that gating.
+
+**The open question the candidate does not settle.** A rubric delivered as a
+skill reference and read by the primary session is one of at least two ways to
+put these classes in front of an author. The other is a dispatched authoring
+agent that receives them cold, which
+[`spec-author-agent.md`](spec-author-agent.md) S1 owns and which is cheap to
+reach now that coding harnesses can invoke headless instances. **Which of the
+two produces better contracts is unmeasured**, and a rubric-ablation result
+cannot answer it, because ablating a reference measures the content while the
+comparison is about the delivery route. Settling it needs S1's envelope to
+exist. Until then the candidate is evidence about the classes, not a verdict
+about where they belong — and S1's scope is unchanged, including its non-goal of
+not changing review rubrics.
+
+What shipping early costs, recorded rather than glossed:
 
 - **The activation risk is unretired.** § "Assumptions / Risks" names shipping
   another unactivated rule as the most likely failure, and the withdrawal metric
@@ -733,12 +750,11 @@ What that costs, recorded rather than glossed:
 - **Categories 2, 4 and 5 shipped as prose, not as policy families.** The split
   in § "The rubric is a deliverable" routes them to a registry that does not
   exist yet. Nothing about the shipped file forecloses that; the registry's
-  owners inherit three families whose definitions are now fixed in adopter-facing
-  text.
-- **Two of A1's three surfaces exist; the guide does not.** The rubric and its
-  authoring instruction shipped together, as § "Slice relationships" requires.
-  `guides/core/reference/acceptance-criteria-authoring.md` remains owed, so an
-  adopter reads the rubric inside the skill and has no reference page for it.
+  owners inherit three families whose definitions are now fixed in
+  adopter-facing text.
+- **The guide does not exist.** `guides/core/reference/acceptance-criteria-authoring.md`
+  is still owed, so an adopter reads the rubric inside the skill and has no
+  reference page for it. A1 cannot close while that is true.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same single consumer, same
   precedent — § "A1 home" still governs.
