@@ -99,6 +99,31 @@
         "Accepts --refinement for either gate",
         "Performs no write"
       ]
+    },
+    {
+      "id": "distill-promotion-can-retire-topic",
+      "prompt": "Distill a pending observation into an existing active topic and retire that topic because its contract is now enforced. The semantic reviewer supplied the retirement reason, verified successor coverage, and successor topic keys.",
+      "expected_output": "The response selects distill mode, completes a guarded promoted mutation against the existing topic digest, and explicitly carries lifecycle retired plus the validated retirement record through the public distillation surface. The resulting topic and topic map remain coherent, the observation receives a promoted terminal disposition only after the topic and map are durable, and ordinary enquiry excludes the retired topic.",
+      "assertions": [
+        "Selects distill mode and uses the public distillation surface",
+        "Completes the promotion against the existing topic digest",
+        "Carries lifecycle retired and the validated retirement record into the topic",
+        "Keeps the topic map coherent with the retired lifecycle",
+        "Records promotion only after the topic and map are durable",
+        "Excludes the retired topic from ordinary enquiry"
+      ]
+    },
+    {
+      "id": "distill-update-accumulates-occurrences",
+      "prompt": "Distill a second accepted observation into an existing project-knowledge topic without losing the evidence occurrence already stored there.",
+      "expected_output": "The response selects distill mode, completes the guarded update from the exact existing topic bytes and digest, and appends one occurrence for the new capture while preserving prior occurrences in order. The applied mutation ID matches the new occurrence, recovery can resume from either the unchanged preimage or the verified postimage, and lifecycle plus retirement metadata remain unchanged unless the proposal explicitly changes them.",
+      "assertions": [
+        "Selects distill mode and completes a guarded update from the exact existing topic bytes and digest",
+        "Preserves existing occurrences in order and appends exactly one occurrence for the new capture",
+        "Uses the applied mutation ID on the appended occurrence",
+        "Allows recovery from the unchanged preimage or the semantically verified postimage",
+        "Preserves lifecycle and retirement metadata when the update does not explicitly change them"
+      ]
     }
   ]
 }

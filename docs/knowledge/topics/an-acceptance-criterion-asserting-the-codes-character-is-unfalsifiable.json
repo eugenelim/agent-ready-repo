@@ -1,0 +1,46 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-REVIEW",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-28T01:34:02Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-74fee13e19093c5b77df6e62d136685cafe9c3e0459869e573cbe58355b82909",
+      "mutation_id": "14b923ed8e29e9ffa33371a254f6df437dfaa0f2bad057c834a9662b6f65dac6",
+      "observed_at": "2026-08-28T01:34:02Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "docs/specs/thirty-day-cooling-and-retirement/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 22848,
+      "kind": "sha256-bytes-v1",
+      "sha256": "3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f"
+    },
+    "path": "docs/specs/thirty-day-cooling-and-retirement/spec.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A criterion that asserts a property of the code's character instead of naming an input and an observable gives a reviewer nothing to test. Phrasings like \"writability is a filesystem fact\", \"exclusion is structural\", \"the record is revalidated in full\", or \"no module reads the clock\" draw the correct reviewer answer \"names no mechanism\"; the author then adds prose, and that prose becomes the next round's surface. Measured on one spec-stage loop: round one produced 36 findings across two reviewers, and round two produced 43 more, of which 33 were caused by round one's own remedies. Write each criterion as: given this concrete input, this exact observable - a published refusal code, a field value, a byte comparison, or an enumerated symbol set over an enumerated path. Naming a refusal code in a criterion is an outcome, not leaked mechanism; the line is observable-versus-implementation, not detail-versus-prose. Rewriting on that rule cut median criterion length from 71 words to 38, removed every compound criterion, and independently covered four of the five blockers the next adjudication sustained.",
+    "kind": "antipattern"
+  },
+  "title": "An acceptance criterion asserting the code's character is unfalsifiable and compounds review churn",
+  "topic_key": "an-acceptance-criterion-asserting-the-codes-character-is-unfalsifiable"
+}

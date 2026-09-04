@@ -1492,7 +1492,11 @@ def _mutation_id(proposal: dict[str, Any]) -> str:
     return __import__("hashlib").sha256(_canonical_json_bytes(semantic)).hexdigest()
 
 
-def _topic_from_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
+def _topic_from_proposal(
+    proposal: dict[str, Any],
+    *,
+    existing_topic: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     mutation_id = _mutation_id(proposal)
     occurrence = {
         "capture_id": proposal["capture_id"],
@@ -1506,7 +1510,20 @@ def _topic_from_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
     }
     if "evidence_digest" in proposal["occurrence"]:
         occurrence["evidence_digest"] = proposal["occurrence"]["evidence_digest"]
-    return {
+    existing_occurrences = [] if existing_topic is None else existing_topic["occurrences"]
+    occurrences = [*copy.deepcopy(existing_occurrences), occurrence]
+    if len(occurrences) > budget_contract()["occurrences_per_topic"]:
+        _refuse("journal_capacity")
+    default_lifecycle = (
+        "active" if existing_topic is None else existing_topic["lifecycle"]
+    )
+    lifecycle = proposal.get("lifecycle", default_lifecycle)
+    freshness_state = {
+        "active": "fresh",
+        "needs_review": "review_required",
+        "retired": "retired",
+    }.get(lifecycle)
+    topic = {
         "schema_version": "knowledge-topic.v1",
         "topic_key": proposal["topic_key"],
         "title": proposal["title"],
@@ -1514,15 +1531,45 @@ def _topic_from_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
         "scopes": proposal["scopes"],
         "competency_facets": proposal["competency_facets"],
         "audience": "project",
-        "lifecycle": "active",
-        "freshness": {"state": "fresh", "checked_at": proposal["occurrence"]["observed_at"]},
+        "lifecycle": lifecycle,
+        "freshness": {
+            "state": freshness_state,
+            "checked_at": proposal["occurrence"]["observed_at"],
+        },
         "owning_source": proposal["owning_source"],
         "supporting_sources": proposal["supporting_sources"],
-        "occurrences": [occurrence],
+        "occurrences": occurrences,
     }
+    if "retirement" in proposal:
+        topic["retirement"] = copy.deepcopy(proposal["retirement"])
+    elif (
+        existing_topic is not None
+        and lifecycle == "retired"
+        and "retirement" in existing_topic
+    ):
+        topic["retirement"] = copy.deepcopy(existing_topic["retirement"])
+    return topic
 
 
-def complete_mutation_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
+def _topic_from_bytes(raw: bytes) -> dict[str, Any]:
+    if len(raw) > budget_contract()["topic_bytes"]:
+        _refuse("journal_capacity")
+    try:
+        parsed = json.loads(
+            raw.decode("utf-8", errors="strict"),
+            object_pairs_hook=PK._reject_duplicate_keys,
+            parse_constant=PK._reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        _refuse("strict_parse")
+    return validate_topic(parsed)
+
+
+def complete_mutation_proposal(
+    proposal: dict[str, Any],
+    *,
+    existing_topic_bytes: bytes | None = None,
+) -> dict[str, Any]:
     completed = copy.deepcopy(proposal)
     try:
         completed["scopes"] = _validate_scope_list(completed["scopes"])
@@ -1552,12 +1599,28 @@ def complete_mutation_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("invalid terminal disposition")
         _assert_persistable_metadata(terminal["reason_code"])
         _parse_time(terminal["recorded_at"])
+        expected_topic_digest = completed["expected_topic_digest"]
+        if expected_topic_digest is not None:
+            PK.parse_digest(expected_topic_digest)
     except PK.PrivacyRefusal:
         _refuse("privacy")
     except (KeyError, TypeError, ValueError):
         _refuse("strict_parse")
+    if expected_topic_digest is None:
+        if existing_topic_bytes is not None:
+            _refuse("postimage_mismatch")
+        existing_topic = None
+    else:
+        if (
+            not isinstance(existing_topic_bytes, bytes)
+            or PK.digest_bytes(existing_topic_bytes) != expected_topic_digest
+        ):
+            _refuse("postimage_mismatch")
+        existing_topic = _topic_from_bytes(existing_topic_bytes)
+        if "lifecycle" not in completed:
+            completed["lifecycle"] = existing_topic["lifecycle"]
     mutation_id = _mutation_id(completed)
-    topic = _topic_from_proposal(completed)
+    topic = _topic_from_proposal(completed, existing_topic=existing_topic)
     topic_postimage = _pretty_json_bytes(validate_topic(topic))
     completed["topic_postimage_digest"] = PK.digest_bytes(topic_postimage)
     proposal_preimage = _proposal_without_derived(completed | {"mutation_id": mutation_id})
@@ -1587,7 +1650,7 @@ def _validate_mutation_proposal(proposal: Any) -> dict[str, Any]:
         "topic_postimage_digest",
     }
     try:
-        PK._expect_keys(proposal, required, set())
+        PK._expect_keys(proposal, required, {"lifecycle", "retirement"})
         if proposal["schema_version"] != "knowledge-mutation-proposal.v1":
             raise ValueError("invalid proposal schema")
         _topic_relative_path(proposal["topic_key"])
@@ -1650,13 +1713,22 @@ def _validate_mutation_proposal(proposal: Any) -> dict[str, Any]:
         _parse_time(terminal["recorded_at"])
         if proposal["expected_topic_digest"] is not None:
             PK.parse_digest(proposal["expected_topic_digest"])
+        lifecycle = proposal.get("lifecycle", "active")
+        if lifecycle not in _TOPIC_LIFECYCLES:
+            raise ValueError("invalid lifecycle")
+        retirement_probe = {"lifecycle": lifecycle}
+        if "retirement" in proposal:
+            retirement_probe["retirement"] = copy.deepcopy(proposal["retirement"])
+        if lifecycle != "retired" or "retirement" in proposal:
+            _validate_retirement(retirement_probe)
         PK.parse_digest(proposal["proposal_digest"])
         PK.parse_digest(proposal["topic_postimage_digest"])
-        expected = complete_mutation_proposal(_proposal_without_derived(proposal))
-        if proposal["proposal_digest"] != expected["proposal_digest"]:
+        proposal_preimage = _proposal_without_derived(proposal)
+        expected_proposal_digest = PK.digest_bytes(
+            _canonical_json_bytes(proposal_preimage)
+        )
+        if proposal["proposal_digest"] != expected_proposal_digest:
             raise ValueError("invalid proposal digest")
-        if proposal["topic_postimage_digest"] != expected["topic_postimage_digest"]:
-            raise ValueError("invalid topic postimage digest")
     except PK.PrivacyRefusal:
         _refuse("privacy")
     except ValueError:
@@ -1664,9 +1736,18 @@ def _validate_mutation_proposal(proposal: Any) -> dict[str, Any]:
     return proposal
 
 
-def _ensure_expected_precondition(repo_root: Path | str, proposal: dict[str, Any]) -> None:
+def _ensure_expected_precondition(
+    repo_root: Path | str,
+    proposal: dict[str, Any],
+    *,
+    existing_topic_bytes: bytes | None = None,
+) -> None:
     expected = proposal["expected_topic_digest"]
-    current = topic_digest_for_key(repo_root, proposal["topic_key"])
+    current = (
+        None
+        if existing_topic_bytes is None
+        else PK.digest_bytes(existing_topic_bytes)
+    )
     if expected != current:
         _refuse("postimage_mismatch")
 
@@ -1762,15 +1843,27 @@ def _apply_guarded_mutation_body(
     *,
     interrupt_after: str | None = None,
 ) -> dict[str, Any]:
-    topic = _topic_from_proposal(validated)
     _assert_v1_writer_allowed(repo_root)
     _partition, _capture, existing_disposition = _find_capture(
         repo_root, validated["capture_id"]
     )
     if existing_disposition is not None:
         _refuse("postimage_mismatch")
-    _ensure_expected_precondition(repo_root, validated)
-    topic_path = topic_path_for_key(repo_root, topic["topic_key"])
+    topic_path = topic_path_for_key(repo_root, validated["topic_key"])
+    existing_topic_bytes = _read_regular_file_bounded(
+        topic_path,
+        budget_contract()["topic_bytes"],
+        missing_ok=True,
+    )
+    _ensure_expected_precondition(
+        repo_root,
+        validated,
+        existing_topic_bytes=existing_topic_bytes,
+    )
+    existing_topic = (
+        None if existing_topic_bytes is None else _topic_from_bytes(existing_topic_bytes)
+    )
+    topic = _topic_from_proposal(validated, existing_topic=existing_topic)
     topic_postimage = _pretty_json_bytes(validate_topic(topic))
     if PK.digest_bytes(topic_postimage) != validated["topic_postimage_digest"]:
         _refuse("postimage_mismatch")
@@ -1787,7 +1880,7 @@ def _apply_guarded_mutation_body(
     if interrupt_after == "disposition":
         _refuse("postimage_mismatch")
     return {
-        "mutation_id": topic["occurrences"][0]["mutation_id"],
+        "mutation_id": _mutation_id(validated),
         "topic_digest": PK.digest_bytes(topic_postimage),
         "map_digest": PK.digest_bytes(map_bytes),
     }
@@ -1813,9 +1906,7 @@ def apply_guarded_mutation(
 def recover_guarded_mutation(repo_root: Path | str, proposal: dict[str, Any]) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     validated = _validate_mutation_proposal(copy.deepcopy(proposal))
-    topic = _topic_from_proposal(validated)
-    topic_path = topic_path_for_key(repo_root, topic["topic_key"])
-    expected_topic = _pretty_json_bytes(validate_topic(topic))
+    topic_path = topic_path_for_key(repo_root, validated["topic_key"])
     with hold_writer_lock(repo_root):
         _assert_committed_v1_activation(repo_root)
         _partition, _capture, existing_disposition = _find_capture(
@@ -1838,16 +1929,49 @@ def recover_guarded_mutation(repo_root: Path | str, proposal: dict[str, Any]) ->
             topic_path,
             budget_contract()["topic_bytes"],
         )
-        if actual_topic != expected_topic:
-            _refuse("postimage_mismatch")
-        if PK.digest_bytes(expected_topic) != validated["topic_postimage_digest"]:
+        actual_digest = PK.digest_bytes(actual_topic)
+        if actual_digest == validated["topic_postimage_digest"]:
+            _verify_topic_postimage(actual_topic, validated)
+        elif actual_digest == validated["expected_topic_digest"]:
+            if existing_disposition is not None:
+                _refuse("postimage_mismatch")
+            return _apply_guarded_mutation_body(repo_root, validated) | {
+                "promoted_implies_topic_and_map": True
+            }
+        else:
             _refuse("postimage_mismatch")
         map_bytes = _rebuild_topic_map_unlocked(repo_root)
         parsed_map = json.loads(map_bytes.decode("utf-8"))
-        if not any(entry["topic_key"] == topic["topic_key"] for entry in parsed_map["entries"]):
+        if not any(
+            entry["topic_key"] == validated["topic_key"]
+            for entry in parsed_map["entries"]
+        ):
             _refuse("map_mismatch")
         _write_disposition(repo_root, validated)
     return {"promoted_implies_topic_and_map": True}
+
+
+def _verify_topic_postimage(
+    actual_topic: bytes,
+    validated: dict[str, Any],
+) -> None:
+    """Require the pinned topic bytes to carry the proposal's occurrence."""
+    if PK.digest_bytes(actual_topic) != validated["topic_postimage_digest"]:
+        _refuse("postimage_mismatch")
+    topic = _topic_from_bytes(actual_topic)
+    if "lifecycle" in validated and topic["lifecycle"] != validated["lifecycle"]:
+        _refuse("postimage_mismatch")
+    if (
+        "retirement" in validated
+        and topic.get("retirement") != validated["retirement"]
+    ):
+        _refuse("postimage_mismatch")
+    occurrence = topic["occurrences"][-1]
+    if (
+        occurrence["capture_id"] != validated["capture_id"]
+        or occurrence["mutation_id"] != _mutation_id(validated)
+    ):
+        _refuse("postimage_mismatch")
 
 
 def _verify_promoted_state(
@@ -1859,18 +1983,15 @@ def _verify_promoted_state(
     terminal = validated["terminal_disposition"]
     if any(disposition[key] != terminal[key] for key in terminal):
         _refuse("postimage_mismatch")
-    topic = _topic_from_proposal(validated)
-    expected = _pretty_json_bytes(validate_topic(topic))
-    path = topic_path_for_key(repo_root, topic["topic_key"])
+    path = topic_path_for_key(repo_root, validated["topic_key"])
     actual_topic = _read_regular_file_bounded(
         path,
         budget_contract()["topic_bytes"],
         missing_ok=True,
     )
-    if actual_topic != expected:
+    if actual_topic is None:
         _refuse("postimage_mismatch")
-    if PK.digest_bytes(expected) != validated["topic_postimage_digest"]:
-        _refuse("postimage_mismatch")
+    _verify_topic_postimage(actual_topic, validated)
     map_path = _map_path(repo_root)
     expected_map = rebuild_map_bytes(knowledge_root(repo_root), repository_root=repo_root)
     actual_map = _read_regular_file_bounded(
