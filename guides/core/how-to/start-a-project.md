@@ -13,6 +13,10 @@ kind: how-to
 
 You have been given access to a repo that uses `workspace.toml`. This guide walks you through confirming the setup, getting oriented, and picking up your first piece of work.
 
+```text
+Show me the workspace status and help me choose my first ready work item.
+```
+
 For the greenfield case — starting a brand-new project from scratch — see [From idea to a walking skeleton](../tutorials/start-a-new-project.md). For an end-to-end walkthrough of a complete workspace session, see [Your first workspace session](../tutorials/your-first-workspace.md).
 
 ## Prerequisites
@@ -87,6 +91,12 @@ use the work-loop skill to implement docs/specs/<slug>/
 ```
 
 The skill reads the spec, orients to the plan, and begins the plan → execute → gates → review loop. For the full how-to, see [How to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md).
+
+## What you have now
+
+You have identified a ready spec in the current initiative and started its
+`work-loop` path. If the queue is blocked, preserve the blocker as the next
+action rather than bypassing lifecycle state.
 
 ## Related
 

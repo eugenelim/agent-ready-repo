@@ -17,6 +17,12 @@ kind: how-to
 
 You have a raw product idea and you want a ratified, build-ready decision brief — without skipping the thinking. Install the `product-engineering` pack, then:
 
+```text
+Run a discovery for a household assistant that drafts meal plans and vendor tasks for approval.
+```
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
+
 ## The one-prompt form (recommended start)
 
 You do **not** need to break the idea into pieces up front. Name it and ask `discovery-lead` to scaffold it:
@@ -62,3 +68,8 @@ If you already have a BRD / PRD / SRS, **seed the loop with it** rather than sta
 ## When it hands off
 
 At **G3** the brief decomposes into an ordered, dependency-aware backlog (parked sub-ideas carried as first-class entries); `loop-cohort` orders it; `work-loop` pulls one item at a time. The brief carries a **required success-metrics / North-Star slot** — it cannot reach G3 without a done-criterion the build loop can iterate against.
+
+## What you have now
+
+- A ratified decision brief with a validated spine, ordered backlog, and validation plan after the required consent gates.
+- At G3, hand the approved delivery item to `work-loop`; unresolved validation remains visible rather than silently accepted.

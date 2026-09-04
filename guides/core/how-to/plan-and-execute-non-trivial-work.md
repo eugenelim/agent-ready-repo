@@ -13,13 +13,17 @@ kind: how-to
 
 You have a feature to build, a refactor to drive, a migration to run — anything past a one-line edit. This guide walks the path from "I'm about to start" through "the PR is green and the reviewer is clean", using the two skills that drive it: `new-spec` and `work-loop`.
 
+```text
+Use the new spec skill to design webhook retries, then use work-loop to implement it.
+```
+
 For the *why* behind this discipline, read [the core pack as a system](../explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.
 
 ## Prerequisites
 
 - The `core` pack installed in your target repo.
 - A working directory where you can edit, commit, and run gates (lint / typecheck / test).
-- Familiarity with the four mandatory spec sections (Objective, Boundaries, Testing Strategy, Acceptance Criteria) — see [`docs/CONVENTIONS.md`](../../../CONVENTIONS.md).
+- Familiarity with the four mandatory spec sections (Objective, Boundaries, Testing Strategy, Acceptance Criteria) — see [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md).
 
 ## Pick your entry point
 
@@ -143,6 +147,21 @@ For the end-to-end narrative with the parts in context, read [core-pack.md § Ho
 
 If any of these fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.
 
+## What you have now
+
+This how-to has two exits, and they end in different places.
+
+**If you stopped after PLAN** — you have an approved spec and plan at
+`docs/specs/<feature>/`, both carrying your explicit approval. Nothing has been
+implemented. Start `work-loop` when you are ready, or return to the spec when
+the intended outcome changes.
+
+**If you ran the loop through** — you have the change implemented against that
+spec, every mechanical gate green, the adversarial reviewer and any triggered
+security or quality reviewer reporting clean, findings resolved or explicitly
+dispositioned, the spec marked `Shipped` and the plan `Done`, and a
+merge-ready PR. The merge decision is yours; the loop does not take it.
+
 ## Variations
 
 ### Resume an in-flight spec
@@ -198,7 +217,7 @@ For bug-shaped work that crosses multiple files, see [how to fix a bug](bug-fix.
 ## Related
 
 - [The core pack as a system](../explanation/core-pack.md) — why the loop exists and how the parts compose.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
+- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
 - [`new-spec` skill](../../../packs/core/.apm/skills/new-spec/SKILL.md) — authoritative procedure for the planning skill.
 - [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
 - [How to fix a bug](bug-fix.md) — `bug-fix` is the entry point for bug-shaped work.

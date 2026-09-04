@@ -81,6 +81,24 @@ as explicit decisions.
 
 When the doc captures discrete decisions — a technology choice, a structural commitment, an interface contract — `architect-design` ends by flagging them as ADR-worthy. Capture them with your ADR skill.
 
+## Register the artifact
+
+After the architecture artifact exists, register it in `workspace.toml` so a
+downstream brief or spec can name it as a hard dependency:
+
+```toml
+{ path = "docs/product/design/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
+```
+
+Then add the artifact to the downstream work's `needs` array. That work remains
+blocked until the design artifact lands:
+
+```toml
+needs = [
+  { type = "local", kind = "design", path = "docs/product/design/payment-routing.md" },
+]
+```
+
 ## Verify
 
 You have a usable architecture concept when:
@@ -89,6 +107,12 @@ You have a usable architecture concept when:
 - Every quality attribute names why it ranks where it does.
 - The key tradeoff is a genuine decision, not a foregone conclusion dressed as one.
 - Someone who wasn't in the room could say what's being built and what's still open.
+
+## What you have now
+
+You have either an adequate prior design or an agreed Stage-0 concept that
+names the decision and its key trade-off. Register the resulting design before
+downstream work declares it as a required dependency.
 
 ## See also
 

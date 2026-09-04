@@ -17,6 +17,10 @@ here is what we promise to keep stable. It is a convention, not a skill — you
 write it once in a design doc or ADR, reference it in code comments, and verify
 it via the `architect-review` rubric.
 
+```text
+Define an extension contract for the payment-provider plugin hook.
+```
+
 ## When you need one
 
 An extension contract is warranted when a component ships an intentional
@@ -87,3 +91,9 @@ An extension contract is often recorded in an ADR when the decision to expose
 the hook is itself an architectural choice. The ADR records *why* the hook
 exists and what alternatives were considered; the contract document (linked
 from the ADR) records *what* the adopter must satisfy.
+
+## What you have now
+
+You have a contract that names the extension point, its stable shape, its
+boundaries, and its verification method. Link it from the governing design or
+ADR, then keep it current whenever the supported extension changes.

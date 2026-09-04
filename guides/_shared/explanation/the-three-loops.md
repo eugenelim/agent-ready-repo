@@ -81,7 +81,7 @@ then goes through plan, execute, gate, review, and decide.
 - **Progressive disclosure.** The security checklist pulls only the depth relevant to the boundaries a change crosses — current without bloating the prompt. Depth is added on demand per security boundary type (auth, secrets, user input, deserialization, file I/O, LLM code).
 - **Capture what was learned.** Gaps in project conventions discovered during a run land as proposed `CONVENTIONS.md` edits — mistakes become the project's memory instead of evaporating between sessions.
 
-**No human gates in the loop itself** — only at escalation exits: Blockers surface to the human; the agent routes Concerns and Nits by whether they're mechanical.
+**Two human approvals in full mode, and one at the exit.** Full mode runs the G-plan sequence: you approve the spec, then you approve the plan, before any implementation write. The merge decision at the end is yours too. Direct-light mode persists no spec and so has no approval pair. Beyond those gates the loop is autonomous: blockers surface to the human, and the agent routes concerns and nits by whether they're mechanical.
 
 → [Core pack guide](../../core/) · [The `core` pack as a system](../../core/explanation/core-pack.md)
 

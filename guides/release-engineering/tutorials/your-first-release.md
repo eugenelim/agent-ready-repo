@@ -15,6 +15,10 @@ This tutorial walks you through a complete release cycle from end to end — fro
 
 We'll follow a concrete scenario: a small team just finished a work-loop run that ships a new `/payments/refund` API endpoint and a related database migration. `core` is installed, tests are green, the adversarial review says `Clean`. Now it's time to get it to production.
 
+```text
+Run the release loop for the payment refund endpoint deployment.
+```
+
 **What you'll learn:**
 - What the release loop does at each stage
 - How to read the release-readiness record
@@ -172,6 +176,13 @@ The ephemeral environment is torn down. The release is done.
 - **G5 is always yours** — no flag, mode, or configuration removes it.
 
 ---
+
+## What you have now
+
+You have a ratified production release and its release-readiness record, with
+the payment refund endpoint and migration verified through the release loop.
+Use the how-to for the next deploy-ready artifact, and keep any release notes
+from this record visible to the operating team.
 
 ## Next steps
 

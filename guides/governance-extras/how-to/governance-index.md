@@ -16,6 +16,10 @@ decision domain to the ADR(s) and standard file(s) that bind it. An agent
 (or a new team member) reads the index first and loads only the 2–3 files it
 points to, rather than scanning the whole resolved decision-record surface.
 
+```text
+Use the new-adr skill to write an ADR for adding a governance index.
+```
+
 The convention is tool-neutral — it works for any governed repo, not just
 Terraform/IaC work. The `generate-iac` skill reads it at Stage 0 when the
 `iac-terraform` pack is installed; the `governance-extras` pack ships the
@@ -105,3 +109,9 @@ The governance index is the *consumer* of `new-adr`'s output — it references
 ADR numbers, never ADR content. The index is authored once (or updated as the
 architecture evolves); individual ADRs are authored by `new-adr` for each new
 decision. See [how to record a decision](new-adr.md).
+
+## What you have now
+
+You have a governance index at the resolved decision-record destination, or at
+the confirmed fallback `docs/governance-index.yaml`. Keep its ADR references
+current as decisions are accepted or superseded.
