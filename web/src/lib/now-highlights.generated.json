@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.0"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.0] — 2026-09-04",
+      "changelogAnchor": "core2250--2026-09-04",
+      "highlights": [
+        {
+          "source": "**A work-loop phase now decides which behavioural rules an authoring agent is taught.** A registry inside the `work-loop` skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A work-loop phase now decides which behavioural rules an authoring agent is taught."
+            },
+            {
+              "type": "text",
+              "value": " A registry inside the "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.24.3"
         }
       ],

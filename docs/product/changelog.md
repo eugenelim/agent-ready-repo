@@ -54,6 +54,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.0] — 2026-09-04
+
+### Highlights
+
+- **A work-loop phase now decides which behavioural rules an authoring agent is taught.** A registry inside the `work-loop` skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it.
+
+### Added
+
+- `references/policy-families.md` — five policy families, two `precise` and three `advisory`, and a selection map covering every legal work-loop phase plus the reserved `DIRECT-LIGHT` key for the light path, which records no phase of its own.
+- `scripts/select-policy-families.py` — prints one delivery record for a phase, and refuses before delivering anything when the registry is malformed: an unknown phase, a duplicate or unknown family, a module that is unresolvable, wrongly namespaced, or resolves outside the resolution root, a bad tier, or a version pair that disagrees.
+- `guides/core/reference/phase-scoped-policy-delivery.md` — how to declare a family, how to choose its tier, and how to read a refusal.
+
+### Notes
+
+- A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
+- The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
 
 ## [core][2.24.4] — 2026-09-04
 
