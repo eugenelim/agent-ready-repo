@@ -40,11 +40,13 @@ emits a per-policy verdict.
 - **Compliance:** for precise families only, a parse-level predicate over the
   produced artifact. Stylistic families never block.
 
-**Two authoring agents, one machinery.** Every agent in the roster is a reviewer
-or adjudicator except `implementer`, and **no spec-authoring agent exists in any
-pack** — spec authoring is a skill running in the primary session. So neither
-authoring phase has a dispatch envelope, while review time has agents and does
-receive inlined modules. The shape needs a `spec-author` agent keyed to the
+**Two authoring agents, one machinery.** Every agent in the roster is a
+reviewer, adjudicator, retriever, or lead except `implementer`, and **no
+spec-authoring agent exists in any
+pack** — spec authoring is a skill running in the primary session. So spec
+authoring has no dispatch envelope, while review time has agents and does
+receive inlined modules, and implementation gained one in U1. The shape needs a
+`spec-author` agent keyed to the
 `SPEC-PLAN-*` phases alongside `implementer` keyed to execution, carrying
 different policy sets over the same delivery and enforcement path.
 
@@ -166,17 +168,43 @@ or not at all.** A stylistic family may be advisory; it may not block.
 
 What would have to be true:
 
-- a sequential dispatch envelope exists at implementation time, which today it
-  does not;
+- a sequential dispatch envelope exists at implementation time — **delivered by
+  U1** for the spec-backed plan-task population;
 - the selected module demonstrably reaches the acting agent, which nothing
   currently records or checks;
 - the resulting behaviour is measurable, which needs an eval on a
   non-Claude adapter as well as claude-code.
 
-**Kill condition (predeclared 2026-09-03).** Kill if, once every task routes
-through the implementer, an eval of the sequential path shows **no improvement
-in policy adherence over the current inline path** at a pre-registered effect
-size, on either tested adapter.
+**Kill condition (predeclared 2026-09-03; population narrowed 2026-09-03).**
+Kill if, once every **spec-backed plan task** routes through the implementer
+once, an eval of the sequential path shows **no improvement in policy adherence
+over the current inline path** at a pre-registered effect size, on either
+tested adapter.
+
+The antecedent originally read "once every task routes through the
+implementer". It was narrowed to the spec-backed plan-task population on
+2026-09-03, discharging the amendment
+[`universal-implementer-dispatch.md`](../briefs/universal-implementer-dispatch.md)
+§ "Proposed slices" recorded as owed upward to this intent. **This is a
+scoping, not a weakening:** "every task" was never reachable, for two reasons
+that are owner decisions rather than delivery gaps.
+
+- Direct-light implementation stays inline by owner decision. U2 dispatches a
+  policy *verdict*, never a build, because dispatching direct-light
+  implementation would trip the **Multi-person** risk trigger at
+  `packs/core/.apm/skills/work-loop/SKILL.md` lines 73-74 and force full mode
+  (line 70: "Risk triggers — any one routes the work to full mode"),
+  contradicting the light path's purpose.
+- Repair rounds re-entering `CODE-IMPLEMENTATION` also stay inline. Three of
+  the four re-entry edges in
+  `packs/core/.apm/skills/work-loop/scripts/loop-engine.py` —
+  `gates-failed`, `findings-remain`, and `blocker-applied` — carry repair
+  rather than a plan task and do not dispatch.
+
+The effect size, the comparison, and the two-adapter requirement are
+unchanged; only the population is narrowed, and it is narrowed to what the
+delivered mechanism actually covers rather than to what the result turned out
+to be.
 
 **This intent owns that comparison; it does not borrow the sibling's.** The two
 ablations vary different factors and must not be conflated:
@@ -193,8 +221,9 @@ validation_hook:
     than the current inline path
   kill_condition: no improvement at a pre-registered effect size on either
     tested adapter
-  activity: run the paired eval across claude-code and codex once universal
-    dispatch lands
+  activity: run the paired eval across claude-code and codex once every
+    spec-backed plan task routes through the implementer, which U1 delivered;
+    U2 and U3 are not prerequisites for this eval
 ```
 
 Verdict: **pending**, and it is now an eval rather than a bespoke probe. Desk
@@ -203,8 +232,9 @@ grounding is not validation, so this hook stays `to-validate`.
 ## Where the lifecycle holds, and where it breaks
 
 Traced against the work-loop FSM as the artifacts are written. **Policy
-delivery works only at the review phases, because those are the only phases
-with a dispatched agent.**
+delivery works at the review phases and, since U1, at `EXECUTE` for the
+spec-backed plan-task population — those are the phases with a dispatched
+agent. Drafting and routing are the remaining breaks.**
 
 | Phase | Acting surface | Envelope | Policy delivery | Enforcement |
 | --- | --- | --- | --- | --- |
@@ -212,57 +242,86 @@ with a dispatched agent.**
 | `SPEC-PLAN-DRAFTING` | `new-spec` skill, primary session | **none** | **blocked on capability 2** | pre-EXECUTE reviewers |
 | `SPEC-PLAN-REVIEW` | reviewer agents | yes | works today | adjudication, `review-artifact.py` |
 | `SPEC-PLAN-APPROVED` | human gate | n/a | n/a | `approve-plan` status guard |
-| `EXECUTE`, code mode | inline in `work-loop` | **none**, implementer dormant | **blocked on capability 1** | gates |
+| `EXECUTE`, code mode, spec-backed plan task | dispatched `implementer` | yes, since U1 | works today | gates |
+| `EXECUTE`, code mode, direct-light or repair | inline in `work-loop` | **none** by owner decision | **out of the dispatch population** | gates |
 | gates | scripts | n/a, no model | n/a | deterministic, works today |
 | post-gates review | reviewer agents | yes | works today | adjudication |
 | closeout | `close-work` | n/a | n/a | `lint-spec-status`, coverage lint |
 
-Three breaks, each with a named owner: routing has no agent and is the hardest
-case, since it precedes every dispatch; spec authoring needs capability 2;
-implementation needs capability 1. **Nothing else in the chain is missing** —
-the review phases already deliver and enforce, and the gate and closeout phases
-need no model.
+Two breaks remain, each with a named owner: routing has no agent and is the
+hardest case, since it precedes every dispatch; spec authoring needs
+capability 2. Implementation's break is closed for the spec-backed plan-task
+population — capability 1's U1 shipped that envelope — and the remaining
+inline cases are owner decisions rather than gaps, as § "De-risk" records.
+**Nothing else in the chain is missing** — the review phases already deliver
+and enforce, and the gate and closeout phases need no model.
 
-**Nothing under this intent is dispatchable yet.** None of the five capabilities
-has a brief, so the intent → brief → confirmed slice → spec path has not been
-walked. That is the expected state after framing and de-risking, and it is
-recorded so a reader does not mistake the decomposition for delivery.
+**One capability is partly delivered, and two further slices are unblocked.**
+All five capabilities now have briefs —
+[`universal-implementer-dispatch`](../briefs/universal-implementer-dispatch.md),
+[`spec-author-agent`](../briefs/spec-author-agent.md),
+[`phase-scoped-policy-delivery`](../briefs/phase-scoped-policy-delivery.md),
+[`policy-arrival-validator`](../briefs/policy-arrival-validator.md), and
+[`multi-adapter-eval-runner`](../briefs/multi-adapter-eval-runner.md) — and the
+intent → brief → confirmed slice → spec path has been walked once, by
+capability 1. Its U1 slice is **shipped**:
+[`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)
+carries `Status: Shipped`, merged in `d7cf1b741`. That brief is `Executing`;
+every other capability brief is `Draft`.
+
+Two slices are unblocked right now: `spec-author-agent`'s S1, whose envelope
+gate U1 discharged, and `phase-scoped-policy-delivery`'s D1, which gates on
+nothing.
 
 ## Decomposition
 
-The capability level beneath this intent, none confirmed. **The order is set by
-what unblocks what**, not by dependency alone.
+The capability level beneath this intent. Capability 1 is confirmed and has one
+shipped slice; the rest are unconfirmed. **The order is set by what unblocks
+what**, not by dependency alone.
 
 1. `universal-implementer-dispatch` — **the enabler, and unconditional.** Route
-   every plan task through the implementer agent sequentially rather than only
-   on the parallel path, and move implementation logic out of `work-loop`'s
-   `SKILL.md`.
+   every spec-backed plan task through the implementer agent sequentially
+   rather than only on the parallel path, and move implementation logic out of
+   `work-loop`'s `SKILL.md`.
 
-   Three measured reasons:
+   **Status: U1 shipped 2026-09-03** in `d7cf1b741`
+   ([`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)),
+   delivering the dispatch envelope. U3 (extraction) and U2 (direct-light
+   verdict dispatch) remain unshipped; U2 is unconfirmed.
 
-   - **Implementation has no dispatch envelope today.** The implementer runs
-     only "when a plan has multiple tasks declaring `Depends on: none`"
-     (`packs/core/.apm/agents/implementer.md:3`), and that path is **disabled**
-     — `dispatch-decision`, the `worktree` verbs and `auto-parallel` exit
-     non-zero (`work-loop/references/supervisor-mode.md:3`). Sequential work
-     runs inside the skill, so there is no brief to inline a module into, and
-     **the two existing inlining precedents — `cloud-implementation-craft` and
-     `operational-safety` — therefore sit on a dormant path.**
-   - **It needs no Phase-2 decision.** Sequential dispatch is one task at a
-     time with no concurrency and no worktree merge, so it requires neither the
+   The three reasons this ranked first, and what U1 changed:
+
+   - **Implementation had no dispatch envelope.** The implementer ran only on
+     the parallel path, which is disabled — `dispatch-decision`, the `worktree`
+     verbs and `auto-parallel` exit non-zero
+     (`work-loop/references/supervisor-mode.md:3`, still current). Sequential
+     work ran inside the skill, so there was no brief to inline a module into,
+     and the two inlining precedents — `cloud-implementation-craft` and
+     `operational-safety` — sat on a dormant path. **U1 closed this:**
+     `work-loop/SKILL.md` now declares sequential dispatch, and craft reaches
+     the agent inlined in its brief.
+   - **It needed no Phase-2 decision.** Sequential dispatch is one task at a
+     time with no concurrency and no worktree merge, so it required neither the
      absent `pending_transition` schema nor the collision gate. ADR-0061 is
      Frozen and deferred *parallel-wave* orchestration; it does not bear on
      single-agent dispatch.
-   - **It relieves a live constraint.** `work-loop/SKILL.md` is 832 lines
-     against `CAT-S003`'s warn-at-500 and error-at-1000.
+   - **It relieves a live constraint.** `work-loop/SKILL.md` remains above
+     `CAT-S003`'s warn tier. Measure the current body count with
+     `agentbundle catalogue lint --root . --deep` rather than reading a figure
+     here — the count moves with every edit, and `CAT-S003` governs body lines,
+     not total lines.
 
-   Bounded contract change: `implementer.md:48` assumes the supervisor created
-   `.worktrees/<task-id>/`, so sequential dispatch must admit the main tree.
+   The bounded contract change this named — `implementer.md` assumed the
+   supervisor had created `.worktrees/<task-id>/` — **is delivered**: the
+   contract now names the primary working tree and an already-created worktree
+   as the two roots the controller supplies.
 
 2. `spec-author-agent` — the missing authoring agent. Core ships six agents and
    five are reviewers or adjudicators; the sixth is `implementer`. Spec
-   authoring runs as a skill in the primary session, so the `SPEC-PLAN-*`
-   phases have no dispatch envelope either. This capability gives spec
+   authoring runs as a skill in the primary session, so `SPEC-PLAN-DRAFTING` is
+   the only *authoring* phase with no dispatch envelope — `SPEC-PLAN-REVIEW`
+   has one, and routing plus the by-decision inline `EXECUTE` cases remain as
+   § "Where the lifecycle holds" records them. This capability gives spec
    authoring a dispatched agent so authoring-time policy has somewhere to
    arrive, reusing the same delivery and enforcement path as the implementer
    rather than a parallel one.

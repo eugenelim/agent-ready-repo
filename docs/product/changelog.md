@@ -54,6 +54,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+
+## [core][2.24.4] — 2026-09-04
+
+### Added
+
+- `shaping-reviewer` now checks a named set of recurring authoring defects in every mode, as a `Check | Tell | Fix shape` table. It covers an obligation authored where an owner already exists, a criterion that cannot fail, a criterion that decays, a numeric bound with no measurement origin, refusals with no valid input that must succeed, a set copied from an authoritative source, and exact detail that changes no decision.
+- Each mode gained a readiness question the previous presence checks could not answer: whether an author could actually produce the artifact below it — a narrower intent, a spec for each confirmed slice, or a design that satisfies every criterion.
+
+### Changed
+
+- `delivery-brief` mode now checks altitude, asking of each section whether it decides something or names something for the spec to decide. The modes either side of it checked altitude and brief review did not, so a brief carrying spec-level content drew correctness findings and never the one finding that mattered.
+- An ownership finding now outranks criterion craft. The reviewer reports it alone and stops reviewing that section, and the stated repair is to move the text to its owning artifact rather than shorten or narrow it.
+- A spec is no longer faulted for leaving the implementation change DAG to its plan.
 ## [core][2.24.3] — 2026-09-04
 
 ### Highlights
