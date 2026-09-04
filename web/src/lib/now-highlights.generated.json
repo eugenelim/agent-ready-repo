@@ -13,36 +13,113 @@
       "changelogAnchor": "core2251--2026-09-04",
       "highlights": [
         {
-          "source": "**A durable owner accepting an artifact now survives the session that recorded it.** The lifecycle record carries `Reclassified`, so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against.",
+          "source": "When a `work-loop` task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory.",
           "segments": [
             {
-              "type": "strong",
-              "value": "A durable owner accepting an artifact now survives the session that recorded it."
-            },
-            {
               "type": "text",
-              "value": " The lifecycle record carries "
+              "value": "When a "
             },
             {
               "type": "code",
-              "value": "Reclassified"
+              "value": "work-loop"
             },
             {
               "type": "text",
-              "value": ", so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against."
+              "value": " task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory."
             }
           ]
         },
         {
-          "source": "**It is reached deliberately and only once.** Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event.",
+          "source": "Without that pack installed, `work-loop` records `knowledge provider unavailable` and completes the same planning work it did before.",
           "segments": [
             {
-              "type": "strong",
-              "value": "It is reached deliberately and only once."
+              "type": "text",
+              "value": "Without that pack installed, "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
             },
             {
               "type": "text",
-              "value": " Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event."
+              "value": " records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and completes the same planning work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.6"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[architect][0.15.6] — 2026-09-04",
+      "changelogAnchor": "architect0156--2026-09-04",
+      "highlights": [
+        {
+          "source": "When an `architect-design` task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "When an "
+            },
+            {
+              "type": "code",
+              "value": "architect-design"
+            },
+            {
+              "type": "text",
+              "value": " task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used."
+            }
+          ]
+        },
+        {
+          "source": "Without that pack installed, the procedure records `knowledge provider unavailable` and produces the same design work it did before.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Without that pack installed, the procedure records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and produces the same design work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agent-skill-engineering",
+          "version": "0.4.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[agent-skill-engineering][0.4.1] — 2026-09-04",
+      "changelogAnchor": "agent-skill-engineering041--2026-09-04",
+      "highlights": [
+        {
+          "source": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture."
             }
           ]
         }

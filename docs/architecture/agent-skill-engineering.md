@@ -273,6 +273,21 @@ source's retrieval date rather than from a verification date an author can
 advance. Claude Code rolls up `complete-current` with three probe-backed
 `verified` rows and four `experimental` ones.
 
+The consumer half now exists. `work-loop` and `architect-design` each carry a
+bounded step that inlines its own request to the capability exposing
+`agent-skill-engineering-reference/v1`, addressed by contract version rather
+than by the owning pack's product name, installation path, or generated router
+path. `work-loop` sends `skill-authoring` and `skill-eval-ci`;
+`architect-design` sends `agent-extension-design` and `skill-eval-ci`. Each step
+states its request literally, bounds the call to one query with no refinement,
+forbids locating the provider's implementation, and records `knowledge provider
+unavailable` when no candidate is eligible, completing its pre-existing baseline
+either way. Both packs declare the seam as a `handoff` whose fallback repeats
+that diagnostic verbatim. The seam's seven-value diagnostic vocabulary reaches
+an installed surface for the first time: six of the seven previously appeared in
+no file under `packs/*/.apm/`, so a consumer quoting the conformance fixture
+would have quoted literals an adopter never receives.
+
 This document stays **PLANNED**. Seven runtime profiles — Codex, GitHub Copilot,
 Cursor, Kiro IDE, Kiro CLI, Gemini CLI and Google Antigravity — are not
 implemented, and neither is the router's per-claim state and roll-up reporting:
