@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,8 @@ from agentbundle.direct_install import (
     select_collection_skills,
 )
 from agentbundle.direct_source import admit_direct_source
+
+from tests._direct_acquisition import GitHttpsAcquisitionFake
 
 
 def _write_skill(path: Path, name: str, *, description: str | None = None) -> None:
@@ -819,6 +822,245 @@ def test_an_adopter_edit_to_an_owned_file_is_refused(tmp_path: Path, capsys):
     assert run_direct_install(_direct_args(source, target), source) == 1
     assert "no install put its content there" in "".join(capsys.readouterr())
     assert "locally edited" in installed.read_text()
+
+
+def test_same_remote_identity_at_a_different_ref_names_upgrade(
+    tmp_path: Path, tmp_path_factory, capsys, monkeypatch
+) -> None:
+    """A revision change is an upgrade refusal, not a source collision."""
+
+    from agentbundle.direct_install import run_direct_install
+    fake = GitHttpsAcquisitionFake(monkeypatch, tmp_path_factory.mktemp("direct-acquisition"))
+    first = "git+https://github.com/example/alpha@release-1"
+    second = "git+https://github.com/example/alpha@release-2"
+    fake.publish("example/alpha", "release-1", _alpha_collection(tmp_path / "first"))
+    fake.publish(
+        "example/alpha",
+        "release-2",
+        _alpha_collection(tmp_path / "second", body="next revision"),
+    )
+    target = tmp_path / "target ; root"
+    target.mkdir()
+
+    assert run_direct_install(_direct_args(first, target), first) == 0
+    capsys.readouterr()
+
+    assert run_direct_install(_direct_args(second, target, dry_run=True), second) == 1
+    dry_run_printed = capsys.readouterr().err
+    assert "CAT-D022" in dry_run_printed
+
+    assert run_direct_install(_direct_args(second, target), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D022" in printed
+    recovery_line = next(line for line in printed.splitlines() if line.startswith("  → Run "))
+    suffix = " to move the installed skill to this ref."
+    assert recovery_line.endswith(suffix)
+    command = recovery_line.removeprefix("  → Run ").removesuffix(suffix)
+    assert shlex.split(command) == [
+        "agentbundle",
+        "upgrade",
+        "--skill",
+        "alpha",
+        "--source",
+        second,
+        "--root",
+        str(target),
+        "--scope",
+        "repo",
+        "--adapter",
+        "claude-code",
+        "--yes",
+    ]
+    assert "original" in (
+        target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    ).read_text()
+
+
+def test_direct_pack_at_a_different_ref_remains_a_source_collision(
+    tmp_path: Path, tmp_path_factory, capsys, monkeypatch
+) -> None:
+    """A direct pack has no supported skill upgrade remediation."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    fake = GitHttpsAcquisitionFake(monkeypatch, tmp_path_factory.mktemp("direct-acquisition"))
+    first_tree = _alpha_collection(tmp_path / "first-pack")
+    second_tree = _alpha_collection(tmp_path / "second-pack", body="next revision")
+    manifest = 'schema = 1\n[pack]\nname = "alpha-pack"\nversion = "1.0.0"\n'
+    (first_tree / "pack.toml").write_text(manifest)
+    (second_tree / "pack.toml").write_text(manifest)
+    first = "git+https://github.com/example/alpha-pack@release-1"
+    second = "git+https://github.com/example/alpha-pack@release-2"
+    fake.publish("example/alpha-pack", "release-1", first_tree)
+    fake.publish("example/alpha-pack", "release-2", second_tree)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_direct_args(first, target, skill=None), first) == 0
+    capsys.readouterr()
+
+    assert run_direct_install(_direct_args(second, target, skill=None), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+def test_ref_less_stored_remote_source_remains_a_source_collision(
+    tmp_path: Path, tmp_path_factory, capsys, monkeypatch
+) -> None:
+    """Malformed stored provenance does not receive an unusable upgrade route."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    fake = GitHttpsAcquisitionFake(monkeypatch, tmp_path_factory.mktemp("direct-acquisition"))
+    first = "git+https://github.com/example/alpha@release-1"
+    second = "git+https://github.com/example/alpha@release-2"
+    fake.publish("example/alpha", "release-1", _alpha_collection(tmp_path / "first"))
+    fake.publish("example/alpha", "release-2", _alpha_collection(tmp_path / "second"))
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_direct_args(first, target), first) == 0
+    capsys.readouterr()
+    state_file = target / ".agentbundle-state.toml"
+    before = state_file.read_text()
+    after = before.replace(first, "git+https://github.com/example/alpha")
+    assert after != before, "the fixture did not remove the stored ref"
+    state_file.write_text(after)
+
+    assert run_direct_install(_direct_args(second, target), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+def test_local_at_sign_is_not_treated_as_a_remote_ref(tmp_path: Path, capsys) -> None:
+    """Only a git+https source strips its trailing ref for identity."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    first = _alpha_collection(tmp_path / "source@release-1")
+    second = _alpha_collection(tmp_path / "source@release-2", body="other source")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_direct_args(first, target), first) == 0
+    capsys.readouterr()
+
+    assert run_direct_install(_direct_args(second, target), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    (
+        (
+            "git+https://github.com/Owner/Repo.git@release-1",
+            "git+https://github.com/Owner/Repo@release-1",
+        ),
+        (
+            "git+https://github.com/Owner/Repo@release-1",
+            "git+https://github.com/owner/repo@release-1",
+        ),
+    ),
+)
+def test_remote_repository_spelling_is_compared_as_stored(
+    tmp_path: Path, tmp_path_factory, capsys, monkeypatch, first: str, second: str
+) -> None:
+    """Repository case and a .git suffix remain identity-bearing bytes."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    fake = GitHttpsAcquisitionFake(monkeypatch, tmp_path_factory.mktemp("direct-acquisition"))
+    tree = _alpha_collection(tmp_path / "source")
+    fake.publish("Owner/Repo", "release-1", tree)
+    fake.publish("owner/repo", "release-1", tree)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_direct_args(first, target), first) == 0
+    capsys.readouterr()
+
+    assert run_direct_install(_direct_args(second, target), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+def test_moved_source_path_is_a_collision(tmp_path: Path, capsys) -> None:
+    """A skill moved within one source is a different direct identity."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "source")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    state_file = target / ".agentbundle-state.toml"
+    before = state_file.read_text()
+    after = before.replace(
+        'source-path = "skills/alpha"', 'source-path = "skills/topic/alpha"'
+    )
+    assert after != before, "the fixture did not move the stored source path"
+    state_file.write_text(after)
+
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+def test_source_kind_is_part_of_the_collision_identity(tmp_path: Path, capsys) -> None:
+    """A persisted row with another direct kind cannot claim this candidate."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    source = _alpha_collection(tmp_path / "source")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(source, target), source) == 0
+    capsys.readouterr()
+
+    state_file = target / ".agentbundle-state.toml"
+    before = state_file.read_text()
+    after = before.replace('source-kind = "skill"', 'source-kind = "pack"')
+    assert after != before, "the fixture did not change the stored source kind"
+    state_file.write_text(after)
+
+    assert run_direct_install(_direct_args(source, target), source) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "CAT-D022" not in printed
+
+
+def test_force_does_not_resolve_a_direct_source_collision(tmp_path: Path, capsys) -> None:
+    """The catalogue route's force flag cannot choose a direct identity."""
+
+    from agentbundle.direct_install import run_direct_install
+
+    first = _alpha_collection(tmp_path / "first")
+    second = _alpha_collection(tmp_path / "second", body="other source")
+    target = tmp_path / "target"
+    target.mkdir()
+    assert run_direct_install(_direct_args(first, target), first) == 0
+    capsys.readouterr()
+
+    assert (
+        run_direct_install(_direct_args(second, target, force=True, dry_run=True), second)
+        == 1
+    )
+    assert "CAT-D009" in capsys.readouterr().err
+
+    assert run_direct_install(_direct_args(second, target, force=True), second) == 1
+    printed = capsys.readouterr().err
+    assert "CAT-D009" in printed
+    assert "other source" not in (
+        target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    ).read_text()
 
 
 def test_a_jail_refusal_mid_projection_lists_what_it_left_behind(

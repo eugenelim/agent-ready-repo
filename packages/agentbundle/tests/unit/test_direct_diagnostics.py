@@ -282,6 +282,9 @@ def _emitted_codes(tmp_path) -> set[str]:
     import agentbundle.direct_source_acquisition as acquisition
     from agentbundle.direct_install import (
         DirectInstallError,
+        Selection,
+        _refuse_foreign_owner,
+        run_direct_install,
         sanitise_publisher_value,
         select_collection_skills,
     )
@@ -443,6 +446,43 @@ def _emitted_codes(tmp_path) -> set[str]:
         )
     )
     _record(lambda: sanitise_publisher_value("aㅤb", "description", source="s"))
+
+    # --- installed identity at another ref ---------------------------------
+    ref_root = tmp_path / "different-ref"
+    ref_skill = _skill(ref_root / "skills" / "alpha", "alpha")
+    ref_target = tmp_path / "different-ref-target"
+    ref_target.mkdir()
+
+    class _Args:
+        catalogue = str(ref_root)
+        output = str(ref_target)
+        pack = profile = scope = adapter = None
+        skill = ["alpha"]
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert run_direct_install(_Args(), ref_root) == 0
+    state_file = ref_target / ".agentbundle-state.toml"
+    state_before = state_file.read_text()
+    first_ref = "git+https://github.com/example/alpha@release-1"
+    state_after = state_before.replace(f'source = "{ref_root}"', f'source = "{first_ref}"')
+    assert state_after != state_before
+    state_file.write_text(state_after)
+    ref_classification = direct_source.admit_direct_source(ref_root)
+    ref_selection = Selection(ref_classification.skills, explicit=True)
+    second_ref = "git+https://github.com/example/alpha@release-2"
+    _record(
+        lambda: _refuse_foreign_owner(
+            ref_target,
+            ref_selection,
+            ref_classification,
+            ".claude/skills",
+            "repo",
+            "claude-code",
+            second_ref,
+            [(".claude/skills/alpha/SKILL.md", (ref_skill / "SKILL.md").read_bytes())],
+        )
+    )
     return emitted
 
 

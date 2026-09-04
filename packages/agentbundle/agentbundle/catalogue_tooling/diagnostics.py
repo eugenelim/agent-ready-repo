@@ -73,6 +73,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D017 = "CAT-D017"   # AC33 budget: total bytes
     CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
     CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
+    CAT_D022 = "CAT-D022"   # installed manifestless identity requested at a different ref
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -102,6 +103,7 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D017,
         DiagnosticCode.CAT_D018,
         DiagnosticCode.CAT_D019,
+        DiagnosticCode.CAT_D022,
     }
 )
 

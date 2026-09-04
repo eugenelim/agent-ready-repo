@@ -36,6 +36,7 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D017` | Total bytes |
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
 | `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
+| `CAT-D022` | An installed direct identity was requested from the same source at a different ref; use `upgrade --skill <name> --source <source>` |
 
 ## Reading a refusal
 

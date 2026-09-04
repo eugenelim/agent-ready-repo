@@ -767,30 +767,6 @@ def _summarise_and_project(
     # away from the person consenting.
     print(render_admissibility_summary(blocks, source=source_string), file=sys.stderr)
 
-    if getattr(args, "dry_run", False):
-        # AC25: a preview writes nothing at all, and says which files it would
-        # have written so the reader can check before consenting.
-        print("\nwould install (dry run — nothing written):")
-        for skill in selection.skills:
-            for measured in skill.files:
-                relative = measured.path.relative_to(skill.envelope)
-                print(f"  {skill_target}/{skill.name}/{escape_path_value(relative)}")
-        return 0
-
-    if not getattr(args, "yes", False) and not sys.stdin.isatty():
-        print(
-            "install: refusing to install a direct source without confirmation. "
-            "Re-run with --yes for non-interactive use; the summary above is "
-            "printed either way.",
-            file=sys.stderr,
-        )
-        return 1
-    if not getattr(args, "yes", False):
-        answer = input("\nInstall these skills? [y/N] ").strip().lower()
-        if answer not in {"y", "yes"}:
-            print("install: cancelled; nothing was written.")
-            return 1
-
     # Every destination is validated BEFORE the first write. `write_jailed`
     # checks each name as it goes, so a publisher-chosen payload name that fails
     # — `nul.md`, say — aborted the loop midway and left the files already
@@ -807,8 +783,37 @@ def _summarise_and_project(
             planned.append((relpath, measured.data))
 
     _refuse_foreign_owner(
-        projection_root, selection, skill_target, scope, adapter, source_string, planned
+        projection_root,
+        selection,
+        classification,
+        skill_target,
+        scope,
+        adapter,
+        source_string,
+        planned,
     )
+
+    if getattr(args, "dry_run", False):
+        # AC25: a preview writes nothing at all, and says which files it would
+        # have written so the reader can check before consenting.
+        print("\nwould install (dry run — nothing written):")
+        for relpath, _projected_bytes in planned:
+            print(f"  {escape_path_value(relpath)}")
+        return 0
+
+    if not getattr(args, "yes", False) and not sys.stdin.isatty():
+        print(
+            "install: refusing to install a direct source without confirmation. "
+            "Re-run with --yes for non-interactive use; the summary above is "
+            "printed either way.",
+            file=sys.stderr,
+        )
+        return 1
+    if not getattr(args, "yes", False):
+        answer = input("\nInstall these skills? [y/N] ").strip().lower()
+        if answer not in {"y", "yes"}:
+            print("install: cancelled; nothing was written.")
+            return 1
 
     written: dict[str, bytes] = {}
     try:
@@ -938,12 +943,8 @@ def _record_direct_rows(
                 for relpath, payload in written.items()
                 if tuple(PurePosixPath(relpath).parts[: len(owned)]) == owned
             }
-            if classification.shape == "direct-pack":
-                kind, relative = "pack", None
-            else:
-                kind = "skill"
-                relative = skill.envelope.relative_to(classification.root).as_posix()
             stored_source = stored_source_for(source_string, scope, target_root)
+            kind, relative = _candidate_source_coordinates(classification, skill)
             provenance = build_provenance(
                 source=stored_source,
                 source_revision=revision,
@@ -1009,6 +1010,37 @@ def stored_source_for(source_string: str, scope: str, root: Path) -> str:
         return source_string
 
 
+def _direct_identity(
+    source_kind: str | None, source: str | None, source_path: str | None
+) -> tuple[str | None, str | None, str | None]:
+    """Return the direct collision identity without normalising stored bytes."""
+
+    remote = _split_git_https_ref(source)
+    identity_source = remote[0] if remote is not None else source
+    return source_kind, identity_source, source_path
+
+
+def _split_git_https_ref(source: str | None) -> tuple[str, str] | None:
+    """Return a git+https repository and its non-empty trailing ref."""
+
+    if source is None or not source.startswith("git+https://"):
+        return None
+    repository, separator, ref = source.rpartition("@")
+    if not separator or not ref:
+        return None
+    return repository, ref
+
+
+def _candidate_source_coordinates(
+    classification: DirectClassification, skill: DirectSkill
+) -> tuple[str, str | None]:
+    """Return the source kind and path shared by preflight and state writes."""
+
+    if classification.shape == "direct-pack":
+        return "pack", None
+    return "skill", skill.envelope.relative_to(classification.root).as_posix()
+
+
 def _report_unowned(written: dict[str, bytes]) -> None:
     """Name every file that is live on disk and owned by no state row.
 
@@ -1067,6 +1099,7 @@ def _destination_holds_foreign_content(
 def _refuse_foreign_owner(
     projection_root: Path,
     selection: Selection,
+    classification: DirectClassification,
     skill_target: str,
     scope: str,
     adapter: str,
@@ -1110,10 +1143,20 @@ def _refuse_foreign_owner(
         existing = state.row(skill.name, adapter)
         if existing is None:
             continue
-        same_source = (
-            existing.source_kind in {"pack", "skill"} and existing.source == stored
+        candidate_kind, candidate_path = _candidate_source_coordinates(classification, skill)
+        candidate_identity = _direct_identity(candidate_kind, stored, candidate_path)
+        existing_identity = _direct_identity(
+            existing.source_kind, existing.source, existing.source_path
         )
-        if not same_source:
+        source_changed = existing.source != stored
+        upgradeable_ref_change = (
+            candidate_kind == "skill"
+            and _split_git_https_ref(existing.source) is not None
+            and _split_git_https_ref(stored) is not None
+        )
+        if existing_identity != candidate_identity or (
+            source_changed and not upgradeable_ref_change
+        ):
             raise _refuse(
                 DiagnosticCode.CAT_D009,
                 f"{skill.name!r} is already installed at {scope} scope for "
@@ -1124,6 +1167,29 @@ def _refuse_foreign_owner(
                     "do not collide. Overwriting would orphan the files the "
                     "existing row owns."
                 ),
+            )
+        if source_changed:
+            command = recovery_command(
+                "agentbundle",
+                "upgrade",
+                "--skill",
+                skill.name,
+                "--source",
+                source_string,
+                "--root",
+                str(projection_root),
+                "--scope",
+                scope,
+                "--adapter",
+                adapter,
+                "--yes",
+            )
+            raise _refuse(
+                DiagnosticCode.CAT_D022,
+                f"{skill.name!r} is already installed from this source at "
+                "a different ref",
+                path=source_string,
+                remediation=f"Run {command} to move the installed skill to this ref.",
             )
 
     # Per DESTINATION, not per skill name. `State.owners_of` is the blessed
