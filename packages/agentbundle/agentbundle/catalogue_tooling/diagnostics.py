@@ -61,7 +61,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D005 = "CAT-D005"   # AC5: interpreter runtime floor below the supported minor
     CAT_D006 = "CAT-D006"   # AC5: acquisition inactivity or download limit breached
     CAT_D007 = "CAT-D007"   # AC6: archive member refused by the extraction filter or link policy
-    CAT_D008 = "CAT-D008"   # AC20: remote noninteractive install or upgrade missing `--yes`
+    CAT_D008 = "CAT-D008"   # noninteractive install or upgrade missing `--yes`
     CAT_D009 = "CAT-D009"   # AC27/AC34: measured-path integrity (link-like, reparse, wrong type)
     CAT_D010 = "CAT-D010"   # AC31: source untraversable or changed during admission
     CAT_D011 = "CAT-D011"   # AC11/AC31: invalid direct identity (slug grammar or length)
@@ -74,6 +74,9 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
     CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
     CAT_D022 = "CAT-D022"   # installed manifestless identity requested at a different ref
+    CAT_D023 = "CAT-D023"   # standalone skill upgrade cannot select a usable row
+    CAT_D024 = "CAT-D024"   # standalone skill upgrade needs scope disambiguation
+    CAT_D025 = "CAT-D025"   # standalone skill upgrade needs adapter disambiguation
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -104,6 +107,9 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D018,
         DiagnosticCode.CAT_D019,
         DiagnosticCode.CAT_D022,
+        DiagnosticCode.CAT_D023,
+        DiagnosticCode.CAT_D024,
+        DiagnosticCode.CAT_D025,
     }
 )
 

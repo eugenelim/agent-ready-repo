@@ -60,6 +60,16 @@ def _parse(argv: list[str]) -> tuple[int | None, str]:
     return None, buf.getvalue()
 
 
+def _invoke(argv: list[str]) -> tuple[int, str]:
+    """Invoke the CLI and capture parser or handler refusals."""
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        try:
+            return cli.main(argv), buf.getvalue()
+        except SystemExit as exc:
+            return int(exc.code), buf.getvalue()
+
+
 # ---------------------------------------------------------------------------
 # --scope is accepted on the install-scope subcommands
 # ---------------------------------------------------------------------------
@@ -191,3 +201,74 @@ def test_upgrade_primitive_flags_mutually_exclusive():
     )
     assert rc != 0, "two primitive flags should be mutually exclusive"
     assert "not allowed with argument" in err or "mutually exclusive" in err
+
+
+def test_upgrade_without_selector_is_argparse_error():
+    rc, err = _invoke(["upgrade"])
+    assert rc == 2
+    assert "usage: agentbundle upgrade" in err
+    assert "CAT-D" not in err
+    assert "one of --pack, --all, or standalone --skill is required" in err
+
+
+@pytest.mark.parametrize("flag", ["agent", "hook", "seed", "command"])
+def test_non_skill_primitive_still_requires_pack(flag):
+    rc, err = _invoke(["upgrade", f"--{flag}", "example"])
+    assert rc == 2
+    assert "usage: agentbundle upgrade" in err
+    assert "CAT-D" not in err
+    assert "one of --pack, --all, or standalone --skill is required" in err
+
+
+def test_direct_skill_rejects_catalogue_as_argparse_error():
+    rc, err = _invoke(["upgrade", "--skill", "example", "/fake/catalogue"])
+    assert rc == 2
+    assert "usage: agentbundle upgrade" in err
+    assert "CAT-D" not in err
+    assert "a catalogue cannot be used with standalone --skill" in err
+
+
+@pytest.mark.parametrize("flag", ["skill", "agent", "hook", "seed", "command"])
+def test_all_and_primitive_selector_are_argparse_error(flag):
+    rc, err = _invoke(
+        ["upgrade", "--all", f"--{flag}", "example", "--scope", "repo"]
+    )
+    assert rc == 2
+    assert "usage: agentbundle upgrade" in err
+    assert "CAT-D" not in err
+    assert "--all cannot be combined with a primitive selector" in err
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["upgrade", "--source", "replacement"],
+        ["upgrade", "--pack", "example", "--source", "replacement"],
+        ["upgrade", "--all", "--scope", "repo", "--source", "replacement"],
+    ],
+)
+def test_source_without_standalone_skill_is_argparse_error(argv):
+    rc, err = _invoke(argv)
+    assert rc == 2
+    assert "usage: agentbundle upgrade" in err
+    assert "CAT-D" not in err
+    assert "--source requires standalone --skill" in err
+
+
+def test_source_parses_with_standalone_skill():
+    args = cli._build_parser().parse_args(
+        ["upgrade", "--skill", "example", "--source", "replacement"]
+    )
+    assert args.source == "replacement"
+
+
+def test_local_scope_remains_argparse_error():
+    for argv in (
+        ["upgrade", "--skill", "example", "--scope", "local"],
+        ["upgrade", "--pack", "example", "--scope", "local"],
+    ):
+        rc, err = _invoke(argv)
+        assert rc == 2
+        assert "usage: agentbundle upgrade" in err
+        assert "CAT-D" not in err
+        assert "argument --scope: invalid choice: 'local'" in err

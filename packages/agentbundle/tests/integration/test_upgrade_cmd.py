@@ -10,10 +10,13 @@ Coverage:
 
 from __future__ import annotations
 
+import hashlib
 import types
 from pathlib import Path
 
 import pytest
+
+from tests._direct_acquisition import GitHttpsAcquisitionFake
 
 # Fixture catalogue directories.
 FIXTURE_ROOT = Path(__file__).parent.parent / "fixtures" / "upgrade"
@@ -83,6 +86,271 @@ def _run_install(pack: str, catalogue: str, output: str) -> int:
 def _install_v1(root: Path) -> int:
     """Helper: install core 0.1.0 into root."""
     return _run_install("core", str(CAT_V1), str(root))
+
+
+def _write_direct_skill(source: Path, body: str = "# first\n") -> Path:
+    skill = source / "skills" / "example"
+    skill.mkdir(parents=True, exist_ok=True)
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n" + body)
+    return skill
+
+
+def _install_direct(
+    source: Path | str,
+    target: Path,
+    *,
+    scope: str = "repo",
+    adapter: str = "claude-code",
+) -> int:
+    from agentbundle import cli
+
+    return cli.main(
+        [
+            "install",
+            str(source),
+            "--skill",
+            "example",
+            "--scope",
+            scope,
+            "--adapter",
+            adapter,
+            "--output",
+            str(target),
+            "--yes",
+        ]
+    )
+
+
+def _upgrade_direct(target: Path, *extra: str) -> int:
+    from agentbundle import cli
+
+    return cli.main(
+        ["upgrade", "--skill", "example", "--root", str(target), *extra]
+    )
+
+
+def _tree_digests(root: Path) -> dict[str, bytes]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).digest()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+
+
+def test_direct_skill_requires_matching_installed_row(tmp_path, capsys):
+    assert _upgrade_direct(tmp_path) == 1
+    captured = capsys.readouterr()
+    assert "CAT-D023" in captured.err
+    assert "is not installed at repo or user scope" in captured.err
+    assert _tree_digests(tmp_path) == {}
+
+
+def test_direct_skill_scope_ambiguity_names_scope_flag(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    assert _install_direct(source, target, scope="user") == 0
+    capsys.readouterr()
+    target_before = _tree_digests(target)
+    user_root = Path.home()
+    user_before = _tree_digests(user_root)
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D024" in refusal.err
+    assert "--scope repo" in refusal.err
+    assert _tree_digests(target) == target_before
+    assert _tree_digests(user_root) == user_before
+    assert _upgrade_direct(target, "--scope", "repo") == 0
+
+
+def test_direct_skill_adapter_ambiguity_names_adapter_flag(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    for adapter in ("claude-code", "codex", "kiro"):
+        assert _install_direct(source, target, adapter=adapter) == 0
+    capsys.readouterr()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D025" in refusal.err
+    assert "--adapter codex" in refusal.err
+    assert _tree_digests(target) == before
+    assert _upgrade_direct(target, "--adapter", "codex") == 0
+
+
+def _write_state_kind(target: Path, source_kind: str | None) -> None:
+    from agentbundle.config import PackState, State, dump_state
+
+    target.mkdir(parents=True, exist_ok=True)
+    state = State(
+        packs={
+            ("example", "claude-code"): PackState(
+                installed_version="0.0.0+agentbundle.manifestless",
+                source="/publisher/example",
+                source_kind=source_kind,
+                source_path="skills/example" if source_kind == "skill" else None,
+                source_digest="sha256-1:" + "0" * 64,
+            )
+        }
+    )
+    (target / ".agentbundle-state.toml").write_text(dump_state(state))
+
+
+def test_direct_skill_refuses_direct_pack_row_without_command(tmp_path, capsys):
+    _write_state_kind(tmp_path, "pack")
+    before = _tree_digests(tmp_path)
+    assert _upgrade_direct(tmp_path) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D023" in refusal.err
+    assert "directly installed pack" in refusal.err
+    assert "agentbundle " not in refusal.err
+    assert _tree_digests(tmp_path) == before
+
+
+def test_direct_skill_refuses_catalogue_row_without_command(tmp_path, capsys):
+    _write_state_kind(tmp_path, None)
+    before = _tree_digests(tmp_path)
+    assert _upgrade_direct(tmp_path) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D023" in refusal.err
+    assert "catalogue pack" in refusal.err
+    assert "agentbundle " not in refusal.err
+    assert _tree_digests(tmp_path) == before
+
+
+def test_direct_skill_json_refusal_uses_route_wording(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target, "--format", "json") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D023" in refusal.err
+    assert "not supported for standalone --skill" in refusal.err
+    assert "not yet supported with --pack" not in refusal.err
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_upgrade_succeeds(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    storage = tmp_path_factory.mktemp("direct-upgrade-acquisition")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    skill = _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    acquisition.publish("example/skills", "release", source_tree)
+    assert _upgrade_direct(target, "--yes") == 0
+    assert (target / ".claude/skills/example/SKILL.md").read_text().endswith(
+        "# second\n"
+    )
+    assert hashlib.sha256(state_path.read_bytes()).digest() != state_before
+
+
+def test_remote_direct_skill_requires_yes_before_acquisition(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    storage = tmp_path_factory.mktemp("direct-upgrade-consent")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    acquisition.calls.clear()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D008" in refusal.err
+    assert "requires --yes before acquisition" in refusal.err
+    assert acquisition.calls == []
+    assert _tree_digests(target) == before
+
+
+def test_local_direct_skill_requires_yes_before_replacement(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D008" in refusal.err
+    assert "refusing to upgrade a standalone skill without confirmation" in refusal.err
+    assert "install: refusing to install" not in refusal.err
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_no_update_reports_stdout(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target) == 0
+    captured = capsys.readouterr()
+    assert "No update available for example." in captured.out
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_no_update_still_refuses_adopter_edit(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    projection = target / ".claude/skills/example/SKILL.md"
+    projection.write_text("# adopter edit\n")
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D009" in refusal.err
+    assert "No update available" not in refusal.out
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_dry_run_prints_plan_without_mutation(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    state_path = target / ".agentbundle-state.toml"
+    projection = target / ".claude/skills/example/SKILL.md"
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+    projection_before = hashlib.sha256(projection.read_bytes()).digest()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+
+    assert _upgrade_direct(target, "--dry-run") == 0
+    captured = capsys.readouterr()
+    assert "would install (dry run" in captured.out
+    assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
+    assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
 
 
 # ---------------------------------------------------------------------------

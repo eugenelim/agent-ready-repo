@@ -137,9 +137,10 @@ def test_all_and_pack_mutually_exclusive():
         _parse_args(["upgrade", "--all", "--pack", "core"])
 
 
-def test_all_or_pack_required():
-    with pytest.raises(SystemExit):
-        _parse_args(["upgrade"])
+def test_upgrade_selector_required_through_argparse_error():
+    with pytest.raises(SystemExit) as raised:
+        cli_module.main(["upgrade"])
+    assert raised.value.code == 2
 
 
 def test_scope_not_required_by_argparse_for_pack():

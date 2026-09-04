@@ -584,8 +584,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "upgrade",
         help="Upgrade a pack or a single primitive within a pack.",
     )
-    # --pack and --all are mutually exclusive; exactly one is required.
-    mode_group = sp.add_mutually_exclusive_group(required=True)
+    # --pack and --all are mutually exclusive. The handler also admits a
+    # standalone --skill and reports the remaining missing-mode cases through
+    # this subparser's argparse error path.
+    mode_group = sp.add_mutually_exclusive_group(required=False)
     mode_group.add_argument(
         "--pack",
         help="Upgrade a single named pack (whole-pack or per-primitive).",
@@ -612,6 +614,10 @@ def _build_parser() -> argparse.ArgumentParser:
     prim_group.add_argument("--hook")
     prim_group.add_argument("--seed")
     prim_group.add_argument("--command")
+    sp.add_argument(
+        "--source",
+        help="Accepted only with a standalone --skill selection.",
+    )
     sp.add_argument(
         "catalogue",
         nargs="?",
@@ -663,7 +669,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Exits 0 on a successful preview, even with Tier-2 collisions present."
         ),
     )
-    sp.set_defaults(func=_lazy("upgrade"))
+    sp.set_defaults(func=_lazy("upgrade"), _subparser=sp)
 
     # --- uninstall --- (--scope disambiguator)
     sp = subparsers.add_parser(

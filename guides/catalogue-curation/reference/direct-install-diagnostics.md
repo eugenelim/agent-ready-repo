@@ -24,7 +24,7 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D005` | Interpreter runtime floor below the supported minor |
 | `CAT-D006` | Transport failure during acquisition: a download or inactivity limit, a non-2xx HTTP status, a malformed seam between acquisition stages, or a certificate that could not be verified even after the system-trust retry |
 | `CAT-D007` | Archive member refused by the extraction filter or link policy |
-| `CAT-D008` | Collection selection missing, unknown, duplicated, or applied to a direct pack; or a remote noninteractive install or upgrade missing `--yes` |
+| `CAT-D008` | Collection selection missing, unknown, duplicated, or applied to a direct pack; a remote noninteractive install missing `--yes`; or a standalone noninteractive upgrade missing `--yes` |
 | `CAT-D009` | Measured-path integrity (link-like, reparse, wrong type) |
 | `CAT-D010` | Source untraversable or changed during admission |
 | `CAT-D011` | Invalid direct identity (slug grammar or length) |
@@ -37,6 +37,9 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
 | `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
 | `CAT-D022` | An installed direct identity was requested from the same source at a different ref; use `upgrade --skill <name> --source <source>` |
+| `CAT-D023` | A standalone skill upgrade could not read required state, select a usable installed manifestless row, obtain its recorded source, or use the requested output form |
+| `CAT-D024` | A standalone skill upgrade matched more than one scope; pass `--scope repo` or `--scope user` |
+| `CAT-D025` | A standalone skill upgrade matched more than one adapter; pass `--adapter <adapter>` |
 
 ## Reading a refusal
 
@@ -58,4 +61,3 @@ admitted; only a greater value refuses.
 An integrity refusal is never reported as a budget breach: a symlink inside
 a skill folder is a link, not an oversized one, and it carries its own code
 and the path it was found at.
-

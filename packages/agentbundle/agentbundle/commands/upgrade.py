@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import sys
+import types
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -40,11 +41,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
+    from agentbundle.config import PackState
     from agentbundle.https_catalogue import CatalogueArchiveResult
     from agentbundle.user_config import UserConfig
 
 from agentbundle import safety
 from agentbundle.catalogue import CatalogueError, resolve_catalogue
+from agentbundle.catalogue_tooling.diagnostics import (
+    DiagnosticCode,
+    make_direct_diagnostic,
+)
+from agentbundle.catalogue_tooling.results import Severity
 from agentbundle.commands._common import (
     _major,
     check_spec_version_gate,
@@ -58,6 +65,7 @@ from agentbundle.commands._common import (
 from agentbundle.commands.list_installed import _version_key
 from agentbundle.config import (
     ConfigError,
+    State,
     canonicalize_source,
     dump_state,
     load_pack_toml,
@@ -76,6 +84,257 @@ _PRIMITIVE_FLAG_MAP: dict[str, tuple[str, str]] = {
     "seed":    ("seed", "seeds"),
     "command": ("command", "commands"),
 }
+
+
+class DirectUpgradeError(ValueError):
+    """A standalone skill-upgrade refusal carrying a registered diagnostic."""
+
+    def __init__(self, diagnostic) -> None:
+        super().__init__(diagnostic.message)
+        self.diagnostic = diagnostic
+
+
+@dataclass(frozen=True)
+class _DirectSkillSelection:
+    """The installed row and projection root selected for a direct upgrade."""
+
+    scope: str
+    root: Path
+    row: PackState
+
+
+def _refuse_direct_upgrade(
+    code: DiagnosticCode,
+    message: str,
+    *,
+    name: str,
+    remediation: str | None = None,
+) -> DirectUpgradeError:
+    """Build a registered standalone skill-upgrade refusal."""
+
+    return DirectUpgradeError(
+        make_direct_diagnostic(
+            code,
+            Severity.ERROR,
+            message,
+            path=name,
+            remediation=remediation,
+        )
+    )
+
+
+def _print_direct_upgrade_refusal(refusal: DirectUpgradeError) -> None:
+    """Render a standalone skill-upgrade refusal and optional recovery."""
+
+    diagnostic = refusal.diagnostic
+    print(f"upgrade: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
+    if diagnostic.remediation:
+        print(diagnostic.remediation, file=sys.stderr)
+
+
+def _usage_error(args: argparse.Namespace, message: str) -> None:
+    """Exit through the upgrade subparser's native usage-error path."""
+
+    parser = getattr(args, "_subparser", None)
+    if parser is None:
+        raise RuntimeError(f"upgrade parser unavailable for usage error: {message}")
+    parser.error(message)
+
+
+def _validate_route_grammar(args: argparse.Namespace) -> bool:
+    """Validate upgrade selector combinations and identify standalone skills."""
+
+    pack = getattr(args, "pack", None)
+    all_packs = bool(getattr(args, "all", False))
+    skill = getattr(args, "skill", None)
+    primitive_selected = any(
+        getattr(args, flag, None) is not None for flag in _PRIMITIVE_FLAG_MAP
+    )
+    standalone_skill = pack is None and not all_packs and skill is not None
+
+    if getattr(args, "source", None) is not None and not standalone_skill:
+        _usage_error(args, "--source requires standalone --skill")
+    if all_packs and primitive_selected:
+        _usage_error(args, "--all cannot be combined with a primitive selector")
+    if pack is None and not all_packs and not standalone_skill:
+        _usage_error(args, "one of --pack, --all, or standalone --skill is required")
+    if standalone_skill and getattr(args, "catalogue", None) is not None:
+        _usage_error(args, "a catalogue cannot be used with standalone --skill")
+    return standalone_skill
+
+
+def _select_direct_skill_row(
+    name: str,
+    *,
+    requested_scope: str | None,
+    requested_adapter: str | None,
+    repo_state: State,
+    repo_root: Path,
+    user_state: State | None,
+    user_root: Path | None,
+) -> _DirectSkillSelection:
+    """Select exactly one installed row without assigning scope or adapter defaults."""
+
+    rows_by_scope = {
+        "repo": (repo_state.rows_for_pack(name), repo_root),
+    }
+    if user_state is not None and user_root is not None:
+        rows_by_scope["user"] = (user_state.rows_for_pack(name), user_root)
+
+    if requested_scope is None:
+        matched_scopes = [scope for scope, (rows, _root) in rows_by_scope.items() if rows]
+        if len(matched_scopes) > 1:
+            raise _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D024,
+                f"skill {name!r} is installed at more than one scope",
+                name=name,
+                remediation="Re-run with --scope repo or --scope user.",
+            )
+        if not matched_scopes:
+            raise _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D023,
+                f"skill {name!r} is not installed at repo or user scope",
+                name=name,
+            )
+        selected_scope = matched_scopes[0]
+    else:
+        selected_scope = requested_scope
+
+    rows, selected_root = rows_by_scope.get(selected_scope, ({}, repo_root))
+    if requested_adapter is None:
+        if len(rows) > 1:
+            adapters = sorted(rows)
+            choices = " or ".join(f"--adapter {adapter}" for adapter in adapters)
+            raise _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D025,
+                f"skill {name!r} is installed for more than one adapter",
+                name=name,
+                remediation=f"Re-run with {choices}.",
+            )
+        row = next(iter(rows.values()), None)
+    else:
+        row = rows.get(requested_adapter)
+
+    if row is None:
+        qualifier = f" at {selected_scope} scope"
+        if requested_adapter is not None:
+            qualifier += f" for adapter {requested_adapter!r}"
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"skill {name!r} is not installed{qualifier}",
+            name=name,
+        )
+    if row.source_kind == "pack":
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"{name!r} is a directly installed pack; its upgrade route is not built",
+            name=name,
+        )
+    if row.source_kind is None:
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"{name!r} is a catalogue pack; standalone --skill does not serve it",
+            name=name,
+        )
+    if row.source_kind != "skill":
+        raise _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"{name!r} is not an installed manifestless skill",
+            name=name,
+        )
+    return _DirectSkillSelection(selected_scope, selected_root, row)
+
+
+def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
+    """Select one manifestless row and reuse the direct-install lifecycle path."""
+
+    from agentbundle import scope as scope_mod
+    from agentbundle.direct_install import run_direct_install
+
+    name = str(args.skill)
+    requested_scope = getattr(args, "scope", None)
+    repo_state = State()
+    if requested_scope != "user":
+        try:
+            repo_state = load_state(resolve_state_path("repo", root))
+        except ConfigError as exc:
+            refusal = _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D023,
+                f"repository state could not be read: {exc}",
+                name=name,
+            )
+            _print_direct_upgrade_refusal(refusal)
+            return 1
+
+    user_state = None
+    user_root = None
+    if requested_scope != "repo":
+        try:
+            user_root = Path(scope_mod.resolve_user_root())
+            user_state = load_state(resolve_state_path("user", user_root))
+        except scope_mod.UserScopeUnresolvable:
+            pass
+        except ConfigError as exc:
+            refusal = _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D023,
+                f"user state could not be read: {exc}",
+                name=name,
+            )
+            _print_direct_upgrade_refusal(refusal)
+            return 1
+
+    try:
+        selection = _select_direct_skill_row(
+            name,
+            requested_scope=requested_scope,
+            requested_adapter=getattr(args, "adapter", None),
+            repo_state=repo_state,
+            repo_root=root,
+            user_state=user_state,
+            user_root=user_root,
+        )
+    except DirectUpgradeError as refusal:
+        _print_direct_upgrade_refusal(refusal)
+        return 1
+
+    source = selection.row.source
+    if not isinstance(source, str):
+        refusal = _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D023,
+            f"{name!r} has no recorded source for standalone upgrade",
+            name=name,
+        )
+        _print_direct_upgrade_refusal(refusal)
+        return 1
+    needs_consent = not getattr(args, "yes", False) and not getattr(
+        args, "dry_run", False
+    )
+    if source.startswith("git+https://") and needs_consent:
+        refusal = _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D008,
+            "a remote standalone skill upgrade requires --yes before acquisition",
+            name=name,
+            remediation="Re-run with --yes, or use --dry-run to preview without writing.",
+        )
+        _print_direct_upgrade_refusal(refusal)
+        return 1
+
+    direct_args = types.SimpleNamespace(**vars(args))
+    direct_args.skill = [name]
+    direct_args.all_skills = False
+    direct_args.output = str(selection.root)
+    direct_args.scope = selection.scope
+    direct_args.adapter = selection.row.adapter
+    direct_args.source_revision = None
+    direct_args._upgrade_source_digest = selection.row.source_digest
+    if needs_consent and not sys.stdin.isatty():
+        direct_args._upgrade_noninteractive_refusal = _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D008,
+            "refusing to upgrade a standalone skill without confirmation",
+            name=name,
+            remediation="Re-run with --yes for non-interactive use.",
+        ).diagnostic
+    return run_direct_install(direct_args, source)
 
 
 def _was_dist_tree_install(pack_state: object) -> bool:
@@ -917,6 +1176,19 @@ def run(args: argparse.Namespace) -> int:
 
     Returns 0 on success, non-zero on any failure.
     """
+    standalone_skill = _validate_route_grammar(args)
+
+    if standalone_skill:
+        if getattr(args, "format", "table") == "json":
+            refusal = _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D023,
+                "--format json is not supported for standalone --skill; use --format table",
+                name=str(args.skill),
+            )
+            _print_direct_upgrade_refusal(refusal)
+            return 1
+        return _run_direct_skill(args, Path(args.root).resolve())
+
     # --format json with --pack is not yet supported
     if getattr(args, "format", "table") == "json" and not getattr(args, "all", False):
         _print_err(

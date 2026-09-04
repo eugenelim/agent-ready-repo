@@ -485,12 +485,12 @@ def resolve_skill_target(adapter: str, source: str) -> str:
     )
 
 
-def _print_refusal(diagnostic) -> None:
+def _print_refusal(diagnostic, *, verb: str = "install") -> None:
     """Print a registered refusal with its path and recovery, on stderr."""
 
     import sys
 
-    print(f"install: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
+    print(f"{verb}: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
     if diagnostic.path:
         print(f"  at: {escape_path_value(diagnostic.path)}", file=sys.stderr)
     if diagnostic.remediation:
@@ -721,7 +721,7 @@ def _summarise_and_project(
         # the spelling that defeats that rule while looking careful.
         projection_root = target_root
     digest = direct_source_digest(classification)
-
+    upgrade_digest = getattr(args, "_upgrade_source_digest", None)
     blocks = []
     for skill in selection.skills:
         payload = {
@@ -793,6 +793,11 @@ def _summarise_and_project(
         planned,
     )
 
+    if upgrade_digest is not None and digest == upgrade_digest:
+        selected_name = selection.skills[0].name
+        print(f"No update available for {selected_name}.")
+        return 0
+
     if getattr(args, "dry_run", False):
         # AC25: a preview writes nothing at all, and says which files it would
         # have written so the reader can check before consenting.
@@ -802,6 +807,10 @@ def _summarise_and_project(
         return 0
 
     if not getattr(args, "yes", False) and not sys.stdin.isatty():
+        upgrade_refusal = getattr(args, "_upgrade_noninteractive_refusal", None)
+        if upgrade_refusal is not None:
+            _print_refusal(upgrade_refusal, verb="upgrade")
+            return 1
         print(
             "install: refusing to install a direct source without confirmation. "
             "Re-run with --yes for non-interactive use; the summary above is "

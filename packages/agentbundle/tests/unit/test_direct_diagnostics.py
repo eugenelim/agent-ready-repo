@@ -217,9 +217,10 @@ def test_every_registered_direct_code_has_a_raise_site():
     import agentbundle.direct_source as direct_source
     import agentbundle.direct_source_acquisition as direct_source_acquisition
     from agentbundle.catalogue_tooling.diagnostics import DIRECT_CODES
+    from agentbundle.commands import upgrade
 
     referenced: set[str] = set()
-    for module in (direct_source, direct_source_acquisition, direct_install):
+    for module in (direct_source, direct_source_acquisition, direct_install, upgrade):
         tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if (
@@ -280,6 +281,11 @@ def _emitted_codes(tmp_path) -> set[str]:
 
     import agentbundle.direct_source as direct_source
     import agentbundle.direct_source_acquisition as acquisition
+    from agentbundle.commands.upgrade import (
+        DirectUpgradeError,
+        _select_direct_skill_row,
+    )
+    from agentbundle.config import PackState, State
     from agentbundle.direct_install import (
         DirectInstallError,
         Selection,
@@ -298,6 +304,7 @@ def _emitted_codes(tmp_path) -> set[str]:
             direct_source.DirectAdmissionError,
             acquisition.DirectAcquisitionError,
             DirectInstallError,
+            DirectUpgradeError,
         ) as exc:
             emitted.add(exc.diagnostic.code)
 
@@ -446,6 +453,45 @@ def _emitted_codes(tmp_path) -> set[str]:
         )
     )
     _record(lambda: sanitise_publisher_value("aㅤb", "description", source="s"))
+
+    # --- standalone upgrade selection --------------------------------------
+    direct_row = PackState(
+        installed_version="0.0.0+agentbundle.manifestless",
+        source="/publisher/example",
+        source_kind="skill",
+        source_path="skills/example",
+        source_digest="sha256-1:" + "0" * 64,
+    )
+    empty_state = State()
+    one_row = State(packs={("example", "claude-code"): direct_row})
+    two_adapters = State(
+        packs={
+            ("example", "claude-code"): direct_row,
+            ("example", "codex"): PackState(
+                installed_version=direct_row.installed_version,
+                source=direct_row.source,
+                source_kind="skill",
+                source_path=direct_row.source_path,
+                source_digest=direct_row.source_digest,
+                adapter="codex",
+            ),
+        }
+    )
+
+    def _select(repo_state, user_state=None):
+        return _select_direct_skill_row(
+            "example",
+            requested_scope=None,
+            requested_adapter=None,
+            repo_state=repo_state,
+            repo_root=tmp_path,
+            user_state=user_state,
+            user_root=tmp_path / "user" if user_state is not None else None,
+        )
+
+    _record(lambda: _select(empty_state))
+    _record(lambda: _select(one_row, one_row))
+    _record(lambda: _select(two_adapters))
 
     # --- installed identity at another ref ---------------------------------
     ref_root = tmp_path / "different-ref"
