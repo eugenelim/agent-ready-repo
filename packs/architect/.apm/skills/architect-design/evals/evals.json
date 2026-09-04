@@ -125,10 +125,10 @@
     {
       "id": "skill-engineering-reference-absent-or-refused",
       "prompt": "The step was reached. In one installation no candidate capability is eligible; in another the provider refuses. What does architect-design record, and what happens to the rest of its work?",
-      "expected_output": "With no eligible candidate, record exactly knowledge provider unavailable. On refusal, record the provider's own diagnostic rather than paraphrasing it. Either way complete architect-design's pre-existing baseline, unless architect-design's own safety check failed. Do not locate the provider's implementation, generated router path, persistence, or corpus; ordinary capability discovery is the only handoff. An absent or failed provider is never counted as support or as profile-backed grounding.",
+      "expected_output": "With no eligible candidate, record exactly knowledge provider unavailable. A refused response records knowledge provider response refused. Record only a value the provider's published vocabulary defines; never copy a provider-authored string, because a non-conforming provider can put request-derived or credential-shaped text in that field. Either way complete architect-design's pre-existing baseline, unless architect-design's own safety check failed. Do not locate the provider's implementation, generated router path, persistence, or corpus; ordinary capability discovery is the only handoff. An absent or failed provider is never counted as support or as profile-backed grounding.",
       "assertions": [
         "Response records exactly knowledge provider unavailable when no candidate is eligible",
-        "Response preserves the provider's own diagnostic on refusal",
+        "Response records a published-vocabulary diagnostic, never provider-authored text",
         "Response completes the pre-existing baseline unless its own safety check failed",
         "Response refuses to locate the provider's implementation, router path, persistence, or corpus",
         "Response never counts an absent or failed provider as support or grounding"

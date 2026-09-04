@@ -385,6 +385,13 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Implementation-stage security review of the consumer-integrations seam,
+  # 2026-09-04. Two blockers were fixed in that PR by spec amendment; these
+  # three were registered instead. All three are consumer-side controls the
+  # governing ADR assigns to consumers.
+  {slug = "agent-skill-engineering-consumer-response-envelope", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Delimit returned provider content at the point of receipt with the repository's knowledge-evidence envelope, as architect-review already does, so compiled guidance cannot merge unmarked into a PLAN or design context, and move the containment sentence ahead of any instruction that writes or quotes provider text"},
+  {slug = "agent-skill-engineering-consumer-provider-ambiguity", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "State a consumer-side ambiguity rule in both steps: more than one eligible candidate fails selection closed with the published knowledge provider ambiguous diagnostic and no invocation. ADR-0097 assigns ambiguity, conflict and absence to consumers; the shipped steps handle only absence, and contract version is the sole selector so any installed pack declaring it becomes a candidate"},
+  {slug = "agent-skill-engineering-consumer-boundary-tests", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Pin each consumer step's refusal, containment and diagnostic-vocabulary clauses in a per-consumer prose-boundary module that make ci reaches, as the project-knowledge precedent did with four such modules. Deleting those clauses currently leaves the whole suite green, and evals.json is a register no make target runs"},
   # RFC-0097:189's behavioural half -- "tested without this pack installed" --
   # is not discharged by the consumer-integrations slice. For a prose consumer
   # there is no runtime to exercise, and verify_catalogue over a provider-less
