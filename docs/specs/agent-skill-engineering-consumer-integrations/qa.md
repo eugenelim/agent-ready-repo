@@ -122,7 +122,25 @@ is the only reading under which AC2 and AC5 are satisfiable together, because
 substring. The exemption is commented in place so a later reader does not
 "fix" it back into a contradiction.
 
-## Two deviations from the plan's task scope
+## Three deviations from the plan's task scope
+
+**Each pack's eval harness gains two cases.** `packs/AGENTS.md:60` requires a
+non-cosmetic pack update to update that pack's eval harness. The first reading
+here was that `work-loop` has none, because core's `[pack.evals] skills` list
+does not name it — that was wrong: `evals/evals.json` exists for both consumers,
+and PR `11c280073`, which shipped the *analogous* `project-knowledge-review-enquiry`
+integration, added exactly two cases to `work-loop`'s harness for that mechanism.
+Two cases per consumer therefore ship here on the same pattern: the
+relevant-topic path and the absent-or-refused path. Nothing gates this — no
+`make` target runs `evals.json` — so it is recorded rather than assumed.
+
+The insert is textual, not a `json.dumps` round-trip. `work-loop`'s harness has
+**mixed** unicode encoding, some strings escaped and some literal, so it was
+never produced by one serializer call; re-serializing it rewrote eight unrelated
+lines. Both files' diffs are now purely additive at 24 insertions and 0
+deletions.
+
+## Two deviations already recorded
 
 **`.claude-plugin/plugin.json` is bumped alongside `pack.toml`.**
 `packs/AGENTS.md:45-47` requires every non-cosmetic `.apm/**` change to bump
@@ -147,15 +165,17 @@ or assumption — only the delimiter on a header field.
 
 ## Residuals, registered rather than resolved
 
-- **The eval-harness obligation is not discharged.** `packs/AGENTS.md:60` states
-  "A non-cosmetic pack update also updates that pack's eval harness", and
-  `packs/architect/pack.toml:47` lists `architect-design` in `[pack.evals]`.
-  Nothing gates it: `evals.json` is a register of prompt, expected-output and
-  assertion triples for model evaluation, and no `make` target runs it. The
-  accepted spec carries no criterion for it and twelve review rounds added none,
-  so it is named here rather than resolved inside a contract that does not cover
-  it. `work-loop` is absent from core's `[pack.evals]` list, so no eval harness
-  exists to update on that side.
+- **The release surface is written for three separate changelog entries, not
+  one combined heading.** `docs/CONVENTIONS.md:701-703` describes "one section
+  per release, naming every artifact that release covers", which reads as
+  licence to combine. Two guards make that unsafe for this release:
+  `tests/roster/test_okf_catalogue_discovery.py:90` and
+  `tests/roster/test_security_checklists_okf_projection.py:118` each take the
+  **first line starting with** `## [<pack>][` and require it to carry that
+  pack's current version. `architect` and `core` are both guarded, and a
+  combined `## [core][…] / [architect][…]` line starts with only one of them, so
+  it would leave the other's topmost heading pointing at an older release.
+  Reordering moves the failure rather than fixing it. Three entries ship.
 
 - **AC16's record shape conflicts with `workspace.toml`'s own instructions.**
   AC16 dictates `{slug = …, source = "…#follow-ons", summary = …}`, the legacy
