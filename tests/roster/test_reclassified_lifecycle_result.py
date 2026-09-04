@@ -1,3 +1,4 @@
+import ast
 import hashlib
 import importlib.util
 import json
@@ -68,8 +69,6 @@ def test_the_contract_admits_exactly_five_results() -> None:  # AC1
 
 
 def test_validator_admits_exactly_the_contract_results() -> None:  # AC2
-    import ast
-
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     contract_results = set(schema["properties"]["post_closeout_result"]["enum"])
     tree = ast.parse(COOLING_PATH.read_text(encoding="utf-8"))
@@ -114,6 +113,30 @@ def test_the_validator_behaviourally_admits_the_contract_results() -> None:  # A
     for outside in ("Reclassifed", "Archived", "Cooling ", "", "reclassified"):
         payload = _valid_payload(post_closeout_result=outside)
         assert cooling.validate_payload(payload).code == "record-invalid", outside
+
+    # Sampling refusals cannot close the general case: a branch admitting some
+    # *other* unlisted value early would pass both this loop and the AST case
+    # above. What closes it is that `validate_payload` has exactly ONE success
+    # exit, reached only after the membership guard. An early success return
+    # added anywhere in the function is a second one, and fails here.
+    source = ast.parse(COOLING_PATH.read_text(encoding="utf-8"))
+    validator = next(
+        node
+        for node in ast.walk(source)
+        if isinstance(node, ast.FunctionDef) and node.name == "validate_payload"
+    )
+    success_exits = [
+        node
+        for node in ast.walk(validator)
+        if isinstance(node, ast.Return)
+        and not any(
+            isinstance(keyword.value, ast.Constant)
+            and keyword.value.value == "record-invalid"
+            for keyword in getattr(node.value, "keywords", [])
+        )
+    ]
+    assert len(success_exits) == 1, [node.lineno for node in success_exits]
+    assert success_exits[0] is validator.body[-1]
 
 
 def _valid_payload(**overrides: object) -> dict[str, object]:
@@ -373,15 +396,26 @@ def test_reclassification_delegates_on_the_success_path(tmp_path: Path) -> None:
     the persisted record is correct. This case is what makes it fail — the
     invariant is that reclassification reaches disk only through transition
     enforcement, on both paths.
+
+    Observing the call is still not enough on its own either: a producer could
+    write directly FIRST and call `update_record` afterwards, discarding its
+    stale-record refusal. So the spy also asserts that the record on disk is
+    still the PRIOR record at the moment it is invoked. That makes the delegated
+    call the thing that performed the write, not merely something that ran.
     """
     cooling = _load()
     inputs = _reclassification_kwargs(cooling, tmp_path)
     delegated: list[dict[str, object]] = []
+    state_at_call: list[str] = []
     update_record = cooling.update_record
 
     def recording_update(**kwargs: object) -> object:
-        """Record the delegated call before enforcing it."""
+        """Record the delegated call, and what was on disk when it was made."""
         delegated.append(kwargs)
+        on_disk = cooling.load_record(
+            tmp_path, tmp_path / "docs/lifecycle/spec-example.json"
+        ).record
+        state_at_call.append(on_disk.post_closeout_result)
         return update_record(**kwargs)
 
     cooling.update_record = recording_update
@@ -392,6 +426,14 @@ def test_reclassification_delegates_on_the_success_path(tmp_path: Path) -> None:
     assert len(delegated) == 1
     assert delegated[0]["prior"] == inputs["record"]
     assert delegated[0]["proposed"].post_closeout_result == "Reclassified"
+    # The write had not happened yet when the delegated call was made, so that
+    # call is what performed it. A producer that wrote first and delegated
+    # afterwards would show "Reclassified" here.
+    assert state_at_call == ["Retained"]
+    persisted = cooling.load_record(
+        tmp_path, tmp_path / "docs/lifecycle/spec-example.json"
+    ).record
+    assert persisted.post_closeout_result == "Reclassified"
 
 
 def test_reclassification_delegates_transition_enforcement(tmp_path: Path) -> None:
