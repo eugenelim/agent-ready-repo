@@ -67,6 +67,7 @@ import json
 import subprocess  # nosec B404  # invokes `npm` with a list argv, no shell
 import sys
 import tempfile
+import time
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -372,6 +373,69 @@ def run_audit(project_dir: Path) -> object:
         ) from exc
 
 
+#: How many times to re-ask npm for a report when it answers with an error that
+#: carries no detail at all. Measured, not imagined: on 2026-09-04 `npm audit`
+#: returned `{"error": {"summary": "", "detail": ""}}` for the bulk query after
+#: roughly ten minutes, on a GitHub runner and on a maintainer's machine, while
+#: the canary's single-package query answered normally — a registry-side limit on
+#: the large request. Two CI attempts and two local runs failed that way; a third
+#: local run succeeded unchanged.
+RETRY_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 5
+
+
+def is_detail_free_error(report: object) -> bool:
+    """Is this the empty-`error` payload that a transient registry limit returns?
+
+    Deliberately narrow. A populated error — a code, a summary, a message — is
+    reported as-is and never retried, because it is evidence about the failure
+    rather than an absence of evidence. Only a payload that claims an error and
+    then says nothing about it is treated as worth re-asking.
+
+    This predicate decides *whether to ask again*. It never decides a verdict:
+    `_require_report` still raises on every error payload, so an exhausted retry
+    fails the gate exactly as a single attempt did. Retrying cannot turn an
+    error into a clean result — it can only spend more time before failing.
+    """
+    if not isinstance(report, dict) or "error" not in report:
+        return False
+    detail = report["error"]
+    if isinstance(detail, dict):
+        return not (detail.get("summary") or detail.get("detail") or detail.get("code"))
+    return not detail
+
+
+def run_audit_with_retry(
+    project_dir: Path,
+    *,
+    attempts: int = RETRY_ATTEMPTS,
+    audit=None,
+    sleep=time.sleep,
+) -> object:
+    """`run_audit`, re-asking only while npm answers with a detail-free error.
+
+    Returns the last payload received, whatever it is. A clean report short-
+    circuits; a populated error short-circuits; a detail-free error is re-asked
+    up to `attempts` times and then returned unchanged so the caller's
+    `_require_report` fails closed on it.
+    """
+    invoke = audit or run_audit
+    report: object = None
+    for attempt in range(1, attempts + 1):
+        report = invoke(project_dir)
+        if not is_detail_free_error(report):
+            return report
+        if attempt < attempts:
+            print(
+                f"audit-npm: npm answered with a detail-free error for {project_dir} "
+                f"(attempt {attempt}/{attempts}); re-asking in "
+                f"{RETRY_BACKOFF_SECONDS * attempt}s",
+                file=sys.stderr,
+            )
+            sleep(RETRY_BACKOFF_SECONDS * attempt)
+    return report
+
+
 def run_canary_probe() -> None:
     """Prove the advisory endpoint answers, before trusting a clean result.
 
@@ -487,7 +551,7 @@ def main(argv: list[str]) -> int:
     blocked = False
     for lockfile in lockfiles:
         try:
-            verdict = evaluate(run_audit(lockfile.parent), allowlist)
+            verdict = evaluate(run_audit_with_retry(lockfile.parent), allowlist)
         except AuditError as exc:
             print(f"audit-npm: {exc}", file=sys.stderr)
             return 2

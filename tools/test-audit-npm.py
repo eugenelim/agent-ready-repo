@@ -275,6 +275,63 @@ def main() -> int:
     print("evaluate() — fail-closed (spec AC1a)")
     expect_error("error_payload_is_tool_error", lambda: m.evaluate(ERROR_PAYLOAD, {}))
     expect_error("missing_report_version_is_tool_error", lambda: m.evaluate(NO_VERSION, {}))
+
+    print("run_audit_with_retry() — re-ask a detail-free error, never launder one")
+    EMPTY = {"error": {"summary": "", "detail": ""}}
+    check("retryable_for_the_measured_empty_error", m.is_detail_free_error(EMPTY))
+    check("not_retryable_for_a_populated_code",
+          not m.is_detail_free_error({"error": {"code": "EAI_AGAIN"}}))
+    check("not_retryable_for_a_populated_summary",
+          not m.is_detail_free_error({"error": {"summary": "rate limited"}}))
+    check("not_retryable_for_a_clean_report", not m.is_detail_free_error(CLEAN))
+    check("not_retryable_for_a_non_dict_payload", not m.is_detail_free_error(["nope"]))
+
+    def _sequence(*payloads):
+        """An audit stub that answers each payload in turn, counting calls."""
+        calls = []
+
+        def audit(_project_dir):
+            calls.append(1)
+            return payloads[min(len(calls) - 1, len(payloads) - 1)]
+
+        return audit, calls
+
+    audit, calls = _sequence(EMPTY, CLEAN)
+    got = m.run_audit_with_retry(
+        pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None
+    )
+    check("retry_returns_the_clean_report_after_a_transient", got == CLEAN, repr(got))
+    check("retry_stopped_asking_once_clean", len(calls) == 2, f"calls={len(calls)}")
+
+    audit, calls = _sequence({"error": {"code": "EAI_AGAIN"}})
+    m.run_audit_with_retry(pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None)
+    check("a_populated_error_is_asked_once", len(calls) == 1, f"calls={len(calls)}")
+
+    audit, calls = _sequence(CLEAN)
+    m.run_audit_with_retry(pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None)
+    check("a_clean_report_is_asked_once", len(calls) == 1, f"calls={len(calls)}")
+
+    # The load-bearing one. Exhausting the retries must leave the gate exactly as
+    # a single failed attempt did: an error payload that `evaluate` refuses. If
+    # this ever passes a verdict instead of raising, the retry has turned a
+    # registry outage into "no vulnerabilities found" — the AC1a failure the two
+    # cases above exist to prevent.
+    audit, calls = _sequence(EMPTY)
+    exhausted = m.run_audit_with_retry(
+        pathlib.Path(), attempts=3, audit=audit, sleep=lambda _s: None
+    )
+    check("retry_exhausted_asked_every_attempt", len(calls) == 3, f"calls={len(calls)}")
+    check("retry_exhausted_returns_the_error_payload", exhausted == EMPTY, repr(exhausted))
+    expect_error(
+        "retry_exhausted_still_fails_closed", lambda: m.evaluate(exhausted, {})
+    )
+
+    slept = []
+    audit, _ = _sequence(EMPTY)
+    m.run_audit_with_retry(
+        pathlib.Path(), attempts=3, audit=audit, sleep=slept.append
+    )
+    check("retry_backs_off_between_attempts", slept == [5, 10], f"slept={slept}")
     expect_error("non_dict_payload_is_tool_error", lambda: m.evaluate([], {}))
     expect_error("blocking_severity_without_via_is_tool_error",
                  lambda: m.evaluate(BLOCKING_WITHOUT_VIA, {}))
