@@ -1,6 +1,6 @@
 ---
 name: a11y-engineering
-description: Deep accessibility engineering beyond automated tooling — focus management architecture, ARIA role correctness under dynamic mutation, live-region discipline, keyboard contract specification, and manual WCAG 2.2 AA verification for the two criteria automated tools miss.
+description: Deep accessibility engineering beyond automated tooling — focus management architecture, ARIA role correctness under dynamic mutation, live-region discipline, keyboard contract specification, and manual WCAG 2.2 AA verification for the two criteria automated tools miss. Triggers on "audit this surface for accessibility beyond axe", "fix the focus management in this modal flow", "define the keyboard and screen-reader contract for this data grid", "verify WCAG 2.2 AA manually".
 ---
 
 # Skill: a11y-engineering

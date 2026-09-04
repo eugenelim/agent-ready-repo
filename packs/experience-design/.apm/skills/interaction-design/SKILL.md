@@ -1,6 +1,6 @@
 ---
 name: interaction-design
-description: "Use when someone asks how one screen or component should respond to actions, validate input, transition, recover, or feel in use. Produces behavioral and state specifications for the interaction. Use `information-architecture` for hierarchy, `user-flow` for cross-screen routes, and `creative-direction` for visual mood; `ux-writing` owns the strings shown in those states. Product strategy is upstream; framing and scoping the feature belongs to `frame-intent`; implementing the state machine, motion, or component code belongs to `frontend-engineering`."
+description: "Use when someone asks how one screen or component should respond to actions, validate input, transition, recover, or feel in use. Produces behavioral and state specifications for the interaction. Use `information-architecture` for hierarchy, `user-flow` for cross-screen routes, and `creative-direction` for visual mood; `ux-writing` owns the strings shown in those states. Product strategy is upstream; framing and scoping the feature belongs to `frame-intent`; implementing the state machine, motion, or component code belongs to `frontend-engineering`. Triggers on \"design how this search component validates, loads, and recovers\", \"map the state transitions inside this checkout form\", \"spec the feedback and motion for this async button\"."
 ---
 
 # Skill: interaction-design

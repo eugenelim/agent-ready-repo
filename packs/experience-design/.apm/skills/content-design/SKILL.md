@@ -1,6 +1,6 @@
 ---
 name: content-design
-description: "Use when someone asks what a surface should communicate, to whom, in what form, and in what order before wireframes or final copy. Produces a content brief for acquisition, product, or reference surfaces. It owns message and narrative structure; `tone-of-voice` owns the brand register, `copy-direction` owns acquisition-surface copy goals, and `ux-writing` owns product UI strings. Organization-level content strategy belongs to `define-content-strategy`; feature framing belongs to `frame-intent`; page or content-system implementation belongs to `frontend-engineering`."
+description: "Use when someone asks what a surface should communicate, to whom, in what form, and in what order before wireframes or final copy. Produces a content brief for acquisition, product, or reference surfaces. It owns message and narrative structure; `tone-of-voice` owns the brand register, `copy-direction` owns acquisition-surface copy goals, and `ux-writing` owns product UI strings. Organization-level content strategy belongs to `define-content-strategy`; feature framing belongs to `frame-intent`; page or content-system implementation belongs to `frontend-engineering`. Triggers on \"create a content brief for our onboarding flow\", \"decide what this pricing page needs to say and in what order\", \"shape the message hierarchy before we wireframe the help page\"."
 ---
 
 # Skill: content-design
