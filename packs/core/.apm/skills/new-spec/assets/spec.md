@@ -128,6 +128,12 @@ without subjective judgement — a reviewer can read it and know whether it
 holds. Notation: `- [ ]` open, `- [x]` met (see CONVENTIONS § 4 Spec
 metadata contract). A newly Shipped spec has no open Acceptance Criteria.
 
+This section owns criterion *shape*. Before writing criteria, work the six
+failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
+in order — they cover the failures shape rules cannot see, starting with a
+criterion that belongs to a different artifact, and each class points back here
+for the shape rules rather than repeating them.
+
 Two recurring sources of criteria, so they don't slip into the plan as
 mere design detail:
 

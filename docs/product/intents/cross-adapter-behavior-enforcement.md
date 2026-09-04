@@ -166,6 +166,17 @@ produced is kept, because it isolates *which* policies survive:
 So the design rule this replaces the probe with: **policy families ship precise
 or not at all.** A stylistic family may be advisory; it may not block.
 
+**That rule now has independent corroboration, from a different decade and a
+different corpus.** The requirements-smell detector in Femmer et al. (2017)
+applies lexical predicates to authored requirements prose and reports **48%
+precision at 87% recall**; its authors read the low precision as acceptable
+*because the tool triages candidates for a human rather than issuing verdicts*
+([`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
+§ 1). Two unrelated measurements of a lexical predicate over authored prose,
+one conclusion: roughly half the flags are wrong, so the family advises. That
+strengthens the design rule from a local calibration result to a property of
+the technique.
+
 What would have to be true:
 
 - a sequential dispatch envelope exists at implementation time — **delivered by

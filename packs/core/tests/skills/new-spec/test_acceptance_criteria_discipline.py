@@ -10,8 +10,12 @@ SKILL = PACK_ROOT / ".apm/skills/new-spec/SKILL.md"
 SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
+RUBRIC = PACK_ROOT / ".apm/skills/new-spec/references/spec-authoring-rubric.md"
 
-SOURCES = {"skill": SKILL, "spec": SPEC, "plan": PLAN}
+# The rubric joins SOURCES so every pinned rule below also asserts its absence
+# there. The rubric points at the owning surface for criterion shape; a future
+# edit that pastes an owned rule into it reds here rather than at review.
+SOURCES = {"skill": SKILL, "spec": SPEC, "plan": PLAN, "rubric": RUBRIC}
 RULES = (
     (
         "criterion-independence",
@@ -146,7 +150,7 @@ def test_worked_example_has_one_owner_and_occurs_once(
     assert f"**{identifier} — {verdict}.**" in owner_text
     assert owner_text.count(example) == 1
     assert owner_text.count(criterion) == 1, f"{identifier} exemplar missing or duplicated"
-    for other_path in (SKILL, PLAN):
+    for other_path in (SKILL, PLAN, RUBRIC):
         other_text = flattened(other_path)
         assert f"**{identifier} — {verdict}.**" not in other_text
         assert example not in other_text
@@ -327,3 +331,111 @@ def test_spec_review_triage_eval_has_required_shape_and_behaviour() -> None:
     assert any("blind spot" in assertion.lower() for assertion in entry["assertions"])
     assert any("validated path" in assertion.lower() for assertion in entry["assertions"])
     assert any("pre-execute" in assertion.lower() for assertion in entry["assertions"])
+
+
+RUBRIC_CLASSES = (
+    "## 1. The design should have delegated",
+    "## 2. The criterion cannot fail",
+    "## 3. The criterion is unsatisfiable, or contradicts a sibling",
+    "## 4. The criterion decays",
+    "## 5. The criterion is too big",
+    "## 6. The property is not mechanizable",
+)
+
+
+def test_rubric_classes_ship_in_precedence_order() -> None:
+    """Order is the rubric's contract, not its formatting.
+
+    Class 1 precedes the rest because no criterion craft repairs an obligation
+    authored where an owner already exists. A heading-set assertion alone would
+    stay green through a reordering that inverts that, so pin the offsets.
+    """
+    body = RUBRIC.read_text(encoding="utf-8")
+    offsets = []
+    for heading in RUBRIC_CLASSES:
+        assert heading in body, f"missing rubric class heading: {heading}"
+        offsets.append(body.index(heading))
+    assert offsets == sorted(offsets), "rubric classes are out of precedence order"
+    assert offsets[0] == min(offsets)
+    text = flattened(RUBRIC)
+    assert "stop at the first that fires" in text
+    assert "Class 1 precedes every other" in text
+    assert "Shortening or single-homing a long restatement is the *wrong* fix" in text
+
+
+def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
+    """The rubric must route shape questions out and refuse reviewer use.
+
+    Both are load-bearing: a rubric that restates shape rules creates a second
+    home for them, and one handed to a reviewer becomes the nit source it
+    exists to reduce.
+    """
+    text = flattened(RUBRIC)
+    assert "`../assets/spec.md` § Acceptance Criteria owns criterion shape" in text
+    assert "authoring guidance, not a review checklist" in text
+    assert "The shape rule is not here." in text
+    # The count threshold screens; it never refuses. Pin both halves.
+    assert "never as a refusal" in text
+    assert "a ceiling and a stall point, never a floor" in text
+
+
+def test_rubric_ships_derivations_not_this_repositorys_figures() -> None:
+    """Shipped pack guidance stays portable.
+
+    A percentile of this catalogue's corpus is wrong for every adopter on day
+    one, and an internal path does not resolve in an installed skill. Assert
+    the derivation instruction is present and no internal locator is.
+    """
+    text = flattened(RUBRIC)
+    assert "Ship the derivation, not the value" in text
+    assert "measure your own shipped corpus" in text
+    for locator in ("docs/product/", "docs/specs/", "packs/", "AGENT_RULES.md"):
+        assert locator not in text, f"internal locator in shipped guidance: {locator}"
+
+
+def test_rubric_is_reachable_from_both_authoring_surfaces() -> None:
+    """An unreferenced reference is content nobody reads."""
+    skill_body = flattened(SKILL)
+    assert (
+        "[`references/spec-authoring-rubric.md`](references/spec-authoring-rubric.md)"
+        in skill_body
+    )
+    assert "class 1 —" in skill_body
+    spec_body = flattened(SPEC)
+    assert "`references/spec-authoring-rubric.md`" in spec_body
+    assert "This section owns criterion *shape*." in spec_body
+
+
+def test_rubric_eval_has_required_shape_and_behaviour() -> None:
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    matches = [
+        entry
+        for entry in data["evals"]
+        if entry["id"] == "spec-authoring-rubric-classes-precede-criterion-shape"
+    ]
+    assert len(matches) == 1
+    entry = matches[0]
+    assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
+    assert len({candidate["id"] for candidate in data["evals"]}) == len(data["evals"])
+    # Each seeded defect must survive in the prompt, or the case stops grading it.
+    for seeded in (
+        "14 permissions",
+        "build/audit-report.json",
+        "No manifest in the audited set produces an unhandled exception",
+        "path-traversal validation, deferred",
+        "already owns",
+    ):
+        assert seeded in entry["prompt"], f"seeded defect dropped: {seeded}"
+    expected = entry["expected_output"]
+    for demand in (
+        "an obligation authored where an owner already exists",
+        "derivation that reads the registry",
+        "regeneration mechanism",
+        "holds on an empty audited set",
+        "representative valid manifest",
+        "named owner waiver",
+    ):
+        assert demand in expected, f"expected_output drops: {demand}"
+    assert any("wrong-owner" in item and "before" in item for item in entry["assertions"])
+    assert any("empty state" in item for item in entry["assertions"])
+    assert any("word budget" in item for item in entry["assertions"])

@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+<<<<<<< HEAD
 ## [core][2.25.6] — 2026-09-08
 
 ### Highlights
@@ -99,10 +100,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
   rejected content is neither cited nor copied.
 
+=======
+>>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
 ## [core][2.25.4] — 2026-09-08
 
 ### Highlights
 
+<<<<<<< HEAD
 - **Closeout now keeps unrelated work visible when it shares a path with a
   cooled legacy entry.** A second entry at the same path still blocks closeout,
   so maintainers are not told to invoke `close-work` while that work remains
@@ -116,6 +120,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejects, which reaches closeout through its own parse and so could reproduce
   any value the exclusion matched on.
 
+=======
+- **The defects a spec review keeps finding are now named where the spec is
+  written, not only where it is reviewed.** `new-spec` ships a
+  spec-authoring rubric: six failure classes worked in order before criterion
+  shape, starting with the one no criterion craft repairs — an obligation
+  authored where an owner already exists.
+
+### Added
+
+- `new-spec` gained `references/spec-authoring-rubric.md`, reached from the
+  acceptance-criteria step and from the spec template. It names the failures
+  shape rules cannot see: a criterion that holds on empty state, one no design
+  satisfies, one whose value or citation goes stale at its source, one that
+  targets generated output instead of the source that produces it, a hand-written
+  set that has a machine-readable source, refusals with no valid input that must
+  succeed, and a deferral that drops a control nobody may waive.
+- The rubric carries the two rules that decide what to do with a class rather
+  than how to spot it: a criteria-count threshold starts a conversation and never
+  refuses, and an artifact at the wrong altitude is moved rather than trimmed.
+- An optional five-shape criterion syntax, offered when a criterion reads
+  ambiguously. It pairs every refusal with the positive path that must still
+  succeed, and it is an aid rather than a house style.
+
+### Changed
+
+- The spec template's `## Acceptance Criteria` section now states that it owns
+  criterion *shape* and routes the failure classes to the rubric, so neither
+  surface restates the other.
+>>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
 
 ## [core][2.25.3] — 2026-09-08
 

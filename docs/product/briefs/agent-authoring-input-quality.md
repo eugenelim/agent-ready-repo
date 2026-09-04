@@ -129,12 +129,12 @@ argued with.
 
 | Dimension | Bound | Origin |
 | --- | --- | --- |
-| Owning surfaces | one primary surface per slice | Measured, not repo-local: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025). |
-| Criteria per spec | ceiling of 10, **never a floor** | **Screening only.** Practitioner ceiling ~10. No causal evidence exists in the literature, and this corpus records scope but not outcome, so no percentile of it corroborates a ceiling. A slice with fewer genuine criteria ships with fewer. |
+| Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. The cause is named — localization, not repair. |
+| Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. A slice with fewer genuine criteria ships with fewer. |
 | Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Length only *orders* criteria for that test, longest first. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec` SKILL.md:505 makes shaping review reject one. The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across 6,411 shipped criteria here p90 is 101 words and p96 is 162. |
 | Spec body | ≤1,599 words; past 2,392 needs a stated reason | Measured, repo-local: the corpus median and p75. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
-| Floor | never below one surface plus its verification and its guide | Measured: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 (Augment 2025). **Smaller is not safer.** |
+| Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
 
 ### Limit interaction
 
@@ -187,17 +187,49 @@ cites this findings corpus rather than restating its exhibits.
 
 **This corpus is observed, not exhaustive, and deliberately uncounted.** The
 entries are failure modes seen in live sessions, accumulated as they occurred.
-Two pieces of work are owed before it can claim coverage: **mining this
-repository's own corpus** for the classes no session happened to hit, and
-**desk research on policy families** to place each entry against prior art
-rather than against this repository alone. Until both land, treat an absent
-class as unobserved rather than absent, and do not size a slice against the
-number of entries here.
+One piece of work remains owed before it can claim coverage: **mining this
+repository's own corpus** for the classes no session happened to hit. Until it
+lands, treat an absent class as unobserved rather than absent, and do not size
+a slice against the number of entries here.
+
+**The prior-art placement is discharged**, in
+[`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
+§ 1, which maps every class onto ISO/IEC/IEEE 29148:2018's nine
+individual-requirement and five set-level characteristics, INCOSE's 42-rule
+guide, and the eight requirements smells of Femmer et al. (2017). Its result is
+load-bearing for the rubric rather than decorative: **six classes have no
+equivalent in any of the three frames** — the design should have delegated, the
+criterion decays, it targets a projection, it cuts a non-waivable control, it
+hand-enumerates a derivable set, and draft narration. Five of the six share one
+cause. Prior art assumes a human reader of a hand-maintained document, and an
+agent reader cannot tell a projection from a source, a stale citation from a
+live one, or a superseded paragraph from a current one. Those six must be
+taught; the rest can cite a frame.
+
+The survey also names the one clear import we lack — a criterion *syntax*, for
+which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
+and the one gap it opens: every class here is per-criterion, and 29148's
+set-level characteristics have no counterpart in our authoring guidance. EARS
+carries no controlled defect-reduction evidence in sixteen years, so it ships
+as an optional aid and never as a gate.
 
 ### External binding
 
-A rule's value is whether it binds to something outside the document. Across
-the eleven review rounds at `e1bdde746`, every mechanism
+A rule's value is whether it binds to something outside the document. **That
+now has an effect size from outside this repository.** Presenting a model with
+byte-identical erroneous claims raises its correction rate by **23 to 93
+percentage points** when the error arrives as a tool response or a user message
+rather than as its own prior thought — significant at p<0.001 in 10 of 13
+conditions, across seven model families
+([`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
+§ 2). The failure is role-dependent, not content-dependent, which is why warm
+self-review cannot substitute for an independent reviewer and why a criterion
+graded from an implementer's own account of its work is weaker than one graded
+by a test. Genuine self-correction does occur when the model calls a tool, so
+the boundary is not *self* versus *other* but whether the signal originates
+outside the actor.
+
+Across the eleven review rounds at `e1bdde746`, every mechanism
 that caught a defect **on its first run** bound the document to something
 external — criterion-identifier parity between spec and plan,
 assumption-citation parity in both directions, claims bound to a live symbol
@@ -682,10 +714,37 @@ ships with fewer.
 
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | The failure-point rubric and the authoring instructions derived from it | `packs/core/.apm/skills/new-spec/references/failure-point-rubric.md`, consumed by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **new** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
+| A1 | The failure-point rubric and the authoring instructions derived from it — **shipped early, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, consumed by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | **discharged out of order** — the gating below was not satisfied |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | 6 | after A1 |
 | A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | 6 | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | 10 | **conditional** — after M, and only if the kill conditions above do not fire |
+
+### A1 shipped ahead of its gating, by owner instruction
+
+Owner instruction, 2026-09-04: build the rubric now. A1's Gating cell had named
+three upstreams — the activation report and the two policy briefs — and none had
+reported, so the slice was taken **out of order and without its Ready gate**.
+What that costs, recorded rather than glossed:
+
+- **The activation risk is unretired.** § "Assumptions / Risks" names shipping
+  another unactivated rule as the most likely failure, and the withdrawal metric
+  in § "Success metrics" is the only guard. It still applies: **a rubric class
+  that can never be shown to have fired is withdrawn, not re-worded.**
+- **Categories 2, 4 and 5 shipped as prose, not as policy families.** The split
+  in § "The rubric is a deliverable" routes them to a registry that does not
+  exist yet. Nothing about the shipped file forecloses that; the registry's
+  owners inherit three families whose definitions are now fixed in adopter-facing
+  text.
+- **Two of A1's three surfaces exist; the guide does not.** The rubric and its
+  authoring instruction shipped together, as § "Slice relationships" requires.
+  `guides/core/reference/acceptance-criteria-authoring.md` remains owed, so an
+  adopter reads the rubric inside the skill and has no reference page for it.
+- **The home is renamed.** `spec-authoring-rubric.md`, not
+  `failure-point-rubric.md`. Same directory, same single consumer, same
+  precedent — § "A1 home" still governs.
+
+The rubric's own class 1 applies to this entry: it records state, and the
+decision that produced it stays with the owner.
 
 ### Guide ownership
 
@@ -785,6 +844,12 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 - Source: repository origin. Distilled from this repository's memory, its
   `docs/knowledge/` topics, and one abandoned delivery attempt whose spec and
   plan are preserved at commit `e1bdde746`.
+- Prior-art basis, commissioned 2026-09-04 and discharging the desk-research
+  item this brief owed:
+  [`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md).
+  It supplies the class-to-frame mapping in § "What actually works", the
+  constraint-count and localization evidence in § "Band", and the external-signal
+  effect size in § "External binding".
 - Promoted on 2026-09-02 from a shaping intent of the same slug, added at
   `082285e73` and removed by that promotion; it was itself split out of
   [`work-loop-next-action.md`](work-loop-next-action.md).
