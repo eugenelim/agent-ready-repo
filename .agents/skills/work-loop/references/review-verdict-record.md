@@ -141,7 +141,7 @@ and cannot override the categorical state.
 ## Mode semantics are unchanged
 
 Full mode still iterates every warranted reviewer until no unresolved Blocker or
-Concern remains. Light mode still
-runs one bounded adversarial pass with the existing Blocker escalation, and a
-light non-Blocker disposition reaches `READY_WITH_RESIDUAL_RISK` only when the
-record names the accepted residual and all required light-mode gates passed.
+Concern remains. Light mode still runs its `adversarial-reviewer` rounds, which
+[`light-mode.md`](light-mode.md) defines, and a light non-Blocker disposition
+reaches `READY_WITH_RESIDUAL_RISK` only when the record names the accepted
+residual and all required light-mode gates passed.

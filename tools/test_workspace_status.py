@@ -1500,8 +1500,17 @@ _WL_STEP0_END = r'^## Step 1\. PLAN'
 _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
+# Moved 2026-09-04 for core 2.24.5, which extracted the light-mode material to
+# `references/light-mode.md`. The only edit inside this window is Step 0's
+# pointer to the direct-light decision record and eligibility routing, which
+# now names that reference instead of saying "above" — the material it named is
+# no longer above it. Reviewed as the pin requires, and the engine needs no
+# edit: active-spec resolution, the stale-queue check, and the shaping-item
+# guard are untouched, and ownership is unchanged (work-loop still writes
+# spec.md `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped).
 _WORK_LOOP_CONTRACT_HASH = (
-    "69cc128c879bfb7c3eef2fb01da727f9a452b512ea9c578e3b8d16b554f52bee"
+    "266d46cd2c40c2591ce98b465b33d40c6fc20fa4e356b279759a9b41f0f00de0"
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.
@@ -1553,8 +1562,25 @@ _WORK_LOOP_CONTRACT_HASH = (
 # spec.md `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped — and the status vocabulary, the deferral-anchor
 # requirement, and the doc-drift bullet are all untouched.
+# Moved 2026-09-04 for core 2.24.5, which replaced light mode's round budget
+# with a divergence checkpoint and moved the light-mode material to
+# `references/light-mode.md`. Three edits fall inside this window, all of them
+# light-mode restatements becoming pointers. (1) The preamble now routes the
+# light-mode checklist deltas to that reference instead of restating the
+# dropped `quality-engineer` floor. (2) The light-mode reviewer bullet is a
+# pointer to the same reference, which restates the obligation rather than
+# relocating it: the retired "exactly one re-review, then escalate" clause is
+# gone, and the clean condition is now no unresolved Blocker or Concern
+# carrying at most deferred Nits.
+# (3) The disposition-record bullet drops its trailing light-mode sentence,
+# keeping only the mode-neutral requirement. Reviewed as the pin requires, and
+# the engine needs no edit: all three are reviewer-readiness concerns with no
+# spec.md write and no workspace.toml mutation. Ownership is unchanged —
+# work-loop still writes spec.md `Status: Shipped`, workspace-status still owns
+# workspace.toml queue/active/shipped — and the status vocabulary, the
+# deferral-anchor requirement, and the doc-drift bullet are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "8a7d7febebe6673220cbcc1255d72b493067379adea6e73720ecc2d4cb1022d3"
+    "1c41a94b5be57d688bec98530e073f6147c734efcb1284272e8ee18bc6c331cc"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
