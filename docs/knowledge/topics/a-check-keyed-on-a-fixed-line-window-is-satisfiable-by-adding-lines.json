@@ -1,0 +1,45 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-01T01:37:27Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-f31d655370836b28df962261a7c27df23140ea46524a19074774b4e733954524",
+      "mutation_id": "a8b0a305c005f47418979f1f50c56d3e448bd5f770b55d0c8675ccff631065df",
+      "observed_at": "2026-09-01T01:37:27Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core/.apm/skills/work-loop",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "packs/core/tests/skills/work-loop/test_review_record_shipped_statements.py"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 7881,
+      "kind": "sha256-bytes-v1",
+      "sha256": "60473b309e198ec4139a73a595e751534e79cc755ed1ea4ef1b2ffe593eb662d"
+    },
+    "path": "packs/core/tests/skills/work-loop/test_review_record_shipped_statements.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A shipped-instruction check keyed on a fixed N-line window around a statement is satisfiable by adding lines rather than by fixing the defect. Two explanatory comment lines pushed a statement's governing transition out of a six-line window, turning a flagging check green while the property went unverified. Key such a check on an enclosing structural boundary such as a fenced block, and assert a non-vacuity floor naming how many sites must have been examined.",
+    "kind": "antipattern"
+  },
+  "title": "A check keyed on a fixed line window is satisfiable by adding lines, not by fixing the defect",
+  "topic_key": "a-check-keyed-on-a-fixed-line-window-is-satisfiable-by-adding-lines"
+}

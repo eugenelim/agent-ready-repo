@@ -70,6 +70,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
+## [core][2.24.3] — 2026-09-04
+
+### Highlights
+
+- **A lesson that a rule or a control has since absorbed can be retired where it
+  lives.** Distillation now carries the lifecycle and the retirement record, so a
+  topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or
+  `invalidated`, naming the successor that took the lesson over. A retired topic
+  stays in place for history and stops being offered as current guidance.
+- **A topic keeps every occurrence that produced it.** Reconciling a second
+  observation into an existing topic appends to its provenance instead of
+  replacing it, so the record of what was seen, and when, survives revision.
+
+## [core][2.24.2] — 2026-09-03
+
+### Highlights
+
+- **Evidence from a run now has a place to go that the approved plan does not.**
+  Once a plan is approved it is pinned, so a task that asked for its own
+  observed result to be written back into it could never be satisfied. Plans
+  now keep the obligation and a sibling verification ledger keeps the
+  observation — the mutation that was applied, the check that went red, the
+  digest that was compared. One convention states when substantive edits stop,
+  and a check fails if that statement is reverted.
 
 ## [core][2.24.1] — 2026-09-03
 

@@ -39,6 +39,111 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.24.3"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.24.3] — 2026-09-04",
+      "changelogAnchor": "core2243--2026-09-04",
+      "highlights": [
+        {
+          "source": "**A lesson that a rule or a control has since absorbed can be retired where it lives.** Distillation now carries the lifecycle and the retirement record, so a topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or `invalidated`, naming the successor that took the lesson over. A retired topic stays in place for history and stops being offered as current guidance.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A lesson that a rule or a control has since absorbed can be retired where it lives."
+            },
+            {
+              "type": "text",
+              "value": " Distillation now carries the lifecycle and the retirement record, so a topic settles as "
+            },
+            {
+              "type": "code",
+              "value": "canonicalized"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "enforced"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "obsolete"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "merged"
+            },
+            {
+              "type": "text",
+              "value": ", or "
+            },
+            {
+              "type": "code",
+              "value": "invalidated"
+            },
+            {
+              "type": "text",
+              "value": ", naming the successor that took the lesson over. A retired topic stays in place for history and stops being offered as current guidance."
+            }
+          ]
+        },
+        {
+          "source": "**A topic keeps every occurrence that produced it.** Reconciling a second observation into an existing topic appends to its provenance instead of replacing it, so the record of what was seen, and when, survives revision.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A topic keeps every occurrence that produced it."
+            },
+            {
+              "type": "text",
+              "value": " Reconciling a second observation into an existing topic appends to its provenance instead of replacing it, so the record of what was seen, and when, survives revision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.24.2"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.24.2] — 2026-09-03",
+      "changelogAnchor": "core2242--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Evidence from a run now has a place to go that the approved plan does not.** Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Evidence from a run now has a place to go that the approved plan does not."
+            },
+            {
+              "type": "text",
+              "value": " Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.24.0"
         }
       ],
