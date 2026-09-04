@@ -9,6 +9,7 @@ tagline: "Walkable design method. Outcome to independently-reviewed screens."
 prerequisitePacks: []
 contract:
   useItWhen: "A product team needs a full design thread — from outcome to independently-reviewed screens — before build begins."
+  youType: "Map the customer journey for this feature."
   youProvide: "The feature, user, and intended outcome, plus any existing brand or design-system constraints."
   youReceive: "A complete, independently-reviewed design set — journey map, screen inventory, interaction specs, and accessibility-clean designs."
   yourDecisions:
