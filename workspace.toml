@@ -385,6 +385,21 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Implementation-stage security review of the consumer-integrations seam,
+  # 2026-09-04. Two blockers were fixed in that PR by spec amendment; these
+  # three were registered instead. All three are consumer-side controls the
+  # governing ADR assigns to consumers.
+  {slug = "agent-skill-engineering-consumer-response-envelope", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Delimit returned provider content at the point of receipt with the repository's knowledge-evidence envelope, as architect-review already does, so compiled guidance cannot merge unmarked into a PLAN or design context, and move the containment sentence ahead of any instruction that writes or quotes provider text"},
+  {slug = "agent-skill-engineering-consumer-provider-ambiguity", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "State the whole consumer-side candidate-eligibility filter in both steps, not just ambiguity. provider-contract.md assigns five failures to the consumer -- multiple equally eligible candidates, conflicting identity, malformed metadata, stale profile, missing authority -- each failing selection closed with its published diagnostic and no invocation. The shipped steps handle only absence, so five fixture cases reach no expected outcome: ambiguous-agent-reference, conflicting-identity, malformed-manifest, stale-profile and authority-changing. The last is the sharp one: its candidate declares filesystem_write and read-untrusted authority, and the step as shipped would invoke it, so this entry carries a security edge and wants a security-reviewer pass on the selection half. Contract version is the sole selector, so any installed pack declaring it becomes a candidate"},
+  {slug = "agent-skill-engineering-consumer-boundary-tests", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Pin each consumer step's refusal, containment and diagnostic-vocabulary clauses in a per-consumer prose-boundary module that make ci reaches, as the project-knowledge precedent did with four such modules. Deleting those clauses currently leaves the whole suite green, and evals.json is a register no make target runs"},
+  # RFC-0097:189's behavioural half -- "tested without this pack installed" --
+  # is not discharged by the consumer-integrations slice. For a prose consumer
+  # there is no runtime to exercise, and verify_catalogue over a provider-less
+  # catalogue runs a strict subset of the provider-present checks. RFC-0097:575
+  # offers a cheaper mode than an executable harness -- a fixture versioned with
+  # its expected result before the implementation runs, judged by an independent
+  # reviewer -- which that slice did not evaluate.
+  {slug = "agent-skill-engineering-provider-absence-behaviour", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Discharge the behavioural half of the provider-absence obligation: evaluate a pre-registered fixture-and-expected-result mode, judged by an independent reviewer, against an executable absence harness"},
   # Product-strategy parent of the three capability briefs below it, framed
   # 2026-09-02. Re-gates them: the policy validator is the activation
   # measurement's compliance test, so enforcement precedes measurement.
@@ -1078,7 +1093,7 @@ backlog = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · composition floors shipped; slices 3c, 3d and 3e remain — see the brief's slice table"
+milestone = "M3 · slice 4 consumer integrations shipped; 3c and 3e are unblocked and parallel, 3d needs 3c, 5 needs 3c, 6 closes — see the brief's slice table"
 
 ["ini-009".brief_queue]
 executing = [
@@ -1097,6 +1112,7 @@ active  = [
 queue   = [
 ]
 shipped = [
+  { path = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Wire work-loop and architect-design to the installed agent-skill-engineering provider with a bounded request-inlining step, and publish the seam's diagnostic vocabulary to an installed surface", needs = [] },
   { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md" }] },
   { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
   { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },

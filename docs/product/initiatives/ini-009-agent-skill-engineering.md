@@ -54,7 +54,7 @@ Authors and agent loops can use one portable, progressively disclosed engineerin
 | --- | --- | --- |
 | M0 | Accept RFC-0097, record the provider-mediated knowledge ADR, and approve delivery specs | Q3 2026 |
 | M1 | Ship portable `frame`/`create`/`update` modes, secure compiled router, foundational corpus, authentication-isolation guidance, and foundation activation/behavior evals | Q3 2026 |
-| M2 | Expand router/evals; activate `knowledge-provider` and `runtime-package`; add Python/pytest, TypeScript/Node, execution-economics, skill-pattern/usability topics, subagent, hook, plugin, and eight enterprise runtime profiles | Q3–Q4 2026 |
+| M2 | Expand router/evals; activate `knowledge-provider` and `runtime-package`; add Python/pytest, TypeScript/Node, execution-economics, skill-pattern/usability topics, subagent, hook, and plugin concepts, and one reference runtime profile (further profiles retired to an open extension by the 2026-09-04 erratum) | Q3–Q4 2026 |
 | M3 | Integrate work-loop and architect-design; self-host the pack in this repository | Q4 2026 |
 | M4 | Update author/maintainer journeys and collapse duplicated guidance through measured parity gates | Q4 2026 |
 | M5 | Complete the external portability pilot, disposition backlog items, publish maintenance ownership, verify every planned architecture section, change its status to `CURRENT` with the verifying commit, and close the initiative | Q4 2026 |
@@ -122,20 +122,32 @@ variances:
 
 ## Delivery-cut variances
 
-- **2026-08-29 — Slice 2 is delivered as 2a and 2b.** The original brief's
-  single Slice 2 combined corpus, language, pattern, and execution-economics
-  work. It is now split into the active
-  [`agent-skill-engineering-corpus`](../../specs/agent-skill-engineering-corpus/spec.md)
-  (2a) and queued
-  [`agent-skill-engineering-languages-and-execution`](../../specs/agent-skill-engineering-languages-and-execution/spec.md)
-  (2b), with 2b depending on 2a. **Authority:** the 2a spec's `Durable Outputs`
-  table, `Delivery-cut variance` row, which identifies this split as a departure
-  from RFC-0097's single corpus follow-on and requires this record.
-- **2026-08-29 — `runtime-package` is deferred from 2a and 2b.** The capability
-  is not shipped by either slice. **Authority:** RFC-0097 D1's mode-availability
-  rule: `runtime-package` remains unavailable until M2 package-lifecycle claims
-  and runtime-profile gates pass; the 2b spec's `Never do` boundary therefore
-  excludes it from that successor slice.
+- **2026-09-04 — runtime profiles beyond Claude Code are retired from committed
+  scope.** The pack's subject is authoring reusable agent skills, not tracking
+  eight vendor surfaces, and no owner can hold eight surfaces current.
+  Slice 3c becomes portable subagent and plugin *concepts* taught in the
+  vocabulary the audience writes — Claude agents and Claude skills — with runtime
+  divergence stated as a bounded authoring caveat rather than a per-vendor
+  matrix. Further profiles become an open extension a contributor may add
+  without a charter change; the mechanism, four lifecycle states and roll-up that
+  slice 3a shipped stay in place to permit that. Per-runtime compatibility stays
+  with AgentBundle, which already measures and tests it under
+  `packages/agentbundle/agentbundle/build/adapters/` for its own delivery.
+  Slice 3d's package-lifecycle rows narrow to the one shipped profile's runtime.
+  **Both consequences are settled, not deferred.** RFC-0097 named the
+  eight-profile commitment in four governed statements — the D3 decision row, the
+  capability-claim lifecycle section, Gate 2's *Success* criteria, and the gate
+  sequencing paragraph — and all four are superseded by name in the 2026-09-04
+  erratum appended to that RFC's § *Errata*. The RFC is Accepted and therefore
+  Frozen, so the erratum is additive and no frozen text was edited. The frozen
+  composition-floors spec's `Contract:` field assigns the router's claim-state
+  reporting to "the slice that completes the eight profiles", which the de-scope
+  orphans; that same erratum re-points the obligation to the brief's `3c-r` row,
+  and the frozen spec's body is left untouched. **Authority:** owner direction, 2026-09-04,
+  against RFC-0097's own drawbacks section, which had already identified an
+  unrevalidatable eight-surface corpus as the design's largest risk and accepted
+  a permanently incomplete M2 as the consequence. This narrows the commitment
+  instead so M2 can complete honestly.
 - **2026-09-02 — slice 3b is discarded and re-cut into 3c, 3d, and 3e.** The
   original slice bundled seven runtime profiles, the router's per-claim state and
   roll-up reporting with its provider response-contract change, two composition
@@ -148,7 +160,7 @@ variances:
   records the discard; and the frozen
   [`agent-skill-engineering-composition-floors`](../../specs/agent-skill-engineering-composition-floors/spec.md)
   spec's `Contract:` field, which assigns the claim-state reporting to "the slice
-  that completes the eight profiles" — slice 3c under this cut. That spec's
+  that completes the eight profiles" — the slice `3c-r` row under this cut, re-pointed there by the 2026-09-04 erratum after the eight-profile commitment was retired. That spec's
   ticked AC26 requires the brief to carry a slice-3b row with its own `Ships`
   cell and hard predecessor, so the row is **re-pointed and retained**, not
   deleted; its four Follow-ons continue to resolve through it.

@@ -154,10 +154,36 @@ until an approved amendment changes the boundary.
 [RFC-0097](../../rfc/0097-agent-skill-engineering.md) is Accepted and governs the
 product boundary, ordered follow-on cut, and acceptance conditions.
 [ADR-0093](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
-governs same-pack OKF compilation. The provider-mediated cross-pack knowledge boundary
-is the first new ADR owned by this programme. The planned
+governs same-pack OKF compilation.
+[ADR-0097](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
+is Accepted and governs the provider-mediated cross-pack knowledge boundary — the
+first new ADR owned by this programme, recorded in slice 0 and first consumed by
+slice 4. The planned
 [agent skill engineering architecture](../../architecture/agent-skill-engineering.md)
 describes the target state but remains `PLANNED` until M5 verifies every section.
+
+## Shipped so far
+
+Five of the eleven slice rows below are delivered; the `Spec map` carries each
+one's status, derived from its linked spec rather than maintained here.
+
+| Slice | Delivered |
+| --- | --- |
+| 0 — governance and compiler prerequisites | ADR-0097 recorded and Accepted. Both named OKF compiler prerequisites — `okf-index-title-interpolation-unescaped` and `okf012-nondeterminism-guard-untested` — were closed by `docs/specs/okf-follow-ons/spec.md`, so this slice inherited them satisfied. |
+| 1 — foundation | The portable pack with `frame`, `create` and `update` modes, the review/optimize workflow, the deterministic generated router, and the foundational corpus with its activation and behaviour evaluations. |
+| 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology accounting, the retrieval baseline, and the `knowledge-provider` authoring mode. |
+| 2b — languages and execution economics | Python/pytest and TypeScript/Node depth for skill scripts, evaluations and pack verification, plus execution-economics topics for local runs, CI, worktrees, locks, shared hosts and load detection. |
+| 3a — composition floors and pilot profile | The three portable composition floors (skills-plus-subagents, hooks, plugin package), the runtime capability-claim ledger, and the retrieval-dated Claude Code pilot profile — three probed capabilities and four sourced-but-unprobed. |
+| 4 — consumer integrations | `work-loop` and `architect-design` each reach the installed provider through a bounded step that inlines its own request, addressed by contract version because ADR-0097 forbids a consumer naming a generated router. The seam's seven-value diagnostic vocabulary reaches an installed surface, both packs declare the seam, and `catalogue-authoring-standards.md` § 11 carries the obligation for the next consumer. |
+
+Slice 3b is discarded rather than shipped; its row below is the canonical record
+and states where each of its four residuals went.
+
+**Not yet started.** Slices 3c, 3d, 3e, 5 and 6 exist only as rows in the table
+below. None has a spec, a plan, an intent, or a `workspace.toml` work entry, and
+`["ini-009".work].queue` is empty by the rule in *Derived work* — a confirmed
+slice is a decomposition target, not permission to dispatch. **3c and 3e are
+both unblocked**, since their only hard predecessor is shipped slice 3a.
 
 ## Confirmed delivery slices
 
@@ -174,12 +200,103 @@ and plan are approved and registered under `ini-009`.
 | runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete. Delivered by slice 3d. | RFC-0097 D1, M2 availability rule |
 | 3a — composition floors and pilot profile | Portable skills-plus-subagents, hooks, and plugin-package floors; the runtime capability-claim ledger with its four lifecycle states and profile roll-up; and a retrieval-dated Claude Code pilot profile | Slices 1–2 |
 | 3b — runtime profiles | **Discarded 2026-09-01**, drafted and reviewed clean across five rounds but not shipped, against a D3 charter then under correction (RFC-0097 § Errata, 2026-09-01). Its four residuals are re-homed with none orphaned, so each Follow-on that names this row resolves here: the seven remaining runtime profiles **and** the router's per-claim state and roll-up reporting with its provider response-contract change → **slice 3c**; the subagent-composition and hook/plugin-design behavior fixtures → **slice 3e**; the `runtime-package` mode and its corpus leaf → **slice 3d**. Those rows state the full scope of each. **This row is retained, not deleted:** the frozen `agent-skill-engineering-composition-floors` spec's ticked AC26 and its four Follow-ons resolve through it. | Slice 3a |
-| 3c — remaining runtime profiles and claim-state reporting | Retrieval-dated Codex, GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles, authored under the narrowed D3 charter; and the router's per-claim state and roll-up reporting together with the provider response-contract change it requires, designed once against all eight profiles. The reporting apparatus is **re-derived** under that narrowed charter before any envelope change and may be narrower than the four lifecycle states and three roll-up values slice 3a built. | Slice 3a |
-| 3d — runtime-package mode | The `runtime-package` authoring mode and its `compatibility-and-runtime-package-patterns` corpus leaf, whose recorded admission condition is the runtime profiles that make packaging claims verifiable | Slice 3c |
+| 3c — subagent and plugin concepts in the authored vocabulary | The portable concepts a skill author actually needs: isolated context and what does **not** cross back out of a worker, delegation and worker boundaries, and the standardised plugin core the specification already fixes — root manifest, confinement, versioning, component failure isolation. Taught in the vocabulary this audience writes, Claude agents and Claude skills. Runtime divergence is stated as a bounded caveat where it changes an authoring decision, not as a per-vendor matrix. | Slice 3a |
+| 3c-r — claim-state reporting for the shipped ledger | The router's per-claim state and roll-up reporting, and the provider response-contract change it needs, scoped to the ledger slice 3a shipped rather than to eight profiles. **Retained deliberately:** the frozen composition-floors spec's `Contract:` field assigns this obligation to "the slice that completes the eight profiles", a phrase the de-scope below orphans, so this row is where that Follow-on now resolves. | Slice 3c |
+| runtime profiles beyond Claude Code — open extension, not a committed slice | The profile mechanism, four lifecycle states and roll-up that slice 3a shipped stay in place, so a later contributor can add a runtime profile without a charter change. Per-runtime compatibility stays **AgentBundle's** adapter concern, where it is already measured and tested under `packages/agentbundle/agentbundle/build/adapters/`. Duplicating it as eight maintained corpus profiles is the over-scope this row retires. | — |
+| 3d — runtime-package mode | The `runtime-package` authoring mode and its `compatibility-and-runtime-package-patterns` corpus leaf, whose recorded admission condition is the runtime profiles that make packaging claims verifiable | Slice 3c — its package-lifecycle rows narrow to the one shipped profile's runtime, so Claude plugin packaging is what it can verify |
 | 3e — composition behavior fixtures | The subagent-composition and hook/plugin-design behavior fixtures RFC-0097's Gate 2 M2 measure names | Slice 3a |
 | 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3a |
-| 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slices 4 and 3c |
+| 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slice 4 (shipped) and slice 3c — guidance is not collapsed before the concepts that replace it exist |
 | 6 — pilot and closeout | External non-AgentBundle portability pilot; backlog disposition; maintenance ownership; freshness policy; architecture verification and `CURRENT` promotion | Slices 5, 3d, and 3e — closeout asserts M2 complete and promotes the architecture to `CURRENT`, which requires the `runtime-package` mode and the composition behavior fixtures to exist |
+
+## The runtime-profile de-scope, and what it needs
+
+**Owner decision, 2026-09-04.** This pack is about authoring reusable agent
+skills. It is not a cross-vendor compatibility matrix, and no owner can hold
+eight vendor surfaces current. Runtime profiles beyond the shipped Claude Code
+one are therefore retired from committed scope and become an open extension.
+Per-runtime compatibility stays with AgentBundle, which already tracks it for
+its own delivery.
+
+Subagents and plugins remain in scope, because a skill author cannot decide when
+to hand work to an isolated worker without knowing that isolated context exists
+and what does not come back from it. But that is a *concept*, and conceptually it
+is the same across runtimes. The audience writes Claude agents and Claude skills,
+so that is the vocabulary the corpus teaches; another contributor may add other
+runtime guidance later.
+
+**RFC-0097 anticipated this and chose the other remedy.** Its own drawbacks
+section says: "The largest honest drawback is maintenance: a useful
+runtime-profile corpus creates an obligation to track change. If no owner can
+revalidate the eight initial enterprise surfaces, M1 may ship the portable
+floor, but M2 remains incomplete." The RFC's fallback was to leave M2
+permanently incomplete. This decision narrows the commitment instead, so M2 can
+complete honestly rather than standing open against surfaces nobody is
+revalidating.
+
+### What this resolves
+
+**The required-set tension dissolves rather than needing a fix.** The frozen
+composition-floors spec's ticked **AC6** pins Claude Code's required set at
+seven rows and is executably guarded — `test_runtime_capability_ledger.py`
+asserts both `expected_count == 7` and `len(required["claude-code"]) == 7`,
+built so that "deleting a capability from both the rows and the required set
+fails rather than passing". Narrowing that set would have required amending a
+frozen criterion. Under this de-scope the ledger simply is not grown, so AC6's
+seven rows stay frozen and true and no amendment is needed. That is the cleanest
+available resolution and it was not available under the previous cut.
+
+**The maintenance obligation resolves.** One profile, for the runtime the
+maintainers use daily, is revalidatable. Eight were not.
+
+### How it was recorded
+
+**RFC-0097 § Errata, 2026-09-04, Approver-signed.** The RFC is Accepted, so its
+body is Frozen — `docs/CONVENTIONS.md` allows a status change but not a body
+edit. Corrections are appended to § *Errata*, which is what the 2026-09-01 D3
+narrowing did and what this de-scope did too: purely additive, no frozen text
+altered. Four governed statements are superseded there by name rather than
+rewritten in place:
+
+| Location | Statement superseded |
+| --- | --- |
+| § *Decisions*, D3 cell | "profiles for eight initial enterprise runtime surfaces" |
+| § *D3* | "M2 is not complete until all eight profiles are `complete-current`" |
+| Gate 2 *Success* | "M2 additionally requires all eight profile documents to be `complete-current`" |
+| Gate sequencing | "M2 remains incomplete until the eight-profile condition passes" |
+
+The lifecycle apparatus is untouched: the four claim states, the roll-up values,
+the verification window and the probe record still govern whatever profiles
+exist. The initiative's M2 milestone row follows the erratum, and the
+`rfc-candidates.md` entry that first raised this — logged as an owner challenge,
+"this isn't browser compatibility" — records that the same argument has now been
+carried from per-row scope to the commitment itself.
+
+**The orphaned forward pointer is re-homed by that erratum.** The frozen
+composition-floors spec's `Contract:` field assigns the router's claim-state
+reporting to "the slice that completes the eight profiles", which will not
+exist. The erratum re-points that obligation to the `3c-r` row above, scoped to
+the ledger already shipped. The frozen spec's body is not edited; its Follow-ons
+resolve through this brief's slice rows, which is the indirection built for
+exactly this case.
+
+### The divergence that justified profiling, and where it actually belongs
+
+The per-runtime divergence is real — this repository's own adapters had to
+survive it before any profile was written. Kiro IDE **silently** drops any agent
+carrying a `hooks` key, so hook-wiring is replaced by a Kiro-only primitive;
+Kiro CLI keeps hook-wiring and drops that primitive; Cursor and Gemini each
+aggregate hooks into their own JSON with a per-runtime event-remap table, Gemini
+failing closed on an unmapped event where Cursor does not; Copilot drops the
+`command` primitive outright against upstream `copilot-cli#618/#1113`; and
+subagent tool-allowlist models differ outright — Cursor has none, Gemini has a
+real one, and Kiro ships two vocabularies for one vendor.
+
+Skills, by contrast, project byte-equal across all six. That asymmetry is the
+whole argument: the skill surface is standardised and portable, and the
+divergence lives in delivery mechanics that AgentBundle already tests. The
+corpus records the one authoring consequence — do not assume you can hand a
+subagent a tool list — and leaves the matrix where it is maintained.
 
 ## Spec map
 
@@ -193,6 +310,7 @@ promotes and approves them.
 | `agent-skill-engineering-corpus` | Shipped |
 | `agent-skill-engineering-languages-and-execution` | Shipped |
 | `agent-skill-engineering-composition-floors` | Shipped |
+| `agent-skill-engineering-consumer-integrations` | Shipped |
 
 ## Backlog and prerequisites
 

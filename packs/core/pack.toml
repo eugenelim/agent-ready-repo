@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "2.25.0"
+version = "2.25.1"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -95,3 +95,14 @@ providers = ["agent:frontend-reviewer"]
 when      = "The diff's primary output is HTML/CSS/JS and the frontend-engineering pack is installed."
 purpose   = "Run the frontend-reviewer agent during work-loop REVIEW for diffs whose primary output is HTML/CSS/JS."
 fallback  = "If frontend-engineering is absent, the REVIEW phase skips the frontend-reviewer and records a named skip."
+
+[[pack.integrations]]
+id        = "skill-engineering-reference-handoff"
+pack      = "agent-skill-engineering"
+kind      = "handoff"
+role      = "Bounded skill-engineering reference enquiry"
+consumers = ["skill:work-loop"]
+providers = ["skill:ase-okf-reference"]
+when      = "A work-loop task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin."
+purpose   = "Supply attributed, untrusted skill-engineering evidence through the versioned provider contract without changing work-loop authority or review gates."
+fallback  = "If the provider refuses, preserve its diagnostic; if no candidate is eligible, record knowledge provider unavailable and complete work-loop's pre-existing baseline unless its own safety check failed."
