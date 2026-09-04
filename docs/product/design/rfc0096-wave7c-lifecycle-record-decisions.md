@@ -26,10 +26,21 @@ this document identifies for Option B, applied to a different criterion.
 
 ## Outcome
 
-Wave 7c's two absorbed follow-ons need one Approver decision and no code now.
-Neither is the schema edit the 2026-09-03 Errata implies: one is an atomicity
-requirement belonging to the pruning slice, and the other is a choice between
-two contract readings.
+**Superseded in part by the Decision above, which was taken after this section
+was written.** This section said the two follow-ons needed "no code now". That
+held only for the recommendation; the Approver chose Option A, and
+`lifecycle-record-reclassified-gap` then needed the contract change, a producer,
+reader semantics, tests, regenerated projections and a Core release — shipped as
+[`docs/specs/reclassified-lifecycle-result/`](../../specs/reclassified-lifecycle-result/)
+at Core 2.24.5, with ADR-0105 carrying the frozen-spec supersession.
+
+The finding underneath it stands, and is the part worth keeping: neither
+follow-on was the schema edit the 2026-09-03 Errata implies.
+`lifecycle-record-entry-removal-fact` is an atomicity requirement belonging to
+the pruning slice and takes no record field.
+`lifecycle-record-reclassified-gap` was a choice between two contract readings
+rather than a defect to repair — which is why it could be settled by decision
+and then built, instead of being repaired on discovery.
 
 ## What each follow-on was buying
 
@@ -244,12 +255,22 @@ inferences drawn from them are argued above.
 The last row establishes that no current writer enforces entry removal. It does
 not by itself decide whether the precondition is needed.
 
-## If a contract change is ever made
+## The contract change, as made
 
-Option A would edit two files byte-pinned by AC23 of `cooling-scope-closure`, a
+Option A was chosen, so this section describes what happened rather than what
+might. It edited two files byte-pinned by AC23 of `cooling-scope-closure`, a
 spec that is `Status: Implementing`:
 `contracts/jsonschema/delivery-lifecycle-record.schema.json` and
 `packs/core/.apm/skills/close-work/scripts/cooling.py`. The digests appear twice
 — a constant at `tests/roster/test_cooling_scope_closure.py:842` and a table at
-`docs/specs/cooling-scope-closure/spec.md:284` — and both must move in the same
-commit. Option B changes neither file.
+`docs/specs/cooling-scope-closure/spec.md:284` — and both moved in the same
+commit. Option B would have changed neither file.
+
+Two corrections to that forecast, for whoever touches these pins next. **Four
+rows moved, not two:** the frozen `thirty-day-cooling-and-retirement` spec and
+plan moved as well, each having gained the ADR-0105 `Status` parenthetical. And
+**rows 3 and 4 were deliberately left byte-unchanged** — a concurrent delivery
+owns row 3, and its own criterion substitutes the pre-edit `Status` line back
+and re-hashes it, so moving that row first would have destroyed its oracle.
+Anchor both edits on the digest strings rather than on line numbers; the line
+numbers under that table moved twice in two days while the digests did not.
