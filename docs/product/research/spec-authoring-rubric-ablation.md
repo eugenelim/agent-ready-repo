@@ -4,8 +4,19 @@
 
 Run 2026-09-04 against
 [`spec-authoring-rubric.md`](../../../packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md)
-at commit `f642bf40a`. The result **does not** settle whether a skill reference
-is the right delivery mechanism — see § "What this does not measure".
+as it stood at commit `f6ee0a794`. The result **does not** settle whether a
+skill reference is the right delivery mechanism — see § "What this does not
+measure".
+
+**The shipped rubric has since moved, and the delta misses every scored
+paragraph.** `f6ee0a794..HEAD` on that file is 24 insertions and 21 deletions,
+falling under class 3's *Move*, class 6's *Move*, and § "Optional: a criterion
+syntax". The text each pre-registered defect was scored against — D1 and D2's
+derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
+projection paragraph, D5's empty-state tell, D6's non-waivable-control
+bullet — is byte-identical across that range. So the scores below stand, and
+§ "Reproducing it" rebuilds arm B from the *current* file, which differs from
+the one measured in three unscored places.
 
 ## Design
 
@@ -33,8 +44,12 @@ brief length, which § "Confounds" addresses.
 ## The six pre-registered defects
 
 Each was chosen because it is **not named** by the guidance arm A receives and
-**is** named by the rubric. The measurement fails if arm A names them anyway —
-and on four of the six, it did.
+**is** named by the rubric. Arm A named four of the six anyway. That falsifies
+the *selection* for those four — they do not isolate a marginal contribution,
+because both arms had a route to them — and it is why § "Why the four made no
+difference" reports them as a null result about reachability rather than as
+evidence for the rubric. D3 and D4, where arm A had no route, are the only rows
+the selection holds for, and the only rows the headline claim rests on.
 
 | # | Seeded defect | Rubric class |
 | --- | --- | --- |

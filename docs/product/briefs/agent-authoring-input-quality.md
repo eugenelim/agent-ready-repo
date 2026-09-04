@@ -84,8 +84,8 @@ lever on this brief's outcome, not a style preference.
 
 **Check the artifact's altitude before applying any bound below.** Every bound
 in the band measures a property *within* an artifact. None of them asks whether
-this is the right artifact, and an altitude mismatch is the one sizing failure
-that trimming cannot repair — the repair is to re-home the work.
+this is the right artifact, which is the one sizing failure trimming cannot
+repair; the rubric's § 5 states that pair rule and the repair it implies.
 
 The recognized altitudes run `product-vision > product-strategy > capability >
 feature`, and `decompose-intent` produces the levels beneath whichever is
@@ -128,7 +128,7 @@ argued with.
 | --- | --- | --- |
 | Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
 | Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. A slice with fewer genuine criteria ships with fewer. |
-| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Length only *orders* criteria for that test, longest first. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across 6,411 shipped criteria here p90 is 101 words and p96 is 162. |
+| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across 6,411 shipped criteria here p90 is 101 words and p96 is 162. |
 | Spec body | ≤1,599 words; past 2,392 needs a stated reason | Measured, repo-local: the corpus median and p75. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
 | Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
@@ -151,8 +151,8 @@ establishes a criteria *floor*.
 ### Why no regenerator
 
 Rejected: a regenerator slice. Rubric class 4 is the decay class, and the
-shipped rubric states it; every figure here is a percentile of 416 specs
-measured 2026-09-02, so the class applies to this section. Decay is real but cheap to answer: two of the six
+shipped rubric states it; the two repo-derived rows of the band are percentiles
+of 416 specs measured 2026-09-02, so the class applies to them. Decay is real but cheap to answer: two of the six
 rows are repo-derived percentiles, the rest are imported measurements, the corpus
 grows slowly, and a hand measurement is one command. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
@@ -199,9 +199,9 @@ load-bearing for the rubric rather than decorative: **five classes have no
 equivalent in any of the three frames** — the design should have delegated, the
 criterion decays, it targets a projection, it cuts a non-waivable control, and
 it hand-enumerates a derivable set — **and a sixth, draft narration, has only a
-weak one**, too weak to import from. Most of the six share one cause — an agent
-reader of a document written for a human reader — and that section names which,
-so this brief does not. All six must be taught; the rest can cite a frame.
+weak one**, too weak to import from. That section is also the one home for the
+shared cause behind most of them and for which classes it covers, so this brief
+states neither. All six must be taught; the rest can cite a frame.
 
 The survey also names the one clear import we lack — a criterion *syntax*, for
 which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
@@ -264,7 +264,8 @@ failure was recognition, not retrieval.
 
 > **Recorded, not shaped.** This subsection is evidence captured for a later
 > shaping pass. It is **out of scope** for any confirmed slice, it sizes
-> nothing, and it changes no rubric category yet. A reviewer of the change that
+> nothing. Its derivability half has since shipped as rubric class 4's
+> sub-text; the rest is unshaped. A reviewer of the change that
 > added it should not treat it as a proposal, and should not review it as one.
 > It was persisted here rather than held in a session so that it survives to be
 > shaped. Owner decision, 2026-09-03.
@@ -286,13 +287,14 @@ six lanes creates a completeness claim that did not previously exist, cannot be
 discharged by more machinery, and generates findings that are all real and all
 beside the point.
 
-**Why the current rubric would not catch it.** Its nearest homes are
-category 1 (an obligation restated where an owner already exists — `make ci` is
-that owner) and category 6 (an artifact measuring itself — the exclusion map and
-the predicate were authored alongside the decomposition they validate). Both are
-the categories recorded above as having **no decidable predicate**, so both stay
-prose. Even once the checkable families ship, this failure mode would arrive as
-guidance and never fire.
+**What now catches it, and what still does not.** Rubric class 4 ships the
+decidable half — read a machine-readable source rather than hand-enumerating it,
+compared against the definition at the level it is stated. What class 4 does not
+reach is this exhibit's other two homes: class 1 (an obligation restated where
+an owner already exists — `make ci` is that owner) and class 6 (an artifact
+measuring itself — the exclusion map and the predicate were authored alongside
+the decomposition they validate). Both are recorded above as having **no
+decidable predicate**, so both stay prose and arrive as guidance.
 
 **Why that may be wrong, and the part worth shaping.** This case does appear to
 carry a decidable predicate, which would move it out of the prose-only region:
@@ -316,10 +318,10 @@ adopter needs is the derivation"* — applied to an enumeration whose completene
 is the claim rather than to a figure that decays. The principle is already in
 this brief; its scope is narrower than the failure it needs to cover.
 
-**Open, for the shaping pass:** whether this is a seventh category, a
-sharpening of 1 and 6 with the predicate attached, or a family that belongs in
-the registry; and whether the predicate survives contact with a corpus, since
-"mechanically enumerable" is easy to assert and harder to bound.
+**Open, for the shaping pass:** whether the predicate survives contact with a
+corpus, since "mechanically enumerable" is easy to assert and harder to bound.
+It shipped inside class 4 rather than as a seventh class; whether it also
+belongs in the policy-family registry is that registry owner's call.
 
 ### The derivability rule: nothing hand-enumerated that is derivable; nothing precise that is decoration
 
@@ -456,10 +458,8 @@ separate entry only because the tell is different: category 1's usual shape is
 one obligation restated across several consumers, whereas here it is restated
 *down a level*, into an artifact whose review rubric cannot evaluate it. The
 brief-level control is the question rubric class 1 states, asked of a brief's
-sections rather than a spec's: the rubric owns that question and the
-counter-intuitive repair that goes with it. What is specific to brief altitude
-is only the tell — the restatement runs *down a level*, into an artifact whose
-review rubric cannot evaluate it.
+sections rather than a spec's; the rubric owns that question and the
+counter-intuitive repair that goes with it.
 
 ### Presence-only gates
 
@@ -782,7 +782,8 @@ lives in the plan that guide owns.
 
 A1's home follows the precedent in the surface it extends. As of
 2026-09-02, `packs/core/.apm/skills/new-spec/references/` already holds exactly
-this artifact class — its only current file is `contract-types.md` — and
+this artifact class — on that date its one file was `contract-types.md`, and
+the rubric is the second — and
 `assets/spec.md` § Acceptance Criteria is already the named owner of the
 semantic-atomicity gate that rubric category 5 defers to, so the rubric lands
 next to its precedent and its one consumer is the file that already governs
@@ -796,8 +797,8 @@ the secondary surface, not the primary one, so sharing it does not breach the
 one-primary-surface bound; three slices editing three sections of one reference
 page is not one slice.
 
-- **A3 is the template field alone.** Rejected: pairing it with the repository-anchoring rule, which is a second surface in an unnamed home and breaches the one-surface bound. Whether that rule's prose also has to move is A5's prose-budget question. Whether repository-anchoring prose also has
-to move is A5's prose-budget question, not A3's.
+- **A3 is the template field alone.** Rejected: pairing it with the repository-anchoring rule, which is a second surface in an unnamed home and breaches the one-surface bound. Whether repository-anchoring prose also has to move is A5's prose-budget
+question, not A3's.
 
 - **A1 keeps the rubric and its instructions together.** Two files, one
 deliverable: the rubric with no instruction change is content nobody reads, and
@@ -876,7 +877,8 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 - Prior-art basis, commissioned 2026-09-04 and discharging the desk-research
   item this brief owed:
   [`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md).
-  It supplies the class-to-frame mapping in § "What actually works", the
+  It supplies the class-to-frame mapping in § "What actually works, and what
+  does not", the
   constraint-count and localization evidence in § "Band", and the external-signal
   effect size in § "External binding".
 - Promoted on 2026-09-02 from a shaping intent of the same slug, added at
