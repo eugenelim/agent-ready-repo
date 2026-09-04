@@ -107,6 +107,19 @@ RULES = (
         "spec",
         "A criterion that needs \"and\" to join two **different predicates** is two criteria:",
     ),
+    # Two rules the rubric paraphrased on its first draft. Pinned here so a
+    # future edit that reintroduces either phrasing reds rather than shipping a
+    # second home for a rule SKILL.md owns.
+    (
+        "retcon-rationale",
+        "skill",
+        "Mixed tenses make an agent reading the spec guess wrong about what is current",
+    ),
+    (
+        "disconfirming-evidence",
+        "skill",
+        "Take the cheapest disconfirming evidence before review.",
+    ),
 )
 EXAMPLES = (
     ('E1', 'splits', 'Two different predicates; no single sentence covers both.', '`writer.py` emits `manifest.json` with keys in byte-sorted order, and `--dry-run` prints that manifest without writing a file.'),
@@ -356,7 +369,6 @@ def test_rubric_classes_ship_in_precedence_order() -> None:
         assert heading in body, f"missing rubric class heading: {heading}"
         offsets.append(body.index(heading))
     assert offsets == sorted(offsets), "rubric classes are out of precedence order"
-    assert offsets[0] == min(offsets)
     text = flattened(RUBRIC)
     assert "stop at the first that fires" in text
     assert "Class 1 precedes every other" in text
@@ -379,17 +391,40 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     assert "a ceiling and a stall point, never a floor" in text
 
 
-def test_rubric_ships_derivations_not_this_repositorys_figures() -> None:
+def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:
     """Shipped pack guidance stays portable.
 
     A percentile of this catalogue's corpus is wrong for every adopter on day
-    one, and an internal path does not resolve in an installed skill. Assert
-    the derivation instruction is present and no internal locator is.
+    one, and an internal path does not resolve in an installed skill. So assert
+    the derivation instruction is present, and that no repository-only locator
+    is.
+
+    Named blind spot: this checks *locators*, not figures. A bare numeral
+    assertion is not available here because the rubric's own class headings
+    (`## 1.` … `## 6.`) are numerals, so a repo-derived percentile written
+    without a path would pass. Enforced at review instead.
     """
     text = flattened(RUBRIC)
     assert "Ship the derivation, not the value" in text
     assert "measure your own shipped corpus" in text
-    for locator in ("docs/product/", "docs/specs/", "packs/", "AGENT_RULES.md"):
+    # Every repository-only surface the shipped-content prohibition reaches,
+    # not just the four the first draft happened to list.
+    for locator in (
+        "docs/product/",
+        "docs/specs/",
+        "docs/adr/",
+        "docs/rfc/",
+        "docs/knowledge/",
+        "docs/guides/",
+        "guides/core/",
+        "packs/",
+        "AGENT_RULES.md",
+        "CONVENTIONS.md",
+        "CHARTER.md",
+        "workspace.toml",
+        "RFC-00",
+        "ADR-00",
+    ):
         assert locator not in text, f"internal locator in shipped guidance: {locator}"
 
 
@@ -417,6 +452,13 @@ def test_rubric_eval_has_required_shape_and_behaviour() -> None:
     entry = matches[0]
     assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
     assert len({candidate["id"] for candidate in data["evals"]}) == len(data["evals"])
+    # The graded actor must be the author checking their own pre-seal draft.
+    # A review posture would exercise the one use the rubric disclaims, so pin
+    # the authoring frame, not just the seeded defects.
+    assert "I am drafting" in entry["prompt"]
+    assert "I have not sealed the contract yet" in entry["prompt"]
+    assert "my own draft" in entry["prompt"]
+    assert "Review these" not in entry["prompt"]
     # Each seeded defect must survive in the prompt, or the case stops grading it.
     for seeded in (
         "14 permissions",

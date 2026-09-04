@@ -169,13 +169,22 @@ or not at all.** A stylistic family may be advisory; it may not block.
 **That rule now has independent corroboration, from a different decade and a
 different corpus.** The requirements-smell detector in Femmer et al. (2017)
 applies lexical predicates to authored requirements prose and reports **48%
-precision at 87% recall**; its authors read the low precision as acceptable
-*because the tool triages candidates for a human rather than issuing verdicts*
+precision at 87% recall** on one industrial German-language corpus; its authors
+read the low precision as acceptable *because the tool triages candidates for a
+human rather than issuing verdicts*
 ([`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
-§ 1). Two unrelated measurements of a lexical predicate over authored prose,
-one conclusion: roughly half the flags are wrong, so the family advises. That
-strengthens the design rule from a local calibration result to a property of
-the technique.
+§ 1).
+
+**It corroborates the rule without generalising the number.** A later
+re-validation on English financial-domain requirements reported far higher
+precision, so that survey rates the ceiling **domain- and language-dependent
+rather than intrinsic**, `[moderate]` for transfer. The transferable part is
+the design response, not the rate: where a lexical predicate over authored
+prose has been measured, its false-positive rate has been high enough that the
+tool was built to advise rather than block, and it varied enough between
+corpora that a family must be **calibrated on its own corpus** before anyone
+proposes blocking on it. That is the same conclusion the local 27.4%
+measurement reached, by a different route.
 
 What would have to be true:
 

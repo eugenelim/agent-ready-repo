@@ -76,11 +76,11 @@ No design satisfies it, or a neighbouring criterion forbids what it requires.
 available, no false positives. It requires a guarantee at a boundary the system
 does not control. Two criteria over one quantity pull in opposite directions.
 
-**Move.** Take the cheapest disconfirming evidence before the contract is
-sealed: one fixture, one measurement, or one read-only probe against the
-criterion's satisfiability — not the plan's mechanism. Let the result change
-the criterion, cite it, and do not commit the spike. For a contradiction,
-reconcile the pair or drop one; do not leave both and let review discover it.
+**Move.** `SKILL.md`'s pre-review disconfirming-evidence step owns the probe
+mechanism and its side-effect-free bound; point it at this criterion's
+satisfiability rather than at the plan's mechanism, let the result change the
+criterion, and cite it there. For a contradiction, reconcile the pair or drop
+one; do not leave both and let review discover it.
 
 Refusals need their positive path. A criterion set that only enumerates what is
 rejected leaves undefined which valid input must still succeed, so an
@@ -168,10 +168,11 @@ would run against prose whose author chose the wording.
 
 **Move.** Ship it as advisory guidance and say so, or convert it to a
 mechanical proxy and accept that the proxy is what you get. Do not gate on it.
-A lexical predicate over authored prose flags roughly as many false positives
-as true ones in the published measurements of such detectors, which is why they
-are built to triage candidates for a human rather than to issue verdicts. A
-check that cannot be calibrated is delivered as guidance and never blocks.
+Where a lexical predicate over authored prose has been measured, its false
+positives have run high enough that such detectors are built to triage
+candidates for a human rather than to issue verdicts — and the rate varied by
+corpus and language, so calibrate rather than assume one. A check that cannot
+be calibrated is delivered as guidance and never blocks.
 
 **Two classes sit here and cannot be moved out.**
 
@@ -182,9 +183,9 @@ check that cannot be calibrated is delivered as guidance and never blocks.
   judgement, so no predicate replaces reading the deferral list.
 - **Draft narration.** The body carries errata, withdrawals, dead ends,
   superseded trade-offs, hedged claims, unrequested advice, or an account of
-  your own searches. Delete it and describe current state only. An agent
-  reading a spec cannot tell a superseded paragraph from a live one, so mixed
-  tenses become confidently wrong decisions.
+  your own searches. `SKILL.md`'s present-tense body rule owns the repair and
+  the reason for it. What belongs to this class is only why it stays a reading:
+  no predicate decides which sentence is superseded.
 
 ## Optional: a criterion syntax
 
@@ -195,19 +196,18 @@ originals:
 
 | Shape | Form |
 | --- | --- |
-| Ubiquitous | the system does X |
-| Event-driven | when T, the system does X |
-| State-driven | while P, the system does X |
-| Unwanted behaviour | if T, the system refuses with X |
-| Optional feature | where F is present, the system does X |
+| Ubiquitous | `the <system> shall <response>` |
+| Event-driven | `when <trigger>, the <system> shall <response>` |
+| State-driven | `while <precondition>, the <system> shall <response>` |
+| Unwanted behaviour | `if <trigger>, then the <system> shall <response>` |
+| Optional feature | `where <feature is included>, the <system> shall <response>` |
 
 The unwanted-behaviour shape pairs with a positive shape over the same subject,
 which is the cheapest guard against the one-sided contract in class 3.
 
 Use this when a criterion reads ambiguously, not as a house style. The evidence
-for a fixed syntax is practitioner-grade — it reliably reduces variance in how
-criteria are written, and no controlled study shows it reduces defects — so it
-is an aid and never a gate.
+for a fixed syntax is practitioner-grade, and no controlled study shows it
+reduces defects — so it is an aid and never a gate.
 
 ## What this rubric does not claim
 

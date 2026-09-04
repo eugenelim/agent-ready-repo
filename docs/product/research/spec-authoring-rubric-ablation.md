@@ -85,8 +85,17 @@ is diagnosis rather than detection.
 
 ### Why the two flipped
 
-Both are classes with **no home in the shipped guidance and no equivalent in any
-requirements-engineering frame** ([survey](spec-authoring-quality-survey.md) § 1).
+**What both share is absence from arm A's material** — neither the one-sided
+contract nor the projection class appears in the shipped criterion-shape
+guidance. Their standing in prior art differs, and only one is unmatched. The
+[survey](spec-authoring-quality-survey.md) § 1 lists *targets a projection*
+among the classes with no equivalent in any requirements-engineering frame. The
+*one-sided contract* is not in that unmatched set: the same section records
+EARS's unwanted-behaviour template as pairing a refusal with the positive path
+that must still succeed, which is the concept's nearest prior art rather than
+its absence. So the flip is explained by what arm A was given, not by the frame
+mapping — which is also the argument the Confounds section below actually
+rests on.
 
 **D4 is the sharper result, because arm A did worse than miss it.** Neither
 control run noticed that `build/audit-report.json` is generated output. Both then

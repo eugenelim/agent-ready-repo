@@ -30,11 +30,12 @@ Four results change what this repository should write.
    message rather than the model's own prior thought raises correction rates by
    23 to 93 points, across seven model families. Independent review is not a
    process nicety; it is the mechanism. `[high]`
-3. **Success falls steeply with the number of surfaces a change touches, and
-   localization is where it is lost.** File-level localization accuracy of
-   81.7% degrades to 56.3% by the time an edit location is chosen, and
-   multi-file benchmark resolution sits near 23% against over 70% for
-   near-single-line work. `[high]`
+3. **Success falls steeply with the number of surfaces a change touches.**
+   File-level localization accuracy of 81.7% degrades to 56.3% by the time an
+   edit location is chosen, and multi-file benchmark resolution sits near 23%
+   against over 70% for near-single-line work. `[high]` That localization is
+   where the success is *lost*, rather than one measured stage among several, is
+   an attribution no published ablation makes. `[synthesis]`
 4. **Nobody has measured whether spec-first helps an agent.** Every vendor
    claim that spec-driven development improves quality or reduces rework is
    asserted without a controlled comparison. The defensible claims are about
@@ -88,10 +89,12 @@ reported far higher precision, so the ceiling is domain- and
 language-dependent rather than intrinsic. `[high]` for the reported figures;
 `[moderate]` for transfer.
 
-This independently reproduces the conclusion this repository reached from its
-own calibration attempt: a lexical predicate over prose flags roughly half
-false positives, so it ships as guidance and never blocks. Two unrelated
-measurements, one conclusion. `[synthesis]`
+What transfers is the design response, not the rate. Two unrelated measurements
+of a lexical predicate over authored prose — this one and this repository's own
+calibration attempt — both found a false-positive rate too high to block on,
+and they disagree enough between corpora that the rate itself cannot be
+carried. So a family is calibrated on its own corpus before anyone proposes
+blocking on it, and advises until then. `[synthesis]`
 
 ### Where our classes have no prior-art home
 
@@ -117,10 +120,15 @@ be taught.
 | **Derivable enumeration** | **none.** No frame asks whether a hand-written set has a machine-readable source |
 | **Draft narration** | weakest match: INCOSE concision. Neither frame addresses tense or superseded reasoning, because neither assumes a reader who cannot tell current from historical |
 
-Five of the six unmatched classes share one cause: prior art assumes a **human**
-reader of a **hand-maintained** document. An agent reader cannot tell a
-projection from a source, cannot tell a stale citation from a live one, and
-reads a superseded paragraph as current. `[inference]`
+**Four of the unmatched classes share one cause** — decays, targets a
+projection, draft narration, and derivable enumeration. Prior art assumes a
+**human** reader of a **hand-maintained** document, and an agent reader cannot
+tell a projection from a source, a stale citation from a live one, or a
+superseded paragraph from a current one. The other two have their own causes,
+given in the rows above: the delegation class is duplicated *responsibility*
+rather than duplicated text, and the non-waivable-control class asks a question
+29148's *necessary* does not. This paragraph is the one home for that grouping;
+other artifacts cite it rather than recount it. `[inference]`
 
 ### What prior art has that we do not
 
@@ -352,7 +360,7 @@ authoring rubric may promise.
 | An acceptance-criteria count ceiling has adjacent-regime evidence for its shape. Keep it a screening threshold and name the transfer gap; drop any claim that no evidence exists. | §2, arXiv:2505.07591 and arXiv:2509.21051 |
 | Independent review is load-bearing, with a measured effect size. Warm self-review stays disqualified. | §2, arXiv:2606.05976 |
 | The one-primary-surface bound now has three independent sources and a named cause: localization. | §2, Agentless and SWE-bench Pro |
-| Six failure classes cannot be imported from requirements engineering and must be taught. Five share one cause: an agent reader cannot tell current from historical, or generated from authored. | §1 |
+| Six failure classes cannot be imported from requirements engineering and must be taught. Four of them share one cause, named once in § 1 § "Where our classes have no prior-art home"; the other two have their own, given in that section's table. | §1 |
 | A criterion syntax is the one clearly missing import. Adopt EARS shapes as an optional aid, never a gate — the evidence is practitioner-grade. | §1 |
 | No set-level criteria checks exist here. 29148's set-level characteristics are the frame if that gap is taken. | §1 |
 | The 8,500-to-2,100-token figure is a practitioner report, not a measurement. Relabel it where it is cited as measured. | §2, Augment writeup |

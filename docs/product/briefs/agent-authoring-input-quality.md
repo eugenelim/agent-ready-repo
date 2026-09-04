@@ -94,13 +94,10 @@ chosen. This repository carries 28 intents against 8 briefs, tagged 20
 capability altitude with feature-level slices beneath it.
 
 **Three tells that an artifact is above its altitude**, each cheaper to check
-than any percentile:
-
-- it proposes no slice a spec author could confirm, and the missing input is a
-  decision rather than a detail;
-- it carries a design position, an evidence base, an inventory, or a governance
-  concern, rather than citing one;
-- it changes the gating of its siblings, which a peer cannot do.
+than any percentile, now ship in the rubric's § "5. The criterion is too big"
+under *Altitude precedes size*, which is their home. One of them — that the
+artifact proposes no slice a spec author could confirm — is the decidable one,
+and § "The rubric is a deliverable" routes it to a policy family.
 
 The exhibit is this brief's own sibling set. An artifact authored on
 2026-09-02 to hold cross-adapter behavior enforcement reached 3,573 words as a
@@ -109,8 +106,9 @@ oversized, which was the symptom; the defect was product-strategy content in a
 capability container, and the repair was re-homing it as an intent rather than
 cutting it.
 
-This is the altitude analogue of rubric category 5. A criterion that is too big
-is cut; an artifact at the wrong altitude is moved.
+This is the altitude analogue of rubric category 5, and the rubric states the
+pair rule: a criterion that is too big is cut; an artifact at the wrong
+altitude is moved.
 
 ### Corpus
 
@@ -129,9 +127,9 @@ argued with.
 
 | Dimension | Bound | Origin |
 | --- | --- | --- |
-| Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. The cause is named — localization, not repair. |
+| Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
 | Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. A slice with fewer genuine criteria ships with fewer. |
-| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Length only *orders* criteria for that test, longest first. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec` SKILL.md:505 makes shaping review reject one. The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across 6,411 shipped criteria here p90 is 101 words and p96 is 162. |
+| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Length only *orders* criteria for that test, longest first. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across 6,411 shipped criteria here p90 is 101 words and p96 is 162. |
 | Spec body | ≤1,599 words; past 2,392 needs a stated reason | Measured, repo-local: the corpus median and p75. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
 | Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
@@ -158,8 +156,9 @@ Rejected: a regenerator slice. Rubric category 4 below is "the criterion decays
 416 specs measured 2026-09-02. Decay is real but cheap to answer: two of the six
 rows are repo-derived percentiles, the rest are imported measurements, the corpus
 grows slowly, and a hand measurement is one command. The criteria ceiling is
-screening-only with no causal evidence behind it, so a stall threshold needs an
-order of magnitude rather than a maintained script.
+screening-only — its evidence status is stated once, in the § "Band" row for
+criteria per spec — so a stall threshold needs an order of magnitude rather
+than a maintained script.
 
 What an adopter needs is the **derivation**, which the guidance carries: the
 named glob, the status predicate, and the percentile. Shipping our percentiles
@@ -200,11 +199,10 @@ guide, and the eight requirements smells of Femmer et al. (2017). Its result is
 load-bearing for the rubric rather than decorative: **six classes have no
 equivalent in any of the three frames** — the design should have delegated, the
 criterion decays, it targets a projection, it cuts a non-waivable control, it
-hand-enumerates a derivable set, and draft narration. Five of the six share one
-cause. Prior art assumes a human reader of a hand-maintained document, and an
-agent reader cannot tell a projection from a source, a stale citation from a
-live one, or a superseded paragraph from a current one. Those six must be
-taught; the rest can cite a frame.
+hand-enumerates a derivable set, and draft narration. Four of them share one
+cause — an agent reader of a document written for a human reader — which that
+section states once and this brief does not restate; the other two have their
+own, given in its table. Those six must be taught; the rest can cite a frame.
 
 The survey also names the one clear import we lack — a criterion *syntax*, for
 which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
@@ -505,19 +503,20 @@ loop had no subtractive move because every finding was closed by writing.
 
 The failure-point rubric is distilled from this repository's memory and its
 `docs/knowledge/` topics. It is what the work produces, not what the brief
-carries. Its categories, in the order they matter:
+carries.
 
-1. **The design should have delegated** — an obligation restated per consumer,
-   where an owner already exists. Precedes every other shape, because no
-   criterion craft rescues it. Its counter-intuitive repair: shortening or
-   single-homing a long restatement is the *wrong* fix.
-2. **The criterion cannot fail.**
-3. **The criterion is unsatisfiable or contradicts a sibling.**
-4. **The criterion decays** — exact counts over a growing corpus, line
-   citations in portable artifacts, figures derived from other figures.
-5. **The criterion is too big** — the band above is what mechanizes this one.
-6. **The property is not mechanizable** — a gate over a judgment, or an
-   artifact measuring itself.
+**The shipped rubric owns the class text.** As of 2026-09-04 the six classes,
+their tells, their moves and class 1's counter-intuitive repair live in
+`packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`; read
+them there. This brief keeps only the class *names*, because its slicing,
+sizing and enforcement arguments below refer to them by number:
+
+1. The design should have delegated — precedes every other class.
+2. The criterion cannot fail.
+3. The criterion is unsatisfiable or contradicts a sibling.
+4. The criterion decays.
+5. The criterion is too big — the band above is what mechanizes this one.
+6. The property is not mechanizable.
 
 **A1 supplies family definitions; it does not register or enforce them.** The
 registry surface belongs to
@@ -570,11 +569,11 @@ satisfiability rather than the plan's mechanism.
 
 ### A4 firing predicate
 
-That clause is A4's firing predicate. Step 5a
-today probes the *plan's* load-bearing mechanism
-(`packs/core/.apm/skills/new-spec/SKILL.md:475`), and one probe cannot cover an
-unbounded set of criteria. "A claim about live behaviour" is what selects the
-criteria that get one.
+That clause is A4's firing predicate. Step 5a today probes the *plan's*
+load-bearing mechanism — `new-spec/SKILL.md` Procedure step 5a, "one throwaway
+check that could disconfirm the plan's load-bearing mechanism" — and one probe
+cannot cover an unbounded set of criteria. "A claim about live behaviour" is
+what selects the criteria that get one.
 
 [`stage-input-readiness.md`](stage-input-readiness.md)
 § "What nothing checks today" owns the step-5a-versus-routing-spike
@@ -755,6 +754,22 @@ What shipping early costs, recorded rather than glossed:
 - **The guide does not exist.** `guides/core/reference/acceptance-criteria-authoring.md`
   is still owed, so an adopter reads the rubric inside the skill and has no
   reference page for it. A1 cannot close while that is true.
+- **Class 3 ships A4's substance while step 5a still probes the plan.** The
+  rubric's class 3 points the pre-review probe at a criterion's
+  *satisfiability*, which is what A4 exists to widen `new-spec` step 5a to do;
+  step 5a itself still instructs a probe against the plan's load-bearing
+  mechanism, so shipped guidance now carries two aims for one move. **A4 stays
+  open** and keeps the step-5a surface, its live-behaviour firing predicate and
+  its eval. The rubric adds no selector, which is tolerable only because its
+  classes are worked in order and class 3's tells gate the move.
+- **Six classes ship at a length the change's own evidence argues against.**
+  The ablation found four of the six already reachable from shipped guidance,
+  so their marginal value is diagnosis rather than detection, and the
+  commissioned survey records vendor guidance that an over-long instruction
+  file gets half-ignored. The six ship whole anyway, because a rubric worked
+  *in order* needs every class present to reach the one that fires — a
+  four-class file plus three pointers is not shorter to read. Revisit if the
+  activation report shows the later classes never firing.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same single consumer, same
   precedent — § "A1 home" still governs.
@@ -821,8 +836,9 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 - **The rubric grows into doctrine on one instance.** The hypothesis is in
   `[backlog].open` with what would earn it.
 - **The sizing band is screening evidence dressed as a bound.** The criteria
-  count has no causal evidence behind it. It should stall a contract for a
-  conversation, never silently refuse one.
+  count's evidence status is the § "Band" row's to state; whatever it says, the
+  count should stall a contract for a conversation and never silently refuse
+  one.
 
 ## Ready gaps (Draft only)
 
