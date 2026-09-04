@@ -39,7 +39,7 @@
     {
       "id": "phase1-disabled-parallel-commands",
       "prompt": "You are in Phase-1 code mode of the work-loop. You have 4 independent tasks. What dispatch strategy should you use and why?",
-      "expected_output": "Execute tasks sequentially using the schedule order from `loop-cohort schedule`. Parallel dispatch (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 and exits non-zero. Run tasks one at a time in wave order.",
+      "expected_output": "Dispatch `implementer` tasks sequentially using the schedule order from `loop-cohort schedule`. Parallel dispatch (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 and exits non-zero. Run one implementer at a time in wave order.",
       "assertions": [
         "Response does NOT instruct calling `dispatch-decision`",
         "Response does NOT instruct calling `worktree`",

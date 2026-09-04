@@ -1141,10 +1141,14 @@ future maintainer would ask "why", surface it in the PR description.
 ### Supervisor mode
 
 **Supervisor mode is wave-scheduled and sequential in Phase 1.** The
-work-loop builds the plan's full `Depends on:` DAG
-(`loop-cohort schedule`) and runs tasks in topological order, single-agent,
-on every adapter — failing loud on a cycle and warning on a
-forward-reference. Parallel `implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is **disabled in Phase 1** — those verbs exit non-zero without touching `state.json`. The design intent for opt-in parallel fan-out and the step-by-step worktree procedure live in the `work-loop` skill §EXECUTE and `references/supervisor-mode.md`. This section is the why and the boundary.
+work-loop builds the plan's full `Depends on:` DAG (`loop-cohort schedule`) and
+dispatches plan tasks in topological order with one `implementer` at a time —
+failing loud on a cycle and warning on a forward-reference. Parallel
+`implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is
+**disabled in Phase 1** — those verbs exit non-zero without touching
+`state.json`. The design intent for opt-in parallel fan-out and the step-by-step
+worktree procedure live in the `work-loop` skill §EXECUTE and
+`references/supervisor-mode.md`. This section is the why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
 structural (the plan's shape), not a choice the user makes. Branching
@@ -1340,10 +1344,10 @@ knowledge base — are defined in their own sections above. The mapping
 below says *which of them you actually use* at each profile, so a
 template adopter knows when to wire each one up.
 
-- **Profile A** — single-agent work-loop. Supervisor mode is available
-  but rarely triggers; most plans at this size have sequential
-  `Depends on:` chains, and the parallel-dispatch payoff doesn't beat
-  the coordination overhead. Specialist reviewers are usually skipped,
+- **Profile A** — sequential work-loop. Each plan task still dispatches to one
+  `implementer` at a time; what rarely triggers at this size is parallel
+  fan-out, because most plans have sequential `Depends on:` chains and the
+  parallel-dispatch payoff doesn't beat the coordination overhead. Specialist reviewers are usually skipped,
   and `adversarial-reviewer` itself is optional at this size.
 - **Profile B** — [supervisor mode](#supervisor-mode) runs every
   multi-task plan in topological order (sequential by default); its
