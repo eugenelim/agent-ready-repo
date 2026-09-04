@@ -94,6 +94,59 @@ def test_validator_admits_exactly_the_contract_results() -> None:  # AC2
     assert validator_results == contract_results
 
 
+def test_the_validator_behaviourally_admits_the_contract_results() -> None:  # AC2
+    """The validator's behaviour, not just its literal, matches the contract.
+
+    The AST case above is the exhaustive half — it captures the whole membership
+    set, which a probe cannot. This is the other half the plan names: a probe
+    that includes a value outside the published set, so a second acceptance path
+    added elsewhere in `validate_payload` fails here even though the inspected
+    literal is untouched. Neither case subsumes the other.
+    """
+    cooling = _load()
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    published = schema["properties"]["post_closeout_result"]["enum"]
+
+    for result in published:
+        payload = _valid_payload(post_closeout_result=result)
+        assert cooling.validate_payload(payload).code is None, result
+
+    for outside in ("Reclassifed", "Archived", "Cooling ", "", "reclassified"):
+        payload = _valid_payload(post_closeout_result=outside)
+        assert cooling.validate_payload(payload).code == "record-invalid", outside
+
+
+def _valid_payload(**overrides: object) -> dict[str, object]:
+    """Return a schema-valid record payload, overridden field by field."""
+    payload: dict[str, object] = {
+        "schema": "delivery-lifecycle-record.v1",
+        "delivery_id": "spec-example",
+        "locator": "docs/specs/example/spec.md",
+        "aliases": [],
+        "fingerprint": "sha256:" + "0" * 64,
+        "disposition": "retain-exception",
+        "post_closeout_result": "Retained",
+        "completion_event": "merge",
+        "completion_evidence_ref": "commit:" + "a" * 40,
+        "completed_on": "2026-08-01",
+        "timezone": "Asia/Singapore",
+        "review_on": "2026-08-31",
+        "authority": {
+            "source": {"status": "repository-owned"},
+            "write": {"status": "delegated"},
+            "delete": {"status": "none"},
+        },
+        "confirmation_proof": "sha256:" + "1" * 64,
+        "exception": {
+            "reason": "audit-obligation",
+            "owner_role": "records-owner",
+            "review_on": "2027-01-31",
+        },
+    }
+    payload.update(overrides)
+    return payload
+
+
 def _acceptance(**overrides: str) -> dict[str, str]:
     """Return a valid durable-owner acceptance envelope."""
     acceptance = {
@@ -234,9 +287,7 @@ def test_reclassification_persists_the_supplied_acceptance(
     prior = inputs["record"]
     supplied = _acceptance()
 
-    result = cooling.reclassify_record(
-        acceptance={"exception": supplied}, **inputs
-    )
+    result = cooling.reclassify_record(acceptance=supplied, **inputs)
 
     persisted = cooling.load_record(
         tmp_path, tmp_path / "docs/lifecycle/spec-example.json"
@@ -254,6 +305,11 @@ def test_reclassification_persists_the_supplied_acceptance(
         "accepted",
         _acceptance() | {"unexpected": "field"},
         _acceptance(reason="business-preference"),
+        # The carrier shape `review_exception` accepts for `renew`. Reading the
+        # nested value would validate the block and ignore `unexpected`, so this
+        # case is what holds the producer to the acceptance being the block
+        # itself rather than something unwrapped from a carrier.
+        {"exception": _acceptance(), "unexpected": "field"},
     ],
 )
 def test_malformed_acceptance_leaves_the_record_unchanged(
@@ -283,7 +339,7 @@ def test_reclassification_is_not_gated_by_the_review_date(
     assert datetime.now(UTC).date() < prior.review_on
 
     result = cooling.reclassify_record(
-        acceptance={"exception": _acceptance(review_on="2999-06-01")},
+        acceptance=_acceptance(review_on="2999-06-01"),
         **inputs,
     )
 
@@ -304,6 +360,38 @@ def test_reclassification_preserves_the_artifact(tmp_path: Path) -> None:  # AC8
 
     assert result.code == "accepted"
     assert artifact.is_file()
+
+
+def test_reclassification_delegates_on_the_success_path(tmp_path: Path) -> None:
+    """A SUCCEEDING reclassification must also reach disk through `update_record`.
+
+    The removed-edge case below proves delegation only on the refusal path, and
+    that is not enough on its own: a producer that checks `_TRANSITIONS` itself
+    and delegates *only* when the check fails satisfies it while writing through
+    `_write_record` on every real reclassification. That producer passes every
+    other case in this file, because they all observe the persisted record and
+    the persisted record is correct. This case is what makes it fail — the
+    invariant is that reclassification reaches disk only through transition
+    enforcement, on both paths.
+    """
+    cooling = _load()
+    inputs = _reclassification_kwargs(cooling, tmp_path)
+    delegated: list[dict[str, object]] = []
+    update_record = cooling.update_record
+
+    def recording_update(**kwargs: object) -> object:
+        """Record the delegated call before enforcing it."""
+        delegated.append(kwargs)
+        return update_record(**kwargs)
+
+    cooling.update_record = recording_update
+
+    result = cooling.reclassify_record(acceptance=_acceptance(), **inputs)
+
+    assert result.code == "accepted"
+    assert len(delegated) == 1
+    assert delegated[0]["prior"] == inputs["record"]
+    assert delegated[0]["proposed"].post_closeout_result == "Reclassified"
 
 
 def test_reclassification_delegates_transition_enforcement(tmp_path: Path) -> None:

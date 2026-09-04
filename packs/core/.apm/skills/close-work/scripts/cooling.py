@@ -921,18 +921,21 @@ def reclassify_record(
     candidates: object,
     authority_binding: object,
 ) -> CoolingResult:
-    """Persist a retained record with its supplied durable-owner acceptance."""
-    if not isinstance(acceptance, dict):
-        return CoolingResult(code="exception-envelope-invalid")
-    supplied = acceptance.get("exception", acceptance)
-    if not _exception_is_valid(supplied):
+    """Persist a retained record with its supplied durable-owner acceptance.
+
+    `acceptance` IS the exception block. It is deliberately NOT unwrapped from a
+    carrier the way `review_exception` reads `renew`'s attestation: that seam
+    validates only the nested value, so a carrier could hold keys outside the
+    envelope and still persist. Reclassification refuses those instead.
+    """
+    if not _exception_is_valid(acceptance):
         return CoolingResult(code="exception-envelope-invalid")
     try:
         proposed = _proposed_record(
             record,
             disposition="retain-exception",
             post_closeout_result="Reclassified",
-            exception=supplied,
+            exception=dict(acceptance),
         )
     except (TypeError, ValueError):
         return CoolingResult(code="exception-envelope-invalid")
