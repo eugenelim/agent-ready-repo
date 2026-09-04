@@ -20,9 +20,11 @@ REQUIRED_KEYS = (
     "contract",
 )
 REQUIRED_CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive", "yourDecisions")
-# Additive: a journey may also carry an ordered list of internal gate IDs. It is
-# optional, so every pack authored against the previous contract stays valid.
-OPTIONAL_CONTRACT_KEYS = ("decisionGateIds",)
+# Additive: a journey may also carry an ordered list of internal gate IDs, and
+# `youType` -- the literal first thing a person types to start the journey. Both
+# are optional, so a pack authored against the previous contract stays valid,
+# including a pack authored outside this repository.
+OPTIONAL_CONTRACT_KEYS = ("decisionGateIds", "youType")
 CONTRACT_KEYS = REQUIRED_CONTRACT_KEYS
 STATE_VALUES = {"read-only", "proposed-write", "confirmed-write"}
 SCOPE_VALUES = {"repo", "user"}
@@ -81,6 +83,12 @@ def _validate_required(data: dict[str, Any], location: str) -> list[str]:
         isinstance(item, str) for item in decisions
     ):
         return [f"{location}: contract.yourDecisions must be an array of strings"]
+    you_type = contract.get("youType")
+    if you_type is not None and (
+        not isinstance(you_type, str) or not you_type.strip()
+    ):
+        return [f"{location}: contract.youType must be a non-empty string"]
+
     gate_ids = contract.get("decisionGateIds")
     if gate_ids is not None and (
         not isinstance(gate_ids, list)

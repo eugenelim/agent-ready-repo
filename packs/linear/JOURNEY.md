@@ -7,6 +7,7 @@ scope: user
 tagline: "Linear source → reviewed repository work."
 contract:
   useItWhen: "You want to start repository work from Linear or compare an existing tracker-origin artifact with its source."
+  youType: "Start repository work from Linear issue LIN-123."
   youProvide: "A Linear Issue, Project, Cycle, view, selection, or registered artifact path."
   youReceive: "A bounded content-based route or reviewed field delta, with separate confirmation for any declared coordination action."
   yourDecisions:

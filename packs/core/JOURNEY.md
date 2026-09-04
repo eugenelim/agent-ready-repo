@@ -8,6 +8,7 @@ tagline: "Spec → shipped code. Supervised."
 prerequisitePacks: []
 contract:
   useItWhen: "You're implementing a feature, fixing a bug, or changing an existing repo."
+  youType: "Start work on adding export retention controls."
   youProvide: "The task and its important constraints."
   youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
   yourDecisions:

@@ -1,11 +1,14 @@
 ---
 // Compact above-the-fold contract for a journey page (journey-template-revamp).
-// Four fixed lines — Use it when / You provide / You receive / Your decisions —
-// so a reader learns the shape once and reuses it on every journey. Light zone,
-// amber left border, same --ds-* token vocabulary as GateDetail.astro. Zero JS.
+// Use it when / You type / You provide / You receive / Your decisions — so a
+// reader learns the shape once and reuses it on every journey. `youType` is
+// optional and its row is omitted when a journey has not declared one, so a
+// pack authored before the field still renders. Light zone, amber left border,
+// same --ds-* token vocabulary as GateDetail.astro. Zero JS.
 
 interface Contract {
   useItWhen: string;
+  youType?: string;
   youProvide: string;
   youReceive: string;
   decisionGateIds?: string[];
@@ -34,6 +37,12 @@ const decisionCount = decisions?.length ?? 0;
       <dt>Use it when</dt>
       <dd>{contract.useItWhen}</dd>
     </div>
+    {contract.youType && (
+      <div class="contract-row">
+        <dt>You type</dt>
+        <dd><code>{contract.youType}</code></dd>
+      </div>
+    )}
     <div class="contract-row">
       <dt>You provide</dt>
       <dd>{contract.youProvide}</dd>

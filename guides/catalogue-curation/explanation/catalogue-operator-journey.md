@@ -147,4 +147,4 @@ This is the correct posture: bidirectional sync between a catalogue and its deri
 ---
 
 **Source journey maps:**
-[catalogue-engineer-converges-skills](../../../product/journeys/catalogue-engineer-converges-skills.md)
+[catalogue-engineer-converges-skills](../../../docs/product/journeys/catalogue-engineer-converges-skills.md)

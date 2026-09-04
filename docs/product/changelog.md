@@ -67,6 +67,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   observation into an existing topic appends to its provenance instead of
   replacing it, so the record of what was seen, and when, survives revision.
 
+## [product-engineering][0.13.9] — 2026-09-03
+
+### Highlights
+
+- **Shaping skills now suggest a workspace entry that can actually be picked
+  up.** `frame-situation` and `diverge-solutions` printed a short legacy form
+  that is never dispatchable, so an entry added exactly as instructed never
+  surfaced as ready work. Both now print the canonical five-field entry and
+  route registration through `work-intake`.
+- **A reference to a command that no longer exists is gone.** The skills
+  pointed at a retired skill name, so following the instruction did nothing.
+
+### Changed
+
+- Added `Triggers on` example utterances where they were missing, and corrected
+  the workspace-entry guidance in `frame-situation`, `diverge-solutions`, and
+  their examples.
+
+## [product-strategy][0.2.5] — 2026-09-03
+
+### Highlights
+
+- **The OKR cascade now writes a workspace entry that can be picked up.**
+  `run-okr-cascade` records each gap it finds, and it was writing a legacy form
+  that is never dispatchable — so every gap it recorded was invisible to the
+  shaping room it was recording into. It now writes the canonical five-field
+  entry.
+
+### Changed
+
+- Corrected the gap-entry format in `run-okr-cascade` and its cross-pack routing
+  reference.
+
+## [experience-design][2.0.3] — 2026-09-03
+
+### Highlights
+
+- **Every experience-design skill now tells you how to start it.** None of the
+  pack's twenty skills documented an example phrase, so a person had to guess
+  the wording and the agent had nothing to match against. Each skill now carries
+  two to four phrases someone would actually type, sharpened so neighbouring
+  skills in a twenty-skill pack do not claim the same request.
+
+### Changed
+
+- Added `Triggers on` example utterances to all twenty skill descriptions.
+
+## [frontend-engineering][0.2.2] — 2026-09-03
+
+### Highlights
+
+- **Every frontend-engineering skill now tells you how to start it.** As with
+  experience-design, none of the nine skills documented an example phrase. Each
+  now carries example utterances that match what the skill genuinely handles.
+
+### Changed
+
+- Added `Triggers on` example utterances to all nine skill descriptions.
+
 ## [core][2.24.2] — 2026-09-03
 
 ### Highlights

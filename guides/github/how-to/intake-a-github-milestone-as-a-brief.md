@@ -7,6 +7,10 @@ kind: how-to
 
 # Intake GitHub work into the repository
 
+**Mode: tracker-authoritative.** This guide assumes GitHub holds the team's real
+backlog. If `docs/product/` is canonical and GitHub is only for reporting, use
+[repo-first projection](../README.md#which-mode-are-you-in) instead.
+
 **Use this when:** an Issue, Milestone, or explicit GitHub selection should
 become canonical repository work.
 **Result:** a content-based route produced without writing to GitHub.
@@ -99,3 +103,10 @@ Accept the proposed spec route and start new-spec.
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
 shared route terms. For an existing artifact, see
 [Use work intake](../../_shared/how-to/use-work-intake.md).
+
+## What you have now
+
+You have a validated content-based route with stable GitHub provenance, and
+GitHub is unchanged. After you accept the route, `work-intake` can create and
+register the selected repository artifact. Review any named ambiguity or
+confidentiality question before continuing.

@@ -13,6 +13,10 @@ kind: how-to
 
 You have a defect — a deviation between what the code does and what it's supposed to do — and you want to drive it through the project's fix discipline rather than vibe-patching it. The `bug-fix` skill (shipped in `core`) is the entry point. This page walks the path from "I have a bug" through "the fix is in main and the regression test will catch this if it ever comes back."
 
+```text
+Use the bug-fix skill to fix the duplicate charge when an order retry times out.
+```
+
 For the *why* behind the loop discipline the skill runs under the hood, read [the core pack as a system](../explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.
 
 ## Prerequisites
@@ -150,6 +154,12 @@ If the bug is intermittent or production-only, the skill refuses to draft a fix 
 - **Refactors that preserve behavior.** No bug, no fix — just a PR with a clear rationale. See [`docs/CONVENTIONS.md` § Pull requests](../../../docs/CONVENTIONS.md#pull-requests).
 - **Spikes and throwaway exploration.** If the output is going to be thrown away, the skill's discipline adds friction for no gain.
 - **You don't know whether it's a bug.** Investigate first; come back when you have an answer shaped like "the code does X, it should do Y."
+
+## What you have now
+
+You have a minimal fix backed by a regression test and a documented root cause.
+For a multi-file repair, carry that evidence into `work-loop` before shipping
+the reviewed PR.
 
 ## Related
 

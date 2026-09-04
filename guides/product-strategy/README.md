@@ -18,6 +18,10 @@ New here? Start with the [tutorial](tutorials/run-your-first-swot.md) — your
 first committed strategy artifact from one skill — then reach for the how-tos as
 the jobs come up.
 
+```text
+Run a SWOT for our payments product.
+```
+
 ## Tutorials
 - [Run your first SWOT](tutorials/run-your-first-swot.md) — produce one committed strategy artifact end to end.
 

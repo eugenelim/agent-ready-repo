@@ -9,6 +9,10 @@ kind: explanation
 
 A written trail for the decisions a long-lived repo accumulates. Three skills, three artifacts: `new-rfc` proposes a change whose direction is still open, `new-adr` records a decision once it's made, and `rfc-status` surveys what is open, accepted, or rejected. The pack also ships the `docs/rfc/` and `docs/adr/` shapes those skills write into.
 
+```text
+Propose a change to the release approval policy.
+```
+
 New here? [Propose a change with an RFC](how-to/new-rfc.md) when something is still open; [record it with an ADR](how-to/new-adr.md) once it's settled.
 
 ## Tutorials

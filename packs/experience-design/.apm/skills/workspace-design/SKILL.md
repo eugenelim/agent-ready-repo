@@ -1,6 +1,6 @@
 ---
 name: workspace-design
-description: "Use when someone asks how a productivity, collaboration, or agentic workspace should support sustained professional work across sessions. Produces a workspace-surface specification covering context persistence, collaboration state, ambient attention, interruptions, and session arcs. Use `analytical-design` for dashboards and monitoring views and `marketplace-design` for exchange surfaces. Product strategy is upstream; choosing the appetite and scope belongs to product engineering; implementing the workspace or writing its UI strings belongs to frontend engineering and `ux-writing`."
+description: "Use when someone asks how a productivity, collaboration, or agentic workspace should support sustained professional work across sessions. Produces a workspace-surface specification covering context persistence, collaboration state, ambient attention, interruptions, and session arcs. Use `analytical-design` for dashboards and monitoring views and `marketplace-design` for exchange surfaces. Product strategy is upstream; choosing the appetite and scope belongs to product engineering; implementing the workspace or writing its UI strings belongs to frontend engineering and `ux-writing`. Triggers on \"design the session flow for our collaborative editor\", \"how should this agent workspace preserve context between sessions\", \"structure interruptions and handoffs in our team workspace\"."
 ---
 
 # Skill: workspace-design

@@ -11,6 +11,16 @@ kind: how-to
 **Result:** the same content-based route whether the source is Jira, Jira
 Align, Linear, or GitHub.
 
+**Mode:** tracker-authoritative intake. Your team's real backlog lives in the
+tracker, and you are bringing that work into the repository. This is one of two
+supported modes. If instead your shaping happens in the repository and you want
+the tracker to mirror it for reporting, you want the other one —
+[Project intents and slices out to a tracker](project-slices-to-a-tracker.md).
+Pick one mode per body of work: requirements edited in both places diverge, and
+nothing reconciles them for you. A repo-origin refresh will *report* projection
+drift, but it refuses to import tracker requirements — so the merge is always
+yours to do by hand.
+
 Start with a request such as:
 
 ```text
@@ -88,6 +98,7 @@ or `bug-fix`. For an existing artifact whose tracker source changed, follow
 
 ## See also
 
+- [Project intents and slices out to a tracker](project-slices-to-a-tracker.md) — the other mode: repo-first projection
 - [Tracker vocabulary](../reference/tracker-vocabulary.md)
 - [Use work intake](use-work-intake.md)
 - [Start or remember work](../../core/how-to/start-or-remember-work.md)

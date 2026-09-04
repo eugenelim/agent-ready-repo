@@ -24,6 +24,10 @@ You have an artifact and you want to know what's wrong with it. Paste it, ask fo
 
 Paste the artifact, or point at a known path, and ask:
 
+```text
+Review this architecture design for our payments-routing service.
+```
+
 - "Review this design doc."
 - "Review this architecture assessment for evidence and action traceability."
 - "What's wrong with this RFC?"
@@ -119,6 +123,12 @@ The skill pushes back rather than reviewing when:
 - **The artifact is too thin to critique.** A two-bullet outline is a discussion; the skill won't critique tumbleweeds.
 - **You want a conversation, not findings.** If you're still shaping the idea, switch to a design surface.
 - **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review--the-design-reviewer-subagent) to get that independent pass.
+
+## What you have now
+
+You have a severity-ranked verdict, concrete findings, and strengths to keep
+for the architecture artifact you supplied. Apply the accepted changes, then
+request an independent review again when the artifact is ready.
 
 ## See also
 

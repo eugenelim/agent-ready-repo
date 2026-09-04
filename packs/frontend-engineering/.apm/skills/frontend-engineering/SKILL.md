@@ -1,6 +1,6 @@
 ---
 name: frontend-engineering
-description: Load when a task's primary output is HTML, CSS, or JS. Provides design pre-flight, codified craft rules, GATES verification commands, and an evidence manifest for that surface. Four modes — create (new surface), retrofit (improving existing), audit (review only), verify (run gates and manifest).
+description: Load when a task's primary output is HTML, CSS, or JS. Provides design pre-flight, codified craft rules, GATES verification commands, and an evidence manifest for that surface. Four modes — create (new surface), retrofit (improving existing), audit (review only), verify (run gates and manifest). Triggers on "build this dashboard in HTML, CSS, and JavaScript", "retrofit this existing landing page without breaking its states", "audit this web surface against the frontend quality floor", "verify this completed component and produce its evidence manifest".
 ---
 
 # Skill: frontend-engineering

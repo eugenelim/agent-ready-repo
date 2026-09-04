@@ -1,6 +1,6 @@
 ---
 name: information-architecture
-description: "Use when someone asks what goes where on a screen or flow, in what order, and how users stay oriented. Produces an information-architecture and layout-reasoning document covering hierarchy, reading flow, progressive disclosure, navigation, and wayfinding. Use `creative-direction` for visual mood, `interaction-design` for within-screen behavior, `user-flow` for screen sequence, and `design-review` for critique. Product direction belongs to product strategy; scoping the feature belongs to `frame-intent`; writing markup and styles belongs to `frontend-engineering`."
+description: "Use when someone asks what goes where on a screen or flow, in what order, and how users stay oriented. Produces an information-architecture and layout-reasoning document covering hierarchy, reading flow, progressive disclosure, navigation, and wayfinding. Use `creative-direction` for visual mood, `interaction-design` for within-screen behavior, `user-flow` for screen sequence, and `design-review` for critique. Product direction belongs to product strategy; scoping the feature belongs to `frame-intent`; writing markup and styles belongs to `frontend-engineering`. Triggers on \"decide what goes where on this settings screen\", \"design the hierarchy and wayfinding for this flow\", \"organize this account settings content around the user's primary task\"."
 ---
 
 # Skill: information-architecture

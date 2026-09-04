@@ -229,6 +229,12 @@ established coordination surface cannot carry that receipt, the delivery record
 stays as a retained exception. `workspace.toml` remains an index; it does not
 become the receipt, rationale, or cooling store.
 
+## What you have now
+
+You have a mutation-free closeout preview that identifies lasting context,
+blockers, and an eligible disposition. Confirm an exact effect only after its
+fresh authority and target checks pass; otherwise retain the work or resume it.
+
 ## Next step
 
 When the preview is clear, confirm the freshness judgment and the chosen

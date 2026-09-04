@@ -1,6 +1,6 @@
 ---
 name: responsive-layout
-description: Design and implement adaptive layouts using CSS Grid, Flexbox, container queries, and fluid typography/spacing — the craft layer for layouts that work correctly across all viewport sizes without JavaScript.
+description: Design and implement adaptive layouts using CSS Grid, Flexbox, container queries, and fluid typography/spacing — the craft layer for layouts that work correctly across all viewport sizes without JavaScript. Triggers on "build this page layout so it works at every viewport", "fix the card grid that breaks at 720 pixels", "make this shared card adapt to its container without JavaScript".
 ---
 
 # Skill: responsive-layout

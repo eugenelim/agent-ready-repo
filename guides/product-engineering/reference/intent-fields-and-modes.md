@@ -74,7 +74,7 @@ The hard limits are stated honestly: **no atomic cross-repo commit**, **no share
 
 `frame-intent` writes intents to `<parent>/intents/<slug>.md` and
 `align-value-stream` writes rollups to `<parent>/rollups/<slug>.md`. Both resolve
-`parent` from the `[product-engineering]` table of an adopter-created
+`parent` from the `[product]` table of an adopter-created
 `agentbundle-layout.toml` (repo-root file overrides user-profile file per table;
 default `docs/product` when no section resolves). Each intent and rollup is a
 single file — a per-topic folder is deliberately not used. Full schema and

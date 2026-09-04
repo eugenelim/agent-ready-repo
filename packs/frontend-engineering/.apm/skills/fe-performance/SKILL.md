@@ -1,6 +1,6 @@
 ---
 name: fe-performance
-description: Measure, diagnose, and remediate Core Web Vitals and asset budget violations using structured profiling, causality analysis, and repeatable remediation patterns.
+description: Measure, diagnose, and remediate Core Web Vitals and asset budget violations using structured profiling, causality analysis, and repeatable remediation patterns. Triggers on "diagnose why this route fails LCP", "find the cause of our INP regression", "bring this page back under its asset budget".
 ---
 
 # Skill: fe-performance

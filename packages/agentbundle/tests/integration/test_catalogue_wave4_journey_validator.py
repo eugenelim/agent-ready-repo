@@ -157,6 +157,56 @@ def test_wrong_contract_subfield_type_reports_error(tmp_path: Path) -> None:
     ]
 
 
+def test_you_type_accepts_a_non_empty_string(tmp_path: Path) -> None:
+    """`youType` is optional, so declaring it must not make a journey invalid."""
+    root, path = _write_journey(
+        tmp_path,
+        VALID_REQUIRED.replace(
+            "  useItWhen: You need the example.\n",
+            '  useItWhen: You need the example.\n  youType: "Start the example."\n',
+        ),
+    )
+
+    data, diagnostics = parse_journey_md(root, path)
+
+    assert data is not None
+    assert diagnostics == []
+    assert data["contract"]["youType"] == "Start the example."
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("no", "contract.youType must be a non-empty string"),
+        ('""', "contract.youType must be a non-empty string"),
+        ('"   "', "contract.youType must be a non-empty string"),
+        ("[a, b]", "contract.youType must be a non-empty string"),
+    ],
+)
+def test_you_type_rejects_non_string_and_blank(
+    tmp_path: Path,
+    value: str,
+    expected: str,
+) -> None:
+    """A declared `youType` must carry an actual utterance.
+
+    An empty or non-string value would publish a "what to type" affordance with
+    nothing to type, which is worse than omitting the field.
+    """
+    root, path = _write_journey(
+        tmp_path,
+        VALID_REQUIRED.replace(
+            "  useItWhen: You need the example.\n",
+            f"  useItWhen: You need the example.\n  youType: {value}\n",
+        ),
+    )
+
+    data, diagnostics = parse_journey_md(root, path)
+
+    assert data is None
+    assert diagnostics == [f"packs/example-pack/JOURNEY.md: {expected}"]
+
+
 def test_invalid_effect_kind_reports_error(tmp_path: Path) -> None:
     root, path = _write_journey(
         tmp_path,

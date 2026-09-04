@@ -11,6 +11,10 @@ Shape product intent into work your delivery loop can build. The pack turns an i
 
 New here? Start with [the intent tree](explanation/the-intent-tree.md) for the model, then [shape a feature intent](how-to/shape-a-feature-intent.md) in your own repo. Starting a brand-new product or engagement? Begin at the top of the tree with [frame a product vision](how-to/frame-a-product-vision.md), or run the upstream [discovery loop](explanation/the-discovery-loop.md) to turn a raw idea into a build-ready brief.
 
+```text
+Shape this feature intent: workspace owners need export retention controls so compliance requests no longer require manual work.
+```
+
 ## Tutorials
 
 - [Walk a discovery end-to-end](tutorials/walk-a-discovery-end-to-end.md) — follow one full discovery, from a raw idea to a ratified decision brief handed to `work-loop`, seeing each gate, a divergence, a rejection/recovery, and the validation hooks.

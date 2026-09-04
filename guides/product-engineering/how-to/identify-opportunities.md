@@ -15,6 +15,10 @@ Use this skill when you have a problem area worth exploring and want to know
 what users are actually trying to get done before committing to a solution direction.
 The output is a ranked `opportunity-assessment.md` artifact ready to hand to `diverge-solutions`.
 
+```text
+Map the jobs for workspace owners who need to retain exports for compliance requests without slowing daily reporting.
+```
+
 ---
 
 ## When to use this skill
@@ -23,6 +27,8 @@ The output is a ranked `opportunity-assessment.md` artifact ready to hand to `di
 signal and recommended an entry point, run `identify-opportunities` to map the
 jobs before diverging on solutions. This is the default path when the problem
 is confirmed but the solution space is open.
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
 
 **Standalone, without prior situation framing.** If you are starting from a
 free-form problem description — a customer complaint, a product hypothesis, or a
@@ -88,3 +94,8 @@ agent estimates with explicit PE-confirmed ratings before handing off to step 3.
 readiness" section describing what step 3 provides and what to do when the skill
 becomes available. The top-opportunities list in the artifact remains valid input
 when you are ready to continue.
+
+## What you have now
+
+- A ranked `opportunity-assessment.md` with functional, emotional, and social jobs for the problem area.
+- The top opportunities are ready to carry into `diverge-solutions` for structured option generation.

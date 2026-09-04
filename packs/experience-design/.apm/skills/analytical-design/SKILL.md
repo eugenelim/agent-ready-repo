@@ -1,6 +1,6 @@
 ---
 name: analytical-design
-description: "Use when someone asks how a dashboard, report, or monitoring view should help a user understand data and act. Produces domain-model-first information architecture and a widget hierarchy for the analytical surface, not individual chart implementations. Use `interaction-design` for component behavior, `conversion-design` for marketing surfaces, and `workspace-design` for sustained-work tools. Metric and outcome strategy belongs upstream; shaping the analytics product belongs to `frame-intent`; implementing charts and data bindings belongs to frontend engineering."
+description: "Use when someone asks how a dashboard, report, or monitoring view should help a user understand data and act. Produces domain-model-first information architecture and a widget hierarchy for the analytical surface, not individual chart implementations. Use `interaction-design` for component behavior, `conversion-design` for marketing surfaces, and `workspace-design` for sustained-work tools. Metric and outcome strategy belongs upstream; shaping the analytics product belongs to `frame-intent`; implementing charts and data bindings belongs to frontend engineering. Triggers on \"design a dashboard that helps on-call engineers spot and act on service degradation\", \"structure this sales report around the questions leaders need answered\", \"define the widget hierarchy for our monitoring view\"."
 ---
 
 # Skill: analytical-design

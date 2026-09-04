@@ -35,6 +35,18 @@ No row is a fixed mapping. A coherent Jira board can describe one outcome; an
 incoherent Milestone can be only a view. The adapter preserves the object type
 as a hint while `work-intake` classifies from content.
 
+## This reference covers intake only
+
+The table above is deliberately hint-shaped because intake classifies from
+content, not from an object's name. The **outbound** direction is the opposite:
+projecting a repository-owned intent tree out to a tracker uses a fixed
+level-to-object mapping per profile, because the canonical model is already
+known. That mapping is in
+[Project intents and slices out to a tracker](../how-to/project-slices-to-a-tracker.md).
+
+Do not read a row here as the inverse of a row there. Intake asks "what is this
+content?"; projection asks "where does this known level land?".
+
 ## Normalized record
 
 Each adapter returns:

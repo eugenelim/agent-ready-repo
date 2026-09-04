@@ -613,12 +613,20 @@ Use these fields:
   `confirmed-write`.
 - `scope`: `repo` or `user`.
 - `tagline`: a plain-language summary of at most 120 characters.
-- `contract`: a closed object with one optional member. `useItWhen`,
+- `contract`: a closed object with two optional members. `useItWhen`,
   `youProvide`, and `youReceive` are strings; `yourDecisions` is an array of
   strings. `decisionGateIds` is optional and, when present, is an array of
   `humanGates[].id` strings in the order a reader meets those decisions; it
-  carries identifiers only, never adopter-facing wording. Packs authored before
-  it existed stay valid, because `yourDecisions` remains required.
+  carries identifiers only, never adopter-facing wording. `youType` is optional
+  and, when present, is a non-empty string holding the literal first thing a
+  person types to start the journey — one utterance, exactly as a reader would
+  send it, not a description of it. Packs authored before either field existed
+  stay valid, because `yourDecisions` remains required.
+
+  The contract is closed, so a field it does not name is rejected. Adding one is
+  a change to `journey_validator.py`, this standard, and
+  `web/src/lib/journey-schema.ts` together — Zod strips an undeclared key, so a
+  field missing from the web schema can never reach the published page.
 
 Malformed YAML, a missing required field, or a field with the wrong type stops index
 generation before any output is replaced.

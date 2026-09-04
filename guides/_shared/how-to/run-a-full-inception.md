@@ -70,7 +70,7 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
   and `devils-advocate` for contested choices.
 - **Install:** in the `inception` profile, or on its own with
   `agentbundle install --pack desk-research <catalogue>`.
-- **How:** [Run the research pipelines](../../desk-research/how-to/desk-research-pipelines.md),
+- **How:** [Run the research pipelines](../../desk-research/how-to/research-pipelines.md),
   or [your first research session](../../desk-research/tutorials/desk-research-first-session.md)
   if the pack is new to you.
 

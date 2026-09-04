@@ -13,6 +13,10 @@ kind: how-to
 
 Someone handed you a PRD, solution document, or requirements packet spanning several features, and you need to turn it into work your team can ship. Use `author-delivery-brief create` to make the Draft, then `author-delivery-brief continue` to review readiness and offer delivery slices. This guide covers the continue path.
 
+```text
+Use author-delivery-brief to continue the billing portal brief and confirm its delivery slices.
+```
+
 For the *why* behind a brief sitting between the roadmap and the specs, read [Why a brief layer](../explanation/why-a-brief-layer.md). For the exact fields a brief and a derived spec carry, see [Product brief fields](../reference/product-brief-fields.md). This page is task-oriented: what to type and what to expect back.
 
 ## Before you start
@@ -76,6 +80,12 @@ It reads each spec's `Status:` field, follows the `Brief:` back-links, and repor
 - **The cut splits by component, not by shippability** — "backend, then frontend" is not two slices. Push back: each slice should ship and test on its own. The skill aims for this, but you're the check.
 - **Hand-editing the Status column in the brief** — don't. It's auto-derived; a hand-written status drifts the moment a spec ships, which is the exact failure the coverage lint exists to catch.
 - **Cramming the whole brief into one spec** — that breaks the one-feature sizing rule and the per-spec build loop. Several features means several specs.
+
+## What you have now
+
+You have a Ready delivery brief and, when confirmed, feature-sized specs linked
+back to it. Build each approved slice through its own `work-loop` rather than
+turning the brief into an implementation plan.
 
 ## See also
 
