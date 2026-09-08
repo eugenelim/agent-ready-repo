@@ -5,12 +5,38 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.4"
+          "version": "2.25.6"
         }
       ],
       "date": "2026-09-08",
-      "heading": "[core][2.25.4] — 2026-09-08",
-      "changelogAnchor": "core2254--2026-09-08",
+      "heading": "[core][2.25.6] — 2026-09-08",
+      "changelogAnchor": "core2256--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record.** It directs maintainers to install or repair the cooling capability instead of repairing a valid record.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record."
+            },
+            {
+              "type": "text",
+              "value": " It directs maintainers to install or repair the cooling capability instead of repairing a valid record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.5"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.5] — 2026-09-08",
+      "changelogAnchor": "core2255--2026-09-08",
       "highlights": [
         {
           "source": "**`work-loop` now rejects unsafe or ambiguous reference providers before it calls them.** Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the planning workflow's authority.",
@@ -48,6 +74,40 @@
             {
               "type": "text",
               "value": " Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the design workflow's authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.4"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.4] — 2026-09-08",
+      "changelogAnchor": "core2254--2026-09-08",
+      "highlights": [
+        {
+          "source": "**Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry.** A second entry at the same path still blocks closeout, so maintainers are not told to invoke `close-work` while that work remains unresolved.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry."
+            },
+            {
+              "type": "text",
+              "value": " A second entry at the same path still blocks closeout, so maintainers are not told to invoke "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " while that work remains unresolved."
             }
           ]
         }
