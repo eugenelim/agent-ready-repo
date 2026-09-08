@@ -13,6 +13,10 @@ kind: how-to
 
 The reviewer subagents don't care who wrote the diff. The work loop points them at your own working tree, but you can point them at anyone's.
 
+```text
+Use the work-loop to review branch feature/payment-refund.
+```
+
 Prompt your agent:
 
 > Use the work-loop to review branch `<their-branch>`.
@@ -27,6 +31,12 @@ Two things worth saying out loud:
 
 - **No spec? Say so.** An in-flight branch usually has no spec, so the reviewer falls back to the spec-less self-review lens. If the branch *does* carry a `docs/specs/<feature>/spec.md`, name it — the reviewer then checks the diff against the spec instead.
 - **It's a throwaway review.** You want the findings, not a loop run. Don't expect `state.json` or stasis detection; read the severity-tagged output and hand it to the author.
+
+## What you have now
+
+You have severity-ranked findings for the author, evaluated against the named
+spec when one exists. Hand the findings back for repair; this review does not
+start or advance an implementation loop.
 
 ## See also
 

@@ -106,6 +106,12 @@ must remain inside the repository and configured artifact directory.
 The agent asks before overwriting an artifact, changing its location or
 authority, or accepting input whose confidentiality does not fit the target.
 
+## What you have now
+
+You have a canonical work artifact and a visible lifecycle entry, or a
+read-only status view of existing work. Use the reported route to continue
+through approval and `work-loop`, or leave remembered work safely deferred.
+
 ## Next step
 
 Run `workspace-status` to confirm lifecycle state. When it shows an approved

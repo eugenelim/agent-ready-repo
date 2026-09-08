@@ -94,11 +94,13 @@ entry. Status values the skill writes: `recommended` (one option only),
 `parked`, `rejected`. `selected` is the PE's post-emission value — not
 written by this skill.
 
-**6. Suggest workspace.toml entry.** Print the TOML snippet and direct the
-user to add it via `capture-work` or manually. Do not write to `workspace.toml`.
+**6. Suggest workspace.toml entry.** Print a canonical five-field entry — a
+short `{slug, type}` entry is the legacy shape and is never dispatchable — and
+direct the user to register it through `work-intake` or to add it by hand. Do
+not write to `workspace.toml`.
 
 ```toml
-{slug = "<slug>", type = "shape"},
+{path = "<output_dir>/shaping/<slug>/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
 ```
 
 ## Anti-patterns to refuse

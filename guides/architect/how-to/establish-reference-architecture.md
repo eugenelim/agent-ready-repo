@@ -17,6 +17,10 @@ Put a `reference.md` golden path at the adopter-owned `current-architecture` des
 
 You have a working codebase with real architecture decisions, and you want them written down as a foundation that new work conforms to. There are three routes in, depending on where your repo is.
 
+```text
+How should we establish a reference architecture for our existing payments platform?
+```
+
 Once it exists, the four architect workflows can use it. Assessment treats it as
 reported intent to compare with implementation; proposals, drawings, and
 critiques measure against the same golden path:
@@ -76,6 +80,24 @@ When you're standing up a brand-new repo from an idea, the `init-project` skill 
 
 For the whole greenfield flow end to end — idea through walking skeleton — follow [From idea to a walking skeleton](../../core/tutorials/start-a-new-project.md).
 
+## Register the artifact
+
+After the architecture artifact exists, register it in `workspace.toml` so a
+downstream brief or spec can name it as a hard dependency:
+
+```toml
+{ path = "docs/product/design/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
+```
+
+Then add the artifact to the downstream work's `needs` array. That work remains
+blocked until the design artifact lands:
+
+```toml
+needs = [
+  { type = "local", kind = "design", path = "docs/product/design/payment-routing.md" },
+]
+```
+
 ## Verify
 
 However you got there, you're done when:
@@ -84,6 +106,12 @@ However you got there, you're done when:
 - It names **no** stack specifics it doesn't really use.
 - It remains a normative golden path rather than replacing a descriptive map;
   the roles coexist even when their resolved locations are not siblings.
+
+## What you have now
+
+You have a committed, truthful reference architecture at the destination your
+repository resolved for `current-architecture`. Register a downstream design as
+a dependency when it must land before a brief or spec can proceed.
 
 ## See also
 

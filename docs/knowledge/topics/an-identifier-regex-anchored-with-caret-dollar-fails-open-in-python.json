@@ -1,0 +1,45 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-CHANGE",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-01T01:37:29Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-68c2d3cd46ebf3a5936104fe9fc4e908afff51012b8e0be22d449d28d85963fd",
+      "mutation_id": "86a03b7752aa8d11dc95f87ac095ebec13ef1dc1e76c8f93e04a6beb153b6e23",
+      "observed_at": "2026-09-01T01:37:29Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core/.apm/skills/work-loop",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 114156,
+      "kind": "sha256-bytes-v1",
+      "sha256": "8eea535891de1444c28e3fb312895b3e13b32881ff09abfde20e32d1e089cb95"
+    },
+    "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Python's $ matches before a trailing newline and \\d accepts Unicode decimal digits, so an identifier regex anchored with ^...$ fails open. When the validated string is later compared by exact equality against persisted state, x:1, x:1 with a trailing newline, and x:01 are three spellings of one identity that all pass and compare unequal, defeating an idempotency guard. Use \\A and \\Z, an explicit 0-9 class, a length cap, and a canonical-form check whenever the validated value is compared as a string. re.fullmatch closes the trailing-newline half on its own; re.match does not, so auditing this shape means checking the call as well as the pattern, and checking every sibling validator on the same surface rather than only the one that failed.",
+    "kind": "gotcha"
+  },
+  "title": "An identifier regex anchored with ^...$ fails open in Python and defeats an equality-compared guard",
+  "topic_key": "an-identifier-regex-anchored-with-caret-dollar-fails-open-in-python"
+}

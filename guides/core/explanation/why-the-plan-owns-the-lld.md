@@ -20,7 +20,7 @@ An enterprise feature carries a real low-level design — for a UI, the screen s
 The split rests on a single distinction: **the spec is the contract; the plan is the strategy.**
 
 - The **spec** answers *what done means* — objective, boundaries, testing strategy, acceptance criteria. It is the stable thing a reviewer measures the implementation against. It changes when the *behaviour* changes.
-- The **plan** answers *how we get there*. It is allowed to change as you learn. The low-level design is the most volatile part of "how" — the component you thought you'd reuse turns out to need splitting, the sequence reorders, a resilience strategy changes. That volatility belongs where change is expected.
+- The **plan** answers *how we get there*. It is allowed to change as you learn while it is `Drafting`; after approval, follow [the plan-and-execute how-to](../how-to/plan-and-execute-non-trivial-work.md). The low-level design is the most volatile part of "how" — the component you thought you'd reuse turns out to need splitting, the sequence reorders, a resilience strategy changes. That volatility belongs where change is expected.
 
 So the design lives in the plan's `## Design (LLD)` section, built from nine stack-neutral categories plus a tenth — rollout & deployment — realized by the expanded `## Rollout`. The spec gains only the `Shape:` selector (which kind of work this is) and sharper acceptance-criteria guidance: a user-visible UI state becomes a criterion phrased *state / trigger / outcome*, and a non-functional requirement with a pass/fail bar (WCAG-AA, a p99 latency) becomes a criterion. The **observable** outcome rises to the contract; the **design** that produces it stays in the plan.
 

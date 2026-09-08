@@ -1,6 +1,6 @@
 [pack]
 name = "experience-design"
-version = "2.0.2"
+version = "2.0.3"
 description = "Start from what the customer is trying to do and end at a screen someone could build. Journey, copy, flows, visual craft — and a reviewer that asks about the empty state and the focus ring you forgot."
 readme = "README.md"
 display_name = "Experience Design"

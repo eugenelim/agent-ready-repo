@@ -220,16 +220,42 @@ def test_corpus_absence_rule_precedes_the_sign_off_gate() -> None:
 
 
 def test_spec_review_accepts_only_exact_clean_before_adjudication() -> None:
-    """Exact clean closes directly; every other report uses the gateway."""
+    """Persistence is unconditional; an exact clean skips adjudication.
+
+    That exception has exactly one clean sentence, no findings, and no footer;
+    every other report dispatches.
+    """
     body = flattened(SKILL)
-    direct = "entire returned text value is exactly `Clean — ready to commit.`"
-    no_artifacts = "Do not persist, validate, or adjudicate that exact value"
-    gateway = "Every non-exact report passes through `finding-adjudicator`"
+    # 9b9d470ef superseded the previous contract; pin the current prose here.
+    unconditional_persistence = (
+        "Persist and validate every completed reviewer report first — persistence is unconditional"
+    )
+    strict_clean_exception = (
+        "A report is clean when the clean sentence appears exactly once, no findings parse, "
+        "and nothing else but blank lines surrounds it; that skips `finding-adjudicator`"
+    )
+    footer_dispatch = (
+        "A report carrying a `## Not checked` footer always dispatches, because the footer is prose"
+    )
+    findings_or_malformed_dispatch = (
+        "A report with findings dispatches; a malformed one is a loud stop"
+    )
     repair = "Before repairing each sustained finding"
-    for phrase in (direct, no_artifacts, gateway, repair):
+    for phrase in (
+        unconditional_persistence,
+        strict_clean_exception,
+        footer_dispatch,
+        findings_or_malformed_dispatch,
+        repair,
+    ):
         assert phrase in body
-    assert body.index(direct) < body.index(no_artifacts) < body.index(gateway)
-    assert body.index(gateway) < body.index(repair)
+    assert (
+        body.index(unconditional_persistence)
+        < body.index(strict_clean_exception)
+        < body.index(footer_dispatch)
+        < body.index(findings_or_malformed_dispatch)
+        < body.index(repair)
+    )
     assert "Revise the spec or plan only from sustained findings" in body
     assert "Reuse its reachability predicate; do not restate or reimplement it here" in body
 

@@ -1,6 +1,6 @@
 ---
 name: service-blueprint
-description: "Use when someone asks what people, services, and systems support each step of an existing customer journey. Produces a service blueprint across frontstage, line of visibility, backstage, and support. Use `journey-mapping` to discover the customer path first, `user-flow` for screen transitions, and `process-mapping` for an internal operation without the customer lens. Service strategy belongs upstream; framing the initiative belongs to `frame-intent`; implementing service calls or frontend behavior belongs to engineering."
+description: "Use when someone asks what people, services, and systems support each step of an existing customer journey. Produces a service blueprint across frontstage, line of visibility, backstage, and support. Use `journey-mapping` to discover the customer path first, `user-flow` for screen transitions, and `process-mapping` for an internal operation without the customer lens. Service strategy belongs upstream; framing the initiative belongs to `frame-intent`; implementing service calls or frontend behavior belongs to engineering. Triggers on \"blueprint the services behind our account-opening journey\", \"map what happens backstage at each checkout step\", \"connect this customer journey to the teams and systems that support it\"."
 ---
 
 # Skill: service-blueprint

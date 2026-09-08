@@ -203,7 +203,7 @@ option selection.
 Add to `[ini-NNN.shaping_queue]` backlog:
 
 ```toml
-{slug = "pe-shaping-memory", type = "shape"},
+{path = "docs/product/shaping/pe-shaping-memory/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
 ```
 
 Use `capture-work` or edit `workspace.toml` manually.
@@ -216,7 +216,7 @@ Use `capture-work` or edit `workspace.toml` manually.
 Add to `[ini-NNN.shaping_queue]` backlog:
 
 ```toml
-{slug = "pe-shaping-memory", type = "shape"},
+{path = "docs/product/shaping/pe-shaping-memory/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
 ```
 
 Use `capture-work` or edit `workspace.toml` manually.

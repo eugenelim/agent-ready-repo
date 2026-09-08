@@ -8,6 +8,7 @@ tagline: "Understand what exists, choose where to look, and act on evidence."
 prerequisitePacks: []
 contract:
   useItWhen: "You need to understand, harden, optimize, scale, modernize, rationalize, design, diagram, or review an architecture."
+  youType: "Assess this architecture and provide an action plan."
   youProvide: "The repository or system boundary, the decision you need to make, and approval for any evidence beyond ordinary read-only inspection."
   youReceive: "A corrected current-state model, evidence coverage, attention hotspots, bounded findings, and traced action waves; or the routed design, diagram, or review artifact."
   yourDecisions:

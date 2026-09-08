@@ -1,6 +1,6 @@
 ---
 name: informational-design
-description: "Use when someone asks how an article, news page, editorial feature, or other long-form informational surface should support sustained reading. Produces typography, hierarchy, and reading-flow specifications for the surface. Use `documentation-design` for task/reference systems, `conversion-design` for acquisition pages, and `workspace-design` for tools. Editorial or product strategy is upstream; shaping a publishing-product bet belongs to product engineering; writing the article or building its template belongs to content authors and frontend engineering."
+description: "Use when someone asks how an article, news page, editorial feature, or other long-form informational surface should support sustained reading. Produces typography, hierarchy, and reading-flow specifications for the surface. Use `documentation-design` for task/reference systems, `conversion-design` for acquisition pages, and `workspace-design` for tools. Editorial or product strategy is upstream; shaping a publishing-product bet belongs to product engineering; writing the article or building its template belongs to content authors and frontend engineering. Triggers on \"design the reading experience for this long-form article\", \"structure this editorial page for sustained reading\", \"spec the typography and reading flow for our news feature\"."
 ---
 
 # Skill: informational-design

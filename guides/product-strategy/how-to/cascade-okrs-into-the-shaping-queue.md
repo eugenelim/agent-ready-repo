@@ -17,6 +17,10 @@ the three Pillar-1 skills that carry an objective from altitude down to a typed
 shaping-queue entry: `run-okr-cascade`, `write-prfaq`, and
 `synthesize-stakeholder-research`.
 
+```text
+Run an OKR cascade for our company goal of reducing enterprise churn.
+```
+
 It assumes the pack is installed and that `workspace.toml` exists in the repo the
 downstream product-engineering pack reads. Skip the OKR primer; this is about
 wiring, not definitions.
@@ -88,6 +92,12 @@ against it, then PRFAQ the top gap to pressure-test it. But the skills are
 independent — each commits its own artifact — so run only the ones the situation
 needs. The one that changes downstream behaviour is `run-okr-cascade`; the other
 two sharpen its input and output.
+
+## What you have now
+
+You have an `okr-cascade.md` that connects company objectives to team-level
+work and identifies real gaps. The gaps are registered in the shaping queue, so
+product engineering can pick them up for further shaping.
 
 ## See also
 

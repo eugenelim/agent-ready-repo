@@ -23,6 +23,10 @@ You've shaped a feature down to a spec, and now it needs the actual words a user
 reads — the error when something fails, the empty state before there's data, the
 button that commits the action. Install the `product-engineering` pack, then:
 
+```text
+What should this error say when a workspace owner cannot save an export retention policy?
+```
+
 ## 1. Characterize the product's voice — once
 
 Invoke **`ux-writing`**. The first time, it characterizes your product's
@@ -66,3 +70,8 @@ buttons, destructive confirmations — and fix the misses.
 **Not documentation prose.** This skill shapes the words *inside the product*. For
 writing the *docs* about your product, the clear-prose craft lives in the
 `product-documentation` pack's `author-product-docs` skill — a different artifact and audience.
+
+## What you have now
+
+- A reusable voice chart and UI-state copy for errors, empty states, buttons, and labels.
+- Run the content checklist on high-impact strings before the feature ships.

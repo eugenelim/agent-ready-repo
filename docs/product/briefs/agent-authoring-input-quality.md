@@ -179,11 +179,20 @@ written to the band it derives from them.
 
 ## What actually works, and what does not
 
-Three findings, and each should shape every deliverable.
+Each finding below should shape every deliverable.
 [`stage-input-readiness.md`](stage-input-readiness.md) cites this section by
 name rather than restating it;
 [`guidance-activation-measurement.md`](guidance-activation-measurement.md)
 cites this findings corpus rather than restating its exhibits.
+
+**This corpus is observed, not exhaustive, and deliberately uncounted.** The
+entries are failure modes seen in live sessions, accumulated as they occurred.
+Two pieces of work are owed before it can claim coverage: **mining this
+repository's own corpus** for the classes no session happened to hit, and
+**desk research on policy families** to place each entry against prior art
+rather than against this repository alone. Until both land, treat an absent
+class as unobserved rather than absent, and do not size a slice against the
+number of entries here.
 
 ### External binding
 
@@ -221,6 +230,220 @@ this responsibility, and does the mechanism match it?
 
 The razor's bounded search found that precedent inside ten minutes. The
 failure was recognition, not retrieval.
+
+### Completeness proved by decomposition, where the definition is the target
+
+> **Recorded, not shaped.** This subsection is evidence captured for a later
+> shaping pass. It is **out of scope** for any confirmed slice, it sizes
+> nothing, and it changes no rubric category yet. A reviewer of the change that
+> added it should not treat it as a proposal, and should not review it as one.
+> It was persisted here rather than held in a session so that it survives to be
+> shaped. Owner decision, 2026-09-03.
+
+An author decomposed a definition, then built machinery to prove the
+decomposition covered it. The reported exhibit: verification split into six
+lanes, then a contract module, a claim-exactly-once predicate, an exclusion map
+and a two-layer path check, all to prove the split covers `make ci`. Roughly 32
+of about 100 review findings were defects **in that proof machinery**. None was
+a defect in the subject — remote verification — which was sound throughout.
+(Figures as reported by the originating session; not measured here.)
+
+This is adjacent to "Wrong mechanism" above but distinct from it, and the
+difference is what makes it worth recording. There, the subject design is
+wrong, so every real defect adds surface to something that should not exist.
+Here the subject is **right**; what is wrong is a proof obligation the author
+manufactured. `make ci` already *is* the definition of verified. Restating it as
+six lanes creates a completeness claim that did not previously exist, cannot be
+discharged by more machinery, and generates findings that are all real and all
+beside the point.
+
+**Why the current rubric would not catch it.** Its nearest homes are
+category 1 (an obligation restated where an owner already exists — `make ci` is
+that owner) and category 6 (an artifact measuring itself — the exclusion map and
+the predicate were authored alongside the decomposition they validate). Both are
+the categories recorded above as having **no decidable predicate**, so both stay
+prose. Even once the checkable families ship, this failure mode would arrive as
+guidance and never fire.
+
+**Why that may be wrong, and the part worth shaping.** This case does appear to
+carry a decidable predicate, which would move it out of the prose-only region:
+*is the set being enumerated already mechanically enumerable from a named
+artifact?* For `make ci` the answer is decidable rather than a judgment, and by
+two independent instruments in this repository: the `Makefile` declares
+`ci: build-check lint-ruff lint-mypy test-after-build-check` on one line, and
+`make -np` emits the same prerequisite list from make's own database without
+parsing prose. The candidate rule is one line — **if the definition is
+machine-readable, read it; do not restate it and then prove the restatement
+complete.**
+
+Note the granularity trap before shaping this: `make ci` names four
+prerequisites while the exhibit split into six lanes. That is not by itself a
+defect — `build-check` fans out further, so a six-lane cut may be a legitimate
+decomposition at a lower level. The predicate must compare against the
+definition *at the level it is stated*, or it will fire on correct work.
+
+That is the same remedy § "Why no regenerator" already reaches for — *"what an
+adopter needs is the derivation"* — applied to an enumeration whose completeness
+is the claim rather than to a figure that decays. The principle is already in
+this brief; its scope is narrower than the failure it needs to cover.
+
+**Open, for the shaping pass:** whether this is a seventh category, a
+sharpening of 1 and 6 with the predicate attached, or a family that belongs in
+the registry; and whether the predicate survives contact with a corpus, since
+"mechanically enumerable" is easy to assert and harder to bound.
+
+### The derivability rule: nothing hand-enumerated that is derivable; nothing precise that is decoration
+
+> **Recorded, not shaped.** Out of scope for any confirmed slice; sizes nothing;
+> changes no rubric category yet. Owner decision, 2026-09-04.
+
+Two clauses, and the second is not implied by the first.
+
+This rule is distinct from the numbered cut-before-adding razor elsewhere in
+this brief, which has rungs; this one has two clauses and no rungs.
+
+**Nothing hand-enumerated that is derivable.** If a set has a machine-readable
+source, read it. Authoring a parallel enumeration creates a completeness
+obligation that did not previously exist, cannot be discharged by more
+machinery, and decays on the next upstream edit. See § "Completeness proved by
+decomposition" for the exhibit where proving the enumeration consumed about a
+third of a review corpus.
+
+**Nothing precise that is decoration.** A precise figure or enumeration that no
+criterion depends on is not rigour; it is surface that decays and that every
+review round re-litigates for no gain. The test is whether deleting the number
+changes any acceptance criterion, gate, or decision. If not, delete it or
+replace it with the derivation. Exhibit: authoring one delivery brief produced
+seven wrong counts — elicitation points, request kinds, owed edges, capability
+briefs, brief statuses, the dispatch set, dispatch sites — **twice inside the
+edit that was fixing a previous instance**. Not one of the seven was load-bearing
+for a criterion. Guidance had been read and acknowledged in the same session,
+which is the argument for enforcement over restatement.
+
+The clauses fail differently: the first produces a *wrong* set, the second
+produces a *true but pointless* one. Trimming fixes neither.
+
+### The impacted-flow trace, as an authoring practice
+
+> **Recorded, not shaped.** Out of scope for any confirmed slice. Owner
+> decision, 2026-09-04.
+
+The proposal: a spec or plan author maps the **flow the change lands in** — not
+a diagram of the changes. The plan owns it, because the plan owns mechanism; the
+spec's Assumptions cite only the edges its criteria depend on, with a source.
+
+**Why it earns its place.** In one delivery brief's authoring, six substantive
+design defects surfaced only at review rounds three through six. A flow trace
+reaches all six at authoring time, because each is a property of the system
+rather than of the artifact:
+
+- three of four re-entry edges are instructed in a *different file* than the
+  slice's declared owning surface — visible from "which file instructs each
+  in-edge?"
+- the controller *delegates* first drafting to another skill — one hop upstream
+  of the traced state, and it moved a slice boundary
+- the single exit edge carries **no guard** — visible from "what guards the only
+  way out?"
+- one in-edge exists in one engine mode only
+- the drafting procedure writes a third artifact nobody had assigned
+- the drafting procedure returns to a human repeatedly, which defeated a
+  one-dispatch design
+
+Two of the six forced an owner decision and one invalidated two prior slice
+boundaries. Review found them late because a reviewer reads the artifact, not
+the system.
+
+**It catches nothing else.** It would not have caught any of that session's
+citation or count errors, nor the altitude error itself. Flow tracing and review
+are blind on opposite axes: review is cheap at "is this claim true" and dear at
+"is this the right decomposition."
+
+**Derive it; do not draw it** — the rule above applies to this practice first.
+In this repository the engine's transition tables are data, so the relevant
+neighbourhood is generated rather than authored: read the composed
+`_TRANSITIONS_BY_MODE` in `loop-engine.py`, select the edges whose source or
+destination is a named state, and report the mode each edge appears under.
+
+**And the derivation itself has a trap that proves the point.** An earlier
+revision of this section shipped a regex that matched each transition table
+separately. That is wrong: `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS` are
+each built with `**_BOTH_TRANSITIONS`, so their shared edges are never literal
+text inside their own blocks. Per-block matching finds **1** literal edge in the
+spec-plan table when that mode actually carries eight — it would have missed
+every in-edge the exhibit above depends on. Compose the spread before matching,
+or read the composed mapping.
+
+So: ship a deriver in the plan, never a rendered graph, which snapshots and
+decays — and prove the deriver against a known neighbourhood before trusting it,
+because a deriver that under-reports looks exactly like a small graph.
+
+**Where no machine-readable source exists, the trace is an assumption, not a
+fact.** A prose procedure can only be traced by hand, so its edges carry a
+source line and a hedge. In the exhibit the human-return count could honestly be
+stated only as a floor — "at least eight" — because each is a conditional
+imperative in prose with no mechanical filter. Derived edges are facts; edges
+traced from prose are assumptions. Keeping that distinction is what stops the
+trace becoming one more thing reviewers litigate.
+
+**Bound it before authoring it.** Without a stop rule "the impacted flow"
+expands without limit. One candidate bound, sufficient for every defect above:
+the one-hop neighbourhood of each state the spec names, plus the file that
+instructs each edge.
+
+**Then the plan walks its change DAG over the flow DAG.** The plan already has a
+change DAG and does not need a new one: task `Depends on:` edges, computed by
+`loop-cohort schedule`. It **fails** on a dependency cycle
+(`loop-cohort.py:603-607`) but only **warns and reorders** on a
+forward-reference (`loop-cohort.py:1385-1392`), so an ill-formed plan is
+caught at PLAN only in the cycle case. Note `supervisor-mode.md` lines 13-15
+states both as failing; that conflict is owed to that file's owner and is not
+resolved here — an earlier draft of this paragraph restated its wording by
+hand and inherited the error, which is this section's own subject.
+Both graphs are therefore derived, and the walk is their join — mechanical, not
+prose. It answers three questions no single-graph view can:
+
+- **Coverage — does every impacted flow edge have an owning task?** An edge with
+  no task is the defect where a slice's declared owning surface cannot implement
+  it, found above only at review round three.
+- **Order safety — does any task leave the flow broken when it completes?** A
+  dispatch wired before the validation that bounds it is green per task and
+  broken between tasks. Task-local `Done when:` cannot see this; only the walk
+  can.
+- **Reachability — is any authored task on no impacted edge?** Then either the
+  flow trace is incomplete or the task belongs to a different slice. Both are
+  worth knowing before the cut is confirmed.
+
+Coverage and reachability are the two directions of the same join, and skipping
+either leaves one silent: unowned edges ship broken, unreachable tasks widen the
+slice. Neither the spec's criteria nor the plan's task list detects them alone,
+which is why the walk belongs to the plan that owns both.
+
+### A brief that pre-empts its own spec
+
+> **Recorded, not shaped.** Out of scope for any confirmed slice; sizes nothing;
+> changes no rubric category yet. Owner decision, 2026-09-03.
+
+A brief defined the contract its slice's spec was going to define. The exhibit:
+a delivery brief carried a controller-to-author contract — request kinds,
+payloads, return states, validation timing — justified in its own words as
+"stated here rather than left to the spec." Brief-level review then adjudicated
+spec-level detail against a rubric that does not govern it, for **six rounds**,
+while the six canonical Ready-gate fields had been satisfied since the first.
+The brief doubled, 232 to 484 lines, and roughly half the growth was prose
+defending earlier prose.
+
+This is **category 1 at brief altitude** — an obligation authored where an owner
+already exists, the spec being the owner of what done means. It is worth a
+separate entry only because the tell is different: category 1's usual shape is
+one obligation restated across several consumers, whereas here it is restated
+*down a level*, into an artifact whose review rubric cannot evaluate it. The
+brief-level control is one question at authoring time: **does this section
+decide something, or name something for the spec to decide?** A brief names
+gaps; closing one early converts a bounded gate into unbounded review surface.
+
+The repair is subtraction, and category 1's warning applies to it too:
+shortening the restatement is the wrong fix. Moving it to the owning artifact is
+the fix.
 
 ### Presence-only gates
 

@@ -8,6 +8,7 @@ tagline: "Create, revise, retrofit, audit, and verify product documentation."
 prerequisitePacks: []
 contract:
   useItWhen: "You need to write, improve, or audit any catalogue-facing guide, pack README, or journey — whether you're starting from scratch, reworking legacy docs, or checking that existing pages hold up to their Diátaxis page contract."
+  youType: "Write a guide for this feature."
   youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
   youReceive: "A draft, revision, retrofit plan, audit report, or verification result — whichever fits the request — with the Diátaxis page kind confirmed and the write destination resolved."
   yourDecisions:

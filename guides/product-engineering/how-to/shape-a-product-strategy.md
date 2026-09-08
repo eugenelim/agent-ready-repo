@@ -17,11 +17,19 @@ kind: how-to
 
 You have a product vision that survived its market-existence test, and now you need the path to realize it: which problem, for which segment, in what order, and why now. That path is a **product-strategy** intent. Install the `product-engineering` pack, then work the moves below.
 
+```text
+Decompose this product vision into a strategy for independent retailers that need to reduce stockouts.
+```
+
 ## 1. Decompose the vision, or frame the strategy directly
 
 If you came from a vision, invoke `decompose-intent` on it. A surviving `product-vision` intent produces a `product-strategy` child that inherits the vision's outcome context and carries a `Parent intent:` back-link.
 
 If you're entering at the strategy altitude with no framed vision above it, invoke `frame-intent` and answer the altitude as **`product-strategy`**. When the work really needs a vision above it, `decompose-intent` and `frame-intent` both carry a *missing-parent* offer — they'll propose framing the parent and hanging the strategy beneath it. It's an offer, never a block; accept it or proceed.
+
+```text
+Shape this product strategy: independent retailers need a sequenced path to reduce stockouts.
+```
 
 ## 2. Write the strategy as challenge, policy, actions
 
@@ -50,3 +58,8 @@ Before you commit to *how* the capabilities get built, shape the [architecture c
 - [The intent tree](../explanation/the-intent-tree.md) — why vision, strategy, capability, and feature are one recursive artifact.
 - [Shape an architecture concept](../../architect/how-to/shape-an-architecture-concept.md) — the technical shaping the strategy feeds.
 - [Shaping a new engagement](../../_shared/explanation/shaping-a-new-engagement.md) — how product intent and the architecture concept co-shape each other.
+
+## What you have now
+
+- A de-risked `product-strategy` intent that records the challenge, policy, actions, and problem/segment sequence.
+- Capability intents are the next level down; decompose them until an independently shippable feature can enter delivery.

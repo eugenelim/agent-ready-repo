@@ -14,6 +14,13 @@ export const journeySchema = z.object({
     youReceive: z.string(),
     decisionGateIds: z.array(semanticGateId).optional(),
     yourDecisions: z.array(z.string()).optional(),
+    // The literal first utterance that starts the journey. Optional so a
+    // journey authored before the field still parses. It must be declared
+    // here: Zod strips undeclared keys, so without this the published page
+    // could never show what to type. Trimmed before the length check so this
+    // agrees with journey_validator.py, which rejects a whitespace-only value
+    // — a "what to type" row with nothing to type is worse than no row.
+    youType: z.string().trim().min(1).optional(),
   }),
   skills: z.array(z.object({
     name: z.string(),

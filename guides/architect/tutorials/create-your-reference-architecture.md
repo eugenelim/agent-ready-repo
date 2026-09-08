@@ -22,6 +22,10 @@ At the end of this tutorial you'll have a committed golden path with one real se
 
 This is a learning walkthrough, not a reference. For *why* `reference.md` exists, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) afterward; for the full section list, see [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md).
 
+```text
+How should we establish a reference architecture for our payments platform?
+```
+
 ## Prerequisites
 
 - A repo with at least one real, settled architecture decision — something your team would hold a pull request to. (If your repo is too early for that, this tutorial won't have anything true to write; come back later.)
@@ -81,6 +85,12 @@ You instantiated the arc42 template, filled one section with a real standard, co
 To check whether the implemented repository actually follows the standard—and
 whether that matters for the decision—continue with [Assess a repository and
 turn evidence into action](../how-to/assess-a-repository.md).
+
+## What you have now
+
+You have a committed `current-architecture` artifact containing a real standard
+your next design decision can follow. Continue by filling the remaining
+sections, or assess whether the implemented system conforms to that standard.
 
 ## See also
 

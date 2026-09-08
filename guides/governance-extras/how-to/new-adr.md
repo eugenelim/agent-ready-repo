@@ -13,7 +13,11 @@ kind: how-to
 
 You made an architectural call — a database choice, a process commitment, a structural rule the team will live with — and the next person to ask "why did we do it this way?" deserves an answer in writing. The `new-adr` skill first resolves the portable `decision-record` destination, then drafts an Architecture Decision Record there from the bundled template with that destination's next sequential number. It pushes back on hand-wavy sections before you commit.
 
-This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [`docs/CONVENTIONS.md` § ADR](../../../CONVENTIONS.md#2-adr--architecture-decision-records--docsadr). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).
+```text
+Use the new-adr skill to write an ADR for choosing PostgreSQL for the order service.
+```
+
+This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [`docs/CONVENTIONS.md` § ADR](../../../docs/CONVENTIONS.md#2-adr--architecture-decision-records--docsadr). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).
 
 ## ADR or RFC?
 
@@ -40,6 +44,13 @@ If the call is already made (or you're recording one made in a meeting yesterday
   is never created silently. Without compatible Core, the skill returns a
   zero-write handoff even when you confirm its evidence.
 - A decision that genuinely warrants an ADR — the entry-point prose below covers the test.
+
+## What to bring
+
+Bring the upstream material that informed the decision: a shaped intent from
+`docs/product/intents/`, a decision brief, a research survey or brief, or an
+architecture concept or reference architecture. Cite that artifact in the ADR;
+the citation is what makes the decision traceable later.
 
 ## When is `new-adr` the right call?
 
@@ -160,7 +171,7 @@ A previously-accepted ADR no longer reflects the team's call. You do *not* edit 
 2. Set the new ADR's frontmatter `Supersedes:` to the old ADR's number.
 3. After the new ADR is Accepted, update the old ADR's frontmatter `Status:` from `Accepted` to `Superseded by ADR-<NNNN>` — with the actual four-digit number of the new ADR substituted in. Leave the old body alone — it's history.
 
-If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) for the trigger conditions.
+If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) for the trigger conditions.
 
 ### Originating from an accepted RFC
 
@@ -199,6 +210,12 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 - **The decision is trivial or has only one sensible option.** ("We use UTF-8.") No ADR needed. Don't manufacture decisions to document.
 - **Documenting how something works today.** That's the repository's resolved `current-architecture` surface, not its `decision-record` surface. ADRs are *why* we made the call; current architecture is *what* the implemented system looks like now.
 
+## What you have now
+
+You have a confirmed ADR in the resolved decision-record destination and a row
+in its index. Seek acceptance for the record, then create a superseding ADR if
+the durable decision changes.
+
 ## Related
 
 - [How to propose a change (RFC)](new-rfc.md) — the inverse: when the decision isn't yet made, open an RFC.
@@ -206,5 +223,5 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 - [The core pack as a system](../../core/explanation/core-pack.md) — where ADRs sit in the wider doc hierarchy.
 - [`new-adr` skill](../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
-- [`docs/CONVENTIONS.md` § ADR](../../../CONVENTIONS.md#2-adr--architecture-decision-records--docsadr) — the immutability rule, status values, when-to-write tests.
-- [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.
+- [`docs/CONVENTIONS.md` § ADR](../../../docs/CONVENTIONS.md#2-adr--architecture-decision-records--docsadr) — the immutability rule, status values, when-to-write tests.
+- [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.

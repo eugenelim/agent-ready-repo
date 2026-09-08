@@ -9,6 +9,100 @@ kind: explanation
 
 Use this catalogue to add repeatable, supervised ways of working to your agent. Start with the outcome you need; the linked pack guides explain what to install, what to ask for, what the agent produces, and where a human decides.
 
+## Follow a path
+
+A path is an ordered set of guides that ends at a handoff, not at a document.
+Each names what you must already have and roughly what it costs. Start at the
+front door and work down; the two tables after this one are alternate ways in
+once you know the shape.
+
+### P1 · Adopt the catalogue — ~1 hour
+
+**Prerequisite:** none. **For:** anyone, first session.
+
+1. [Choose an install route](_shared/explanation/install-routes.md)
+2. [Install the whole lifecycle](_shared/how-to/install-the-whole-lifecycle.md)
+3. [Adapt an existing repo](core/how-to/adapt-to-project.md) — or [start a new project](core/how-to/start-a-project.md)
+4. [Orient at session start](core/how-to/orient-at-session-start.md)
+
+**First value:** `workspace status` answers what to work on next.
+**Ends at:** a repository whose queues you can read.
+
+### P2 · Shape what to build — ~3 hours
+
+**Prerequisite:** P1. **For:** product manager, product engineer, strategist.
+
+The **light path** is the default: frame an intent, test its riskiest
+assumption, break it down. Reach past it to the **robust path** — situation,
+opportunities, options, bet, capability map — only when the problem itself is
+unclear or the bet is large enough to need a recorded rationale. [The intent
+tree](product-engineering/explanation/the-intent-tree.md) explains the choice.
+
+1. [Gather evidence](desk-research/) when the answer is not already known
+2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `frame-intent`
+3. De-risk it and break it down — `de-risk-intent`, then `decompose-intent`
+4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md) against it
+5. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
+
+On the robust path, [frame the situation](product-engineering/how-to/frame-a-situation.md)
+first, then [identify opportunities](product-engineering/how-to/identify-opportunities.md),
+[generate options](product-engineering/how-to/generate-solution-options.md), and
+[place a bet](product-engineering/how-to/place-a-bet.md) before step 4.
+
+**First value:** one written intent naming an outcome and the bet behind it.
+**Ends at:** Core intake, which selects the route from the content — a spec, a
+delivery brief, or a minimum repository intent.
+
+### P3 · Build it — ~2 hours
+
+**Prerequisite:** P2, or an existing spec. **For:** engineer, agent.
+
+1. [Orient at session start](core/how-to/orient-at-session-start.md)
+2. [Plan and execute non-trivial work](core/how-to/plan-and-execute-non-trivial-work.md)
+3. [Review someone else's PR](core/how-to/review-someone-elses-pr.md)
+4. [Close and disposition the work](core/how-to/close-and-disposition-work.md)
+
+**First value:** a spec and plan you approved before any code was written.
+**Ends at:** a merged change, and the decision to merge is yours.
+
+### P4 · Decide together — ~1.5 hours
+
+**Prerequisite:** P1. **For:** tech lead, architect.
+
+1. [The governance index](governance-extras/how-to/governance-index.md) — which of RFC, ADR, or spec you need
+2. [Propose an RFC](governance-extras/how-to/new-rfc.md)
+3. [Record an ADR](governance-extras/how-to/new-adr.md)
+
+P4 draws on P2's artifacts: an intent, a decision brief, a research survey, or
+an architecture concept is what an RFC or ADR is written *from*.
+
+**First value:** a circulated proposal with its alternatives written down.
+**Ends at:** an accepted decision that outlives the people who made it.
+
+### P5 · Ship and report — ~2 hours
+
+**Prerequisite:** P3. **For:** delivery lead, SRE.
+
+1. [The release loop](release-engineering/explanation/the-release-loop.md)
+2. [Run a release](release-engineering/how-to/run-a-release.md)
+3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md) — or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
+4. [Measure flow and DORA metrics](atlassian/how-to/measure-flow-and-dora-metrics.md)
+
+**First value:** a deployed artifact validated in an environment like production.
+**Ends at:** a human ratifying the production ship.
+
+### P6 · Extend the catalogue — ~3 hours
+
+**Prerequisite:** P1 and P3. **For:** AI enablement, catalogue owner.
+
+1. [Why catalogue curation](catalogue-curation/explanation/why-catalogue-curation.md)
+2. [Your first skill](catalogue-curation/tutorials/your-first-skill.md)
+3. [Build an org stack pack](_shared/how-to/build-an-org-stack-pack.md)
+4. [Create a catalogue](_shared/how-to/create-a-catalogue.md)
+
+**First value:** one skill of your own that your agent can run.
+**Ends at:** a catalogue your organisation owns.
+
 ## Choose what you want to achieve
 
 | I need to… | Start with | Continue with |

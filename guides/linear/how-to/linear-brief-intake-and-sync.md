@@ -7,6 +7,10 @@ kind: how-to
 
 # Choose Linear intake or reviewed refresh
 
+**Mode: tracker-authoritative.** This guide assumes Linear holds the team's real
+backlog. If `docs/product/` is canonical and Linear is only for reporting, use
+[repo-first projection](../README.md#which-mode-are-you-in) instead.
+
 Use intake when Linear work should enter the repository for the first time. Use
 refresh when an existing tracker-origin artifact needs an approval-gated
 comparison with Linear. `linear-brief-sync` preserves older brief-specific
@@ -89,3 +93,10 @@ review the proposed sections and approve only those you want changed.
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
 shared terms and [Use work intake](../../_shared/how-to/use-work-intake.md)
 for the common lifecycle and confirmation procedure.
+
+## What you have now
+
+After intake, you have a validated content-based route and stable Linear
+provenance; Linear is unchanged. After refresh, you have a field-level preview
+and only the local changes or narrow coordination action you separately
+approved. Review the proposed route or delta before continuing.

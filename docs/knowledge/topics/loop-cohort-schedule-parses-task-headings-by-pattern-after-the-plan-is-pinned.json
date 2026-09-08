@@ -1,0 +1,54 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT",
+    "CQ-CHANGE"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-28T01:35:54Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-56ce4c4d65787a9a0dadfdcd80f8df069f1c9ea4b8a6b8fd1d32bd1b9ba9756c",
+      "mutation_id": "5dc460c80db0bb34d779b7057b2e6745d7f5d8e7e6845bb9bc57bc883cc4d2ed",
+      "observed_at": "2026-08-28T01:35:54Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/thirty-day-cooling-and-retirement/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 45012,
+      "kind": "sha256-bytes-v1",
+      "sha256": "2c416277c607b9f7b2b617e06a79a58f6059f43bd2d6c2ebef35ea6af810e3e7"
+    },
+    "path": "docs/specs/thirty-day-cooling-and-retirement/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 114156,
+        "kind": "sha256-bytes-v1",
+        "sha256": "8eea535891de1444c28e3fb312895b3e13b32881ff09abfde20e32d1e089cb95"
+      },
+      "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+    }
+  ],
+  "synthesis": {
+    "body": "loop-cohort schedule finds tasks with the pattern '## T<n>' or '### T<n>' and stops with 'no tasks found' on anything else. A plan whose tasks read '### Task 1 - Title' passes every human review and every lint, then fails at schedule time - after approve-plan has already pinned the plan hash, so the fix requires the documented cohort recovery (reset, init, approve-plan, schedule) rather than a simple edit. approve-plan itself does not parse tasks on a fresh run, so nothing rejects the plan while the fix is still cheap. Write task headings as '### T<n>: Title' from the first draft, and check the heading pattern against the shipped precedent in an existing plan before the G-plan sequence rather than after it. The general rule: when a tool consumes a document, the document's structure is an interface with a parser on the other side, so confirm the parser's shape before an irreversible pinning step consumes it.",
+    "kind": "gotcha"
+  },
+  "title": "loop-cohort schedule parses task headings by a fixed pattern, and it runs after approve-plan pins the plan",
+  "topic_key": "loop-cohort-schedule-parses-task-headings-by-pattern-after-the-plan-is-pinned"
+}
