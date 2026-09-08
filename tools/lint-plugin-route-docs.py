@@ -71,8 +71,12 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     # forces the prose, rather than leaving it silently wrong.
     # "all N packs" is the shape the enumeration missed once already: a count
     # that silently re-asserts whole-catalogue coverage without naming a pack.
+    # The live count must be listed or the guard only catches counts nobody
+    # would write today; `test-lint-plugin-route-docs.py` derives the real pack
+    # count and reddens when a new pack makes this list stale.
     ("docs-site/src/content/docs/getting-started/install.md",
-     _NO_REPO_ONLY_OFFER + ["all 20 packs", "all 21 packs", "for all packs"],
+     _NO_REPO_ONLY_OFFER + ["all 20 packs", "all 21 packs", "all 22 packs",
+                            "for all packs"],
      ["Repo-scoped packs"] + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     # Two entries: the route-table row and the marker-writer paragraph are
     # separate claims, and pinning one string that lives in both means deleting

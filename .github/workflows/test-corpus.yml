@@ -1,0 +1,110 @@
+name: test-corpus
+
+# On-demand reach for the repository's declared test target (spec/remote-gate-dispatch).
+#
+# WHY THIS FILE EXISTS SEPARATELY. A job added to build-check.yml would run on
+# every pull request, spending the runner time this surface exists to save and
+# changing what an unrelated pull request executes. Dispatch-only makes
+# non-interference true by construction rather than by condition.
+#
+# WHAT A GREEN RUN PROVES: exactly what `make test` proves on a contributor's
+# machine, and no more. build-check.yml's own job-mapping prose records that
+# `make test` runs WITHOUT the `-rs` skip check, the tree probe, and the
+# `[crypto]` import probe that gate-export-boundary and gate-credbroker add — so
+# a green target is already compatible with a red required job. This surface
+# moves where that command runs. It does not strengthen it, and it is not a
+# required status check.
+
+on:
+  # No other trigger, and no `inputs:`. The workflow needs none, and an absent
+  # input surface cannot be interpolated into a shell.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Keyed on the run id: every dispatch gets its own group, so a dispatch can
+  # never cancel another run. Job and workflow concurrency share a namespace, so
+  # no job below declares its own.
+  group: test-corpus-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  corpus:
+    name: corpus (make test)
+    # Exact standard GitHub-hosted label. Not `self-hosted`, not a runner group,
+    # not an expression, not a larger-runner name: a dispatched run executes the
+    # selected ref's code, and the intent excludes self-hosted capacity, so
+    # persistent runner state is out of bounds.
+    runs-on: ubuntu-latest
+    # ESTIMATE, not a measurement. No job has ever run this target on a runner.
+    # The only local figure available was taken on a machine at ~19x CPU
+    # oversubscription and is not transferable. Replace this number with the
+    # first recorded run's duration plus headroom.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # Nothing here needs the token after checkout, and leaving the default
+          # would persist it into the working tree for the target's own git calls.
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+
+      # Node is a hard precondition of the target, not an optional extra:
+      # `make test` exits non-zero without `npm` and without an installed
+      # docs-site tree, then runs a plugin suite through npm. Pinned to the
+      # version both npm projects declare in their `engines`.
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+
+      - name: Install docs-site dependencies
+        run: npm ci --prefix docs-site
+
+      # Provisioning is derived from the target and its invoked suites, not from
+      # another job — no existing job invokes this target, so none models it.
+      # Each entry names the requirement it satisfies so a later reader can tell
+      # a deliberate entry from an accumulated one.
+      - name: Install Python dependencies
+        run: |
+          set -euo pipefail
+          # pytest: the target's runner. tools/requirements.txt does not carry it.
+          # tools/requirements.txt: PyYAML, jsonschema, tomlkit, build, setuptools,
+          #   and httpx — the target gates on `import httpx` before the Atlassian
+          #   skill suites, whose tracker transports need it.
+          # credbroker[crypto]: cryptography and argon2, which the vault suite
+          #   skips without.
+          python -m pip install --upgrade pip
+          python -m pip install pytest -r tools/requirements.txt
+          python -m pip install './packages/credbroker[crypto]'
+
+      # Fail closed BEFORE the target rather than letting suites skip inside it.
+      # The target degrades silently when provisioning is incomplete: its
+      # invocations pass no skip-reason flag and only three collection floors
+      # exist across the corpus. This converts a silent skip into a named failure.
+      #
+      # Scope, stated honestly: this asserts the availability conditions measured
+      # on 2026-09-04, not every condition that could ever cause a skip. It makes
+      # no claim about a dependency nobody has enumerated.
+      - name: Probe provisioning (fail closed, not skip)
+        run: |
+          set -euo pipefail
+          for mod in yaml jsonschema tomlkit httpx cryptography argon2; do
+            python -c "import $mod" || { echo "::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          for exe in git sh openssl npm node; do
+            command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          test -d docs-site/node_modules || { echo "::error::docs-site dependencies not installed"; exit 1; }
+          echo "provisioning probe: all measured availability conditions present"
+
+      # ONE command. The target already holds a roster of 51 pytest invocations;
+      # re-enumerating them here would create a second roster that drifts from it.
+      - name: make test
+        run: make test
