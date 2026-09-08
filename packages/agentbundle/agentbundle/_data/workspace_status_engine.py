@@ -2091,6 +2091,10 @@ def _cooled_locators(
             findings.append(_finding("invalid_lifecycle_record", relative_path))
             continue
         record = getattr(result, "record", None)
+        if getattr(result, "code", None) == "cooling-state-unavailable":
+            # A current cooling module could not load its confinement authority.
+            # Unlike a malformed record, this prevents establishing any cooled set.
+            return frozenset(), (_finding("cooling_state_unavailable"),)
         if (
             getattr(result, "code", None) is not None
             or record is None

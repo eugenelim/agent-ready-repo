@@ -736,7 +736,10 @@ def load_record(root: Path, path: Path) -> CoolingResult:
             root, path, max_bytes=MAX_RECORD_BYTES
         )
         result = parse_record_bytes(raw)
-    except (ImportError, OSError, ValueError, RecursionError):
+    except ImportError:
+        # The confinement authority is unavailable, so no record can be judged.
+        return CoolingResult(code="cooling-state-unavailable")
+    except (OSError, ValueError, RecursionError):
         return CoolingResult(code="record-invalid")
     if (
         result.code is not None
