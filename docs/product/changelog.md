@@ -55,54 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
 <<<<<<< HEAD
-## [core][2.25.6] — 2026-09-08
-
-### Highlights
-
-- **`workspace-status` now distinguishes unavailable cooling support from a
-  malformed lifecycle record.** It directs maintainers to install or repair the
-  cooling capability instead of repairing a valid record.
-
-### Fixed
-
-- A missing close-work confinement authority now fails closed as
-  `cooling_state_unavailable`; no artifact is excluded when the cooled set
-  cannot be established. Records that are independently invalid are still named
-  alongside it, so a global cooling failure does not hide a repair someone owes.
-
-## [core][2.25.5] — 2026-09-08
-
-### Highlights
-
-- **`work-loop` now rejects unsafe or ambiguous reference providers before it
-  calls them.** Provider guidance is visibly enclosed as untrusted evidence, so
-  it cannot quietly expand the planning workflow's authority.
-
-### Changed
-
-- The agent-skill-engineering reference handoff now closes all published
-  selection failures before invocation and gives each its stable diagnostic.
-  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
-  rejected content is neither cited nor copied.
-
-## [architect][0.15.7] — 2026-09-08
-
-### Highlights
-
-- **`architect-design` now rejects unsafe or ambiguous reference providers
-  before it calls them.** Provider guidance is visibly enclosed as untrusted
-  evidence, so it cannot quietly expand the design workflow's authority.
-
-### Changed
-
-- The agent-skill-engineering reference handoff now closes all published
-  selection failures before invocation and gives each its stable diagnostic.
-  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
-  rejected content is neither cited nor copied.
-
-=======
->>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
-## [core][2.25.4] — 2026-09-08
+## [core][2.25.7] — 2026-09-08
 
 ### Highlights
 
@@ -150,6 +103,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   surface restates the other.
 >>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
 
+## [core][2.25.6] — 2026-09-08
+
+### Highlights
+
+- **`workspace-status` now distinguishes unavailable cooling support from a
+  malformed lifecycle record.** It directs maintainers to install or repair the
+  cooling capability instead of repairing a valid record.
+
+### Fixed
+
+- A missing close-work confinement authority now fails closed as
+  `cooling_state_unavailable`; no artifact is excluded when the cooled set
+  cannot be established. Records that are independently invalid are still named
+  alongside it, so a global cooling failure does not hide a repair someone owes.
+
+## [core][2.25.5] — 2026-09-08
+
+### Highlights
+
+- **`work-loop` now rejects unsafe or ambiguous reference providers before it
+  calls them.** Provider guidance is visibly enclosed as untrusted evidence, so
+  it cannot quietly expand the planning workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
+## [architect][0.15.7] — 2026-09-08
+
+### Highlights
+
+- **`architect-design` now rejects unsafe or ambiguous reference providers
+  before it calls them.** Provider guidance is visibly enclosed as untrusted
+  evidence, so it cannot quietly expand the design workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
+=======
+>>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
 ## [core][2.25.3] — 2026-09-08
 
 ### Highlights
