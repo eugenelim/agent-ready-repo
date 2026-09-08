@@ -14,7 +14,6 @@ that declaration checkable, rather than leaving it a claim that can go stale.
 
 from __future__ import annotations
 
-import pathlib
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -29,29 +28,30 @@ ALTITUDE_TELL = (
     "rather than citing one"
 )
 
-# Calibration, re-measured 2026-09-08 **with this guard's own matcher** —
-# flattened text, `---` runs excluded, membership by substring containment. That
-# last detail matters: an earlier note recorded 2 six-word runs because it
-# intersected six-word *windows* from both files instead. Containment finds a
-# third, because quote characters do not break it.
+# Calibration. `ADMITTED_SIX_WORD_RUNS` is the recorded measurement, and
+# `test_the_calibration_record_matches_the_measurement` compares it to the tree
+# with the guard's own matcher — flattened text, `---` runs excluded, membership
+# by substring containment. Containment is the load-bearing detail: an earlier
+# record held two runs because it intersected six-word *windows* from both files
+# instead, and containment finds more because quote characters do not break it.
 #
-# The three admitted six-word runs:
-#   - `an implementation loop with gates between` — incidental shared phrasing
-#     about the same benchmark caveat.
-#   - `authored where an owner already exists,` — class 1's subject, named in
-#     the brief's Outcome.
-#   - `5. The criterion is too big` — the rubric's § 5 heading, which the brief
-#     quotes by name. **Live, and one word below the threshold.** A one-word
-#     lengthening of that heading would red this guard on correct text. It is
-#     recorded rather than excluded because the exclusion is a bigger change
-#     than the risk, and because an earlier note wrongly called this case
-#     historical.
+# One case is worth naming because it has moved twice. The rubric's § 5 heading
+# was a third shared run while the brief quoted it by name; the brief now cites
+# `§ 5` by number, so it is not shared today. If a future edit quotes any rubric
+# heading by name, that heading returns as a shared run — and a heading of seven
+# words or more would red this guard on correct text. The exact set comparison
+# below is what surfaces that, in either direction, instead of a prose count
+# that has now been wrong three times.
 #
 # No run of seven or more is shared, so seven is the shortest length that reds
 # only on restatement. An earlier revision set it to eight while the two
 # substantive restatements were seven words long — one word above the
 # duplication it existed to catch, which is why the number and its evidence are
 # recorded here rather than asserted.
+ADMITTED_SIX_WORD_RUNS = (
+    "an implementation loop with gates between",
+    "authored where an owner already exists,",
+)
 RESTATEMENT_RUN_WORDS = 7
 
 
@@ -82,32 +82,29 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
     )
 
 
-def test_the_calibration_note_reproduces_under_this_guards_matcher() -> None:
-    """The note is the only evidence for the threshold, so check it.
+def test_the_calibration_record_matches_the_measurement() -> None:
+    """The record is the only evidence for the threshold, so check it exactly.
 
-    Two earlier revisions of this note were wrong: one set the threshold a word
-    above the duplication it existed to catch, and one recorded two shared runs
-    where the guard's own matcher finds three, because the note had been
-    measured by intersecting word *windows* rather than by containment. So
-    assert the note's run set against the matcher the guard actually uses.
+    Three earlier revisions of this record were wrong: one set the threshold a
+    word above the duplication it existed to catch; one recorded two shared runs
+    where the guard's matcher finds three, having measured by intersecting word
+    windows rather than by containment; and one asserted the count through a
+    string substitution that rewrote the record to match the measurement, so it
+    could not fail when the record *over*-counted.
+
+    An exact set comparison fails in both directions.
     """
     rubric_words = flattened(RUBRIC).split()
     brief = flattened(BRIEF)
+    n = RESTATEMENT_RUN_WORDS - 1
     measured = {
         run
-        for n in (RESTATEMENT_RUN_WORDS - 1,)
         for i in range(len(rubric_words) - n + 1)
         if "---" not in (run := " ".join(rubric_words[i : i + n])) and run in brief
     }
-    note = pathlib.Path(__file__).read_text(encoding="utf-8")
-    for run in sorted(measured):
-        assert f"`{run}`" in note, (
-            f"shared six-word run {run!r} is not recorded in the calibration note"
-        )
-    assert f"{len(measured)} admitted six-word runs" in note.replace(
-        "three admitted", "3 admitted"
-    ).replace("3 admitted", f"{len(measured)} admitted"), (
-        f"the note's count disagrees with the measurement ({len(measured)})"
+    assert measured == set(ADMITTED_SIX_WORD_RUNS), (
+        "the calibration record no longer matches the tree; "
+        f"measured {sorted(measured)}, recorded {sorted(ADMITTED_SIX_WORD_RUNS)}"
     )
 
 
@@ -115,8 +112,8 @@ def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
     """Enforce the cut, not just perform it.
 
     Named blind spots: a paraphrase, or any verbatim run shorter than the
-    threshold, passes -- three six-word runs are admitted today and recorded in
-    the calibration note above. A restatement in any file other than these two
+    threshold, passes -- the admitted six-word runs are recorded in
+    `ADMITTED_SIX_WORD_RUNS` above. A restatement in any file other than these two
     also passes. This catches verbatim drift between the declared owner and its
     brief, which is the failure that actually recurred.
     """
