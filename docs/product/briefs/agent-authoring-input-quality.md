@@ -43,7 +43,7 @@ candidate yet. The firings are in the round-numbered review artifacts under
 `.context/reviews/`, not restated here. **Firing is not activation**: it shows
 the classes name real defects, not that shipping them as prose changes what an
 author writes. Only the activation measurement settles the second, and the
-ablation reaches two of the six seeded defects.
+ablation's marginal contribution is two of its six seeded defects.
 
 The stall metric has a counter-example to answer: the candidate never stalled at
 authoring, and its later rounds still returned blockers. Whether the band should
@@ -108,10 +108,10 @@ gate or decision read it, and its figures were stale on every term, so the
 rubric's own decoration test deletes it.)
 
 **Three tells that an artifact is above its altitude**, each cheaper to check
-than any percentile, now ship in the rubric's § "5. The criterion is too big"
-under *Altitude precedes size*, which is their home. Exactly one of the three is
-decidable, and § "The rubric is a deliverable" routes that one to a policy
-family; the rubric says which.
+than any percentile, now ship in the rubric's § 5 under *Altitude precedes
+size*, which is their home. Exactly one of the three is decidable; § "The rubric
+is a deliverable" names which and routes it to a policy family. The rubric
+states the tells without marking their decidability.
 
 The exhibit is this brief's own sibling set. An artifact authored on
 2026-09-02 to hold cross-adapter behavior enforcement reached 3,573 words as a
@@ -160,7 +160,7 @@ argued with.
 | --- | --- | --- |
 | Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
 | Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. |
-| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across the 6,465 shipped criteria measured 2026-09-08 p90 is 101 words and p96 is 160. |
+| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria while its median-length criteria were quiet. § "Corpus" publishes no criterion-length percentile and records why. |
 | Spec body | ≤1,607 words; past 2,398 needs a stated reason | Measured, repo-local: the corpus median and p75, § "Corpus", 2026-09-08. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
 | Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
@@ -168,9 +168,10 @@ argued with.
 ### Limit interaction
 
 As `assets/spec.md` requires of any quantity
-carrying two: both are reachable: 10 criteria at the corpus median criterion length
-is well under the median spec body, and § "Corpus" carries both figures so this
-argument does not restate them. Criterion size is not a
+carrying two: both are reachable, and § "Corpus" carries the figures that show it: a spec at
+the median body length holds the median criteria-per-spec count several times
+over, so neither bound shadows the other. The argument reads no criterion-length
+quantity, because none is published. Criterion size is not a
 limit, so it can neither dominate nor be dominated.
 
 ### Corpus limits
@@ -184,10 +185,11 @@ establishes a criteria *floor*.
 ### Why no regenerator
 
 Rejected: a regenerator slice. Rubric class 4 is the decay class, and the
-shipped rubric states it; the two repo-derived rows of the band are percentiles
-of the 421 specs measured 2026-09-08, so the class applies to them — and it
-already fired once, on the predicate that could not reproduce its own
-figures. Decay is real but cheap to answer: two of the six
+shipped rubric states it. One band row is a percentile of this repository's
+corpus — the spec-body bound, from the median and p75 of the 421 specs measured
+2026-09-08 — so the class applies to that row. It has already fired twice here:
+on the predicate that could not reproduce its own figures, and on the
+criterion-length percentiles that section no longer publishes. Decay is real but cheap to answer: two of the six
 rows are repo-derived percentiles, the rest are imported measurements, the corpus
 grows slowly, and a hand measurement is one command. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
@@ -576,9 +578,10 @@ there.
 by number, with at most a few words identifying which one is meant — "class 4,
 the decay class" — because a bare number is unreadable. What they do not do is
 state a class's tell, move or repair. The checked half is narrow and worth
-naming: a roster guard fails if this brief and the rubric share any verbatim run
-of seven words or more. A paraphrase passes it, so the rest is authoring
-discipline rather than enforcement.
+naming: a roster guard fails if this brief and the rubric share a verbatim run
+of seven prose words or more, table delimiters excluded. A paraphrase passes it,
+and so does a shorter run — three six-word runs are admitted and recorded in the
+guard — so the rest is authoring discipline rather than enforcement.
 
 Earlier attempts to keep "just the names", "just the glosses" or "just the
 exhibits" each went stale within a review round, because every edit to the
@@ -834,8 +837,8 @@ What shipping early costs, recorded rather than glossed:
 - **Six classes ship at a length the change's own evidence argues against.**
   The [ablation](../research/spec-authoring-rubric-ablation.md), which scored
   a paired arm-A/arm-B run over six pre-registered defects, found four of the
-  four of its six pre-registered defects already reachable from shipped
-  guidance — and it sampled only four of the six classes, never 1 or 5 — so the
+  six already reachable from shipped guidance — and it sampled only four of the
+  six classes, never 1 or 5 — so the
   measured marginal value is two defects in two classes, and the
   commissioned survey records vendor guidance that an over-long instruction
   file gets half-ignored. The six ship whole anyway for one reason: the rubric

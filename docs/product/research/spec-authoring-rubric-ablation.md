@@ -17,7 +17,7 @@ derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
 projection paragraph, D5's empty-state tell, D6's non-waivable-control
 bullet — is byte-identical across that range. So the scores below stand, and
 § "Reproducing it" rebuilds arm B from the *current* file, which differs from
-the one measured in those four unscored regions.
+the one measured wherever that diff reports a change.
 
 ## Design
 

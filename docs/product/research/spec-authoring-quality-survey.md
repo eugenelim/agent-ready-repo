@@ -20,7 +20,7 @@ for practitioner sources; survivorship bias and stale prior art are.
 
 ## Bottom line
 
-Four results change what this repository should write.
+Five results change what this repository should write.
 
 1. **Adherence collapses as simultaneous constraints multiply.** Joint
    satisfaction of independent verifiable constraints falls from 77.7% at one to
@@ -44,6 +44,10 @@ Four results change what this repository should write.
    claim that spec-driven development improves quality or reduces rework is
    asserted without a controlled comparison. The defensible claims are about
    instruction shape, not about specs. `[high]`
+5. **Five of this repository's failure classes have no equivalent in any of the
+   three requirements-engineering frames, and a sixth has only a weak one.**
+   That is what says which classes cannot be imported and must be taught; § 1
+   develops it. `[synthesis]`
 
 ---
 
@@ -83,7 +87,7 @@ tells: subjective language, ambiguous adverbs and adjectives, loopholes,
 non-verifiable terms, superlatives, comparatives, negative statements, and
 vague pronouns. Each maps to a 29148 characteristic. `[high]`
 
-### The number that settles advisory versus blocking
+### Why a family advises rather than blocks
 
 The authors' `Smella` detector reached **48% precision at 87% recall** on
 industrial German-language requirements. The authors read the low precision as
@@ -100,8 +104,12 @@ What transfers is the design response, and the two measurements do not even
 measure the same quantity. Smella reports **precision**: 48% of its flags were
 true, on one corpus. This repository's own attempt reports a **block rate**: an
 emphasis-density predicate would have blocked 405 of 1,477 files, 27.4%,
-against a 0.4% per-family budget, with precision never measured. One says half
-the flags were wrong; the other says the volume alone was 68 times the budget.
+against a 0.4% per-family budget, with precision never measured. Those figures
+are owned by `agent-authoring-input-quality.md` § "The rubric is a deliverable";
+this survey cites them and adds nothing, and neither location names an
+instrument or a date, so treat them as an undated repository-local attempt
+rather than a measurement to carry. One says half the flags were wrong; the
+other says the volume alone was 68 times the budget.
 Neither licenses a general false-positive figure. What both support is the same
 design response: calibrate a family on its own corpus before proposing to block
 on it, and advise until then. `[synthesis]`

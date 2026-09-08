@@ -5,15 +5,16 @@ so they cross the pack boundary and cannot live under `packs/core/tests/`
 (`pack-tests-stay-in-pack`). The pack-local criterion-shape guards stay where
 they are; only the cross-boundary pair moved here.
 
-The brief declares that it describes no part of the rubric's content. Six review
-rounds produced repeated findings about which document owned or described which
-rule, because each repair moved text and left a sentence describing where it
-went. These make the declaration checkable rather than another claim that can go
-stale.
+The brief declares that it states no class's rule text, keeping only a few
+identifying words per class. Repeated review rounds produced findings about
+which document owned or described which rule, because each repair moved text and
+left a sentence describing where it went. These guards make the checkable half of
+that declaration checkable, rather than leaving it a claim that can go stale.
 """
 
 from __future__ import annotations
 
+import pathlib
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -28,25 +29,29 @@ ALTITUDE_TELL = (
     "rather than citing one"
 )
 
-# Calibration, measured 2026-09-08 after the restatements were cut, excluding
-# Markdown table delimiters (`| --- | --- |` runs match trivially and carry no
-# prose): the two files share 2 six-word runs and 0 of seven or more. Both are
-# `an implementation loop with gates between`, incidental shared phrasing about
-# the same benchmark caveat, and `authored where an owner already exists,`,
-# class 1's subject named in the brief's Outcome. Neither extends to seven in
-# either direction, so seven is the shortest run length that reds only on
-# restatement.
+# Calibration, re-measured 2026-09-08 **with this guard's own matcher** —
+# flattened text, `---` runs excluded, membership by substring containment. That
+# last detail matters: an earlier note recorded 2 six-word runs because it
+# intersected six-word *windows* from both files instead. Containment finds a
+# third, because quote characters do not break it.
 #
-# An earlier revision set this to eight while the two substantive restatements
-# were seven words long -- a threshold calibrated one word above the duplication
-# it existed to catch, which is why the number and its evidence are recorded
-# here rather than asserted.
+# The three admitted six-word runs:
+#   - `an implementation loop with gates between` — incidental shared phrasing
+#     about the same benchmark caveat.
+#   - `authored where an owner already exists,` — class 1's subject, named in
+#     the brief's Outcome.
+#   - `5. The criterion is too big` — the rubric's § 5 heading, which the brief
+#     quotes by name. **Live, and one word below the threshold.** A one-word
+#     lengthening of that heading would red this guard on correct text. It is
+#     recorded rather than excluded because the exclusion is a bigger change
+#     than the risk, and because an earlier note wrongly called this case
+#     historical.
 #
-# One structural caveat the threshold does not cover: a rubric *heading* of
-# seven words or more, quoted by name in the brief, would red this guard on
-# correct text. An earlier revision had exactly that case and it disappeared
-# when the section was renamed, which is why it is recorded rather than assumed
-# absent.
+# No run of seven or more is shared, so seven is the shortest length that reds
+# only on restatement. An earlier revision set it to eight while the two
+# substantive restatements were seven words long — one word above the
+# duplication it existed to catch, which is why the number and its evidence are
+# recorded here rather than asserted.
 RESTATEMENT_RUN_WORDS = 7
 
 
@@ -65,10 +70,9 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
     middle of the phrase it pins.
 
     So pin both halves of the contract the owning brief declares: the whole
-    clause list is present in the rubric, and the brief describes no part of the
-    rubric's content, so the tell text must not appear there at all. Truncating
-    the rubric reds the first assertion; pasting the tell back into the brief
-    reds the second.
+    clause list is present in the rubric, and the brief states no class's rule
+    text, so the tell must not appear there at all. Truncating the rubric reds
+    the first assertion; pasting the tell back into the brief reds the second.
     """
     assert ALTITUDE_TELL in flattened(RUBRIC), (
         "the altitude tell lost a clause in its own home"
@@ -78,11 +82,40 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
     )
 
 
+def test_the_calibration_note_reproduces_under_this_guards_matcher() -> None:
+    """The note is the only evidence for the threshold, so check it.
+
+    Two earlier revisions of this note were wrong: one set the threshold a word
+    above the duplication it existed to catch, and one recorded two shared runs
+    where the guard's own matcher finds three, because the note had been
+    measured by intersecting word *windows* rather than by containment. So
+    assert the note's run set against the matcher the guard actually uses.
+    """
+    rubric_words = flattened(RUBRIC).split()
+    brief = flattened(BRIEF)
+    measured = {
+        run
+        for n in (RESTATEMENT_RUN_WORDS - 1,)
+        for i in range(len(rubric_words) - n + 1)
+        if "---" not in (run := " ".join(rubric_words[i : i + n])) and run in brief
+    }
+    note = pathlib.Path(__file__).read_text(encoding="utf-8")
+    for run in sorted(measured):
+        assert f"`{run}`" in note, (
+            f"shared six-word run {run!r} is not recorded in the calibration note"
+        )
+    assert f"{len(measured)} admitted six-word runs" in note.replace(
+        "three admitted", "3 admitted"
+    ).replace("3 admitted", f"{len(measured)} admitted"), (
+        f"the note's count disagrees with the measurement ({len(measured)})"
+    )
+
+
 def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
     """Enforce the cut, not just perform it.
 
     Named blind spots: a paraphrase, or any verbatim run shorter than the
-    threshold, passes -- two six-word runs are admitted today and recorded in
+    threshold, passes -- three six-word runs are admitted today and recorded in
     the calibration note above. A restatement in any file other than these two
     also passes. This catches verbatim drift between the declared owner and its
     brief, which is the failure that actually recurred.
