@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.5] — 2026-09-08
+
+### Highlights
+
+- **`workspace-status` now distinguishes unavailable cooling support from a
+  malformed lifecycle record.** It directs maintainers to install or repair the
+  cooling capability instead of repairing a valid record.
+
+### Fixed
+
+- A missing close-work confinement authority now fails closed as
+  `cooling_state_unavailable`; no artifact is excluded when the cooled set
+  cannot be established.
+
 ## [core][2.25.4] — 2026-09-08
 
 ### Highlights

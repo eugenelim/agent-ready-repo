@@ -1,7 +1,8 @@
 # Review findings not fixed by this delivery
 
 Nine findings survived adjudication across three review rounds on the withdrawn
-contract amendment. Each names what was measured, so none needs re-deriving.
+contract amendment. Six are now closed; findings 1, 4, and 5 remain open. Each
+names what was measured, so none needs re-deriving.
 
 This document is the artifact of the canonical `[backlog].open` entry
 `docs/specs/cooling-scope-closure/notes/review-findings.md` (`kind = "defect"`).
@@ -56,17 +57,27 @@ unobtainable in a packaged or user-scope layout — which bears on any manual QA
 claiming to exercise the real invocation. Two probe attempts in this delivery
 were voided by exactly this before the cause was understood.
 
+**Disposition: Closed by this repair.** `load_record` now returns its distinct
+unavailable-state signal for an unimportable confinement authority, and
+`workspace-status` maps that signal to `cooling_state_unavailable` without
+naming a valid record. Focused close-work and workspace-status tests cover the
+signal, the absent-directory control, and the all-routes-failed control.
+
 ## Cooling-scope-closure
 
 **3. No criterion names a `work.*` entry class.** All 33 criteria use a canonical
 `docs/specs/<slug>/spec.md` entry. Two defects passed all 33 green in that blind
-spot; the second reached `origin/main` in PR #1210. The repair ships here and is
-guarded by no test. What the withdrawn amendment would have added: a cooled
+spot; the second reached `origin/main` in PR #1210. The withdrawn amendment
+would have added: a cooled
 legacy `spec/<slug>` entry excluded from both closeout consumers, and a bare-slug
 entry reported `unsupported_legacy` *not* excluded — each with an uncooled
 control, and the refusal case with a positive control proving the record cools
 the artifact (`_cooled_locators` admits a locator only when the member exists, so
 without it the criterion passes over an empty cooled set).
+
+**Disposition: Closed by `b5785d377`.**
+`tests/roster/test_cooled_work_entry_classes.py` adds three criteria with
+positive controls for these entry classes.
 
 **4. The closeout seam keys cooled exclusion on a raw path string.**
 `cooled_work_entry_paths` transports its verdict as `entry.path` strings and
@@ -102,6 +113,10 @@ and `_legacy_membership_is_cooled` reads that single set, so an implementation
 splitting that resolution later would satisfy the contract while breaking the
 `Always do`. Raised in three consecutive rounds.
 
+**Disposition: Closed by `b5785d377`.**
+`test_alias_cools_legacy_work_membership_for_both_closeout_consumers` now pins
+the alias path for legacy work membership in both consumers.
+
 **7. A withheld closeout cannot name the record that caused it.** When the cooled
 reading is incomplete because a record's review date could not be judged, the run
 withholds `invoke-close-work` and emits no finding identifying the record, so a
@@ -111,12 +126,21 @@ itself wrong: that arm emits no finding, though it does reach `dueness_failed`
 and flip `cooling_context_visible`. Adding a finding code was a `Never do` for
 this delivery, so closing it needs an owner decision on the surface.
 
+**Disposition: Closed by `4a22a07ee`.** The `_cooling_projection` comment now
+states the actual withheld-closeout behavior; no finding code was added.
+
 **8. `notes/closeout-records.md` is reachable from no other artifact.** The
 spec's Durable Outputs `project-knowledge` row carries an em-dash Destination.
 Give the record an inbound pointer, or state in that row that it is
 delivery-local and takes no durable destination.
 
+**Disposition: Closed by `4a22a07ee`.** The spec's Durable Outputs
+`project-knowledge` row now links to `notes/closeout-records.md`.
+
 **9. AC28's discharge records its method but not its observed result.**
 `notes/closeout-records.md` describes the scratch-copy byte mutation of RFC-0096
 §9 without the observed digest comparison, so a later reader cannot distinguish a
 discharged obligation from a described one.
+
+**Disposition: Closed by `4a22a07ee`.** Both observed digests are now recorded
+in `notes/closeout-records.md`.
