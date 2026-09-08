@@ -39,8 +39,10 @@ contract still gets things wrong; what a loop does on that discovery is
 
 **First firing evidence, 2026-09-08.** Every rubric class fired at least once
 while the A1 candidate was authored and reviewed, so none is a withdrawal
-candidate yet. The firings are in the round-numbered review artifacts under
-`.context/reviews/`, not restated here. **Firing is not activation**: it shows
+candidate yet. **Recorded but not independently verifiable:** the firings are in
+round-numbered review artifacts under `.context/reviews/`, which `.gitignore`
+excludes, so they did not travel with the repository. Treat the metric as this
+session's record rather than as evidence a later reader can check. **Firing is not activation**: it shows
 the classes name real defects, not that shipping them as prose changes what an
 author writes. Only the activation measurement settles the second, and the
 ablation's marginal contribution is two of its six seeded defects.
@@ -109,9 +111,10 @@ rubric's own decoration test deletes it.)
 
 **Three tells that an artifact is above its altitude**, each cheaper to check
 than any percentile, now ship in the rubric's § 5 under *Altitude precedes
-size*, which is their home. Exactly one of the three is decidable; § "The rubric
-is a deliverable" names which and routes it to a policy family. The rubric
-states the tells without marking their decidability.
+size*, which is their home. One of the three is decidable against the
+Proposed-slices table's own columns, and § "The rubric is a deliverable" routes
+that one to a policy family. Neither document marks which tell that is; the
+rubric states the tells without marking decidability at all.
 
 The exhibit is this brief's own sibling set. An artifact authored on
 2026-09-02 to hold cross-adapter behavior enforcement reached 3,573 words as a
@@ -242,9 +245,12 @@ load-bearing for the rubric rather than decorative: **five classes have no
 equivalent in any of the three frames** — the design should have delegated, the
 criterion decays, it targets a projection, it cuts a non-waivable control, and
 it hand-enumerates a derivable set — **and a sixth, draft narration, has only a
-weak one**, too weak to import from. That section is also the one home for the
-shared cause behind most of them and for which classes it covers, so this brief
-states neither. All six must be taught; the rest can cite a frame.
+weak one**, too weak to import from. Call that set **the unmatched six**; it is
+not the rubric's six classes, and four of its members ship as sub-clauses inside
+rubric classes 4 and 6. That section is also the one home for the shared cause
+behind most of the unmatched six and for which of them it covers, so this brief
+states neither. All of the unmatched six must be taught; the rest can cite a
+frame.
 
 The survey also names the one clear import we lack — a criterion *syntax*, for
 which EARS supplies five templates and AWS Kiro is the agent-facing precedent —
@@ -365,7 +371,7 @@ corpus, since "mechanically enumerable" is easy to assert and harder to bound.
 It shipped inside class 4 rather than as a seventh class; whether it also
 belongs in the policy-family registry is that registry owner's call.
 
-### The derivability rule: nothing hand-enumerated that is derivable; nothing precise that is decoration
+### Exhibits behind rubric class 4
 
 > **Shaped and shipped.** Both clauses of this rule are now rubric class 4's
 > sub-text, and **the shipped rubric owns them**; this subsection keeps only the
@@ -483,7 +489,7 @@ which is why the walk belongs to the plan that owns both.
 ### A brief that pre-empts its own spec
 
 > **Recorded, not shaped.** Out of scope for any confirmed slice; sizes nothing;
-> changes no rubric category yet. Owner decision, 2026-09-03.
+> changes no rubric class yet. Owner decision, 2026-09-03.
 
 A brief defined the contract its slice's spec was going to define. The exhibit:
 a delivery brief carried a controller-to-author contract — request kinds,
@@ -494,9 +500,9 @@ while the six canonical Ready-gate fields had been satisfied since the first.
 The brief doubled, 232 to 484 lines, and roughly half the growth was prose
 defending earlier prose.
 
-This is **category 1 at brief altitude** — an obligation authored where an owner
+This is **class 1 at brief altitude** — an obligation authored where an owner
 already exists, the spec being the owner of what done means. It is worth a
-separate entry only because the tell is different: category 1's usual shape is
+separate entry only because the tell is different: class 1's usual shape is
 one obligation restated across several consumers, whereas here it is restated
 *down a level*, into an artifact whose review rubric cannot evaluate it. The
 brief-level control is the question rubric class 1 states, asked of a brief's
@@ -569,19 +575,22 @@ hop wherever a finding turns on repository state rather than file content.
 
 The failure-point rubric is distilled from this repository's memory and its
 `docs/knowledge/` topics. It is what the work produces, not what the brief
-carries — so **this brief states no class's rule text.** The six classes, their
-order, their tells, their moves and their repairs live in
+carries — so **this brief states no class's tell, move or repair.** It does
+name a class's defining clause where an argument turns on it. The six classes,
+their order, their tells, their moves and their repairs live in
 `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`. Read them
 there.
 
 **What the brief keeps, and what is checked.** The arguments below cite classes
 by number, with at most a few words identifying which one is meant — "class 4,
-the decay class" — because a bare number is unreadable. What they do not do is
-state a class's tell, move or repair. The checked half is narrow and worth
+the decay class" — because a bare number is unreadable, and with a class's
+defining clause where an exhibit turns on it. What they do not do is state a
+class's tell, its move, or its repair. The checked half is narrow and worth
 naming: a roster guard fails if this brief and the rubric share a verbatim run
 of seven prose words or more, table delimiters excluded. A paraphrase passes it,
-and so does a shorter run — three six-word runs are admitted and recorded in the
-guard — so the rest is authoring discipline rather than enforcement.
+and so does a shorter run; the guard's own `ADMITTED_SIX_WORD_RUNS` records
+which shorter runs are admitted, and is the one home of that set. So the rest is
+authoring discipline rather than enforcement.
 
 Earlier attempts to keep "just the names", "just the glosses" or "just the
 exhibits" each went stale within a review round, because every edit to the
@@ -781,7 +790,7 @@ becomes.
 
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
+| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric class | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | 6 | after A1 |
 | A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | 6 | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | 10 | **conditional** — after M, and only if the kill conditions above do not fire |
@@ -818,7 +827,7 @@ What shipping early costs, recorded rather than glossed:
   whether the classes shipped *as prose* change what an author writes. The
   ablation reaches two defects in two classes; the activation measurement owns
   the rest.
-- **Categories 2, 4 and 5 shipped as prose, not as policy families.** The split
+- **Classes 2, 4 and 5 shipped as prose, not as policy families.** The split
   in § "The rubric is a deliverable" routes them to a registry that does not
   exist yet. Nothing about the shipped file forecloses that; the registry's
   owners inherit three families whose definitions are now fixed in
@@ -926,7 +935,7 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 
 ## Ready gaps (Draft only)
 
-- **Settled — A1's second upstream is named.** Categories 2, 4 and 5 ship as
+- **Settled — A1's second upstream is named.** Classes 2, 4 and 5 ship as
   policy families, so A1 waits on
   [`phase-scoped-policy-delivery.md`](phase-scoped-policy-delivery.md) and
   [`policy-arrival-validator.md`](policy-arrival-validator.md) as well as on M's

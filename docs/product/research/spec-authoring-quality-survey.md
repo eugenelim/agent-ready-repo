@@ -51,7 +51,7 @@ Five results change what this repository should write.
 
 ---
 
-## 1. Requirements quality has three mature frames, and none names six of our classes
+## 1. Three mature frames, and five of our classes have no equivalent in any
 
 ### The frames
 
