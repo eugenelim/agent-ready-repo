@@ -1,7 +1,7 @@
 # Review findings not fixed by this delivery
 
 Nine findings survived adjudication across three review rounds on the withdrawn
-contract amendment. Six are now closed; findings 1, 4, and 5 remain open. Each
+contract amendment. Seven are now closed; findings 1 and 5 remain open. Each
 names what was measured, so none needs re-deriving.
 
 This document is the artifact of the canonical `[backlog].open` entry
@@ -94,6 +94,12 @@ lifecycle records, 0 intra-initiative duplicate raw paths) and it grants no
 privilege. The fix is a change to what the seam carries, plus a two-entry
 criterion. The seam's own docstrings assert the opposite ("the two agree by
 construction"); the fix must retract them.
+
+**Disposition: Closed by `39dc2acc2`.** Cooled work exclusion is keyed on each
+entry's position in its lifecycle list rather than on any value the entry
+carries, so a legacy `spec/<slug>` entry can no longer hide a second entry
+stored at the same path. `tests/roster/test_cooling_scope_closure.py` carries
+the two-entry criterion over a `cooled-path-collision` fixture.
 
 **5. AC31 cannot fail when the release surfaces agree at a version whose
 published code differs from what ships.** Measured 2026-09-02: this branch

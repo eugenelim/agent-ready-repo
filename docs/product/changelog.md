@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.5] — 2026-09-08
+## [core][2.25.6] — 2026-09-08
 
 ### Highlights
 
@@ -66,9 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A missing close-work confinement authority now fails closed as
   `cooling_state_unavailable`; no artifact is excluded when the cooled set
-  cannot be established.
+  cannot be established. Records that are independently invalid are still named
+  alongside it, so a global cooling failure does not hide a repair someone owes.
 
-## [core][2.25.4] — 2026-09-08
+## [core][2.25.5] — 2026-09-08
 
 ### Highlights
 
@@ -97,6 +98,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selection failures before invocation and gives each its stable diagnostic.
   Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
   rejected content is neither cited nor copied.
+
+## [core][2.25.4] — 2026-09-08
+
+### Highlights
+
+- **Closeout now keeps unrelated work visible when it shares a path with a
+  cooled legacy entry.** A second entry at the same path still blocks closeout,
+  so maintainers are not told to invoke `close-work` while that work remains
+  unresolved.
+
+### Fixed
+
+- Cooled work exclusion is keyed on each entry's position in its lifecycle list
+  rather than on its path. A legacy `spec/<slug>` entry can no longer hide a
+  second entry stored at the same path — including one the canonical layer
+  rejects, which reaches closeout through its own parse and so could reproduce
+  any value the exclusion matched on.
+
 
 ## [core][2.25.3] — 2026-09-08
 
