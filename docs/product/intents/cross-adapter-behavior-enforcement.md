@@ -179,13 +179,13 @@ human rather than issuing verdicts*
 re-validation on English financial-domain requirements reported far higher
 precision, so that survey rates the ceiling **domain- and language-dependent
 rather than intrinsic**, `[moderate]` for transfer. The transferable part is
-the design response, not the rate. Across the measurements that survey
-reports — Femmer's German-language corpus, the later English re-validation, and
-this repository's own 27.4% calibration — the false-positive rate varies too
-much to carry between corpora, and its low end was low enough that the tool
-shipped to advise rather than to block. So a family must be **calibrated on its
-own corpus** before anyone proposes blocking on it. Two of those three
-measurements reached this repository's design rule independently.
+the design response, not a rate — and the figures are not even the same
+quantity. Smella and its later English re-validation report **precision**, and
+they disagree between corpora. This repository's 27.4% is a **block rate**
+against a 0.4% budget, with precision never measured. So no false-positive
+figure carries across them, and the shared conclusion is procedural rather than
+numeric: a family must be **calibrated on its own corpus** before anyone
+proposes blocking on it. Two independent routes reached that rule.
 
 What would have to be true:
 

@@ -96,12 +96,15 @@ than intrinsic. `[high]` for Smella's reported figures; `[moderate]` for the
 re-validation, whose figures reach this survey through a secondary exposition
 rather than the paper itself; `[moderate]` for transfer.
 
-What transfers is the design response, not the rate. Two unrelated measurements
-of a lexical predicate over authored prose — this one and this repository's own
-calibration attempt — both found a false-positive rate too high to block on,
-and they disagree enough between corpora that the rate itself cannot be
-carried. So a family is calibrated on its own corpus before anyone proposes
-blocking on it, and advises until then. `[synthesis]`
+What transfers is the design response, and the two measurements do not even
+measure the same quantity. Smella reports **precision**: 48% of its flags were
+true, on one corpus. This repository's own attempt reports a **block rate**: an
+emphasis-density predicate would have blocked 405 of 1,477 files, 27.4%,
+against a 0.4% per-family budget, with precision never measured. One says half
+the flags were wrong; the other says the volume alone was 68 times the budget.
+Neither licenses a general false-positive figure. What both support is the same
+design response: calibrate a family on its own corpus before proposing to block
+on it, and advise until then. `[synthesis]`
 
 ### Where our classes have no prior-art home
 

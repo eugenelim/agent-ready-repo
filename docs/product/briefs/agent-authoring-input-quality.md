@@ -203,7 +203,7 @@ slice sized against them cites that date.
 ### Corpus exclusion
 
 This brief does not grade its own sizing: an artifact measuring itself is
-rubric category 6, and the exculpation has to be checkable or it is that same
+rubric class 6, and the exculpation has to be checkable or it is that same
 defect. What happened: the percentiles were produced on 2026-09-02 by a
 throwaway instrument outside this brief, which first reproduced every figure
 the owner supplied independently. **The corpus-exclusion rule travels with the derivation:** A1, A3, A4 and A5's
@@ -567,16 +567,23 @@ hop wherever a finding turns on repository state rather than file content.
 
 The failure-point rubric is distilled from this repository's memory and its
 `docs/knowledge/` topics. It is what the work produces, not what the brief
-carries — so **this brief describes no part of its content.** The six classes,
-their order, their tells, their moves and their repairs live in
+carries — so **this brief states no class's rule text.** The six classes, their
+order, their tells, their moves and their repairs live in
 `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`. Read them
-there; the arguments below cite classes by number and say nothing about what a
-class states.
+there.
 
-Three earlier attempts to keep "just the names", "just the glosses" or "just
-the exhibits" here each went stale within a review round, because every edit to
-the rubric falsified a sentence in this brief that described it. The pointer is
-the whole of the relationship.
+**What the brief keeps, and what is checked.** The arguments below cite classes
+by number, with at most a few words identifying which one is meant — "class 4,
+the decay class" — because a bare number is unreadable. What they do not do is
+state a class's tell, move or repair. The checked half is narrow and worth
+naming: a roster guard fails if this brief and the rubric share any verbatim run
+of seven words or more. A paraphrase passes it, so the rest is authoring
+discipline rather than enforcement.
+
+Earlier attempts to keep "just the names", "just the glosses" or "just the
+exhibits" each went stale within a review round, because every edit to the
+rubric falsified a sentence here that described it. Identifying words survive a
+rubric edit; descriptions of a rule do not.
 
 **A1 supplies family definitions; it does not register or enforce them.** The
 registry surface belongs to
@@ -866,7 +873,7 @@ A1's home follows the precedent in the surface it extends. As of
 this artifact class — on that date its one file was `contract-types.md`, and
 the rubric is the second — and
 `assets/spec.md` § Acceptance Criteria is already the named owner of the
-semantic-atomicity gate that rubric category 5 defers to, so the rubric lands
+semantic-atomicity gate that rubric class 5 defers to, so the rubric lands
 next to its precedent, and the surface that already governs criterion shape is
 one of the two that reach it. `docs/knowledge/topics/` stores observations rather than
 shipped guidance, so a rubric there would not reach adopters.
