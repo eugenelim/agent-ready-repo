@@ -1,6 +1,6 @@
 # Spec: guide-callout-inventory
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -65,25 +65,25 @@ entry that tracked the coupling is gone, because the coupling is gone.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — No assertion reads the ledger against the guides tree, in any
+- [x] **AC1 — No assertion reads the ledger against the guides tree, in any
       language.** No tracked source file opens
       `notes/blockquote-classification.jsonl` or
       `notes/blockquote-baseline-identities.jsonl` and a path under `guides/`
       in the same assertion. `web/src/test/rendered-output.test.ts` references
       neither file.
-- [ ] **AC2 — A guide's built blockquotes are checked against its own source.**
+- [x] **AC2 — A guide's built blockquotes are checked against its own source.**
       For every `guides/**/*.md`, the rendered-output suite compares the count
       of built `<blockquote>` elements outside any `aside.starlight-aside`
       against the count of blockquote runs in that file's source, where a run
       is a contiguous block of lines beginning `>` at column 0 outside a fenced
       code block, fences being matched by the same expressions
       `sourceAsideCount` already uses.
-- [ ] **AC3 — A guide's built asides are checked against its own source, per
+- [x] **AC3 — A guide's built asides are checked against its own source, per
       type.** For every `guides/**/*.md`, the rendered-output suite compares the
       count of built `aside.starlight-aside--<type>` elements against the count
       of `:::<type>` blocks in that file's source, for each of `note`, `tip`,
       `caution`, `danger`.
-- [ ] **AC4 — The ledger's integrity is asserted against itself.**
+- [x] **AC4 — The ledger's integrity is asserted against itself.**
       `tools/test_guide_ledger_integrity.py` checks: `item` values exactly
       `1..N` in order; every row carrying exactly the fields `item`, `path`,
       `line`, `content_sha256`, `anchor`, `classification`, `status`,
@@ -94,26 +94,26 @@ entry that tracked the coupling is gone, because the coupling is gone.
       and identity equality with the baseline file. No assertion derives an
       expected value by parsing prose in
       `docs/specs/guide-typed-asides-conversion/spec.md`.
-- [ ] **AC5 — The ledger-integrity module is a required check.**
+- [x] **AC5 — The ledger-integrity module is a required check.**
       `tools/test_guide_ledger_integrity.py` appears in the Makefile `test`
       group, in the `build-check.yml` step carrying the parallel pytest list,
       and in `FINAL_TOOL_BATCH` in
       `tools/test_local_ci_shared_test_deduplication.py`.
-- [ ] **AC6 — The tripwires stay out of the gate.** The release-notes and
+- [x] **AC6 — The tripwires stay out of the gate.** The release-notes and
       release-handoff assertions, whose drift has no mechanical repair, remain
       in `tools/test_guide_typed_asides.py`, which appears in none of the three
       lists AC5 names; its module docstring says so, says how to run it, and
       states no count of guide files or ledger rows that a routine guide edit
       can falsify.
-- [ ] **AC7 — The register no longer carries the entry.** The slug
+- [x] **AC7 — The register no longer carries the entry.** The slug
       `guide-blockquote-ledger-has-no-regenerator` appears nowhere in
       `workspace.toml` — neither in `[backlog].open` nor in `[backlog].closed`
       — and no comment line in that file refers to it.
-- [ ] **AC8 — Every added and relocated assertion is falsifiable.** Each
+- [x] **AC8 — Every added and relocated assertion is falsifiable.** Each
       assertion added or moved by this change has a recorded mutation that
       makes it fail, with a positive control on the unmutated fixture,
       recorded in [`notes/falsifiability.md`](notes/falsifiability.md).
-- [ ] **AC9 — `make ci` and the `web/` vitest suite both pass.**
+- [x] **AC9 — `make ci` and the `web/` vitest suite both pass.**
 
 ## Assumptions
 

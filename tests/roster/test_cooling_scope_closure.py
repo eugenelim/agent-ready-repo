@@ -97,11 +97,15 @@ def write_workspace(
     shipped: list[str] | None = None,
     status: str = "active",
     legacy_queue: list[str] | None = None,
+    extra_queue_entries: list[tuple[str, str]] | None = None,
     migration_authorization: bool = False,
 ) -> None:
     """Write a workspace containing canonical and optional legacy memberships."""
     root.mkdir(parents=True, exist_ok=True)
     queue_entries = [_workspace_entry(path) for path in queue or []]
+    queue_entries.extend(
+        _workspace_entry(path, kind=kind) for path, kind in extra_queue_entries or []
+    )
     queue_entries.extend(json.dumps(path) for path in legacy_queue or [])
     active_entries = [_workspace_entry(path) for path in active or []]
     shipped_entries = [_workspace_entry(path) for path in shipped or []]
@@ -137,10 +141,10 @@ def write_workspace(
     (root / "workspace.toml").write_text("\n".join(sections), encoding="utf-8")
 
 
-def _workspace_entry(path: str) -> str:
+def _workspace_entry(path: str, *, kind: str = "spec") -> str:
     """Render one canonical workspace entry as a TOML inline table."""
     return (
-        f'{{path = {json.dumps(path)}, kind = "spec", '
+        f'{{path = {json.dumps(path)}, kind = {json.dumps(kind)}, '
         'source = {mode = "repo-origin"}, summary = "s", needs = []}'
     )
 
@@ -243,6 +247,28 @@ def assert_migration_fixture_is_real(tmp_path: Path) -> None:
     cooled_memberships = run_status(cooled)["canonical"]["legacy_memberships"]
     assert [membership["path"] for membership in uncooled_memberships] == ["spec/legacy"]
     assert [membership["path"] for membership in cooled_memberships] == []
+
+
+def identity_collision_fixture(
+    root: Path, *, cooled: bool, kind: str = "defect"
+) -> Path:
+    """Build a cooled legacy path beside a second entry sharing its raw path.
+
+    `kind` selects which collision shape is under test. `"defect"` is the pair
+    the review finding measured. `"spec"` is the shape that defeats a
+    `(path, kind)` key: the canonical layer rejects it (a `spec` must live at
+    `docs/specs/<slug>/spec.md`), but it still reaches closeout through the
+    initiative parse carrying exactly the legacy entry's path and kind.
+    """
+    locator = write_spec(root, "x")
+    write_workspace(
+        root,
+        legacy_queue=["spec/x"],
+        extra_queue_entries=[("spec/x", kind)],
+    )
+    if cooled:
+        write_record(root, "x", locator)
+    return root
 
 
 @pytest.mark.parametrize("mode", ["status", "reconcile"])
@@ -371,6 +397,76 @@ def test_ac7_uncooled_sibling_still_blocks(tmp_path: Path, mode: str) -> None:
 
     assert result["closeout"]["all_specs_shipped"] is False
     assert initiative["queue_empty"] is False
+
+
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_cooled_legacy_entry_is_excluded_from_the_closeout_consumer(
+    tmp_path: Path, mode: str
+) -> None:
+    """A cooled legacy entry leaves the survivor derivation, not just the projection.
+
+    The pre-existing legacy assertions read `canonical.legacy_memberships` only,
+    so the closeout consumer's own legacy arm was unguarded: breaking the legacy
+    half of the cooled set left the whole suite green. This is the control that
+    kills that mutation, and the uncooled case is what stops it passing over an
+    empty cooled set.
+    """
+    def build(root: Path, *, cooled: bool) -> Path:
+        locator = write_spec(root, "legacy")
+        write_workspace(root, legacy_queue=["spec/legacy"])
+        if cooled:
+            write_record(root, "legacy", locator)
+        return root
+
+    cooled = run_status(build(tmp_path / "cooled", cooled=True), mode)
+    uncooled = run_status(build(tmp_path / "uncooled", cooled=False), mode)
+    cooled_initiative = next(
+        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
+    )
+    uncooled_initiative = next(
+        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert cooled_initiative["queue_empty"] is True
+    assert cooled["closeout"]["all_specs_shipped"] is True
+    assert uncooled_initiative["queue_empty"] is False
+    assert uncooled["closeout"]["all_specs_shipped"] is False
+
+
+@pytest.mark.parametrize("kind", ["defect", "spec"])
+@pytest.mark.parametrize("mode", ["status", "reconcile"])
+def test_cooled_legacy_entry_does_not_exclude_same_path_sibling(
+    tmp_path: Path, mode: str, kind: str
+) -> None:
+    """A cooled legacy spec path cannot exclude a second entry at its raw path.
+
+    Both `kind` values must hold. `defect` is the measured finding. `spec` is the
+    shape that a `(path, kind)` key cannot separate, so parametrising it is what
+    stops the repair regressing to a value-matched key that merely narrows the
+    collision instead of closing it.
+    """
+    cooled = run_status(
+        identity_collision_fixture(tmp_path / "cooled", cooled=True, kind=kind), mode
+    )
+    uncooled = run_status(
+        identity_collision_fixture(tmp_path / "uncooled", cooled=False, kind=kind), mode
+    )
+    cooled_initiative = next(
+        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
+    )
+    uncooled_initiative = next(
+        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
+    )
+
+    assert [item["path"] for item in uncooled["canonical"]["legacy_memberships"]] == [
+        "spec/x"
+    ]
+    assert cooled["canonical"]["legacy_memberships"] == []
+    assert cooled["closeout"]["all_specs_shipped"] is False
+    assert cooled_initiative["queue_empty"] is False
+    assert cooled["closeout"]["next_action"] != "invoke-close-work"
+    assert uncooled["closeout"]["all_specs_shipped"] is False
+    assert uncooled_initiative["queue_empty"] is False
 
 
 @pytest.mark.parametrize("mode", ["status", "reconcile"])

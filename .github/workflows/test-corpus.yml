@@ -49,11 +49,10 @@ jobs:
           # Nothing here needs the token after checkout, and leaving the default
           # would persist it into the working tree for the target's own git calls.
           persist-credentials: false
-          # Full history: the roster resolves a pinned historical commit
-          # (tests/roster/test_work_intake_migration_contracts.py's
-          # acceptance ref) with `git cat-file`, which exits 128 on the
-          # default shallow clone. build-check.yml sets this for the same
-          # class of reason.
+          # `make test` sweeps `tests/`, which reaches
+          # test_ac1_inventory_is_resolvable_at_the_pinned_acceptance_ref. That case runs
+          # `git cat-file -e <pinned-ref>:<path>` against this repository's own history,
+          # so a depth-1 clone fails it on its first source without reaching the rest.
           fetch-depth: 0
 
       - name: Set up Python

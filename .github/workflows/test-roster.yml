@@ -43,11 +43,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-          # Full history: the roster resolves a pinned historical commit
-          # (tests/roster/test_work_intake_migration_contracts.py's
-          # acceptance ref) with `git cat-file`, which exits 128 on the
-          # default shallow clone. build-check.yml sets this for the same
-          # class of reason.
+          # full history for test_ac1_inventory_is_resolvable_at_the_pinned_acceptance_ref,
+          # which runs `git cat-file -e <pinned-ref>:<path>` against this repository's
+          # own history. The default depth-1 clone does not contain that commit, so the
+          # check failed on its first source and never reached the other ten.
           fetch-depth: 0
 
       - name: Set up Python

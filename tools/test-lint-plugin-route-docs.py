@@ -105,6 +105,23 @@ def main() -> int:
            f"list has {sorted(set(lint.REPO_ONLY) - actual_repo_only)} extra, "
            f"{sorted(actual_repo_only - set(lint.REPO_ONLY))} missing")
 
+    # The "all N packs" literals are a snapshot for the same import-time reason
+    # as REPO_ONLY, and a snapshot of counts nobody would write is a guard that
+    # cannot fire. Pin the *live* count specifically: the install doc's guard
+    # must forbid the number a writer could truthfully reach for today. Adding
+    # the 23rd pack reddens here, which is the only thing that keeps the list
+    # from silently ageing out of usefulness.
+    pack_count = sum(
+        1 for d in (repo_root / "packs").iterdir()
+        if d.is_dir() and not d.name.startswith("_") and (d / "pack.toml").exists()
+    )
+    install_forbidden = by_path["docs-site/src/content/docs/getting-started/install.md"]
+    _check("the install doc forbids a whole-catalogue claim at the live pack count",
+           f"all {pack_count} packs" in install_forbidden,
+           f"{pack_count} packs on disk, but 'all {pack_count} packs' is not "
+           f"forbidden; count literals present: "
+           f"{sorted(p for p in install_forbidden if p.startswith('all '))}")
+
     with tempfile.TemporaryDirectory() as tmp:
         # An empty tree: every site is missing, so every site must report.
         out = lint.check(Path(tmp))

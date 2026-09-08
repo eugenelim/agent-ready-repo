@@ -3292,8 +3292,8 @@ def cooled_work_entry_paths(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path],
-) -> dict[str, set[str]]:
-    """Per initiative slug, the raw `work.*` entry paths the canonical layer cools.
+) -> dict[str, set[tuple[str, int]]]:
+    """Return reconciliation's cooled `work.*` membership positions by initiative.
 
     Closeout must not re-derive an artifact path from an entry to ask whether it
     is cooled: an entry may be canonical (`docs/specs/<slug>/spec.md`), legacy
@@ -3301,28 +3301,37 @@ def cooled_work_entry_paths(
     a non-spec kind, and each has a different mapping — or none. Re-deriving
     picks one mapping and silently disagrees with reconciliation on the rest.
 
-    This returns reconciliation's own verdict, keyed on the raw workspace path
-    string both layers read, so the two agree by construction rather than by two
-    resolutions happening to match.
+    Each identity is the `(collection, entry_index)` position the membership was
+    parsed from. Position is the only thing that distinguishes two lifecycle
+    entries in every case: no value carried by an entry is unique. A raw path is
+    not identity — `{path = "spec/x", kind = "defect"}` is a valid canonical
+    membership whose path equals a legacy `"spec/x"` entry's stored form — and
+    neither is `(path, kind)`, because an entry the canonical layer rejects
+    still reaches closeout through its own parse and can reproduce any pair.
+
+    Both sides enumerate one raw TOML array in order and emit exactly one record
+    per element: this function's caller walks `enumerate(entries)`, and the
+    initiative parse builds `queue` and `active` by list comprehension over those
+    same arrays. So index `i` names the same element on both sides.
     """
     memberships, legacy_memberships, _findings, _blocked = (
         _extract_canonical_memberships(workspace)
     )
-    by_initiative: dict[str, set[str]] = {}
+    by_initiative: dict[str, set[tuple[str, int]]] = {}
     for membership in memberships:
         if not membership.collection.startswith("work."):
             continue
-        if membership.entry.path is None:
-            continue
         if _membership_is_cooled(membership, root, cooled):
             by_initiative.setdefault(membership.ini_slug, set()).add(
-                membership.entry.path
+                (membership.collection, membership.entry_index)
             )
     for legacy in legacy_memberships:
         if not legacy.collection.startswith("work."):
             continue
         if _legacy_membership_is_cooled(legacy, root, cooled):
-            by_initiative.setdefault(legacy.ini_slug, set()).add(legacy.entry.path)
+            by_initiative.setdefault(legacy.ini_slug, set()).add(
+                (legacy.collection, legacy.entry_index)
+            )
     return by_initiative
 
 
