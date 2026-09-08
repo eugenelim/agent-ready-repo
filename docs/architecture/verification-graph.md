@@ -186,14 +186,14 @@ problem.
 
 ## 3. The remote workflow fleet
 
-Fourteen workflows. Every `uses:` in the fleet is pinned to a 40-character
+Sixteen workflows. Every `uses:` in the fleet is pinned to a 40-character
 commit SHA; `.github/zizmor.yml` requires pinning rather than suppressing
 `unpinned-uses`, and `.github/dependabot.yml` records that `github-actions`
 updates are deliberately disabled for that reason.
 
 | Workflow | Triggers | What it establishes |
 | --- | --- | --- |
-| `build-check.yml` | `pull_request`, `push` on `main` | Four parallel gates — `gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker` — aggregated by a job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1` plus ruff and mypy, **and further pytest steps wired directly in the workflow rather than through a Make target** |
+| `build-check.yml` | `pull_request`, `push` on `main`, `workflow_dispatch` | Four parallel gates — `gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker` — aggregated by a job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1` plus ruff and mypy, **and further pytest steps wired directly in the workflow rather than through a Make target** |
 | `build-check-windows.yml` | `pull_request`, `push` on `main`, `paths-ignore: docs/**, Makefile, *.md` | Three `windows-latest` jobs plus an `ubuntu-latest` aggregate displayed as `make build-check (windows)` |
 | `catalogue-tooling-ci-gates.yml` | `pull_request`, `push` | Gates A-G. **`Gate A-tests` and `Gate A-packs` run agentbundle, pack and hook suites across more than one operating system and Python version** — the largest existing remote pytest coverage, though not a required context, and each leg set is deliberately asymmetric (read the matrices in the file; they are not the cross product). Gates B-G cover external-catalogue portability, enterprise distribution, artifact smoke, disconnected smoke, repo rewire, release impact |
 | `ci-security.yml` | `pull_request`, `push` | `gitleaks` secret scan; `actionlint` + `zizmor --min-severity high`, plus an excessive-permissions checker |
@@ -270,8 +270,11 @@ receipt is distinct evidence: the two answer different questions.
 
 ### 4.1 Reachable from `make ci` but not from any required remote job
 
-**The complete test corpus.** No job in the fleet runs `make test` or
-`make test-after-build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1`
+**The complete test corpus.** `test-corpus.yml` runs `make test`, but only
+on `workflow_dispatch` — so no *automatic* run of any kind reaches it, and no
+job runs `make test-after-build-check` at all. Read the row below as describing
+what a pull request does, which is unchanged: reaching the corpus still takes a
+deliberate dispatch. `gate-main` runs `make build-check … SAST_DELEGATED=1`
 plus ruff and mypy, and `build-check.yml` then wires curated
 pytest paths directly rather than invoking the Makefile's test route. The
 accepted intent records the same gap: "the required workflow does not cover the
@@ -291,7 +294,7 @@ own limitation bounds what a clean run proves:
 > step changes nothing the roster sees.
 
 Only `build-check.yml` is in scope for that linter. `WORKFLOW_SCOPE` classifies
-the other thirteen as out of scope, each with a reason, and fails on an
+the other fifteen as out of scope, each with a reason, and fails on an
 unclassified new workflow.
 
 ### 4.2 Semantic checks in the repository that `make ci` does not reach
