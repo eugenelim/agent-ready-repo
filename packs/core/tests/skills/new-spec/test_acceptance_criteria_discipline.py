@@ -441,15 +441,18 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
 #
 # Calibration, measured 2026-09-08 after the restatements were cut, excluding
 # Markdown table delimiters (`| --- | --- |` runs match trivially and carry no
-# prose): the two files share 3 six-word runs and 0 of seven or more. The three
-# six-word survivors are `an implementation loop with gates between`, incidental
-# shared phrasing about the same benchmark caveat; `authored where an owner
-# already exists,`, class 1's subject named in the brief's Outcome; and
-# `5. The criterion is too big`, the class-5 heading, which the brief cites by
-# name. None extends to seven in either direction, so seven is the shortest run
-# length that reds only on restatement — but note the heading case: a rubric
-# heading seven words or longer, cited by name, would red this guard on correct
-# text.
+# prose): the two files share 2 six-word runs and 0 of seven or more. Both are
+# `an implementation loop with gates between`, incidental shared phrasing about
+# the same benchmark caveat, and `authored where an owner already exists,`,
+# class 1's subject named in the brief's Outcome. Neither extends to seven in
+# either direction, so seven is the shortest run length that reds only on
+# restatement.
+#
+# One structural caveat the threshold does not cover: a rubric *heading* of
+# seven words or more, quoted by name in the brief, would red this guard on
+# correct text. An earlier revision had exactly that case and it disappeared
+# when the section was renamed, which is why it is recorded rather than assumed
+# absent.
 #
 # An earlier revision set this to eight while the two substantive restatements
 # were seven words long — a threshold calibrated one word above the duplication

@@ -37,22 +37,17 @@ contract still gets things wrong; what a loop does on that discovery is
   no firing is withdrawn, not re-worded.
 - A contract over the sizing band stalls at authoring, not at round six.
 
-**First firing evidence, 2026-09-08.** All six rubric classes fired at least
-once against the A1 candidate's own authoring and review, so none is a
-withdrawal candidate yet. Each firing is an exhibit in § "What actually works":
-class 1 on the ownership findings that dominated rounds 3 to 5; class 2 on a
-guard calibrated to pass; class 3 on the refusal-only criterion set the ablation
-seeded; class 4 on a commit pin orphaned by rebase and a region list that
-decayed in two rounds; class 5 on the length trade-off the ablation forced; and
-class 6 on a confidence-tag legend that graded its own output. **This is
-firing evidence, not activation evidence** — it shows the classes name real
-defects, not that shipping them as prose changes what an author writes. Only the
-activation measurement settles the second, and the ablation reaches just two
-defects in two classes.
+**First firing evidence, 2026-09-08.** Every rubric class fired at least once
+while the A1 candidate was authored and reviewed, so none is a withdrawal
+candidate yet. The firings are in the round-numbered review artifacts under
+`.context/reviews/`, not restated here. **Firing is not activation**: it shows
+the classes name real defects, not that shipping them as prose changes what an
+author writes. Only the activation measurement settles the second, and the
+ablation reaches two of the six seeded defects.
 
-The stall metric has one counter-example to answer: the candidate did not stall
-at authoring, and its sixth round still returned four blockers. Whether the band
-should have stopped it, or whether the band does not govern a reference-shaped
+The stall metric has a counter-example to answer: the candidate never stalled at
+authoring, and its later rounds still returned blockers. Whether the band should
+have stopped it, or whether the band does not govern a reference-shaped
 deliverable, is open.
 
 ## Scope / Non-goals
@@ -130,35 +125,31 @@ rule that distinguishes cutting a criterion from re-homing an artifact.
 
 ### Corpus
 
-**Re-measured 2026-09-08. One clause of the predicate was wrong; the figures
-were not.** The earlier statement required a leading `- ` on the status line,
-and 18 shipped specs carry a bare `**Status:**` without it, so run literally it
-reached only 403 specs. Every published percentile was nonetheless produced by
-the intended instrument and reproduces under it. An earlier attempt to repair
-this section introduced a criterion-length terminator the original never had,
-which changed p90 from 101 to 91 and made the figures unreproducible from their
-own stated predicate — the defect it was trying to fix. That attempt is
-withdrawn.
+**Re-measured 2026-09-08. One clause of the predicate was wrong.** The earlier
+statement required a leading `- ` on the status line, and 18 shipped specs carry
+a bare `**Status:**` without it, so run literally it reached only 403 of 421
+specs.
 
-**The instrument, stated so it reproduces.** `docs/specs/*/spec.md` at exactly
-one directory level. The status is the first line matching
-`^-?\s*\*\*Status:\*\*`, which must reduce to the leading token `Shipped` once
-an annotation (`Shipped (2026-05-26)`) is stripped. A criterion is a checkbox
-bullet under `## Acceptance Criteria`, since roughly half the corpus labels them
-`**ACn —**` and half does not; **a criterion's block runs from its checkbox to
-the next checkbox or the end of the section, with no blank-line terminator**,
-and its length is that block's whitespace-separated word count. A spec's word
+**The instrument.** `docs/specs/*/spec.md` at exactly one directory level. The
+status is the first line matching `^-?\s*\*\*Status:\*\*`, which must reduce to
+the leading token `Shipped` once an annotation (`Shipped (2026-05-26)`) is
+stripped. A criterion is a checkbox bullet under `## Acceptance Criteria`, since
+roughly half the corpus labels them `**ACn —**` and half does not. A spec's word
 count is the whole file, verbatim, including its metadata header.
 
 **Measured 2026-09-08: 421 specs, 6,465 criteria.** Criteria per spec: p25 9,
 median 12, p75 18, p90 28, max 104. Words per spec: p25 1,044, median 1,607,
-p75 2,398, p90 3,949, max 11,569. Criterion words: median 33, p90 101, p96 160,
-max 1,361.
+p75 2,398, p90 3,949, max 11,569. Criteria per spec is unchanged from
+2026-09-02, which is the check that this is the instrument that produced the
+original figures.
 
-Criteria per spec is unchanged from 2026-09-02 and criterion p90 is unchanged at
-101, which is the check that the instrument above is the one that produced the
-original figures. An independent run of it on 2026-09-08 reproduced every
-figure here to within two words on the single longest criterion.
+**No criterion-length percentile is published.** Three attempts to state an
+instrument that reproduced one failed, each differing from the last on the block
+boundary. The band uses criterion length only to order criteria for the shape
+test, never as a bound, so no bound reads a percentile — and by the decoration
+test, a figure nothing depends on and that three attempts could not reproduce is
+surface to delete rather than a fourth thing to get right. Derive one if a
+decision ever needs it, and state the boundary you used.
 
 ### Band
 
@@ -534,87 +525,43 @@ one file; and this brief had grown from 3,622 to 4,746 words. The clause had no
 oracle, preserving substance made adding safer than cutting, and the review
 loop had no subtractive move because every finding was closed by writing.
 
-### Six review rounds on this brief's own first deliverable
+### Authoring and reviewing this brief's own first deliverable
 
-> **Observed 2026-09-04 to 2026-09-08**, while the A1 candidate was authored and
-> reviewed. Read from the round-numbered adjudication artifacts, not recalled.
-> These are exhibits for the corpus above; the rules they bear on live in the
-> rubric.
+> **Observed 2026-09-04 to 2026-09-08.** Exhibits for the corpus above. The
+> rules they bear on live in the rubric.
 
-The candidate went through six `adversarial-reviewer` rounds under light mode's
-divergence checkpoint. What the rounds measured about the *loop* is more useful
-than the defect list:
+The A1 candidate took seven `adversarial-reviewer` rounds under light mode's
+divergence checkpoint. Three things it showed are new to this corpus.
 
-| Round | Raw | Sustained | Refuted |
-| --- | ---: | ---: | ---: |
-| 1 | 15 | 15 | 0 |
-| 2 | 9 | not adjudicated | — |
-| 3 | 9 | 6 | 3 |
-| 4 | 13 | 9 | 4 |
-| 5 | 9 | 8 | 1 |
-| 6 | 11 | not adjudicated | — |
+**A repair can instantiate the defect it repairs.** § "Corpus" published
+percentiles under a predicate that, run literally, admitted fewer specs than it
+claimed. The repair rewrote the predicate and introduced a different
+non-reproducibility; a later round found the same class one level down, and the
+section records the withdrawal. Two adjacent instances the same week: a guard
+against verbatim overlap shipped at a threshold one word above the duplication
+it existed to catch, and a measurement reported its result in classes when it
+had sampled defects. Each passed a careful re-read by its author and failed the
+first external check, with the governing rule in context every time. **This is
+the corpus's first population of failures in *repairs to* contracts rather than
+in contracts.**
 
-**The refutation rate is a better convergence signal than the count.** It ran
-0%, then 33% and 31%, then 11%. Rising refutation means the reviewer has
-exhausted the defect supply and is proposing remedies that authority or evidence
-rejects; the raw count barely moved across the same span. A loop read on count
-alone would have looked flat when it was in fact draining.
+**A line-oriented search over wrapped prose returns confident wrong answers.**
+Four times in one session, `grep` for a phrase spanning a line break reported
+absent and produced a decision rather than an error — a clause declared never to
+have existed, a landed repair declared unapplied, a duplicate count wrong, a
+guard's calibration citing the wrong run length. Flatten whitespace before
+matching. A prose rule saying "check the artifact" does not reach this, because
+the author did check, with an instrument that lies quietly on wrapped text.
 
-**Repair-induced findings are what tell you the loop is chasing itself.** Round
-2 traced about six of nine to round 1's repairs; rounds 4 and 5 about five and
-six; round 6 produced three of its four blockers from the two rounds before it.
-That number never fell, while severity did — which is the shape that should end
-a loop rather than extend it.
-
-**Two rounds were repaired from reviewer prose without adjudication** (2 and 6),
-which the finding-adjudication gateway forbids. Both are recorded as raw so no
-trend read treats them as sustained. The breach is itself the exhibit: the
-gateway was in context both times.
-
-**An indeterminate verdict is a routine cost of a read-only adjudicator, not an
-exception.** Rounds 4 and 5 both returned `ADJUDICATION-INDETERMINATE` because
-the adjudicator cannot run git or walk directories, and both were closed by
-measuring the missing facts and spending one guarded evidence retry. Budget for
-that hop wherever a finding turns on repository state rather than file content.
-
-### A repair that instantiated the defect it was repairing
-
-> **Observed 2026-09-08.** The strongest single exhibit this brief has for
-> preferring an external check over another careful edit.
-
-§ "Corpus" published percentiles under a predicate that, run literally,
-returned 403 specs against a published 416. The repair rewrote the predicate —
-and in doing so added a criterion-block terminator the original never had,
-moving p90 from 101 to 91 and leaving the new figures unreproducible from the
-new predicate. The original instrument had been correct; only its status-line
-clause was wrong. **A review round later found the same class of defect in the
-repair, one level down.** The withdrawal is recorded in that section.
-
-Two adjacent instances, same session: a guard against brief-to-rubric verbatim
-overlap shipped at an eight-word threshold while the two substantive
-restatements were seven words long — calibrated one word above the duplication
-it existed to catch, with a comment citing a six-word run as its evidence. And
-a measurement reported its result in classes when it had sampled defects: six
-defects over four distinct classes, two classes never sampled.
-
-**What the three share** is that each passed a careful re-read by its author and
-failed the first external check. None was a knowledge gap — the governing rule
-was in context every time.
-
-### A line-oriented search over wrapped prose returns confident wrong answers
-
-> **Observed four times on 2026-09-08**, in one session, by one author.
-
-`grep` for a phrase that wraps across a line break reports absent. Each time it
-produced a *decision*, not an error: a clause was declared never to have existed
-when it had; a repair was declared unapplied when it had landed; a duplicate
-count came back wrong; and a guard's calibration note cited the wrong run
-length. Flattening whitespace before matching is the whole fix, and every
-verdict in this brief's own guards now does it.
-
-This is why a prose rule stating "check the artifact, not your intentions" does
-not reach the failure: the author *did* check, with an instrument that lies
-quietly on wrapped text.
+**Repair-induced findings are the signal the count hides.** Severity fell across
+the rounds while the share of findings traceable to the previous round's repairs
+did not, and the last two rounds each produced most of their blockers that way.
+Two rounds were repaired from reviewer prose without adjudication, which the
+gateway forbids and which the round-numbered artifacts record as raw so no later
+read treats them as sustained. Two other rounds returned
+`ADJUDICATION-INDETERMINATE` because a read-only adjudicator cannot reach
+repository state; both closed on one guarded evidence retry, so budget for that
+hop wherever a finding turns on repository state rather than file content.
 
 ## The rubric is a deliverable, not content here
 
@@ -890,15 +837,12 @@ What shipping early costs, recorded rather than glossed:
   Replacing the four already-reachable classes with pointers would keep the
   ordering only by making the reader follow a pointer mid-sequence. Revisit if
   the activation report shows the later classes never firing.
-- - **Six review rounds, and the last one was still not clean.** The candidate
-  took six `adversarial-reviewer` rounds under the divergence checkpoint; the
-  round-by-round trend, the refutation rate and the repair-induced count are in
-  § "Six review rounds on this brief's own first deliverable". The shipped
-  reference stabilised after round 3 — every later blocker was in the prose
-  *around* it, and three of round 6's four came from the two repair rounds
-  before them. **Read that as evidence about this brief's own coupling to the
-  rubric**, which the cut and its guard now bound, rather than as evidence about
-  the reference.
+- **Seven review rounds, and the last one was not clean.** The shipped
+  reference stabilised after round 3; every later blocker was in the prose
+  *around* it, mostly in this brief. Read that as evidence about this brief's
+  coupling to the rubric, which the cut and its guard now bound, rather than as
+  evidence about the reference. § "Authoring and reviewing this brief's own
+  first deliverable" carries what the rounds showed.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same precedent — § "A1 home"
   still governs, with the consumer count corrected above.
@@ -1007,9 +951,9 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   plan are preserved at commit `e1bdde746`.
 - Measurement of the shipped rubric, run 2026-09-04:
   [`spec-authoring-rubric-ablation.md`](../research/spec-authoring-rubric-ablation.md).
-  A paired ablation over six pre-registered defects; it establishes that two
-  classes flip on the rubric's presence and four are already reachable without
-  it, and records its own length confound and n.
+  A paired ablation over six pre-registered defects: two flip on the rubric's
+  presence, four are reachable without it, and four of the six classes were
+  sampled. It records its own length confound and n.
 - Prior-art basis, commissioned 2026-09-04 and discharging the desk-research
   item this brief owed:
   [`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md).
