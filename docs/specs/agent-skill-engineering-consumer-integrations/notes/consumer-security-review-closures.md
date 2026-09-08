@@ -16,6 +16,10 @@ the outcome. Nothing in the spec body changed; the spec is Shipped and frozen.
 | `agent-skill-engineering-consumer-boundary-tests` | Closed. Per-consumer boundary modules collected by `make ci` pin refusal, containment ordering, and the closed diagnostic vocabulary, with mutation proofs. |
 
 The fourth entry from that slice — RFC-0097:189's behavioural half, "tested
-without this pack installed" — is **not** closed. It is the one obligation the
-register still carries, now under
-[`docs/product/intents/agent-skill-consumer-boundary-hardening.md`](../../../product/intents/agent-skill-consumer-boundary-hardening.md).
+without this pack installed" — is **not** closed. It stays in
+`workspace.toml [backlog].open` under its original slug
+`agent-skill-engineering-provider-absence-behaviour`, and it stays `slug`-shaped
+rather than migrating to an intent document: AC16 of this spec is discharged by
+that exact `slug`/`source` pair, and
+`tests/roster/test_agent_skill_engineering_consumer_integrations.py::test_ac16_provider_absence_follow_on_is_registered`
+pins it. Repointing the record would orphan a ticked AC on a frozen spec.

@@ -239,7 +239,6 @@ shipped = [
   {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
   {path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Portable close-work closeout with separately confirmed immediate disposition", needs = []},
   {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
-  {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering checks from source and keep the conversion ledger self-consistent without coupling it to the current guides tree", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
   # its completion makes the canonical MCP parity intent the programme's next slice.
   {path = "docs/specs/portable-agent-plugin-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Project portable-eligible canonical skills into deterministic Agent Plugins 1.0.0 packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},
@@ -388,7 +387,21 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  {path = "docs/product/intents/agent-skill-consumer-boundary-hardening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "The work-loop and architect-design consumers prove provider-absence behavior; the selection, containment and prose-gating controls closed 2026-09-08", needs = []},
+  # NOT migrated to a `path` entry, and not an oversight: AC16 of the Shipped
+  # spec/agent-skill-engineering-consumer-integrations is discharged by this
+  # exact `slug`/`source` pair, and tests/roster's
+  # test_ac16_provider_absence_follow_on_is_registered pins it. Repointing the
+  # record at an intent document would orphan a ticked AC on a frozen spec.
+  # The three sibling controls from that security review closed 2026-09-08; see
+  # docs/specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md.
+  # RFC-0097:189's behavioural half -- "tested without this pack installed" --
+  # is not discharged by the consumer-integrations slice. For a prose consumer
+  # there is no runtime to exercise, and verify_catalogue over a provider-less
+  # catalogue runs a strict subset of the provider-present checks. RFC-0097:575
+  # offers a cheaper mode than an executable harness -- a fixture versioned with
+  # its expected result before the implementation runs, judged by an independent
+  # reviewer -- which that slice did not evaluate.
+  {slug = "agent-skill-engineering-provider-absence-behaviour", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Discharge the behavioural half of the provider-absence obligation: evaluate a pre-registered fixture-and-expected-result mode, judged by an independent reviewer, against an executable absence harness"},
   # Product-strategy parent of the three capability briefs below it, framed
   # 2026-09-02. Re-gates them: the policy validator is the activation
   # measurement's compliance test, so enforcement precedes measurement.
@@ -724,7 +737,6 @@ shipped = [
   {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
   {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
   {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},
-  {path = "docs/specs/pack-test-compatibility-classes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Keep pack tests isolated by default and admit only mechanically verified within-pack compatibility classes", needs = []},
   {path = "docs/specs/catalogue-wave1-contract-convergence/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave1-contract-convergence", needs = []},
   {path = "docs/specs/catalogue-wave2-pack-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave2-pack-integrations", needs = []},
   {path = "docs/specs/documentation-entry-navigation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "documentation-entry-navigation", needs = []},
