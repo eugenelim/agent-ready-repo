@@ -54,6 +54,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.4] — 2026-09-08
+
+### Highlights
+
+- **Closeout now keeps unrelated work visible when it shares a path with a
+  cooled legacy entry.** A second entry at the same path still blocks closeout,
+  so maintainers are not told to invoke `close-work` while that work remains
+  unresolved.
+
+### Fixed
+
+- Cooled work exclusion is keyed on each entry's position in its lifecycle list
+  rather than on its path. A legacy `spec/<slug>` entry can no longer hide a
+  second entry stored at the same path — including one the canonical layer
+  rejects, which reaches closeout through its own parse and so could reproduce
+  any value the exclusion matched on.
+
 ## [core][2.25.3] — 2026-09-08
 
 ### Highlights
