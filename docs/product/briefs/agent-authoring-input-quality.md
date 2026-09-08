@@ -37,6 +37,24 @@ contract still gets things wrong; what a loop does on that discovery is
   no firing is withdrawn, not re-worded.
 - A contract over the sizing band stalls at authoring, not at round six.
 
+**First firing evidence, 2026-09-08.** All six rubric classes fired at least
+once against the A1 candidate's own authoring and review, so none is a
+withdrawal candidate yet. Each firing is an exhibit in § "What actually works":
+class 1 on the ownership findings that dominated rounds 3 to 5; class 2 on a
+guard calibrated to pass; class 3 on the refusal-only criterion set the ablation
+seeded; class 4 on a commit pin orphaned by rebase and a region list that
+decayed in two rounds; class 5 on the length trade-off the ablation forced; and
+class 6 on a confidence-tag legend that graded its own output. **This is
+firing evidence, not activation evidence** — it shows the classes name real
+defects, not that shipping them as prose changes what an author writes. Only the
+activation measurement settles the second, and the ablation reaches just two
+defects in two classes.
+
+The stall metric has one counter-example to answer: the candidate did not stall
+at authoring, and its sixth round still returned four blockers. Whether the band
+should have stopped it, or whether the band does not govern a reference-shaped
+deliverable, is open.
+
 ## Scope / Non-goals
 
 **In scope**
@@ -215,6 +233,12 @@ One piece of work remains owed before it can claim coverage: **mining this
 repository's own corpus** for the classes no session happened to hit. Until it
 lands, treat an absent class as unobserved rather than absent, and do not size
 a slice against the number of entries here.
+
+The three entries dated 2026-09-08 came from authoring and reviewing this
+brief's own first deliverable, so they extend the observed set without touching
+the owed corpus mining. They also change what the corpus is evidence *for*: the
+earlier entries are failures of contracts, and these are failures of **repairs
+to** contracts, which is a population the corpus had no entry for.
 
 **The prior-art placement is discharged**, in
 [`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
@@ -510,6 +534,88 @@ one file; and this brief had grown from 3,622 to 4,746 words. The clause had no
 oracle, preserving substance made adding safer than cutting, and the review
 loop had no subtractive move because every finding was closed by writing.
 
+### Six review rounds on this brief's own first deliverable
+
+> **Observed 2026-09-04 to 2026-09-08**, while the A1 candidate was authored and
+> reviewed. Read from the round-numbered adjudication artifacts, not recalled.
+> These are exhibits for the corpus above; the rules they bear on live in the
+> rubric.
+
+The candidate went through six `adversarial-reviewer` rounds under light mode's
+divergence checkpoint. What the rounds measured about the *loop* is more useful
+than the defect list:
+
+| Round | Raw | Sustained | Refuted |
+| --- | ---: | ---: | ---: |
+| 1 | 15 | 15 | 0 |
+| 2 | 9 | not adjudicated | — |
+| 3 | 9 | 6 | 3 |
+| 4 | 13 | 9 | 4 |
+| 5 | 9 | 8 | 1 |
+| 6 | 11 | not adjudicated | — |
+
+**The refutation rate is a better convergence signal than the count.** It ran
+0%, then 33% and 31%, then 11%. Rising refutation means the reviewer has
+exhausted the defect supply and is proposing remedies that authority or evidence
+rejects; the raw count barely moved across the same span. A loop read on count
+alone would have looked flat when it was in fact draining.
+
+**Repair-induced findings are what tell you the loop is chasing itself.** Round
+2 traced about six of nine to round 1's repairs; rounds 4 and 5 about five and
+six; round 6 produced three of its four blockers from the two rounds before it.
+That number never fell, while severity did — which is the shape that should end
+a loop rather than extend it.
+
+**Two rounds were repaired from reviewer prose without adjudication** (2 and 6),
+which the finding-adjudication gateway forbids. Both are recorded as raw so no
+trend read treats them as sustained. The breach is itself the exhibit: the
+gateway was in context both times.
+
+**An indeterminate verdict is a routine cost of a read-only adjudicator, not an
+exception.** Rounds 4 and 5 both returned `ADJUDICATION-INDETERMINATE` because
+the adjudicator cannot run git or walk directories, and both were closed by
+measuring the missing facts and spending one guarded evidence retry. Budget for
+that hop wherever a finding turns on repository state rather than file content.
+
+### A repair that instantiated the defect it was repairing
+
+> **Observed 2026-09-08.** The strongest single exhibit this brief has for
+> preferring an external check over another careful edit.
+
+§ "Corpus" published percentiles under a predicate that, run literally,
+returned 403 specs against a published 416. The repair rewrote the predicate —
+and in doing so added a criterion-block terminator the original never had,
+moving p90 from 101 to 91 and leaving the new figures unreproducible from the
+new predicate. The original instrument had been correct; only its status-line
+clause was wrong. **A review round later found the same class of defect in the
+repair, one level down.** The withdrawal is recorded in that section.
+
+Two adjacent instances, same session: a guard against brief-to-rubric verbatim
+overlap shipped at an eight-word threshold while the two substantive
+restatements were seven words long — calibrated one word above the duplication
+it existed to catch, with a comment citing a six-word run as its evidence. And
+a measurement reported its result in classes when it had sampled defects: six
+defects over four distinct classes, two classes never sampled.
+
+**What the three share** is that each passed a careful re-read by its author and
+failed the first external check. None was a knowledge gap — the governing rule
+was in context every time.
+
+### A line-oriented search over wrapped prose returns confident wrong answers
+
+> **Observed four times on 2026-09-08**, in one session, by one author.
+
+`grep` for a phrase that wraps across a line break reports absent. Each time it
+produced a *decision*, not an error: a clause was declared never to have existed
+when it had; a repair was declared unapplied when it had landed; a duplicate
+count came back wrong; and a guard's calibration note cited the wrong run
+length. Flattening whitespace before matching is the whole fix, and every
+verdict in this brief's own guards now does it.
+
+This is why a prose rule stating "check the artifact, not your intentions" does
+not reach the failure: the author *did* check, with an instrument that lies
+quietly on wrapped text.
+
 ## The rubric is a deliverable, not content here
 
 The failure-point rubric is distilled from this repository's memory and its
@@ -747,10 +853,14 @@ not changing review rubrics.
 
 What shipping early costs, recorded rather than glossed:
 
-- **The activation risk is unretired.** § "Assumptions / Risks" names shipping
-  another unactivated rule as the most likely failure, and the withdrawal metric
-  in § "Success metrics" is the only guard. It still applies: **a rubric class
-  that can never be shown to have fired is withdrawn, not re-worded.**
+- **The activation risk is unretired, and one of its two halves is now
+  answered.** § "Assumptions / Risks" names shipping another unactivated rule as
+  the most likely failure. All six classes have now been shown to fire
+  (§ "Success metrics", 2026-09-08), so the withdrawal metric is satisfied and
+  no class is a withdrawal candidate. What remains open is the other half:
+  whether the classes shipped *as prose* change what an author writes. The
+  ablation reaches two defects in two classes; the activation measurement owns
+  the rest.
 - **Categories 2, 4 and 5 shipped as prose, not as policy families.** The split
   in § "The rubric is a deliverable" routes them to a registry that does not
   exist yet. Nothing about the shipped file forecloses that; the registry's
@@ -780,6 +890,15 @@ What shipping early costs, recorded rather than glossed:
   Replacing the four already-reachable classes with pointers would keep the
   ordering only by making the reader follow a pointer mid-sequence. Revisit if
   the activation report shows the later classes never firing.
+- - **Six review rounds, and the last one was still not clean.** The candidate
+  took six `adversarial-reviewer` rounds under the divergence checkpoint; the
+  round-by-round trend, the refutation rate and the repair-induced count are in
+  § "Six review rounds on this brief's own first deliverable". The shipped
+  reference stabilised after round 3 — every later blocker was in the prose
+  *around* it, and three of round 6's four came from the two repair rounds
+  before them. **Read that as evidence about this brief's own coupling to the
+  rubric**, which the cut and its guard now bound, rather than as evidence about
+  the reference.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same precedent — § "A1 home"
   still governs, with the consumer count corrected above.
