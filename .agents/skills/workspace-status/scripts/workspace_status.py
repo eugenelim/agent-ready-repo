@@ -743,27 +743,41 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _surviving_work(initiative: Any, cooled_paths: set[str]) -> tuple[list, list]:
+def _surviving_work(
+    initiative: Any, cooled_positions: set[tuple[str, int]]
+) -> tuple[list, list]:
     """Return the single derivation both closeout consumers read.
 
-    `cooled_paths` is reconciliation's own verdict for this initiative, keyed on
-    the raw workspace path string, so closeout and the canonical layer agree by
-    construction. Deciding here instead — by re-deriving an artifact path from an
-    entry — picks one mapping and disagrees with reconciliation on every entry
-    class that maps differently or not at all: a legacy `spec/<slug>` entry, a
-    bare slug the canonical layer refuses to model, and a non-spec kind each
-    resolve differently, and getting any one wrong puts two answers in one
-    response.
+    `cooled_positions` carries reconciliation's `(collection, entry_index)`
+    verdict for this initiative. Position is matched rather than any value the
+    entry holds, because no value is unique: a legacy `"spec/x"` string and a
+    canonical `{path = "spec/x", kind = "defect"}` entry share a raw path, and an
+    entry the canonical layer rejects still arrives here through this parse and
+    can reproduce any `(path, kind)` pair. Matching a value therefore drops a
+    live entry that merely resembles a cooled one, and closeout then advertises
+    shippedness for an initiative that still has work.
+
+    The two sides agree by construction: reconciliation walks
+    `enumerate(entries)` over each lifecycle array, and these lists are built by
+    comprehension over those same arrays, one entry per element.
     """
     return (
-        [entry for entry in initiative.work.queue if entry.path not in cooled_paths],
-        [entry for entry in initiative.work.active if entry.path not in cooled_paths],
+        [
+            entry
+            for index, entry in enumerate(initiative.work.queue)
+            if ("work.queue", index) not in cooled_positions
+        ],
+        [
+            entry
+            for index, entry in enumerate(initiative.work.active)
+            if ("work.active", index) not in cooled_positions
+        ],
     )
 
 
 def _closeout_projection(
     result,
-    cooled_by_initiative: dict[str, set[str]],
+    cooled_by_initiative: dict[str, set[tuple[str, int]]],
     *,
     dueness_failed: bool = False,
     canonical_shaping_records: list[dict],
@@ -864,9 +878,9 @@ def _build_json(root: Path, result, mode: str) -> dict:
     # resolution matches the engine's is_need_satisfied, which checks all active
     # entries regardless of type. Each entry carries ini_slug to avoid cross-initiative
     # slug collisions (two initiatives may share an initiative-scoped shaping slug).
-    # Reconciliation's own cooled verdict, read from the same workspace bytes it
-    # parses. Closeout consumes it rather than re-deriving a path per entry, so
-    # the two layers cannot disagree about which entries a cooled set removed.
+    # Reconciliation's cooled membership positions, read from the same workspace
+    # bytes it parses. Closeout consumes those positions rather than re-deriving
+    # an artifact path, or matching any value an entry carries.
     workspace_bytes = _migration_read_bytes(root, "workspace.toml")
     if workspace_bytes is None:
         raise UnsafeMigrationPathError

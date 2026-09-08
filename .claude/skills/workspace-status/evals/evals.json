@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "workspace status",
-      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start \u2014 spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog \u2014 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently \u2014 all classification and backlog data comes from the backend JSON.",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog — 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently — all classification and backlog data comes from the backend JSON.",
       "assertions": [
         "Invokes the backend script rather than independently parsing workspace.toml or recomputing the DAG",
         "Reports the active initiative name from the JSON output ('Example Initiative')",
@@ -72,7 +72,7 @@
         "produces": [],
         "output_contains": [],
         "output_excludes": [
-          "Backlog \u2014",
+          "Backlog —",
           "Traceback",
           "workspace-status error:"
         ]
@@ -240,7 +240,43 @@
           "docs/specs/pruned-dependency/spec.md",
           "Replace it with a valid reviewed completion receipt for that dependency."
         ],
-        "output_excludes": ["Traceback", "workspace-status error:"]
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "prompt": "This initiative's queue has a cooled entry. Can I close it out?",
+      "expected_output": "The agent uses the workspace-status closeout projection. `work.queue` holds two distinct entries stored at the same raw path `spec/example-cooled`: a legacy string whose artifact the lifecycle record cools, and a separate live `kind = \"defect\"` entry. Cooling the first must not remove the second, so the agent reports all_specs_shipped false, an unshipped-specs closeout blocker, and settle-closeout-blockers -- never invoke-close-work. It does not describe the queue as empty, and it makes no write or lifecycle decision.",
+      "assertions": [
+        "Uses the backend closeout projection rather than deriving queue emptiness itself",
+        "Reports all_specs_shipped as false because a live entry survives the cooled set",
+        "Reports unshipped-specs as the closeout blocker",
+        "Directs the user to settle closeout blockers rather than invoke close-work",
+        "Does not describe the queue as empty despite the cooled legacy entry",
+        "Performs no write, compaction, deletion, or lifecycle transition"
+      ],
+      "files": [
+        "evals/files/cooled-path-collision/workspace.toml",
+        "evals/files/cooled-path-collision/docs/specs/example-cooled/spec.md",
+        "evals/files/cooled-path-collision/docs/specs/example-cooled/plan.md",
+        "evals/files/cooled-path-collision/docs/lifecycle/example-cooled.json"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "settle-closeout-blockers",
+          "unshipped-specs"
+        ],
+        "output_excludes": [
+          "invoke-close-work",
+          "deleted",
+          "compacted",
+          "Traceback",
+          "workspace-status error:"
+        ]
       }
     }
   ]
