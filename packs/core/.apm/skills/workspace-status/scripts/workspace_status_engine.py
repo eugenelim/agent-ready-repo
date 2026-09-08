@@ -2051,6 +2051,7 @@ _COOLING_PAIRS = frozenset(
         ("cool-30-days", "Cooling"),
         ("cool-30-days", "Retired"),
         ("retain-exception", "Retired"),
+        ("retain-exception", "Reclassified"),
     }
 )
 
