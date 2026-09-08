@@ -285,7 +285,7 @@ a green for the wrong reason.
   | --- | --- |
   | `packs/core/.apm/skills/close-work/scripts/cooling.py` | `dcd1954a5e3f07f731027b8723ad78f248c283869ecc864d68841476a6a99be1` |
   | `contracts/jsonschema/delivery-lifecycle-record.schema.json` | `2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120` |
-  | `docs/specs/status-projection-and-context-exclusion/spec.md` | `2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d` |
+  | `docs/specs/status-projection-and-context-exclusion/spec.md` | `082fbbb677bae5f3b46459cf110879812984bf96c77b5fbd40986265efd7730d` |
   | `docs/specs/status-projection-and-context-exclusion/plan.md` | `93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487` |
   | `docs/specs/thirty-day-cooling-and-retirement/spec.md` | `3b38fc9a00fc49c33ca32ac08d1c3021ec451f81356603077fa6f2b1cfe3fa39` |
   | `docs/specs/thirty-day-cooling-and-retirement/plan.md` | `cd5e2f3cfa4948892228a237f3fa1fd2affc0725d0e1aa8da262d670d55bb99d` |

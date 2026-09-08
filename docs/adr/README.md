@@ -110,6 +110,7 @@
 | 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted |
 | 0103 | [The completion receipt carries a delivery outcome, not an artifact disposition, and rides on the citing dependency edge](0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | Accepted |
 | 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed |
+| 0106 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
 
 ## Adding a new ADR
 

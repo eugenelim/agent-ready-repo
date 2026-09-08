@@ -1,0 +1,179 @@
+# Owner decisions on this delivery
+
+Every scope-owner decision this delivery rests on, with its date and what it
+changed. Recorded here because a criterion or an engine transition that cites an
+owner decision needs a durable artifact to resolve to, not a session transcript.
+
+Owner: eugenelim (scope owner and Approver for RFC-0096).
+
+## 2026-09-03 — Build the read-free link *and* admit a new finding code
+
+`workspace-routing-invariants` § *Ask first* reserves adding a finding code to
+the owner. Granted for `cooled_child_scope_unknown`, over two alternatives:
+reusing `unsatisfied_dependency` alone (declined — the refusal would name the
+brief, not the entry a maintainer must edit), and re-registering the follow-on
+unbuilt (declined for the mechanism half). Measured basis and the full option set
+are in `ask-first-review.md`.
+
+## 2026-09-03 — `cooled_child_scope_unknown` is the code's name
+
+Chosen over `unresolved_parent_link` and `cooled_entry_scope_undeclared`. No
+repository source decides a code name, so this is a naming call and is recorded
+as one.
+
+## 2026-09-03 — Reverse AC59's undeclared half through an ADR
+
+Closing `cooling-brief-child-scope` makes false a ticked criterion in a frozen
+spec. `docs/CONVENTIONS.md:111` and `:143-185` § *Superseding a frozen document*
+license exactly one edit to a frozen spec — a `Status`-token parenthetical, whose
+form is at `:154-155` — and rule 2 at `:162-163` requires it to point at an ADR
+rather than a spec or an RFC erratum. No route was available to an
+implementing agent without an Approver signature. Granted, and discharged by
+ADR-0106 plus the `Status` pointer AC14 pins.
+
+## 2026-09-03 — Include the engine slug retag as a bundled fix
+
+Withdrawn 2026-09-04 by the *Drop AC22 and T4* decision below, which records
+the evidence that withdrew it.
+
+## 2026-09-04 — Apply a bounded fix and proceed to the approval gates
+
+Withdrawn 2026-09-04 by *Converge until clean* below. It was acted on as though
+it also licensed skipping `finding-adjudicator` on round 3, which it did not;
+`review-record.md` holds that correction.
+
+## 2026-09-04 — Converge until clean
+
+Directed that convergence continue and that round 3 be adjudicated. This is the
+authority for the `contract-amendment` transition that clears the approval and
+schedule baseline sealed at run sequence 9-11, since that seal does not represent
+a converged contract.
+
+## 2026-09-04 — Derive the acceptance criteria from the probes
+
+Round 4 measured AC9 and AC10 false: neither pinned the brief's body status, and
+the fixture helper's default puts a `brief_queue.executing` brief out of lifecycle
+vocabulary, adding a second `impossible_transition` that both criteria's counts
+ignore. Round 3 had found the same defect shape on the child's status axis.
+
+Decision: rewrite the criterion block so each criterion states the fixture its
+probe actually ran, with every input pinned and the printed output as the
+asserted observable — rather than patch the two instances found. A probe cannot
+under-specify an input it had to supply in order to run, so deriving criteria
+from probes removes the defect class instead of its instances. One confirming
+review round follows, to confirm rather than to hunt.
+
+## 2026-09-04 — Drop the engine slug retag and its task
+
+The engine slug retag is withdrawn. Three facts decided it, none available when
+it was authorized on 2026-09-03:
+
+1. No document authorizes it. RFC-0096's 2026-09-01 and 2026-09-03 Errata never
+   mention the deferral slug; the 2026-09-03 entry gives Wave 7b "only its
+   mechanism half … the read-free parent link". The only live assignment is
+   `workspace.toml:378`'s own summary, which is an inference by elimination
+   rather than erratum text, and which the withdrawn criterion itself disclaimed as authority.
+2. Completing it would leave three surfaces contradicting shipped code, two of
+   them frozen: `docs/specs/dependency-scoped-completion-receipts/spec.md:160`
+   still lists `engine-cross-repo-deferral-slug-stale` as open, and that spec's
+   `notes/follow-ons.md:66` records "This delivery deliberately does **not**
+   rename it" — the decision it reverses. This spec's own Boundaries forbid
+   editing that directory.
+3. The stale comment is the state Wave 7a-ii chose deliberately and recorded its
+   reasoning for. Reversing it needs that spec's owner, not this delivery's.
+
+Scope now matches the erratum exactly: the read-free parent link, nothing else.
+The `engine-deferral-register-summary-stale` follow-on is withdrawn with it,
+since nothing in this delivery makes that summary stale any more.
+
+## 2026-09-04 — Change one acceptance criterion of a live sibling delivery
+
+`docs/specs/cooling-scope-closure/spec.md` is `Status: Implementing`, so
+`docs/CONVENTIONS.md:119-129` pins it in substance. Its AC23 is an **unticked**
+criterion pinning six file digests, one of which is
+`docs/specs/status-projection-and-context-exclusion/spec.md` — the exact file
+this delivery's `Status`-line edit changes. The prior Boundaries named five
+*frozen* directories and the prior `Ask first` grant reached only a *ticked*
+criterion in a *frozen* spec, so nothing authorized the edit: AC23 is neither.
+
+Granted, scoped to that one digest row, with a criterion covering both sites
+that hold it and a Boundary forbidding any other change to that spec. The
+concurrent Wave 7c delivery is moving four other rows of the same table under
+its own owner's approval, so the shape has a live precedent.
+
+## 2026-09-04 — Return adopter documentation to scope
+
+The delivery adds a closeout-time obligation — declare `source.parent` when
+cooling an artifact — that otherwise reaches a maintainer only after a
+repository-wide refusal has fired. 99 of 115 spec entries declare no
+`source.parent`, so the first maintainer to cool one meets the refusal with no
+documented warning.
+
+`guides/core/how-to/close-and-disposition-work.md`'s `cool-30-days` row and
+`guides/core/reference/workspace-toml-schema.md`'s `parent` row each gain a
+criterion, and the Durable Outputs row moves from *Not applicable* to
+*Applicable*. Documentation is not waived.
+
+## 2026-09-08 — Spec and plan approved
+
+Both artifacts approved by the scope owner at revision `spec.md` sha256
+`4284acb2…`, `plan.md` sha256 `1535d0d2…`, base `79b23d294`. This is the
+authority for the `spec-approved` and `plan-approved` transitions and for
+`approve-plan` sealing that baseline.
+
+Round 3 of spec review returned one blocker and nine lesser findings, all
+dispositioned before the gates fired; `review-record.md` carries the counts.
+
+## 2026-09-08 — Do not widen the grant to the sibling's prose
+
+The `Status`-line edit falsifies two statements in `cooling-scope-closure`
+beyond the digest row this delivery's grant covers. Measured, they fail
+differently:
+
+- Its Durable Outputs row, "two frozen spec directories are depended on and
+  neither may change", is falsified **outright** — and by the concurrent Wave 7c
+  delivery on its own, which changes both files of
+  `thirty-day-cooling-and-retirement`.
+- Its AC23 **title**, "Every pinned file is byte-unchanged", is falsified, but
+  its **body** is not: the body reads "The SHA-256 of each file below equals the
+  value beside it", a digest-agreement test that this delivery's criterion
+  satisfies by moving both sites. So that is a title/body mismatch in that spec,
+  not a broken criterion — whoever repairs it should retitle rather than
+  re-scope, or they will rewrite a criterion that still holds.
+
+Decision: do not widen the grant. Editing a live sibling delivery's criterion
+text is a larger boundary move than the digest row the grant licenses, and
+neither delivery could make it complete alone. Wave 7c lands first and carries
+the record in its own spec's follow-ons, naming both deliveries as causes and
+`cooling-scope-closure`'s owner as the party who restates its prose. This
+delivery therefore records no duplicate follow-on.
+
+## 2026-09-08 — The approval covers post-approval repair, at a new revision
+
+The approval above was recorded at `spec.md` `4284acb2…` and `plan.md`
+`1535d0d2…`, base `79b23d294`. It was given as "spec and plan approved; make the
+updates as appropriate … then review", so it authorizes repair at a later
+revision rather than only that one. Two review rounds and Wave 7c's merge have
+since moved both artifacts.
+
+Revision now under the same approval: `spec.md` `8386750cf2fb…`, `plan.md`
+`d53ffc623aca…`, base `9ab376dcc`.
+
+Two changes are material enough to name, because they alter what the contract
+promises rather than how it reads:
+
+1. *The shipped command emits the finding* is no longer manual QA. Its evidence
+   home was a hand-written note, so it could not fail once the pull request
+   closed, and three shipped roster suites already drive `workspace_status.py`
+   as a subprocess. Group 3's mode changes with it and `notes/manual-qa.md` is
+   no longer an evidence home. This also removes a violation of this spec's own
+   *Never do* rail against claiming what a shipped function emits without
+   constructing it.
+2. The shared parent-scope fixtures are named — **Declared**, **Empty**,
+   **Absent** — instead of being reached through a sibling criterion's ordinal.
+   Ten criteria resolved their inputs through up to three ordinal hops, which is
+   the reference form this delivery already measured as breaking five times.
+
+Neither narrows scope, adds an obligation, or touches a boundary. If either
+reads as a scope change to the owner, the `contract-amendment` edge is the route
+back.

@@ -116,6 +116,10 @@ _FINDING_NEXT_ACTIONS = {
     "provenance_mismatch": (
         "Resolve provenance in the canonical artifact and mirror it deliberately."
     ),
+    "cooled_child_scope_unknown": (
+        "Declare source.parent on the entry: a resolving brief path, or none "
+        "only when that spec has no parent brief."
+    ),
     "refresh_conflict": "Resolve the conflict through the artifact's authority workflow.",
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
     "missing_dependency": "Materialize or correct the dependency target.",
@@ -2676,6 +2680,7 @@ def _dependency_is_satisfied(
     root: Path | None,
     cooled: frozenset[Path],
     briefs_with_cooled_children: frozenset[str] = frozenset(),
+    cooled_scope_unknown: frozenset[str] = frozenset(),
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
@@ -2691,7 +2696,15 @@ def _dependency_is_satisfied(
     # branch of `_structural_findings` returns before the provenance check —
     # for a cooled child the declaration is unverifiable by construction, which
     # is the point of failing closed rather than trusting it.
-    brief_scope_unknown = dep.kind == "brief" and dep.path in briefs_with_cooled_children
+    # Two ways a brief dependency's child scope is not established. A cooled
+    # child that *declares* this brief makes that brief's scope unevaluable.
+    # A cooled child whose parent is undeclared or unresolvable makes *every*
+    # brief's scope unevaluable, because the brief it belongs to is exactly
+    # what is unknown; a maintainer clears that by declaring a resolving path,
+    # or `none` when the spec has no parent.
+    brief_scope_unknown = dep.kind == "brief" and (
+        dep.path in briefs_with_cooled_children or bool(cooled_scope_unknown)
+    )
     cooled_dependency = (
         root is not None and _confined_artifact_path(root, dep.path) in cooled
     )
@@ -2879,10 +2892,10 @@ def _brief_child_spec_states(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path] = frozenset(),
-) -> tuple[dict[str, set[str]], frozenset[str]]:
-    """Map each brief to its children's observed states; flag briefs with cooled children.
+) -> tuple[dict[str, set[str]], frozenset[str], frozenset[str]]:
+    """Map each brief to its children's observed states; flag unevaluable scope.
 
-    Returns (states, briefs_with_cooled_children).
+    Returns (states, briefs_with_cooled_children, cooled_scope_unknown).
 
     states maps each brief path to the set of states contributed by its
     non-cooled child spec memberships. A cooled child contributes no state at
@@ -2895,14 +2908,32 @@ def _brief_child_spec_states(
     unevaluable and any `kind="brief"` dependency fails closed, so a lifecycle
     record cannot erase or create a finding about a different artifact.
 
-    A cooled child that declares no `source.parent` is not attributed, and the
-    briefs it may belong to are therefore not protected. That gap is the
-    recorded residual `cooling-brief-child-scope`; closing it conservatively
-    would refuse every brief dependency whenever any ordinary parentless spec
-    cooled, which is the common case rather than the exception.
+    cooled_scope_unknown names every cooled spec entry whose parent scope is
+    not established: the `source.parent` key is absent, or it holds a value that
+    resolves to no registered brief membership. Those entries are named in a
+    `cooled_child_scope_unknown` finding and every `kind="brief"` dependency
+    fails closed while any of them exists, because the brief such a child
+    belongs to is precisely what is unknown.
+
+    A declared *empty* value is a third, distinct answer: it says the spec has
+    no parent brief, attributes nothing, and releases every dependency. That is
+    what makes failing closed affordable — a maintainer clears the refusal by
+    declaring the truth either way, rather than by having no way out.
+
+    Accepted limitation: a declared empty value on an already-cooled entry is
+    trusted rather than verified. The comparison against the artifact body runs
+    only while the artifact is uncooled, so a value declared after the lifecycle
+    record lands is never checked against anything.
     """
     states: dict[str, set[str]] = {}
     briefs_affected: set[str] = set()
+    scope_unknown: set[str] = set()
+    brief_membership_paths = {
+        membership.entry.path
+        for membership in memberships
+        if membership.collection.startswith("brief_queue.")
+        and membership.entry.path is not None
+    }
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
@@ -2913,18 +2944,25 @@ def _brief_child_spec_states(
             # record.  Both facts make the parent brief's child scope
             # unevaluable.  Exclude the child from states and record the
             # affected briefs instead.
-            source_parent = _normalized_optional_artifact_value(entry.source.parent)
+            # Three answers, read from the entry alone. The raw attribute is
+            # what separates the second from the third: the normalizer collapses
+            # a declared "none" and an absent key to the same None, so it cannot
+            # tell "this spec has no parent" from "nobody recorded whether it
+            # has one".
+            raw_parent = entry.source.parent
+            source_parent = _normalized_optional_artifact_value(raw_parent)
             if source_parent is not None:
-                briefs_affected.add(source_parent)
-            # A cooled child that declares no `source.parent` is deliberately
-            # NOT attributed. Its brief link, if any, lives in the body this run
-            # may not read — but so does the link of every parentless spec that
-            # was never a child at all, and those are the overwhelming majority
-            # (81 of 92 in this repository's main initiative). Marking every
-            # brief in the initiative to cover the rare real child refused every
-            # brief dependency whenever any ordinary spec cooled, which costs
-            # far more availability than the bypass it closes. The residual is
-            # recorded as `cooling-brief-child-scope`.
+                if source_parent in brief_membership_paths:
+                    briefs_affected.add(source_parent)
+                else:
+                    # A declared value naming no registered brief establishes
+                    # nothing. Compared as declared, not through the filesystem:
+                    # a case-insensitive volume would resolve `Brief-1.md` onto
+                    # `brief-1.md` and silently attribute the child to a brief
+                    # its entry does not name.
+                    scope_unknown.add(entry.path)
+            elif raw_parent is None:
+                scope_unknown.add(entry.path)
             continue
         metadata = _artifact_metadata(workspace, entry, root)
         parent_paths = {
@@ -2949,7 +2987,7 @@ def _brief_child_spec_states(
             child_state = status
         for parent_path in parent_paths:
             states.setdefault(parent_path, set()).add(child_state)
-    return states, frozenset(briefs_affected)
+    return states, frozenset(briefs_affected), frozenset(scope_unknown)
 
 
 def _append_impossible_transition(
@@ -3221,6 +3259,7 @@ def evaluate_dispatch(
     root: Path | None = None,
     cooled: frozenset[Path] = frozenset(),
     briefs_with_cooled_children: frozenset[str] = frozenset(),
+    cooled_scope_unknown: frozenset[str] = frozenset(),
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership."""
     entry = membership.entry
@@ -3270,6 +3309,7 @@ def evaluate_dispatch(
             root,
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
+            cooled_scope_unknown=cooled_scope_unknown,
         )
         if not satisfied and finding is not None:
             findings.append(finding)
@@ -3406,9 +3446,17 @@ def run_canonical_reconciliation(
         )
     ]
     cycle_paths = _dependency_cycles(local_memberships)
-    brief_child_states, briefs_with_cooled_children = _brief_child_spec_states(
-        local_memberships, workspace, root, cooled
+    brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
+        _brief_child_spec_states(local_memberships, workspace, root, cooled)
     )
+    # Emitted here rather than in `_structural_findings`, whose findings add
+    # their entry to `structurally_blocked_paths` — which refuses every
+    # dependency on that path before any kind test, widening this refusal past
+    # `kind = "brief"`.
+    cooled_scope_findings = [
+        _finding("cooled_child_scope_unknown", path, "cooled child parent scope")
+        for path in sorted(cooled_scope_unknown)
+    ]
     global_invalid_workspace = any(
         finding.code == "invalid_workspace" for finding in parse_findings
     )
@@ -3467,6 +3515,7 @@ def run_canonical_reconciliation(
             root,
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
+            cooled_scope_unknown=cooled_scope_unknown,
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
@@ -3480,6 +3529,7 @@ def run_canonical_reconciliation(
         *parse_findings,
         *legacy_only_duplicate_findings,
         *cooled_membership_findings,
+        *cooled_scope_findings,
         *(finding for evaluation in evaluations for finding in evaluation.findings),
     ]
     return CanonicalWorkspaceResult(
@@ -3918,8 +3968,11 @@ def _brief_child_scope_is_valid(
         # suppressed. Deliberately does NOT require the set to be non-empty.
         # Most specs declare no `source.parent`, so an empty set here means
         # "no child is attributed to this brief", not "this brief shipped
-        # nothing". The non-empty requirement lives in the coverage lint, which
-        # reads the brief's own Spec map; this projection cannot read the brief.
+        # nothing". No lint supplies the missing non-empty requirement: the
+        # brief's own Spec map is read by nothing in this repository, so an
+        # unattributed shipped child is not caught anywhere. That residual is
+        # unchanged by this delivery, which closes the *undeclared* case for
+        # cooled entries only.
         return all(state == "Shipped" for state in child_states)
     return True
 
