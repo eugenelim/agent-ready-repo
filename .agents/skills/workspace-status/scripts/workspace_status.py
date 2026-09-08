@@ -719,8 +719,8 @@ def _cooling_projection(result) -> dict:
             })
         # Gate on the post-closeout result, not on `exception is not None`.
         # `retain-exception` makes the block mandatory, so presence alone would
-        # also admit ("retain-exception", "Retired") — a settled record AC28
-        # requires to contribute nothing. `ExternalAdvisory` is the other live
+        # also admit ("retain-exception", "Retired") — a settled record that
+        # must contribute nothing. `ExternalAdvisory` is the other live
         # obligation and was dropped entirely, losing its owner, reason and date.
         if (
             record.post_closeout_result in {"Retained", "ExternalAdvisory"}
@@ -788,7 +788,8 @@ def _closeout_projection(
     state to project then, and synthesizing one from the absent initiative
     reported `unshipped-specs` against a workspace whose initiatives are all
     closed — a blocker naming work that does not exist. The block is omitted
-    rather than emitted empty, which leaves AC29's closed key set untouched.
+    rather than emitted empty, which leaves the closed-workspace key set
+    untouched.
     """
     active = sorted(
         (

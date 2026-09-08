@@ -66,6 +66,7 @@
 | 0057 | [Promote `frontend-engineering` to first-class pack; delete core resident to resolve footprint conflict](0057-frontend-engineering-pack-promotion-and-resident-deletion.md) | Accepted |
 | 0058 | [Per-pack config root (`user-root`) stored as an optional field on `PackState` adapter rows in user-scope `state.toml`](0058-per-pack-config-root-in-packstate-adapter-rows.md) | Accepted |
 | 0059 | [Pack config uses a three-source cascade baked into `_data/install-defaults.toml` at catalogue build time](0059-pack-config-cascade-via-install-defaults-baking.md) | Accepted |
+| 0060 | [`product-documentation` replaces `user-guide-diataxis` as the canonical documentation pack](0060-product-documentation-replaces-user-guide-diataxis.md) | Accepted |
 | 0061 | [Phase-1 loop infrastructure uses Option A — pure phase tracker with hard engine/cohort boundary](0061-loop-infrastructure-phase-1.md) | Accepted |
 | 0062 | [workspace-mcp is per-session only — no persistent daemon, no lifecycle management across sessions](0062-workspace-mcp-per-session-only-constraint.md) | Accepted |
 | 0063 | [Session instruction for universal elicitation interception](0063-session-instruction-universal-elicitation.md) | Accepted |
@@ -110,6 +111,7 @@
 | 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted |
 | 0103 | [The completion receipt carries a delivery outcome, not an artifact disposition, and rides on the citing dependency edge](0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | Accepted |
 | 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed |
+| 0105 | [Retained lifecycle records may terminate as Reclassified](0105-retained-lifecycle-records-may-terminate-as-reclassified.md) | Accepted |
 | 0106 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
 
 ## Adding a new ADR

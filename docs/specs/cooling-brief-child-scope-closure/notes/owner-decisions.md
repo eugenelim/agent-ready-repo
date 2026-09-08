@@ -177,3 +177,35 @@ promises rather than how it reads:
 Neither narrows scope, adds an obligation, or touches a boundary. If either
 reads as a scope change to the owner, the `contract-amendment` edge is the route
 back.
+
+## 2026-09-08 — Fix the three discovered defects in this delivery
+
+This delivery surfaced three defects it did not cause, recorded them in
+`notes/follow-ons.md`, and descoped them. The owner directed that all three be
+fixed here instead. That admits work the accepted contract does not cover, so it
+is recorded as an owner decision rather than treated as in-scope.
+
+1. **`.gitignore` covers the dedup guard's residue.** `/test_state_guard_*.py`
+   is ignored, verified against a real file rather than by reading the pattern.
+   The concern already raised stands and is written into the rule's own comment:
+   ignoring hides the symptom, the files stay on disk, and no `testpaths` is
+   configured, so a bare `pytest` from the repository root still collects them.
+   The owner chose the ignore rule; the stronger repair — the suite writing
+   under `tmp_path` — stays open in `notes/follow-ons.md`.
+2. **All internal-governance citations are removed from the two shipped
+   `workspace-status` scripts.** Seven sites carried `AC7`, `AC20`, `AC28`,
+   `AC29`, `AC37`, `AC38` and two `RFC-0096` references. Each now states its
+   rule directly, which is what `packs/AGENTS.md` asks for; no comment lost its
+   meaning. The count in those two files is now zero. This resolves the
+   documented-guidance conflict in favour of the guidance, which is the owning
+   source, rather than in favour of the code.
+3. **The ADR index is complete.** ADR-0105's row was added as directed. An
+   audit of all 107 ADR files against the index then found one further gap,
+   ADR-0060, whose Status is Accepted and whose neighbours 0059 and 0061 are
+   both listed — an omission rather than a convention. Its row was added too, so
+   the count of ADR files without a README row is now zero. That second row was
+   not requested and is one line; it is called out here because it is the only
+   part of this decision the owner did not name.
+
+No acceptance criterion changes. The delivery's own criteria are unaffected:
+none of them reads a comment, the `.gitignore`, or the ADR index.

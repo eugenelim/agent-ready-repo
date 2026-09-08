@@ -115,3 +115,11 @@ docs/knowledge/*.lock.stale-*
 
 # Coverage artifacts from local --cov runs (binary; never committed).
 .coverage
+
+# Scaffolding written into the repository root by
+# tools/test_local_ci_shared_test_deduplication.py, with a random suffix per
+# run and no teardown. Ignored so a `git add -A` after that suite cannot commit
+# them. Note this hides the symptom only: the files stay on disk, and no
+# `testpaths` is configured, so a bare `pytest` from the root still collects
+# them. The suite writing them under `tmp_path` is the real fix.
+/test_state_guard_*.py

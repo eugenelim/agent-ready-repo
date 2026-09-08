@@ -1945,7 +1945,7 @@ def _cooling_module_path() -> Path | None:
     # `_data/` layout `parents[2]` is the directory holding the `agentbundle`
     # package, so this candidate would resolve, confine and execute an
     # unrelated `close-work/scripts/cooling.py` placed beside it in preference
-    # to the co-located module AC37 guarantees. Same predicate as
+    # to the co-located module that must win. Same predicate as
     # `close_work._in_installed_skills_tree`.
     sibling_reach_allowed = (
         engine_path.parent.name == "scripts" and skill_root.name == "skills"
@@ -2134,9 +2134,9 @@ def _resolve_cooled_state(
     # An absent lifecycle directory is not a cooling failure, so decide it
     # before resolving the module. Resolving first meant an adopter with no
     # lifecycle records at all got `cooling_state_unavailable` on every run
-    # whenever the closure was not installed — AC7 forbids that finding for
-    # this input, while AC38 requires it for the all-routes-failed input, and
-    # the two overlapped here.
+    # whenever the closure was not installed. An absent lifecycle directory
+    # must not raise that finding, while a directory that exists whose every
+    # resolution route fails must; the two inputs overlapped here.
     lifecycle_dir = root / "docs" / "lifecycle"
     if not lifecycle_dir.exists() and not lifecycle_dir.is_symlink():
         return frozenset(), ()
@@ -2710,7 +2710,8 @@ def _dependency_is_satisfied(
     )
     if dep.type == "cross-repo":
         if cooled_dependency:
-            # RFC-0096 §7 with no exception. `_cross_repo_receipt_satisfied`
+            # A cooled body is never opened, with no exception.
+            # `_cross_repo_receipt_satisfied`
             # opens the brief body unconditionally, and the evidence it needs
             # is only there: the four-field receipt match asserted for this one
             # dependency. A lifecycle record cannot stand in — it is completion
@@ -3499,8 +3500,8 @@ def run_canonical_reconciliation(
                 # membership-derived by construction (the cooled branch of
                 # `_structural_findings` returns before any body-dependent
                 # predicate), so they are facts about `workspace.toml` entries,
-                # which AC20 settles are still owed whatever the artifact's
-                # state.
+                # which are still owed whatever the artifact's own state
+                # is.
                 cooled_membership_findings.extend(member_findings)
     evaluations = [
         evaluate_dispatch(
@@ -4262,7 +4263,7 @@ def analyze(
     t0 = time.monotonic()
     # repair-plan and the migration paths keep pre-Wave-6 behaviour: they see an
     # empty cooled set so their operations still reach cooled entries. Whether
-    # cooling constrains them is RFC-0096 Wave 7's decision.
+    # cooling constrains them is a deliberate, separately decided change.
     moment = now if now is not None else datetime.datetime.now(datetime.UTC)
     cooling_records: list[Any] = []
     cooling_modules: list[Any] = []
