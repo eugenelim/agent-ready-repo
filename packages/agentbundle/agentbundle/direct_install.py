@@ -11,6 +11,10 @@ import os
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agentbundle.config import PackState
 
 from agentbundle.bounded_metadata import BoundedMetadataError
 from agentbundle.catalogue_tooling.diagnostics import (
@@ -294,7 +298,9 @@ def capability_block(
 
     allowed_tools = _normalised_allowed_tools(metadata, source=source)
     nested = metadata.get("metadata")
-    boundaries = _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    boundaries = (
+        _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    )
     credentialed = nested.get("credentialed") if isinstance(nested, dict) else None
 
     # Every value below that a publisher controls goes through the allowlist,
@@ -366,6 +372,97 @@ def _normalised_allowed_tools(metadata: dict, *, source: str) -> list[str]:
             remediation="Ask the publisher to correct the declaration.",
         )
     return sorted({value for value in candidates if value})
+
+
+@dataclass(frozen=True)
+class _CapabilityAxes:
+    """The three declarations whose widening requires explicit consent."""
+
+    allowed_tools: frozenset[str]
+    boundaries: frozenset[str]
+    credentialed: str
+
+
+def _capability_axes(metadata: dict, *, source: str) -> _CapabilityAxes:
+    """Normalize the three capability declarations from parsed frontmatter."""
+
+    from agentbundle.direct_source_state import _normalised_credentialed
+
+    nested = metadata.get("metadata")
+    boundaries = _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    credentialed = nested.get("credentialed") if isinstance(nested, dict) else None
+    return _CapabilityAxes(
+        allowed_tools=frozenset(_normalised_allowed_tools(metadata, source=source)),
+        boundaries=frozenset(boundaries),
+        credentialed=_normalised_credentialed(credentialed),
+    )
+
+
+def _read_projected_capability_axes(
+    projection_root: Path,
+    relpath: str,
+    row: PackState,
+) -> _CapabilityAxes | None:
+    """Read integrity-bound capability history, or return unknown."""
+
+    from agentbundle.bounded_metadata import MetadataLimits, parse_bounded_metadata
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        read_confined_regular_file,
+    )
+
+    recorded_sha = row.file_sha(relpath)
+    if recorded_sha is None:
+        return None
+    try:
+        data = read_confined_regular_file(
+            projection_root,
+            projection_root / relpath,
+            max_bytes=MetadataLimits().max_skill_bytes,
+        )
+    except (OSError, UnsafeContentError):
+        return None
+    if hashlib.sha256(data).hexdigest() != recorded_sha:
+        return None
+    if not data.startswith((b"---\n", b"---\r\n", b"---\r")):
+        return None
+    try:
+        metadata = parse_bounded_metadata(data)
+        return _capability_axes(metadata, source=relpath)
+    except (BoundedMetadataError, DirectInstallError):
+        return None
+
+
+def _capability_widenings(
+    previous: _CapabilityAxes | None,
+    candidate: _CapabilityAxes,
+) -> tuple[str, ...]:
+    """Name every widening; unknown history is independently unsafe."""
+
+    if previous is None:
+        return ("installed capability history is unknown",)
+
+    widened: list[str] = []
+    if previous.allowed_tools and not candidate.allowed_tools:
+        widened.append("allowed-tools stops restricting")
+    elif previous.allowed_tools and candidate.allowed_tools:
+        added_tools = candidate.allowed_tools - previous.allowed_tools
+        if added_tools:
+            widened.append(f"allowed-tools adds {', '.join(sorted(added_tools))}")
+
+    added_boundaries = candidate.boundaries - previous.boundaries
+    if added_boundaries:
+        widened.append(f"boundaries adds {', '.join(sorted(added_boundaries))}")
+
+    safe_credentialed = {"false", "undeclared"}
+    if (
+        previous.credentialed != candidate.credentialed
+        and candidate.credentialed not in safe_credentialed
+    ):
+        widened.append(
+            f"credentialed moves from {previous.credentialed} to {candidate.credentialed}"
+        )
+    return tuple(widened)
 
 
 def _string_set(value: object) -> list[str]:
@@ -623,6 +720,76 @@ def _missing_upgrade_path_refusal(
             f"moved: {remove_command} then {install_command}; "
             f"removed: {remove_command}"
         ),
+    )
+
+
+def _capability_upgrade_refusal(
+    args: object,
+    *,
+    classification: DirectClassification,
+    source_string: str,
+    revision: str | None,
+    relpath: str,
+    widenings: tuple[str, ...],
+    include_remediation: bool = True,
+) -> DirectInstallError:
+    """Build a terminating recovery for unknown or widened capability history."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    root = str(getattr(args, "output", ".") or ".")
+    scope = str(getattr(args, "scope", None) or "repo")
+    adapter = str(getattr(args, "adapter", None) or "claude-code")
+    remove_command = recovery_command(
+        "agentbundle",
+        "uninstall",
+        "--pack",
+        name,
+        "--root",
+        root,
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--yes",
+    )
+    remote = _split_git_https_ref(source_string)
+    recovery_source = (
+        f"{remote[0]}@{revision}"
+        if remote is not None and revision is not None
+        else source_string
+    )
+    install_parts = ["agentbundle", "install", recovery_source]
+    if classification.shape == "collection":
+        install_parts.extend(("--skill", name))
+    install_parts.extend(
+        (
+            "--scope",
+            scope,
+            "--adapter",
+            adapter,
+            "--output",
+            root,
+            "--yes",
+        )
+    )
+    install_command = recovery_command(*install_parts)
+    rendered_reasons = "; ".join(widenings)
+    rendered_root = recovery_command(root)
+    rendered_projection = recovery_command(relpath)
+    remediation = (
+        f"If it exists, first move and keep {rendered_projection} from "
+        f"installation root {rendered_root} outside that root, or remove it. "
+        f"Then run: {remove_command} then {install_command}"
+        if include_remediation
+        else None
+    )
+    return _refuse(
+        DiagnosticCode.CAT_D031,
+        f"cannot verify a non-widening capability transition for {name!r}: "
+        f"{rendered_reasons}",
+        path=relpath,
+        remediation=remediation,
     )
 
 
@@ -901,20 +1068,65 @@ def _summarise_and_project(
         else []
     )
 
-    _refuse_foreign_owner(
-        projection_root,
-        selection,
-        classification,
-        skill_target,
-        scope,
-        adapter,
-        source_string,
-        planned,
-        upgrade_owned_files=upgrade_owned_files,
-        upgrade_source_overridden=bool(
-            getattr(args, "_upgrade_source_overridden", False)
-        ),
-    )
+    destination_refusal: DirectInstallError | None = None
+    try:
+        _refuse_foreign_owner(
+            projection_root,
+            selection,
+            classification,
+            skill_target,
+            scope,
+            adapter,
+            source_string,
+            planned,
+            upgrade_owned_files=upgrade_owned_files,
+            upgrade_source_overridden=bool(
+                getattr(args, "_upgrade_source_overridden", False)
+            ),
+        )
+    except DirectInstallError as exc:
+        if (
+            upgrade_owned_files is None
+            or exc.diagnostic.code != DiagnosticCode.CAT_D027.value
+        ):
+            raise
+        destination_refusal = exc
+
+    if upgrade_owned_files is not None:
+        upgraded_skill = selection.skills[0]
+        skill_relpath = f"{skill_target}/{upgraded_skill.name}/SKILL.md"
+        installed_row = getattr(args, "_upgrade_installed_row", None)
+        previous_axes = (
+            _read_projected_capability_axes(
+                projection_root,
+                skill_relpath,
+                installed_row,
+            )
+            if installed_row is not None
+            else None
+        )
+        candidate_axes = _capability_axes(
+            skill_metadata(upgraded_skill), source=source_string
+        )
+        widenings = _capability_widenings(previous_axes, candidate_axes)
+        if widenings:
+            capability_refusal = _capability_upgrade_refusal(
+                args,
+                classification=classification,
+                source_string=source_string,
+                revision=revision,
+                relpath=skill_relpath,
+                widenings=widenings,
+                include_remediation=destination_refusal is None,
+            )
+            if destination_refusal is not None:
+                _print_refusal(destination_refusal.diagnostic, verb="upgrade")
+                _print_refusal(capability_refusal.diagnostic, verb="upgrade")
+                return 1
+            raise capability_refusal
+
+    if destination_refusal is not None:
+        raise destination_refusal
 
     if upgrade_digest is not None and digest == upgrade_digest:
         selected_name = selection.skills[0].name

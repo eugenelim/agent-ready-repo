@@ -45,6 +45,7 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D028` | A standalone skill upgrade was given a source override for a row installed from a local path |
 | `CAT-D029` | A standalone skill upgrade was given a source override that names a different repository identity |
 | `CAT-D030` | A standalone skill upgrade cannot form a request from absent, legacy, malformed, or unconfined stored source provenance |
+| `CAT-D031` | A standalone skill upgrade cannot verify a non-widening transition because the installed capability history is unknown or the incoming declarations widen allowed tools, boundaries, or credential use |
 
 ## Reading a refusal
 

@@ -530,6 +530,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     direct_args._upgrade_source_digest = selection.row.source_digest
     direct_args._upgrade_source_path = selection.row.source_path
     direct_args._upgrade_owned_files = selection.row.files
+    direct_args._upgrade_installed_row = selection.row
     direct_args._direct_verb = "upgrade"
     direct_args._upgrade_source_overridden = source_overridden
     if needs_consent and not sys.stdin.isatty():

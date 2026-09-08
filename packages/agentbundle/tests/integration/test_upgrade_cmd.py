@@ -93,7 +93,28 @@ def _install_v1(root: Path) -> int:
 def _write_direct_skill(source: Path, body: str = "# first\n") -> Path:
     skill = source / "skills" / "example"
     skill.mkdir(parents=True, exist_ok=True)
-    (skill / "SKILL.md").write_text("---\nname: example\n---\n" + body)
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n" + body, encoding="utf-8"
+    )
+    return skill
+
+
+def _write_capability_skill(
+    source: Path,
+    declarations: str,
+    body: str = "# capability fixture\n",
+) -> Path:
+    """Write one direct skill with exact capability-frontmatter spelling."""
+
+    skill = source / "skills" / "example"
+    skill.mkdir(parents=True, exist_ok=True)
+    capability_block = declarations.rstrip()
+    if capability_block:
+        capability_block += "\n"
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n" + capability_block + "---\n" + body,
+        encoding="utf-8",
+    )
     return skill
 
 
@@ -159,6 +180,19 @@ def _set_direct_source(target: Path, source: str | None) -> None:
     row = state.row("example", "claude-code")
     assert row is not None
     row.source = source
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
+
+
+def _set_recorded_file_sha(target: Path, relpath: str, sha: str) -> None:
+    """Replace one fixture row's recorded per-file integrity digest."""
+
+    from agentbundle.config import dump_state, load_state
+
+    state_path = target / ".agentbundle-state.toml"
+    state = load_state(state_path)
+    row = state.row("example", "claude-code")
+    assert row is not None
+    row.files[relpath]["sha"] = sha
     state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
@@ -977,6 +1011,399 @@ def test_direct_skill_dry_run_prints_plan_without_mutation(tmp_path, capsys):
     assert "upgrade plan" in captured.out
     assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
     assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
+
+
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        ("allowed-tools: Read", "allowed-tools: Read, Bash"),
+        ("allowed-tools: Read", ""),
+        ("allowed-tools: Read", "allowed-tools: []"),
+        ("allowed-tools: Read", 'allowed-tools: ""'),
+        ("", "metadata:\n  boundaries:\n    - network"),
+        ("", "metadata:\n  credentialed: true"),
+        ("metadata:\n  credentialed: false", 'metadata:\n  credentialed: "yes"'),
+    ],
+    ids=(
+        "allowed-tool-added",
+        "allowed-tools-absent",
+        "allowed-tools-empty-list",
+        "allowed-tools-empty-string",
+        "boundary-added",
+        "credentialed-undeclared-to-true",
+        "credentialed-open-value",
+    ),
+)
+def test_direct_skill_capability_widening_refuses_without_writing(
+    tmp_path, capsys, before, after
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_capability_skill(source, before, "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    projection = target / ".claude/skills/example/SKILL.md"
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+    projection_before = hashlib.sha256(projection.read_bytes()).digest()
+
+    _write_capability_skill(source, after, "# second\n")
+    assert skill.exists()
+    assert _upgrade_direct(target, "--yes") == 1
+
+    refusal = capsys.readouterr()
+    assert "CAT-D031" in refusal.err
+    assert "capability" in refusal.err
+    assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
+    assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
+
+
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        ("", "allowed-tools: Read"),
+        ("metadata:\n  boundaries:\n    - network", ""),
+        ("metadata:\n  credentialed: true", "metadata:\n  credentialed: false"),
+    ],
+    ids=("allowed-tools", "boundaries", "credentialed"),
+)
+def test_direct_skill_capability_narrowing_proceeds(tmp_path, capsys, before, after):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(source, before, "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    skill = _write_capability_skill(source, after, "# second\n")
+    assert _upgrade_direct(target, "--yes") == 0
+    assert (target / ".claude/skills/example/SKILL.md").read_bytes() == (
+        skill / "SKILL.md"
+    ).read_bytes()
+
+
+def test_direct_skill_reports_every_capability_widening_before_confirmation(
+    tmp_path, capsys
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(
+        source,
+        "allowed-tools: Read\nmetadata:\n  credentialed: false",
+        "# first\n",
+    )
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    _write_capability_skill(
+        source,
+        "allowed-tools: Read, Bash\n"
+        "metadata:\n"
+        "  boundaries:\n"
+        "    - network\n"
+        '  credentialed: "yes"',
+        "# second\n",
+    )
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D031" in refusal.err
+    assert "allowed-tools adds Bash" in refusal.err
+    assert "boundaries adds network" in refusal.err
+    assert "credentialed moves from false to yes" in refusal.err
+    assert "CAT-D008" not in refusal.err
+
+
+def test_adopter_edit_and_capability_refusals_are_both_reported_in_order(
+    tmp_path, capsys
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(source, "allowed-tools: Read", "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    projection = target / ".claude/skills/example/SKILL.md"
+    projection.write_text("# adopter edit\n", encoding="utf-8")
+    before = _tree_digests(target)
+    _write_capability_skill(source, "allowed-tools: Read, Bash", "# second\n")
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert refusal.err.index("CAT-D027") < refusal.err.index("CAT-D031")
+    assert refusal.err.count("Move the adopter-edited file aside") == 1
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_payload_only_change_with_unsafe_capability_proceeds(
+    tmp_path, capsys
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_capability_skill(
+        source, "metadata:\n  credentialed: true", "# unchanged\n"
+    )
+    payload = skill / "references" / "guide.md"
+    payload.parent.mkdir()
+    payload.write_text("first\n", encoding="utf-8")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    payload.write_text("second\n", encoding="utf-8")
+    assert _upgrade_direct(target, "--yes") == 0
+    assert (
+        target / ".claude/skills/example/references/guide.md"
+    ).read_text(encoding="utf-8") == "second\n"
+
+
+def test_projected_capability_axes_round_trip_all_three_axes(tmp_path, capsys):
+    from agentbundle.config import load_state
+    from agentbundle.direct_install import _read_projected_capability_axes
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(
+        source,
+        'allowed-tools: "Read, Bash"\n'
+        "metadata:\n"
+        "  boundaries:\n"
+        "    - filesystem_read\n"
+        '  credentialed: "yes"',
+    )
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    relpath = ".claude/skills/example/SKILL.md"
+
+    axes = _read_projected_capability_axes(target, relpath, row)
+
+    assert axes is not None
+    assert axes.allowed_tools == frozenset({"Bash", "Read"})
+    assert axes.boundaries == frozenset({"filesystem_read"})
+    assert axes.credentialed == "yes"
+
+
+def test_projected_capability_axes_hashes_the_single_read_before_parsing(
+    tmp_path, monkeypatch, capsys
+):
+    import agentbundle.bounded_metadata as bounded_metadata
+    import agentbundle.direct_install as direct_install
+    from agentbundle.catalogue_tooling import file_safety
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(source, "allowed-tools: Read", "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    relpath = ".claude/skills/example/SKILL.md"
+    real_read = file_safety.read_confined_regular_file
+    real_sha256 = direct_install.hashlib.sha256
+    real_parse = bounded_metadata.parse_bounded_metadata
+    events: list[str] = []
+    read_objects: list[bytes] = []
+    hashed_objects: list[bytes] = []
+    parsed_objects: list[bytes] = []
+
+    def observed_read(*args, **kwargs):
+        data = real_read(*args, **kwargs)
+        events.append("read")
+        read_objects.append(data)
+        return data
+
+    def observed_sha256(data=b"", **kwargs):
+        events.append("hash")
+        hashed_objects.append(data)
+        return real_sha256(data, **kwargs)
+
+    def observed_parse(data, *args, **kwargs):
+        events.append("parse")
+        parsed_objects.append(data)
+        return real_parse(data, *args, **kwargs)
+
+    monkeypatch.setattr(file_safety, "read_confined_regular_file", observed_read)
+    monkeypatch.setattr(direct_install.hashlib, "sha256", observed_sha256)
+    monkeypatch.setattr(bounded_metadata, "parse_bounded_metadata", observed_parse)
+
+    axes = direct_install._read_projected_capability_axes(target, relpath, row)
+
+    assert axes is not None
+    assert events == ["read", "hash", "parse"]
+    assert len(read_objects) == 1
+    assert hashed_objects[0] is read_objects[0]
+    assert parsed_objects[0] is hashed_objects[0]
+
+
+def test_projected_capability_axes_does_not_parse_a_digest_mismatch(
+    tmp_path, monkeypatch, capsys
+):
+    import agentbundle.bounded_metadata as bounded_metadata
+    import agentbundle.direct_install as direct_install
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(source, "allowed-tools: Read", "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    relpath = ".claude/skills/example/SKILL.md"
+    (target / relpath).write_bytes(
+        b"---\nname: example\nallowed-tools: Read, Bash\n---\n# second\n"
+    )
+    parse_calls: list[bytes] = []
+    real_parse = bounded_metadata.parse_bounded_metadata
+
+    def observed_parse(data, *args, **kwargs):
+        parse_calls.append(data)
+        return real_parse(data, *args, **kwargs)
+
+    monkeypatch.setattr(bounded_metadata, "parse_bounded_metadata", observed_parse)
+
+    axes = direct_install._read_projected_capability_axes(target, relpath, row)
+
+    assert axes is None
+    assert parse_calls == []
+
+
+def test_malformed_integrity_bound_projection_is_unknown_and_refuses(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_capability_skill(source, "allowed-tools: Read", "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    relpath = ".claude/skills/example/SKILL.md"
+    projection = target / relpath
+    projection.write_bytes(b"not frontmatter\n")
+    _set_recorded_file_sha(
+        target, relpath, hashlib.sha256(projection.read_bytes()).hexdigest()
+    )
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+    projection_before = hashlib.sha256(projection.read_bytes()).digest()
+    _write_capability_skill(source, "allowed-tools: Read", "# second\n")
+    assert skill.exists()
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D031" in refusal.err
+    assert "unknown" in refusal.err
+    assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
+    assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
+
+
+def test_missing_projected_capability_surface_is_unknown_and_refuses(tmp_path, capsys):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_capability_skill(source, "allowed-tools: Read", "# first\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    projection = target / ".claude/skills/example/SKILL.md"
+    projection.unlink()
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+    _write_capability_skill(source, "allowed-tools: Read", "# second\n")
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D031" in refusal.err
+    assert "unknown" in refusal.err
+    assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
+    assert not projection.exists()
+
+
+def test_capability_refusal_integrity_binding_and_remediation_pins_wanted_revision(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp("direct-capability-remediation")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    user_root = tmp_path / "user root"
+    monkeypatch.setenv("HOME", str(user_root))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(user_root))
+    source_tree = tmp_path / "source"
+    skill = _write_capability_skill(source_tree, "allowed-tools: Read", "# first\n")
+    obsolete = skill / "references" / "obsolete.md"
+    obsolete.parent.mkdir()
+    obsolete.write_text("old\n", encoding="utf-8")
+    source = "git+https://github.com/example/skills@release"
+    first_revision = acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "command root"
+    assert _install_direct(source, target, scope="user", adapter="codex") == 0
+    capsys.readouterr()
+
+    wanted_skill = _write_capability_skill(
+        source_tree, "allowed-tools: Read, Bash", "# wanted\n"
+    )
+    obsolete.unlink()
+    wanted_revision = acquisition.publish("example/skills", "release", source_tree)
+    acquisition.publish(
+        "example/skills",
+        wanted_revision,
+        source_tree,
+        revision=wanted_revision,
+    )
+    assert wanted_revision != first_revision
+    projection = user_root / ".agents/skills/example/SKILL.md"
+    incoming = (wanted_skill / "SKILL.md").read_bytes()
+    projection.write_bytes(incoming)
+    state_path = user_root / ".agentbundle/state.toml"
+    state_before = hashlib.sha256(state_path.read_bytes()).digest()
+    projection_before = hashlib.sha256(projection.read_bytes()).digest()
+
+    assert _upgrade_direct(
+        target, "--scope", "user", "--adapter", "codex", "--yes"
+    ) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D031" in refusal.err
+    assert "unknown" in refusal.err
+    assert hashlib.sha256(state_path.read_bytes()).digest() == state_before
+    assert hashlib.sha256(projection.read_bytes()).digest() == projection_before
+    recovery = next(
+        line.split("Then run: ", 1)[1]
+        for line in refusal.err.splitlines()
+        if "Then run: " in line
+    )
+    uninstall_command, install_command = recovery.split(" then ", 1)
+
+    _write_capability_skill(source_tree, "allowed-tools: Read, Bash", "# moved\n")
+    moved_revision = acquisition.publish("example/skills", "release", source_tree)
+    assert moved_revision != wanted_revision
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    kept_edit = tmp_path / "kept incoming projection.md"
+    kept_edit.write_bytes(projection.read_bytes())
+    projection.unlink()
+    assert _run_printed_command(uninstall_command) == 0
+    assert _run_printed_command(install_command) == 0
+
+    state = load_state(state_path)
+    row = state.row("example", "codex")
+    assert row is not None
+    assert row.source_revision == wanted_revision
+    assert acquisition.calls[-1] == (
+        f"git+https://github.com/example/skills@{wanted_revision}"
+    )
+    assert projection.read_bytes() == incoming
+    assert kept_edit.read_bytes() == incoming
+    assert not (user_root / ".agents/skills/example/references/obsolete.md").exists()
+    projected_files = {
+        path.relative_to(user_root).as_posix()
+        for path in user_root.rglob("*")
+        if path.is_file() and path != state_path
+    }
+    assert projected_files
+    assert all(state.owners_of(relpath) for relpath in projected_files)
 
 
 # ---------------------------------------------------------------------------

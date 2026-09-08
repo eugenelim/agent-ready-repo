@@ -82,6 +82,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D028 = "CAT-D028"   # source override requested for a locally installed skill
     CAT_D029 = "CAT-D029"   # source override names a different direct identity
     CAT_D030 = "CAT-D030"   # stored source cannot form a standalone upgrade request
+    CAT_D031 = "CAT-D031"   # capability history is unknown or the candidate widens it
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -120,6 +121,7 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D028,
         DiagnosticCode.CAT_D029,
         DiagnosticCode.CAT_D030,
+        DiagnosticCode.CAT_D031,
     }
 )
 

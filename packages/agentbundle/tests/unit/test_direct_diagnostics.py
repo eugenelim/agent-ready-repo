@@ -291,6 +291,7 @@ def _emitted_codes(tmp_path) -> set[str]:
     from agentbundle.direct_install import (
         DirectInstallError,
         Selection,
+        _capability_upgrade_refusal,
         _refuse_foreign_owner,
         _select_upgrade_skill,
         run_direct_install,
@@ -552,6 +553,18 @@ def _emitted_codes(tmp_path) -> set[str]:
             source_path="skills/missing",
         )
     )
+
+    def _raise_capability_refusal():
+        raise _capability_upgrade_refusal(
+            _UpgradeArgs(),
+            classification=admitted,
+            source_string=str(collection),
+            revision=None,
+            relpath=".claude/skills/example/SKILL.md",
+            widenings=("allowed-tools adds Bash",),
+        )
+
+    _record(_raise_capability_refusal)
 
     # --- installed identity at another ref ---------------------------------
     ref_root = tmp_path / "different-ref"
