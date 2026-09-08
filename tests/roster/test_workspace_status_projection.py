@@ -829,7 +829,11 @@ class RealTreeProjectionTests(unittest.TestCase):
                 f"self-hosted scripts/ not found at {projected_scripts}",
             )
             for name in _SCRIPTS:
-                with self.subTest(projection=projected_scripts, script=name):
+                # `projection` is stringified deliberately: pytest-xdist ships subtest
+                # parameters to the controller through execnet, which cannot serialize a
+                # `Path` and fails the case with a DumpError under `-n`. The path still
+                # appears in the diagnostic; only its type changes.
+                with self.subTest(projection=str(projected_scripts), script=name):
                     projected = projected_scripts / name
                     source = self._source_scripts / name
                     self.assertTrue(

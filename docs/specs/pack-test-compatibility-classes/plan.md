@@ -1,7 +1,7 @@
 # Plan: Pack-test compatibility classes
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0071 (pack = ownership and test-execution
   boundary); `guides/_shared/reference/catalogue-authoring-standards.md` § 4
   (the unconditional rule being revised) and its byte-identical scaffold
