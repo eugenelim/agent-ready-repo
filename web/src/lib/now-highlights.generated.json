@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.4"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.4] — 2026-09-08",
+      "changelogAnchor": "core2254--2026-09-08",
+      "highlights": [
+        {
+          "source": "**Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry.** A second entry at the same path still blocks closeout, so maintainers are not told to invoke `close-work` while that work remains unresolved.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry."
+            },
+            {
+              "type": "text",
+              "value": " A second entry at the same path still blocks closeout, so maintainers are not told to invoke "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " while that work remains unresolved."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.3"
         }
       ],
