@@ -1964,6 +1964,19 @@ def _plan_digest(plan: list[str]) -> str:
     return hashlib.sha256(("\n".join(plan) + "\n").encode()).hexdigest()
 
 
+def _drift_diagnostic(label: str, plan: list[str]) -> list[str]:
+    """Report the computed digest and plan so a drift names its own cause.
+
+    A bare "drift" verdict cannot be acted on from a CI log, where the plan is
+    not reproducible by hand: the reader needs the digest to re-pin and the
+    lines to diff against the approved baseline.
+    """
+    return [
+        f"{label} computed digest: {_plan_digest(plan)}",
+        *(f"{label} plan[{index}]: {line}" for index, line in enumerate(plan)),
+    ]
+
+
 def _effective_composition_errors(makefile_text: str | None = None) -> list[str]:
     """Return drift in GNU Make's effective standalone and composed commands."""
     errors: list[str] = []
@@ -2023,11 +2036,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
         errors.append("standalone construction coverage drift")
     if composed.stdout.count(CONSTRUCTION_TEST_PATH) != 1:
         errors.append("composed construction coverage drift")
-    if (
-        _plan_digest(_without_construction_addition(standalone_full_plan))
-        != APPROVED_STANDALONE_PLAN_DIGEST
-    ):
+    standalone_baseline = _without_construction_addition(standalone_full_plan)
+    if _plan_digest(standalone_baseline) != APPROVED_STANDALONE_PLAN_DIGEST:
         errors.append("approved standalone command plan drift")
+        errors.extend(_drift_diagnostic("standalone", standalone_baseline))
 
     standalone_plan: list[str] = []
     workspace_command_count = 0
@@ -2046,11 +2058,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
             line = line.replace(f" --ignore={path}", "")
         composed_plan.append(" ".join(line.split()))
 
-    if (
-        _plan_digest(_without_construction_addition(composed_plan))
-        != APPROVED_COMPOSED_PLAN_DIGEST
-    ):
+    composed_baseline = _without_construction_addition(composed_plan)
+    if _plan_digest(composed_baseline) != APPROVED_COMPOSED_PLAN_DIGEST:
         errors.append("approved composed command plan drift")
+        errors.extend(_drift_diagnostic("composed", composed_baseline))
 
     if workspace_command_count != 1 or standalone_plan != composed_plan:
         errors.append("effective non-shared command plan drift")
