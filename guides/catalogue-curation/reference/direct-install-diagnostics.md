@@ -37,13 +37,14 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
 | `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
 | `CAT-D022` | An installed direct identity was requested from the same source at a different ref; use `upgrade --skill <name> --source <source>` |
-| `CAT-D023` | A standalone skill upgrade could not read required state, select a usable installed manifestless row, obtain its recorded source, or use the requested output form |
+| `CAT-D023` | A standalone skill upgrade could not read required state, select a usable installed manifestless row, or use the requested output form |
 | `CAT-D024` | A standalone skill upgrade matched more than one scope; pass `--scope repo` or `--scope user` |
 | `CAT-D025` | A standalone skill upgrade matched more than one adapter; pass `--adapter <adapter>` |
 | `CAT-D026` | A standalone skill upgrade re-resolved its source, but the recorded source path no longer identifies the installed skill |
 | `CAT-D027` | A standalone skill upgrade found destination bytes that match neither its incoming content nor the digest recorded by the installed row |
 | `CAT-D028` | A standalone skill upgrade was given a source override for a row installed from a local path |
 | `CAT-D029` | A standalone skill upgrade was given a source override that names a different repository identity |
+| `CAT-D030` | A standalone skill upgrade cannot form a request from absent, legacy, malformed, or unconfined stored source provenance |
 
 ## Reading a refusal
 

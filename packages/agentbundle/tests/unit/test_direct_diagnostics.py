@@ -283,6 +283,7 @@ def _emitted_codes(tmp_path) -> set[str]:
     import agentbundle.direct_source_acquisition as acquisition
     from agentbundle.commands.upgrade import (
         DirectUpgradeError,
+        _DirectSkillSelection,
         _select_direct_skill_row,
         _select_direct_upgrade_source,
     )
@@ -494,10 +495,13 @@ def _emitted_codes(tmp_path) -> set[str]:
     _record(lambda: _select(empty_state))
     _record(lambda: _select(one_row, one_row))
     _record(lambda: _select(two_adapters))
+    direct_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", direct_row
+    )
     _record(
         lambda: _select_direct_upgrade_source(
             "example",
-            direct_row,
+            direct_selection,
             "git+https://github.com/example/skills@release-2",
         )
     )
@@ -508,11 +512,29 @@ def _emitted_codes(tmp_path) -> set[str]:
         source_path=direct_row.source_path,
         source_digest=direct_row.source_digest,
     )
+    remote_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", remote_row
+    )
     _record(
         lambda: _select_direct_upgrade_source(
             "example",
-            remote_row,
+            remote_selection,
             "git+https://github.com/other/skills@release-2",
+        )
+    )
+    missing_source_row = PackState(
+        installed_version=direct_row.installed_version,
+        source=None,
+        source_kind="skill",
+        source_path=direct_row.source_path,
+        source_digest=direct_row.source_digest,
+    )
+    missing_source_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", missing_source_row
+    )
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example", missing_source_selection, None
         )
     )
 

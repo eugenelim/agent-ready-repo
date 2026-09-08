@@ -11,6 +11,7 @@ Coverage:
 from __future__ import annotations
 
 import hashlib
+import re
 import shlex
 import types
 from pathlib import Path
@@ -148,6 +149,19 @@ def _run_printed_command(command: str) -> int:
     return cli.main(argv[1:])
 
 
+def _set_direct_source(target: Path, source: str | None) -> None:
+    """Replace one fixture row's recorded source without changing its ownership."""
+
+    from agentbundle.config import dump_state, load_state
+
+    state_path = target / ".agentbundle-state.toml"
+    state = load_state(state_path)
+    row = state.row("example", "claude-code")
+    assert row is not None
+    row.source = source
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
+
+
 def test_direct_skill_requires_matching_installed_row(tmp_path, capsys):
     assert _upgrade_direct(tmp_path) == 1
     captured = capsys.readouterr()
@@ -271,6 +285,211 @@ def test_direct_skill_upgrade_succeeds(
         "# second\n"
     )
     assert hashlib.sha256(state_path.read_bytes()).digest() != state_before
+
+
+def test_direct_skill_upgrade_reanchors_a_relative_source_to_its_state_root(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    target = tmp_path / "installation-root"
+    source = target / "vendor"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    installed = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert installed is not None
+    assert installed.source == "vendor"
+
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n# second\n", encoding="utf-8"
+    )
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    assert _upgrade_direct(target, "--yes") == 0
+    assert (target / ".claude/skills/example/SKILL.md").read_text(
+        encoding="utf-8"
+    ).endswith("# second\n")
+    updated = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert updated is not None
+    assert updated.source == "vendor"
+
+
+def test_direct_skill_upgrade_preserves_a_valid_stored_remote_source(tmp_path):
+    from agentbundle.commands.upgrade import (
+        _DirectSkillSelection,
+        _select_direct_upgrade_source,
+    )
+    from agentbundle.config import PackState
+
+    stored = "git+https://github.com/Owner/Repo@Release"
+    row = PackState(
+        installed_version="0.0.0+agentbundle.manifestless",
+        source=stored,
+        source_kind="skill",
+        source_path="skills/example",
+        source_digest="sha256-1:" + "0" * 64,
+    )
+    selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", row
+    )
+
+    assert _select_direct_upgrade_source("example", selection, None) == (
+        stored,
+        False,
+    )
+
+
+@pytest.mark.parametrize(
+    "stored_source",
+    [
+        None,
+        "agent-ready-repo",
+        "git+https://github.com/example/skills@main",
+        "https://[",
+    ],
+    ids=("absent", "legacy-sentinel", "ungrammatical", "malformed-url"),
+)
+def test_direct_skill_upgrade_refuses_an_unusable_stored_source(
+    tmp_path, capsys, stored_source
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    _set_direct_source(target, stored_source)
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D030" in refusal.err
+    named_placeholders = re.findall(
+        r"source token (__AGENTBUNDLE_SOURCE(?:_[0-9]+)?__)", refusal.err
+    )
+    assert len(set(named_placeholders)) == 1
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_upgrade_preserves_absolute_source_spelling(tmp_path, capsys):
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    stored = f"{tmp_path}//source"
+    _set_direct_source(target, stored)
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n# second\n", encoding="utf-8"
+    )
+
+    assert _upgrade_direct(target, "--yes") == 0
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source == stored
+
+
+def test_direct_skill_upgrade_rechecks_relative_source_confinement(
+    tmp_path, monkeypatch, capsys
+):
+    target = tmp_path / "installation-root"
+    source = target / "vendor"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    outside = tmp_path / "outside-source"
+    _write_direct_skill(outside)
+    linked_source = target / "linked-source"
+    try:
+        linked_source.symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlink unavailable: {exc}")
+    _set_direct_source(target, "linked-source")
+    before = _tree_digests(target)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D030" in refusal.err
+    assert _tree_digests(target) == before
+
+
+def test_unusable_stored_source_remediation_reinstalls_from_supplied_source(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    original = tmp_path / "original"
+    target = tmp_path / "__AGENTBUNDLE_SOURCE__ installation root"
+    skill = _write_direct_skill(original)
+    references = skill / "references"
+    references.mkdir()
+    (references / "obsolete.md").write_text("old\n", encoding="utf-8")
+    assert _install_direct(original, target) == 0
+    capsys.readouterr()
+    _set_direct_source(target, None)
+    projection = target / ".claude/skills/example/SKILL.md"
+    projection.write_text("# adopter edit\n", encoding="utf-8")
+
+    replacement = tmp_path / "publisher's replacement; source"
+    _write_direct_skill(replacement, "# wanted\n")
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D030" in refusal.err
+    assert str(projection) in refusal.err
+    assert "move and keep" in refusal.err
+    recovery = next(
+        line.split("Then run: ", 1)[1]
+        for line in refusal.err.splitlines()
+        if "Then run: " in line
+    )
+    uninstall_command, install_command = recovery.split(" then ", 1)
+    named_placeholders = re.findall(
+        r"source token (__AGENTBUNDLE_SOURCE(?:_[0-9]+)?__)", refusal.err
+    )
+    assert len(set(named_placeholders)) == 1
+    placeholder = named_placeholders[0]
+    assert placeholder != "__AGENTBUNDLE_SOURCE__"
+    assert shlex.split(install_command)[2] == placeholder
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    kept_edit = tmp_path / "kept adopter edit.md"
+    kept_edit.write_bytes(projection.read_bytes())
+    projection.unlink()
+    assert _run_printed_command(uninstall_command) == 0
+    filled_install_command = install_command.replace(
+        placeholder, shlex.quote(str(replacement))
+    )
+    assert placeholder not in filled_install_command
+    assert _run_printed_command(filled_install_command) == 0
+
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source == str(replacement)
+    assert (target / ".claude/skills/example/SKILL.md").read_text(
+        encoding="utf-8"
+    ).endswith("# wanted\n")
+    assert kept_edit.read_text(encoding="utf-8") == "# adopter edit\n"
+    assert not (
+        target / ".claude/skills/example/references/obsolete.md"
+    ).exists()
 
 
 @pytest.mark.parametrize(

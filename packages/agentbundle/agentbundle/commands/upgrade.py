@@ -96,11 +96,19 @@ class DirectUpgradeError(ValueError):
 
 @dataclass(frozen=True)
 class _DirectSkillSelection:
-    """The installed row and projection root selected for a direct upgrade."""
+    """The installed row and owning state file selected for a direct upgrade."""
 
     scope: str
-    root: Path
+    state_path: Path
     row: PackState
+
+    @property
+    def root(self) -> Path:
+        """Return the projection root established by the owning state file."""
+
+        if self.scope == "user":
+            return self.state_path.parent.parent
+        return self.state_path.parent
 
 
 def _refuse_direct_upgrade(
@@ -242,25 +250,171 @@ def _select_direct_skill_row(
             f"{name!r} is not an installed manifestless skill",
             name=name,
         )
-    return _DirectSkillSelection(selected_scope, selected_root, row)
+    return _DirectSkillSelection(
+        selected_scope,
+        resolve_state_path(selected_scope, selected_root),
+        row,
+    )
+
+
+def _unusable_stored_source_refusal(
+    name: str, selection: _DirectSkillSelection
+) -> DirectUpgradeError:
+    """Build the adopter-supplied recovery for unusable stored provenance."""
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        sha256_confined_regular_file,
+    )
+    from agentbundle.direct_source import recovery_command
+
+    root = str(selection.root)
+    edited_paths: list[str] = []
+    for relpath in sorted(selection.row.files):
+        try:
+            on_disk = sha256_confined_regular_file(
+                selection.root, selection.root / relpath
+            )
+        except UnsafeContentError as exc:
+            if isinstance(exc.__cause__, FileNotFoundError):
+                continue
+            edited_paths.append(relpath)
+        except OSError:
+            edited_paths.append(relpath)
+        else:
+            if on_disk != selection.row.file_sha(relpath):
+                edited_paths.append(relpath)
+
+    placeholder_index = 0
+    placeholder = "__AGENTBUNDLE_SOURCE__"
+    reserved_values = (
+        root,
+        name,
+        selection.scope,
+        selection.row.adapter,
+        *edited_paths,
+    )
+    while any(placeholder in value for value in reserved_values):
+        placeholder_index += 1
+        placeholder = f"__AGENTBUNDLE_SOURCE_{placeholder_index}__"
+
+    remove_command = recovery_command(
+        "agentbundle",
+        "uninstall",
+        "--pack",
+        name,
+        "--root",
+        root,
+        "--scope",
+        selection.scope,
+        "--adapter",
+        selection.row.adapter,
+        "--yes",
+    )
+    install_command = recovery_command(
+        "agentbundle",
+        "install",
+        placeholder,
+        "--skill",
+        name,
+        "--scope",
+        selection.scope,
+        "--adapter",
+        selection.row.adapter,
+        "--output",
+        root,
+        "--yes",
+    )
+    edited_step = ""
+    if edited_paths:
+        rendered_paths = ", ".join(
+            recovery_command(str(selection.root / relpath))
+            for relpath in edited_paths
+        )
+        edited_step = (
+            "Before uninstalling, move and keep each adopter-edited path outside "
+            f"the installation root, or remove it: {rendered_paths}. "
+        )
+    return _refuse_direct_upgrade(
+        DiagnosticCode.CAT_D030,
+        f"{name!r} has no usable recorded source for standalone upgrade",
+        name=name,
+        remediation=(
+            f"{edited_step}Supply the direct source by replacing the source token "
+            f"{placeholder}. "
+            f"Then run: {remove_command} then {install_command}"
+        ),
+    )
+
+
+def _stored_direct_upgrade_request(
+    name: str, selection: _DirectSkillSelection
+) -> tuple[str, Path | str]:
+    """Return the validated stored string and its direct-source request."""
+
+    from urllib.parse import urlsplit
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        validate_confined_directory,
+    )
+    from agentbundle.direct_source_acquisition import (
+        DirectAcquisitionError,
+        parse_direct_source,
+    )
+
+    recorded_source = selection.row.source
+    unusable = (
+        not isinstance(recorded_source, str)
+        or not recorded_source
+        or recorded_source.isspace()
+        or recorded_source == "agent-ready-repo"
+        or any(ord(character) < 32 for character in recorded_source)
+    )
+    if unusable:
+        raise _unusable_stored_source_refusal(name, selection)
+    assert isinstance(recorded_source, str)
+
+    if recorded_source.startswith("git+https://"):
+        try:
+            parse_direct_source(recorded_source)
+        except DirectAcquisitionError:
+            raise _unusable_stored_source_refusal(name, selection) from None
+        return recorded_source, recorded_source
+
+    request = Path(recorded_source)
+    if request.is_absolute():
+        return recorded_source, recorded_source
+    try:
+        parsed_source = urlsplit(recorded_source)
+    except ValueError:
+        raise _unusable_stored_source_refusal(name, selection) from None
+    if parsed_source.scheme:
+        raise _unusable_stored_source_refusal(name, selection)
+    if selection.scope != "repo":
+        raise _unusable_stored_source_refusal(name, selection)
+
+    source_root = selection.state_path.parent
+    request = source_root / request
+    try:
+        validate_confined_directory(source_root, request)
+    except (OSError, UnsafeContentError):
+        raise _unusable_stored_source_refusal(name, selection) from None
+    return recorded_source, request
 
 
 def _select_direct_upgrade_source(
-    name: str, row: PackState, supplied_source: str | None
-) -> tuple[str, bool]:
+    name: str,
+    selection: _DirectSkillSelection,
+    supplied_source: str | None,
+) -> tuple[Path | str, bool]:
     """Choose the re-resolution source after enforcing the stored identity."""
 
     from agentbundle.direct_install import _direct_identity, _split_git_https_ref
 
-    recorded_source = row.source
-    if not isinstance(recorded_source, str):
-        raise _refuse_direct_upgrade(
-            DiagnosticCode.CAT_D023,
-            f"{name!r} has no recorded source for standalone upgrade",
-            name=name,
-        )
+    recorded_source, request_source = _stored_direct_upgrade_request(name, selection)
     if supplied_source is None:
-        return recorded_source, False
+        return request_source, False
     if (
         _split_git_https_ref(recorded_source) is None
         and not recorded_source.startswith("git+https://")
@@ -272,10 +426,10 @@ def _select_direct_upgrade_source(
             remediation="Re-run without --source to re-resolve the recorded local source.",
         )
     recorded_identity = _direct_identity(
-        row.source_kind, recorded_source, row.source_path
+        selection.row.source_kind, recorded_source, selection.row.source_path
     )
     supplied_identity = _direct_identity(
-        row.source_kind, supplied_source, row.source_path
+        selection.row.source_kind, supplied_source, selection.row.source_path
     )
     if supplied_identity != recorded_identity:
         raise _refuse_direct_upgrade(
@@ -344,7 +498,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
 
     try:
         source, source_overridden = _select_direct_upgrade_source(
-            name, selection.row, getattr(args, "source", None)
+            name, selection, getattr(args, "source", None)
         )
     except DirectUpgradeError as refusal:
         _print_direct_upgrade_refusal(refusal)
@@ -352,7 +506,11 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
     needs_consent = not getattr(args, "yes", False) and not getattr(
         args, "dry_run", False
     )
-    if source.startswith("git+https://") and needs_consent:
+    if (
+        isinstance(source, str)
+        and source.startswith("git+https://")
+        and needs_consent
+    ):
         refusal = _refuse_direct_upgrade(
             DiagnosticCode.CAT_D008,
             "a remote standalone skill upgrade requires --yes before acquisition",
