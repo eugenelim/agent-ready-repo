@@ -11,8 +11,8 @@ measure".
 **The shipped rubric has since moved, and the delta misses every scored
 paragraph.** Resolve the range with `git diff f6ee0a794..HEAD --
 packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`; no region
-list is kept here, because the one that was decayed within two rounds and no
-claim below depends on it. The text each pre-registered defect was scored against — D1 and D2's
+list is kept here, because the one that was kept decayed within two rounds and
+no claim below depends on it. The text each pre-registered defect was scored against — D1 and D2's
 derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
 projection paragraph, D5's empty-state tell, D6's non-waivable-control
 bullet — is byte-identical across that range. So the scores below stand, and

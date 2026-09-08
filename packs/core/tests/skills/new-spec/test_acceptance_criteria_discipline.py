@@ -389,11 +389,20 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     # said "each class below points there", which was false for four of six.
     assert "Classes 2 and 5 defer criterion *shape* to `../assets/spec.md`" in text
     assert "classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`" in text
-    assert "class 4 owns its own clauses outright" in text
+    assert "class 4 states its two clauses here" in text
+    # Class 4's decoration clause intersects the template's claim-minimality
+    # rule on a figure inside a criterion. The rubric must name that boundary
+    # rather than claim the whole rule, so pin the boundary sentence too.
+    assert "owns the narrower question of whether a claim inside a criterion" in text
     # And pin that the rubric does not claim parity with the review check set.
     assert "as part of a **larger** cold check set" in text
     assert "authoring guidance, not a review checklist" in text
     assert "The shape rule is not here." in text
+    # The stop rule's scope is load-bearing: an unscoped "stop at the first
+    # that fires" reads as capping repairs per artifact, which contradicts the
+    # eval. Pin the scoping sentence, not just the stop.
+    assert "The order applies per defect, not per artifact." in text
+    assert "stopping early is about not over-classifying one of them" in text
     # The count threshold screens; it never refuses. Pin both halves.
     assert "never as a refusal" in text
     assert "a ceiling and a stall point, never a floor" in text
@@ -432,11 +441,15 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
 #
 # Calibration, measured 2026-09-08 after the restatements were cut, excluding
 # Markdown table delimiters (`| --- | --- |` runs match trivially and carry no
-# prose): the two files share 2 six-word runs and 0 of seven or more. The two
+# prose): the two files share 3 six-word runs and 0 of seven or more. The three
 # six-word survivors are `an implementation loop with gates between`, incidental
-# shared phrasing about the same benchmark caveat, and `authored where an owner
-# already exists,`, which is class 1's subject named in the brief's Outcome.
-# So seven is the shortest run length that reds only on restatement.
+# shared phrasing about the same benchmark caveat; `authored where an owner
+# already exists,`, class 1's subject named in the brief's Outcome; and
+# `5. The criterion is too big`, the class-5 heading, which the brief cites by
+# name. None extends to seven in either direction, so seven is the shortest run
+# length that reds only on restatement — but note the heading case: a rubric
+# heading seven words or longer, cited by name, would red this guard on correct
+# text.
 #
 # An earlier revision set this to eight while the two substantive restatements
 # were seven words long — a threshold calibrated one word above the duplication
@@ -574,6 +587,14 @@ def test_rubric_eval_has_required_shape_and_behaviour() -> None:
         "named owner waiver",
     ):
         assert demand in expected, f"expected_output drops: {demand}"
+    # The stop rule orders one defect's diagnosis; it does not cap repairs per
+    # artifact. Pin that reading here so the eval and the rubric cannot drift
+    # back into the two incompatible readings a review round found frozen.
+    assert any(
+        "per criterion" in item and "every defect" in item
+        for item in entry["assertions"]
+    )
+    assert "stop orders the diagnosis of a single defect" in entry["expected_output"]
     assert any("wrong-owner" in item and "before" in item for item in entry["assertions"])
     assert any("empty state" in item for item in entry["assertions"])
     assert any("word budget" in item for item in entry["assertions"])

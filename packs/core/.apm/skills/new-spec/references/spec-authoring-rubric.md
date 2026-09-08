@@ -8,19 +8,26 @@ source of nits, which is the cost it exists to reduce.
 Nothing here is a second copy of a rule another surface owns. Classes 2 and 5
 defer criterion *shape* to `../assets/spec.md` § Acceptance Criteria, which owns
 it; classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`, which owns
-those; class 4 owns its own clauses outright.
+those; class 4 states its two clauses here, with the one boundary it shares with
+the template named in the class itself.
 
-These six are the classes an author can pre-empt, ordered so the first one that
-fires is the one worth fixing. The `shaping-reviewer` agent applies them cold
+These six are the classes an author can pre-empt, ordered so that when several
+describe the same defect, the earliest one names the repair worth making. The `shaping-reviewer` agent applies them cold
 from the artifact alone, as part of a **larger** cold check set — so working
 these six is not parity with review, and clearing them is not a prediction that
 review will be clean.
 
 ## How to use it
 
-Work the classes in order and stop at the first that fires. Class 1 precedes
-every other, because no amount of criterion craft repairs a criterion that
-belongs to a different artifact.
+**The order applies per defect, not per artifact.** Take one criterion or
+section, walk the classes from 1, and stop at the first that fires — that class
+names the repair, and the later ones would only redescribe it. Then move to the
+next criterion and start again from 1. Work every defect the artifact has;
+stopping early is about not over-classifying one of them, never about leaving
+the others.
+
+Class 1 precedes every other, because no amount of criterion craft repairs a
+criterion that belongs to a different artifact.
 
 Check the artifact you wrote, not your intentions for it. Guidance you restated
 by hand is degraded at the point of writing, whatever you knew when you wrote
@@ -117,7 +124,11 @@ Two clauses, and the second does not follow from the first:
 - **Nothing precise that is decoration.** A figure or enumeration no criterion
   depends on is surface that decays and that every review round re-litigates
   for no gain. Test it by deleting it: if no criterion, gate, or decision
-  changes, it was decoration.
+  changes, it was decoration. This is a test over the *artifact's* precise
+  surface, wherever it sits; `../assets/spec.md` § Acceptance Criteria owns the
+  narrower question of whether a claim inside a criterion makes a wrong
+  implementation detectable. The two intersect on a figure inside a criterion
+  and answer different questions about it.
 
 **Related class: the criterion targets a projection.** A scope statement or
 criterion that names a generated, built, or projected file pins an output
