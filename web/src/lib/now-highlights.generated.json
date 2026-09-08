@@ -5,6 +5,84 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.6"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.6] — 2026-09-08",
+      "changelogAnchor": "core2256--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record.** It directs maintainers to install or repair the cooling capability instead of repairing a valid record.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record."
+            },
+            {
+              "type": "text",
+              "value": " It directs maintainers to install or repair the cooling capability instead of repairing a valid record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.5"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.5] — 2026-09-08",
+      "changelogAnchor": "core2255--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`work-loop` now rejects unsafe or ambiguous reference providers before it calls them.** Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the planning workflow's authority.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`work-loop` now rejects unsafe or ambiguous reference providers before it calls them."
+            },
+            {
+              "type": "text",
+              "value": " Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the planning workflow's authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.7"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[architect][0.15.7] — 2026-09-08",
+      "changelogAnchor": "architect0157--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`architect-design` now rejects unsafe or ambiguous reference providers before it calls them.** Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the design workflow's authority.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`architect-design` now rejects unsafe or ambiguous reference providers before it calls them."
+            },
+            {
+              "type": "text",
+              "value": " Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the design workflow's authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.4"
         }
       ],

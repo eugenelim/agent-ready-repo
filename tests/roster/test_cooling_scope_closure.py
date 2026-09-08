@@ -937,7 +937,7 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
     """AC23: every frozen dependency retains its approved byte digest."""
     expected_digests = {
         "packs/core/.apm/skills/close-work/scripts/cooling.py": (
-            "2140fa3996029002c5eee7343bbc4f7d2cbde437ba765c9a07a59ced758a0c89"
+            "dcd1954a5e3f07f731027b8723ad78f248c283869ecc864d68841476a6a99be1"
         ),
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
             "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
