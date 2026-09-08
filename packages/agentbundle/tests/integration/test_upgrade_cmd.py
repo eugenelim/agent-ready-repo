@@ -160,6 +160,45 @@ def _tree_digests(root: Path) -> dict[str, bytes]:
     }
 
 
+def _source_tree_digest(root: Path) -> str:
+    """Derive the direct content digest without using lifecycle production code."""
+
+    digest = hashlib.sha256()
+    files = sorted(
+        (path for path in root.rglob("*") if path.is_file()),
+        key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
+    )
+    for path in files:
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        content = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return f"sha256-1:{digest.hexdigest()}"
+
+
+def _publisher_block_body(output: str) -> str:
+    """Return the one fenced consent body after asserting its complete order."""
+
+    from agentbundle.direct_install import (
+        ADMISSIBILITY_VERDICT,
+        PUBLISHER_BLOCK_CLOSE,
+        PUBLISHER_BLOCK_OPEN,
+    )
+
+    lines = output.strip().splitlines()
+    assert lines[0] == ADMISSIBILITY_VERDICT
+    assert lines[-1] == ADMISSIBILITY_VERDICT
+    assert lines.count(ADMISSIBILITY_VERDICT) == 2
+    assert lines.count(PUBLISHER_BLOCK_OPEN) == 1
+    assert lines.count(PUBLISHER_BLOCK_CLOSE) == 1
+    open_index = lines.index(PUBLISHER_BLOCK_OPEN)
+    close_index = lines.index(PUBLISHER_BLOCK_CLOSE)
+    assert 0 < open_index < close_index < len(lines) - 1
+    return "\n".join(lines[open_index + 1 : close_index])
+
+
 def _run_printed_command(command: str) -> int:
     """Execute one rendered agentbundle command through the real CLI parser."""
 
@@ -945,24 +984,28 @@ def test_remote_direct_skill_requires_yes_before_acquisition(
 
     assert _upgrade_direct(target) == 1
     refusal = capsys.readouterr()
-    assert "CAT-D008" in refusal.err
-    assert "requires --yes before acquisition" in refusal.err
+    combined = refusal.out + refusal.err
+    assert refusal.out == ""
+    assert refusal.err == (
+        "upgrade: [CAT-D008] a remote standalone skill upgrade requires --yes "
+        "before acquisition\n"
+        "Re-run with --yes, or use --dry-run to preview without writing.\n"
+    )
     assert acquisition.calls == []
-    assert PUBLISHER_BLOCK_OPEN not in refusal.err
-    assert PUBLISHER_BLOCK_CLOSE not in refusal.err
-    assert ADMISSIBILITY_VERDICT not in refusal.err
+    assert PUBLISHER_BLOCK_OPEN not in combined
+    assert PUBLISHER_BLOCK_CLOSE not in combined
+    assert ADMISSIBILITY_VERDICT not in combined
+    assert not re.search(
+        r"(?i)(?:summary.*(?:printed|shown|displayed|rendered|produced)|"
+        r"(?:printed|shown|displayed|rendered|produced).*summary)",
+        combined,
+    )
     assert _tree_digests(target) == before
 
 
 def test_remote_direct_skill_dry_run_prints_upgrade_consent_summary(
     tmp_path, tmp_path_factory, monkeypatch, capsys
 ):
-    from agentbundle.direct_install import (
-        ADMISSIBILITY_VERDICT,
-        PUBLISHER_BLOCK_CLOSE,
-        PUBLISHER_BLOCK_OPEN,
-    )
-
     storage = tmp_path_factory.mktemp("direct-upgrade-dry-run-consent")
     acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
     source_tree = tmp_path / "source"
@@ -981,13 +1024,22 @@ def test_remote_direct_skill_dry_run_prints_upgrade_consent_summary(
 
     assert _upgrade_direct(target, "--dry-run") == 0
     summary = capsys.readouterr()
-    framed = f"\n{summary.err}\n"
     assert acquisition.calls == [source]
-    assert summary.err.startswith(ADMISSIBILITY_VERDICT)
-    assert summary.err.rstrip().endswith(ADMISSIBILITY_VERDICT)
-    assert summary.err.count(ADMISSIBILITY_VERDICT) == 2
-    assert f"\n{PUBLISHER_BLOCK_OPEN}\n" in framed
-    assert f"\n{PUBLISHER_BLOCK_CLOSE}\n" in framed
+    body = _publisher_block_body(summary.err)
+    for label in (
+        "selection",
+        "source",
+        "revision",
+        "digest",
+        "stored revision",
+        "re-resolved revision",
+        "stored digest",
+        "re-resolved digest",
+        "scope",
+        "adapter",
+        "destination",
+    ):
+        assert re.search(rf"(?m)^\s*{re.escape(label)}:\s+\S", body)
     assert _tree_digests(target) == before
 
 
@@ -997,15 +1049,30 @@ def test_direct_skill_declined_confirmation_preserves_state_and_projection(
     source = tmp_path / "source"
     target = tmp_path / "target"
     skill = _write_direct_skill(source)
+    payloads = {
+        "scripts/run.py": b"print('first')\n",
+        "references/guide.md": b"first reference\n",
+        "assets/data.txt": b"first asset\n",
+        "evals/case.txt": b"first evaluation\n",
+    }
+    for relpath, content in payloads.items():
+        path = skill / relpath
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(content)
     assert _install_direct(source, target) == 0
     capsys.readouterr()
     state_path = target / ".agentbundle-state.toml"
-    projection = target / ".claude/skills/example/SKILL.md"
+    projection = target / ".claude/skills/example"
     state_before = state_path.read_bytes()
-    projection_before = projection.read_bytes()
+    projection_before = _tree_digests(projection)
+    assert set(projection_before) == {"SKILL.md", *payloads}
     (skill / "SKILL.md").write_text(
         "---\nname: example\n---\n# second\n", encoding="utf-8"
     )
+    (skill / "scripts/run.py").write_text("print('second')\n", encoding="utf-8")
+    (skill / "references/guide.md").unlink()
+    (skill / "assets/new.txt").write_text("new asset\n", encoding="utf-8")
+    (skill / "evals/case.txt").write_text("second evaluation\n", encoding="utf-8")
     prompts: list[str] = []
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
 
@@ -1019,7 +1086,7 @@ def test_direct_skill_declined_confirmation_preserves_state_and_projection(
     capsys.readouterr()
     assert prompts == ["\nUpgrade these skills? [y/N] "]
     assert state_path.read_bytes() == state_before
-    assert projection.read_bytes() == projection_before
+    assert _tree_digests(projection) == projection_before
 
 
 def test_direct_skill_upgrade_consent_names_stored_and_resolved_identity(
@@ -1032,7 +1099,11 @@ def test_direct_skill_upgrade_consent_names_stored_and_resolved_identity(
     source_tree = tmp_path / "source"
     skill = _write_direct_skill(source_tree)
     source = "git+https://github.com/example/skills@release"
-    acquisition.publish("example/skills", "release", source_tree, revision="1" * 40)
+    stored_revision = "1" * 40
+    resolved_revision = "2" * 40
+    acquisition.publish(
+        "example/skills", "release", source_tree, revision=stored_revision
+    )
     target = tmp_path / "target"
     assert _install_direct(source, target) == 0
     capsys.readouterr()
@@ -1043,20 +1114,23 @@ def test_direct_skill_upgrade_consent_names_stored_and_resolved_identity(
     (skill / "SKILL.md").write_text(
         "---\nname: example\n---\n# second\n", encoding="utf-8"
     )
-    acquisition.publish("example/skills", "release", source_tree, revision="2" * 40)
+    resolved_digest = _source_tree_digest(source_tree)
+    acquisition.publish(
+        "example/skills", "release", source_tree, revision=resolved_revision
+    )
 
     assert _upgrade_direct(target, "--yes") == 0
-    consent = capsys.readouterr().err
-    resolved = load_state(state_path).row("example", "claude-code")
-    assert resolved is not None
-    assert resolved.source_digest is not None
+    consent = _publisher_block_body(capsys.readouterr().err)
+    assert stored.source_revision == stored_revision
+    assert stored.source_revision != resolved_revision
+    assert stored.source_digest != resolved_digest
     expected = {
         "source": source,
         "selection": "example",
-        "stored revision": str(stored.source_revision),
-        "re-resolved revision": str(resolved.source_revision),
+        "stored revision": stored_revision,
+        "re-resolved revision": resolved_revision,
         "stored digest": stored.source_digest,
-        "re-resolved digest": resolved.source_digest,
+        "re-resolved digest": resolved_digest,
         "scope": "repo",
         "adapter": "claude-code",
         "destination": str(target / ".claude/skills/example"),

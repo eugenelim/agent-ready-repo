@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shlex
 from pathlib import Path
 
@@ -180,11 +181,34 @@ def test_capability_block_reports_what_the_publisher_declared(tmp_path: Path):
         payload_digests={"scripts/run.py": ("sha256-1:" + "cd" * 32, "executable")},
     )
     rendered = "\n".join(block)
-    assert "Grep, Read" in rendered, "the tool union is normalized and deduplicated"
-    assert "filesystem_read" in rendered
-    assert "credentialed: False" in rendered
-    assert "scripts/run.py" in rendered
-    assert "0" * 40 in rendered
+    expected = {
+        "skill": "cap",
+        "selection": "cap",
+        "source": "git+https://github.com/o/r@v1",
+        "revision": "0" * 40,
+        "digest": "sha256-1:" + "ef" * 32,
+        "scope": "repo",
+        "adapter": "claude-code",
+        "destination": ".claude/skills/cap",
+        "allowed-tools": "Grep, Read",
+        "boundaries": "filesystem_read",
+        "credentialed": "False",
+        "SKILL.md": "sha256-1:" + "ab" * 32,
+    }
+    for label, value in expected.items():
+        assert re.search(
+            rf"(?m)^\s*{re.escape(label)}:\s+{re.escape(value)}$", rendered
+        )
+    assert re.search(
+        r"(?m)^\s+scripts/run\.py\s+sha256-1:"
+        + "cd" * 32
+        + r"\s+executable$",
+        rendered,
+    )
+    assert "stored revision:" not in rendered
+    assert "re-resolved revision:" not in rendered
+    assert "stored digest:" not in rendered
+    assert "re-resolved digest:" not in rendered
     # AC19 requires report-time executable mode beside each payload digest. It
     # was computed by `report_time_mode` and never rendered anywhere.
     assert "executable" in rendered
