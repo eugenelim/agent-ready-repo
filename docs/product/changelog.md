@@ -54,6 +54,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.3] — 2026-09-07
+
+### Highlights
+
+- **`work-loop` now rejects unsafe or ambiguous reference providers before it
+  calls them.** Provider guidance is visibly enclosed as untrusted evidence, so
+  it cannot quietly expand the planning workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
+## [architect][0.15.7] — 2026-09-07
+
+### Highlights
+
+- **`architect-design` now rejects unsafe or ambiguous reference providers
+  before it calls them.** Provider guidance is visibly enclosed as untrusted
+  evidence, so it cannot quietly expand the design workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
 ## [core][2.25.2] — 2026-09-04
 
 ### Highlights
