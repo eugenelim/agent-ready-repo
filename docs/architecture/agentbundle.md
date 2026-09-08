@@ -42,10 +42,58 @@ from both outputs.
 ## 4. Dependencies and allowed edges
 
 Commands call catalogue tooling and the build runtime. Package builds read
-`contracts/distribution-routes.toml`, select an existing named package
-projector, and optionally invoke the route's declared adapter projector. Direct
-installation reads `contracts/adapter.toml`, then runs adapters and projection
-modes.
+`contracts/distribution-routes.toml`, look up the behavior registered for each
+declared route, and optionally invoke the route's declared adapter projector.
+Direct installation reads `contracts/adapter.toml`, then runs adapters and
+projection modes.
+
+### Distribution-route dispatch
+
+Shared build-time code never names a distribution route. Every route-dependent
+decision comes from `contracts/distribution-routes.toml`, through two readers in
+`agentbundle/build/route_lookup.py`:
+
+- `read_route_declarations()` returns each route's declared facts — output
+  subdirectory, admission policy, adapter projector, marketplace projector,
+  lifecycle trigger, and component capabilities. Shared code that needs a *set*
+  reads it here, so a surface's route set equals the declared set by
+  construction rather than by a maintained list.
+- `resolve_route_behaviors()` returns exactly one registered behavior per
+  declared route. Shared code that needs *behavior* calls through it.
+
+Route-specific code lives only in a module serving exactly one route:
+`build/route_apm.py`, `build/route_claude_plugins.py`, and
+`build/route_agent_plugin.py`. Each recognises its own declaration by projector
+semantics rather than by route name, and owns what the contract cannot state —
+its filesystem controls, its diagnostics, its install-marker path, and its
+position in a default build.
+
+Build order is one such route-owned fact and it is load-bearing: a route that
+can refuse a pack runs before any route that writes one, so a refused build
+leaves no partial output tree behind.
+
+**Adding a route** touches four things, in this order:
+
+1. Declare it in `contracts/distribution-routes.toml` and admit it in
+   `contracts/distribution-routes.schema.json`, then sync both into
+   `agentbundle/_data/`. The contract-parity gate requires the two copies to
+   match byte for byte.
+2. Add its per-pack recipe TOML under `build/recipes/`, declaring the new
+   `route`. `DEFAULT_RECIPES` is derived from these declarations, so without one
+   the route is declared but never built.
+3. Add a `build/route_<name>.py` module whose `behavior_from_declaration()`
+   recognises that declaration and returns its behavior, including the
+   route-owned facts the contract cannot state — its build order, its
+   filesystem controls, and its install-marker path if it declares one.
+4. Register that factory in `route_lookup.py`. Registration is explicit because
+   the route set is closed; nothing is discovered at import.
+
+No *consuming surface* changes: every surface reads the route set from the
+contract. The byte goldens do change, because they pin the complete built tree
+for every declared route.
+
+`tools/check_distribution_route_decisions.py` fails if a later change
+reintroduces a route decision into shared code.
 
 The adapter layer contains Claude Code, Codex, Copilot, Cursor, Gemini, Kiro,
 Kiro CLI, and Kiro IDE adapters. Projection implementations write target-runtime
@@ -95,8 +143,15 @@ the durable evidence record.
   `CAT-V-014` for generated `dist/` drift.
 - `tools/catalogue/check_contract_parity.py` requires portable contract schemas
   and TOML to match their `agentbundle/_data/` counterparts.
-- Distribution-route golden tests pin complete APM and Claude package trees by
-  path, bytes, link target, and mode across the route/adapter ownership split.
+- Distribution-route golden tests pin complete APM, Claude, and Agent Plugin
+  package trees by path, bytes, link target, and mode across the route/adapter
+  ownership split.
+- `tools/check_distribution_route_decisions.py --check` reports shared
+  build-time code that decides by route — whether it spells a route name or
+  compares a contract-derived route value — and refuses unclassified route-value
+  flow rather than treating it as clean. It is a bounded static check: the
+  literal form is covered everywhere, the value form where the route types are
+  annotated, and the script's own `limits` list records what it does not follow.
 - `agentbundle lint packs` (`make lint-packs`) checks pack conformance.
 - `tools/lint-adapter-layer-boundary.py` holds the adapter/projection edge
   direction: a projection may not import an adapter, and neither layer may be

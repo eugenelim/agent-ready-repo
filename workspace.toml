@@ -100,9 +100,9 @@ shipped   = [
 ]
 
 ["ini-002".work]
-active  = [
-]
+active  = []
 shipped = [
+  {path = "docs/specs/distribution-route-registry/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Build all three routes through one generic six-field registry with no route-name branches in shared code", needs = [{type = "local", kind = "spec", path = "docs/specs/portable-agent-plugin-projection/spec.md"}]},
   {path = "docs/specs/status-projection-and-context-exclusion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "20c0ba50ebad22651694bc6f43715ee0df1a3938"}, summary = "Project closeout state, due reviews and exceptions, and exclude cooled artifacts from ordinary orientation", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/thirty-day-cooling-and-retirement/spec.md"}]},
   {path = "docs/specs/rfc0099-migration-validation-record/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md"}, summary = "Waive RFC-0099's unrun adopter study, close activation and shaping-review fixture gaps, and publish the maintained seven-family fixture register", needs = []},
   {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
@@ -111,7 +111,8 @@ shipped = [
   {path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Portable close-work closeout with separately confirmed immediate disposition", needs = []},
   {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
-  # its completion makes the canonical MCP parity intent the programme's next slice.
+  # it supplied the third real route, which is what gates the Phase 2 registry
+  # extraction that now follows it.
   {path = "docs/specs/portable-agent-plugin-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Project portable-eligible canonical skills into deterministic Agent Plugins 1.0.0 packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},
   {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
   {path = "docs/specs/agents-md-lost-obligations/spec.md", kind = "spec", source = {mode = "repo-origin", revision = "0e1c1b04b0f7b46d9edaee319f6f194569816709"}, summary = "Restore AGENTS.md obligations lost during instruction-surface simplification", needs = []},
@@ -246,10 +247,12 @@ backlog = []
 
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
-# Entries are inline objects: {slug, needs?, source?} where:
-#   slug   — unique identifier; matches any (deferred: <slug>) marker in specs
-#   source — deferred-AC provenance, e.g. "spec/foo AC3"
-#   needs  — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
+# New entries take the canonical shape documented at the top of this file:
+# {path, kind, source, summary, needs}. `path` must name an artifact that exists —
+# for a deferral with no artifact of its own, the document recording it.
+# Legacy {slug, needs?, source?} records remain below and are capped by the
+# write-side ratchet in tests/roster/test_workspace_status_projection.py; do not
+# add new ones.
 # Per-entry TOML comments must be cold-start-sufficient: problem, fix, file/skill, unblock.
 # When the unblock condition is another tracked item (a hard AND dependency), also
 # add a `needs` edge — not prose alone. Disjunctive/untracked/external unblocks stay prose.
@@ -316,6 +319,22 @@ open = [
   # (test-after-build-check) walks the whole packs tree and fails on it.
   # Confirmed by running it in a clean origin/main worktree.
   {slug = "pre-existing-new-spec-exact-clean-phrase-drift", source = "pre-flight/2026-09-01", summary = "packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py::test_spec_review_accepts_only_exact_clean_before_adjudication asserts four phrases and their order in packs/core/.apm/skills/new-spec/SKILL.md; the first, 'entire returned text value is exactly `Clean — ready to commit.`', is absent from that file, so the phrase pin has drifted from the skill it guards. Decide whether the skill regains the sentence or the test drops the pin, and put the new-spec suite behind a remote gate so the answer cannot drift again unseen"},
+  # Only reproduces on a case-insensitive filesystem, so macOS sees it and a
+  # Linux remote does not. The skip itself is correct — the fixture writes
+  # `Notes.md` and `notes.md` into one envelope and a case-insensitive host
+  # collapses them, so there is no refusal to assert. What is missing is the
+  # sdist gate's allowance for it. Introduced 2026-08-31 in 4e270684e, an
+  # ancestor of this branch's base 1134701ba, and confirmed by that ancestry
+  # rather than by a clean-worktree run.
+  # Environmental, not a code defect: nothing in the tree under `web/` changed.
+  # Reproduced outside `make` by running `npm audit --json` in `web/` directly,
+  # which prints `npm warn audit network timeout at:
+  # https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`. The sibling
+  # `docs-site/` lockfile audits clean in the same shell, so it is that one
+  # bulk-advisory request, not npm or the network as a whole. Seen twice with a
+  # host load average of 86-200.
+  {slug = "pre-existing-audit-npm-bulk-advisory-timeout", source = "pre-flight/2026-09-03", summary = "tools/audit-npm.py --root . exits 2 with 'npm audit reported an error instead of a report' because the web/ lockfile's bulk advisory request to registry.npmjs.org times out; the tool reports the empty npm error payload rather than distinguishing a network timeout from a real audit error. Give the bulk request a retry with backoff, or classify a timeout separately from an audit failure so a transient registry stall does not read as a SAST gate failure"},
+  {slug = "pre-existing-sdist-gate-rejects-case-insensitive-skip", source = "pre-flight/2026-09-03", summary = "tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite fails on any case-insensitive filesystem: the published suite emits 'SKIPPED tests/unit/test_direct_admission.py:937: case-insensitive filesystem cannot hold both spellings', which is outside the gate's _EXPECTED_SKIP_REASONS allowlist, so a correct platform skip reads as a forbidden one. Add the reason to that allowlist, or make the fixture build a case-distinct pair, so the release gate is runnable on macOS"},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
 
@@ -328,11 +347,13 @@ open = [
   # owns native adapter projections and their singleton-conflict contract.
   {path = "docs/product/intents/catalogue-rules-primitive.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/cognitive-load-reduction/notes/guidance-pointer-patterns-survey.md", revision = "local-2026-08-27"}, summary = "Add a portable rules primitive with native adapter projections and safe context-file fallbacks", needs = []},
 
-  # Phase 1A has shipped. Phase 1B is the programme's next ready slice; it
-  # remains an intent until normal intake promotes it into a durable spec.
-  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/portable-agent-plugin-projection/spec.md"}]},
-  {path = "docs/product/intents/distribution-route-registry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Extract generic route dispatch after three real routes exist", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}]},
-  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
+  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  # Phase 2b — the schema genericization cut from the Phase 2 slice on 2026-09-03.
+  # Blocked on Phase 2 landing: it removes the per-route enum pins that four of the
+  # eight shipped route-contract refusals rest on, so it needs its own confinement
+  # and compatibility-authority contract. Must land before the Codex route.
+  {path = "docs/product/intents/distribution-route-set-opening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Open the route set so a route needs no schema entry, with confinement for the values the per-route pins currently fix", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/distribution-route-set-opening.md"}]},
   {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
   {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
   # Unblocks when the current Kiro contract is reacquired and the migration
@@ -345,6 +366,7 @@ open = [
   # is approved.
   {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
+  {path = "docs/product/intents/route-decision-analysis-depth.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/distribution-route-registry/spec.md"}, summary = "Give the route-decision checker cross-module depth under its own contract: follow route values across module boundaries, derive the discriminator field set from the route types, cover projector-identity and .get() dispatch, and derive the single-route exemption from the registration the lookup resolves through -- each exemption pinned by a mutation. Split out of distribution-route-registry after five review rounds in which each widening opened the next round's hole", needs = []},
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   # Unblocks when: someone decides whether the seal should admit a prose-only

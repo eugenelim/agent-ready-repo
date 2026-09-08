@@ -14,6 +14,16 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.42.0
+
+The portable Agent Plugin route now reaches every command that works with
+distribution routes. `validate` accepts a pack declaring the
+`per-pack-agent-plugin` recipe, `render --target agent-plugin` selects it,
+`install --emit-install-routes` also writes `agent-plugins/<pack>/`, and
+`install`, `diff`, and `upgrade` each recognise a portable install. Every
+surface now reads its route set from the route contract, so a route declared
+there reaches all of them at once. Published package bytes are unchanged.
+
 ## What's new in 0.41.1
 
 The same release as 0.41.0, which never reached PyPI: its release run failed a

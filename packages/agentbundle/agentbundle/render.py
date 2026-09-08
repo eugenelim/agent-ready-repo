@@ -33,9 +33,9 @@ from typing import Sequence
 
 from agentbundle.build import adapters as _adapters
 from agentbundle.build.main import (
-    DEFAULT_RECIPES,
     Pack,
     _read_bundled,
+    default_recipes,
     discover_packs,
     load_recipe,
     run_recipe,
@@ -73,7 +73,7 @@ def render_pack_to_dir(
     output_dir: Path,
     *,
     contract: dict | None = None,
-    recipes: Sequence[str] = DEFAULT_RECIPES,
+    recipes: Sequence[str] | None = None,
 ) -> None:
     """Render a single pack to `output_dir` using the named recipes.
 
@@ -82,7 +82,7 @@ def render_pack_to_dir(
     """
     pack = _pack_from_path(pack_path)
     contract_data = _resolve_contract(contract)
-    for recipe_name in recipes:
+    for recipe_name in default_recipes() if recipes is None else recipes:
         recipe = load_recipe(recipe_name)
         run_recipe(
             recipe, [pack], output_dir, contract_data, aggregate_scope="single-pack"
@@ -97,7 +97,7 @@ def render_pack(
     pack_path: Path,
     *,
     contract: dict | None = None,
-    recipes: Sequence[str] = DEFAULT_RECIPES,
+    recipes: Sequence[str] | None = None,
 ) -> dict[str, bytes]:
     """Render a pack to a tempdir and return its bytes keyed by relpath.
 
@@ -114,7 +114,7 @@ def render_pack_files(
     pack_path: Path,
     *,
     contract: dict | None = None,
-    recipes: Sequence[str] = DEFAULT_RECIPES,
+    recipes: Sequence[str] | None = None,
 ) -> dict[str, RenderedFile]:
     """Render a pack and return bytes plus portable permission modes.
 
@@ -134,7 +134,7 @@ def render_packs_to_dir(
     *,
     aggregate_scope: str,
     contract: dict | None = None,
-    recipes: Sequence[str] = DEFAULT_RECIPES,
+    recipes: Sequence[str] | None = None,
 ) -> None:
     """Render every pack under `packs_dir` — the full `make build` shape.
 
@@ -147,7 +147,7 @@ def render_packs_to_dir(
     """
     contract_data = _resolve_contract(contract)
     packs = discover_packs(packs_dir)
-    for recipe_name in recipes:
+    for recipe_name in default_recipes() if recipes is None else recipes:
         recipe = load_recipe(recipe_name)
         run_recipe(
             recipe, packs, output_dir, contract_data, aggregate_scope=aggregate_scope

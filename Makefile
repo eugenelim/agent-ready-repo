@@ -581,7 +581,7 @@ $(PYTHON) -m pytest --import-mode=importlib \
 	packs/desk-research/tests/skills/desk-research-project-status/ \
 	packs/desk-research/tests/skills/desk-research-project-synthesize/ \
 	packs/desk-research/tests/skills/devils-advocate/ -q
-$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py -q
+$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py tools/test_check_distribution_route_decisions.py tools/test_route_branch_guard.py -q
 $(3)
 $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q

@@ -1,0 +1,4 @@
+[pack]
+name = "portable"
+version = "0.1.0"
+description = "Skills-only distribution-route golden witness."

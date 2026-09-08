@@ -693,6 +693,34 @@ routes to the reference and that the reference still carries the rule.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
 
+## [agentbundle][0.42.0] — 2026-09-03
+
+### Added
+
+- The portable Agent Plugin route reaches every command that works with
+  distribution routes. `validate` accepts a pack declaring the
+  `per-pack-agent-plugin` recipe, which it rejected before; `render --target
+  agent-plugin` selects that recipe; `install --emit-install-routes` also
+  writes `agent-plugins/<pack>/`; `install`, `diff`, and `upgrade` each
+  recognise a portable install; and `catalogue verify` reports output drift
+  under `agent-plugins/`, which it previously ignored.
+
+### Changed
+
+- Every route-consuming surface reads its route set from the distribution-route
+  contract rather than from a list maintained beside it, so a route declared in
+  the contract reaches all of them at once.
+- The repo-scope install summary and the `install --force` removal notice each
+  list every route subtree involved, in the order the routes are built, so the
+  two already listed keep their positions and the new one is appended.
+- `install --force` now also removes `agent-plugins/<pack>/` during its
+  pre-RFC-0012 dist-tree cleanup, because that cleanup is derived from the
+  declared route set. With `--yes` the removal is unattended, so an unrelated
+  `agent-plugins/<pack>/` beside a managed tree should be moved first. Every
+  subtree is verified to resolve under the output root before removal.
+
+Published package bytes are unchanged for all three routes.
+
 ## [agentbundle][0.41.1] — 2026-09-01
 
 ### Fixed

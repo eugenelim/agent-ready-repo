@@ -7,12 +7,27 @@ import json
 import os
 import shutil
 import stat
+import tomllib
 from pathlib import Path
 
-from agentbundle.build.main import run_default_build
+from agentbundle.build.main import _read_bundled, run_default_build
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "distribution-routes"
 SOURCE_PACKS = Path(__file__).resolve().parent / "fixtures" / "packs"
+
+
+def _route_output_subdirectories() -> dict[str, str]:
+    """Return each declared route and its contract-owned output directory.
+
+    Read through the packaged loader rather than the repository `contracts/`
+    copy: this test tree ships inside the sdist, where only the packaged copy
+    exists. The contract-parity gate keeps the two byte-identical.
+    """
+    contract = tomllib.loads(_read_bundled("distribution-routes.toml"))
+    return {
+        route_name: route["package-layout"]["output-subdir"]
+        for route_name, route in contract["route"].items()
+    }
 
 
 def _inventory(root: Path) -> dict[str, dict[str, object]]:
@@ -41,12 +56,14 @@ def _inventory(root: Path) -> dict[str, dict[str, object]]:
 
 
 def _fixture_packs(root: Path) -> Path:
-    """Create the two-pack route witness without mutating source fixtures."""
+    """Create route witnesses, including one eligible for skills-only output."""
     packs = root / "packs"
     publishable = packs / "publishable"
     repo_only = packs / "repo-only"
+    portable = packs / "portable"
     shutil.copytree(SOURCE_PACKS / "core", publishable)
     shutil.copytree(SOURCE_PACKS / "user-guide-diataxis", repo_only)
+    shutil.copytree(FIXTURE_ROOT / "witness-packs" / "portable", portable)
 
     publishable_pack = publishable / "pack.toml"
     publishable_pack.write_text(
@@ -87,13 +104,13 @@ def _fixture_packs(root: Path) -> Path:
 
 
 def _build_inventories(root: Path) -> dict[str, dict[str, dict[str, object]]]:
-    """Build the characterization fixture and inventory both route roots."""
+    """Build the characterization fixture and inventory every route root."""
     packs = _fixture_packs(root)
     output = root / "dist"
     run_default_build(packs, output)
     return {
-        "apm": _inventory(output / "apm"),
-        "claude-plugins": _inventory(output / "claude-plugins"),
+        route_name: _inventory(output / output_subdirectory)
+        for route_name, output_subdirectory in _route_output_subdirectories().items()
     }
 
 
@@ -114,14 +131,13 @@ def _assert_lossless_inventory(inventory: dict[str, object]) -> None:
             assert isinstance(entry["target"], str) and entry["target"]
 
 
-# AC8 — both existing route trees have a lossless pre-migration oracle.
-def test_golden_oracle_declares_both_route_trees(tmp_path: Path) -> None:
-    """Require both route inventories before route ownership is migrated."""
+def test_golden_oracle_declares_every_route_tree(tmp_path: Path) -> None:
+    """Require a lossless inventory for every declared distribution route."""
     oracle_path = FIXTURE_ROOT / "golden.json"
 
     assert oracle_path.is_file(), "pre-migration distribution-route oracle is missing"
     oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
-    assert set(oracle) == {"apm", "claude-plugins"}
+    assert set(oracle) == set(_route_output_subdirectories())
     for inventory in oracle.values():
         assert isinstance(inventory, dict)
         _assert_lossless_inventory(inventory)
@@ -157,12 +173,14 @@ def test_golden_oracle_declares_both_route_trees(tmp_path: Path) -> None:
     assert "repo-only/apm.yml" in apm_paths
     assert not any(path.startswith("repo-only/") for path in claude_paths)
     assert "marketplace.json" in claude_paths
+    assert oracle["agent-plugin"]
+    assert "portable/plugin.json" in oracle["agent-plugin"]
+    assert "portable/skills/example/SKILL.md" in oracle["agent-plugin"]
     assert _build_inventories(tmp_path) == oracle
 
 
-# AC14 — safe source links remain links and are never materialized as bytes.
 def test_golden_oracle_preserves_safe_links_without_dereference() -> None:
-    """Pin the existing non-dereferencing behavior on both package routes."""
+    """Pin the existing non-dereferencing behavior on package routes."""
     oracle_path = FIXTURE_ROOT / "golden.json"
     assert oracle_path.is_file(), "pre-migration distribution-route oracle is missing"
     oracle = json.loads(oracle_path.read_text(encoding="utf-8"))

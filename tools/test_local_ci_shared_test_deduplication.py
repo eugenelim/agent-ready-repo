@@ -180,6 +180,13 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_sidebar.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
+    # Added with the distribution-route decision checker. Nothing globs
+    # `tools/test_*.py`, so both were unreachable from any gate before this:
+    # the first carries the checker's own mutation evidence, and the second is
+    # the guard that fails when a route decision returns to shared build-time
+    # code. An ungated guard proves nothing, so both join this batch.
+    "tools/test_check_distribution_route_decisions.py",
+    "tools/test_route_branch_guard.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -479,11 +486,21 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # so that pin was current and this change is the sole cause of the move. Exactly
 # one line shifts in each plan, gaining one token, and that token is the new
 # module; no other line moves, is reordered, or is dropped.
+#
+# Re-pinned again 2026-09-03 for the two distribution-route checker modules,
+# which join the first tools batch. Dispositioned the same way: the same
+# `_effective_composition_errors` path was run against this worktree with the
+# Makefile line reverted, and it reproduced both digests above exactly, so those
+# pins were current and this change is the sole cause of the move. Exactly one
+# line shifts in each plan, gaining two tokens, and those tokens are the two new
+# modules; no other line moves, is reordered, or is dropped. Line counts are
+# unchanged — that batch is one continued command, so the modules lengthen an
+# existing line rather than adding one.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "30a6d639613ad403de92fa92c8e051b754f7d77dadcd254bbbed6b35ff281741"
+    "d9b384d330622ce7a9e5a674795fdc48596839a33bd684b93ec7af96e24b66ed"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "5da61f5455bad0cabd23d548ecba774fc01dcd6a3a2aa9cd76f41b53fd679982"
+    "6a28d42a69f54ff5c4ed0427eafabb601604e173eb107a52ec7cc293a2183489"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

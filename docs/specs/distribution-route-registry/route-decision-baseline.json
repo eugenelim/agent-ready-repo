@@ -1,0 +1,471 @@
+{
+  "coverage": {
+    "decision_nodes": 11212,
+    "python_files": 131,
+    "residue_count": 0,
+    "route_literal_nodes": 55,
+    "route_value_decisions": 6
+  },
+  "coverage_residue": [],
+  "excluded": [
+    "_data/install-marker.py"
+  ],
+  "findings": [
+    {
+      "column": 34,
+      "detail": "route_data['route']['claude-plugins']",
+      "form": "route-literal",
+      "line": 517,
+      "path": "build/lint_packs.py",
+      "shape": "mapping-key"
+    },
+    {
+      "column": 1,
+      "detail": "DEFAULT_RECIPES = ('per-pack-claude-plugin', 'per-pack-apm-package', 'per-pack-agent-plugin', 'marketplace')",
+      "form": "route-literal",
+      "line": 402,
+      "path": "build/main.py",
+      "shape": "route-collection"
+    },
+    {
+      "column": 5,
+      "detail": "route_metadata = metadata.get('agent-plugin', {}) if isinstance(metadata, dict) else {}",
+      "form": "route-literal",
+      "line": 701,
+      "path": "build/main.py",
+      "shape": "route-path"
+    },
+    {
+      "column": 8,
+      "detail": "route_name not in {'apm', 'claude-plugins', 'agent-plugin'}",
+      "form": "route-literal",
+      "line": 1241,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 5,
+      "detail": "not isinstance(routes, dict) or not isinstance(routes.get(route_name), dict)",
+      "form": "contract-derived-value",
+      "line": 1247,
+      "path": "build/main.py",
+      "shape": "conditional"
+    },
+    {
+      "column": 17,
+      "detail": "routes[route_name]",
+      "form": "contract-derived-value",
+      "line": 1252,
+      "path": "build/main.py",
+      "shape": "mapping-lookup"
+    },
+    {
+      "column": 5,
+      "detail": "expected_admission = {'apm': 'all-packs', 'claude-plugins': 'user-publishable-with-consent', 'agent-plugin': 'skills-only'}[route_name]",
+      "form": "route-literal",
+      "line": 1256,
+      "path": "build/main.py",
+      "shape": "dispatch-map"
+    },
+    {
+      "column": 26,
+      "detail": "{'apm': 'all-packs', 'claude-plugins': 'user-publishable-with-consent', 'agent-plugin': 'skills-only'}[route_name]",
+      "form": "contract-derived-value",
+      "line": 1256,
+      "path": "build/main.py",
+      "shape": "mapping-lookup"
+    },
+    {
+      "column": 5,
+      "detail": "expected_adapter = {'apm': None, 'claude-plugins': 'claude-code', 'agent-plugin': None}[route_name]",
+      "form": "route-literal",
+      "line": 1272,
+      "path": "build/main.py",
+      "shape": "dispatch-map"
+    },
+    {
+      "column": 24,
+      "detail": "{'apm': None, 'claude-plugins': 'claude-code', 'agent-plugin': None}[route_name]",
+      "form": "contract-derived-value",
+      "line": 1272,
+      "path": "build/main.py",
+      "shape": "mapping-lookup"
+    },
+    {
+      "column": 8,
+      "detail": "diagnostic_route != 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1367,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 16,
+      "detail": "diagnostic_route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1392,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 16,
+      "detail": "diagnostic_route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1398,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 16,
+      "detail": "diagnostic_route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1409,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 16,
+      "detail": "diagnostic_route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1420,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 16,
+      "detail": "diagnostic_route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1428,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 43,
+      "detail": "resolved_route.identity == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1670,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 47,
+      "detail": "resolved_route.identity == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 1681,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 39,
+      "detail": "resolved_route.package_projector == 'apm-package'",
+      "form": "contract-derived-value",
+      "line": 1738,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 13,
+      "detail": "resolved_route.package_projector == 'agent-plugin-root-manifest'",
+      "form": "contract-derived-value",
+      "line": 1743,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 13,
+      "detail": "resolved_route.identity == 'claude-plugins'",
+      "form": "route-literal",
+      "line": 1763,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 8,
+      "detail": "resolved_route.identity != 'claude-plugins'",
+      "form": "route-literal",
+      "line": 1843,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 13,
+      "detail": "resolved_route.identity == 'claude-plugins'",
+      "form": "route-literal",
+      "line": 1938,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 13,
+      "detail": "discover_packs(packs_dir, diagnostic_route='agent-plugin')",
+      "form": "route-literal",
+      "line": 2386,
+      "path": "build/main.py",
+      "shape": "route-argument"
+    },
+    {
+      "column": 5,
+      "detail": "for recipe_name in DEFAULT_RECIPES:",
+      "form": "route-literal",
+      "line": 2388,
+      "path": "build/main.py",
+      "shape": "collection-iteration"
+    },
+    {
+      "column": 21,
+      "detail": "discover_packs(packs_dir, diagnostic_route='agent-plugin' if recipe.route == 'agent-plugin' else None)",
+      "form": "route-literal",
+      "line": 2424,
+      "path": "build/main.py",
+      "shape": "route-argument"
+    },
+    {
+      "column": 39,
+      "detail": "recipe.route == 'agent-plugin'",
+      "form": "route-literal",
+      "line": 2427,
+      "path": "build/main.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 9,
+      "detail": "dist_plugins = output_dir / 'dist' / 'claude-plugins'",
+      "form": "route-literal",
+      "line": 1607,
+      "path": "build/self_host.py",
+      "shape": "route-path"
+    },
+    {
+      "column": 9,
+      "detail": "dist_apm = output_dir / 'dist' / 'apm'",
+      "form": "route-literal",
+      "line": 1713,
+      "path": "build/self_host.py",
+      "shape": "route-path"
+    },
+    {
+      "column": 5,
+      "detail": "dist_dir = tmpdir / 'dist' / 'claude-plugins'",
+      "form": "route-literal",
+      "line": 1228,
+      "path": "catalogue_tooling/verify.py",
+      "shape": "route-path"
+    },
+    {
+      "column": 5,
+      "detail": "projection_roots = {'claude-plugins', 'apm'}",
+      "form": "route-literal",
+      "line": 1348,
+      "path": "catalogue_tooling/verify.py",
+      "shape": "route-collection"
+    },
+    {
+      "column": 17,
+      "detail": "relative.parts[0] in projection_roots",
+      "form": "route-literal",
+      "line": 1353,
+      "path": "catalogue_tooling/verify.py",
+      "shape": "collection-comparison"
+    },
+    {
+      "column": 12,
+      "detail": "relative.parts[0] not in projection_roots",
+      "form": "route-literal",
+      "line": 1360,
+      "path": "catalogue_tooling/verify.py",
+      "shape": "collection-comparison"
+    },
+    {
+      "column": 9,
+      "detail": "rp.startswith(('apm/', 'claude-plugins/'))",
+      "form": "route-literal",
+      "line": 160,
+      "path": "commands/diff.py",
+      "shape": "startswith-prefix"
+    },
+    {
+      "column": 1,
+      "detail": "_LEGACY_INSTALL_ROUTE_RECIPES = ('per-pack-claude-plugin', 'per-pack-apm-package', 'marketplace')",
+      "form": "route-literal",
+      "line": 59,
+      "path": "commands/install.py",
+      "shape": "route-collection"
+    },
+    {
+      "column": 29,
+      "detail": "render_pack(pack_dir, recipes=_LEGACY_INSTALL_ROUTE_RECIPES)",
+      "form": "route-literal",
+      "line": 1187,
+      "path": "commands/install.py",
+      "shape": "collection-argument"
+    },
+    {
+      "column": 41,
+      "detail": "rp.startswith(('claude-plugins/', 'apm/'))",
+      "form": "route-literal",
+      "line": 1380,
+      "path": "commands/install.py",
+      "shape": "startswith-prefix"
+    },
+    {
+      "column": 13,
+      "detail": "for subdir in ('claude-plugins', 'apm'):",
+      "form": "route-literal",
+      "line": 1908,
+      "path": "commands/install.py",
+      "shape": "iteration"
+    },
+    {
+      "column": 5,
+      "detail": "for top in ('claude-plugins', 'apm'):",
+      "form": "route-literal",
+      "line": 2451,
+      "path": "commands/install.py",
+      "shape": "iteration"
+    },
+    {
+      "column": 1,
+      "detail": " for top in ('claude-plugins', 'apm') if (output_root / top / pack_name).exists()",
+      "form": "route-literal",
+      "line": 2591,
+      "path": "commands/install.py",
+      "shape": "comprehension-iteration"
+    },
+    {
+      "column": 17,
+      "detail": "for top in ('claude-plugins', 'apm'):",
+      "form": "route-literal",
+      "line": 2619,
+      "path": "commands/install.py",
+      "shape": "iteration"
+    },
+    {
+      "column": 5,
+      "detail": "known_hyphenated = set(ADAPTERS.keys()) | {'apm'}",
+      "form": "route-literal",
+      "line": 136,
+      "path": "commands/render.py",
+      "shape": "route-path"
+    },
+    {
+      "column": 8,
+      "detail": "canonical == 'apm'",
+      "form": "route-literal",
+      "line": 156,
+      "path": "commands/render.py",
+      "shape": "comparison"
+    },
+    {
+      "column": 9,
+      "detail": "return ['per-pack-apm-package']",
+      "form": "route-literal",
+      "line": 157,
+      "path": "commands/render.py",
+      "shape": "route-result"
+    },
+    {
+      "column": 9,
+      "detail": "return ['per-pack-claude-plugin', 'marketplace']",
+      "form": "route-literal",
+      "line": 159,
+      "path": "commands/render.py",
+      "shape": "route-result"
+    },
+    {
+      "column": 9,
+      "detail": "rp.startswith(('apm/', 'claude-plugins/'))",
+      "form": "route-literal",
+      "line": 84,
+      "path": "commands/upgrade.py",
+      "shape": "startswith-prefix"
+    },
+    {
+      "column": 1,
+      "detail": "VALID_RECIPES: frozenset[str] = frozenset({'per-pack-claude-plugin', 'per-pack-apm-package', 'marketplace', 'per-pack-overlay', 'composite-agents-md', 'composite-marketplace'})",
+      "form": "route-literal",
+      "line": 37,
+      "path": "commands/validate.py",
+      "shape": "route-collection"
+    },
+    {
+      "column": 12,
+      "detail": "recipe not in VALID_RECIPES",
+      "form": "route-literal",
+      "line": 182,
+      "path": "commands/validate.py",
+      "shape": "collection-comparison"
+    },
+    {
+      "column": 45,
+      "detail": "print(f'validate: unknown recipe {recipe!r}; valid recipes are {sorted(VALID_RECIPES)}', file=sys.stderr)",
+      "form": "route-literal",
+      "line": 185,
+      "path": "commands/validate.py",
+      "shape": "collection-argument"
+    },
+    {
+      "column": 45,
+      "detail": "sorted(VALID_RECIPES)",
+      "form": "route-literal",
+      "line": 185,
+      "path": "commands/validate.py",
+      "shape": "collection-argument"
+    }
+  ],
+  "limits": [
+    "reflection and dynamically generated Python are not interpreted",
+    "native extensions and non-Python decision surfaces are outside this scan",
+    "unannotated higher-order route-value flow is reported as coverage residue",
+    "route-bearing dataclass carriers are followed transitively within one module; carrier annotations imported from another module are not resolved",
+    "the value pass is module-local: a route value handed across a module boundary reaches its consumer untainted, so a decision made on it there is not reported. Closing that is tracked by the route-decision-analysis follow-on",
+    "a call made through a route type's declared collaborator field, passing only carriers or the route's own declared fields, is read as dispatch rather than a decision",
+    "dispatch spelled `mapping.get(route_value)` is not reported; the subscript form `mapping[route_value]` is. Covering both is part of the route-decision-analysis-depth follow-on",
+    "a per-route projector identity \u2014 the `manifest-projector.name`, `package-layout.name` or `marketplace-projector` value a registration seam matches on \u2014 is not vocabulary, so shared code keying behavior off one is not reported. Covering it needs an exemption for the modules that legitimately match on it, which the same follow-on carries",
+    "a route-bearing annotation written as a quoted forward reference is not recognised as a taint source; this tree uses postponed evaluation, so bare annotations are the idiom, but a quoted one would evade the value form"
+  ],
+  "measuring_commit": "1134701ba584ce5375358943f2cbab4ea69574a0",
+  "mutations": [
+    {
+      "form": "shared-code-route-literal",
+      "source": "return candidate == \"apm\"",
+      "why": "kills an inline route-name comparison"
+    },
+    {
+      "form": "shared-code-route-literal",
+      "source": "ROUTES = {\"apm\", \"claude-plugins\"}; return candidate in ROUTES",
+      "why": "kills a separated literal collection and its later decision sink"
+    },
+    {
+      "form": "shared-code-route-literal",
+      "source": "HANDLERS = {\"apm\": handler}",
+      "why": "kills a route-keyed dispatch map"
+    },
+    {
+      "form": "shared-code-route-literal",
+      "source": "parser.add_argument(\"--route\", choices=[\"apm\"])",
+      "why": "kills a route enumeration in an argument list"
+    },
+    {
+      "form": "shared-code-route-literal",
+      "source": "return path.startswith((\"apm/\", \"claude-plugins/\"))",
+      "why": "kills route-root prefixes that a bare-name search misses"
+    },
+    {
+      "form": "contract-derived-route-value",
+      "source": "return resolved.identity == some_key",
+      "why": "kills a route decision with no route literal present"
+    },
+    {
+      "form": "contract-derived-route-value",
+      "source": "return handlers[resolved.identity]",
+      "why": "kills a lookup decision with no comparison or route literal"
+    },
+    {
+      "form": "contract-derived-route-value",
+      "source": "@dataclass(frozen=True)\nclass Context:\n    resolved_route: ResolvedDistributionRoute\nreturn context.resolved_route.identity == some_key",
+      "why": "kills a decision reached through a route-bearing dataclass field"
+    }
+  ],
+  "schema": "distribution-route-decision-baseline.v1",
+  "scope": "packages/agentbundle/agentbundle/**/*.py shared build-time code"
+}
