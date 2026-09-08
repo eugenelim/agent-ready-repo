@@ -26,8 +26,7 @@ All five run in ONE semgrep process; see `scan_all` for why that is safe.
 `paths.include` matched each target and the rule's verdict on it was as
 expected. It does NOT mean the target parsed: a whole-file parse failure is
 reported as scanned-with-no-findings and no error, so a ratcheted script that
-stops parsing reads as clean (see `scan_all`, and the
-`sast-semgrep-unparseable-target-reads-clean` backlog entry). Nor does it prove
+stops parsing reads as clean (see `scan_all`). Nor does it prove
 the boundary is validated — see the rule's own header, which is emphatic that it
 is a tripwire for the obvious regression, not a proof of correctness.
 
@@ -62,8 +61,7 @@ from pathlib import Path
 # tools/requirements.txt for local runs. The alternative — regex-scraping
 # `paths.include` out of the rule file — is the re-implement-a-YAML-parser
 # antipattern that produced five of six review rounds against
-# tools/test-build-check-workflow.py (see
-# `ci-gate-parallelization-posture-test-yaml-parser` in workspace.toml).
+# tools/test-build-check-workflow.py.
 import yaml
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -228,8 +226,7 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
     failure (`def broken(:`, `3 = x`) yields empty `errors`, empty `skipped`,
     empty stderr and exit 0 even under `--strict` — nothing to gate on. So a
     ratcheted script can still stop parsing and read as clean here. The residue
-    predates batching and is unchanged by it; tracked as
-    `sast-semgrep-unparseable-target-reads-clean` in `workspace.toml`.
+    predates batching and is unchanged by it.
 
     One process, not one per target, because semgrep's startup dominates its work
     on inputs this small — five invocations over five small files spent several

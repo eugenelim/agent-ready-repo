@@ -10,8 +10,8 @@ Scope note, because the two halves of a token posture are separate zizmor
 audits: this guard filters on `excessive-permissions` alone, so it makes a
 workflow's `permissions:` block durable and says nothing about
 `persist-credentials:` on its checkouts — that is the `artipacked` ident, still
-only visible to the broad gate at its high-severity floor. The uncovered half is
-recorded in `workflow-posture-guard-coverage-gaps`.
+only visible to the broad gate at its high-severity floor, which leaves the
+`persist-credentials:` half uncovered here.
 """
 
 from __future__ import annotations

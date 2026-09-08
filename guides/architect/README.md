@@ -11,7 +11,9 @@ Get an evidence-backed view of the architecture before deciding whether to
 harden, optimize, scale, modernize, replace, or retain it. You can begin without
 knowing a skill name:
 
-> Assess architecture and provide an action plan.
+```text
+Assess architecture and provide an action plan.
+```
 
 The first result is a current-state model you can correct, not a verdict. After
 you accept the map, the agent shows attention hotspots and asks where to drill
@@ -38,6 +40,8 @@ retrieval, executable checks, runtime evidence, experiments, and file writes.
   ledger, attention heat map, and selected next investigation.
 - [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md)
   — separately capture one real engineering standard and use it to steer design.
+- [Hand an intent to build](../product-engineering/how-to/hand-an-intent-to-build.md)
+  — move shaped work into the build loop.
 
 ## Look up behavior
 

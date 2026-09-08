@@ -8,6 +8,7 @@ tagline: "Build a web surface, then prove it holds up."
 prerequisitePacks: []
 contract:
   useItWhen: "You need to create, retrofit, audit, or verify an HTML/CSS/JS surface with a page/screen contract, accessible states, Core Web Vitals targets, and completion evidence."
+  youType: "Build this screen against its page contract."
   youProvide: "A surface brief, existing page, or completed implementation, plus any product constraints, routes, viewports, design references, and available performance data."
   youReceive: "A proportional page/screen contract, implementation or audit path, gate results, evidence manifest, and independent frontend review focused on regressions that ordinary tests miss."
   yourDecisions:

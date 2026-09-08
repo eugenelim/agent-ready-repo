@@ -109,9 +109,10 @@ the skill becomes available.
 
 ## Suggested workspace.toml entry
 ```toml
-{slug = "agent-skill-discovery-gap", type = "shape"},
+{path = "docs/product/shaping/agent-skill-discovery-gap/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
 ```
-Add to `[ini-NNN.shaping_queue]` backlog via `queue-add` or manually.
+Register through `work-intake`, or add to the `["ini-NNN".shaping_queue]`
+backlog by hand.
 ```
 
 ---
@@ -121,10 +122,10 @@ Add to `[ini-NNN.shaping_queue]` backlog via `queue-add` or manually.
 The agent prints:
 
 ```toml
-{slug = "agent-skill-discovery-gap", type = "shape"},
+{path = "docs/product/shaping/agent-skill-discovery-gap/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
 ```
 
-> Add this to your active initiative's `[shaping_queue]` backlog in
-> `workspace.toml`. Use `queue-add` or edit manually. Once added,
-> `workspace-status` will surface it as a ready shaping item pointing to
+> Add this to your active initiative's `["ini-NNN".shaping_queue]` backlog in
+> `workspace.toml`. Register it through `work-intake`, or edit by hand. Once
+> added, `workspace-status` will surface it as a ready shaping item pointing to
 > `identify-opportunities`.

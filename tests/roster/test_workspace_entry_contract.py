@@ -164,6 +164,7 @@ def test_schema_is_valid_and_versioned() -> None:
     assert schema["x-spec"] == [
         "docs/specs/normalized-intake-workspace-contracts/",
         "docs/specs/semantic-surface-resolver/",
+        "docs/specs/dependency-scoped-completion-receipts/",
     ]
 
 

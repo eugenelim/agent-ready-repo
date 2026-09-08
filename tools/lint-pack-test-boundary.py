@@ -1264,7 +1264,7 @@ _NO_RUNNER = {
     "packs/atlassian/tests/skills/jira-team-status":
         "run by tools/check-atlassian-phase3-readiness.py, which no workflow invokes",
     "packs/converters/tests/skills/render-proof":
-        "no CI exists for pack-level JavaScript; see pack-js-ci-workflow",
+        "no CI exists for pack-level JavaScript",
     "packs/figma/tests/skills/figma": "never gated",
     "packs/governance-extras/tests/skills/new-adr": "never gated",
     "packs/governance-extras/tests/skills/new-rfc": "never gated",

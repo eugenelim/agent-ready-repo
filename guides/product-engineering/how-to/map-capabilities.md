@@ -17,6 +17,10 @@ to build — before any spec or brief is written.
 
 **Skill:** `map-capabilities` (PE pack, user scope)
 
+```text
+Map our capabilities for a self-service export-retention service for workspace owners.
+```
+
 ---
 
 ## When to run `map-capabilities`
@@ -28,6 +32,8 @@ It is step 6 — the terminal step — of the PE six-step shaping sequence:
 frame-situation → identify-opportunities → diverge-solutions
   → validate → place-bet → map-capabilities
 ```
+
+This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
 
 You need a committed bet before running this skill. The bet provides the option,
 appetite, and rationale that anchor the capability domains the skill proposes.
@@ -123,3 +129,8 @@ After the capability map is committed:
 - `frame-situation` — step 1; provides Wardley capability assessments the map reads opportunistically
 - `de-risk-intent` — step 4 (validate); runs assumption tests before the bet is placed
 - `workspace-status` — surfaces the spec queue after you seed it from the build sequence
+
+## What you have now
+
+- A capability map with maturity, criticality, disposition, and dependency-aware build order.
+- Its Build capabilities can inform a Lean Canvas or delivery brief and seed the future spec queue.

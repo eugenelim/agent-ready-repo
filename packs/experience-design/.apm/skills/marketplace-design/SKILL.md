@@ -1,6 +1,6 @@
 ---
 name: marketplace-design
-description: "Use when someone asks how a catalogue, listing grid, comparison view, detail page, or transaction bridge should help participants discover and choose in a marketplace. Produces information-architecture specifications for search, filters, listings, comparison, and the path to transaction. Use `conversion-design` for a single-product marketing page and `workspace-design` for an internal management tool. Marketplace strategy is upstream; framing and sizing the marketplace bet belongs to product engineering; implementing search, filters, transactions, or listing copy belongs elsewhere."
+description: "Use when someone asks how a catalogue, listing grid, comparison view, detail page, or transaction bridge should help participants discover and choose in a marketplace. Produces information-architecture specifications for search, filters, listings, comparison, and the path to transaction. Use `conversion-design` for a single-product marketing page and `workspace-design` for an internal management tool. Marketplace strategy is upstream; framing and sizing the marketplace bet belongs to product engineering; implementing search, filters, transactions, or listing copy belongs elsewhere. Triggers on \"design the filters and listing hierarchy for our contractor marketplace\", \"structure this catalogue for browse-first buyers\", \"spec the comparison and transaction path for our service listings\"."
 ---
 
 # Skill: marketplace-design

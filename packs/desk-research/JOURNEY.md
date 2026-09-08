@@ -8,6 +8,7 @@ tagline: "Evidence-grounded desk research — portable across every repo."
 prerequisitePacks: []
 contract:
   useItWhen: "You have a question that needs evidence grounded in primary sources — single-session query or a sustained multi-week investigation."
+  youType: "Research how other teams solve this, with citations."
   youProvide: "A research question, a chosen depth mode, and any known sources or prior corpus."
   youReceive: "A confidence-graded synthesis brief citing primary sources, with an explicit gap map."
   yourDecisions:

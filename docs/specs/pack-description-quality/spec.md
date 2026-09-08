@@ -1,6 +1,6 @@
 # Spec: pack-description-quality
 
-- **Status:** Shipped
+- **Status:** Shipped (§ Acceptance criteria's register anchor `credential-brokers-description-rewrite` was closed by commit 1bdf7514d; not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — this spec changes no published schema or adapter contract.
@@ -73,7 +73,7 @@ costs no findability.
       inventory. One pack is deliberately not rewritten —
       `credential-brokers`, whose tree the catalogue-curation guard protects
       with no carve-out and whose description is already inside the backstop at
-      241 chars (deferred: credential-brokers-description-rewrite).
+      241 chars (deferred: credential-brokers-description-rewrite — closed 2026-09-03 by 1bdf7514d).
 - [x] AC5. No pack description contains a cross-pack reference, a bare component
       inventory as its opening clause, or an internal file path.
 - [x] AC6. For every pack whose description changed, `pack.toml`,

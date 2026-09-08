@@ -123,6 +123,62 @@ def test_ac15_distill_records_one_terminal_disposition(repo: Path, store) -> Non
         store.distill_observation(repo, _promotion(receipt, store))
 
 
+def test_promoted_distillation_can_retire_topic_end_to_end(
+    repo: Path, store
+) -> None:
+    first_receipt = _capture(repo, store)
+    first = _promotion(first_receipt, store)
+    store.distill_observation(repo, first)
+    topic_path = store.topic_path_for_key(repo, first["mutation"]["topic_key"])
+    existing_topic_bytes = topic_path.read_bytes()
+
+    retirement_receipt = _capture(
+        repo,
+        store,
+        lesson="Retire knowledge after its contract is enforced.",
+    )
+    retirement = _promotion(retirement_receipt, store)
+    mutation = retirement["mutation"]
+    mutation["expected_topic_digest"] = store.PK.digest_bytes(existing_topic_bytes)
+    mutation["lifecycle"] = "retired"
+    mutation["retirement"] = {
+        "reason": "enforced",
+        "successors": ["contracts/public-contracts.json"],
+        "coverage_verified": True,
+    }
+    retirement["mutation"] = store.complete_mutation_proposal(
+        mutation,
+        existing_topic_bytes=existing_topic_bytes,
+    )
+
+    store.distill_observation(repo, retirement)
+
+    topic = json.loads(topic_path.read_bytes())
+    assert topic["lifecycle"] == "retired"
+    assert topic["retirement"] == mutation["retirement"]
+    topic_map = json.loads((repo / "docs/knowledge/topics.index.json").read_bytes())
+    assert topic_map["entries"][0]["lifecycle"] == "retired"
+    subprocess.run(["git", "add", "docs/knowledge"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "test: retire topic through distillation"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    enquiry = store.enquire(
+        repo,
+        {
+            "task_summary": "Check retired knowledge selection.",
+            "scope": "packs/core",
+            "question": None,
+            "question_id": "CQ-VERIFY",
+            "caller": "skill",
+            "risk": "routine",
+        },
+    )
+    assert enquiry["receipt"]["selected_topics"] == []
+
+
 def test_ac14_generic_terminal_writer_cannot_create_promoted_disposition(
     repo: Path, store
 ) -> None:

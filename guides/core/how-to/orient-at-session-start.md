@@ -13,6 +13,10 @@ kind: how-to
 
 You are starting an agent session on a repo that uses `workspace.toml`. This guide walks you through running `workspace-status` to read the queue state, identifying your active initiative, and picking your next action before starting any work.
 
+```text
+Show me the workspace status for this session and the next ready action.
+```
+
 For *why* the shaping and build queues are separated, see [The two-room model](../explanation/two-room-model.md). For the authoritative description of every `workspace.toml` field, see [workspace.toml schema reference](../reference/workspace-toml-schema.md).
 
 ## Prerequisites
@@ -89,6 +93,12 @@ You now have enough context to start. The common cases:
 | Nothing is ready; everything is blocked | Surface the blocking dependency — resolve it or capture a follow-on |
 | A tracker-origin artifact has a newer source revision | Ask `work-intake` to refresh it and review the field delta |
 | A legacy entry is visible | Review its exact source slice and candidate routes, then use the read-only migration planner |
+
+## What you have now
+
+You have the active initiative and milestone, the current queue state, and a
+safe next action for this session. Start the selected ready item, or resolve a
+named blocker before choosing another task.
 
 ## Related
 

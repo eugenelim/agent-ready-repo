@@ -28,8 +28,7 @@ EXCLUDED_PACKS = {
 GUIDE_OPTIONAL_PACKS: set[str] = {
     # docs/specs/agent-skill-engineering-foundation AC21: the M1 slice ships the
     # portable pack and its mandatory catalogue-parity record, and leaves the
-    # guide to a later planned documentation slice. Backlog:
-    # agent-skill-engineering-guide-and-docsurl.
+    # guide to a later planned documentation slice.
     "agent-skill-engineering",
 }
 

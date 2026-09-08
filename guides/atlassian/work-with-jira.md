@@ -9,6 +9,10 @@ order: 2
 status: stable
 ---
 
+**Mode: tracker-authoritative.** This guide assumes Jira holds the team's real
+backlog. If `docs/product/` is canonical and Jira is only for reporting, use
+[repo-first projection](README.md#which-mode-are-you-in) instead.
+
 Ask in your own words. The agent selects the right workflow, starts read-only, and only writes to Jira after you approve the exact change.
 
 **Reviewing and drafting do not change Jira. Only an explicitly approved update request writes to Jira.**

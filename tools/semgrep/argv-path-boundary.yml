@@ -48,8 +48,7 @@
 # EXPANSION CONDITION: add a path here as its script adopts a boundary
 # validator (`_validated_root` / `_resolved_report` or equivalent). Do not add
 # a path before the fix lands, or the gate goes red on unrelated work. The
-# remaining ~68 sites are tracked in workspace.toml [backlog].open under
-# `pack-argv-path-boundary-sweep`.
+# remaining ~68 sites are not validated yet.
 
 rules:
   - id: argv-path-without-boundary-validator

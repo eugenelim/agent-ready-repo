@@ -86,13 +86,24 @@ IN_SCOPE = None
 
 WORKFLOW_SCOPE: dict[str, str | None] = {
     "build-check.yml": IN_SCOPE,
+    "test-corpus.yml":
+        "Out of scope, and deliberately so. It invokes `make test` undecomposed, "
+        "so it cannot diverge from the local target the way an extracted lane "
+        "could — there is nothing for a parity check to compare. Dispatch-only: "
+        "it runs on no pull request, so it gates nothing and claims nothing "
+        "beyond what `make test` claims (spec/remote-gate-dispatch).",
+    "test-roster.yml":
+        "Out of scope. It runs one suite in parallel, which is deliberately NOT "
+        "equivalent to any local invocation: `make test` reaches the roster "
+        "serially through its `tests/` sweep. Parity is not the claim, so a "
+        "parity check would assert a correspondence this surface disclaims. "
+        "Dispatch-only (spec/remote-gate-dispatch).",
     "build-check-windows.yml":
         "Windows runner; drives `agentbundle catalogue self-host --check "
         "--windows`, which a macOS/Linux `make ci` cannot reproduce.",
     "docs.yml":
         "Out of scope for this gate. `make pre-pr` overlaps much of it "
-        "incidentally, but nothing verifies that overlap — see workspace.toml "
-        "[backlog].open `ci-parity-docs-yml-out-of-scope`.",
+        "incidentally, but nothing verifies that overlap.",
     "catalogue-tooling-ci-gates.yml":
         "Out of scope; same backlog entry as docs.yml. Note: this one bites — "
         "its Gate B fixture is a synthetic external catalogue built by "
@@ -459,6 +470,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest RFC-0099 activation + fixture register (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest TDD stub lifecycle contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest agent-skill-engineering consumer integrations (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest curation QA + RFC template contracts (roster-owned)":
         LOCAL("test-after-build-check"),

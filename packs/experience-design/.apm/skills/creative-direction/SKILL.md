@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `creative-direction.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `creative-direction.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\"."
 ---
 
 # Skill: creative-direction

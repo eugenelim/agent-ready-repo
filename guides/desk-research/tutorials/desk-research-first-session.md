@@ -13,7 +13,7 @@ kind: tutorial
 
 In about twenty minutes you'll install the `desk-research` pack at user scope, run `/desk-research` in all four modes against real questions, and see the artifact signature that distinguishes them. By the end you'll know which mode to reach for and what each one leaves behind on disk.
 
-This is a tutorial — it leads. For the dry catalogue of every flag and field, see the [desk-research pack reference](../reference/desk-research-pack.md). For *why* the pack is shaped the way it is — seven convergent methodologies, mode-on-research, retrieval-only subagents — see [the research methodology explanation](../explanation/desk-research-methodology.md).
+This is a tutorial — it leads. For the dry catalogue of every flag and field, see the [desk-research pack reference](../reference/desk-research-pack.md). For *why* the pack is shaped the way it is — seven convergent methodologies, mode-on-research, retrieval-only subagents — see [the research methodology explanation](../explanation/research-methodology.md).
 
 ## Prerequisites
 
@@ -198,10 +198,10 @@ That signature is the work-loop verification gate — each mode is *observably* 
 
 ## Where to go next
 
-- The [how-to guide on research pipelines](../how-to/desk-research-pipelines.md) shows the three multi-skill recipes (survey, decision, archaeology).
+- The [how-to guide on research pipelines](../how-to/research-pipelines.md) shows the three multi-skill recipes (survey, decision, archaeology).
 - Got a question that outlasts one sitting? [Your first research project](your-first-research-project.md) walks the project lifecycle, and [episodic vs project research](../explanation/episodic-vs-project-research.md) explains when to reach for it instead of a one-off run.
 - The [reference](../reference/desk-research-pack.md) catalogues every skill, subagent, mode, and depth cue.
-- The [explanation](../explanation/desk-research-methodology.md) covers the seven methodologies and the design choices that shaped the pack.
+- The [explanation](../explanation/research-methodology.md) covers the seven methodologies and the design choices that shaped the pack.
 
 ## Manual-QA timing note
 

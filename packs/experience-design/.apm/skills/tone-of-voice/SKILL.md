@@ -1,6 +1,6 @@
 ---
 name: tone-of-voice
-description: "Use when a team asks how the brand should sound consistently across channels and surfaces. Produces a brand-register document with named, ranked voice goals and arbitration rules. It is the upstream anchor: `content-design` owns a surface's message and structure, `copy-direction` owns acquisition-surface copy goals, and `ux-writing` owns product UI strings. Organization-level product or content strategy belongs to the strategy packs; shaping a product initiative belongs to `frame-intent`; implementing copy in templates or components belongs to `frontend-engineering`."
+description: "Use when a team asks how the brand should sound consistently across channels and surfaces. Produces a brand-register document with named, ranked voice goals and arbitration rules. It is the upstream anchor: `content-design` owns a surface's message and structure, `copy-direction` owns acquisition-surface copy goals, and `ux-writing` owns product UI strings. Organization-level product or content strategy belongs to the strategy packs; shaping a product initiative belongs to `frame-intent`; implementing copy in templates or components belongs to `frontend-engineering`. Triggers on \"define how our brand should sound across product and marketing\", \"name and rank our cross-surface voice goals\", \"create a brand register for our support, sales, and product copy\"."
 ---
 
 # Skill: tone-of-voice

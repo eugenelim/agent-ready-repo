@@ -8,6 +8,7 @@ scope: user
 tagline: "GitHub source → canonical repository work."
 contract:
   useItWhen: "You want to start repository work from a GitHub Issue, Milestone, or selection, or compare an existing tracker-origin artifact."
+  youType: "Start repository work from GitHub Milestone 12."
   youProvide: "A trusted configured repository plus an Issue, Milestone, selection, or registered artifact path."
   youReceive: "A bounded content-based route or field-level refresh delta, with an exact preview before any supported coordination write."
   yourDecisions:

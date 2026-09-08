@@ -7,9 +7,20 @@ kind: how-to
 
 # Report AI adoption as a delivery lead
 
+**Mode: tracker-authoritative.** This guide assumes Jira holds the team's real
+backlog and delivery history. If `docs/product/` is canonical and Jira is only
+for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
+instead.
+
 **Use this when:** You lead two to eight teams and need to report AI adoption impact to program or value stream leadership using cohort-split or before/after flow metrics from Jira.
 **Prerequisites:** Atlassian pack installed and Jira credentials working; teams applying the `ai-assisted` label before the first reporting window opens.
 **Result:** A stakeholder-ready Markdown adoption report — cohort split or baseline comparison — publishable to Confluence, slides, or a JSON sidecar for dashboards.
+
+Start with the report you need:
+
+```text
+Compare Q1 2026 delivery flow for AI-assisted and unassisted work in PROJ and produce a stakeholder-ready adoption report.
+```
 
 This guide is for delivery leads who run two to eight teams, need to report AI adoption impact upward to program or value stream leadership, and are not responsible for running the CLI themselves — the agent does that. It covers the full journey from first-time setup through a stakeholder-ready report.
 
@@ -424,3 +435,10 @@ Breakdown of delivered work by type: features, defects, technical debt, risk. A 
 - **Automatically detected AI usage** — The `ai-assisted` label is self-reported. Stories where AI was used but not labeled appear in the control group. No automation can recover those stories after the fact. The model measures what teams declare; better labeling produces better data.
 
 For more on the measurement model's design and its limits, see [Measuring AI adoption with flow metrics](../explanation/ai-adoption-measurement.md).
+
+## What you have now
+
+You have a stakeholder-ready Markdown adoption report under `reports/` and,
+unless you selected Markdown-only output, a JSON sidecar beside it. The pipeline
+has not changed Jira. Review the report's provenance and caveats, then publish
+the approved version to Confluence or adapt its summary for leadership.

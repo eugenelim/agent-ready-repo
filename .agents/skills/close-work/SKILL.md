@@ -187,14 +187,16 @@ envelope is not authority. Direct-light work must first be promoted through
 Resume reacquires every locator, fingerprint, status, evidence reference, and the
 coordination locator; drift refuses restoration.
 
-Keep a completion receipt only while a live dependency cites it, and only on an
-established compatible surface. Its complete shape is `{delivery_id, outcome,
-completion_event, evidence_ref}`. Every field is a locator or a short outcome
-statement: the receipt carries no requirements, rationale, source payload,
-artifact content, or personal identity. Reference an evidence locator, never a
-person. Missing storage retains the delivery record by
-exception. Writing a receipt and removing the last receipt are separate, freshly
-confirmed mutations; the latter is bound to the current receipt fingerprint.
+Keep a completion receipt only while a live dependency cites it, on the citing
+local need in `workspace.toml`. Its complete shape is `{delivery_id, outcome,
+completion_event, evidence_ref}`. The `outcome` is exactly `completed`,
+`abandoned`, or `superseded`; `delivery_id`, `completion_event`, and
+`evidence_ref` use the lifecycle record's published grammars. The receipt carries
+no requirements, rationale, source payload, artifact content, or personal
+identity. Reference an evidence locator, never a person. Missing storage retains
+the delivery record by exception. Writing a receipt and removing the last receipt
+are separate, freshly confirmed mutations; the latter is bound to the current
+receipt fingerprint.
 
 Initiative closure settles every shaping/build child, output, obligation,
 dependency, and reconciliation finding before proposing coordination compaction.

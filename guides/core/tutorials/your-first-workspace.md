@@ -17,6 +17,10 @@ At the end of this tutorial you'll have run a complete workspace session: orient
 
 We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.
 
+```text
+Show me the workspace status for this session and the next ready action.
+```
+
 ## Before you begin
 
 You need:
@@ -59,6 +63,18 @@ Read each section before doing anything:
 - **Shape room** — `auth-strategy` needs strategic framing before it can become a spec. It is not ready to build yet.
 - **Ready to start** — two specs are unblocked and ready. Each shows the command to start it.
 - **Blocked** — `workspace-status-phase2` is waiting for `workspace-core` to ship first.
+
+**The agent asks:**
+
+```text
+Which ready item do you want to start?
+```
+
+**You answer:**
+
+```text
+Start workspace-core, the first ready build item for the current milestone.
+```
 
 :::note
 If your output uses different slugs, that is expected — the section structure is what matters.
@@ -173,6 +189,13 @@ In this session you:
 - Ran a complete `work-loop` cycle — PLAN, EXECUTE, GATES, REVIEW, DECIDE.
 - Remembered a follow-on mid-session with `work-intake`, producing a Draft, non-dispatchable artifact with source provenance.
 - Ended with a clean queue: one item shipped, one backlog entry added, one build-queue item unblocked.
+
+## What you have now
+
+You have a completed workspace session: the shipped spec, a separately captured
+follow-on at `docs/product/intents/configurable-retry-backoff.md`, and an
+updated queue that identifies the next ready item. Start the next session with
+`workspace-status`.
 
 ## Next steps
 

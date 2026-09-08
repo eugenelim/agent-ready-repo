@@ -75,13 +75,13 @@ then goes through plan, execute, gate, review, and decide.
   bounded; the second checks whether the construction plan can deliver it.
   Shaping review is distinct from the later adversarial, security, and quality
   code-review lenses; neither replaces code review after implementation.
-- **Risk-scaled modes.** Eligible low-risk work runs direct-light from the current request with one bounded adversarial pass and no persisted spec. Full mode uses a durable spec and plan when a risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work, destructive operation. The mode is chosen by the work's risk profile, not by file count.
+- **Risk-scaled modes.** Eligible low-risk work runs direct-light from the current request with adversarial review and no persisted spec. Full mode uses a durable spec and plan when a risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work, destructive operation. The mode is chosen by the work's risk profile, not by file count.
 - **Hard gates.** Lint, typecheck, and tests run as mechanical gates. No path through the loop lets the agent claim success on a red gate.
 - **Cold-eyed review.** Three specialist reviewers — adversarial (spec/plan/impl drift), security (OWASP 2025 + ASVS + STRIDE), quality (testability, observability, reliability) — each read every diff in a fresh context with no sunk cost in the design. The loop iterates on findings until reviewers say `Clean — ready to commit.`
 - **Progressive disclosure.** The security checklist pulls only the depth relevant to the boundaries a change crosses — current without bloating the prompt. Depth is added on demand per security boundary type (auth, secrets, user input, deserialization, file I/O, LLM code).
 - **Capture what was learned.** Gaps in project conventions discovered during a run land as proposed `CONVENTIONS.md` edits — mistakes become the project's memory instead of evaporating between sessions.
 
-**No human gates in the loop itself** — only at escalation exits: Blockers surface to the human; the agent routes Concerns and Nits by whether they're mechanical.
+**Two human approvals in full mode, and one at the exit.** Full mode runs the G-plan sequence: you approve the spec, then you approve the plan, before any implementation write. The merge decision at the end is yours too. Direct-light mode persists no spec and so has no approval pair. Beyond those gates the loop is autonomous: blockers surface to the human, and the agent routes concerns and nits by whether they're mechanical.
 
 → [Core pack guide](../../core/) · [The `core` pack as a system](../../core/explanation/core-pack.md)
 

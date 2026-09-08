@@ -13,6 +13,10 @@ kind: tutorial
 
 In fifteen minutes you'll install the `governance-extras` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
 
+```text
+Use the new-adr skill to record our decision to use TOML for workspace coordination.
+```
+
 This is a tutorial — it leads. For the full `new-adr` procedure, see [How to record a decision (ADR)](../how-to/new-adr.md). For `new-rfc`, see [How to propose a change (RFC)](../how-to/new-rfc.md).
 
 ## What you need before starting
@@ -154,6 +158,12 @@ Then start a new session with a revised prompt.
 You installed `governance-extras`, verified it, invoked `new-adr` with the starter prompt, read the decision frame, reviewed the full ADR content and target path, and confirmed the write. You now know where the file lands, what it contains, and how to stop the write at any point before confirming.
 
 The pack ships two more skills — `new-rfc` (for proposals whose direction is still open) and `rfc-status` (for scanning the RFC registry).
+
+## What you have now
+
+You have a reviewed ADR at the confirmed decision-record destination and its
+index entry. The next decision can use the same preview-confirm flow; use an
+RFC first when the direction is still open.
 
 ## See also
 

@@ -7,9 +7,20 @@ kind: how-to
 
 # Crawl and publish Confluence
 
+**Mode: tracker-authoritative.** This guide belongs to the Atlassian journey
+where Jira holds the team's real backlog. If `docs/product/` is canonical and
+Jira is only for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
+instead.
+
 **Use this when:** You need to mirror a Confluence space to Markdown for editing, push Markdown back to a Confluence page, or round-trip crawled content.
 **Prerequisites:** Confluence credentials configured (`CONFLUENCE_BASE_URL` and `CONFLUENCE_API_TOKEN`); verify with `python scripts/crawl_space.py --check`.
 **Result:** Markdown files mirrored from Confluence (crawler) or a created/updated Confluence page from Markdown input (publisher).
+
+Start credential setup with:
+
+```text
+Set up credentials for Confluence so I can mirror the ENG space to Markdown.
+```
 
 Mirror a Confluence space to Markdown with [`confluence-crawler`](../../../packs/atlassian/.apm/skills/confluence-crawler/), and push Markdown back to a page with [`confluence-publisher`](../../../packs/atlassian/.apm/skills/confluence-publisher/). The two skills are opposite directions over the same `confluence` credential namespace — configure either and both work.
 
@@ -92,4 +103,11 @@ Edit the crawled Markdown, then publish it straight back.
 - **Mermaid and PlantUML are out of scope** for the publisher. Pre-render fenced blocks to PNGs with the `mermaid-renderer` skill, then pass them via `--attach`.
 - **A title collision in lookup mode** exits 2 with the candidate IDs. Re-target with `--page-id`.
 
-For the full flag surface of both skills, see the [`atlassian` skills reference](../reference/atlassian-skills.md).
+For the full flag surface of both skills, see the [`atlassian` skills reference](../atlassian-skills.md).
+
+## What you have now
+
+After a crawl, you have one Markdown file per page in the output directory,
+such as `./out/`, plus any downloaded attachments. After a publish, you have a
+created or updated Confluence page and its URL. Review crawl gaps before editing,
+or open the returned page URL to verify a publish.

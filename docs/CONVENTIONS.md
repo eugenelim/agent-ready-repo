@@ -122,14 +122,23 @@ also be a record of how we got here. That's what ADRs are for.
 This needs saying because the plan template's own contract line reads "Unlike
 the spec, this document is allowed to change as you learn", which sounds like a
 standing exemption and is not one. That licence is **phase-scoped**: it holds
-while the plan is `Drafting` or `Executing` — while there is still something to
-learn. Once the plan is `Done` and the spec is `Shipped`, the work is over and
-both documents are history. A plan that stayed editable forever would be a
-second, unversioned account of what we did, competing with the ADR that records
-why.
+only while the plan is `Drafting`, and ends when the plan is approved. From
+approval, both `spec.md` and `plan.md` are pinned in substance. Only lifecycle
+bookkeeping — the preamble status token and task-progress checkboxes — may still
+be written. An observation produced by execution belongs in the sibling
+`notes/verification-ledger.md`, never in either approved artifact.
 
-So: before ship, the plan is Living and you edit it freely. After ship, it is
-Frozen and gets exactly the same treatment as its spec.
+There are therefore **two stages, not one.** At plan approval the pair is
+*pinned in substance*: the contract stops moving so implementation cannot drift
+it, while lifecycle bookkeeping is still written. Once the plan is `Done` and
+the spec is `Shipped`, the work is over, both documents are history, and the
+whole directory is *frozen* — the retention rule the `Frozen` class above
+names. Pinned protects the contract during the build; frozen protects the
+record afterwards.
+
+A plan that stayed substantively editable after approval would be a second,
+unversioned account of what we did, competing with the ADR that records why. A
+genuine error in either approved artifact follows the controlled-amendment path.
 
 ### Superseding a frozen document
 
@@ -377,7 +386,8 @@ or weeks (not months). Each feature gets a directory.
 docs/specs/<feature>/
 ├── spec.md      ← contract (objective, boundaries, testing strategy, acceptance criteria)
 ├── plan.md      ← strategy + construction tests, broken into tasks
-└── notes/       ← (optional) research, sketches, rejected approaches
+└── notes/       ← (optional) research, sketches, rejected approaches, and
+                    verification-ledger.md when execution produces an observation
 ```
 
 **`spec.md` is the contract.** Its four sections — Objective, Boundaries,
@@ -391,9 +401,8 @@ on, so the criteria pin what's actually intended.)
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
-for cases A, B, C". It's the work-breakdown for the spec. It is allowed to
-change as you learn things — **while the plan is `Drafting` or `Executing`**.
-Once it is `Done` and the spec `Shipped`, the directory freezes as a unit; see
+for cases A, B, C". It may change substantively only while `Drafting`; once
+approved, both it and `spec.md` are pinned except for lifecycle bookkeeping. See
 § *A spec directory freezes as a unit, when the spec ships*.
 
 **Durable outputs own lasting truth.** A durable spec identifies the semantic
@@ -405,14 +414,16 @@ delivery history, but it is not a substitute for those living owners. Tests and
 source remain executable capability proof; they do not preserve product intent,
 rationale, authority, ownership, or non-executable operational promises.
 
-**Lifecycle:** specs are **living documents** for the duration of a feature's
-implementation. If implementation diverges from the spec, the spec is wrong;
-update it in the same PR. After the feature ships the spec **freezes**: at that
-point the *code is the truth*, and the spec becomes the record of what was
-agreed, not a description of current behaviour. A later behaviour change is
-recorded where it belongs — in the code, and in an ADR if it reverses a
-decision — never by rewriting the shipped spec. When a later decision reverses
-part of one, annotate its Status field; see § *Superseding a frozen document*.
+**Lifecycle:** specs are **living documents** until the plan is approved. If
+implementation diverges from the spec, the spec is wrong — but from approval
+onward the correction is the controlled-amendment path, not an in-flight edit,
+and an observation produced by execution goes to the verification ledger. After
+the feature ships the spec **freezes**: at that point the *code is the truth*,
+and the spec becomes the record of what was agreed, not a description of
+current behaviour. A later behaviour change is recorded where it belongs — in
+the code, and in an ADR if it reverses a decision — never by rewriting the
+shipped spec. When a later decision reverses part of one, annotate its Status
+field; see § *Superseding a frozen document*.
 
 **Rigor and retention are separate.** Full-mode work may still use a
 local-only or PR-only spec/plan when the approved record is confined,
@@ -482,14 +493,17 @@ mechanical rule.
   legacy record's `slug` field, or a canonical record's `path` through
   `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
   on its owning directory and any other artifact on its file stem. New entries
-  take the canonical shape; the write-side ratchet in
-  `tests/roster/test_workspace_status_projection.py` caps the legacy-shaped
-  count and must not be raised. A canonical entry's `path` must name an
-  artifact that exists, so a deferral with no artifact of its own points at the
-  document recording it. Do not use this marker as a new shipping exception. A
-  follow-on recorded only in a PR comment rots; the register or external
-  artifact is the stable pointer. Run `workspace-status` to see open backlog
-  items.
+  take the canonical shape. A canonical `[backlog].open` entry must name an
+  artifact that exists *and* whose `Status` is `Draft`, unless its `kind` is
+  `defect`, which admits any carrier that is not `Closed`. A deferral with no
+  artifact of its own therefore takes a Draft artifact of its own; it cannot
+  point at the shipped document that records it, because a shipped or accepted
+  carrier and an open backlog membership cannot coexist. Do not use this marker
+  as a new shipping exception: a marker left in a body that later freezes pins
+  its entry in `[backlog].open` permanently, since the frozen body cannot be
+  edited to retire it. A follow-on recorded only in a PR comment rots; the
+  register or external artifact is the stable pointer. Run `workspace-status`
+  to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which
@@ -1127,10 +1141,14 @@ future maintainer would ask "why", surface it in the PR description.
 ### Supervisor mode
 
 **Supervisor mode is wave-scheduled and sequential in Phase 1.** The
-work-loop builds the plan's full `Depends on:` DAG
-(`loop-cohort schedule`) and runs tasks in topological order, single-agent,
-on every adapter — failing loud on a cycle and warning on a
-forward-reference. Parallel `implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is **disabled in Phase 1** — those verbs exit non-zero without touching `state.json`. The design intent for opt-in parallel fan-out and the step-by-step worktree procedure live in the `work-loop` skill §EXECUTE and `references/supervisor-mode.md`. This section is the why and the boundary.
+work-loop builds the plan's full `Depends on:` DAG (`loop-cohort schedule`) and
+dispatches plan tasks in topological order with one `implementer` at a time —
+failing loud on a cycle and warning on a forward-reference. Parallel
+`implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is
+**disabled in Phase 1** — those verbs exit non-zero without touching
+`state.json`. The design intent for opt-in parallel fan-out and the step-by-step
+worktree procedure live in the `work-loop` skill §EXECUTE and
+`references/supervisor-mode.md`. This section is the why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
 structural (the plan's shape), not a choice the user makes. Branching
@@ -1326,10 +1344,10 @@ knowledge base — are defined in their own sections above. The mapping
 below says *which of them you actually use* at each profile, so a
 template adopter knows when to wire each one up.
 
-- **Profile A** — single-agent work-loop. Supervisor mode is available
-  but rarely triggers; most plans at this size have sequential
-  `Depends on:` chains, and the parallel-dispatch payoff doesn't beat
-  the coordination overhead. Specialist reviewers are usually skipped,
+- **Profile A** — sequential work-loop. Each plan task still dispatches to one
+  `implementer` at a time; what rarely triggers at this size is parallel
+  fan-out, because most plans have sequential `Depends on:` chains and the
+  parallel-dispatch payoff doesn't beat the coordination overhead. Specialist reviewers are usually skipped,
   and `adversarial-reviewer` itself is optional at this size.
 - **Profile B** — [supervisor mode](#supervisor-mode) runs every
   multi-task plan in topological order (sequential by default); its

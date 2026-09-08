@@ -39,7 +39,7 @@ The part that *feels* verbose — the agent explaining itself — is the smalles
 
 These are the tokens that buy nothing, and the loop is built to avoid them:
 
-- **It defaults to light mode.** An eligible direct-light request keeps its plan in the active session; the state machine and multi-pass review load only for durable or risk-triggering work. A small change never pays for heavyweight machinery.
+- **It defaults to light mode.** An eligible direct-light request keeps its plan in the active session; the state machine loads only for durable or risk-triggering work, while review still runs to clean. A small change never pays for heavyweight machinery.
 - **It discloses progressively.** Skill bodies stay lean; deeper references load only when a step needs them. A reviewer's brief inlines only the security module that matches the boundary the diff crossed, not the whole library.
 - **It budgets the always-resident files.** `AGENTS.md` is capped on purpose, because it is re-read every single session; detail lives in docs and skills that load only when relevant.
 - **It drops report text after recording it.** Once a reviewer's findings are captured, the verbatim report leaves resident context. The decision survives; the bulk does not.
@@ -76,14 +76,14 @@ The loop guards rounds directly:
 
 - **Plan-first** — direct-light records a bounded plan in the active session, while durable work records a spec and plan — spends a little context up front so the agent doesn't burn a round building the wrong thing. The durable spec survives the context turning over.
 - **Mechanical gates** (lint, typecheck, tests) fail before review, so no round is spent reviewing code that doesn't run.
-- **Iteration and token-budget caps** stop the loop loud instead of letting it spiral — and stasis detection stops a third pass on findings that already repeated. Runaway rounds are a stop condition, not a silent bill.
+- **Iteration and token-budget caps** stop full mode loud instead of letting it spiral — and stasis detection stops a third pass on findings that already repeated. Light mode reads a divergence checkpoint instead. Runaway rounds are a stop condition, not a silent bill.
 
 Anti-drift alignment is the thing being bought here. Fresh context and the spec are how it's paid for, and not wasting rounds is how the investment pays back.
 
 ## The dial: light mode vs. full mode
 
 There is no single right amount to spend, so the loop makes it a dial. Eligible
-light mode keeps its bounded plan in the current session, with one bounded review
+light mode keeps its bounded plan in the current session, with adversarial review
 and no state machine. A risk trigger (unfamiliar territory, a security boundary,
 a structural or irreversible change, a new dependency) or a need for durability
 escalates to a durable spec and plan, where the extra rigor and review passes earn
@@ -93,5 +93,5 @@ don't pay for it where it isn't. The mode *is* the token posture, made explicit.
 ## Where to read next
 
 - [The core pack as a system](core-pack.md) — the parts that make up the loop, and how the cold reviewer fits the rest.
-- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale for light vs. full mode.
+- [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale for light vs. full mode.
 - [Why the plan owns the LLD](why-the-plan-owns-the-lld.md) — another place the loop spends a little up front to avoid a wasted round.

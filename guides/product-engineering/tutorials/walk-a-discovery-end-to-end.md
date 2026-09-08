@@ -17,6 +17,10 @@ kind: tutorial
 
 **Before you start:** install the `product-engineering` pack, and run in a harness that can pause for human input and write your verdict into a store the agent cannot edit (the discovery loop relies on that channel — see the explanation).
 
+```text
+Use the discovery-loop to explore a household assistant that coordinates meals, calendars, vendors, and budgets, then produce a decision brief.
+```
+
 ## 1. Start the loop
 
 Give `discovery-lead` one prompt:

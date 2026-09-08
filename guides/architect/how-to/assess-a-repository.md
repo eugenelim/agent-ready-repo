@@ -10,7 +10,9 @@ kind: how-to
 Use this when you need to understand an implemented system and decide what to do
 next. Start with:
 
-> Assess architecture and provide an action plan.
+```text
+Assess architecture and provide an action plan.
+```
 
 That request selects standard mode. The agent reads the repository, shows you a
 conceptual model to correct, then an attention heat map to redirect before it
@@ -192,3 +194,9 @@ the repository. If a finding requires a future-state choice, continue with
 [Shape an architecture concept](shape-an-architecture-concept.md). For exact
 mode, evidence, permission, output, and limit behavior, use the
 [architecture assessment reference](../reference/architecture-assessment.md).
+
+## What you have now
+
+You have a correctable current-state model, evidence-backed findings, and
+dependency-aware action waves for the repository. Review the saved assessment
+or use its accepted evidence to shape the next architecture decision.

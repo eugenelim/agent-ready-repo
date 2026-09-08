@@ -54,6 +54,299 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.3] — 2026-09-08
+
+### Highlights
+
+- **A durable owner accepting an artifact now survives the session that recorded
+  it.** The lifecycle record carries `Reclassified`, so "this left delivery and
+  someone else owns it now" persists as readable state instead of being lost at
+  closeout. A reclassified artifact keeps its file where its record says it is,
+  drops out of ordinary orientation, is never due for a retention review, and is
+  not counted among the obligations someone still owes delivery work against.
+- **It is reached deliberately and only once.** Reclassification is available
+  only from a record already retained under an exception, only when the durable
+  owner's acceptance is supplied and validated at the transition, and never
+  again afterwards — nothing transitions out of it, and no deletion route admits
+  a lifecycle record. It is not gated on a date, because a durable owner
+  accepting an artifact is not a day-30 event.
+
+## [core][2.25.2] — 2026-09-04
+
+### Highlights
+
+- **Light-mode review now runs until it is clean instead of stopping after a
+  fixed number of rounds.** A loop that is converging finishes. At the third
+  round and every second round after, the loop asks whether findings are
+  getting fewer and smaller, and keeps going while they are. A loop that is no
+  longer converging asks whether the reviewed construct should exist at all and
+  puts that choice to the person who asked for the work, rather than sending a
+  small change through the heavier mode.
+
+### Changed
+
+- Light mode's round budget and its escalation to full mode are replaced by a
+  divergence checkpoint. Full mode's iteration cap is unchanged, so the two
+  modes now stop for different reasons, and light mode's stop is a judgement
+  the checkpoint prompts rather than a mechanical bound. How many findings the
+  loop's own repairs produced informs that judgement but never decides it.
+  Risk-trigger escalation is unaffected and still fires on its own.
+- Light mode's procedure, eligibility and durability routing, review rounds,
+  and trims moved into a reference the skill loads only when light mode is
+  selected, so a full-mode run no longer carries them.
+
+
+## [core][2.25.1] — 2026-09-04
+
+### Highlights
+
+- When a `work-loop` task is about a skill, a skill script or evaluation, an
+  agent loop, a hook, or a plugin, planning now reaches the installed
+  agent-skill-engineering reference for compiled guidance and cites the topics
+  and provenance it used, instead of answering from model memory.
+- Without that pack installed, `work-loop` records `knowledge provider
+  unavailable` and completes the same planning work it did before.
+
+### Added
+
+- `work-loop`'s PLAN step gains a bounded subsection that inlines its own
+  request to the capability exposing contract
+  `agent-skill-engineering-reference/v1`. The capability is addressed by
+  contract version, never by the owning pack's product name, installation path,
+  or generated router path. The budget is one call with no refinement; the
+  response is attributed, untrusted evidence that cannot change instructions,
+  identity, tools, permissions, scope, write authority, or which review gates
+  fire.
+- `pack.toml` declares the seam as a `handoff` whose `fallback` repeats the
+  target pack's published `knowledge provider unavailable` diagnostic verbatim.
+- Two eval cases covering the relevant-topic and the absent-or-refused paths.
+
+## [architect][0.15.6] — 2026-09-04
+
+### Highlights
+
+- When an `architect-design` task turns on how to package agent behaviour — a
+  subagent, a hook, a skill, or a plugin — the design procedure now reaches the
+  installed agent-skill-engineering reference for compiled guidance and cites
+  what it used.
+- Without that pack installed, the procedure records `knowledge provider
+  unavailable` and produces the same design work it did before.
+
+### Added
+
+- `architect-design`'s procedure gains a bounded paragraph that inlines its own
+  request to the capability exposing contract
+  `agent-skill-engineering-reference/v1`, on the same terms as `work-loop`'s:
+  addressed by contract version, one call with no refinement, and a response
+  treated as attributed, untrusted evidence.
+- `pack.toml` declares the matching `handoff` integration.
+- Two eval cases covering the relevant-topic and the absent-or-refused paths.
+
+## [agent-skill-engineering][0.4.1] — 2026-09-04
+
+### Highlights
+
+- The shipped knowledge provider contract now states every diagnostic the seam
+  can return, so a consuming pack can quote a receipt an adopter actually
+  receives rather than one that existed only in a test fixture.
+
+### Added
+
+- `provider-contract.md`'s *Provider response* section publishes the seam's
+  closed seven-value diagnostic vocabulary. Six of the seven previously
+  appeared in no file under any pack's `.apm/`, and tests are not projected to
+  adopters, so a consumer quoting the conformance fixture would have quoted
+  literals an adopter never receives.
+
+
+## [core][2.25.0] — 2026-09-04
+
+### Highlights
+
+- **A work-loop phase now decides which behavioural rules an authoring agent is taught.** A registry inside the `work-loop` skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it.
+
+### Added
+
+- `references/policy-families.md` — five policy families, two `precise` and three `advisory`, and a selection map covering every legal work-loop phase plus the reserved `DIRECT-LIGHT` key for the light path, which records no phase of its own.
+- `scripts/select-policy-families.py` — prints one delivery record for a phase, and refuses before delivering anything when the registry is malformed: an unknown phase, a duplicate or unknown family, a module that is unresolvable, wrongly namespaced, or resolves outside the resolution root, a bad tier, or a version pair that disagrees.
+- `guides/core/reference/phase-scoped-policy-delivery.md` — how to declare a family, how to choose its tier, and how to read a refusal.
+
+### Notes
+
+- A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
+- The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
+
+
+## [core][2.24.4] — 2026-09-04
+
+### Added
+
+- `shaping-reviewer` now checks a named set of recurring authoring defects in every mode, as a `Check | Tell | Fix shape` table. It covers an obligation authored where an owner already exists, a criterion that cannot fail, a criterion that decays, a numeric bound with no measurement origin, refusals with no valid input that must succeed, a set copied from an authoritative source, and exact detail that changes no decision.
+- Each mode gained a readiness question the previous presence checks could not answer: whether an author could actually produce the artifact below it — a narrower intent, a spec for each confirmed slice, or a design that satisfies every criterion.
+
+### Changed
+
+- `delivery-brief` mode now checks altitude, asking of each section whether it decides something or names something for the spec to decide. The modes either side of it checked altitude and brief review did not, so a brief carrying spec-level content drew correctness findings and never the one finding that mattered.
+- An ownership finding now outranks criterion craft. The reviewer reports it alone and stops reviewing that section, and the stated repair is to move the text to its owning artifact rather than shorten or narrow it.
+- A spec is no longer faulted for leaving the implementation change DAG to its plan.
+
+## [core][2.24.3] — 2026-09-04
+
+### Highlights
+
+- **A lesson that a rule or a control has since absorbed can be retired where it
+  lives.** Distillation now carries the lifecycle and the retirement record, so a
+  topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or
+  `invalidated`, naming the successor that took the lesson over. A retired topic
+  stays in place for history and stops being offered as current guidance.
+- **A topic keeps every occurrence that produced it.** Reconciling a second
+  observation into an existing topic appends to its provenance instead of
+  replacing it, so the record of what was seen, and when, survives revision.
+
+## [product-engineering][0.13.9] — 2026-09-03
+
+### Highlights
+
+- **Shaping skills now suggest a workspace entry that can actually be picked
+  up.** `frame-situation` and `diverge-solutions` printed a short legacy form
+  that is never dispatchable, so an entry added exactly as instructed never
+  surfaced as ready work. Both now print the canonical five-field entry and
+  route registration through `work-intake`.
+- **A reference to a command that no longer exists is gone.** The skills
+  pointed at a retired skill name, so following the instruction did nothing.
+
+### Changed
+
+- Added `Triggers on` example utterances where they were missing, and corrected
+  the workspace-entry guidance in `frame-situation`, `diverge-solutions`, and
+  their examples.
+
+## [product-strategy][0.2.5] — 2026-09-03
+
+### Highlights
+
+- **The OKR cascade now writes a workspace entry that can be picked up.**
+  `run-okr-cascade` records each gap it finds, and it was writing a legacy form
+  that is never dispatchable — so every gap it recorded was invisible to the
+  shaping room it was recording into. It now writes the canonical five-field
+  entry.
+
+### Changed
+
+- Corrected the gap-entry format in `run-okr-cascade` and its cross-pack routing
+  reference.
+
+## [experience-design][2.0.3] — 2026-09-03
+
+### Highlights
+
+- **Every experience-design skill now tells you how to start it.** None of the
+  pack's twenty skills documented an example phrase, so a person had to guess
+  the wording and the agent had nothing to match against. Each skill now carries
+  two to four phrases someone would actually type, sharpened so neighbouring
+  skills in a twenty-skill pack do not claim the same request.
+
+### Changed
+
+- Added `Triggers on` example utterances to all twenty skill descriptions.
+
+## [frontend-engineering][0.2.2] — 2026-09-03
+
+### Highlights
+
+- **Every frontend-engineering skill now tells you how to start it.** As with
+  experience-design, none of the nine skills documented an example phrase. Each
+  now carries example utterances that match what the skill genuinely handles.
+
+### Changed
+
+- Added `Triggers on` example utterances to all nine skill descriptions.
+
+## [core][2.24.2] — 2026-09-03
+
+### Highlights
+
+- **Evidence from a run now has a place to go that the approved plan does not.**
+  Once a plan is approved it is pinned, so a task that asked for its own
+  observed result to be written back into it could never be satisfied. Plans
+  now keep the obligation and a sibling verification ledger keeps the
+  observation — the mutation that was applied, the check that went red, the
+  digest that was compared. One convention states when substantive edits stop,
+  and a check fails if that statement is reverted.
+
+## [core][2.24.1] — 2026-09-03
+
+### Fixed
+
+- Corrected the workspace-status closeout failure-path comment to say that an unreadable record withholds the affirmative without naming the record.
+
+## [core][2.24.0] — 2026-09-03
+
+### Highlights
+
+- **Work-loop now gives each scheduled plan task a bounded sequential implementer dispatch.** The controller retains lifecycle, review, and closeout ownership while the task brief carries its execution root and applicable craft guidance.
+
+## [core][2.23.2] — 2026-09-03
+
+### Highlights
+
+- **A local dependency can keep resolving after the delivery it names has been
+  closed out and pruned.** Put a completion receipt with `delivery_id`, `outcome`,
+  `completion_event`, and `evidence_ref` on the citing local need. Only
+  `completed` satisfies the dependency; `abandoned` and `superseded` keep the
+  refusal visible.
+- **Completion receipts now fail before they are written when their delivery
+  result or evidence fields do not match the published contract.** This keeps a
+  malformed receipt from becoming the only surviving account of a pruned
+  dependency.
+
+### Changed
+
+- A local need can carry a completion receipt with exactly `delivery_id`,
+  `outcome`, `completion_event`, and `evidence_ref`. A `defect`-kind need cannot
+  carry one.
+- The producer now validates `outcome` against `completed`, `abandoned`, and
+  `superseded`, and validates the other three fields against the lifecycle
+  record's published grammars.
+- This release moves every workspace's routing identity, so an in-flight legacy
+  migration needs a fresh confirmation.
+
+## [core][2.23.1] — 2026-09-03
+
+### Highlights
+
+- **Closeout no longer offers to close an initiative that still has shaping or
+  delivery-brief work open.** Eligibility was read from the initiative's spec
+  work alone, so an initiative whose every spec had shipped was recommended for
+  closeout while its intents and draft delivery briefs were untouched. It now
+  reports a named blocker instead, and stops recommending the skill that
+  distils and dispositions.
+- **Both record shapes now count as remaining shaping work.** A shaping record
+  written in the canonical form was invisible to the check, which read only the
+  older shape — so an initiative whose remaining shaping work was written
+  entirely in the current form looked empty. Retiring a record now stops it
+  counting in both shapes alike, where before the two forms disagreed. A
+  shipped, withdrawn, or cancelled delivery brief is still correctly treated as
+  finished.
+
+## [core][2.23.0] — 2026-09-03
+
+### Highlights
+
+- **The deferral-token convention now states the rule the tooling enforces.** An
+  open register entry needs an artifact of its own in `Draft`, unless it is a
+  defect; it cannot point at the shipped document that recorded the deferral,
+  because a shipped or accepted carrier and an open register membership cannot
+  coexist. The previous wording directed authors to exactly that shape, so
+  following it produced a record the tooling refuses to route.
+- **The convention now warns that a deferral marker outlives its own record.** A
+  `(deferred: <slug>)` marker left in a body that later freezes pins its register
+  entry open permanently, because the frozen body can no longer be edited to
+  retire the marker.
+- **Removed a reference to a repository-only test path.** The clause pointed
+  adopters at a file that exists only in this repository, and at a count ceiling
+  that no longer exists.
+
 ## [core][2.22.0] — 2026-09-02
 
 ### Highlights

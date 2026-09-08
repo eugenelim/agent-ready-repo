@@ -13,6 +13,10 @@ kind: how-to
 
 This guide walks through running a release from a deploy-ready artifact to a ratified prod ship. It assumes:
 
+```text
+Run the release loop for the v2.3.0 payment service deployment.
+```
+
 - `core` is installed in the repo
 - `release-engineering` is installed in the repo
 - The inner loop (`work-loop`) has already run and its output is a deploy-ready artifact
@@ -116,3 +120,10 @@ If `release-lead` surfaces a gap at startup — "I would look for a deploy artif
 - **Docker Compose:** configure the deploy target to run `docker compose up -d` against a compose file scoped to the test environment.
 
 When a platform pack is installed that covers your stack, wiring is automatic. Ask `release-lead` what platform packs are available for your stack, or check the catalogue.
+
+## What you have now
+
+You have either a harness-attested, ratified production release or a held
+artifact with its non-convergence state and next action recorded. Re-enter the
+release loop after the named issue is resolved, or use the record to monitor
+the shipped release.

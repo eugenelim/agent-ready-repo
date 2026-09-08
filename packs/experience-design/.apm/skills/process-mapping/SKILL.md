@@ -1,6 +1,6 @@
 ---
 name: process-mapping
-description: "Use when a team asks how an internal business operation works today or should work tomorrow across actors and handoffs. Produces a SIPOC scope, swimlane map, as-is/to-be flow, and pain-and-waste register. Use `journey-mapping` for the customer's experience, `service-blueprint` to connect a journey to backstage support, and `user-flow` for screens. Operating or product strategy belongs upstream; shaping an automation bet belongs to `frame-intent`; implementing workflow software belongs to engineering."
+description: "Use when a team asks how an internal business operation works today or should work tomorrow across actors and handoffs. Produces a SIPOC scope, swimlane map, as-is/to-be flow, and pain-and-waste register. Use `journey-mapping` for the customer's experience, `service-blueprint` to connect a journey to backstage support, and `user-flow` for screens. Operating or product strategy belongs upstream; shaping an automation bet belongs to `frame-intent`; implementing workflow software belongs to engineering. Triggers on \"map our monthly close process as it works today\", \"show the handoffs in our supplier invoice process\", \"design the to-be process for customer refunds\"."
 ---
 
 # Skill: process-mapping

@@ -10,6 +10,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # On-demand reach (spec/remote-gate-dispatch AC1). A dispatch selects a ref and
+  # GitHub pins it, so this makes the whole chain — including `gate-sast`, which
+  # runs every leg of `make sast`: bandit, pip-audit, semgrep and the npm audit —
+  # reachable from a pushed branch without opening a pull request. Partial
+  # evidence only: a dispatched run is not a required status check and says
+  # nothing about the checks a pull request must pass.
+  #
+  # No `inputs:`. The workflow needs none, and an absent input surface cannot be
+  # interpolated into a shell.
+  workflow_dispatch:
 
 # AC12: contents: read is sufficient — every step reviewed: no token use, no
 # artifact upload/download, no PR comment, no push.
@@ -526,6 +536,19 @@ jobs:
       # tests, so keep it explicit.
       - name: pytest TDD stub lifecycle contract (roster-owned)
         run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
+
+      # agent-skill-engineering-consumer-integrations: the consumer half binds
+      # packs/core, packs/architect and packs/agent-skill-engineering plus
+      # docs/, guides/, packages/agentbundle/_data/ and workspace.toml, so
+      # lint-pack-test-boundary forbids it from any one pack's test tree. CI
+      # does not auto-discover roster tests, and `pytest tests/` reaches this
+      # module only through `make test` / `test-after-build-check`, which no CI
+      # job runs — so without this step the contract's 16 criteria are enforced
+      # on a local `make ci` and nowhere else.
+      - name: pytest agent-skill-engineering consumer integrations (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_agent_skill_engineering_consumer_integrations.py
 
       # curation QA + RFC template: the accelerator-pack admission rule spans
       # docs/CHARTER.md and packs/catalogue-curation, and the RFC template

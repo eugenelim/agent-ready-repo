@@ -7,7 +7,8 @@
   "contract_version": "workspace-entry.v1",
   "x-spec": [
     "docs/specs/normalized-intake-workspace-contracts/",
-    "docs/specs/semantic-surface-resolver/"
+    "docs/specs/semantic-surface-resolver/",
+    "docs/specs/dependency-scoped-completion-receipts/"
   ],
   "additionalProperties": false,
   "required": ["kind", "source", "summary", "needs"],
@@ -174,8 +175,42 @@
         },
         "path": {
           "$ref": "#/$defs/repositoryRelativePath"
+        },
+        "receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["delivery_id", "outcome", "completion_event", "evidence_ref"],
+          "properties": {
+            "delivery_id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
+            },
+            "outcome": {
+              "enum": ["completed", "abandoned", "superseded"]
+            },
+            "completion_event": {
+              "enum": ["merge", "release", "acceptance"]
+            },
+            "evidence_ref": {
+              "type": "string",
+              "pattern": "^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$"
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {"const": "defect"}
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "not": {"required": ["receipt"]}
+          }
+        }
+      ]
     },
     "crossRepoNeed": {
       "type": "object",

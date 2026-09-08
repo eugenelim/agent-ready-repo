@@ -9,6 +9,7 @@ prerequisitePacks:
   - core
 contract:
   useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
+  youType: "Propose a change to how we handle this."
   youProvide: "The change or decision to document, plus any objections or alternatives already under consideration."
   youReceive: "A completed RFC, a merged ADR, or an updated CONVENTIONS.md — with structured rationale the next person can follow."
   yourDecisions:

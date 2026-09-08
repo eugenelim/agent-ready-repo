@@ -1,6 +1,6 @@
 ---
 name: rendering-strategy
-description: Select and implement the correct rendering model (CSR/SSR/SSG/ISR/RSC) for each route based on data-access patterns, performance targets, and personalization requirements.
+description: Select and implement the correct rendering model (CSR/SSR/SSG/ISR/RSC) for each route based on data-access patterns, performance targets, and personalization requirements. Triggers on "choose the rendering model for each route in this product", "should this personalized route use SSR or CSR", "audit our docs routes for caching and hydration problems".
 ---
 
 # Skill: rendering-strategy

@@ -30,7 +30,7 @@ Two layers, deliberately:
 
    The publisher is a `tools` script rather than an installed module, so it is covered by
    layer 2 only — the gate will not exec a script by path to read a constant out of it.
-   That residual is `marketplace-publisher-branch-layer-2-only`.
+
 
 2. **The literal check keeps the value reviewable.** A resolved value alone would accept
    `_DIST_BRANCH = os.environ.get(...)` — correct today, environment-dependent tomorrow.
@@ -43,8 +43,7 @@ function that mutates the global while the build runs, including
 `catalogue_tooling/build.py:106-109`, which rebinds both constants from `catalogue.toml`
 around `cmd_build` and is the sanctioned path the original defect actually lived on.
 Bounding that needs a different instrument (a runtime assertion inside the build, or a
-semgrep rule over these two modules); registered as
-`marketplace-envelope-post-import-rebind-unbounded`.
+semgrep rule over these two modules).
 
 Every reader takes a tree root so the mutation suite can drive `check_envelope_parity`
 over a fixture instead of mutating tracked security-control files in place. The
@@ -684,7 +683,7 @@ def _assert_self_host_contract(root: Path, description: str) -> None:
     `tools/lint-catalogue-curation-guard.py` requires an `Engine-Change-RFC:` trailer and
     `AGENTS.local.md` additionally requires a version bump. Turning a config-drift fix
     into an engine release is the wrong trade, so the literal stays and this anchors it.
-    Registered as `marketplace-description-fourth-statement-in-self-host`.
+
 
     Anchoring is not equivalent to deleting: it catches divergence, not the duplication
     itself. But it is the property that matters — this default, not

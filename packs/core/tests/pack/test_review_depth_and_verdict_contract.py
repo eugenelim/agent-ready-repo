@@ -13,6 +13,10 @@ WORK_LOOP = APM_ROOT / "skills" / "work-loop" / "SKILL.md"
 WORK_LOOP_REFS = APM_ROOT / "skills" / "work-loop" / "references"
 ADJUDICATION_REF = WORK_LOOP_REFS / "finding-adjudication.md"
 VERDICT_REF = WORK_LOOP_REFS / "review-verdict-record.md"
+# Light mode's checklist obligations are disclosed progressively: SKILL.md
+# routes to this reference rather than restating them, so the readiness pins
+# below have to read it or they would pass by absence.
+LIGHT_MODE_REF = WORK_LOOP_REFS / "light-mode.md"
 WORK_LOOP_EVALS = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
 
 
@@ -409,7 +413,10 @@ def test_work_loop_emits_closed_categorical_verdict_without_score_authority() ->
     assert "named-skipped mandatory review" in text
     assert "A mandatory named skip blocks before `Status: Shipped`" in text
     assert "every warranted reviewer was non-mandatory" in text
-    assert "its absence is a mandatory `missing` outcome" in text
+    # Light mode's checklist obligations moved to their own reference; assert
+    # this one there alone, so widening the corpus cannot satisfy the other
+    # pins from the wrong file.
+    assert "its absence is a mandatory `missing` outcome" in _flat(LIGHT_MODE_REF)
     assert "Missing adversarial evidence is a mandatory `missing` outcome" in text
     assert "Do not convert missing adversarial evidence" in text
 

@@ -41,6 +41,7 @@ scope: user | repo
 tagline: string
 contract:
   useItWhen: string
+  youType: string         # optional; the literal first utterance a reader types
   youProvide: string
   youReceive: string
   yourDecisions: [string]
@@ -65,6 +66,20 @@ typicalSession:
 docsUrl: string
 packUrl: string
 ```
+
+`youType` is what turns a journey from a description into something a reader
+can act on. Write the exact words someone sends to start the journey, in one
+line:
+
+```yaml
+contract:
+  useItWhen: "You have a raw product idea and need a build-ready decision brief."
+  youType: "Shape this: teams cannot tell which pack to install first."
+```
+
+Take the wording from the entry skill's own `Triggers on` phrase where it has
+one, so the guide and the dispatcher agree. Do not paraphrase it into a
+description — "ask the agent to shape your idea" is not a `youType`.
 
 Optional fields:
 

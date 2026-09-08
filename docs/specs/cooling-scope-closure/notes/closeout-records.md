@@ -32,6 +32,8 @@ The third is registered in `workspace.toml [backlog].open` as
 
 ## AC28's mutation row: how it is discharged
 
+Observed on 2026-09-03: the in-tree RFC-0096 §9 range (from `## 9. Initiative waves` to before `## 10. Risks and revisit conditions`) was 2861 bytes and SHA-256 `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`, equal to the pinned constant. On a scratch copy outside the repository tree, changing byte offset 15534—the `I` of `Initiative` in the section heading—to `i` changed one byte and produced SHA-256 `a94a9a7c0a7cea65deced5b2f764aacb6b1987b758ca33538ef62ae0fa8dadbf`. The mutated copy does not equal the pin, so the mutation is detected.
+
 The plan's table states every row as an obligation whose "named test is
 confirmed red". AC28's row cannot meet that literally: it mutates a scratch copy
 outside the repository tree, while `test_ac28_...` digests the in-tree RFC and
