@@ -180,13 +180,6 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_sidebar.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
-    # Added with the distribution-route decision checker. Nothing globs
-    # `tools/test_*.py`, so both were unreachable from any gate before this:
-    # the first carries the checker's own mutation evidence, and the second is
-    # the guard that fails when a route decision returns to shared build-time
-    # code. An ungated guard proves nothing, so both join this batch.
-    "tools/test_check_distribution_route_decisions.py",
-    "tools/test_route_branch_guard.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -227,6 +220,16 @@ FINAL_TOOL_BATCH = (
     # signal. That invocation is a separate recipe line, not a member of this
     # batch, which is why it does not appear here.
     "tools/test_pack_test_compatibility.py",
+    # Added with the distribution-route decision checker. Nothing globs
+    # `tools/test_*.py`, so both were unreachable from any gate before this:
+    # the first carries the checker's own mutation evidence, and the second is
+    # the guard that fails when a route decision returns to shared build-time
+    # code. They join THIS batch specifically because
+    # `test_marketplace_envelope_parity` requires the Makefile group naming
+    # `test_contract_parity.py` and the build-check.yml step naming it to hold
+    # the same set; the first tools batch has no CI counterpart to match.
+    "tools/test_check_distribution_route_decisions.py",
+    "tools/test_route_branch_guard.py",
     # Added with the direct-install diagnostic-code table lint. The lint
     # itself is a separate recipe line beside lint-conformance-portability;
     # this is its mutation control.
@@ -488,7 +491,11 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # module; no other line moves, is reordered, or is dropped.
 #
 # Re-pinned again 2026-09-03 for the two distribution-route checker modules,
-# which join the first tools batch. Dispositioned the same way: the same
+# and corrected 2026-09-08 to the FINAL tools batch after CI's
+# `test_marketplace_envelope_parity` refused the first: that gate holds the
+# Makefile group naming `test_contract_parity.py` and the build-check.yml step
+# naming it to the same set, and the first batch has no CI counterpart. The
+# digests below are the final-batch placement. Dispositioned the same way: the same
 # `_effective_composition_errors` path was run against this worktree with the
 # Makefile line reverted, and it reproduced both digests above exactly, so those
 # pins were current and this change is the sole cause of the move. Exactly one
@@ -497,10 +504,10 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # unchanged — that batch is one continued command, so the modules lengthen an
 # existing line rather than adding one.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d9b384d330622ce7a9e5a674795fdc48596839a33bd684b93ec7af96e24b66ed"
+    "d29b113d9479b7a8e3c7fcbf450e65c0fe2c215ac657050fa1f79511f88124d8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "6a28d42a69f54ff5c4ed0427eafabb601604e173eb107a52ec7cc293a2183489"
+    "61120874532d1206b49526f368feafd1cd090290a96abb2d12e4903902e7313a"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

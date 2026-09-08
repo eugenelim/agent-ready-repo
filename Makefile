@@ -581,7 +581,7 @@ $(PYTHON) -m pytest --import-mode=importlib \
 	packs/desk-research/tests/skills/desk-research-project-status/ \
 	packs/desk-research/tests/skills/desk-research-project-synthesize/ \
 	packs/desk-research/tests/skills/devils-advocate/ -q
-$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py tools/test_check_distribution_route_decisions.py tools/test_route_branch_guard.py -q
+$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py -q
 $(3)
 $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
@@ -619,7 +619,9 @@ $(PYTHON) -m pytest \
 	tools/test_lint_direct_code_table.py \
 	tools/test_lint_guides_no_repo_only_refs.py \
 	tools/test_okf_pre_pr.py \
-	tools/test_pack_test_compatibility.py -q
+	tools/test_pack_test_compatibility.py \
+	tools/test_check_distribution_route_decisions.py \
+	tools/test_route_branch_guard.py -q
 # The identity derivation is what catches the SILENT hazard — a subject module
 # bound to the wrong path, or a sys.path mutation added to a class member.
 # Collection-only characterization cannot see either, and at ~2s this is the
