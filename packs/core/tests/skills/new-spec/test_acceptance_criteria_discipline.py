@@ -406,20 +406,64 @@ ALTITUDE_TELL = (
 )
 
 
-def test_altitude_tell_is_whole_in_its_home_and_quoted_verbatim() -> None:
-    """The four-clause tell must survive its own re-homing.
+def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
+    """The four-clause tell must survive its re-homing, and stay single-homed.
 
     Moving the three altitude tells out of the brief and into the rubric
     silently dropped the fourth clause, "or a governance concern", and left the
-    brief quoting a third wording that matched neither. Text alone did not
-    notice: a phrase pin on the rubric passes while a clause is missing from
-    the middle of it. So pin the whole clause list in the declared home, and
-    pin that the brief's quotation of it is byte-identical.
+    brief quoting a third wording that matched neither. A phrase pin on the
+    rubric alone did not notice, because a clause can go missing from the
+    middle of the phrase it pins.
+
+    So pin both halves of the contract the owning brief now declares: the whole
+    clause list is present in the rubric, and the brief describes no part of the
+    rubric's content, so the tell text must not appear there at all. Truncating
+    the rubric reds the first assertion; pasting the tell back into the brief
+    reds the second.
     """
-    home = flattened(RUBRIC)
-    assert ALTITUDE_TELL in home, "the altitude tell lost a clause in its own home"
+    assert ALTITUDE_TELL in flattened(RUBRIC), (
+        "the altitude tell lost a clause in its own home"
+    )
+    assert ALTITUDE_TELL not in flattened(BRIEF), (
+        "the brief restates the rubric's tell; it must cite the class, not its text"
+    )
+
+
+# The owning brief declares that it describes no part of the rubric's content.
+# Eight words is where that stops being a coincidence: at the time this guard
+# landed the two files shared 3 seven-word runs (all incidental phrasing such as
+# "an implementation loop with gates between") and 0 of eight or more.
+RESTATEMENT_RUN_WORDS = 8
+
+
+def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
+    """Enforce the cut, not just perform it.
+
+    Five review rounds produced nine findings about which document owned or
+    described which rule, because each repair moved text and left a sentence
+    describing where it went. The brief now declares it describes no part of the
+    rubric's content; this makes that declaration checkable instead of another
+    claim that can go stale.
+
+    Named blind spot: a paraphrase short of the run length passes, and so does a
+    restatement in any file other than these two. This catches verbatim drift
+    between the declared owner and its brief, which is the failure that actually
+    recurred.
+    """
+    rubric_words = flattened(RUBRIC).split()
     brief = flattened(BRIEF)
-    assert ALTITUDE_TELL in brief, "the brief's quotation no longer matches the home"
+    n = RESTATEMENT_RUN_WORDS
+    shared = sorted(
+        {
+            run
+            for i in range(len(rubric_words) - n + 1)
+            if (run := " ".join(rubric_words[i : i + n])) in brief
+        }
+    )
+    assert not shared, (
+        f"the brief restates {len(shared)} run(s) of {n}+ words from the rubric; "
+        f"cite the class by number instead. First: {shared[0]!r}"
+    )
 
 
 def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:
