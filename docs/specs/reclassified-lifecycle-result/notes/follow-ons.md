@@ -1,8 +1,8 @@
 # Follow-ons this delivery carries forward
 
-One item, inherited rather than discovered. It is not part of this delivery's
-accepted contract. This document is the artifact of the canonical
-`[backlog].open` entry
+Two items: one inherited rather than discovered, one caused by this delivery.
+Neither is part of its accepted contract. This document is the artifact of the
+canonical `[backlog].open` entry
 `docs/specs/reclassified-lifecycle-result/notes/follow-ons.md`
 (`kind = "defect"`), which is its register — RFC-0096 names the slice at
 `docs/rfc/0096-portable-delivery-artifact-lifecycle.md:380` but the queue
@@ -61,3 +61,45 @@ same Errata assigned to Wave 7c, `lifecycle-record-reclassified-gap`, by adding
 field, and its `Never do` list forbids deleting or relocating a lifecycle record
 or an artifact. So nothing here was made worse, and nothing here was made
 easier: the pruning slice starts where the decision record leaves it.
+
+## `cooling-scope-closure-pin-statements` — two statements the digest grant does not cover
+
+**Owner:** `cooling-scope-closure`, restated by its own owner.
+
+**Caused by:** this delivery, and `cooling-brief-child-scope-closure` (RFC-0096
+Wave 7b). Raised by that delivery's spec review, confirmed here against the file
+on 2026-09-08.
+
+AC23 of `docs/specs/cooling-scope-closure/spec.md` grants a digest table, and
+this delivery moved four of its six rows. Two *statements* in that spec go false
+when any pinned file moves, and neither is the digest row:
+
+| Statement | Where | Status |
+| --- | --- | --- |
+| "Every pinned file is byte-unchanged" | AC23's title, `:281` | Title falsified, body intact |
+| "two frozen spec directories are depended on and neither may change" | Durable Outputs, `:62` | Falsified |
+
+The distinction on the first decides the repair. AC23's *body* reads "The
+SHA-256 of each file below equals the value beside it" — a digest-agreement
+test, which this delivery satisfies by moving both recorded sites. Only the
+*title* asserts immutability. The repair is to retitle, not to re-scope a
+criterion that still holds.
+
+The second is falsified by this delivery alone. The two directories are Wave 5's
+`thirty-day-cooling-and-retirement` and Wave 6's
+`status-projection-and-context-exclusion`. This delivery changes **both files**
+of the Wave 5 directory — `spec.md` and `plan.md` each took the ADR-0105
+supersession parenthetical — so "neither may change" is already false before
+Wave 7b moves the other.
+
+### Why it is recorded rather than repaired here
+
+`cooling-scope-closure` is `Status: Implementing`, so its prose is editable and
+this is not a frozen-document problem. It is a scope problem. This delivery's
+AC15 grants the digest *values* in that table and nothing else; editing a live
+sibling delivery's criterion title and its Durable Outputs row is wider than the
+grant, and neither delivery could make the repair complete alone — each
+falsifies a different half. Both sessions independently declined to widen.
+
+Recorded here rather than in Wave 7b's tree because this delivery lands first,
+so the cause and its record land together.
