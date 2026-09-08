@@ -220,6 +220,7 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  {path = "docs/specs/direct-skill-lifecycle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md"}, summary = "Give an installed direct skill a route to a later revision of itself", needs = [{type = "local", kind = "spec", path = "docs/specs/direct-skill-repository-installation/spec.md"}]},
 ]
 shipped = [
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
@@ -329,7 +330,6 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/direct-skill-lifecycle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md"}, summary = "Give an installed direct skill a route to a later revision of itself", needs = [{type = "local", kind = "spec", path = "docs/specs/direct-skill-repository-installation/spec.md"}]},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

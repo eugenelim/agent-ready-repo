@@ -511,13 +511,16 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
         and source.startswith("git+https://")
         and needs_consent
     ):
-        refusal = _refuse_direct_upgrade(
+        # Distinct name: `refusal` above is an `except ... as` target, which
+        # Python deletes at the end of its handler, so reusing it here reads a
+        # deleted variable.
+        consent_refusal = _refuse_direct_upgrade(
             DiagnosticCode.CAT_D008,
             "a remote standalone skill upgrade requires --yes before acquisition",
             name=name,
             remediation="Re-run with --yes, or use --dry-run to preview without writing.",
         )
-        _print_direct_upgrade_refusal(refusal)
+        _print_direct_upgrade_refusal(consent_refusal)
         return 1
 
     direct_args = types.SimpleNamespace(**vars(args))
