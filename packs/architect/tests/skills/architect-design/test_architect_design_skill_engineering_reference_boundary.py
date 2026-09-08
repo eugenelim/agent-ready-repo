@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 SKILL = (
     Path(__file__).resolve().parents[3]
     / ".apm"
