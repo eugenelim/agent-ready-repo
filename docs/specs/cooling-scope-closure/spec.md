@@ -283,7 +283,7 @@ a green for the wrong reason.
 
   | File | SHA-256 |
   | --- | --- |
-  | `packs/core/.apm/skills/close-work/scripts/cooling.py` | `2140fa3996029002c5eee7343bbc4f7d2cbde437ba765c9a07a59ced758a0c89` |
+  | `packs/core/.apm/skills/close-work/scripts/cooling.py` | `dcd1954a5e3f07f731027b8723ad78f248c283869ecc864d68841476a6a99be1` |
   | `contracts/jsonschema/delivery-lifecycle-record.schema.json` | `2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120` |
   | `docs/specs/status-projection-and-context-exclusion/spec.md` | `2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d` |
   | `docs/specs/status-projection-and-context-exclusion/plan.md` | `93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487` |
