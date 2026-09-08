@@ -9,10 +9,10 @@ skill reference is the right delivery mechanism — see § "What this does not
 measure".
 
 **The shipped rubric has since moved, and the delta misses every scored
-paragraph.** `f6ee0a794..HEAD` on that file is six hunks, falling under four
-regions: class 3's *Move*, class 6's *Move*, class 6's *Draft narration* bullet,
-and § "Optional: a criterion syntax". Resolve the regions from the diff rather
-than trusting this list, which is a snapshot. The text each pre-registered defect was scored against — D1 and D2's
+paragraph.** Resolve the range with `git diff f6ee0a794..HEAD --
+packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`; no region
+list is kept here, because the one that was decayed within two rounds and no
+claim below depends on it. The text each pre-registered defect was scored against — D1 and D2's
 derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
 projection paragraph, D5's empty-state tell, D6's non-waivable-control
 bullet — is byte-identical across that range. So the scores below stand, and
@@ -77,8 +77,14 @@ valid samples and arm A's guidance demonstrably reached the agent.
 | D6 cuts a non-waivable control | ✓ | ✓ | ✓ | ✓ |
 | **Total** | **4/6** | **4/6** | **6/6** | **6/6** |
 
-**Two classes flipped, consistently, and four did not.** The rubric's marginal
-contribution on this set is D3 and D4 — not six classes.
+**Two of the six defects flipped, consistently, and four did not.** The unit
+here is the *defect*, not the class, and the two do not correspond. The six
+defects map onto only four distinct classes — D1, D2 and D4 all sit in class 4,
+D3 in class 3, D5 in class 2, D6 in class 6 — so class 4 both flipped (D4) and
+did not (D1, D2), and **classes 1 and 5 were never sampled at all.** The
+rubric's measured marginal contribution on this set is therefore two defects,
+in two classes, out of four classes tested and six shipped. Nothing here
+measures classes 1 or 5.
 
 ### Why the four made no difference
 

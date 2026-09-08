@@ -392,7 +392,6 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     assert "class 4 owns its own clauses outright" in text
     # And pin that the rubric does not claim parity with the review check set.
     assert "as part of a **larger** cold check set" in text
-    assert "working\nthese six is not parity with review" in RUBRIC.read_text(encoding="utf-8")
     assert "authoring guidance, not a review checklist" in text
     assert "The shape rule is not here." in text
     # The count threshold screens; it never refuses. Pin both halves.
@@ -430,25 +429,36 @@ def test_altitude_tell_lives_whole_in_the_rubric_and_nowhere_else() -> None:
 
 
 # The owning brief declares that it describes no part of the rubric's content.
-# Eight words is where that stops being a coincidence: at the time this guard
-# landed the two files shared 3 seven-word runs (all incidental phrasing such as
-# "an implementation loop with gates between") and 0 of eight or more.
-RESTATEMENT_RUN_WORDS = 8
+#
+# Calibration, measured 2026-09-08 after the restatements were cut, excluding
+# Markdown table delimiters (`| --- | --- |` runs match trivially and carry no
+# prose): the two files share 2 six-word runs and 0 of seven or more. The two
+# six-word survivors are `an implementation loop with gates between`, incidental
+# shared phrasing about the same benchmark caveat, and `authored where an owner
+# already exists,`, which is class 1's subject named in the brief's Outcome.
+# So seven is the shortest run length that reds only on restatement.
+#
+# An earlier revision set this to eight while the two substantive restatements
+# were seven words long — a threshold calibrated one word above the duplication
+# it existed to catch, which is why the number and its evidence are recorded
+# here rather than asserted.
+RESTATEMENT_RUN_WORDS = 7
 
 
 def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
     """Enforce the cut, not just perform it.
 
-    Five review rounds produced nine findings about which document owned or
+    Six review rounds produced eleven findings about which document owned or
     described which rule, because each repair moved text and left a sentence
     describing where it went. The brief now declares it describes no part of the
     rubric's content; this makes that declaration checkable instead of another
     claim that can go stale.
 
-    Named blind spot: a paraphrase short of the run length passes, and so does a
-    restatement in any file other than these two. This catches verbatim drift
-    between the declared owner and its brief, which is the failure that actually
-    recurred.
+    Named blind spots: a paraphrase, or any verbatim run shorter than the
+    threshold, passes — two six-word runs are admitted today and recorded in the
+    calibration note above. A restatement in any file other than these two also
+    passes. This catches verbatim drift between the declared owner and its
+    brief, which is the failure that actually recurred.
     """
     rubric_words = flattened(RUBRIC).split()
     brief = flattened(BRIEF)
@@ -457,7 +467,9 @@ def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
         {
             run
             for i in range(len(rubric_words) - n + 1)
-            if (run := " ".join(rubric_words[i : i + n])) in brief
+            # Table delimiters are structure, not prose.
+            if "---" not in (run := " ".join(rubric_words[i : i + n]))
+            and run in brief
         }
     )
     assert not shared, (

@@ -82,10 +82,10 @@ lever on this brief's outcome, not a style preference.
 
 ### Altitude precedes size
 
-**Check the artifact's altitude before applying any bound below.** Every bound
-in the band measures a property *within* an artifact. None of them asks whether
-this is the right artifact, which is the one sizing failure trimming cannot
-repair; the rubric's § 5 states that pair rule and the repair it implies.
+**Check the artifact's altitude before applying any bound below.** The band's
+bounds are all within-artifact, so none of them decides whether the artifact is
+the right one. Rubric § 5 states that gap, the sizing failure behind it, and
+the repair.
 
 The recognized altitudes run `product-vision > product-strategy > capability >
 feature`, and `decompose-intent` produces the levels beneath whichever is
@@ -96,9 +96,9 @@ rubric's own decoration test deletes it.)
 
 **Three tells that an artifact is above its altitude**, each cheaper to check
 than any percentile, now ship in the rubric's § "5. The criterion is too big"
-under *Altitude precedes size*, which is their home. One of them — that the
-artifact proposes no slice a spec author could confirm — is the decidable one,
-and § "The rubric is a deliverable" routes it to a policy family.
+under *Altitude precedes size*, which is their home. Exactly one of the three is
+decidable, and § "The rubric is a deliverable" routes that one to a policy
+family; the rubric says which.
 
 The exhibit is this brief's own sibling set. An artifact authored on
 2026-09-02 to hold cross-adapter behavior enforcement reached 3,573 words as a
@@ -112,35 +112,35 @@ rule that distinguishes cutting a criterion from re-homing an artifact.
 
 ### Corpus
 
-**Re-measured 2026-09-08, because the published predicate did not reproduce
-the published figures.** The earlier statement required a leading `- ` on the
-status line; run exactly as written it returns 403 specs and 6,220 criteria,
-*below* the 416 / 6,411 it was supposed to have produced six days earlier on a
-corpus that only grows — 18 shipped specs carry a bare `**Status:**` with no
-dash. The predicate below admits both forms, which is the one consistent with
-the original figures, and the figures are recomputed under it.
+**Re-measured 2026-09-08. One clause of the predicate was wrong; the figures
+were not.** The earlier statement required a leading `- ` on the status line,
+and 18 shipped specs carry a bare `**Status:**` without it, so run literally it
+reached only 403 specs. Every published percentile was nonetheless produced by
+the intended instrument and reproduces under it. An earlier attempt to repair
+this section introduced a criterion-length terminator the original never had,
+which changed p90 from 101 to 91 and made the figures unreproducible from their
+own stated predicate — the defect it was trying to fix. That attempt is
+withdrawn.
 
-**The predicate, stated so it reproduces.** `docs/specs/*/spec.md` at exactly
-one directory level; the first line matching `^-?\s*\*\*Status:\*\*` supplies
-the status, which must reduce to the leading token `Shipped` once an annotation
-(`Shipped (2026-05-26)`) is stripped. A criterion is a checkbox bullet under
-`## Acceptance Criteria`, since roughly half the corpus labels them `**ACn —**`
-and half does not. **A criterion's length is its whole block** — the checkbox
-line plus every indented continuation line, joined — which is the clause the
-earlier statement omitted and the reason its criterion-length percentiles
-cannot be reproduced from it.
+**The instrument, stated so it reproduces.** `docs/specs/*/spec.md` at exactly
+one directory level. The status is the first line matching
+`^-?\s*\*\*Status:\*\*`, which must reduce to the leading token `Shipped` once
+an annotation (`Shipped (2026-05-26)`) is stripped. A criterion is a checkbox
+bullet under `## Acceptance Criteria`, since roughly half the corpus labels them
+`**ACn —**` and half does not; **a criterion's block runs from its checkbox to
+the next checkbox or the end of the section, with no blank-line terminator**,
+and its length is that block's whitespace-separated word count. A spec's word
+count is the whole file, verbatim, including its metadata header.
 
 **Measured 2026-09-08: 421 specs, 6,465 criteria.** Criteria per spec: p25 9,
-median 12, p75 18, p90 28, max 104. Words per spec: p25 1,033, median 1,602,
-p75 2,391, p90 3,942, max 11,566. Criterion words: median 33, p90 91, p96 139,
-max 924.
+median 12, p75 18, p90 28, max 104. Words per spec: p25 1,044, median 1,607,
+p75 2,398, p90 3,949, max 11,569. Criterion words: median 33, p90 101, p96 160,
+max 1,361.
 
-These supersede the 2026-09-02 figures. The criteria-per-spec percentiles
-reproduce them exactly and the words-per-spec percentiles land within 1%, so
-those two instruments agree; the criterion-length percentiles come out about a
-tenth lower (p90 91 against 101), which the original instrument's unstated
-block boundary explains and this one's stated boundary fixes. Prefer these,
-and re-derive rather than quoting either set.
+Criteria per spec is unchanged from 2026-09-02 and criterion p90 is unchanged at
+101, which is the check that the instrument above is the one that produced the
+original figures. An independent run of it on 2026-09-08 reproduced every
+figure here to within two words on the single longest criterion.
 
 ### Band
 
@@ -151,16 +151,17 @@ argued with.
 | --- | --- | --- |
 | Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
 | Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. |
-| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across the 6,465 shipped criteria measured 2026-09-08 p90 is 91 words and p96 is 139. |
-| Spec body | ≤1,602 words; past 2,391 needs a stated reason | Measured, repo-local: the corpus median and p75, § "Corpus", 2026-09-08. |
+| Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria (267–365 words) while its median 86-word criteria were quiet, and across the 6,465 shipped criteria measured 2026-09-08 p90 is 101 words and p96 is 160. |
+| Spec body | ≤1,607 words; past 2,398 needs a stated reason | Measured, repo-local: the corpus median and p75, § "Corpus", 2026-09-08. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
 | Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
 
 ### Limit interaction
 
 As `assets/spec.md` requires of any quantity
-carrying two: both are reachable, because 10 criteria at the corpus median of
-35 words each is ~350 words against a 1,599-word body. Criterion size is not a
+carrying two: both are reachable: 10 criteria at the corpus median criterion length
+is well under the median spec body, and § "Corpus" carries both figures so this
+argument does not restate them. Criterion size is not a
 limit, so it can neither dominate nor be dominated.
 
 ### Corpus limits
@@ -309,8 +310,8 @@ wrong, so every real defect adds surface to something that should not exist.
 Here the subject is **right**; what is wrong is a proof obligation the author
 manufactured. `make ci` already *is* the definition of verified. Restating it as
 six lanes creates a completeness claim that did not previously exist, cannot be
-discharged by more machinery, and generates findings that are all real and all
-beside the point.
+discharged, and generates findings that are all real and all beside the
+point.
 
 **What now catches it, and what still does not.** Rubric class 4 ships the
 decidable half of this exhibit. Its other two homes are classes 1 and 6, which
@@ -711,9 +712,9 @@ Each condition names the row it kills and the report line that decides it.
 ## Proposed slices
 
 None is confirmed and no spec is authored. Slice sizes are targets a spec
-author writes to under § "Sizing discipline". **The AC ceiling is a ceiling
-and a stall threshold, never a floor** — a slice with fewer genuine criteria
-ships with fewer.
+author writes to under § "Sizing discipline", and the AC ceiling is governed by
+rubric class 5, which states how a count threshold is used and what it never
+becomes.
 
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -769,8 +770,9 @@ What shipping early costs, recorded rather than glossed:
 - **Six classes ship at a length the change's own evidence argues against.**
   The [ablation](../research/spec-authoring-rubric-ablation.md), which scored
   a paired arm-A/arm-B run over six pre-registered defects, found four of the
-  six classes already reachable from shipped guidance,
-  so their marginal value is diagnosis rather than detection, and the
+  four of its six pre-registered defects already reachable from shipped
+  guidance — and it sampled only four of the six classes, never 1 or 5 — so the
+  measured marginal value is two defects in two classes, and the
   commissioned survey records vendor guidance that an over-long instruction
   file gets half-ignored. The six ship whole anyway for one reason: the rubric
   is worked **in order** and stops at the first class that fires, so every
