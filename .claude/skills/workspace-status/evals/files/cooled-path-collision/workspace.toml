@@ -1,0 +1,24 @@
+["ini-001"]
+name      = "Collision Initiative"
+status    = "active"
+milestone = "M1"
+
+# Two DISTINCT queue entries stored at the same raw path. The first is the
+# legacy string form and its artifact is cooled by the lifecycle record. The
+# second is a separate, still-live entry that merely shares that path.
+#
+# Cooled exclusion is keyed on each entry's position in this list, so cooling
+# the first cannot remove the second. Keying on any value the entries carry --
+# a raw path, or a (path, kind) pair -- drops both, and closeout then reports
+# an empty queue and offers close-work while live work remains.
+["ini-001".work]
+queue   = [
+  "spec/example-cooled",
+  { path = "spec/example-cooled", kind = "defect", source = { mode = "repo-origin" }, summary = "A live defect entry sharing the cooled path", needs = [] },
+]
+active  = []
+shipped = []
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
