@@ -182,7 +182,7 @@ identifier to the repository root without checking it is a path first.
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
 | `invalid_lifecycle_record` | A `docs/lifecycle/` record failed to load, was a symlink, or was not a regular file. | Repair or remove that record; other records still cool. |
-| `cooling_state_unavailable` | The cooled set could not be established at all: `docs/lifecycle/` is unusable or escapes the root, or no cooling module resolved. | Install `close-work` or repair `docs/lifecycle/`; no artifact is excluded this run. |
+| `cooling_state_unavailable` | The cooled set could not be established at all: `docs/lifecycle/` is unusable or escapes the root, no cooling module resolved, or its confinement authority is unavailable. | Install `close-work` or repair `docs/lifecycle/`; no artifact is excluded this run. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
@@ -272,9 +272,11 @@ resolved cleanly, and `true` when any lifecycle record or the cooling module
 could not be read. `true` means the exclusion is *incomplete*, not that it did
 not happen — which of the two depends on the finding. A
 `cooling_state_unavailable` finding means the cooled set could not be
-established at all and nothing was excluded this run. An
-`invalid_lifecycle_record` finding names one record that cooled nothing, while
-every record that did load still cooled its artifact.
+established at all, including when the resolved cooling module cannot load its
+confinement authority, and nothing was excluded this run. An
+`invalid_lifecycle_record` finding names one record that cooled nothing. When
+no `cooling_state_unavailable` finding is present, every record that did load
+still cooled its artifact; otherwise no artifact was excluded.
 
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 

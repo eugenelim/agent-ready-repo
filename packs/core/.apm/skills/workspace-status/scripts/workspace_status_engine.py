@@ -2074,6 +2074,7 @@ def _cooled_locators(
         return frozenset(), (_finding("cooling_state_unavailable"),)
     cooled: set[Path] = set()
     findings: list[RoutingFinding] = []
+    cooling_state_unavailable = False
     for record_path in records:
         relative_path = record_path.relative_to(root).as_posix()
         if record_path.is_symlink() or not record_path.is_file():
@@ -2091,6 +2092,9 @@ def _cooled_locators(
             findings.append(_finding("invalid_lifecycle_record", relative_path))
             continue
         record = getattr(result, "record", None)
+        if getattr(result, "code", None) == "cooling-state-unavailable":
+            cooling_state_unavailable = True
+            continue
         if (
             getattr(result, "code", None) is not None
             or record is None
@@ -2109,6 +2113,11 @@ def _cooled_locators(
                 continue
             if member.exists():
                 cooled.add(member)
+    if cooling_state_unavailable:
+        # The complete record walk retains independent path-specific findings,
+        # but no partial cooled set is safe to use when authority is unavailable.
+        findings.append(_finding("cooling_state_unavailable"))
+        return frozenset(), tuple(findings)
     return frozenset(cooled), tuple(findings)
 
 
