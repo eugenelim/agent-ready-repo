@@ -274,8 +274,9 @@ not happen — which of the two depends on the finding. A
 `cooling_state_unavailable` finding means the cooled set could not be
 established at all, including when the resolved cooling module cannot load its
 confinement authority, and nothing was excluded this run. An
-`invalid_lifecycle_record` finding names one record that cooled nothing, while
-every record that did load still cooled its artifact.
+`invalid_lifecycle_record` finding names one record that cooled nothing. When
+no `cooling_state_unavailable` finding is present, every record that did load
+still cooled its artifact; otherwise no artifact was excluded.
 
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 
