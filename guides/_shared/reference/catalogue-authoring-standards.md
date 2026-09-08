@@ -546,6 +546,10 @@ Every integration must declare what the consuming skill does when the target is
 absent. An agent reading the integration without the target installed needs to
 know how to proceed.
 
+Where the target pack publishes a diagnostic vocabulary, the consuming pack's
+`fallback` repeats that target's diagnostic verbatim rather than paraphrasing
+it, so the receipt an agent states is one the target actually emits.
+
 **Lint and verify:**
 
 ```bash

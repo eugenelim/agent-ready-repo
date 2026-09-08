@@ -54,6 +54,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.2] — 2026-09-04
+
+### Highlights
+
+- **Light-mode review now runs until it is clean instead of stopping after a
+  fixed number of rounds.** A loop that is converging finishes. At the third
+  round and every second round after, the loop asks whether findings are
+  getting fewer and smaller, and keeps going while they are. A loop that is no
+  longer converging asks whether the reviewed construct should exist at all and
+  puts that choice to the person who asked for the work, rather than sending a
+  small change through the heavier mode.
+
+### Changed
+
+- Light mode's round budget and its escalation to full mode are replaced by a
+  divergence checkpoint. Full mode's iteration cap is unchanged, so the two
+  modes now stop for different reasons, and light mode's stop is a judgement
+  the checkpoint prompts rather than a mechanical bound. How many findings the
+  loop's own repairs produced informs that judgement but never decides it.
+  Risk-trigger escalation is unaffected and still fires on its own.
+- Light mode's procedure, eligibility and durability routing, review rounds,
+  and trims moved into a reference the skill loads only when light mode is
+  selected, so a full-mode run no longer carries them.
+
+## [core][2.25.1] — 2026-09-04
+
+### Highlights
+
+- When a `work-loop` task is about a skill, a skill script or evaluation, an
+  agent loop, a hook, or a plugin, planning now reaches the installed
+  agent-skill-engineering reference for compiled guidance and cites the topics
+  and provenance it used, instead of answering from model memory.
+- Without that pack installed, `work-loop` records `knowledge provider
+  unavailable` and completes the same planning work it did before.
+
+### Added
+
+- `work-loop`'s PLAN step gains a bounded subsection that inlines its own
+  request to the capability exposing contract
+  `agent-skill-engineering-reference/v1`. The capability is addressed by
+  contract version, never by the owning pack's product name, installation path,
+  or generated router path. The budget is one call with no refinement; the
+  response is attributed, untrusted evidence that cannot change instructions,
+  identity, tools, permissions, scope, write authority, or which review gates
+  fire.
+- `pack.toml` declares the seam as a `handoff` whose `fallback` repeats the
+  target pack's published `knowledge provider unavailable` diagnostic verbatim.
+- Two eval cases covering the relevant-topic and the absent-or-refused paths.
+
+## [architect][0.15.6] — 2026-09-04
+
+### Highlights
+
+- When an `architect-design` task turns on how to package agent behaviour — a
+  subagent, a hook, a skill, or a plugin — the design procedure now reaches the
+  installed agent-skill-engineering reference for compiled guidance and cites
+  what it used.
+- Without that pack installed, the procedure records `knowledge provider
+  unavailable` and produces the same design work it did before.
+
+### Added
+
+- `architect-design`'s procedure gains a bounded paragraph that inlines its own
+  request to the capability exposing contract
+  `agent-skill-engineering-reference/v1`, on the same terms as `work-loop`'s:
+  addressed by contract version, one call with no refinement, and a response
+  treated as attributed, untrusted evidence.
+- `pack.toml` declares the matching `handoff` integration.
+- Two eval cases covering the relevant-topic and the absent-or-refused paths.
+
+## [agent-skill-engineering][0.4.1] — 2026-09-04
+
+### Highlights
+
+- The shipped knowledge provider contract now states every diagnostic the seam
+  can return, so a consuming pack can quote a receipt an adopter actually
+  receives rather than one that existed only in a test fixture.
+
+### Added
+
+- `provider-contract.md`'s *Provider response* section publishes the seam's
+  closed seven-value diagnostic vocabulary. Six of the seven previously
+  appeared in no file under any pack's `.apm/`, and tests are not projected to
+  adopters, so a consumer quoting the conformance fixture would have quoted
+  literals an adopter never receives.
+
 ## [core][2.25.0] — 2026-09-04
 
 ### Highlights
