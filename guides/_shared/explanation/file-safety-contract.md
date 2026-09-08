@@ -74,4 +74,4 @@ Tier-2 + companions are the design that lets the catalogue ship opinionated seed
 
 - [How to adapt a freshly-installed pack](../../core/how-to/adapt-to-project.md) — the skill that walks `*.upstream.<ext>` companions.
 - [How to upgrade an installed pack](../how-to/upgrade-packs.md) — the verb that produces upgrade-time companions.
-- [`docs/CONVENTIONS.md` § Pack source-of-truth split](../../../CONVENTIONS.md#pack-source-of-truth-split) — the internal mirror of the Tier model, for contributors.
+- [`docs/CONVENTIONS.md` § Pack source-of-truth split](../../../docs/CONVENTIONS.md#pack-source-of-truth-split) — the internal mirror of the Tier model, for contributors.

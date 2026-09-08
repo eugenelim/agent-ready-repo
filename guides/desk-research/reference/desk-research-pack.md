@@ -7,7 +7,7 @@ kind: reference
 
 # Desk Research pack — reference
 
-The dry catalogue of every primitive in the `desk-research` pack. For the walkthrough, see [your first research session](../tutorials/desk-research-first-session.md); for the why, see [the research methodology explanation](../explanation/desk-research-methodology.md). The pack has two axes — episodic depth (`/desk-research` and the pipeline skills) and the project lifecycle (the four `research-project-*` skills); see [episodic vs project research](../explanation/episodic-vs-project-research.md).
+The dry catalogue of every primitive in the `desk-research` pack. For the walkthrough, see [your first research session](../tutorials/desk-research-first-session.md); for the why, see [the research methodology explanation](../explanation/research-methodology.md). The pack has two axes — episodic depth (`/desk-research` and the pipeline skills) and the project lifecycle (the four `research-project-*` skills); see [episodic vs project research](../explanation/episodic-vs-project-research.md).
 
 ## Skills
 

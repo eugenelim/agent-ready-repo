@@ -1,6 +1,6 @@
 ---
 name: user-flow
-description: "Use when an approved customer journey needs to become screens, transitions, failure paths, and navigation routes. Produces a complete screen sequence plus one self-contained brief per screen and a whole-flow walk-through. Use `journey-mapping` to understand the journey first, `interaction-design` for behavior within one screen, and `service-blueprint` for backing services. Adoption strategy belongs upstream; appetite and scope belong to `frame-intent`; implementing routes and screens belongs to `frontend-engineering`."
+description: "Use when an approved customer journey needs to become screens, transitions, failure paths, and navigation routes. Produces a complete screen sequence plus one self-contained brief per screen and a whole-flow walk-through. Use `journey-mapping` to understand the journey first, `interaction-design` for behavior within one screen, and `service-blueprint` for backing services. Adoption strategy belongs upstream; appetite and scope belong to `frame-intent`; implementing routes and screens belongs to `frontend-engineering`. Triggers on \"turn this account-recovery journey into screens and transitions\", \"map the error paths across our checkout screens\", \"create a screen flow and brief for every onboarding screen\"."
 ---
 
 # Skill: user-flow

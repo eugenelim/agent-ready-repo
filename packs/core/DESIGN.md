@@ -113,7 +113,7 @@ No trigger fires → light mode.
 | Aspect | Light mode | Full mode |
 |--------|-----------|-----------|
 | Spec | Eligible direct-light work keeps its plan in the active session; a supplied or persisted spec remains governing | Durable `new-spec` document |
-| `adversarial-reviewer` passes | Single bounded pass; one re-review of the fix, then escalates | Iterated to clean (max 5 iterations) |
+| `adversarial-reviewer` passes | Rounds run to clean, with a divergence checkpoint that routes to the requester | Iterated to clean (max 5 iterations) |
 | `quality-engineer` | Not run by default | Runs at end-of-session checklist |
 | `loop-cohort` state machine | Not used | Used |
 | Task count | Single logical task | Multi-task via supervisor |
@@ -270,7 +270,8 @@ Running gates before presenting the diff to the human avoids a common failure mo
 
 ### When the loop surfaces instead of terminating
 
-- Max iterations reached (default 5 in full mode; 1 re-review in light mode before escalation)
+- Max iterations reached (default 5 in full mode)
+- Light mode's divergence checkpoint routed the choice to the requester
 - Gate failure that can't be fixed within scope
 - A REVIEW Blocker that contradicts the approved spec (requires human adjudication)
 - A discovery mid-EXECUTE that changes the scope of the plan

@@ -120,6 +120,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "176a624f15375934d18f924de64d8f8114225903"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-01T01:37:27Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-check-keyed-on-a-fixed-line-window-is-satisfiable-by-adding-lines.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "A check keyed on a fixed line window is satisfiable by adding lines, not by fixing the defect",
+      "topic_key": "a-check-keyed-on-a-fixed-line-window-is-satisfiable-by-adding-lines"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "fbf5f874288b792768ec0b1ba2c6f70b72b6ef89"
       },
       "competency_facets": [
@@ -305,6 +328,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "844e0dc86271dc66ccb690ee45800de8d13553b8"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
+      },
+      "lifecycle": "retired",
+      "path": "topics/a-numeric-bound-is-underspecified-until-you-state-what-it-is-measured-from.json",
+      "scopes": [
+        "docs/specs",
+        "packs/core/.apm/skills/new-spec"
+      ],
+      "title": "A numeric bound is underspecified until you state what it is measured from, and the origin is the deeper defect",
+      "topic_key": "a-numeric-bound-is-underspecified-until-you-state-what-it-is-measured-from"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "4c959fcd1bc884905aa139d1bfb98f6461379d94"
       },
       "competency_facets": [
@@ -397,6 +444,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "2486dc1bf8bc4bb809864814a896074f86e876a2"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-OPERATE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-01T01:37:30Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-safety-cap-enforced-only-by-shell-punctuation-is-one-reformat-away-from-gone.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "A safety cap enforced only by shell punctuation in agent instructions is one reformat away from gone",
+      "topic_key": "a-safety-cap-enforced-only-by-shell-punctuation-is-one-reformat-away-from-gone"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "4af823fb24740e624980cc279a63de099ac068ad"
       },
       "competency_facets": [
@@ -414,6 +484,31 @@
       ],
       "title": "A source-substring pin cannot detect the control's removal",
       "topic_key": "a-source-substring-pin-cannot-detect-the-controls-removal"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "7b43563271e5a161e100909b979eee54c4bcb762"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
+      },
+      "lifecycle": "retired",
+      "path": "topics/a-spec-over-third-party-input-needs-a-corpus-spike-before-its-refusal-criteria.json",
+      "scopes": [
+        "docs/specs",
+        "packs/core/.apm/skills/new-spec"
+      ],
+      "title": "A spec whose subject is third-party input needs a corpus spike before its refusal criteria are written",
+      "topic_key": "a-spec-over-third-party-input-needs-a-corpus-spike-before-its-refusal-criteria"
     },
     {
       "audience": "project",
@@ -554,6 +649,54 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "d74a6de50cc967b9b50e41e0fb286976bccd2d89"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-03T14:00:00Z",
+        "state": "retired"
+      },
+      "lifecycle": "retired",
+      "path": "topics/acceptance-criterion-length-predicts-defect-density-partition-past-150-words.json",
+      "scopes": [
+        "docs/specs",
+        "packs/core/.apm/skills/new-spec"
+      ],
+      "title": "Acceptance-criterion length predicts defect density; treat overflow past ~150 words as a partition signal",
+      "topic_key": "acceptance-criterion-length-predicts-defect-density-partition-past-150-words"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "19cd6e991dd4cf7afa6f6e7c7a874d2ddee3b656"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-28T01:34:02Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/an-acceptance-criterion-asserting-the-codes-character-is-unfalsifiable.json",
+      "scopes": [
+        "docs/specs"
+      ],
+      "title": "An acceptance criterion asserting the code's character is unfalsifiable and compounds review churn",
+      "topic_key": "an-acceptance-criterion-asserting-the-codes-character-is-unfalsifiable"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "e28653391efacff68b6c0a0225728a2acde56126"
       },
       "competency_facets": [
@@ -571,6 +714,29 @@
       ],
       "title": "An empty-set assertion needs a positive control",
       "topic_key": "an-empty-set-assertion-needs-a-positive-control"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "feb422bf3a4eab9b9e7eb96b4c9e5dccda97dcec"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-01T01:37:29Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/an-identifier-regex-anchored-with-caret-dollar-fails-open-in-python.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "An identifier regex anchored with ^...$ fails open in Python and defeats an equality-compared guard",
+      "topic_key": "an-identifier-regex-anchored-with-caret-dollar-fails-open-in-python"
     },
     {
       "audience": "project",
@@ -1134,6 +1300,29 @@
       ],
       "title": "Local make build-check does not run what CI build-check runs",
       "topic_key": "local-make-build-check-does-not-run-what-ci-build-check-runs"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "5f1f1b8bda442e180b37af7d0be0f29a7d700583"
+      },
+      "competency_facets": [
+        "CQ-ORIENT",
+        "CQ-CHANGE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-28T01:35:54Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/loop-cohort-schedule-parses-task-headings-by-pattern-after-the-plan-is-pinned.json",
+      "scopes": [
+        "docs/specs"
+      ],
+      "title": "loop-cohort schedule parses task headings by a fixed pattern, and it runs after approve-plan pins the plan",
+      "topic_key": "loop-cohort-schedule-parses-task-headings-by-pattern-after-the-plan-is-pinned"
     },
     {
       "audience": "project",

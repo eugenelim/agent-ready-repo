@@ -5,6 +5,517 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.3"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.3] — 2026-09-08",
+      "changelogAnchor": "core2253--2026-09-08",
+      "highlights": [
+        {
+          "source": "**A durable owner accepting an artifact now survives the session that recorded it.** The lifecycle record carries `Reclassified`, so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A durable owner accepting an artifact now survives the session that recorded it."
+            },
+            {
+              "type": "text",
+              "value": " The lifecycle record carries "
+            },
+            {
+              "type": "code",
+              "value": "Reclassified"
+            },
+            {
+              "type": "text",
+              "value": ", so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against."
+            }
+          ]
+        },
+        {
+          "source": "**It is reached deliberately and only once.** Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "It is reached deliberately and only once."
+            },
+            {
+              "type": "text",
+              "value": " Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.2"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.2] — 2026-09-04",
+      "changelogAnchor": "core2252--2026-09-04",
+      "highlights": [
+        {
+          "source": "**Light-mode review now runs until it is clean instead of stopping after a fixed number of rounds.** A loop that is converging finishes. At the third round and every second round after, the loop asks whether findings are getting fewer and smaller, and keeps going while they are. A loop that is no longer converging asks whether the reviewed construct should exist at all and puts that choice to the person who asked for the work, rather than sending a small change through the heavier mode.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Light-mode review now runs until it is clean instead of stopping after a fixed number of rounds."
+            },
+            {
+              "type": "text",
+              "value": " A loop that is converging finishes. At the third round and every second round after, the loop asks whether findings are getting fewer and smaller, and keeps going while they are. A loop that is no longer converging asks whether the reviewed construct should exist at all and puts that choice to the person who asked for the work, rather than sending a small change through the heavier mode."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.1] — 2026-09-04",
+      "changelogAnchor": "core2251--2026-09-04",
+      "highlights": [
+        {
+          "source": "When a `work-loop` task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "When a "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " task is about a skill, a skill script or evaluation, an agent loop, a hook, or a plugin, planning now reaches the installed agent-skill-engineering reference for compiled guidance and cites the topics and provenance it used, instead of answering from model memory."
+            }
+          ]
+        },
+        {
+          "source": "Without that pack installed, `work-loop` records `knowledge provider unavailable` and completes the same planning work it did before.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Without that pack installed, "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and completes the same planning work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.6"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[architect][0.15.6] — 2026-09-04",
+      "changelogAnchor": "architect0156--2026-09-04",
+      "highlights": [
+        {
+          "source": "When an `architect-design` task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "When an "
+            },
+            {
+              "type": "code",
+              "value": "architect-design"
+            },
+            {
+              "type": "text",
+              "value": " task turns on how to package agent behaviour — a subagent, a hook, a skill, or a plugin — the design procedure now reaches the installed agent-skill-engineering reference for compiled guidance and cites what it used."
+            }
+          ]
+        },
+        {
+          "source": "Without that pack installed, the procedure records `knowledge provider unavailable` and produces the same design work it did before.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Without that pack installed, the procedure records "
+            },
+            {
+              "type": "code",
+              "value": "knowledge provider unavailable"
+            },
+            {
+              "type": "text",
+              "value": " and produces the same design work it did before."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agent-skill-engineering",
+          "version": "0.4.1"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[agent-skill-engineering][0.4.1] — 2026-09-04",
+      "changelogAnchor": "agent-skill-engineering041--2026-09-04",
+      "highlights": [
+        {
+          "source": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "The shipped knowledge provider contract now states every diagnostic the seam can return, so a consuming pack can quote a receipt an adopter actually receives rather than one that existed only in a test fixture."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.0"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.25.0] — 2026-09-04",
+      "changelogAnchor": "core2250--2026-09-04",
+      "highlights": [
+        {
+          "source": "**A work-loop phase now decides which behavioural rules an authoring agent is taught.** A registry inside the `work-loop` skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A work-loop phase now decides which behavioural rules an authoring agent is taught."
+            },
+            {
+              "type": "text",
+              "value": " A registry inside the "
+            },
+            {
+              "type": "code",
+              "value": "work-loop"
+            },
+            {
+              "type": "text",
+              "value": " skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.24.3"
+        }
+      ],
+      "date": "2026-09-04",
+      "heading": "[core][2.24.3] — 2026-09-04",
+      "changelogAnchor": "core2243--2026-09-04",
+      "highlights": [
+        {
+          "source": "**A lesson that a rule or a control has since absorbed can be retired where it lives.** Distillation now carries the lifecycle and the retirement record, so a topic settles as `canonicalized`, `enforced`, `obsolete`, `merged`, or `invalidated`, naming the successor that took the lesson over. A retired topic stays in place for history and stops being offered as current guidance.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A lesson that a rule or a control has since absorbed can be retired where it lives."
+            },
+            {
+              "type": "text",
+              "value": " Distillation now carries the lifecycle and the retirement record, so a topic settles as "
+            },
+            {
+              "type": "code",
+              "value": "canonicalized"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "enforced"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "obsolete"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "merged"
+            },
+            {
+              "type": "text",
+              "value": ", or "
+            },
+            {
+              "type": "code",
+              "value": "invalidated"
+            },
+            {
+              "type": "text",
+              "value": ", naming the successor that took the lesson over. A retired topic stays in place for history and stops being offered as current guidance."
+            }
+          ]
+        },
+        {
+          "source": "**A topic keeps every occurrence that produced it.** Reconciling a second observation into an existing topic appends to its provenance instead of replacing it, so the record of what was seen, and when, survives revision.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A topic keeps every occurrence that produced it."
+            },
+            {
+              "type": "text",
+              "value": " Reconciling a second observation into an existing topic appends to its provenance instead of replacing it, so the record of what was seen, and when, survives revision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "product-engineering",
+          "version": "0.13.9"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[product-engineering][0.13.9] — 2026-09-03",
+      "changelogAnchor": "product-engineering0139--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Shaping skills now suggest a workspace entry that can actually be picked up.** `frame-situation` and `diverge-solutions` printed a short legacy form that is never dispatchable, so an entry added exactly as instructed never surfaced as ready work. Both now print the canonical five-field entry and route registration through `work-intake`.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Shaping skills now suggest a workspace entry that can actually be picked up."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "frame-situation"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "diverge-solutions"
+            },
+            {
+              "type": "text",
+              "value": " printed a short legacy form that is never dispatchable, so an entry added exactly as instructed never surfaced as ready work. Both now print the canonical five-field entry and route registration through "
+            },
+            {
+              "type": "code",
+              "value": "work-intake"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        },
+        {
+          "source": "**A reference to a command that no longer exists is gone.** The skills pointed at a retired skill name, so following the instruction did nothing.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A reference to a command that no longer exists is gone."
+            },
+            {
+              "type": "text",
+              "value": " The skills pointed at a retired skill name, so following the instruction did nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "product-strategy",
+          "version": "0.2.5"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[product-strategy][0.2.5] — 2026-09-03",
+      "changelogAnchor": "product-strategy025--2026-09-03",
+      "highlights": [
+        {
+          "source": "**The OKR cascade now writes a workspace entry that can be picked up.** `run-okr-cascade` records each gap it finds, and it was writing a legacy form that is never dispatchable — so every gap it recorded was invisible to the shaping room it was recording into. It now writes the canonical five-field entry.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The OKR cascade now writes a workspace entry that can be picked up."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "run-okr-cascade"
+            },
+            {
+              "type": "text",
+              "value": " records each gap it finds, and it was writing a legacy form that is never dispatchable — so every gap it recorded was invisible to the shaping room it was recording into. It now writes the canonical five-field entry."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "experience-design",
+          "version": "2.0.3"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[experience-design][2.0.3] — 2026-09-03",
+      "changelogAnchor": "experience-design203--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Every experience-design skill now tells you how to start it.** None of the pack's twenty skills documented an example phrase, so a person had to guess the wording and the agent had nothing to match against. Each skill now carries two to four phrases someone would actually type, sharpened so neighbouring skills in a twenty-skill pack do not claim the same request.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Every experience-design skill now tells you how to start it."
+            },
+            {
+              "type": "text",
+              "value": " None of the pack's twenty skills documented an example phrase, so a person had to guess the wording and the agent had nothing to match against. Each skill now carries two to four phrases someone would actually type, sharpened so neighbouring skills in a twenty-skill pack do not claim the same request."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "frontend-engineering",
+          "version": "0.2.2"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[frontend-engineering][0.2.2] — 2026-09-03",
+      "changelogAnchor": "frontend-engineering022--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Every frontend-engineering skill now tells you how to start it.** As with experience-design, none of the nine skills documented an example phrase. Each now carries example utterances that match what the skill genuinely handles.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Every frontend-engineering skill now tells you how to start it."
+            },
+            {
+              "type": "text",
+              "value": " As with experience-design, none of the nine skills documented an example phrase. Each now carries example utterances that match what the skill genuinely handles."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.24.2"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.24.2] — 2026-09-03",
+      "changelogAnchor": "core2242--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Evidence from a run now has a place to go that the approved plan does not.** Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Evidence from a run now has a place to go that the approved plan does not."
+            },
+            {
+              "type": "text",
+              "value": " Once a plan is approved it is pinned, so a task that asked for its own observed result to be written back into it could never be satisfied. Plans now keep the obligation and a sibling verification ledger keeps the observation — the mutation that was applied, the check that went red, the digest that was compared. One convention states when substantive edits stop, and a check fails if that statement is reverted."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.24.0"
+        }
+      ],
+      "date": "2026-09-03",
+      "heading": "[core][2.24.0] — 2026-09-03",
+      "changelogAnchor": "core2240--2026-09-03",
+      "highlights": [
+        {
+          "source": "**Work-loop now gives each scheduled plan task a bounded sequential implementer dispatch.** The controller retains lifecycle, review, and closeout ownership while the task brief carries its execution root and applicable craft guidance.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Work-loop now gives each scheduled plan task a bounded sequential implementer dispatch."
+            },
+            {
+              "type": "text",
+              "value": " The controller retains lifecycle, review, and closeout ownership while the task brief carries its execution root and applicable craft guidance."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.23.2"
         }
       ],

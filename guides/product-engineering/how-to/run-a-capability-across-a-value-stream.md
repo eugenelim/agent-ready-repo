@@ -18,6 +18,10 @@ kind: how-to
 You run a product org whose work spans many component repos (a polyrepo), and a capability you want to ship cuts across several of them. You want to shape it, slice it per component, and track whether the whole thing is delivered — without standing up a runtime coordination service. Install the `product-engineering` pack, then:
 
 ```text
+Set up a value-stream meta-repo for a capability that synchronizes customer consent across billing, support, and analytics repositories.
+```
+
+```text
   value-stream meta-repo  (no app code)
   ├── federated Backstage catalog  (references each repo's catalog-info.yaml)
   ├── shared-contract authority    (contract@version + read-only snapshots)
@@ -71,3 +75,8 @@ This coordinates **without a runtime hub**, and that has real costs you should s
 - **The rollup is a snapshot, not a live feed** — you reconcile it by hand; a live rollup that polls every repo is infrastructure, deferred to a later pack.
 
 These are the inherent cost of a polyrepo, surfaced rather than engineered away.
+
+## What you have now
+
+- A value-stream meta-repo model with shared-contract authority, component briefs, and an AND-completion rollup.
+- Each component can continue through `author-delivery-brief continue`, `new-spec`, and `work-loop` while the meta-repo tracks the whole capability.

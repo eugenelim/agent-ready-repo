@@ -67,6 +67,7 @@ import json
 import subprocess  # nosec B404  # invokes `npm` with a list argv, no shell
 import sys
 import tempfile
+import time
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -247,9 +248,20 @@ def _require_report(report: object) -> dict:
     if not isinstance(report, dict):
         raise AuditError(f"audit output is not a JSON object (got {type(report).__name__})")
     if "error" in report:
-        detail = report["error"]
-        if isinstance(detail, dict):
-            detail = detail.get("summary") or detail.get("code") or detail
+        # npm 11 loses its own exception: it throws a bare string, so the JSON
+        # formatter emits `{"summary": "", "detail": ""}` and leaves the reason in
+        # the sibling `message`. Try every field; the empty dict is truthy, so it
+        # must come last or it short-circuits `message`.
+        raw = report["error"]
+        detail: object = raw
+        if isinstance(raw, dict):
+            detail = (
+                raw.get("summary")
+                or raw.get("detail")
+                or raw.get("code")
+                or report.get("message")
+                or raw
+            )
         raise AuditError(
             f"npm audit reported an error instead of a report: "
             f"{detail or report.get('message') or '(no detail)'}"
@@ -372,7 +384,59 @@ def run_audit(project_dir: Path) -> object:
         ) from exc
 
 
-def run_canary_probe() -> None:
+#: Re-ask only a detail-free error — npm's shape for "the advisory request threw".
+#: Measured 2026-09-04: four failures across CI and local, one success unchanged.
+RETRY_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 5
+
+
+def is_detail_free_error(report: object) -> bool:
+    """Does this payload claim an error and then say nothing about it?
+
+    Narrow on purpose: a populated error is evidence about the failure, so it is
+    reported as-is. Decides only whether to ask again, never a verdict —
+    `_require_report` still raises, so an exhausted retry fails as one attempt did.
+    """
+    if not isinstance(report, dict) or "error" not in report:
+        return False
+    detail = report["error"]
+    if isinstance(detail, dict):
+        return not (detail.get("summary") or detail.get("detail") or detail.get("code"))
+    return not detail
+
+
+def run_audit_with_retry(
+    project_dir: Path,
+    *,
+    attempts: int = RETRY_ATTEMPTS,
+    audit=None,
+    sleep=time.sleep,
+) -> object:
+    """`run_audit`, re-asking only while npm answers with a detail-free error.
+
+    Returns the last payload received, whatever it is. A clean report short-
+    circuits; a populated error short-circuits; a detail-free error is re-asked
+    up to `attempts` times and then returned unchanged so the caller's
+    `_require_report` fails closed on it.
+    """
+    invoke = audit or run_audit
+    report: object = None
+    for attempt in range(1, attempts + 1):
+        report = invoke(project_dir)
+        if not is_detail_free_error(report):
+            return report
+        if attempt < attempts:
+            print(
+                f"audit-npm: npm answered with a detail-free error for {project_dir} "
+                f"(attempt {attempt}/{attempts}); re-asking in "
+                f"{RETRY_BACKOFF_SECONDS * attempt}s",
+                file=sys.stderr,
+            )
+            sleep(RETRY_BACKOFF_SECONDS * attempt)
+    return report
+
+
+def run_canary_probe(*, audit=None) -> None:
     """Prove the advisory endpoint answers, before trusting a clean result.
 
     Writes a throwaway lockfile pinning the canary and audits it. Nothing is
@@ -403,7 +467,11 @@ def run_canary_probe() -> None:
         probe_dir = Path(tmp)
         (probe_dir / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
         (probe_dir / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
-        if not canary_is_live(run_audit(probe_dir)):
+        # Retried too. Silence — a valid report omitting the advisory — is caught
+        # by `canary_is_live` and re-asking cannot cure it; only a detail-free
+        # error is. This probe runs first, so a single ask here red the gate thrice.
+        ask = audit or run_audit_with_retry
+        if not canary_is_live(ask(probe_dir)):
             raise AuditError(
                 f"the advisory endpoint reported nothing for {CANARY_PACKAGE}@"
                 f"{CANARY_VERSION} ({CANARY_ADVISORY}), which has carried a published "
@@ -487,7 +555,7 @@ def main(argv: list[str]) -> int:
     blocked = False
     for lockfile in lockfiles:
         try:
-            verdict = evaluate(run_audit(lockfile.parent), allowlist)
+            verdict = evaluate(run_audit_with_retry(lockfile.parent), allowlist)
         except AuditError as exc:
             print(f"audit-npm: {exc}", file=sys.stderr)
             return 2

@@ -17,6 +17,10 @@ adapts the Lean Canvas for internal initiatives — replacing startup vocabulary
 with initiative-appropriate labels — and writes one file:
 `docs/product/initiatives/<ini-slug>.md`.
 
+```text
+Create a lean canvas for an initiative that gives workspace owners self-service export retention controls.
+```
+
 ## When to use this skill
 
 **After steps 5 and 6 of the PE shaping sequence (recommended)**
@@ -110,3 +114,8 @@ To share the initiative brief with your team, commit the file to version
 control and link it from the initiative's `workspace.toml` section. The
 produced file is plain Markdown — it renders in GitHub, GitLab, and most
 document tools without conversion.
+
+## What you have now
+
+- A shareable initiative brief at `docs/product/initiatives/<ini-slug>.md` with a Value Proposition and workspace entry suggestion.
+- Review any TBD fields before sharing the brief or moving into the delivery route it supports.

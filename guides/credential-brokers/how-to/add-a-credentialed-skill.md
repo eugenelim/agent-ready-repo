@@ -374,7 +374,7 @@ Once everything is in place, populate the credential for your namespace:
       --login-url <login-url> --success-url-pattern <pattern>
   ```
 
-Registration opens a headed Chromium window and saves the cookie jar to the OS keychain (or a 0600 file on Linux). After that, `refresh` re-establishes an expired session headlessly, so a `check`-style verb can self-heal without a human — see the `sso-cookie` broker section of [`docs/architecture/credentials.md`](../../../architecture/credentials.md#the-sso-cookie-broker).
+Registration opens a headed Chromium window and saves the cookie jar to the OS keychain (or a 0600 file on Linux). After that, `refresh` re-establishes an expired session headlessly, so a `check`-style verb can self-heal without a human — see the `sso-cookie` broker section of [`docs/architecture/credentials.md`](../../../docs/architecture/credentials.md#the-sso-cookie-broker).
 
 ## Step 11 — Run the lint
 

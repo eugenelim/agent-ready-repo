@@ -1,6 +1,6 @@
 ---
 name: copy-direction
-description: "Use when someone asks what the copy on one marketing or acquisition surface should feel like before the lines are written. Produces ranked, grounded copy goals and a `copy-direction.md` record for that surface. `tone-of-voice` owns the cross-surface brand register, `content-design` runs first to decide message and narrative structure, and `ux-writing` owns product UI strings. Product or growth strategy belongs to product strategy; framing the acquisition bet belongs to `frame-intent`; implementing the surface belongs to `frontend-engineering`."
+description: "Use when someone asks what the copy on one marketing or acquisition surface should feel like before the lines are written. Produces ranked, grounded copy goals and a `copy-direction.md` record for that surface. `tone-of-voice` owns the cross-surface brand register, `content-design` runs first to decide message and narrative structure, and `ux-writing` owns product UI strings. Product or growth strategy belongs to product strategy; framing the acquisition bet belongs to `frame-intent`; implementing the surface belongs to `frontend-engineering`. Triggers on \"name the copy direction for our pricing page before we write it\", \"what should this onboarding campaign sound like\", \"set ranked copy goals for this landing page\"."
 ---
 
 # Skill: copy-direction

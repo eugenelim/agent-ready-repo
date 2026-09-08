@@ -13,6 +13,10 @@ kind: how-to
 
 This guide is for someone running the greenfield front door (`init-project`) who has reached the **foundation** step and needs to choose the stack and record it well. It assumes you've already passed the value gate — you can state the business value and the MVP — and you know what a `reference.md` is for. If you don't, read [About foundation vs. map](../explanation/foundation-vs-map.md) first.
 
+```text
+Record the foundation for our URL-shortener: a small HTTP service and a key-value store.
+```
+
 If you're starting from the very beginning, walk [From idea to a walking skeleton](../tutorials/start-a-new-project.md) instead — this guide zooms in on one step of that flow.
 
 ## Before you start
@@ -56,6 +60,12 @@ Real inceptions branch. Cover the cases you're likely to hit:
 - **Choosing a stack with no ADR.** The skill should stop you before the skeleton is authored. If you skipped it, write the ADR now — the *why* is the whole point, and it's cheapest to capture while it's fresh.
 - **Over-filling `reference.md` with invented constraints.** A foundation that prescribes standards nobody agreed to manufactures drift. Record only decisions you've actually made; the document's power comes from every line being one a reviewer could hold a pull request to.
 - **Treating `reference.md` as the map.** It's the normative golden path, not a description of what exists — that's `overview.md`'s job. Keep them separate.
+
+## What you have now
+
+You have a decision record and a current-architecture golden path at their
+resolved destinations. Use them to steer the walking-skeleton spec and amend
+the foundation with a superseding ADR if later evidence changes it.
 
 ## See also
 

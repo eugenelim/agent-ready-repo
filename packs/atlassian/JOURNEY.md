@@ -8,6 +8,7 @@ tagline: "Run Jira and Confluence from a conversation"
 prerequisitePacks: []
 contract:
   useItWhen: "You want to see what the team can work on, refresh registered Jira or Jira Align work, improve stories that are not actionable, apply approved Jira updates, or share a team summary — without writing JQL or selecting skills manually."
+  youType: "Show me the team backlog."
   youProvide: "Your team name, project keys, or a description of the scope you want reviewed. For writes: explicit confirmation of the exact fields to change."
   youReceive: "A grouped, annotated backlog — ready to pull, needs story work, blocked, in progress — with scope and completeness disclosed. Draft story improvements where requested. Exact write previews before any Jira change. A stand-up summary and optional Confluence draft on request."
   yourDecisions:

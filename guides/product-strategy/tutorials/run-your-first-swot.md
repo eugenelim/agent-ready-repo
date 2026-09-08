@@ -31,7 +31,9 @@ sets where the artifact will land.
 
 In your agent, say what you want in plain language:
 
-> Run a SWOT for our payments product.
+```text
+Run a SWOT for our payments product.
+```
 
 `run-swot` activates. It works one quadrant at a time — Strengths, Weaknesses,
 Opportunities, Threats.
@@ -92,6 +94,12 @@ artifact in the shaping surface — the same surface every other Pillar-1 skill
 writes to. The next market picture usually needs more than a SWOT: the
 competitive structure, the macro forces, the portfolio position. Reach for those
 in [Run a market and competitive analysis](../how-to/run-a-market-and-competitive-analysis.md).
+
+## What you have now
+
+You have a committed `docs/product/shaping/swot-analysis.md` with a grounded
+four-quadrant view of your product's position. Use it as the internal position
+input to a broader market analysis or an OKR cascade.
 
 ## See also
 

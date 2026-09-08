@@ -11,7 +11,7 @@ kind: how-to
 **Prerequisites:** A skill directory under `packs/<pack>/.apm/skills/<name>/` with a `SKILL.md`; see "Before you start".
 **Result:** A lint-clean, catalogue-standard skill with correct frontmatter, body structure, dependency handling, and evaluation fixtures.
 
-This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills: you've done the same multi-step thing three times, and you're not adding one speculatively).
+This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md) § Skills: you've done the same multi-step thing three times, and you're not adding one speculatively).
 
 If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills.
 
@@ -215,7 +215,7 @@ detector several times, computes a per-query `trigger_rate`, and grades it: a
 `should_trigger: true` query passes iff `trigger_rate > 0.5`; a
 `should_trigger: false` query passes iff `trigger_rate < 0.5`. The runs and a
 bounded `summary.json` land in a gitignored, iteration-numbered eval-workspace
-(see [pack layout](../../../architecture/pack-layout.md)). A miss is a signal to
+(see [pack layout](../../../docs/architecture/pack-layout.md)). A miss is a signal to
 sharpen your `description:` — the one field that drives activation.
 
 Not every skill belongs in `[pack.evals].skills`: a reviewer-internal skill with
@@ -424,4 +424,4 @@ Full reference and CLI equivalents: [`guides/_shared/reference/pack-config-api.m
 - [Skill UX patterns](../reference/skill-ux-patterns.md) — craft rules: column alignment, truncation, command bar, delete-gate box.
 - [Skill script conventions](../reference/skill-script-conventions.md) — flag conventions, docblocks, shared-libs, pack-config API.
 - [`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
-- [`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).
+- [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).

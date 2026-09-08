@@ -1,6 +1,6 @@
 # Spec: Pack-test compatibility classes
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071 (the pack remains the ownership and
@@ -110,22 +110,22 @@ No behavior in this spec needs visual or manual QA.
 
 ## Acceptance Criteria
 
-- [ ] **AC1** The pack-test inventory — pack, suite path, runner, command,
+- [x] **AC1** The pack-test inventory — pack, suite path, runner, command,
       import mode, test basenames, and class membership — is derived
       mechanically across **every** file in the lint's `_RUNNER_FILES`, not
       from a checked-in copy of today's list, and not from the `Makefile`
       alone.
-- [ ] **AC2** Baseline and final pack-scoped pytest launch counts are produced
+- [x] **AC2** Baseline and final pack-scoped pytest launch counts are produced
       by a command named verbatim in the plan, and re-running it reproduces the
       reported numbers.
-- [ ] **AC3** Every pack test suite directory is either named by a runner or
+- [x] **AC3** Every pack test suite directory is either named by a runner or
       declared unrun with a reason; `every-suite-dir-has-a-runner` keeps its
       fail-closed, non-vacuous behavior, and no `_NO_RUNNER` entry becomes
       self-contradictory.
-- [ ] **AC4** Standalone `make test` executes the same set of pytest node IDs
+- [x] **AC4** Standalone `make test` executes the same set of pytest node IDs
       as before this change, each exactly once — proven by comparing collected
       node-ID sets, with raw count equal to unique count on both sides.
-- [ ] **AC5** `test-after-build-check` removes from the pack surface exactly
+- [x] **AC5** `test-after-build-check` removes from the pack surface exactly
       the three pack-side build-check-owned files
       (`work-loop/test_lint_spec_status.py`,
       `work-loop/test_lint_traceability.py`,
@@ -140,30 +140,30 @@ No behavior in this spec needs visual or manual QA.
       verified and recorded, not that the file is frozen. The recorded delta is
       standalone 71 → 58 and composed 70 → 57 plan lines, exactly the −13 from
       folding eighteen pack lines into five.
-- [ ] **AC6** Each floor-bearing suite remains **the sole target of its own
+- [x] **AC6** Each floor-bearing suite remains **the sole target of its own
       invocation**, so the plugin's session-wide `len(items)` count equals that
       suite's count: `desk-research` ≥ 9 and `desk-research-project-start` ≥ 7.
       No floor-bearing suite joins a class, and no aggregate floor is
       introduced.
-- [ ] **AC7** No compatibility class contains a suite path outside its declared
+- [x] **AC7** No compatibility class contains a suite path outside its declared
       owning pack; a cross-pack class fails the gate.
-- [ ] **AC8** A pack test suite not named in any class declaration runs in its
+- [x] **AC8** A pack test suite not named in any class declaration runs in its
       own pytest process. Adding a new suite directory does not place it in an
       existing class, and an ancestor-shaped broad invocation is rejected even
       when the destinations it covers today match a class exactly.
-- [ ] **AC9** Every runner invocation covering more than one suite corresponds
+- [x] **AC9** Every runner invocation covering more than one suite corresponds
       exactly to one declared class — same member set, no extra path, no
       missing member — and carries that class's required pytest arguments.
-- [ ] **AC10** Class declarations cannot overlap (a suite in two classes fails),
+- [x] **AC10** Class declarations cannot overlap (a suite in two classes fails),
       go stale (a member path that does not exist fails), be unused (a declared
       class no runner exercises fails), or be trivial (a class with fewer than
       two members fails).
-- [ ] **AC11** For every declared class, duplicate test module basenames among
+- [x] **AC11** For every declared class, duplicate test module basenames among
       its members are proven to collect distinctly — either the class requires
       `--import-mode=importlib`, or the colliding directories carry
       disambiguating `__init__.py` files while their shared parent does not, or
       no basename collides. A class satisfying none of these fails.
-- [ ] **AC12** For every declared class, every subject-module load is
+- [x] **AC12** For every declared class, every subject-module load is
       **statically resolvable** and every module name maps to **exactly one
       path**. Resolution is defined as: a string literal at the
       `spec_from_file_location` call, or a name argument traced by
@@ -176,73 +176,73 @@ No behavior in this spec needs visual or manual QA.
       `core/tests/pack/` and `core/tests/skills/workspace-status/`, and both
       resolve to `.apm/skills/workspace-status/scripts/workspace_status_engine.py`
       — a name-uniqueness rule would have failed it for no reason.)
-- [ ] **AC13** The import-safety derivation reads pytest's actual import set for
+- [x] **AC13** The import-safety derivation reads pytest's actual import set for
       each member: the member's test modules, **every `conftest.py` from rootdir
       down to the member's directory** (including the member's own directory
       when the member is a file), and local modules imported from those. Fixture
       trees that pytest never imports are excluded explicitly, not by accident.
-- [ ] **AC14** Introducing an unsafe subject import into a class member — a
+- [x] **AC14** Introducing an unsafe subject import into a class member — a
       `sys.path` mutation anywhere in that import set, a duplicate or
       unresolvable `spec_from_file_location` name, or (in an `importlib` class)
       a bare import of a sibling test module — fails the gate, proven by a
       mutation control for each form.
-- [ ] **AC15** For every declared class, the union of node IDs collected by
+- [x] **AC15** For every declared class, the union of node IDs collected by
       running its members in isolation equals the set collected by the grouped
       invocation.
-- [ ] **AC16** For every declared class, the grouped run's skip and xfail
+- [x] **AC16** For every declared class, the grouped run's skip and xfail
       dispositions equal the isolated union's.
-- [ ] **AC17** For every declared class, the grouped invocation passes in
+- [x] **AC17** For every declared class, the grouped invocation passes in
       forward order, in reverse member order, and across repeated fresh
       processes.
-- [ ] **AC18** A failure injected into any single class member causes the
+- [x] **AC18** A failure injected into any single class member causes the
       grouped invocation to exit nonzero and to name that member's test path.
-- [ ] **AC19** A collection error in a class member remains distinguishable
+- [x] **AC19** A collection error in a class member remains distinguishable
       from a test failure and cannot be reported as a pass.
-- [ ] **AC20** Source-package resolution is unchanged: rootdir and configfile
+- [x] **AC20** Source-package resolution is unchanged: rootdir and configfile
       resolve identically for isolated and grouped invocations, and the root
       `[tool.pytest.ini_options] pythonpath` entries are untouched.
-- [ ] **AC21** Every file under any `packs/*/.apm/` tree and every file under
+- [x] **AC21** Every file under any `packs/*/.apm/` tree and every file under
       `packs/*/tests/` is byte-identical to its pre-change content, proven by
       `git diff --stat` over those paths being empty.
-- [ ] **AC22** The pack boundary checks — `apm-carries-no-tests`,
+- [x] **AC22** The pack boundary checks — `apm-carries-no-tests`,
       `projection-carries-no-tests`, `tests-live-in-the-pack-tree`, and
       `pack-tests-stay-in-pack` — are unchanged in behavior.
-- [ ] **AC23** The Windows self-host runner is unmodified; its argv lists stay
+- [x] **AC23** The Windows self-host runner is unmodified; its argv lists stay
       shell-free, and no grouped command introduces a shell construct.
-- [ ] **AC24** Root and `tools/` pytest topology is unchanged; no invocation
+- [x] **AC24** Root and `tools/` pytest topology is unchanged; no invocation
       outside `packs/` is regrouped by this spec.
-- [ ] **AC25** Coordination-lease behavior, run-slot policy, and concurrency
+- [x] **AC25** Coordination-lease behavior, run-slot policy, and concurrency
       limits are unchanged.
-- [ ] **AC26** Process count, wall time, and peak resident memory are measured
+- [x] **AC26** Process count, wall time, and peak resident memory are measured
       before and after with a stated method, a stated repetition count, and a
       stated uncertainty.
-- [ ] **AC27** No class ships whose median wall time exceeds its members'
+- [x] **AC27** No class ships whose median wall time exceeds its members'
       isolated median. Peak resident memory may exceed the isolated maximum by
       at most **8 MiB**, measured as the median of three `/usr/bin/time -l`
       runs; a class exceeding that tolerance is dropped or re-scoped. The
       tolerance exists because single-digit MiB differences are within this
       measurement's noise.
-- [ ] **AC28** The bodies of `docs/specs/pack-test-boundary-remaining-packs/`,
+- [x] **AC28** The bodies of `docs/specs/pack-test-boundary-remaining-packs/`,
       `docs/specs/pack-test-boundary/`, RFC-0082, and ADR-0071 are unmodified;
       only permitted append-only Status annotations are added, and only where
       the conventions require one.
-- [ ] **AC29** `git status --short` is clean and `git diff --check` passes at
+- [x] **AC29** `git status --short` is clean and `git diff --check` passes at
       completion: no `__pycache__`, `.pytest_cache`, characterization fixture,
       benchmark output, or scaffold-projection drift remains.
-- [ ] **AC30** At least one compatibility class with two or more members ships.
+- [x] **AC30** At least one compatibility class with two or more members ships.
       If the pilot and every additional candidate is disproved, the initiative
       stops as a documented no-go and any compatibility infrastructure already
       landed is reverted.
-- [ ] **AC31** A pytest invocation in any runner whose path arguments are not
+- [x] **AC31** A pytest invocation in any runner whose path arguments are not
       statically resolvable — a shell variable, a matrix expression, a composite
       action — is itself a finding, so grouping cannot be hidden behind
       indirection. The existing `for`-loop form in
       `catalogue-tooling-ci-gates.yml` is recorded as a declared exception with
       its reason, not silently tolerated.
-- [ ] **AC32** Both new test modules are executed by a repository gate, and the
+- [x] **AC32** Both new test modules are executed by a repository gate, and the
       declaration module's path triggers the workflow that runs the boundary
       lint; a change to `CLASSES` alone re-runs the gate that gives it meaning.
-- [ ] **AC33** The golden baseline amendment is recorded, not silent. Replacing
+- [x] **AC33** The golden baseline amendment is recorded, not silent. Replacing
       `runners-keep-suites-isolated` changes the boundary lint's observable
       output in **all 22** captured cases, which
       `docs/specs/lint-performance-p0/spec.md` routes to *Ask first*

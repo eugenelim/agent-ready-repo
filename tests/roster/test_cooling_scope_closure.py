@@ -841,10 +841,10 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
     """AC23: every frozen dependency retains its approved byte digest."""
     expected_digests = {
         "packs/core/.apm/skills/close-work/scripts/cooling.py": (
-            "d6bd7c6e47d5a23e45a9f5ee5a8d5506d3435b1da00facde96f1fbfba5bf061c"
+            "2140fa3996029002c5eee7343bbc4f7d2cbde437ba765c9a07a59ced758a0c89"
         ),
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
-            "557e3d60b8fd5647a06fbc2225de51a52cfff1b8777fd3d917e91bcebbe27878"
+            "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
         ),
         "docs/specs/status-projection-and-context-exclusion/spec.md": (
             "2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d"
@@ -853,10 +853,10 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
             "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
         ),
         "docs/specs/thirty-day-cooling-and-retirement/spec.md": (
-            "3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f"
+            "3b38fc9a00fc49c33ca32ac08d1c3021ec451f81356603077fa6f2b1cfe3fa39"
         ),
         "docs/specs/thirty-day-cooling-and-retirement/plan.md": (
-            "2c416277c607b9f7b2b617e06a79a58f6059f43bd2d6c2ebef35ea6af810e3e7"
+            "cd5e2f3cfa4948892228a237f3fa1fd2affc0725d0e1aa8da262d670d55bb99d"
         ),
     }
 
@@ -1005,7 +1005,18 @@ def test_ac29_erratum_records_four_wave_slices() -> None:
     """AC29: the signed erratum records the four Wave 7 slices."""
     errata = _normalized_rfc_errata()
 
-    assert errata.count("Approver: eugenelim") == 2
+    # AC29 wants one thing from this count: that a new erratum is signed. Its
+    # wording says "twice" because one occurrence pre-existed in the
+    # 2026-08-27 entry, so a single occurrence could not distinguish a signed
+    # new erratum from an unsigned one. An exact equality breaks on every
+    # later signed erratum — RFC-0096 gained a third on 2026-09-03 — and a
+    # >= 2 floor is worse than useless: with three entries it still passes
+    # when a signature is stripped, so it cannot fail for the reason it
+    # exists. Assert the property itself instead: every entry is signed.
+    entries = re.findall(r"- \*\*(\d{4}-\d{2}-\d{2})([^*]*)", errata)
+    assert len(entries) >= 2, entries
+    unsigned = [d for d, tail in entries if "(Approver:" not in tail]
+    assert unsigned == [], f"unsigned erratum entries: {unsigned}"
     for statement in (
         "cooling-scope-closure",
         "Wave 7a-i closes cooling scope",

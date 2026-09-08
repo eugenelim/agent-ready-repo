@@ -28,8 +28,8 @@ It prints each profile's id, scope, and description. The profiles the catalogue 
 
 | Profile | Scope | Installs |
 | --- | --- | --- |
-| `solution-architect` | user | `architect` + `research` + `contracts` — a solution architect's portable toolkit, carried across every repo. |
-| `inception` | user | `research` + `product-engineering` + `architect` — the portable toolkit for taking an idea from zero to a buildable repo; use as much as the venture warrants. See [Run a full inception](run-a-full-inception.md). |
+| `solution-architect` | user | `architect` + `desk-research` + `contracts` — a solution architect's portable toolkit, carried across every repo. |
+| `inception` | user | `desk-research` + `product-engineering` + `architect` — the portable toolkit for taking an idea from zero to a buildable repo; use as much as the venture warrants. See [Run a full inception](run-a-full-inception.md). |
 | `full-ceremony` | repo | `core` + `governance-extras` + `product-documentation` + `monorepo-extras` — a repo's full governance setup. |
 
 ## Install a profile

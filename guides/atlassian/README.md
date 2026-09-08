@@ -7,6 +7,10 @@ kind: explanation
 
 # `atlassian` — guides
 
+**Mode: tracker-authoritative.** These guides assume Jira holds the team's real
+backlog. If `docs/product/` is canonical and Jira is only for reporting, choose
+repo-first projection below.
+
 Jira, Jira Align, and Confluence over their REST APIs, plus flow metrics and
 tracker-to-repository intake. `jira-brief-intake` and
 `jira-align-brief-intake` now read tracked content into the shared
@@ -14,6 +18,28 @@ tracker-to-repository intake. `jira-brief-intake` and
 writes back to either tracker. Existing tracker-origin artifacts can later use
 reviewed refresh; Jira offers a narrow confirmed coordination write-back path,
 while Jira Align remains local-refresh only.
+
+Start a backlog review with:
+
+```text
+Show me the Atlas Jira backlog and identify stories that are not ready for engineering.
+```
+
+## Which mode are you in?
+
+**Repo-first projection (the product-shaping default):** Use this when product
+shaping happens in `docs/product/` and the tracker is a shallow copy for
+reporting and team visibility. Feature intents and slices are projected out;
+the intent tree stays canonical, status never returns from the tracker, and the
+[projection contract](../../packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md)
+is applied by hand or through a one-shot export you operate; no exporter or
+live API integration ships today.
+
+**Tracker-authoritative:** Use this when Jira holds the team's real backlog.
+The Atlassian workflows read work from Jira into the repository and can write
+reviewed story improvements back to Jira after explicit approval.
+
+Do not mix the modes. Requirements edited in two places diverge silently.
 
 New here? Read [The `atlassian` pack as a system](how-the-atlassian-pack-works.md) first — it's the map. Then [work with Jira](work-with-jira.md) to search and mutate issues.
 

@@ -10,12 +10,18 @@
 # head-commit self-certification residual. So this fixture carries: the real trigger
 # set, `runs-on` per job, multiple block-scalar `run:` bodies in gate-main, and the
 # guards in the shapes AC14 requires.
+#
+# The `workflow_dispatch:` trigger is part of that real trigger set
+# (spec/remote-gate-dispatch AC1). Removing it here does not make the fixture
+# 'cleaner' — it makes `trigger-workflow-dispatch` fail on the baseline and its
+# mutation a no-op, which the self-test reports as two separate problems.
 name: build-check
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

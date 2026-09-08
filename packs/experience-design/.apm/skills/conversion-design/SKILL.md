@@ -1,6 +1,6 @@
 ---
 name: conversion-design
-description: "Use when someone asks how to structure a landing page, product homepage, pricing page, or acquisition flow so a qualified visitor understands the offer and can act. Produces information architecture and structural specifications for a conversion surface. Use `content-design` for its message hierarchy and `copy-direction` for its copy goals; use `user-flow` and `interaction-design` for product UI. Go-to-market strategy belongs upstream; shaping the acquisition initiative belongs to `frame-intent`; writing final copy or building the page is not this skill's job."
+description: "Use when someone asks how to structure a landing page, product homepage, pricing page, or acquisition flow so a qualified visitor understands the offer and can act. Produces information architecture and structural specifications for a conversion surface. Use `content-design` for its message hierarchy and `copy-direction` for its copy goals; use `user-flow` and `interaction-design` for product UI. Go-to-market strategy belongs upstream; shaping the acquisition initiative belongs to `frame-intent`; writing final copy or building the page is not this skill's job. Triggers on \"structure our pricing page to turn qualified visitors into trials\", \"design the conversion flow for our product homepage\", \"spec the hero and scroll story for this landing page\"."
 ---
 
 # Skill: conversion-design

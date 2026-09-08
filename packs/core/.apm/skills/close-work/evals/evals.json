@@ -66,6 +66,17 @@
         "Does not create a separate receipt store"
       ],
       "files": ["evals/files/completion-receipt/workspace.toml"]
+    },
+    {
+      "id": 11,
+      "prompt": "A durable owner has accepted this retained artifact. Record that it has left delivery, and do not wait for its review date.",
+      "expected_output": "The agent transitions the record from disposition retain-exception with post_closeout_result Retained to retain-exception with Reclassified, carrying the durable-owner acceptance block supplied at the transition rather than the record's prior exception. It validates that block for shape and vocabulary only, consults no date, leaves the artifact at its recorded locator, and treats the result as terminal. It adds no disposition and offers no route back out.",
+      "assertions": [
+        "Reaches Reclassified only from a retained record",
+        "Persists the supplied acceptance block, not the inherited one",
+        "Does not gate the transition on the review date",
+        "Deletes or moves nothing, and offers no transition out of Reclassified"
+      ]
     }
   ]
 }

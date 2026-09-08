@@ -27,8 +27,8 @@ first report.
 
 Full mode uses the engine `run_id`. Light mode — including direct-light, which
 has no persisted spec — generates one ephemeral lowercase canonical UUID for its
-bounded review, uses round `1` initially, and round `2` only for its permitted
-Blocker re-review; it initializes no cohort state. The validator enforces
+review and numbers each round from `1` upward for as long as that review runs;
+it initializes no cohort state. The validator enforces
 canonical lowercase form and refuses with a content-free code that will not tell
 you case was the cause, so generate it with
 `python3 -c 'import uuid; print(uuid.uuid4())'` — `uuidgen` emits uppercase on
@@ -223,7 +223,7 @@ python '<skill-dir>/scripts/loop-cohort.py' review inspect docs/specs/<feature> 
 ```
 
 Light mode — including direct-light — has no cohort state and must classify
-before every clean, apply, defer, or escalation decision:
+before every clean, apply, defer, or next-round decision:
 
 ```bash
 python '<skill-dir>/scripts/loop-cohort.py' review classify \
@@ -240,7 +240,7 @@ full mode, or pass `--report <raw-report-path>`.
 | `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
 | `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
-| `matches_previous_round=true` | Surface stasis; do not start another round. |
+| `matches_previous_round=true` | Surface stasis; do not start another round. Full mode only — light mode holds no prior-round fingerprints, so this never fires there and its divergence checkpoint is the only stop. |
 
 For sustained findings, transition before recording so the retry guard sees the
 pre-increment count. **Do not record if the transition exits non-zero.** The
@@ -272,4 +272,5 @@ recording forms do not.
 Keep each raw/adjudication pair until handoff but never commit it or store its
 paths in cohort state. After recording, evict both bodies from controller
 context. Re-read only the adjudication artifact when FIX needs a sustained
-finding's detail; DECIDE determines which sustained findings remain open.
+finding's detail, or when light mode's divergence checkpoint reads the trend
+across rounds from those adjudication artifacts; DECIDE determines which sustained findings remain open.

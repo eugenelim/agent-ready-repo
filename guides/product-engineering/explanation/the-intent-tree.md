@@ -41,6 +41,12 @@ The pack has a single artifact: the **`intent`** — a level-tagged statement of
 
 Crucially, **`Level` is decoupled from `Scale`.** Scale (app ↔ business-unit) still decides where the work lives and how the leaf projects, but it only *suggests* a starting altitude now — it no longer stamps one. An app-scale effort can be a `product-vision` bet (a greenfield concept) or a `feature` (a known build); you pick, and override the suggestion in a word.
 
+## Light and robust shaping paths
+
+The **light path is the default** when you can name an outcome and shape one intent at a time: `frame-intent` → `de-risk-intent` → `decompose-intent`. It recursively carries a vision, strategy, capability, or feature down to the next useful level.
+
+Reach for the **robust path** when the problem is unclear, the market is contested, or the bet needs a recorded rationale: `frame-situation` → `identify-opportunities` → `diverge-solutions` → `de-risk-intent` → `place-bet` → `map-capabilities`. The gated `discovery-loop` also serves that higher-uncertainty work; it keeps human consent and validation visible without replacing the light path.
+
 Two things fall out of the recursion. **Decomposition** produces the *next level down*, one level at a time — deep at business-unit scale, often one level at app scale. And **assumptions are de-risked per intent at its own level** — product-level bets are **market-existence** questions (will anyone want this at all, *and* can it be a business — tested once at the top, distinct from feature desirability), capability bets are architectural/adoption questions, feature bets are desirability questions, and the same `de-risk-intent` habit handles all of them.
 
 ## Why "shape, then de-risk, then decompose"

@@ -304,6 +304,7 @@ _TRANSITION_TABLE = (
     (("retain-exception", "Retained"), ("retain-exception", "Retained")),
     (("retain-exception", "Retained"), ("cool-30-days", "Cooling")),
     (("retain-exception", "Retained"), ("retain-exception", "Retired")),
+    (("retain-exception", "Retained"), ("retain-exception", "Reclassified")),
     (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
 )
 _TRANSITION_COMPLEMENT = tuple(
@@ -313,6 +314,7 @@ _TRANSITION_COMPLEMENT = tuple(
         ("cool-30-days", "Retired"),
         ("retain-exception", "Retained"),
         ("retain-exception", "Retired"),
+        ("retain-exception", "Reclassified"),
         ("retain-exception", "ExternalAdvisory"),
     )
     for proposed in (
@@ -320,6 +322,7 @@ _TRANSITION_COMPLEMENT = tuple(
         ("cool-30-days", "Retired"),
         ("retain-exception", "Retained"),
         ("retain-exception", "Retired"),
+        ("retain-exception", "Reclassified"),
         ("retain-exception", "ExternalAdvisory"),
     )
     if (prior, proposed) not in _TRANSITION_TABLE

@@ -17,6 +17,10 @@ kind: how-to
 
 You are starting a new engagement with a product idea, and the real question is not which features to build but whether this product should exist at all, and for whom. A product vision answers that as a bet you can test. Install the `product-engineering` pack, then work the three moves below.
 
+```text
+Shape this product vision: a household coordination service should help busy families plan meals, schedules, and vendors with approval-gated actions.
+```
+
 ## 1. Frame the vision at the product-vision altitude
 
 Invoke `frame-intent`. It runs intake first: it infers **Scale** (a single repo with app code → `app`; many component pointers and no app code → `business-unit`), confirms it, and asks whether the work is **greenfield or brownfield**. For a greenfield product concept it asks the altitude outright instead of defaulting to `feature` — answer **`product-vision`**. Scale only *suggests* a starting altitude; you set it in a word.
@@ -51,3 +55,8 @@ From here, [shape the product strategy](shape-a-product-strategy.md).
 - [Shape a product strategy](shape-a-product-strategy.md) — the next altitude down.
 - [Shaping a new engagement](../../_shared/explanation/shaping-a-new-engagement.md) — how the vision relates to strategy and the architecture concept.
 - [Run a full inception](../../_shared/how-to/run-a-full-inception.md) — where product shaping sits among research, architecture, and the build loop.
+
+## What you have now
+
+- A de-risked `product-vision` intent at `docs/product/intents/<slug>.md` that records the existence bet.
+- A `product-strategy` child is the next artifact when the vision survives its market-existence test.
