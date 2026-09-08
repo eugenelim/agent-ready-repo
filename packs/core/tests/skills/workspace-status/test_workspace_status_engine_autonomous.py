@@ -62,6 +62,38 @@ def test_cooled_locators_reports_unavailable_confinement_as_global_state(
     assert [finding.code for finding in findings] == ["cooling_state_unavailable"]
 
 
+def test_cooled_locators_keeps_independent_findings_when_authority_is_unavailable(
+    tmp_path: Path,
+) -> None:
+    """A global cooling failure does not erase independently invalid records."""
+    mod = _load_engine()
+    lifecycle = tmp_path / "docs/lifecycle"
+    lifecycle.mkdir(parents=True)
+    invalid_path = lifecycle / "a.json"
+    unavailable_path = lifecycle / "b.json"
+    try:
+        invalid_path.symlink_to(lifecycle / "target.json")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    unavailable_path.write_text("{}", encoding="utf-8")
+
+    class UnavailableCooling:
+        """Current cooling result shape when its authority seam cannot load."""
+
+        @staticmethod
+        def load_record(root: Path, path: Path) -> SimpleNamespace:
+            return SimpleNamespace(code="cooling-state-unavailable", record=None)
+
+    cooled, findings = mod._cooled_locators(tmp_path, UnavailableCooling())
+
+    assert cooled == frozenset()
+    assert {(finding.code, finding.path) for finding in findings} == {
+        ("invalid_lifecycle_record", "docs/lifecycle/a.json"),
+        ("cooling_state_unavailable", ""),
+    }
+    assert sum(finding.code == "cooling_state_unavailable" for finding in findings) == 1
+
+
 def test_cooled_locators_keeps_invalid_record_specific(
     tmp_path: Path,
 ) -> None:
