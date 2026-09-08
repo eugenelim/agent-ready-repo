@@ -643,7 +643,7 @@ def test_reclaim_leaves_a_superseded_snapshot_alone(tmp: Path) -> None:
     real_link = os.link
 
     def recording_link(src, dst, *args, **kwargs):
-        if not os.path.exists(dst):
+        if not Path(dst).exists():
             freed_while_held["seen"] = True
         return real_link(src, dst, *args, **kwargs)
 
