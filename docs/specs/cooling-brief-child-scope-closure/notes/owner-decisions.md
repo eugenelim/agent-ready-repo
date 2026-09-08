@@ -209,3 +209,48 @@ is recorded as an owner decision rather than treated as in-scope.
 
 No acceptance criterion changes. The delivery's own criteria are unaffected:
 none of them reads a comment, the `.gitignore`, or the ADR index.
+
+## 2026-09-08 — Two corrections to T4's registration, after the plan froze
+
+`plan.md` is hash-frozen from approval, so these are recorded here rather than
+edited into it. Both were found by the full local roster run, not by inspection.
+
+### The `[work]` collection is `active`, not `shipped`
+
+T4's approach says to register the spec entry "**into `shipped`**", reasoning
+that "this PR ends with the spec at `Shipped`". That reasoning is wrong about
+*when* the gate reads the value. Measured in
+`packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`:
+
+| Collection | Status the engine requires |
+| --- | --- |
+| `work.active` | `Implementing` |
+| `work.shipped` | `Shipped` |
+| `work.queue` | anything except `Implementing` or `Shipped` |
+
+The spec reads `Status: Implementing` for the whole of EXECUTE and only becomes
+`Shipped` at closeout, which is after every gate in this delivery runs. Placed
+in `shipped`, the entry drew `impossible_transition` ("shipped spec status") and
+failed `test_no_fail_closed_lifecycle_findings`, which is zero-tolerance over
+the real `workspace.toml`.
+
+The entry is registered in `ini-002`'s `work.active`. Closeout moves it to
+`shipped` together with the Status, which is the ordinary lifecycle rather than
+a deviation.
+
+The plan review that produced T4's collection clause was right that the
+collection is not a free choice and must be tied to the end-state Status. It was
+wrong only about which end state the gate observes — and so was this delivery,
+which implemented it as written.
+
+### The `[backlog].open` summary exceeded the 500-character bound
+
+The entry's `summary` was 501 characters against a bound of 500 enforced at
+`_is_bounded_text(summary, 500)`, which returns `invalid_entry`. One character
+over. The concurrent Wave 7c entry sits at 494.
+
+This was named as a shared-surface hazard before either delivery started, and
+still shipped, because nothing measures the length at authoring time — the
+failure surfaces only in a roster run that takes about fifteen minutes. The
+summary is now 391 characters and names all four follow-ons rather than the two
+the longer version listed.
