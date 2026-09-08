@@ -1,7 +1,7 @@
 # Plan: guide-callout-inventory
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `web/src/test/rendered-output.test.ts:231-249`
   (`sourceAsideCount` — the source-derived pattern this change mirrors) and
   `:994-1019` (the ledger-derived half it replaces);
