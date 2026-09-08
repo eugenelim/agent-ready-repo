@@ -281,10 +281,14 @@ def capability_block(
     *,
     source: str,
     revision: str | None,
+    digest: str,
     scope: str,
     adapter: str,
+    destination: str,
     skill_digest: str,
     payload_digests: dict[str, tuple[str, str]],
+    stored_revision: str | None = None,
+    stored_digest: str | None = None,
 ) -> list[str]:
     """One per-selected-skill capability block, per AC19.
 
@@ -316,19 +320,38 @@ def capability_block(
 
     lines = [
         f"skill: {_publisher(skill.name, 'skill name')}",
+        f"  selection:   {_publisher(skill.name, 'skill name')}",
         f"  source:      {escape_path_value(source)}",
         f"  revision:    {escape_path_value(revision) if revision else '—'}",
-        f"  scope:       {scope}",
-        f"  adapter:     {adapter}",
-        # `undeclared (unrestricted)` rather than an empty list: an absent
-        # declaration is not a restriction to nothing, it is no restriction.
-        f"  allowed-tools: {_render_tools(safe_tools)}",
-        f"  boundaries:  "
-        f"{', '.join(_publisher(b, 'boundaries') for b in boundaries) if boundaries else '—'}",
-        f"  credentialed: "
-        f"{_publisher(credentialed, 'credentialed') if credentialed is not None else '—'}",
-        f"  SKILL.md:    {skill_digest}",
+        f"  digest:      {escape_path_value(digest)}",
     ]
+    if stored_revision is not None or stored_digest is not None:
+        lines.extend(
+            [
+                "  stored revision: "
+                f"{escape_path_value(stored_revision) if stored_revision else '—'}",
+                "  re-resolved revision: "
+                f"{escape_path_value(revision) if revision else '—'}",
+                "  stored digest: "
+                f"{escape_path_value(stored_digest) if stored_digest else '—'}",
+                f"  re-resolved digest: {escape_path_value(digest)}",
+            ]
+        )
+    lines.extend(
+        [
+            f"  scope:       {scope}",
+            f"  adapter:     {adapter}",
+            f"  destination: {escape_path_value(destination)}",
+            # `undeclared (unrestricted)` rather than an empty list: an absent
+            # declaration is not a restriction to nothing, it is no restriction.
+            f"  allowed-tools: {_render_tools(safe_tools)}",
+            f"  boundaries:  "
+            f"{', '.join(_publisher(b, 'boundaries') for b in boundaries) if boundaries else '—'}",
+            f"  credentialed: "
+            f"{_publisher(credentialed, 'credentialed') if credentialed is not None else '—'}",
+            f"  SKILL.md:    {skill_digest}",
+        ]
+    )
     for relpath in sorted(payload_digests):
         digest, mode = payload_digests[relpath]
         lines.append(f"    {escape_path_value(relpath)}  {digest}  {mode}")
@@ -1000,6 +1023,7 @@ def _summarise_and_project(
         projection_root = target_root
     digest = direct_source_digest(classification)
     upgrade_digest = getattr(args, "_upgrade_source_digest", None)
+    installed_row = getattr(args, "_upgrade_installed_row", None)
     blocks = []
     for skill in selection.skills:
         payload = {
@@ -1033,10 +1057,18 @@ def _summarise_and_project(
                 skill,
                 source=source_string,
                 revision=revision,
+                digest=digest,
                 scope=scope,
                 adapter=adapter,
+                destination=str(projection_root / skill_target / skill.name),
                 skill_digest=skill_digest,
                 payload_digests=payload,
+                stored_revision=(
+                    installed_row.source_revision if installed_row is not None else None
+                ),
+                stored_digest=(
+                    installed_row.source_digest if installed_row is not None else None
+                ),
             )
         )
     # On stderr, like every refusal. On stdout, `install <source> --yes >
@@ -1095,7 +1127,6 @@ def _summarise_and_project(
     if upgrade_owned_files is not None:
         upgraded_skill = selection.skills[0]
         skill_relpath = f"{skill_target}/{upgraded_skill.name}/SKILL.md"
-        installed_row = getattr(args, "_upgrade_installed_row", None)
         previous_axes = (
             _read_projected_capability_axes(
                 projection_root,
@@ -1162,9 +1193,10 @@ def _summarise_and_project(
         )
         return 1
     if not getattr(args, "yes", False):
-        answer = input("\nInstall these skills? [y/N] ").strip().lower()
+        verb = str(getattr(args, "_direct_verb", "install"))
+        answer = input(f"\n{verb.capitalize()} these skills? [y/N] ").strip().lower()
         if answer not in {"y", "yes"}:
-            print("install: cancelled; nothing was written.")
+            print(f"{verb}: cancelled; nothing was written.")
             return 1
 
     written: dict[str, bytes] = {}

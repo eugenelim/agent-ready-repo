@@ -920,9 +920,16 @@ def test_direct_skill_missing_source_path_remediation_reaches_terminal_state(
         assert not (target / ".claude/skills/example/SKILL.md").exists()
 
 
+@pytest.mark.parametrize("terminal_attached", [False, True])
 def test_remote_direct_skill_requires_yes_before_acquisition(
-    tmp_path, tmp_path_factory, monkeypatch, capsys
+    tmp_path, tmp_path_factory, monkeypatch, capsys, terminal_attached
 ):
+    from agentbundle.direct_install import (
+        ADMISSIBILITY_VERDICT,
+        PUBLISHER_BLOCK_CLOSE,
+        PUBLISHER_BLOCK_OPEN,
+    )
+
     storage = tmp_path_factory.mktemp("direct-upgrade-consent")
     acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
     source_tree = tmp_path / "source"
@@ -934,13 +941,130 @@ def test_remote_direct_skill_requires_yes_before_acquisition(
     capsys.readouterr()
     acquisition.calls.clear()
     before = _tree_digests(target)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: terminal_attached)
 
     assert _upgrade_direct(target) == 1
     refusal = capsys.readouterr()
     assert "CAT-D008" in refusal.err
     assert "requires --yes before acquisition" in refusal.err
     assert acquisition.calls == []
+    assert PUBLISHER_BLOCK_OPEN not in refusal.err
+    assert PUBLISHER_BLOCK_CLOSE not in refusal.err
+    assert ADMISSIBILITY_VERDICT not in refusal.err
     assert _tree_digests(target) == before
+
+
+def test_remote_direct_skill_dry_run_prints_upgrade_consent_summary(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    from agentbundle.direct_install import (
+        ADMISSIBILITY_VERDICT,
+        PUBLISHER_BLOCK_CLOSE,
+        PUBLISHER_BLOCK_OPEN,
+    )
+
+    storage = tmp_path_factory.mktemp("direct-upgrade-dry-run-consent")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    skill = _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree, revision="1" * 40)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n# second\n", encoding="utf-8"
+    )
+    acquisition.publish("example/skills", "release", source_tree, revision="2" * 40)
+    acquisition.calls.clear()
+    before = _tree_digests(target)
+
+    assert _upgrade_direct(target, "--dry-run") == 0
+    summary = capsys.readouterr()
+    framed = f"\n{summary.err}\n"
+    assert acquisition.calls == [source]
+    assert summary.err.startswith(ADMISSIBILITY_VERDICT)
+    assert summary.err.rstrip().endswith(ADMISSIBILITY_VERDICT)
+    assert summary.err.count(ADMISSIBILITY_VERDICT) == 2
+    assert f"\n{PUBLISHER_BLOCK_OPEN}\n" in framed
+    assert f"\n{PUBLISHER_BLOCK_CLOSE}\n" in framed
+    assert _tree_digests(target) == before
+
+
+def test_direct_skill_declined_confirmation_preserves_state_and_projection(
+    tmp_path, monkeypatch, capsys
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    projection = target / ".claude/skills/example/SKILL.md"
+    state_before = state_path.read_bytes()
+    projection_before = projection.read_bytes()
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n# second\n", encoding="utf-8"
+    )
+    prompts: list[str] = []
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    def _decline(prompt: str = "") -> str:
+        prompts.append(prompt)
+        return "n"
+
+    monkeypatch.setattr("builtins.input", _decline)
+
+    assert _upgrade_direct(target) == 1
+    capsys.readouterr()
+    assert prompts == ["\nUpgrade these skills? [y/N] "]
+    assert state_path.read_bytes() == state_before
+    assert projection.read_bytes() == projection_before
+
+
+def test_direct_skill_upgrade_consent_names_stored_and_resolved_identity(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp("direct-upgrade-identity-consent")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    skill = _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree, revision="1" * 40)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    stored = load_state(state_path).row("example", "claude-code")
+    assert stored is not None
+    assert stored.source_digest is not None
+    (skill / "SKILL.md").write_text(
+        "---\nname: example\n---\n# second\n", encoding="utf-8"
+    )
+    acquisition.publish("example/skills", "release", source_tree, revision="2" * 40)
+
+    assert _upgrade_direct(target, "--yes") == 0
+    consent = capsys.readouterr().err
+    resolved = load_state(state_path).row("example", "claude-code")
+    assert resolved is not None
+    assert resolved.source_digest is not None
+    expected = {
+        "source": source,
+        "selection": "example",
+        "stored revision": str(stored.source_revision),
+        "re-resolved revision": str(resolved.source_revision),
+        "stored digest": stored.source_digest,
+        "re-resolved digest": resolved.source_digest,
+        "scope": "repo",
+        "adapter": "claude-code",
+        "destination": str(target / ".claude/skills/example"),
+    }
+    for label, value in expected.items():
+        assert re.search(
+            rf"(?m)^\s*{re.escape(label)}:\s+{re.escape(value)}$", consent
+        )
 
 
 def test_local_direct_skill_requires_yes_before_replacement(tmp_path, capsys):
