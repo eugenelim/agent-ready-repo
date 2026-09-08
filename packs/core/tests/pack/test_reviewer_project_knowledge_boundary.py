@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -186,14 +187,24 @@ def test_active_work_loop_has_no_reviewer_knowledge_enquiry() -> None:
     )
     assert "CQ-REVIEW" not in skill
     assert "project-knowledge --enquire" not in skill
-    assert "knowledge-evidence" not in skill
+    # The ban is on the review-time captured-knowledge enquiry, not the
+    # envelope format: planning-time containment from a different provider is
+    # deliberately admitted only in this bounded integration section.
+    integration = skill.split("### Skill-engineering reference integration", 1)[1]
+    integration = integration.split("For durable work", 1)[0]
+    start = skill.index(integration)
+    end = start + len(integration)
+    for occurrence in re.finditer("knowledge-evidence", skill):
+        assert start <= occurrence.start() < end
     # Guard the eval payload, not just the id prefix: a retained review-time
     # enquiry eval renamed off "review-enquiry-" would still train the
     # behaviour this change removes.
     assert "review-enquiry-" not in evals
     assert "CQ-REVIEW" not in evals
-    assert "knowledge-evidence" not in evals
     assert "enquiry seam" not in evals
+    for case in json.loads(evals)["evals"]:
+        if "knowledge-evidence" in json.dumps(case):
+            assert case["id"].startswith("skill-engineering-reference-")
     # Reviewer dispatch must still name its inputs, and must not reacquire the
     # envelope. Flattened so a reflow of the paragraph cannot redden this.
     dispatch = _flat(skill)
