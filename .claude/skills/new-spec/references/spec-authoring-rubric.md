@@ -5,10 +5,16 @@ matter. Use this while **writing** a spec or plan, before review. It is
 authoring guidance, not a review checklist — handed to a reviewer it becomes a
 source of nits, which is the cost it exists to reduce.
 
-The `shaping-reviewer` agent applies the same six classes cold, from the
-artifact alone. Nothing here is a second copy of the criterion-shape rules:
-`../assets/spec.md` § Acceptance Criteria owns criterion shape, and each class
-below points there rather than restating it.
+Nothing here is a second copy of a rule another surface owns. Classes 2 and 5
+defer criterion *shape* to `../assets/spec.md` § Acceptance Criteria, which owns
+it; classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`, which owns
+those; class 4 owns its own clauses outright.
+
+These six are the classes an author can pre-empt, ordered so the first one that
+fires is the one worth fixing. The `shaping-reviewer` agent applies them cold
+from the artifact alone, as part of a **larger** cold check set — so working
+these six is not parity with review, and clearing them is not a prediction that
+review will be clean.
 
 ## How to use it
 
@@ -153,8 +159,9 @@ not a gate.
 artifact, and none asks whether this is the right artifact. Three tells that an
 artifact sits above its altitude: it proposes no slice the next author could
 confirm, and the missing input is a decision rather than a detail; it carries a
-design position, an evidence base, or an inventory rather than citing one; it
-changes the gating of its siblings, which a peer cannot do. **A criterion that
+design position, an evidence base, an inventory, or a governance concern rather
+than citing one; it changes the gating of its siblings, which a peer cannot
+do. **A criterion that
 is too big is cut; an artifact at the wrong altitude is moved** — trimming
 never repairs it.
 
@@ -169,11 +176,11 @@ would run against prose whose author chose the wording.
 **Move.** Ship it as advisory guidance and say so, or convert it to a
 mechanical proxy and accept that the proxy is what you get. Do not gate on it.
 Published measurements of a lexical predicate over authored prose disagree
-enough between corpora and languages that no single false-positive rate carries
-across them, and the low end has been low enough that such detectors are built
-to triage candidates for a human rather than to issue verdicts. So calibrate a
-check on your own corpus before proposing to block on it, and treat a check
-that cannot be calibrated as guidance that never blocks.
+enough between corpora that no single false-positive rate carries across them,
+and the low end has been low enough that such detectors are built to triage
+candidates for a human rather than to issue verdicts. So calibrate a check on
+your own corpus before proposing to block on it, and treat a check that cannot
+be calibrated as guidance that never blocks.
 
 **Two classes sit here and cannot be moved out.**
 
@@ -216,6 +223,7 @@ No published controlled comparison shows that writing a spec first improves an
 agent's success rate. What is measured is narrower and still useful: adherence
 falls as simultaneous constraints multiply, correction improves sharply when the
 signal comes from outside the actor, and success falls steeply as the number of
-surfaces a change touches rises. Those three results are why this rubric
-prefers few criteria, external signals, and one primary surface per slice.
-Anything stronger than that is not yet evidence.
+surfaces a change touches rises. The first two are why this rubric prefers
+few criteria and external signals. The third bears on how a slice is scoped,
+which this rubric does not govern. Anything stronger than that is not yet
+evidence.
