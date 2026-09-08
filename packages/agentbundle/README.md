@@ -172,10 +172,10 @@ Developers installing from your fork get the internal channel without a manual
 A malformed `enabled = true` config fails closed — no silent fallback to the public
 source.
 
-See the full enterprise adoption guide at
-`docs/guides/_shared/how-to/use-an-artifactory-catalogue.md` for all six flows
-(org bootstrap, repo-scope CI upgrade, user-scope MDM, source-conflict remediation,
-disconnected hosts, and security controls).
+See `guides/_shared/how-to/configure-catalogue-enterprise-distribution.md` for
+the full procedure: configuring the coordinates, regenerating
+`install-defaults.toml`, adding a CI drift check, offline and air-gapped
+environments, and disabling the bootstrap.
 
 ## Build your own catalogue
 

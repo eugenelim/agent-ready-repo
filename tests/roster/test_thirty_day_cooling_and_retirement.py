@@ -304,6 +304,7 @@ _TRANSITION_TABLE = (
     (("retain-exception", "Retained"), ("retain-exception", "Retained")),
     (("retain-exception", "Retained"), ("cool-30-days", "Cooling")),
     (("retain-exception", "Retained"), ("retain-exception", "Retired")),
+    (("retain-exception", "Retained"), ("retain-exception", "Reclassified")),
     (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
 )
 _TRANSITION_COMPLEMENT = tuple(
@@ -313,6 +314,7 @@ _TRANSITION_COMPLEMENT = tuple(
         ("cool-30-days", "Retired"),
         ("retain-exception", "Retained"),
         ("retain-exception", "Retired"),
+        ("retain-exception", "Reclassified"),
         ("retain-exception", "ExternalAdvisory"),
     )
     for proposed in (
@@ -320,6 +322,7 @@ _TRANSITION_COMPLEMENT = tuple(
         ("cool-30-days", "Retired"),
         ("retain-exception", "Retained"),
         ("retain-exception", "Retired"),
+        ("retain-exception", "Reclassified"),
         ("retain-exception", "ExternalAdvisory"),
     )
     if (prior, proposed) not in _TRANSITION_TABLE
@@ -758,6 +761,13 @@ def _build_repository(tmp_path: Path, topology: str):
     origin = tmp_path / "origin"
     origin.mkdir()
     _git(origin, "init")
+    # Committing below makes Git spawn background auto-maintenance, which
+    # creates and then removes .git/maintenance.lock. The "no-git" topology
+    # deletes .git with shutil.rmtree, so that concurrent removal lands
+    # between rmtree's scandir and its unlink and raises FileNotFoundError on
+    # the lock. This fixture never needs maintenance, so switch it off.
+    _git(origin, "config", "gc.auto", "0")
+    _git(origin, "config", "maintenance.auto", "false")
     base = _git(origin, "branch", "--show-current").stdout.strip()
     artifact = origin / "docs/specs/example/spec.md"
     artifact.parent.mkdir(parents=True)

@@ -1727,6 +1727,17 @@ def _make_dry_run(
             fixture.unlink(missing_ok=True)
 
 
+# GNU Make announces recursion as ``make[N]: Entering directory '<abs path>'``
+# and a matching Leaving line. Those are Make's own notices rather than recipe
+# commands, and they carry the checkout's absolute path, so admitting them
+# would make the plan differ between a contributor's tree and CI. Make emits
+# them only for a recursive invocation, which is why a direct ``pytest`` run
+# never sees them while the same test under ``make test`` does. A real recipe
+# that invokes Make echoes as ``make -C ...``, with no colon after the program
+# name, so it does not match this pattern.
+_MAKE_DIRECTORY_NOTICE = re.compile(r"^make(\[\d+\])?: (Entering|Leaving) directory ")
+
+
 def _normalized_command_plan(stdout: str) -> list[str]:
     """Normalize a Make dry-run into stable command-bearing lines."""
     plan: list[str] = []
@@ -1741,7 +1752,7 @@ def _normalized_command_plan(stdout: str) -> list[str]:
             continue
         line = " ".join(pending.split())
         pending = ""
-        if not line or line.startswith("#"):
+        if not line or line.startswith("#") or _MAKE_DIRECTORY_NOTICE.match(line):
             continue
         plan.append(line.replace(sys.executable, "<PYTHON>"))
     if pending:
@@ -1953,6 +1964,19 @@ def _plan_digest(plan: list[str]) -> str:
     return hashlib.sha256(("\n".join(plan) + "\n").encode()).hexdigest()
 
 
+def _drift_diagnostic(label: str, plan: list[str]) -> list[str]:
+    """Report the computed digest and plan so a drift names its own cause.
+
+    A bare "drift" verdict cannot be acted on from a CI log, where the plan is
+    not reproducible by hand: the reader needs the digest to re-pin and the
+    lines to diff against the approved baseline.
+    """
+    return [
+        f"{label} computed digest: {_plan_digest(plan)}",
+        *(f"{label} plan[{index}]: {line}" for index, line in enumerate(plan)),
+    ]
+
+
 def _effective_composition_errors(makefile_text: str | None = None) -> list[str]:
     """Return drift in GNU Make's effective standalone and composed commands."""
     errors: list[str] = []
@@ -2012,11 +2036,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
         errors.append("standalone construction coverage drift")
     if composed.stdout.count(CONSTRUCTION_TEST_PATH) != 1:
         errors.append("composed construction coverage drift")
-    if (
-        _plan_digest(_without_construction_addition(standalone_full_plan))
-        != APPROVED_STANDALONE_PLAN_DIGEST
-    ):
+    standalone_baseline = _without_construction_addition(standalone_full_plan)
+    if _plan_digest(standalone_baseline) != APPROVED_STANDALONE_PLAN_DIGEST:
         errors.append("approved standalone command plan drift")
+        errors.extend(_drift_diagnostic("standalone", standalone_baseline))
 
     standalone_plan: list[str] = []
     workspace_command_count = 0
@@ -2035,11 +2058,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
             line = line.replace(f" --ignore={path}", "")
         composed_plan.append(" ".join(line.split()))
 
-    if (
-        _plan_digest(_without_construction_addition(composed_plan))
-        != APPROVED_COMPOSED_PLAN_DIGEST
-    ):
+    composed_baseline = _without_construction_addition(composed_plan)
+    if _plan_digest(composed_baseline) != APPROVED_COMPOSED_PLAN_DIGEST:
         errors.append("approved composed command plan drift")
+        errors.extend(_drift_diagnostic("composed", composed_baseline))
 
     if workspace_command_count != 1 or standalone_plan != composed_plan:
         errors.append("effective non-shared command plan drift")
@@ -2152,6 +2174,25 @@ def test_standalone_make_rejects_command_line_suite_reduction() -> None:
     assert "EVENT command-line-reduced" not in result.stdout
     assert "packages/agentbundle/tests/" in result.stdout
     assert f"{SHARED_TESTS[3]} {SHARED_TESTS[4]}" in result.stdout
+
+
+def test_recursive_make_notices_do_not_move_the_plan_digest() -> None:
+    """Make's own recursion notices must not enter the compared plan.
+
+    Under ``make test`` the dry run is a recursive invocation, so Make emits
+    ``Entering``/``Leaving directory`` lines carrying the checkout's absolute
+    path. A direct ``pytest`` run is not recursive and never sees them, so
+    admitting them would pin a digest that only reproduces off CI.
+    """
+    checkout = "/home/runner/work/agent-ready-repo/agent-ready-repo"
+    raw = _make_dry_run("test-unleased").stdout
+    recursive = (
+        f"make[2]: Entering directory '{checkout}'\n"
+        f"{raw}\n"
+        f"make[2]: Leaving directory '{checkout}'\n"
+    )
+    assert _normalized_command_plan(recursive) == _normalized_command_plan(raw)
+    assert checkout not in "\n".join(_normalized_command_plan(recursive))
 
 
 def test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation() -> None:

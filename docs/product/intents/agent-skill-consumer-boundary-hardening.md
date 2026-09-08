@@ -5,11 +5,11 @@
 
 ## Outcome
 
-The work-loop and architect-design consumers reject ineligible provider candidates before invocation, delimit returned provider content as untrusted evidence, gate their prose contracts, and prove their provider-absence behavior.
+The work-loop and architect-design consumers prove their provider-absence behavior, holding the selection, containment, and prose-gating boundaries that closed on 2026-09-08.
 
 ## Boundary
 
-- Consumer-side selection, response containment, prose-boundary regression coverage, and provider-absence validation for work-loop and architect-design.
+- Provider-absence validation for work-loop and architect-design, and any regression that would reopen the three controls closed on 2026-09-08.
 - Provider implementation, provider discovery, provider contract changes, and unrelated agent-skill-engineering delivery remain outside this intent.
 
 ## Owner
@@ -22,16 +22,18 @@ The work-loop and architect-design consumers reject ineligible provider candidat
 
 ## Projection
 
-- One focused security-boundary implementation specification covering both consumers and all four absorbed follow-ons, with the provider-absence fixture and expected result fixed before approval.
+- One focused implementation specification for the provider-absence obligation, with the fixture and its expected result fixed before approval. The three closed controls need no projection; they need only to stay closed.
 
 ## Opportunity
 
-This intent absorbs agent-skill-engineering-consumer-response-envelope, agent-skill-engineering-consumer-provider-ambiguity, agent-skill-engineering-consumer-boundary-tests, and agent-skill-engineering-provider-absence-behaviour. The shipped consumer steps do not yet delimit provider responses, enforce all five candidate-eligibility failures, protect their refusal and diagnostic prose with reached tests, or behaviorally prove the provider-absent path.
+This intent absorbs the four follow-ons the consumer-integrations slice registered. Three of them — `agent-skill-engineering-consumer-response-envelope`, `agent-skill-engineering-consumer-provider-ambiguity`, and `agent-skill-engineering-consumer-boundary-tests` — closed on 2026-09-08 by commits a895dd306, c4f641a43, and 0c89bb605: both consumer steps now delimit provider content in the `knowledge-evidence.v1` envelope, close all five candidate-eligibility failures before invocation including excess declared authority, and are gated by per-consumer boundary modules that `make ci` collects, each mutation-proven. Their dispositions are recorded in [`docs/specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md`](../../specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md).
+
+`agent-skill-engineering-provider-absence-behaviour` remains open and is the whole of the live outcome. RFC-0097:189's behavioural half — "tested without this pack installed" — is not discharged: for a prose consumer there is no runtime to exercise, and `verify_catalogue` over a provider-less catalogue runs a strict subset of the provider-present checks. RFC-0097:575 offers a cheaper mode than an executable harness — a fixture versioned with its expected result before the implementation runs, judged by an independent reviewer — which that slice did not evaluate.
 
 ## Assumptions
 
 - ADR-0097 keeps these controls on the consumer side.
-- The authority-changing fixture makes candidate eligibility a security boundary and requires a security-design review in the projected specification.
+- Provider absence is a behavioural obligation, not a security boundary; the security edge in this seam was candidate eligibility, and that control is closed.
 
 
 ## Source

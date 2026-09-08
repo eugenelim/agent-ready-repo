@@ -40,6 +40,107 @@ def _load_status():
     return mod
 
 
+def test_cooled_locators_reports_unavailable_confinement_as_global_state(
+    tmp_path: Path,
+) -> None:
+    """A current cooling module reports missing authority without blaming a record."""
+    mod = _load_engine()
+    lifecycle = tmp_path / "docs/lifecycle"
+    lifecycle.mkdir(parents=True)
+    (lifecycle / "example.json").write_text("{}", encoding="utf-8")
+
+    class UnavailableCooling:
+        """Current cooling result shape when its authority seam cannot load."""
+
+        @staticmethod
+        def load_record(root: Path, path: Path) -> SimpleNamespace:
+            return SimpleNamespace(code="cooling-state-unavailable", record=None)
+
+    cooled, findings = mod._cooled_locators(tmp_path, UnavailableCooling())
+
+    assert cooled == frozenset()
+    assert [finding.code for finding in findings] == ["cooling_state_unavailable"]
+
+
+def test_cooled_locators_keeps_independent_findings_when_authority_is_unavailable(
+    tmp_path: Path,
+) -> None:
+    """A global cooling failure does not erase independently invalid records."""
+    mod = _load_engine()
+    lifecycle = tmp_path / "docs/lifecycle"
+    lifecycle.mkdir(parents=True)
+    invalid_path = lifecycle / "a.json"
+    unavailable_path = lifecycle / "b.json"
+    try:
+        invalid_path.symlink_to(lifecycle / "target.json")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    unavailable_path.write_text("{}", encoding="utf-8")
+
+    class UnavailableCooling:
+        """Current cooling result shape when its authority seam cannot load."""
+
+        @staticmethod
+        def load_record(root: Path, path: Path) -> SimpleNamespace:
+            return SimpleNamespace(code="cooling-state-unavailable", record=None)
+
+    cooled, findings = mod._cooled_locators(tmp_path, UnavailableCooling())
+
+    assert cooled == frozenset()
+    assert {(finding.code, finding.path) for finding in findings} == {
+        ("invalid_lifecycle_record", "docs/lifecycle/a.json"),
+        ("cooling_state_unavailable", ""),
+    }
+    assert sum(finding.code == "cooling_state_unavailable" for finding in findings) == 1
+
+
+def test_cooled_locators_keeps_invalid_record_specific(
+    tmp_path: Path,
+) -> None:
+    """A malformed record keeps its path-specific finding."""
+    mod = _load_engine()
+    lifecycle = tmp_path / "docs/lifecycle"
+    lifecycle.mkdir(parents=True)
+    record_path = lifecycle / "example.json"
+    record_path.write_text("{}", encoding="utf-8")
+
+    class InvalidCooling:
+        """Legacy-compatible result shape for a malformed record."""
+
+        @staticmethod
+        def load_record(root: Path, path: Path) -> SimpleNamespace:
+            return SimpleNamespace(code="record-invalid", record=None)
+
+    cooled, findings = mod._cooled_locators(tmp_path, InvalidCooling())
+
+    assert cooled == frozenset()
+    assert [(finding.code, finding.path) for finding in findings] == [
+        ("invalid_lifecycle_record", "docs/lifecycle/example.json")
+    ]
+
+
+def test_resolve_cooled_state_distinguishes_absence_from_load_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No lifecycle directory is neutral, while a required module remains unavailable."""
+    mod = _load_engine()
+
+    def must_not_load() -> object:
+        raise AssertionError("an absent lifecycle directory must not load cooling")
+
+    monkeypatch.setattr(mod, "_load_cooling_module", must_not_load)
+    assert mod._resolve_cooled_state(tmp_path) == (frozenset(), ())
+
+    (tmp_path / "docs/lifecycle").mkdir(parents=True)
+
+    def unavailable_module() -> object:
+        raise RuntimeError("no cooling module")
+
+    monkeypatch.setattr(mod, "_load_cooling_module", unavailable_module)
+    _, findings = mod._resolve_cooled_state(tmp_path)
+    assert [finding.code for finding in findings] == ["cooling_state_unavailable"]
+
+
 def test_canonical_evaluation_refuses_authority_status_key_collision() -> None:
     mod = _load_status()
     evaluation = SimpleNamespace(

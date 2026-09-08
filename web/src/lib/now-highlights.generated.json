@@ -5,6 +5,165 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.6"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.6] — 2026-09-08",
+      "changelogAnchor": "core2256--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record.** It directs maintainers to install or repair the cooling capability instead of repairing a valid record.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`workspace-status` now distinguishes unavailable cooling support from a malformed lifecycle record."
+            },
+            {
+              "type": "text",
+              "value": " It directs maintainers to install or repair the cooling capability instead of repairing a valid record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.5"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.5] — 2026-09-08",
+      "changelogAnchor": "core2255--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`work-loop` now rejects unsafe or ambiguous reference providers before it calls them.** Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the planning workflow's authority.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`work-loop` now rejects unsafe or ambiguous reference providers before it calls them."
+            },
+            {
+              "type": "text",
+              "value": " Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the planning workflow's authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.7"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[architect][0.15.7] — 2026-09-08",
+      "changelogAnchor": "architect0157--2026-09-08",
+      "highlights": [
+        {
+          "source": "**`architect-design` now rejects unsafe or ambiguous reference providers before it calls them.** Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the design workflow's authority.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`architect-design` now rejects unsafe or ambiguous reference providers before it calls them."
+            },
+            {
+              "type": "text",
+              "value": " Provider guidance is visibly enclosed as untrusted evidence, so it cannot quietly expand the design workflow's authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.4"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.4] — 2026-09-08",
+      "changelogAnchor": "core2254--2026-09-08",
+      "highlights": [
+        {
+          "source": "**Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry.** A second entry at the same path still blocks closeout, so maintainers are not told to invoke `close-work` while that work remains unresolved.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Closeout now keeps unrelated work visible when it shares a path with a cooled legacy entry."
+            },
+            {
+              "type": "text",
+              "value": " A second entry at the same path still blocks closeout, so maintainers are not told to invoke "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " while that work remains unresolved."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.3"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.3] — 2026-09-08",
+      "changelogAnchor": "core2253--2026-09-08",
+      "highlights": [
+        {
+          "source": "**A durable owner accepting an artifact now survives the session that recorded it.** The lifecycle record carries `Reclassified`, so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A durable owner accepting an artifact now survives the session that recorded it."
+            },
+            {
+              "type": "text",
+              "value": " The lifecycle record carries "
+            },
+            {
+              "type": "code",
+              "value": "Reclassified"
+            },
+            {
+              "type": "text",
+              "value": ", so \"this left delivery and someone else owns it now\" persists as readable state instead of being lost at closeout. A reclassified artifact keeps its file where its record says it is, drops out of ordinary orientation, is never due for a retention review, and is not counted among the obligations someone still owes delivery work against."
+            }
+          ]
+        },
+        {
+          "source": "**It is reached deliberately and only once.** Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "It is reached deliberately and only once."
+            },
+            {
+              "type": "text",
+              "value": " Reclassification is available only from a record already retained under an exception, only when the durable owner's acceptance is supplied and validated at the transition, and never again afterwards — nothing transitions out of it, and no deletion route admits a lifecycle record. It is not gated on a date, because a durable owner accepting an artifact is not a day-30 event."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.2"
         }
       ],

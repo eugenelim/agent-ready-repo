@@ -54,6 +54,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.6] — 2026-09-08
+
+### Highlights
+
+- **`workspace-status` now distinguishes unavailable cooling support from a
+  malformed lifecycle record.** It directs maintainers to install or repair the
+  cooling capability instead of repairing a valid record.
+
+### Fixed
+
+- A missing close-work confinement authority now fails closed as
+  `cooling_state_unavailable`; no artifact is excluded when the cooled set
+  cannot be established. Records that are independently invalid are still named
+  alongside it, so a global cooling failure does not hide a repair someone owes.
+
+## [core][2.25.5] — 2026-09-08
+
+### Highlights
+
+- **`work-loop` now rejects unsafe or ambiguous reference providers before it
+  calls them.** Provider guidance is visibly enclosed as untrusted evidence, so
+  it cannot quietly expand the planning workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
+## [architect][0.15.7] — 2026-09-08
+
+### Highlights
+
+- **`architect-design` now rejects unsafe or ambiguous reference providers
+  before it calls them.** Provider guidance is visibly enclosed as untrusted
+  evidence, so it cannot quietly expand the design workflow's authority.
+
+### Changed
+
+- The agent-skill-engineering reference handoff now closes all published
+  selection failures before invocation and gives each its stable diagnostic.
+  Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
+  rejected content is neither cited nor copied.
+
+## [core][2.25.4] — 2026-09-08
+
+### Highlights
+
+- **Closeout now keeps unrelated work visible when it shares a path with a
+  cooled legacy entry.** A second entry at the same path still blocks closeout,
+  so maintainers are not told to invoke `close-work` while that work remains
+  unresolved.
+
+### Fixed
+
+- Cooled work exclusion is keyed on each entry's position in its lifecycle list
+  rather than on its path. A legacy `spec/<slug>` entry can no longer hide a
+  second entry stored at the same path — including one the canonical layer
+  rejects, which reaches closeout through its own parse and so could reproduce
+  any value the exclusion matched on.
+
+
+## [core][2.25.3] — 2026-09-08
+
+### Highlights
+
+- **A durable owner accepting an artifact now survives the session that recorded
+  it.** The lifecycle record carries `Reclassified`, so "this left delivery and
+  someone else owns it now" persists as readable state instead of being lost at
+  closeout. A reclassified artifact keeps its file where its record says it is,
+  drops out of ordinary orientation, is never due for a retention review, and is
+  not counted among the obligations someone still owes delivery work against.
+- **It is reached deliberately and only once.** Reclassification is available
+  only from a record already retained under an exception, only when the durable
+  owner's acceptance is supplied and validated at the transition, and never
+  again afterwards — nothing transitions out of it, and no deletion route admits
+  a lifecycle record. It is not gated on a date, because a durable owner
+  accepting an artifact is not a day-30 event.
+
 ## [core][2.25.2] — 2026-09-04
 
 ### Highlights
@@ -77,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Light mode's procedure, eligibility and durability routing, review rounds,
   and trims moved into a reference the skill loads only when light mode is
   selected, so a full-mode run no longer carries them.
+
 
 ## [core][2.25.1] — 2026-09-04
 
@@ -140,6 +221,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adopters, so a consumer quoting the conformance fixture would have quoted
   literals an adopter never receives.
 
+
 ## [core][2.25.0] — 2026-09-04
 
 ### Highlights
@@ -157,6 +239,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
 
+
 ## [core][2.24.4] — 2026-09-04
 
 ### Added
@@ -169,6 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `delivery-brief` mode now checks altitude, asking of each section whether it decides something or names something for the spec to decide. The modes either side of it checked altitude and brief review did not, so a brief carrying spec-level content drew correctness findings and never the one finding that mattered.
 - An ownership finding now outranks criterion craft. The reviewer reports it alone and stops reviewing that section, and the stated repair is to move the text to its owning artifact rather than shorten or narrow it.
 - A spec is no longer faulted for leaving the implementation change DAG to its plan.
+
 ## [core][2.24.3] — 2026-09-04
 
 ### Highlights
