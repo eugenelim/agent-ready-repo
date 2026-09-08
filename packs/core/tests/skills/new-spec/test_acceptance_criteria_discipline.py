@@ -11,6 +11,8 @@ SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
 RUBRIC = PACK_ROOT / ".apm/skills/new-spec/references/spec-authoring-rubric.md"
+# The brief quotes the rubric's altitude tell; the pair is pinned below.
+BRIEF = PACK_ROOT.parents[1] / "docs/product/briefs/agent-authoring-input-quality.md"
 
 # The rubric joins SOURCES so every pinned rule below also asserts its absence
 # there. The rubric points at the owning surface for criterion shape; a future
@@ -383,12 +385,41 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     exists to reduce.
     """
     text = flattened(RUBRIC)
-    assert "`../assets/spec.md` § Acceptance Criteria owns criterion shape" in text
+    # Pin the deferral map, not a universal claim about it: an earlier draft
+    # said "each class below points there", which was false for four of six.
+    assert "Classes 2 and 5 defer criterion *shape* to `../assets/spec.md`" in text
+    assert "classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`" in text
+    assert "class 4 owns its own clauses outright" in text
+    # And pin that the rubric does not claim parity with the review check set.
+    assert "as part of a **larger** cold check set" in text
+    assert "working\nthese six is not parity with review" in RUBRIC.read_text(encoding="utf-8")
     assert "authoring guidance, not a review checklist" in text
     assert "The shape rule is not here." in text
     # The count threshold screens; it never refuses. Pin both halves.
     assert "never as a refusal" in text
     assert "a ceiling and a stall point, never a floor" in text
+
+
+ALTITUDE_TELL = (
+    "a design position, an evidence base, an inventory, or a governance concern "
+    "rather than citing one"
+)
+
+
+def test_altitude_tell_is_whole_in_its_home_and_quoted_verbatim() -> None:
+    """The four-clause tell must survive its own re-homing.
+
+    Moving the three altitude tells out of the brief and into the rubric
+    silently dropped the fourth clause, "or a governance concern", and left the
+    brief quoting a third wording that matched neither. Text alone did not
+    notice: a phrase pin on the rubric passes while a clause is missing from
+    the middle of it. So pin the whole clause list in the declared home, and
+    pin that the brief's quotation of it is byte-identical.
+    """
+    home = flattened(RUBRIC)
+    assert ALTITUDE_TELL in home, "the altitude tell lost a clause in its own home"
+    brief = flattened(BRIEF)
+    assert ALTITUDE_TELL in brief, "the brief's quotation no longer matches the home"
 
 
 def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:

@@ -88,10 +88,13 @@ vague pronouns. Each maps to a 29148 characteristic. `[high]`
 The authors' `Smella` detector reached **48% precision at 87% recall** on
 industrial German-language requirements. The authors read the low precision as
 acceptable *because the tool triages candidates for a human rather than issuing
-verdicts*. A later re-validation on English financial-domain requirements
-reported far higher precision, so the ceiling is domain- and
-language-dependent rather than intrinsic. `[high]` for the reported figures;
-`[moderate]` for transfer.
+verdicts*. A later re-validation of the same smell catalogue on English
+financial-domain requirements — Veizaga et al.'s `Paska` tool
+([arXiv:2404.11106](https://arxiv.org/html/2404.11106v1), secondary) — reported
+far higher precision, so the ceiling is domain- and language-dependent rather
+than intrinsic. `[high]` for Smella's reported figures; `[moderate]` for the
+re-validation, whose figures reach this survey through a secondary exposition
+rather than the paper itself; `[moderate]` for transfer.
 
 What transfers is the design response, not the rate. Two unrelated measurements
 of a lexical predicate over authored prose — this one and this repository's own

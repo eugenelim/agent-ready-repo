@@ -9,14 +9,15 @@ skill reference is the right delivery mechanism — see § "What this does not
 measure".
 
 **The shipped rubric has since moved, and the delta misses every scored
-paragraph.** `f6ee0a794..HEAD` on that file is 24 insertions and 21 deletions,
-falling under class 3's *Move*, class 6's *Move*, and § "Optional: a criterion
-syntax". The text each pre-registered defect was scored against — D1 and D2's
+paragraph.** `f6ee0a794..HEAD` on that file is six hunks, falling under four
+regions: class 3's *Move*, class 6's *Move*, class 6's *Draft narration* bullet,
+and § "Optional: a criterion syntax". Resolve the regions from the diff rather
+than trusting this list, which is a snapshot. The text each pre-registered defect was scored against — D1 and D2's
 derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
 projection paragraph, D5's empty-state tell, D6's non-waivable-control
 bullet — is byte-identical across that range. So the scores below stand, and
 § "Reproducing it" rebuilds arm B from the *current* file, which differs from
-the one measured in three unscored places.
+the one measured in those four unscored regions.
 
 ## Design
 

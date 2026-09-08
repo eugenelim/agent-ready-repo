@@ -497,7 +497,8 @@ their tells, their moves and class 1's counter-intuitive repair live in
 them there. This brief keeps the class *names*, because its slicing, sizing
 and enforcement arguments below refer to them by number, plus the exhibits that
 produced the classes — the findings corpus above and § "The derivability rule".
-It states no class's rule text:
+It states class names and the short glosses those arguments need, never a
+class's rule text:
 
 1. The design should have delegated — precedes every other class.
 2. The criterion cannot fail.
@@ -510,10 +511,18 @@ It states no class's rule text:
 registry surface belongs to
 [`phase-scoped-policy-delivery.md`](phase-scoped-policy-delivery.md) and the
 deterministic check to
-[`policy-arrival-validator.md`](policy-arrival-validator.md). A1's own surfaces
-stay the rubric and its one consumer, so its slice remains one primary surface;
-without that split A1 would silently own a registry and an enforcement path it
-does not name.
+[`policy-arrival-validator.md`](policy-arrival-validator.md). Without that
+split A1 would silently own a registry and an enforcement path it does not
+name.
+
+**The one-primary-surface claim needs restating on the shipped count.** The
+candidate wires the rubric normatively from **two** authoring surfaces —
+`assets/spec.md` § Acceptance Criteria and `new-spec/SKILL.md`'s
+acceptance-criteria step — not one, and the change's own guard pins both. The
+band's bound is one primary surface *per slice*, and the rubric remains that
+one primary surface; the two pointers are secondary wiring into it, the same
+shape § "Slice relationships" already allows for a shared guide. So the bound
+holds, but not by the route the earlier single-consumer wording claimed.
 
 **Categories 2, 4 and 5 ship as policy families; 1 and 6 stay prose.** The
 checkable ones — a criterion that cannot fail, a criterion that decays on exact
@@ -526,9 +535,10 @@ not mechanizable) have no decidable predicate and remain authoring guidance.
 **That supplies A1's activation contract**, which prose could not: the
 activation point is the phase gate, the measurement is the per-family verdict,
 and the stated failure mode is the recorded block rate. **The altitude check is
-one of these families** — the tell "carries a design position or an inventory
-rather than citing one" is not decidable, but "proposes no slice a spec author
-could confirm" is, against the slice table's own columns.
+one of these families** — the tell "carries a design position, an evidence
+base, an inventory, or a governance concern rather than citing one" is not
+decidable, but "proposes no slice a spec author could confirm" is, against the
+slice table's own columns.
 
 **A family ships precise or advisory, never in between.** Applying an emphasis
 density predicate to everything `docs/AGENTS.md` governs blocks 405 of 1,477
@@ -701,7 +711,7 @@ ships with fewer.
 
 | # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, consumed by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
+| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric category | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | 6 | after A1 |
 | A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | 6 | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | 10 | **conditional** — after M, and only if the kill conditions above do not fire |
@@ -763,8 +773,8 @@ What shipping early costs, recorded rather than glossed:
   ordering only by making the reader follow a pointer mid-sequence. Revisit if
   the activation report shows the later classes never firing.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
-  `failure-point-rubric.md`. Same directory, same single consumer, same
-  precedent — § "A1 home" still governs.
+  `failure-point-rubric.md`. Same directory, same precedent — § "A1 home"
+  still governs, with the consumer count corrected above.
 
 The rubric's own class 1 applies to this entry: it records state, and the
 decision that produced it stays with the owner.
@@ -786,8 +796,8 @@ this artifact class — on that date its one file was `contract-types.md`, and
 the rubric is the second — and
 `assets/spec.md` § Acceptance Criteria is already the named owner of the
 semantic-atomicity gate that rubric category 5 defers to, so the rubric lands
-next to its precedent and its one consumer is the file that already governs
-criterion shape. `docs/knowledge/topics/` stores observations rather than
+next to its precedent, and the surface that already governs criterion shape is
+one of the two that reach it. `docs/knowledge/topics/` stores observations rather than
 shipped guidance, so a rubric there would not reach adopters.
 
 ### Slice relationships
