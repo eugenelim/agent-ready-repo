@@ -358,6 +358,9 @@ confirmed byte-identical afterwards.
 | Payload binding survives a swap (AC8) | Exchange the two cases' declared `files` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_authoring_behavior_evidence_matches_its_source_digest` | recorded `source_files` no longer match the declared files |
 | Result-id set admits exactly the widened set (AC12) | Drop `hook-plugin-design` from the recorded results | `test_independent_behavior_results_cover_both_authoring_cases` | set-equality mismatch on the recorded result ids |
 | No record is hidden by a duplicate id (AC9, AC11) | Append a second copy of the `pytest-suite` record | `test_every_verdict_is_readable_against_its_own_transcript` and `test_independent_behavior_results_cover_both_authoring_cases` | `AssertionError: ['pytest-suite']` |
+| The base is the one the ledger records (AC3, AC5, AC8) | Bump `BASE_COMMIT` without changing the ledger's recorded base | `test_the_base_commit_matches_the_one_the_ledger_records` | `AssertionError: BASE_COMMIT is 96d3d08e5... but the ledger records d44484b29...` |
+| Retained transcripts are host-clean (AC17) | Add `/Users/someone/checkout/notes.md` to a retained transcript | `test_recorded_evidence_fields_carry_no_host_identifying_data` | host-identity pattern match in the transcripts root |
+| The transcript scan root is not repointed (AC17) | Point the retained-transcript root at a directory that does not exist | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `AssertionError: ('retained transcripts', 0)` |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -475,7 +478,7 @@ The registration pinned `sha256-bytes-v1:87f73f2f…`, the brief's digest when T
 wrote the entry. T1 also edited the brief — adding the Spec-map row and
 correcting the *Not yet started* paragraph — so the brief moved to
 `sha256-bytes-v1:c5e26fcf…` and the pin went stale within the slice. Re-pinned
-at close against a freshly computed digest. This is why AC22 requires the
+at close against a freshly computed digest. This is why AC23 requires the
 comparison at close rather than at registration.
 
 No other registration was touched. `brief_queue.executing` pins RFC-0097 rather

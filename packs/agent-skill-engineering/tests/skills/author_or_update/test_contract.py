@@ -768,6 +768,14 @@ def test_mode_specific_modules_are_exactly_four() -> None:
 # edit first, which is how a marker this slice invented becomes "inherited".
 # ---------------------------------------------------------------------------
 
+# The record's `transcript` value is relative to the spec directory, so this
+# anchor is the spec directory itself.
+SPEC_DIR = (
+    PACK_ROOT.parents[1]
+    / "docs"
+    / "specs"
+    / "agent-skill-engineering-composition-fixtures"
+)
 BASE_COMMIT = "d44484b29d1ba0f56cb0baf42fd79b1348e26a58"
 COMPOSITION_CASES = ("subagent-composition", "hook-plugin-design")
 # Per-case pattern lists are fixed by the contract, not derived from the
@@ -780,6 +788,32 @@ EXPECTED_PATTERNS = {
 # The inherited case whose shape these two share: read-only framing over a
 # payload the case supplies. Its marker set is what they must equal.
 MARKER_SIBLING = "pytest-suite"
+
+
+def test_the_base_commit_matches_the_one_the_ledger_records() -> None:
+    """`BASE_COMMIT` is bound to the recorded base, not merely declared.
+
+    Three guards read their comparison set from this commit — the declared-case
+    set, the sibling marker set, and the base payload digests. Point it at HEAD
+    and none of them reddens: the case-set equality becomes `current == current`
+    plus the two new ids, the sibling is compared with itself, and the payload
+    digests are the ones the change under test just wrote. Every "before this
+    slice" comparison silently becomes a current-tree comparison.
+
+    That is not a sabotage path, it is the cheap repair: the next slice to add
+    an eval case reddens the case-set equality, and bumping this constant is the
+    first thing that makes it green again. Binding it to the ledger means doing
+    so also has to move the recorded base, which is a visible act.
+    """
+    ledger = (SPEC_DIR / "notes" / "verification-ledger.md").read_text(encoding="utf-8")
+    recorded = re.search(r"\*\*Base commit:\*\*\s*`([0-9a-f]{40})`", ledger)
+    assert recorded, "the verification ledger records no base commit"
+    assert BASE_COMMIT == recorded.group(1), (
+        f"BASE_COMMIT is {BASE_COMMIT} but the ledger records "
+        f"{recorded.group(1)}. Moving the base is a re-measurement, not a "
+        "constant bump: change the ledger's recorded base and re-take the "
+        "comparisons, or leave both alone."
+    )
 
 
 def _at_base(repo_relative_path: str) -> str:
@@ -928,17 +962,6 @@ def test_composition_payloads_are_distinct_non_empty_drafts() -> None:
         assert digest not in base_payloads, case_id
         assert digest not in digests, (case_id, digests.get(digest))
         digests[digest] = case_id
-
-
-# The record's `transcript` value is relative to the spec directory, so this
-# anchor is the spec directory itself. Anchoring it at `notes/` instead doubles
-# the segment and every path silently misses.
-SPEC_DIR = (
-    PACK_ROOT.parents[1]
-    / "docs"
-    / "specs"
-    / "agent-skill-engineering-composition-fixtures"
-)
 
 
 def _authoring_records() -> dict[str, dict]:

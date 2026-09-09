@@ -66,6 +66,18 @@ VERSION_UPPER_BOUND = re.compile(r"(?:<=|<)\s*\d|upper\s+bound\s+open", re.IGNOR
 # their obligation permits: recorded evidence may contain sanctioned internal
 # references, while neither recorded evidence nor projections may identify a
 # maintainer or host.
+# Graded transcripts retained by the composition-fixtures slice. Outside the
+# pack tree because they are slice evidence, not shipped content; inside this
+# scan because they are raw captured output.
+COMPOSITION_TRANSCRIPTS = (
+    PACK.parents[1]
+    / "docs"
+    / "specs"
+    / "agent-skill-engineering-composition-fixtures"
+    / "notes"
+    / "transcripts"
+)
+
 HOST_IDENTIFYING_PATTERN_STRINGS = (
     RE_ABS_PATH.pattern,
     r"/var/folders/[A-Za-z0-9_/-]+",
@@ -824,6 +836,14 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
             for path in (PACK / ".apm" / "skills").rglob("evals/**/*")
             if path.is_file()
         ),
+        # Retained graded transcripts. They are committed repository files that
+        # no other root reaches, and they are raw model output — the one class
+        # here most likely to carry an absolute path or a host name. Scanning
+        # them was named in the composition-fixtures plan and then not wired,
+        # so a future re-measurement could have committed host data green.
+        "retained transcripts": sorted(
+            path for path in COMPOSITION_TRANSCRIPTS.rglob("*.md") if path.is_file()
+        ),
     }
     FLOORS = {
         "admission record": 1,
@@ -831,6 +851,7 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "compiled concepts": 16,
         "recorded fixtures": 8,
         "eval declarations and payloads": 8,
+        "retained transcripts": 10,
     }
     # Each root's expected parent, so a floor cannot be satisfied by files from
     # somewhere else. A count alone cannot see a repointed root: aiming the eval
@@ -842,6 +863,7 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "compiled concepts": COMPILED_CONCEPTS,
         "recorded fixtures": FIXTURES,
         "eval declarations and payloads": PACK / ".apm" / "skills",
+        "retained transcripts": COMPOSITION_TRANSCRIPTS,
     }
     # The root *set* is pinned, not just each root's floor and parent. Three
     # empty dicts satisfy a three-way set equality, and so do three consistently
@@ -854,6 +876,7 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
             "compiled concepts",
             "recorded fixtures",
             "eval declarations and payloads",
+            "retained transcripts",
         }
     )
     assert set(roots) == set(FLOORS) == set(PARENTS) == SCANNED_ROOTS
