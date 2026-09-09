@@ -1,0 +1,33 @@
+["ini-001"]
+name      = "Cooled Child Scope Initiative"
+status    = "active"
+milestone = "M1"
+
+# The child spec is cooled by the lifecycle record and its entry declares no
+# `source.parent`. Its parent scope is therefore not established: the brief it
+# belongs to is exactly what nobody recorded, and a cooled artifact's body is
+# never read, so the value cannot be recovered from it.
+#
+# So every `kind = "brief"` dependency fails closed until a maintainer declares
+# either a resolving brief path or a literal `none`. Declaring `none` is a real
+# answer meaning "this spec has no parent brief", and it releases the dependant.
+["ini-001".work]
+queue   = [
+  { path = "docs/specs/dependant/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Depends on the brief", needs = [{ type = "local", kind = "brief", path = "docs/product/briefs/brief-1.md" }] },
+]
+active  = []
+shipped = [
+  { path = "docs/specs/child/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Cooled child with no declared parent", needs = [] },
+]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
+
+["ini-001".brief_queue]
+draft     = []
+ready     = []
+executing = []
+shipped   = [
+  { path = "docs/product/briefs/brief-1.md", kind = "brief", source = { mode = "repo-origin" }, summary = "The brief the dependant needs", needs = [] },
+]

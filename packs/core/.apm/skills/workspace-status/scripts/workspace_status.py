@@ -456,8 +456,9 @@ def _cooling_selection(result, mode: str) -> tuple[frozenset[Path], tuple]:
     """Return the cooled set and its resolution findings for one mode.
 
     The two travel together because they are one decision. `repair-plan` and
-    `repair-apply` keep pre-Wave-6 behaviour, which means both an empty cooled
-    set and no cooling findings; returning them separately let a caller
+    `repair-apply` predate cooling and keep their original behaviour, which
+    means both an empty cooled set and no cooling findings; returning them
+    separately let a caller
     suppress the exclusion while still emitting findings about it.
     """
     if mode not in {"status", "reconcile", "explain"}:
@@ -670,8 +671,8 @@ def _projected_locator(value: object) -> str | None:
     `_public_canonical_path` degrades anything outside its charset to the
     literal `workspace.toml`. For a finding path that is a safe fallback; for a
     record locator it is a lie — the artifact is excluded correctly while the
-    projection names a different, real file. Wave 5 admits any non-control
-    character up to 1000 bytes, so this case is reachable.
+    projection names a different, real file. The record contract admits any
+    non-control character up to 1000 bytes, so this case is reachable.
     """
     public = _public_canonical_path(value)
     return public if public == value else None
@@ -719,8 +720,8 @@ def _cooling_projection(result) -> dict:
             })
         # Gate on the post-closeout result, not on `exception is not None`.
         # `retain-exception` makes the block mandatory, so presence alone would
-        # also admit ("retain-exception", "Retired") — a settled record AC28
-        # requires to contribute nothing. `ExternalAdvisory` is the other live
+        # also admit ("retain-exception", "Retired") — a settled record that
+        # must contribute nothing. `ExternalAdvisory` is the other live
         # obligation and was dropped entirely, losing its owner, reason and date.
         if (
             record.post_closeout_result in {"Retained", "ExternalAdvisory"}
@@ -788,7 +789,8 @@ def _closeout_projection(
     state to project then, and synthesizing one from the absent initiative
     reported `unshipped-specs` against a workspace whose initiatives are all
     closed — a blocker naming work that does not exist. The block is omitted
-    rather than emitted empty, which leaves AC29's closed key set untouched.
+    rather than emitted empty, which leaves the closed-workspace key set
+    untouched.
     """
     active = sorted(
         (

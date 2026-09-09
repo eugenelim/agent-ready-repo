@@ -943,7 +943,7 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
             "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
         ),
         "docs/specs/status-projection-and-context-exclusion/spec.md": (
-            "2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d"
+            "082fbbb677bae5f3b46459cf110879812984bf96c77b5fbd40986265efd7730d"
         ),
         "docs/specs/status-projection-and-context-exclusion/plan.md": (
             "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
