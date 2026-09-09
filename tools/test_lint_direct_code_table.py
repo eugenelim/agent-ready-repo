@@ -59,9 +59,14 @@ class DirectCodeTableLintTests(unittest.TestCase):
         self.assertIn("malformed state entry", rows["CAT-D035"])
 
     def test_reference_qualifies_recovery_line_promise(self) -> None:
+        # The promise is about the separate recovery LINE, not about advice in
+        # general: CAT-D034's message names an actionable step ("use --format
+        # table") while its diagnostic carries no remediation, so an earlier
+        # wording keyed on "an actionable next step" was still false for it.
         table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
         introduction = table.split("| Code | Meaning |", 1)[0]
-        self.assertIn("when an actionable next step exists", introduction)
+        self.assertIn("Some also print a separate recovery line", introduction)
+        self.assertNotIn("and, when an actionable next step exists, a recovery line", introduction)
         self.assertNotIn("the path it objects\nto, and a recovery line", introduction)
 
     def test_a_registered_code_missing_from_the_table_fails(self) -> None:
