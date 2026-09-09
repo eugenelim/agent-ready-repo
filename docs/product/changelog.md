@@ -54,6 +54,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.7] — 2026-09-08
+
+### Fixed
+
+- A work-loop state-lock reclaim no longer moves a lock it has not just
+  confirmed is the one it judged stale. A contender working from a snapshot that
+  a successful reclaim had already superseded could displace the new holder's
+  lock and leave the lock path briefly free while that holder was still inside
+  its critical section, which admitted a second holder. The reclaim path now
+  re-checks inode identity and the per-hold record immediately before moving
+  anything, and leaves a lock it no longer recognises alone.
+
 ## [core][2.25.6] — 2026-09-08
 
 ### Highlights
