@@ -496,6 +496,7 @@ def lint_pack(
         findings.extend(_check_agent_metadata(pack_dir, constraints))
     wiring_dir = pack_dir / ".apm" / "hook-wiring"
     if wiring_dir.is_dir():
+        from agentbundle.build import route_lookup
         from agentbundle.build.hook_wiring_rules import claude_projection_paths
         from agentbundle.build.main import (
             _load_distribution_route_contract,
@@ -508,15 +509,37 @@ def lint_pack(
             contract_data = tomllib.loads(_read_bundled("adapter.toml"))
         try:
             route_data = _load_distribution_route_contract()
+            route_declarations = route_lookup.read_route_declarations(route_data)
+            behaviors = route_lookup.resolve_route_behaviors(route_data)
+            # Each route declares whether it compiles hook wiring, so this asks
+            # the registered behaviors rather than reading a capability out of
+            # the contract and comparing it here.
+            compiling = [
+                identity
+                for identity, behavior in behaviors.items()
+                if behavior.compiles_hook_wiring
+            ]
+            if len(compiling) != 1:
+                # Refuse rather than take the first: "first" would be TOML table
+                # order, so reordering the contract would silently change whose
+                # capabilities drive the hook compiler.
+                raise ValueError(
+                    f"expected exactly one route declaring compiled hook wiring, "
+                    f"found {len(compiling)}"
+                )
+            compiled_hook_route = route_declarations[compiling[0]]
+            component_capabilities = {
+                name: dict(capability)
+                for name, capability in (
+                    compiled_hook_route.component_capabilities.items()
+                )
+            }
         except (OSError, RuntimeError, ValueError) as exc:
             findings.append(
                 f"{pack_dir.name}: distribution route contract is unusable: {exc}"
             )
             findings.sort(key=lambda f: f.rsplit(": ", 1)[-1])
             return findings
-        component_capabilities = route_data["route"]["claude-plugins"][
-            "component-capabilities"
-        ]
         repo_prefix, plugin_prefix, hook_source, wiring_source = (
             claude_projection_paths(contract_data, component_capabilities)
         )

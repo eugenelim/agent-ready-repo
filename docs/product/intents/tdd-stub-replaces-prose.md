@@ -1,6 +1,6 @@
 # A TDD stub is proved in PLAN and materialized in EXECUTE
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** feature
 - **Scale:** app
 - **Maturity:** brownfield
@@ -20,21 +20,40 @@
 
 ## Opportunity
 
-The shipped guidance correctly rejects a prose mirror of an acceptance
-criterion: executable test code is the stronger statement of the same
-behaviour. It does not define a commit-safe lifecycle for that code. `new-spec`
-says spec authoring does not commit stubs, while full-mode `work-loop` PLAN says
-to materialize a failing test file before approval. In `spec-plan` mode there is
-no EXECUTE phase to make that test green, so a compliant session can reach DONE
-with broken gates or an uncommitted file.
+Core 2.15.3 correctly rejected a prose mirror of an acceptance criterion:
+executable test code is the stronger statement of the same behaviour. That
+release did not yet define a commit-safe lifecycle for the code. In
+`spec-plan` mode there is no EXECUTE phase to make a repository test green, so
+materializing a failing test before approval could leave broken gates or an
+uncommitted file.
 
-The observed cost was a plan that mirrored 122 acceptance-criterion conjuncts in
-prose. Four repair passes each left a different conjunct behind — the defect was
-the mirror, not the passes.
+Core 2.16.3 resolved that lifecycle gap. PLAN owns a durable, validated stub
+proof; EXECUTE owns the real test file. This intent preserves that delivered
+contract without reopening either decision.
 
-The replacement rule therefore stands, but the two representations need
-different homes at different times. PLAN owns a durable, validated stub proof;
-EXECUTE owns the real test file.
+## Boundary
+
+- **In scope:** the TDD stub representation and PLAN → approval → EXECUTE order
+  owned by `docs/CONVENTIONS.md`, `new-spec`, `work-loop`, and their regression
+  tests.
+- **Out of scope:** changing the plan-approval state machine, changing normal
+  red-green-refactor behavior, reopening the two accepted no-stub
+  dispositions, or implementing a product-specific test.
+
+## Owner
+
+- Core pack guidance maintainers. No individual owner is recorded.
+
+## Unresolved questions
+
+- None for this migration. Human acceptance of this intent remains the
+  lifecycle gate before the redundant legacy closure record can be removed.
+
+## Projection
+
+- No new implementation specification. The contract shipped in core 2.16.3;
+  after acceptance, this intent remains its durable migration record and the
+  duplicate `[backlog].closed` entry can be removed.
 
 ## Lifecycle order
 
@@ -66,16 +85,14 @@ obligation. Neither branch substitutes behaviour prose for a missing stub.
 
 ## Assumptions
 
-- The semantic replacement already shipped in core 2.15.3: `new-spec` says a
-  plan carries mechanism rather than a second copy of the criteria, and
-  `work-loop` says a stub replaces its prose entry. This intent does not reopen
-  that decision; it corrects the missing lifecycle and aligns the owning
-  convention.
+- The semantic replacement shipped in core 2.15.3: `new-spec` says a plan
+  carries mechanism rather than a second copy of the criteria, and `work-loop`
+  says a stub replaces its prose entry. The complete PLAN → EXECUTE lifecycle
+  shipped separately in core 2.16.3. This intent does not reopen either
+  decision.
 - This is cross-surface: `docs/CONVENTIONS.md` § *Stub → EXECUTE handoff* owns
   the lifecycle, `work-loop`'s `references/tdd-stubs.md` owns the procedure, and
   `new-spec` keeps only the spec-authoring boundary and its pointer to the owner.
-- A top-level convention change may need the repository decision process before
-  it can land; scope that before implementation rather than during.
 - A plan-contained code block is executable evidence rather than a second prose
   contract. Disposable validation proves it compiles and earns a red without
   making the repository's normal test suite fail.
@@ -88,7 +105,7 @@ obligation. Neither branch substitutes behaviour prose for a missing stub.
 - **Knowledge surface:** repository specifications, shipped skill sources, state
   machine code, tests, changelog, and local Git history.
 
-## Validation hook
+## Validation evidence
 
 - **Assumption:** A plan-contained stub can prove stubbability before approval
   and be materialized unchanged after `plan-locked` without requiring prose that
@@ -97,13 +114,13 @@ obligation. Neither branch substitutes behaviour prose for a missing stub.
   complete `spec-plan` with clean gates and no non-document writes, or if the
   later code-mode test cannot be shown byte-identical to the approved stub before
   implementation changes it.
-- **Activity:** Run one representative TDD task through a full `spec-plan` walk,
-  commit the approved documents, then resume it in code mode, materialize the
-  stub, compare its bytes with the approved plan block, observe the intended red,
-  and complete the test to green.
+- **Evidence:** `tests/roster/test_tdd_stub_lifecycle_contract.py` holds the
+  cross-surface contract for planning-only writes, disposable validation,
+  approval ordering, byte-identical materialization, intended-red proof, and
+  completion with no failing-test residue.
 
 ## Source
 
 - Mode: repo-origin
 - Locator: docs/specs/spec-authoring-discipline/spec.md
-- Revision: local-2026-08-30
+- Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a

@@ -358,11 +358,15 @@ def test_path_jail_probe_refused(tmp_path):
         rc = run(_args("alpha", str(FIXTURE_CATALOGUE), str(tmp_path)))
 
     assert rc != 0, "Install must refuse when a projection escapes the output root"
-    assert render_pack.call_args.kwargs["recipes"] == (
+    # The dist-tree producer is the one invoked. Its recipe set is now read from
+    # the route contract and grows with it, so this pins the members that must
+    # keep being rendered rather than the closed list it used to be.
+    # `test_route_surface_parity.py` owns the set-equality assertion.
+    assert set(render_pack.call_args.kwargs["recipes"]) >= {
         "per-pack-claude-plugin",
         "per-pack-apm-package",
         "marketplace",
-    )
+    }
 
     # The malicious file must not exist outside the tmp_path.
     malicious_target = (tmp_path / malicious_relpath).resolve()

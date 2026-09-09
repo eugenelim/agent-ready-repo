@@ -17,7 +17,6 @@ import sys
 from pathlib import Path
 
 from agentbundle import render as _render
-from agentbundle.build.main import DEFAULT_RECIPES
 from agentbundle.commands._common import check_spec_version_gate
 from agentbundle.config import ConfigError, load_pack_toml
 from agentbundle.safety import PathJailError, write_jailed
@@ -50,8 +49,9 @@ def run(args) -> int:
     if recipes is None:
         # Unknown target
         from agentbundle.build.adapters import ADAPTERS
+        from agentbundle.build.main import selectable_render_target_recipes
 
-        known = sorted(ADAPTERS.keys())
+        known = sorted(set(ADAPTERS) | set(selectable_render_target_recipes()))
         target = getattr(args, "target", None)
         print(
             f"render: unknown target {target!r}; known targets: {', '.join(known)}",
@@ -127,13 +127,13 @@ def _canonicalise_target(name: str) -> str | None:
     expects. Single source of truth for the hyphen/underscore duality;
     `list-targets` calls this too.
 
-    The literal `apm` is a special case — an aggregate recipe in F-build,
-    not a per-adapter projection — and is accepted as a recipe filter even
-    though it isn't in the module-keyed `registry`.
+    Distribution-route targets are accepted as recipe filters even when they
+    are not present in the runtime-adapter registry.
     """
     from agentbundle.build.adapters import ADAPTERS
+    from agentbundle.build.main import selectable_render_target_recipes
 
-    known_hyphenated = set(ADAPTERS.keys()) | {"apm"}
+    known_hyphenated = set(ADAPTERS) | set(selectable_render_target_recipes())
     if name in known_hyphenated:
         return name
     if name.replace("_", "-") in known_hyphenated:
@@ -147,14 +147,14 @@ def _select_recipes(target: str | None) -> list[str] | None:
     Returns None if the target is specified but unknown.
     """
     if target is None:
-        return list(DEFAULT_RECIPES)
+        from agentbundle.build.main import default_recipes
+
+        return list(default_recipes())
 
     canonical = _canonicalise_target(target)
     if canonical is None:
         return None
 
-    if canonical == "apm":
-        return ["per-pack-apm-package"]
-    if canonical == "claude-code":
-        return ["per-pack-claude-plugin", "marketplace"]
-    return []
+    from agentbundle.build.main import selectable_render_target_recipes
+
+    return list(selectable_render_target_recipes().get(canonical, ()))

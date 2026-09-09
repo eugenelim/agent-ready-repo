@@ -17,6 +17,10 @@ Required dependencies currently pass on installed name and version without catal
 
 Required dependencies are satisfied by installed name and version without proving catalogue source identity. `packages/agentbundle/agentbundle/commands/install.py:4487` builds `installed: dict[str, str] = {}`, a pack-name-to-installed-version map that is range-checked without retaining catalogue identity. Persist canonical catalogue identity, migrate state, and require identity together with name and range. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
 
+### pack-dependency-scope-qualifier
+
+Dependency validation also unions repository and user installation state, so a repository-scoped dependency can satisfy a user-scoped consumer while remaining unreachable. Add a dependency scope qualifier to the pack contract and require the resolved dependency to be reachable from the consumer's installation scope. The schema and installer changes touch protected `packages/agentbundle/**`; their landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+
 ### multi-adapter-state-lock-uninstall-upgrade
 
 Uninstall and upgrade bypass `persist_state_locked`, so concurrent state writers can lose an update. `packages/agentbundle/agentbundle/commands/uninstall.py:450` serializes previously loaded state with `serialised = dump_state(state)` after mutation; upgrade likewise serializes at `upgrade.py:598`. Use fresh-state mutate closures and add multi-process install/uninstall/upgrade coverage. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
@@ -33,4 +37,4 @@ Install no longer reads through source symlinks, so the exfiltration primitive i
 
 - Mode: repo-origin
 - Locator: workspace.toml
-- Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+- Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a

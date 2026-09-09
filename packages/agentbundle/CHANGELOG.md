@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [0.42.0] — 2026-09-08
+## [0.43.0] — 2026-09-08
 
 ### Added
 
@@ -32,6 +32,44 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   row's recorded digest before parsing it. An uninspectable prior declaration
   or a capability widening fails closed without changing the projection or
   state.
+## [0.42.0] — 2026-09-03
+
+### Added
+
+- The Agent Plugin route now reaches every surface that consumes distribution
+  routes. `agentbundle validate` accepts a pack declaring the
+  `per-pack-agent-plugin` recipe, which it rejected before; `agentbundle render
+  --target agent-plugin` selects that recipe; `agentbundle install
+  --emit-install-routes` also writes `agent-plugins/<pack>/`; and `install`,
+  `diff`, and `upgrade` each recognise a portable install they previously
+  treated as a per-IDE one. `agentbundle catalogue verify` now reports output
+  drift under `agent-plugins/`, which it previously ignored.
+
+### Changed
+
+- Every surface takes its route set from `contracts/distribution-routes.toml`
+  instead of a hand-maintained list, so a route declared in the contract reaches
+  all of them at once. No shared build-time code decides by route name.
+- **`install --force` cleans one more subtree.** Its pre-RFC-0012 dist-tree
+  cleanup is derived from the declared route set, so alongside
+  `claude-plugins/<pack>/` and `apm/<pack>/` it now also removes
+  `agent-plugins/<pack>/` when one is present for a pack it holds install state
+  for. With `--yes` that removal is unattended. If you keep an unrelated
+  `agent-plugins/<pack>/` beside an agentbundle-managed tree, move it before
+  upgrading. Each subtree is verified to resolve under the output root before
+  removal.
+- The repo-scope `emitted install routes for <pack> at ...` line lists every
+  route subtree the install wrote, so it now names three where it named two.
+  `install --force` lists the dist-tree subtrees it will remove in the same
+  order. Both follow the order the routes are built, so the two that were
+  already listed keep their positions and the new one is appended.
+- `build-check` reports install-marker drift for every route that declares an
+  install-marker lifecycle trigger, from one derived gate rather than two
+  hand-written ones. Its drift messages name the route's own label and path.
+
+Published `dist/apm/`, `dist/claude-plugins/`, and `dist/agent-plugins/` trees
+are byte-identical to the pre-change build, pinned by goldens on paths, bytes,
+symlink targets, and mode bits.
 
 ## [0.41.1] — 2026-09-01
 

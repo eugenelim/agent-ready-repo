@@ -223,6 +223,7 @@ active  = [
   {path = "docs/specs/direct-skill-lifecycle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md"}, summary = "Give an installed direct skill a route to a later revision of itself", needs = [{type = "local", kind = "spec", path = "docs/specs/direct-skill-repository-installation/spec.md"}]},
 ]
 shipped = [
+  {path = "docs/specs/distribution-route-registry/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Build all three routes through one generic six-field registry with no route-name branches in shared code", needs = [{type = "local", kind = "spec", path = "docs/specs/portable-agent-plugin-projection/spec.md"}]},
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
   # spec-authoring time by owner decision rather than at work-loop dispatch.
   # Slice D1 of phase-scoped-policy-delivery, shipped 2026-09-04. Registered
@@ -241,7 +242,8 @@ shipped = [
   {path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Portable close-work closeout with separately confirmed immediate disposition", needs = []},
   {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
-  # its completion makes the canonical MCP parity intent the programme's next slice.
+  # it supplied the third real route, which is what gates the Phase 2 registry
+  # extraction that now follows it.
   {path = "docs/specs/portable-agent-plugin-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Project portable-eligible canonical skills into deterministic Agent Plugins 1.0.0 packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},
   {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
   {path = "docs/specs/agents-md-lost-obligations/spec.md", kind = "spec", source = {mode = "repo-origin", revision = "0e1c1b04b0f7b46d9edaee319f6f194569816709"}, summary = "Restore AGENTS.md obligations lost during instruction-surface simplification", needs = []},
@@ -378,10 +380,12 @@ backlog = [
 
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
-# Entries are inline objects: {slug, needs?, source?} where:
-#   slug   — unique identifier; matches any (deferred: <slug>) marker in specs
-#   source — deferred-AC provenance, e.g. "spec/foo AC3"
-#   needs  — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
+# New entries take the canonical shape documented at the top of this file:
+# {path, kind, source, summary, needs}. `path` must name an artifact that exists —
+# for a deferral with no artifact of its own, the document recording it.
+# Legacy {slug, needs?, source?} records remain below and are capped by the
+# write-side ratchet in tests/roster/test_workspace_status_projection.py; do not
+# add new ones.
 # Per-entry TOML comments must be cold-start-sufficient: problem, fix, file/skill, unblock.
 # When the unblock condition is another tracked item (a hard AND dependency), also
 # add a `needs` edge — not prose alone. Disjunctive/untracked/external unblocks stay prose.
@@ -398,9 +402,13 @@ open = [
   {slug = "direct-lifecycle-normalization-fixtures", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Hand-authored canonical-equivalent and expected-normalized fixtures for every direct shape and sub-form, including the collection category level whose flattening to skills/<leaf>/ is the behaviour parity exists to pin, AC24's rule that no canonical, direct, or expected-normalized fixture is generated with code under test, and the assertion the fixtures exist to feed: repo and user projections and per-file plans are byte-identical through both renderers. AC24 at c794be99c is the authority; this summary narrows it.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
   {slug = "direct-lifecycle-author-documentation", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "The author-facing documentation RFC-0098 D8 names: the skill-repository format reference with its stable raw schema URL, the make-a-skill-repository-installable how-to, install-routes and reference page updates, docs-site navigation, the --help surfaces install, validate, upgrade, uninstall, and list-installed, and a local-path-only coding-agent prompt. Left the final list with AC23.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
   {slug = "direct-lifecycle-capability-reconsent", needs = "work:spec/direct-skill-lifecycle", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Capability re-consent on upgrade: the difference rendering including old/new digest, revision, added and removed skill names, the full payload delta, and executable-mode omission for old data; the refusal axes, --accept-new-capabilities bound to the recomputed digest, unknown drift refusing even with the flag, and upgrade --all applying it to every row before any write. Left the final list with AC30 and AC9.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  # The three consumer-side controls the 2026-09-04 implementation-stage
-  # security review of the consumer-integrations seam registered here are
-  # closed below; the remaining entry from that slice is the behavioural one.
+  # NOT migrated to a `path` entry, and not an oversight: AC16 of the Shipped
+  # spec/agent-skill-engineering-consumer-integrations is discharged by this
+  # exact `slug`/`source` pair, and tests/roster's
+  # test_ac16_provider_absence_follow_on_is_registered pins it. Repointing the
+  # record at an intent document would orphan a ticked AC on a frozen spec.
+  # The three sibling controls from that security review closed 2026-09-08; see
+  # docs/specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md.
   # RFC-0097:189's behavioural half -- "tested without this pack installed" --
   # is not discharged by the consumer-integrations slice. For a prose consumer
   # there is no runtime to exercise, and verify_catalogue over a provider-less
@@ -415,7 +423,24 @@ open = [
   # Load-bearing unknown: no host is known to admit a blocking hook verdict.
   {path = "docs/product/intents/cross-adapter-behavior-enforcement.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make a published behavior control run regardless of model or host by putting it on the pre-execution path rather than in prose: a structured policy primitive an adopter can extend, a blocking control whose per-host contract is established first, and a multi-adapter runner so a non-Claude model can be measured at all", needs = []},
   {path = "docs/specs/cooling-scope-closure/notes/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of nine adjudicated findings on the withdrawn cooling-scope-closure amendment remain open; the file records each closure with its evidence. Open: a plan whose Done-when requires editing a hash-frozen plan.md, which nothing detects at approval time; and AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships. Both need an owner decision rather than a repair", needs = []},
+  # Only reproduces on a case-insensitive filesystem, so macOS sees it and a
+  # Linux remote does not. The skip itself is correct — the fixture writes
+  # `Notes.md` and `notes.md` into one envelope and a case-insensitive host
+  # collapses them, so there is no refusal to assert. What is missing is the
+  # sdist gate's allowance for it. Introduced 2026-08-31 in 4e270684e, an
+  # ancestor of this branch's base 1134701ba, and confirmed by that ancestry
+  # rather than by a clean-worktree run.
+  # Environmental, not a code defect: nothing in the tree under `web/` changed.
+  # Reproduced outside `make` by running `npm audit --json` in `web/` directly,
+  # which prints `npm warn audit network timeout at:
+  # https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`. The sibling
+  # `docs-site/` lockfile audits clean in the same shell, so it is that one
+  # bulk-advisory request, not npm or the network as a whole. Seen twice with a
+  # host load average of 86-200.
+  {slug = "pre-existing-audit-npm-bulk-advisory-timeout", source = "pre-flight/2026-09-03", summary = "tools/audit-npm.py --root . exits 2 with 'npm audit reported an error instead of a report' because the web/ lockfile's bulk advisory request to registry.npmjs.org times out; the tool reports the empty npm error payload rather than distinguishing a network timeout from a real audit error. Give the bulk request a retry with backoff, or classify a timeout separately from an audit failure so a transient registry stall does not read as a SAST gate failure"},
+  {slug = "pre-existing-sdist-gate-rejects-case-insensitive-skip", source = "pre-flight/2026-09-03", summary = "tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite fails on any case-insensitive filesystem: the published suite emits 'SKIPPED tests/unit/test_direct_admission.py:937: case-insensitive filesystem cannot hold both spellings', which is outside the gate's _EXPECTED_SKIP_REASONS allowlist, so a correct platform skip reads as a forbidden one. Add the reason to that allowlist, or make the fixture build a case-distinct pair, so the release gate is runnable on macOS"},
   {path = "docs/specs/dependency-scoped-completion-receipts/notes/follow-ons.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of three RFC-0096 receipt follow-ons stay open. Entry-removal precondition: reassigned to rfc0096-wave7c-pruning -- stranding harm refuted by measurement, but nothing makes the file and entry removals atomic and a record field cannot supply that. Cooled cross-repo deferral slug: still Wave 7b's. Reclassified schema gap: closed by docs/specs/reclassified-lifecycle-result/. Both settled in rfc0096-wave7c-lifecycle-record-decisions.md; the linked notes file is frozen, so status lives here", needs = []},
+  {path = "docs/specs/loop-cohort-state-lock/notes/reclaim-residual.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A state-lock reclaim's identity check and its rename are two operations, so a holder acquiring between them is displaced and reports StateLockLost having done nothing wrong. Not closable by checking harder -- POSIX has no rename-if-unchanged. Atomic takeover is disproved and recorded: rename replaces unconditionally, so every contender with the same stale snapshot wins in turn, measured at three to five holders. The note carries the forced-interleaving reproduction", needs = []},
   {path = "docs/specs/reclassified-lifecycle-result/notes/follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two RFC-0096 Wave 7c follow-ons. (1) rfc0096-wave7c-pruning: a pruning session must prove its own precondition -- an artifact's file and its workspace entry must be removed together -- and nothing makes the two removals atomic. (2) Moving AC23-pinned files falsifies cooling-scope-closure's AC23 TITLE and its Durable Outputs line \"neither may change\"; the AC body still holds, so the repair is a retitle. Caused by this delivery and Wave 7b; its owner restates it. RFC-0096:380 names the slice", needs = []},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
   {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
@@ -424,11 +449,13 @@ open = [
   # owns native adapter projections and their singleton-conflict contract.
   {path = "docs/product/intents/catalogue-rules-primitive.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/cognitive-load-reduction/notes/guidance-pointer-patterns-survey.md", revision = "local-2026-08-27"}, summary = "Add a portable rules primitive with native adapter projections and safe context-file fallbacks", needs = []},
 
-  # Phase 1A has shipped. Phase 1B is the programme's next ready slice; it
-  # remains an intent until normal intake promotes it into a durable spec.
-  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/portable-agent-plugin-projection/spec.md"}]},
-  {path = "docs/product/intents/distribution-route-registry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Extract generic route dispatch after three real routes exist", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}]},
-  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
+  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  # Phase 2b — the schema genericization cut from the Phase 2 slice on 2026-09-03.
+  # Blocked on Phase 2 landing: it removes the per-route enum pins that four of the
+  # eight shipped route-contract refusals rest on, so it needs its own confinement
+  # and compatibility-authority contract. Must land before the Codex route.
+  {path = "docs/product/intents/distribution-route-set-opening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Open the route set so a route needs no schema entry, with confinement for the values the per-route pins currently fix", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-registry/spec.md"}]},
+  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/distribution-route-set-opening.md"}]},
   {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
   {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
   # Unblocks when the current Kiro contract is reacquired and the migration
@@ -440,248 +467,134 @@ open = [
   # Unblocks when runtime root semantics are reacquired and the command strategy
   # is approved.
   {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
+  {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
+  {path = "docs/product/intents/route-decision-analysis-depth.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/distribution-route-registry/spec.md"}, summary = "Give the route-decision checker cross-module depth under its own contract: follow route values across module boundaries, derive the discriminator field set from the route types, cover projector-identity and .get() dispatch, and derive the single-route exemption from the registration the lookup resolves through -- each exemption pinned by a mutation. Split out of distribution-route-registry after five review rounds in which each widening opened the next round's hole", needs = []},
+  {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
+  {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
+  # Unblocks when: someone decides whether the seal should admit a prose-only
+  # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
+  # blocked mid-run and landed only after an owner-authorized cohort re-seal.
+  {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
+  {slug = "agent-skill-engineering-guide-and-docsurl", summary = "agent-skill-engineering is the only pack in GUIDE_OPTIONAL_PACKS and its site docsUrl points at the guides index; the planned docs slice must add guides/agent-skill-engineering/, link it from guides/README.md, drop the exemption, and repoint docsUrl", source = "spec/agent-skill-engineering-foundation AC21 (owner decision 2026-08-27)"},
+  # Unblocks when: the release checklist owner decides.
+  {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
+  # Deferred rather than bundled: packages/agentbundle/ is a protected tree
+  # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-
+  # RFC:` trailer) and AGENTS.local.md requires a pyproject version bump for an
+  # engine change. A config-drift fix should not become an engine release. The
+  # parity gate anchors the literal instead, which catches divergence but not
+  # the duplication.
+  # Unblocks when: an engine-scoped RFC is open to cite in the trailer.
+  {slug = "marketplace-description-fourth-statement-in-self-host", summary = "self_host.py restates the marketplace description a fourth time; removing it needs an Engine-Change-RFC and a version bump", source = "spec/marketplace-generator-single-source (governance gate)"},
 
-  # Current: PR and post-merge push timings exist and meet AC11; only the docs-only
-  # non-relevant-diff event class remains unmeasured.
-  # Fix: measure one docs/**-only PR without narrowing SAST_CONFIG, then record the result
-  # against AC15.
-  {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11", summary = "Measure one docs-only PR without narrowing SAST_CONFIG and record the non-relevant-diff result against AC15. AC11's critical-path timing is already complete."},
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
+  {slug = "marketplace-envelope-config-authority", summary = "Make catalogue.toml the marketplace-envelope authority for all six render.py entrypoints, after deciding toml_emit's 'main' scaffold default", source = "spec/marketplace-generator-single-source (review blocker 3)"},
 
-  # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
-  # package-suite fixture setup. First, pip/ensurepip cannot create its temporary
-  # trust-store CA file:
-  # test_credentials_wheel.py::test_agentbundle_credentials_is_removed_from_installed_wheel
-  # and test_editable_source_detection.py::test_editable_detection_against_real_install.
-  # Second, protected key-material globs (*.pem and *.key) cannot be read even under
-  # approved temporary roots. Affected files:
-  # integration/test_trust_fallback_tls.py, unit/test_system_trust.py, and
-  # unit/test_https_catalogue.py::test_build_opener_custom_ca_bundle.
-  # These failures reproduce outside this initiative's diff and occur before the
-  # behavior under test. Fix: run the full suite in CI or a managed profile that
-  # permits both isolated fixture classes; do not weaken production credential policy.
-  # Unblocks when: that supported verification environment is available.
-  {slug = "pre-existing-enterprise-agentbundle-full-suite", source = "pre-flight/2026-08-16"},
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
+  {slug = "output-drift-silent-without-dist", summary = "CAT-V-014 cannot fire in CI because _step_output_drift early-returns when dist/ is absent", source = "spec/marketplace-generator-single-source (assumption)"},
 
-  # Unverified: Node blocks process.dlopen without --allow-addons, but no real compiled
-  # addon has tested filesystem-confinement bypass when the flag is granted.
-  # Settle with an approver-authorized C++/node-gyp evidence environment or when a real
-  # configuration needs --allow-addons; the pilot denial does not prove the granted case
-  # safe.
-  {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
+  {slug = "marketplace-ref-not-git-ref-validated", summary = "marketplace-entry.schema.json's ref and sha are unvalidated strings on an ingress path (archive.py, verify.py --root)", source = "spec/marketplace-generator-single-source (review concern 3)"},
 
-  # Unverified: r12-fact-negative-tests.py reports privacy MISSED/NOT-RESTORED cases and
-  # the failure varies by environment or state rather than the round-14 diff.
-  # Settle by reproducing the exact cases in a supported clean evidence environment and
-  # identifying the state or platform variable before changing the controls.
-  {slug = "rfc0088-r12-fact-negative-tests-red", source = "pre-flight/2026-08-22"},
-
-  # Current: dependency validation unions repo and user state, so a repo-scoped broker can
-  # satisfy a user-scoped consumer while remaining unreachable.
-  # Fix: add and enforce a dependency scope qualifier in the pack contract.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "pack-dependency-scope-qualifier", source = "spec/jira-check-sso-auto-login AC33"},
-
-  # Current: browser-state profiles retain a silently replayable corporate IdP session
-  # with no expiry or lifetime policy.
-  # Fix: define and enforce bounded expiry in sso-broker.
-  # Blocker: the fix touches protected packs/credential-brokers/**; its landing commit
-  # needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
-    # RFC-0074's catalogue pack-defaults cascade is Shipped but has no consumer, and its
-    # baked layer sits inside the agentbundle package, unreachable from stdlib-only skill
-    # scripts. Fix: installer projects [pack-defaults.<pack>] to
-    # ~/.agentbundle/<pack>/defaults.toml; needs an RFC-0074 addendum plus an ADR extending
-    # ADR-0059. CONSTRAINT (AC25, RFC-0084): a projected defaults.toml is NOT trusted merely
-    # because the installer wrote it — its contents come from catalogue.toml. It may not
-    # supply a sign-in destination or make any automatic path headed; automatic refresh
-    # stays pinned to broker-written state exactly as AC1 requires. Unblocks: after the
-    # addendum is Accepted.
-  {slug = "pack-config-catalogue-sso-defaults", source = "spec/jira-check-sso-auto-login"},
-
-  # Current: sso-broker persists unfiltered cookies under umask-default browser-state
-  # directories.
-  # Fix: enforce 0700 storage and filter cookies by destination at capture time.
-  # Blocker: the fix touches protected packs/credential-brokers/**; its landing commit
-  # needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "sso-broker-at-rest-minimisation", source = "spec/jira-check-sso-auto-login"},
-
-  # Current: concurrent recaptures launch Chromium against one profile and collide on its
-  # singleton lock.
-  # Fix: serialize browser launch with a per-profile lock while keeping materialisation
-  # ordering separate.
-  # Blocker: the fix touches protected packs/credential-brokers/**; its landing commit
-  # needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "sso-broker-register-concurrency", source = "spec/jira-check-sso-auto-login"},
-
-  # Current: catalogue lint pins wording whose literal meaning contradicts the shipped
-  # check carve-out.
-  # Fix: amend the pinned phrase and its contract tests.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "sso-cookie-lint-phrase-amendment", source = "spec/jira-check-sso-auto-login"},
-    # AC16 logs recapture via log.info, but jira.py:780-783 configures logging with no filename,
-    # so the record goes to stderr the agent may discard - an unattended re-auth stays repudiable.
-    # Fix: append-only 0600 log under ~/.agentbundle/logs/. Unblocks: now.
-  {slug = "sso-recapture-audit-sink", source = "spec/jira-check-sso-auto-login"},
-
-  # Current: macOS security subprocesses have no timeout and per-slot purge can exceed the
-  # lock budget on realistic jars.
-  # Fix: bound or batch keychain calls, then re-derive the lock wait budget from measured
-  # holds.
-  # Blocker: the fix touches protected packs/credential-brokers/**; its landing commit
-  # needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "sso-keychain-call-timeouts", source = "spec/sso-store-transition-serialization AC10"},
-  # Current: at-most-once recapture is process-local, so repeated agent invocations can
-  # launch a headless refresh each time.
-  # Fix: persist a per-profile last-attempt timestamp and enforce a cooldown.
-  # Blocker: the fix touches protected packs/credential-brokers/**; its landing commit
-  # needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "sso-recapture-cooldown", source = "spec/jira-check-sso-auto-login"},
-    # A pack-shipped PreToolUse hook denying BOTH agent-facing capture commands (jira.py
-    # check --register and setup_sso.py) while allowing bare check. Belt-only, not a
-    # boundary: lands in .claude/settings.local.json, an agent-writable repo file; uneven
-    # adapter coverage (kiro-ide drops hook-wiring); cannot stop direct sso-broker.py
-    # register. RFC-0084 permits this only as erring-agent defense in depth, never as
-    # destination protection. Fix: only if an adopter wants it knowing the limits.
-    # Unblocks: on request.
-  {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
-
-  # Current: the workspace-mcp spec has shipped, but Claude permissions.allow projection
-  # remains unimplemented and its four construction tests remain stubs.
-  # Fix: add additive-merge permissions projection and prove clean and existing-config
-  # installs.
-  # Blocker: the adapter change is under protected packages/agentbundle/** and needs an
+  # Blocker: the fix changes protected packages/agentbundle/** and needs an
   # Engine-Change-RFC trailer naming a real RFC.
-  {slug = "workspace-mcp-permissions-projection-contract", source = "spec/workspace-mcp AC17"},
+  {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", summary = "An empty or absent claude-plugin-branch makes a fork's install route resolve to upstream's repo and ref", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  # Unblocks when: a maintainer runs the canary arm; settings writes are theirs.
+  # Deferred rather than bundled: closing it needs a repository-settings action
+  # and a live canary run, neither of which is a code change this PR could
+  # carry.
+  {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  # Unblocks when: SAST rule authoring is in scope (sast-cwe-delta-review is
+  # adjacent).
+  # Deferred rather than bundled: bounding it needs a different instrument
+  # entirely — a runtime assertion inside the build, or a semgrep rule — not
+  # more static reading.
+  {slug = "marketplace-envelope-post-import-rebind-unbounded", summary = "Neither parity layer bounds a post-import rebind of _DIST_BRANCH or _MARKETPLACE_DESCRIPTION", source = "spec/marketplace-generator-single-source (review residual)"},
+  # Unblocks when: the publisher's import surface is next touched.
+  # Deferred rather than bundled: the fix is to change the publisher's import
+  # surface, which is publish-path code this PR deliberately does not touch.
+  {slug = "marketplace-publisher-branch-layer-2-only", summary = "The publisher's BRANCH push target is covered by the parity gate's literal layer only, not the resolved-value layer", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
+  # cross-repository reference, so now that a spec's `Brief:` back-link is the
+  # canonical path form it reports a brief that lives in THIS repo as "unknown /
+  # not-yet-catalogued (cross-repo, unresolvable)" and drops the brief↔spec edge
+  # it exists to generalize. Informational, exit 0, so no gate catches it. A
+  # mistyped path is also only informational, where a mistyped bare slug has
+  # always been a fatal dangling pointer — so path-form typos are detected less
+  # strictly than slug-form ones. Fix: resolve a canonical local brief path to
+  # its brief node before endpoint classification
+  # (packs/core/.apm/skills/work-loop/scripts/lint-traceability.py). Attempted
+  # and withdrawn during the brief-path provenance fix: the shipped
+  # docs/specs/traceability-lint/spec.md makes this Ask-first ("changing a
+  # producer-pointer field") and its Never-do list forbids identifying a node by
+  # file path, hardcoding an artifact path, and treating a well-formed cross-repo
+  # reference as dangling — and a naive alias hard-failed on brief files that
+  # exist under a `[traceability].briefs` override. Unblocked by a reviewed
+  # amendment to that spec carrying the Ask-first sign-off; no `needs` edge.
+  {slug = "traceability-brief-path-backlink-unresolved", source = "spec-less brief-path provenance fix (review rounds 1 and 4)"},
+  # lint-brief-coverage.py and lint-traceability.py both still match a bare-slug
+  # `Brief:` back-link, so a slug-form spec passes every early gate and only
+  # fails later at workspace-status reconciliation, where it blocks dispatch.
+  # The docstrings now say the slug is backward-compatible only, but nothing
+  # tells an author at lint time. Fix: have the coverage lint emit a non-fatal
+  # note naming any spec whose back-link matched by slug rather than by path
+  # (lint-brief-coverage.py, receive-brief skill). Deferred because it adds
+  # output to a lint many repositories run in CI. Unblocked once the note is
+  # agreed to be non-fatal and that lint's output contract is versioned; no
+  # tracked dependency, so no `needs` edge.
+  {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
 
-  # workspace-mcp Stage 1 behavioral integration tests (AC3–AC9, AC11–AC16, AC21–AC22).
-  # EventBridge polling, elicit O_EXCL/response-file, git subprocess injection defense,
-  # frame-size cap, MCP handshake — all verified only by pytest.skip() stubs in Stage 1.
-  # The module code is present and code-reviewed; stubs document the verification shape.
-  # Fix: promote each pytest.skip() stub to a real passing test, running workspace_mcp.py
-  #   as a subprocess via stdin/stdout pipes (one-shot MCP JSON-RPC messages).
-  # Unblocks when: workspace-mcp is promoted from Stage 1 to production-ready status.
-  {slug = "workspace-mcp-stage1-behavioral-tests", source = "spec/workspace-mcp AC3-AC9,AC11-AC16,AC21-AC22"},
+  {path = "docs/product/intents/ci-gate-main-runtime-budget.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Bring gate-main within its shipped 200-second budget after a docs-only run measured 302 seconds and localized 201 seconds to two steps", needs = []},
+  {path = "docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen deferral identity and completed docs-only CI measurement while the 302-second gate-main miss moves to its runtime-budget intent", needs = []},
 
-  # Current: workspace_status_engine already standardises brief_queue as
-  # draft/ready/executing/shipped; workspace-mcp simply does not project it.
-  # Fix: expose that canonical brief_queue projection through workspace-mcp instead of
-  # inventing a second layout.
-  # Blocker: the projection lives under protected packages/agentbundle/** and needs an
-  # Engine-Change-RFC trailer naming a real RFC.
-  {slug = "workspace-mcp-brief-queue-exposure", source = "spec/workspace-mcp (deferred)"},
+  {path = "docs/specs/local-ci-orchestration/notes/pre-existing-enterprise-agentbundle-full-suite.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/local-ci-orchestration/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the complete AgentBundle suite in a supported profile that permits its isolated trust-store and key-material fixtures", needs = []},
+  {path = "docs/specs/rfc0088-round15-reference-consumer/notes/rfc0088-native-addon-confinement-bypass.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Test native-addon confinement before any supported RFC-0088 configuration is permitted to grant Node's addon flag", needs = []},
+  {path = "docs/specs/rfc0088-round15-reference-consumer/notes/rfc0088-r12-fact-negative-tests-red.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Reacquire the authoritative out-of-tree round-12 negative-test apparatus and record a current-versus-clean-checkout differential", needs = []},
 
-  # Current: profiles now uses an adopter-resolvable schema name; only the packs
-  # README/AGENTS policy remains open.
-  # Decision: either ship pack.schema.json in the authoring scaffold or keep the packs
-  # wording path-free and close this as wont-fix; a repo-only projection carve-out does
-  # not exist.
-  {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
+  {path = "docs/product/intents/sso-browser-state-protection.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Persistent SSO browser state is time-bounded, minimally stored, serialized across browser launches, and protected by measured keychain and recapture budgets", needs = []},
+  {path = "docs/product/intents/credential-pack-defaults-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Credential-pack catalogue defaults reach standard-library-only scripts without becoming trusted sign-in or automatic-refresh authority", needs = []},
+  {path = "docs/product/intents/sso-cookie-lint-contract-wording.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Catalogue lint wording forbids automatic SSO setup while preserving the shipped non-mutating check carve-out", needs = []},
+  {path = "docs/product/intents/workspace-mcp-production-readiness.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Workspace-MCP reaches production readiness through Stage 1 behavioral proof, non-breaking Claude permission projection, and canonical brief-queue exposure", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-recapture-audit-sink.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen recapture-audit deferral identity while its outcome is owned by the SSO contention and audit-trail intent", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/pack-dependency-scope-qualifier.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen pack-dependency qualifier identity while its outcome is owned by agentbundle install integrity", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/browser-state-lifetime.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen browser-state lifetime identity while its outcome is owned by SSO browser-state protection", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/pack-config-catalogue-sso-defaults.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen catalogue SSO-defaults identity while its outcome is owned by credential-pack defaults projection", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-broker-register-concurrency.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen broker-registration concurrency identity while its outcome is owned by SSO browser-state protection", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-broker-at-rest-minimisation.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen at-rest minimisation identity while its outcome is owned by SSO browser-state protection", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-register-pretooluse-hook.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen optional-hook identity and its retired disposition unless a future accepted intent reactivates it", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-recapture-cooldown.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen recapture-cooldown identity while its outcome is owned by SSO browser-state protection", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/notes/sso-cookie-lint-phrase-amendment.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen cookie-lint wording identity while its outcome is owned by the SSO cookie-lint contract intent", needs = []},
+  {path = "docs/specs/sso-store-transition-serialization/notes/sso-keychain-call-timeouts.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/sso-store-transition-serialization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen keychain-timeout identity while its outcome is owned by SSO browser-state protection", needs = []},
+  {path = "docs/specs/tracker-refresh-writeback/notes/tracker-refresh-projection-repair-confirmation.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen projection-repair confirmation identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
+  {path = "docs/specs/tracker-refresh-writeback/notes/tracker-refresh-enforced-capability-state.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen capability-state identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
+  {path = "docs/specs/tracker-refresh-writeback/notes/tracker-refresh-materialized-child-scope.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen materialized-child scope identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
+  {path = "docs/specs/workspace-mcp/notes/workspace-mcp-stage1-behavioral-tests.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen Stage 1 behavioral-test identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
+  {path = "docs/specs/workspace-mcp/notes/workspace-mcp-permissions-projection-contract.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen permission-projection identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
+  {path = "docs/specs/workspace-mcp/notes/workspace-mcp-brief-queue-exposure.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen brief-queue exposure identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
+  {path = "docs/specs/stale-reference-corrections/notes/packs-agents-normative-pointer.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/stale-reference-corrections/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen packs-pointer identity and its path-free disposition without copying a repository-only schema into the scaffold", needs = []},
 
-  # Current: upgrade writes the new projection but leaves files present only in old
-  # state.files, producing duplicate stale Kiro artifacts.
-  # Fix: remove whole-pack old-minus-new projection orphans in a confinement-safe ordered
-  # pass.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "upgrade-orphan-removal-on-projection-shape-change", source = "spec/kiro-install-alias-parity AC8"},
+  {path = "docs/specs/kiro-install-alias-parity/notes/upgrade-orphan-removal-on-projection-shape-change.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/kiro-install-alias-parity/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the upgrade-orphan deferral identity while its accepted intent owns confinement-safe projection cleanup", needs = []},
 
-  # spec/digital-experience-contract deferred AC. The PE journey page now exists (generated:
-  # true) at web/src/content/journeys/product-engineering.md, but its whatChanges field
-  # does not reference the Digital Experience Contract. The DEC cross-reference note is
-  # deferred to spec/product-engineering-shaping-doctrine — that spec will update the PE
-  # journey with shaping-doctrine content, making it the natural point to add the DEC
-  # cross-reference coherently rather than as a standalone one-line patch.
-  # File: packs/product-engineering/JOURNEY.md (add DEC note to whatChanges field;
-  #   build-self projects it to web/src/content/journeys/product-engineering.md, which is
-  #   generated: true and must not be edited directly).
-  # Unblocks when: docs/product/intents/product-engineering-shaping-doctrine.md reaches a
-  #   spec and that spec ships. The prerequisite is no longer a work.queue entry -- it
-  #   moved to ["ini-003".shaping_queue].backlog as a canonical intent, because no spec
-  #   for it exists yet. The `needs` edge is dropped rather than repointed: legacy needs
-  #   notation admits only the `work:` and `backlog:` prefixes, so a dependency on a
-  #   shaping entry is not expressible here and stays prose. This entry cannot be
-  #   converted to the canonical shape that COULD express it, because a live
-  #   `(deferred: ...)` marker in the frozen digital-experience-contract spec pins its
-  #   slug in [backlog].open.
-  # Stale frozen reference: that spec still names `spec/product-engineering-shaping-doctrine`
-  #   at spec.md lines 28, 198 and 215. The body is frozen and cannot be corrected; the
-  #   register carries this class under `frozen-record-errata-mechanism`.
-  {slug = "digital-experience-contract-pe-journey-xref", source = "spec/digital-experience-contract AC15"},
+  {path = "docs/specs/digital-experience-contract/notes/digital-experience-contract-pe-journey-xref.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/digital-experience-contract/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Add the Digital Experience Contract cross-reference while the product-engineering shaping doctrine updates and regenerates its journey", needs = []},
 
-  # Integrity-pinning for the layer-4 git+https catalogue fetch is deferred from
-  # spec/convenient-install-defaults. Today agentbundle install pulls an
-  # unauthenticated GitHub-archive tarball with no checksum, signature, or pin
-  # (trust-on-first-use against current tip). A supply-chain attack on the upstream
-  # repo would silently deliver malicious pack content to adopters.
-  # Fix: open RFC-0046 + ADR-0036 for the integrity-pinning design; lean on existing
-  #   SCA/lockfile-hash infrastructure rather than hand-rolling verification.
-  # Unblocks when: someone opens the integrity-pinning RFC.
-  {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults", summary = "Implement RFC-0046 and ADR-0036's deferred layer-4 integrity work: resolve main to a full commit SHA and verify the fetched archive digest. Both decisions already exist and must not be reopened."},
+  {path = "docs/specs/convenient-install-defaults/notes/convenient-install-defaults-followons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/convenient-install-defaults/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the default-source integrity deferral identity while its accepted intent owns commit pinning and archive verification", needs = []},
 
-  # Unverified: live APM installs for core, converters, and Copilot/Cursor/Gemini
-  # characterization remain unrecorded.
-  # Settle in a development environment with all named adapters by recording rows 32-34 in
-  # the existing manual-QA matrix.
-  {slug = "apm-install-route-parity", source = "spec/apm-install-route-parity AC17"},
+  {path = "docs/specs/apm-install-route-parity/notes/apm-install-route-parity.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/apm-install-route-parity/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Record the outstanding APM core, converters, Copilot, Cursor, and Gemini live-install checks in manual-QA matrix rows 32 through 34", needs = []},
 
-  # The shipped core pack's .apm/** still carries ~10 internal-governance citations
-  # (RFC numbers, make commands, docs/ paths) that should not appear in adopter-
-  # facing artifacts. The most sensitive file is work-loop/SKILL.md, which has a
-  # byte-identical risk-trigger block mirrored across four files — a hand-sweep
-  # risks drift. A mechanical lint requires an RFC (new convention).
-  # Fix: open an RFC for a lint-catalogue-seeds-analogue for packs/*/.apm/**; then
-  #   drive the sweep under it. File: tools/lint-agent-artifacts.py (extend scope).
-  # Unblocks when: RFC is opened and approved.
-  {slug = "apm-leak-lint-rfc", source = "spec/house-voice-writing-craft"},
+  {path = "docs/specs/house-voice-writing-craft/notes/apm-leak-lint-rfc.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/house-voice-writing-craft/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Retire the obsolete APM leak-lint RFC proposal after the concrete sweep shipped and catalogue verification replaced the deleted standalone linter", needs = []},
 
+  {path = "docs/specs/agentic-well-architected-overlay/notes/ml-saas-serverless-workload-class-lenses.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentic-well-architected-overlay/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Remove the unsupported SaaS workload-lens claim while preserving the backed GenAI, data and ML, and serverless routes", needs = []},
 
-  # packs/architect/.apm/skills/architect-review/references/rubric-well-architected.md
-  # names four workload-class lenses: ML, GenAI/agentic, SaaS, serverless. GenAI/
-  # agentic and serverless lenses are backed (reference files exist); ML and SaaS
-  # remain named-but-unbacked. A reviewer consulting the rubric finds empty lens slots.
-  # Fix: a future RFC backs ML with lens-ml.md and SaaS with lens-saas.md, or removes
-  #   the named-but-unbacked entries from the rubric.
-  # Unblocks when: someone opens an RFC to add or remove the ML/SaaS lens.
-  {slug = "ml-saas-serverless-workload-class-lenses", source = "spec/agentic-well-architected-overlay", summary = "Add a dedicated SaaS workload-class corpus concept, or remove SaaS from the rubric's claimed lens set. ML now routes to data-analytics-and-ml.md and serverless already has serverless.md."},
+  {path = "docs/specs/atlassian-sso-cookie/notes/atlassian-sso-cookie-live-dc-read-transcript.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/atlassian-sso-cookie/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Capture the approved corporate-SSO Atlassian Data Center read flow in a credential-free transcript", needs = []},
+  {path = "docs/specs/agentbundle-wheel-release/notes/artifactory-first-publish-gesture.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentbundle-wheel-release/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Have an authorized owner configure the Artifactory Actions secrets and record the first tagged package upload without exposing credentials", needs = []},
+  {path = "docs/specs/extraction-msg-to-markdown-python-contract/notes/extraction-msg-realworld-sample.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/extraction-msg-to-markdown-python-contract/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the shipped message converter against approved PII-free real-world MSG and EML samples and record both manual fidelity reviews", needs = []},
 
-  # Unverified: no CI environment provides a corporate-SSO Atlassian Data Center instance.
-  # Settle on a real DC read flow: headed register, get-cookies, authenticated Jira JQL
-  # results, and sso-broker test exit 0, with a redacted transcript.
-  {slug = "atlassian-sso-cookie-live-dc-read-transcript", source = "spec/atlassian-sso-cookie AC19"},
+  {path = "docs/product/intents/role-journey-agent-swarm-section.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/journeys/engineer-scales-to-swarm.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Extend the core Agent role journey with coordinated headless CLI swarm guidance after the source journey has an approved contract", needs = []},
 
-  # Unverified: publish-artifactory has never run because the repository lacks the three
-  # Artifactory secret values.
-  # Settle when an authorized owner configures ARTIFACTORY_URL, ARTIFACTORY_USER, and
-  # ARTIFACTORY_TOKEN and records the first tagged upload; no credential inspection is
-  # part of this entry.
-  {slug = "artifactory-first-publish-gesture", source = "spec/agentbundle-wheel-release AC14"},
-
-  # Unverified: generated corpora pass, but no PII-free real-world MSG/EML pair was
-  # available for the fidelity check.
-  # Settle by obtaining a sanitized numbered sample, running the shipped converter, and
-  # recording manual verification under the existing notes directory.
-  {slug = "extraction-msg-realworld-sample", source = "spec/extraction-msg-to-markdown-python-contract AC3"},
-
-  # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
-  # guides/core/explanation/role-journeys.md covers headless AI execution
-  # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
-  # (derived from engineer-scales-to-swarm journey, status: shaping) is deferred.
-  # Fix: once engineer-scales-to-swarm is shaped and its journey map is promoted from
-  #   shaping → planned/shipped, extend the Agent section with coordinated headless
-  #   CLI swarm patterns; update guides/core/explanation/role-journeys.md.
-  # File: guides/core/explanation/role-journeys.md (Agent section).
-  # Unblocks when: engineer-scales-to-swarm journey is shaped (status moves from shaping).
-  {slug = "role-journey-agent-swarm-section", source = "spec/m6-role-journey-guides AC6"},
-
-  # Current: branch controls are live, but no build guard rejects a pack source whose
-  # top-level name collides with projected skills, agents, or commands.
-  # Fix: derive the reserved root-name set from Claude component targets and fail before
-  # any clobber.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "plugin-root-name-collision-guard", source = "spec/claude-plugins-manifest-correctness AC10", summary = "Add a Claude-plugin build preflight deriving reserved native component roots from contracts/distribution-routes.toml and rejecting collisions with skills/, agents/, commands/, and hooks/. Do not derive them from the retired adapter-contract fields or PRIMITIVE_DIRS."},
+  {path = "docs/specs/claude-plugins-manifest-correctness/notes/plugin-root-name-collision-guard.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/claude-plugins-manifest-correctness/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the plugin-root collision deferral identity while its accepted intent owns the contract-derived pre-write guard", needs = []},
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
@@ -689,44 +602,11 @@ open = [
   # carries none of the shipped-artifact exposure that motivates the entries
   # above. Revisit only if web/ ever gains a server-side runtime.
 
-  # capture-work-alias-removal — RFC-0083 keeps `capture-work` as a forwarding
-  # alias and retains the legacy workspace reader throughout the compatibility
-  # window. Removing either one earlier would strand documented invocations or
-  # released workspace shapes. Fix: write and approve a later removal spec that
-  # deletes the forwarding skill and legacy-reader branches, updates adopter and
-  # maintainer guidance, regenerates projections, and ships the required major
-  # core release without deleting canonical artifacts or migration evidence.
-  # Unblocks only when every AC14 gate in work-intake-migration-docs is evidenced:
-  # two qualifying minor releases after the first write-new release (excluding
-  # the reader-first release), at least 90 elapsed days, advance notice, clean
-  # legacy-fixture/writer/current-guide audits, demonstrated rollback readiness,
-  # and check-before-effect RFC Approver authorization. These are external,
-  # conjunctive gates, so this entry has no machine-readable `needs` edge and
-  # remains non-dispatchable until a separate spec is approved.
-  {slug = "capture-work-alias-removal", source = "spec/work-intake-migration-docs AC14"},
-  # Deferred: refresh has no trusted representation of which brief fields were
-  # materialized into children; adding one requires new trusted inputs.
-  {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
-  # Deferred: workspace-status receives only a profile id and version, not
-  # resolved capabilities, and the processor write path receives no trusted
-  # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
-  # and refresh availability can only report False or "unknown", never True. A
-  # defaulted parameter would be bypassable, which is worse than a documented
-  # gap; closing it means threading resolved capabilities through both surfaces.
-  {slug = "tracker-refresh-enforced-capability-state", type = "spec", source = "spec/tracker-refresh-writeback AC11", summary = "Enforce the lifecycle allowlist on remote write-back and report availability affirmatively"},
-  # Deferred: projection repair needs its own confirmation contract; adding one
-  # requires a new trusted input rather than inferring authority from tracker
-  # data.
-  {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
+  {path = "docs/product/intents/capture-work-alias-removal.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Remove the capture-work alias and legacy workspace reader only after every RFC-0083 compatibility, notice, audit, rollback, specification, and authorization gate is satisfied", needs = []},
+  {path = "docs/product/intents/tracker-refresh-trusted-authority-inputs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Tracker refresh receives trusted scope, lifecycle and capability state, and explicit projection-repair confirmation before affected writes", needs = []},
   {path = "docs/product/design/workspace-anchor-staleness-invariant.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0083-work-intake-and-artifact-routing.md", revision = "sha256-bytes-v1:8176272b14747e07e70beb752d6b709ccac502c284a9c114ae03c0cb48312a9d"}, summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions", needs = []},
 
-  # Current: the macOS fallback loads every administrator-keychain certificate without
-  # excluding certificates explicitly marked Never Trust.
-  # Fix: read trust settings and filter the certificate dump before augmenting the default
-  # store.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
-  { slug = "catalogue-trust-store-trust-settings", source = "spec/catalogue-corporate-trust-store — Never Trust criterion" },
+  {path = "docs/specs/catalogue-corporate-trust-store/notes/catalogue-trust-store-trust-settings.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/catalogue-corporate-trust-store/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the Never Trust deferral identity while its accepted intent owns macOS trust-settings enforcement", needs = []},
   # ---------------------------------------------------------------------------
   # Tech-site design review 2026-08-14 — deferred findings + implementation
   # surfacings.
@@ -914,6 +794,7 @@ open = [
   {path = "docs/product/intents/pack-javascript-ci-workflow.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/pack-test-boundary-remaining-packs/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "JavaScript living in pack skills has CI coverage, committed lockfiles, dependency auditing, and no stale runner exemptions", needs = []},
   {path = "docs/product/intents/packages-marker-rename-sweep.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/packages-governance-marker-sweep/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Every retained runtime governance-marker string has its matching pinning assertion updated in the same reviewed change", needs = []},
   {path = "docs/product/intents/plugin-publish-trust-boundary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/claude-plugin-route-scope/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Marketplace publication has an independently reviewable actor boundary, an approver preview, and current live-control evidence", needs = []},
+  {path = "docs/product/intents/project-knowledge-retryable-capture-handling.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Workflows handle retryable project-knowledge capture timeouts through a bounded recovery path without silent loops or changed diagnostic semantics", needs = []},
   {path = "docs/product/intents/pytest-tmpdir-worktree-attribution.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Pytest temporary trees can be attributed to their worktree and reclaimed when that worktree is dead, while single-checkout behavior remains unchanged", needs = []},
   {path = "docs/product/intents/registry-acquired-mcp-servers.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "MCP servers acquired from package registries have an approved acquisition and execution trust model", needs = []},
   {path = "docs/product/intents/required-check-and-deploy-ordering.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Repository controls preserve trustworthy pull-request gating and current Pages publication", needs = []},
@@ -933,96 +814,6 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
-  {slug = "agent-skill-engineering-consumer-response-envelope", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Closed 2026-09-08 by commits a895dd306, c4f641a43, and 0c89bb605: both consumer steps delimit accepted provider content in the knowledge-evidence.v1 envelope and contain it before retention or citation. The per-consumer boundary tests mutation-prove the clause."},
-  {slug = "agent-skill-engineering-consumer-provider-ambiguity", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Closed 2026-09-08 by commits a895dd306, c4f641a43, and 0c89bb605: both consumer steps close the five selection outcomes before invocation, including excess authority as ineligible. The per-consumer boundary tests pin the published diagnostics."},
-  {slug = "agent-skill-engineering-consumer-boundary-tests", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Closed 2026-09-08 by commits a895dd306, c4f641a43, and 0c89bb605: per-consumer boundary modules collected by make ci pin refusal, containment ordering, and the closed diagnostic vocabulary, with mutation proofs."},
-  {slug = "credential-brokers-description-rewrite", source = "spec/pack-description-quality", summary = "Closed 2026-09-03 as fixed by commit 1bdf7514d: credential-brokers is rewritten rather than skipped. docs/specs/pack-description-quality/spec.md:76 records the closure inline and on its Status line."},
-  {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep", summary = "Closed 2026-09-03 as fixed by commit 6a2ca03d2, the credbroker frozen-pack RFC ref sweep erratum. docs/specs/apm-internal-ref-sweep/spec.md:38 records the closure inline and on its Status line under CONVENTIONS.md § Superseding a frozen document."},
-  {slug = "architect-review-diagram-knowledge-surfaces", source = "spec/architect-knowledge-surfaces", summary = "Closed 2026-09-03 as fixed by commits 556a6faf9 and 74ccf1a56; architect-review and architect-diagram both load their knowledge-surface references. docs/specs/architect-knowledge-surfaces/spec.md:54 records the closure inline and on its Status line."},
-  {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope", summary = "Closed 2026-09-03 as fixed by commit 7f0d8a6014; Makefile:45-48 now carries the local counterpart of catalogue-tooling-ci-gates.yml Gate B."},
-  {slug = "readme-pypi-whats-new-unenforced", source = "spec/guide-typed-asides-test-gate (review blocker 2)", summary = "Closed 2026-09-02 as fixed. tests/roster/test_okf_catalogue_discovery.py:56 asserts the What's-new heading names the current version in packages/agentbundle/README-pypi.md and pins it to pyproject and CLI_VERSION, so the obligation is machine-checked rather than prose. It is collected by the whole-tree pytest tests/ -q step at .github/workflows/catalogue-tooling-ci-gates.yml:100."},
-  {slug = "cohort-seal-blocks-in-phase-plan-correction", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)", summary = "Closed 2026-09-02 as superseded. RFC-0099's 2026-08-30 erratum (approver eugenelim) retires the drift crossing and withdraws the clause that would have made a failed plan-current guard crossable, recording that no implementation is owed. Residual not tracked here: docs/CONVENTIONS.md still describes plans as changeable while Executing, a documentation correction against RFC-0099 rather than this tooling conflict."},
-
-
-
-
-
-
-  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings", summary = "Closed 2026-08-31 by PR #1186 in core 2.17.2, both halves now evidenced. TIMING (the entry's own reproduction, which the first draft of this closure only inferred): the coherence check it measured at 22-31s of a 30s budget over 65 topics now runs in 0.68s over 76 committed topic files, because batching the per-topic git ls-tree into one ls-tree -r -z had already shipped -- _read_committed_topic_map calls the batched _committed_blob_ids and the only single-object caller left is _committed_blob_size. DIAGNOSTICS landed here: an elapsed deadline refused as journal_capacity with recovery_action fix_request and retryable false, all three wrong. deadline_exceeded now carries retryable=true so _diagnostic derives retry. THREE of the four subprocess.TimeoutExpired catch sites report it (_git_read, _git_read_bounded, _committed_blobs_by_id); the fourth is deliberate and pinned by a named test -- resolve_worktree_root IS the confinement proof, so an unfinished check stays a non-retryable confinement refusal rather than inviting a loop against an unbounded boundary check. Review also caught that the first revision made capture WORSE: _committed_path_exists, _committed_v1_map_is_coherent and _git_object_algorithm each converted the new refusal into False or a sha1 default, so _assert_v1_writer_allowed -- the gate on all four writer paths including capture -- re-refused as staged_dual_writer. A _reraise_deadline helper closes all three, mutation-proven. Preserved: byte-limit refusals stay journal_capacity, genuine incoherence stays map_mismatch, and no other refusal's retryability changed. RESIDUAL, not blocking this closure: no consumer reads the retryable field yet -- work-loop SKILL.md gives no retry instruction -- so the field is honest metadata rather than an automatic retry"},
-
-  {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12", summary = "Closed 2026-08-31 by PR #1184. catalogue-tooling-ci-gates.yml was the only workflow with no top-level permissions block; the entry's \"one of three\" was already stale. All eight jobs reviewed before applying: no step references GITHUB_TOKEN, github.token or any secret, none writes to git, and the artifact actions authenticate with ACTIONS_RUNTIME_TOKEN while download-artifact's optional github-token input is unset -- so the entry's \"very likely safe\" is now measured. Gate G keeps fetch-depth: 0 because check_release_impact.py shells out to git diff alone. zizmor --min-severity low on the file went from 17 medium findings (8 artipacked plus excessive-permissions) to none; the broad gate runs at high, so this was never a red gate and its threshold is unchanged. Security review then found the new posture unasserted, so the workflow joins check-zizmor-excessive-permissions.py's WORKFLOWS tuple -- mutation-proven, deleting the block exits 1. The persist-credentials half stays uncovered because artipacked is a separate ident below the broad gate's floor; that gap is recorded against workflow-posture-guard-coverage-gaps rather than left implied"},
-
-  {slug = "tdd-stub-replaces-prose", source = "docs/product/intents/tdd-stub-replaces-prose.md", summary = "Closed 2026-08-30 as delivered in core 2.16.3. The accepted semantic rule stands: exact executable test code replaces behavior-restating prose. PLAN now owns bounded, no-network, timeout-limited, filesystem-confined validation from disposable scratch and writes no repository test; failed compile or intended-red proof blocks approval unless the closed implementation-discovered exception applies. Code-mode EXECUTE materializes the approved payload only after CODE-IMPLEMENTATION, using an explicit one-terminal-newline byte contract, then completes red-green-refactor. RFC-0028 errata, conventions, architecture, adopter guides, evals, projections, and regression tests carry the durable result"},
-
-
-
-
-  {slug = "loop-cohort-resolve-spec-dir-confinement", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1156. loop-cohort's _resolve_spec_dir is now at parity with loop-engine's: reject `..`, resolve, read the repo root with the git relocation variables stripped, then relative_to(repo_root). The entry's named helper (append-knowledge.py's confine()) does not exist; parity was the fix. _get_repo_root stays duplicated because _loop_guards.py contracts that no public function spawns a process and assigns confinement to each caller's own resolver"},
-
-  {slug = "lint-spec-status-git-unbounded", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1156. All five git calls carry timeout=GIT_TIMEOUT_S (20.0, the local-git figure loop-engine and loop-cohort already agree on) and each catches TimeoutExpired, degrading to that site's pre-existing fallback. A timed-out `git show` returns a typed sentinel rather than None, so it is not read as 'spec is new' -- the false-hard-violation mode base_ref_resolves' docstring already records"},
-
-  {slug = "publish-control-evidence-max-age", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1162. observed_at is now bounded two-tier: warn past 30 days, hard-fail past 90. Two tiers rather than one because recapture needs a maintainer-only GitHub App key with no automated refresh, so a single 30-day hard bound would have reddened build-check and the publish workflow within two weeks. Non-ISO, naive and future-dated values are errors at any age"},
-
-  {slug = "site-test-source-substring-assertions", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1163. pages.yml is parsed with PyYAML and asserted within jobs.build.steps with per-trigger path counts; the Astro surfaces use an anchored import pattern that resolves the import to the canonical file on disk. Measured old-vs-new on four mutations, including a real gate hole the old whole-file count could not see: a path duplicated under push and removed from pull_request"},
-
-  {slug = "okf-index-title-interpolation-unescaped", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; compiler-owned OKF indexes bound and context-escape title, status, and type, and exact hostile fixtures prove a fabricated link or entry stays data"},
-
-  {slug = "okf012-nondeterminism-guard-untested", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; a mutation-proven compile_pack test asserts exit 2, diagnostics exactly OKF012, and no pack mutation when the two renders differ"},
-
-  {slug = "architect-okf-bundle-root-missing-license", source = "spec/okf-authoring-projection (adversarial review, reproduced)", summary = "Closed by spec/okf-follow-ons; architect's authored OKF root declares the shared content licence, distinguishes source from projection, and passes discovery and show with a regression test. Owner review by architect's maintainer is still outstanding and is required before architect becomes the INI-009 M3 integration pilot; see the variance record in docs/product/initiatives/ini-009-agent-skill-engineering.md"},
-
-
-  # Carries forward the accepted consequence the open entry recorded, because
-  # this closed entry is now the only place in the repository that holds it:
-  # keying non-PR concurrency on run_id means two concurrent CodeQL runs on
-  # different main commits can upload SARIF out of order, so the Security tab
-  # can transiently reflect the older commit until the next analysis. Judged
-  # better than the previous behaviour, where the newer commit went unscanned.
-  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13", summary = "Closed by mutation harnesses for ci-security, pack-evals and build-check-windows plus a new mutation-tested CodeQL posture check wired into build-check. Accepted consequence retained: concurrent CodeQL runs on different main commits can upload SARIF out of order, so the Security tab can transiently show the older commit"},
-
-  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
-
-  {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Closed after repairing living MkDocs-to-Starlight residue; frozen historical bodies remain unchanged"},
-
-  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Closed after six-route review found no unusable page breaks; footer chrome moved to docs-site-print-chrome-suppression"},
-
-  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Retired without delivery; four probes lacked a paint-level oracle and the owning audit barred preference-based print rules"},
-
-  {slug = "security-checklists-okf-router-regression", summary = "Closed by restoring the hand-authored router and moving OKF projection to a sibling skill", source = "RFC-0087 OKF pilot regression"},
-
-  {slug = "selftest-mutates-tracked-makefile", summary = "Closed for tracked-file mutation; lint-performance-p0 moved plants to fixtures, while selftest-untracked-plant-window owns the residual untracked-file risk", source = "spec/npm-sca-gate (unrelated find)"},
-
-  {slug = "npm-allowscripts-enforcement", source = "spec/npm-sca-gate", summary = "Closed by repinning web's fsevents to 2.3.3 through a package.json overrides entry -- playwright pins 2.3.2 exactly, so npm install alone could never dedupe it -- and adding tools/lint-npm-allow-scripts.py, which compares each project's lockfile install-script set against its allowScripts map in both directions"},
-
-  # Retired from ["ini-002".shaping_queue].backlog during the 2026-08-27 lifecycle
-  # cleanup. The research question -- should rfc-candidates.md graduate into the
-  # shaping_queue, and what is the whole intake taxonomy -- was answered in two
-  # places, neither of which is RFC-0064 itself. RFC-0064 Amendment #3 ruled the
-  # register-vs-backlog-vs-shaping split (the findings registers remain the home
-  # for genuinely un-shaped items; a [backlog] shaping entry is for work shaped
-  # enough to route to a skill) and deferred the type-vocabulary tail to the
-  # implementing spec. spec/queue-add (Shipped) then carried that tail: its
-  # escalation rubric routes every item shape to a home, keeps rfc-candidates.md
-  # as its own destination rather than graduating it, and adds no `rfc` type
-  # because RFC-0064 D2-D4 seals the entry schema. RFC-0064's M3 research AC is
-  # left unchecked deliberately: checking it is a body edit on an accepted RFC
-  # and belongs to whoever closes that milestone, not to this cleanup.
-  {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research", source = "rfc/0064 M3 research AC", summary = "Closed by RFC-0064 Amendment #3 (register/backlog/shaping split) plus spec/queue-add's shipped escalation rubric, which keeps rfc-candidates.md a separate destination and adds no new entry type"},
-
-  # Both retired from ["ini-002".shaping_queue].backlog in the same 2026-08-27
-  # cleanup. RFC-0088 was accepted 2026-08-24 and ruled both open questions, so
-  # neither item still shapes a decision -- but each left a delivery obligation,
-  # and that obligation is carried by a live [backlog].open entry rather than by
-  # these shaping slugs. Recorded here so the rulings stay findable from the
-  # workspace rather than only from the RFC body.
-  {slug = "rfc0088-token-replay-consumer-contract", type = "shape", source = "rfc/0088 open question 5", summary = "Closed by the Q5 ruling of 2026-08-22 -- scoped-token replay is supported and the residual exposure is declared per destination. The declaration carrier is owned by open entry rfc0088-spec-2-result-policy-contracts; note RFC-0088 assigns that carrier to Spec 1 while the open entry places it on Spec 2, which the Spec 1/2 authors must reconcile"},
-
-  {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
-
-
-
-  {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains", summary = "Closed by enforcement rather than parsing: invariant (vi) requires `- **Acceptance Criteria:** none — <reason>` when a spec has no AC section, diff-triggered and grandfathered so no frozen body or adopter corpus is retroactively gated. The scan found four such specs, not three -- two were not opt-out candidates at all but had spelled their criteria as a bold label the collector could not read. Also lands one supported heading (exact, near-miss warned), a hard error for a commented-out section, specific diagnostics for every attempted opt-out shape, base-ref verification, and a warning for an unreadable spec"},
-
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1129,7 +920,7 @@ active  = [
 queue   = [
 ]
 shipped = [
-  { path = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Wire work-loop and architect-design to the installed agent-skill-engineering provider with a bounded request-inlining step, and publish the seam's diagnostic vocabulary to an installed surface", needs = [] },
+  { path = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Wire work-loop and architect-design to the installed agent-skill-engineering provider with a bounded request-inlining step, and publish the seam's diagnostic vocabulary to an installed surface", needs = [] },
   { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md" }] },
   { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
   { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },

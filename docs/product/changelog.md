@@ -54,6 +54,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.7] — 2026-09-08
+
+### Fixed
+
+- A work-loop state-lock reclaim no longer moves a lock it has not just
+  confirmed is the one it judged stale. A contender working from a snapshot that
+  a successful reclaim had already superseded could displace the new holder's
+  lock and leave the lock path briefly free while that holder was still inside
+  its critical section, which admitted a second holder. The reclaim path now
+  re-checks inode identity and the per-hold record immediately before moving
+  anything, and leaves a lock it no longer recognises alone.
+
 ## [core][2.25.6] — 2026-09-08
 
 ### Highlights
@@ -69,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cannot be established. Records that are independently invalid are still named
   alongside it, so a global cooling failure does not hide a repair someone owes.
 
-## [agentbundle][0.42.0] — 2026-09-08
+## [agentbundle][0.43.0] — 2026-09-08
 
 ### Highlights
 
@@ -1073,6 +1085,34 @@ routes to the reference and that the reference still carries the rule.
   least-privilege posture in supported adapter projections.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
+
+## [agentbundle][0.42.0] — 2026-09-03
+
+### Added
+
+- The portable Agent Plugin route reaches every command that works with
+  distribution routes. `validate` accepts a pack declaring the
+  `per-pack-agent-plugin` recipe, which it rejected before; `render --target
+  agent-plugin` selects that recipe; `install --emit-install-routes` also
+  writes `agent-plugins/<pack>/`; `install`, `diff`, and `upgrade` each
+  recognise a portable install; and `catalogue verify` reports output drift
+  under `agent-plugins/`, which it previously ignored.
+
+### Changed
+
+- Every route-consuming surface reads its route set from the distribution-route
+  contract rather than from a list maintained beside it, so a route declared in
+  the contract reaches all of them at once.
+- The repo-scope install summary and the `install --force` removal notice each
+  list every route subtree involved, in the order the routes are built, so the
+  two already listed keep their positions and the new one is appended.
+- `install --force` now also removes `agent-plugins/<pack>/` during its
+  pre-RFC-0012 dist-tree cleanup, because that cleanup is derived from the
+  declared route set. With `--yes` the removal is unattended, so an unrelated
+  `agent-plugins/<pack>/` beside a managed tree should be moved first. Every
+  subtree is verified to resolve under the output root before removal.
+
+Published package bytes are unchanged for all three routes.
 
 ## [agentbundle][0.41.1] — 2026-09-01
 

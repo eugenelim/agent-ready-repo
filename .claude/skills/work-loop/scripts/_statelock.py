@@ -196,6 +196,24 @@ def _reclaim(lock: Path, observed: os.stat_result, record: bytes | None) -> None
     (:class:`StateLockLost`) rather than a bystander losing a write silently.
     """
     claimed = lock.with_name(f"{lock.name}.reclaim.{uuid.uuid4().hex}")
+    # Confirm the lock path still holds exactly the file judged stale BEFORE
+    # moving it. The move is what frees the path, so a contender working from a
+    # snapshot that a successful reclaim has already superseded would otherwise
+    # rename a *live* holder's lock away and leave the path free while that
+    # holder is still inside its section — long enough for a third contender's
+    # O_CREAT|O_EXCL to succeed and put two holders in the section at once.
+    # Checking here does not make reclaim atomic: this check and the rename are
+    # still two operations, so a holder that acquires between them is displaced
+    # exactly as before, and reports StateLockLost at release. What it removes is
+    # the far larger window in which the mover had not yet looked at all.
+    try:
+        current = os.lstat(lock)
+    except OSError:
+        return  # released or reclaimed by another contender first
+    if not _same_file(current, (observed.st_dev, observed.st_ino)) or (
+        _read_record(lock) != record
+    ):
+        return  # no longer the file judged stale — leave it alone
     try:
         Path(lock).rename(claimed)
     except OSError:

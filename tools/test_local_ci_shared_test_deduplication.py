@@ -220,6 +220,16 @@ FINAL_TOOL_BATCH = (
     # signal. That invocation is a separate recipe line, not a member of this
     # batch, which is why it does not appear here.
     "tools/test_pack_test_compatibility.py",
+    # Added with the distribution-route decision checker. Nothing globs
+    # `tools/test_*.py`, so both were unreachable from any gate before this:
+    # the first carries the checker's own mutation evidence, and the second is
+    # the guard that fails when a route decision returns to shared build-time
+    # code. They join THIS batch specifically because
+    # `test_marketplace_envelope_parity` requires the Makefile group naming
+    # `test_contract_parity.py` and the build-check.yml step naming it to hold
+    # the same set; the first tools batch has no CI counterpart to match.
+    "tools/test_check_distribution_route_decisions.py",
+    "tools/test_route_branch_guard.py",
     # Added with the direct-install diagnostic-code table lint. The lint
     # itself is a separate recipe line beside lint-conformance-portability;
     # this is its mutation control.
@@ -479,11 +489,25 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # so that pin was current and this change is the sole cause of the move. Exactly
 # one line shifts in each plan, gaining one token, and that token is the new
 # module; no other line moves, is reordered, or is dropped.
+#
+# Re-pinned again 2026-09-03 for the two distribution-route checker modules,
+# and corrected 2026-09-08 to the FINAL tools batch after CI's
+# `test_marketplace_envelope_parity` refused the first: that gate holds the
+# Makefile group naming `test_contract_parity.py` and the build-check.yml step
+# naming it to the same set, and the first batch has no CI counterpart. The
+# digests below are the final-batch placement. Dispositioned the same way: the same
+# `_effective_composition_errors` path was run against this worktree with the
+# Makefile line reverted, and it reproduced both digests above exactly, so those
+# pins were current and this change is the sole cause of the move. Exactly one
+# line shifts in each plan, gaining two tokens, and those tokens are the two new
+# modules; no other line moves, is reordered, or is dropped. Line counts are
+# unchanged — that batch is one continued command, so the modules lengthen an
+# existing line rather than adding one.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "30a6d639613ad403de92fa92c8e051b754f7d77dadcd254bbbed6b35ff281741"
+    "d29b113d9479b7a8e3c7fcbf450e65c0fe2c215ac657050fa1f79511f88124d8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "5da61f5455bad0cabd23d548ecba774fc01dcd6a3a2aa9cd76f41b53fd679982"
+    "61120874532d1206b49526f368feafd1cd090290a96abb2d12e4903902e7313a"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -1964,6 +1988,19 @@ def _plan_digest(plan: list[str]) -> str:
     return hashlib.sha256(("\n".join(plan) + "\n").encode()).hexdigest()
 
 
+def _drift_diagnostic(label: str, plan: list[str]) -> list[str]:
+    """Report the computed digest and plan so a drift names its own cause.
+
+    A bare "drift" verdict cannot be acted on from a CI log, where the plan is
+    not reproducible by hand: the reader needs the digest to re-pin and the
+    lines to diff against the approved baseline.
+    """
+    return [
+        f"{label} computed digest: {_plan_digest(plan)}",
+        *(f"{label} plan[{index}]: {line}" for index, line in enumerate(plan)),
+    ]
+
+
 def _effective_composition_errors(makefile_text: str | None = None) -> list[str]:
     """Return drift in GNU Make's effective standalone and composed commands."""
     errors: list[str] = []
@@ -2023,11 +2060,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
         errors.append("standalone construction coverage drift")
     if composed.stdout.count(CONSTRUCTION_TEST_PATH) != 1:
         errors.append("composed construction coverage drift")
-    if (
-        _plan_digest(_without_construction_addition(standalone_full_plan))
-        != APPROVED_STANDALONE_PLAN_DIGEST
-    ):
+    standalone_baseline = _without_construction_addition(standalone_full_plan)
+    if _plan_digest(standalone_baseline) != APPROVED_STANDALONE_PLAN_DIGEST:
         errors.append("approved standalone command plan drift")
+        errors.extend(_drift_diagnostic("standalone", standalone_baseline))
 
     standalone_plan: list[str] = []
     workspace_command_count = 0
@@ -2046,11 +2082,10 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
             line = line.replace(f" --ignore={path}", "")
         composed_plan.append(" ".join(line.split()))
 
-    if (
-        _plan_digest(_without_construction_addition(composed_plan))
-        != APPROVED_COMPOSED_PLAN_DIGEST
-    ):
+    composed_baseline = _without_construction_addition(composed_plan)
+    if _plan_digest(composed_baseline) != APPROVED_COMPOSED_PLAN_DIGEST:
         errors.append("approved composed command plan drift")
+        errors.extend(_drift_diagnostic("composed", composed_baseline))
 
     if workspace_command_count != 1 or standalone_plan != composed_plan:
         errors.append("effective non-shared command plan drift")

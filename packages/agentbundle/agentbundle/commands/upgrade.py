@@ -62,6 +62,7 @@ from agentbundle.commands._common import (
     resolve_state_path,
     summarize_plan,
 )
+from agentbundle.commands.install import _is_dist_tree_path
 from agentbundle.commands.list_installed import _version_key
 from agentbundle.config import (
     ConfigError,
@@ -636,7 +637,7 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
 def _was_dist_tree_install(pack_state: object) -> bool:
     """True when the pack was installed via the dist-tree (catalogue-publishing) path."""
     return any(
-        rp.startswith(("apm/", "claude-plugins/")) or rp == "marketplace.json"
+        _is_dist_tree_path(rp)
         for rp in pack_state.files  # type: ignore[attr-defined]
     )
 
