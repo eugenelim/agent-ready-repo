@@ -10,8 +10,12 @@ SKILL = PACK_ROOT / ".apm/skills/new-spec/SKILL.md"
 SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
+RUBRIC = PACK_ROOT / ".apm/skills/new-spec/references/spec-authoring-rubric.md"
 
-SOURCES = {"skill": SKILL, "spec": SPEC, "plan": PLAN}
+# The rubric joins SOURCES so every pinned rule below also asserts its absence
+# there. The rubric points at the owning surface for criterion shape; a future
+# edit that pastes an owned rule into it reds here rather than at review.
+SOURCES = {"skill": SKILL, "spec": SPEC, "plan": PLAN, "rubric": RUBRIC}
 RULES = (
     (
         "criterion-independence",
@@ -103,6 +107,19 @@ RULES = (
         "spec",
         "A criterion that needs \"and\" to join two **different predicates** is two criteria:",
     ),
+    # Two rules the rubric paraphrased on its first draft. Pinned here so a
+    # future edit that reintroduces either phrasing reds rather than shipping a
+    # second home for a rule SKILL.md owns.
+    (
+        "retcon-rationale",
+        "skill",
+        "Mixed tenses make an agent reading the spec guess wrong about what is current",
+    ),
+    (
+        "disconfirming-evidence",
+        "skill",
+        "Take the cheapest disconfirming evidence before review.",
+    ),
 )
 EXAMPLES = (
     ('E1', 'splits', 'Two different predicates; no single sentence covers both.', '`writer.py` emits `manifest.json` with keys in byte-sorted order, and `--dry-run` prints that manifest without writing a file.'),
@@ -146,7 +163,7 @@ def test_worked_example_has_one_owner_and_occurs_once(
     assert f"**{identifier} — {verdict}.**" in owner_text
     assert owner_text.count(example) == 1
     assert owner_text.count(criterion) == 1, f"{identifier} exemplar missing or duplicated"
-    for other_path in (SKILL, PLAN):
+    for other_path in (SKILL, PLAN, RUBRIC):
         other_text = flattened(other_path)
         assert f"**{identifier} — {verdict}.**" not in other_text
         assert example not in other_text
@@ -327,3 +344,287 @@ def test_spec_review_triage_eval_has_required_shape_and_behaviour() -> None:
     assert any("blind spot" in assertion.lower() for assertion in entry["assertions"])
     assert any("validated path" in assertion.lower() for assertion in entry["assertions"])
     assert any("pre-execute" in assertion.lower() for assertion in entry["assertions"])
+
+
+RUBRIC_CLASSES = (
+    "## 1. The design should have delegated",
+    "## 2. The criterion cannot fail",
+    "## 3. The criterion is unsatisfiable, or contradicts a sibling",
+    "## 4. The criterion decays",
+    "## 5. The criterion is too big",
+    "## 6. The property is not mechanizable",
+)
+
+
+def test_rubric_classes_ship_in_precedence_order() -> None:
+    """Order is the rubric's contract, not its formatting.
+
+    Class 1 precedes the rest because no criterion craft repairs an obligation
+    authored where an owner already exists. A heading-set assertion alone would
+    stay green through a reordering that inverts that, so pin the offsets.
+    """
+    body = RUBRIC.read_text(encoding="utf-8")
+    offsets = []
+    for heading in RUBRIC_CLASSES:
+        assert heading in body, f"missing rubric class heading: {heading}"
+        offsets.append(body.index(heading))
+    assert offsets == sorted(offsets), "rubric classes are out of precedence order"
+    text = flattened(RUBRIC)
+    assert "stop at the first that fires" in text
+    assert "Class 1 precedes every other" in text
+    assert "Shortening or single-homing a long restatement is the *wrong* fix" in text
+
+
+def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
+    """The rubric must route shape questions out and refuse reviewer use.
+
+    Both are load-bearing: a rubric that restates shape rules creates a second
+    home for them, and one handed to a reviewer becomes the nit source it
+    exists to reduce.
+    """
+    text = flattened(RUBRIC)
+    # Pin the deferral map, not a universal claim about it: an earlier draft
+    # said "each class below points there", which was false for four of six.
+    assert "Classes 2 and 5 defer criterion *shape* to `../assets/spec.md`" in text
+    # The map named a category — "their repair mechanics" — where classes 3 and
+    # 6 both state repairs locally, so it over-claimed twice over. It now names
+    # the single mechanism each class defers, and this pin holds it to that
+    # form: a return to the categorical claim reds here.
+    assert "Every class states its own repairs." in text
+    assert "one named mechanism each, cited where the class needs it" in text
+    assert "Class 4 defers no mechanism" in text
+    # Class 4's decoration clause intersects the template's claim-minimality
+    # rule on a figure inside a criterion. The rubric must name that boundary
+    # rather than claim the whole rule, so pin the boundary sentence too.
+    assert "owns the narrower question of whether a claim inside a criterion" in text
+    # And pin that the rubric does not claim parity with the review check set.
+    assert "as part of a **larger** cold check set" in text
+    assert "authoring guidance, not a review checklist" in text
+    assert "The shape rule is not here." in text
+    # The stop rule's scope is load-bearing: an unscoped "stop at the first
+    # that fires" reads as capping repairs per artifact, which contradicts the
+    # eval. Pin the scoping sentence, not just the stop.
+    assert "The order applies per defect, not per artifact." in text
+    assert "stopping early is about not over-classifying one of them" in text
+    # The count threshold screens; it never refuses. Pin both halves.
+    assert "never as a refusal" in text
+    assert "a ceiling and a stall point, never a floor" in text
+
+
+# The altitude-tell single-homing guard and the brief-versus-rubric overlap
+# guard live in `tests/roster/test_spec_authoring_rubric_brief_boundary.py`:
+# both relate this pack to a `docs/product/` brief, so they cross the pack
+# boundary that `pack-tests-stay-in-pack` enforces. Everything below stays
+# pack-local.
+
+
+def test_rubric_states_both_verdicts_and_names_its_own_instrument() -> None:
+    """Class 2 has to catch the mirror defect it kept producing.
+
+    Twelve review rounds on this rubric produced three guards written *while
+    repairing* a class-2 defect, and all three were themselves class-2
+    defects: a threshold set one word above the duplication it existed to
+    catch, a count assertion that normalised the record to the measurement so
+    an overcount could not red it, and a digit predicate that red on the
+    correct text. The first two are the class as originally stated; the third
+    is its mirror, and the class did not name it.
+
+    Both clauses are pinned because each fails on its own. Deleting the
+    green-case sentence leaves the class one-sided again; deleting the
+    instrument sentence leaves a check free to confirm a criterion with a
+    different comparison than the criterion states.
+    """
+    text = flattened(RUBRIC)
+    assert "Both directions, or neither." in text
+    assert "the correct input that must leave it green" in text
+    assert "Measure with the criterion's own instrument." in text
+    assert "overlap is not containment, a mean is not a percentile" in text
+
+
+def test_rubric_treats_a_repair_as_the_next_defect() -> None:
+    """The largest late-round defect source was the previous round's repair.
+
+    A repair is written in the belief that the rule is now understood, so it
+    is the one edit made without re-reading the clause it did not touch. Pin
+    both checks: the contradiction check, and the sentence-left-behind check
+    that routes a relocation's residue to class 4.
+    """
+    text = flattened(RUBRIC)
+    assert "A repair is the likeliest source of the next defect**" in text
+    assert "One verdict per input." in text
+    assert "The moved text left a sentence behind." in text
+
+
+def test_class_four_governs_descriptions_and_orders_its_two_verdicts() -> None:
+    """Class 4's dominant shape is prose about another artifact, not a figure.
+
+    Most findings against this change turned on a sentence asserting what
+    another document contained, which the class as first written did not
+    reach: "ship the derivation, not the value" says nothing about "that
+    section publishes A and B".
+
+    The second assertion closes a contradiction the class shipped with. The
+    decoration test deletes any figure nothing reads; the decay rule permits a
+    dated figure to remain as illustration, and an illustration is by
+    construction read by nothing — so one figure was both compliant and
+    defective. Ordering the decoration test after the live/frozen sort, and
+    exempting a frozen value there, gives one verdict per figure. Deleting
+    either the ordering sentence or the exemption restores the contradiction
+    and reds this test; so does moving the sort below the bullet.
+    """
+    text = flattened(RUBRIC)
+    assert "A sentence describing another artifact is a stored value." in text
+    assert "Run this test after the live/frozen sort, not before it" in text
+    assert "a dated, frozen value nothing reads stays permitted as illustration" in text
+    body = RUBRIC.read_text(encoding="utf-8")
+    assert body.index("The tell is not the number") < body.index(
+        "Nothing precise that is decoration"
+    ), "the decoration test must follow the live/frozen sort it defers to"
+
+
+def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:
+    """Shipped pack guidance stays portable.
+
+    A percentile of this catalogue's corpus is wrong for every adopter on day
+    one, and an internal path does not resolve in an installed skill. So assert
+    the derivation instruction is present, and that no repository-only locator
+    is.
+
+    Two named blind spots, both enforced at review instead. First, this checks
+    *locators*, not figures: a bare-numeral assertion is not available because
+    the rubric's own class headings (`## 1.` … `## 6.`) are numerals, so a
+    repo-derived percentile written without a path would pass. Second, the
+    locator tuple below is a sample of the prefixes seen in practice, not a
+    closed set — the prohibition it enforces is stated generally, so a locator
+    shape nobody has written yet passes.
+    """
+    text = flattened(RUBRIC)
+    assert "Ship the derivation, not the value" in text
+    assert "measure your own shipped corpus" in text
+    # A deny-list of the repository-only prefixes seen in practice. It is a
+    # sample, not a closed set: the prohibition it enforces is stated generally,
+    # so a locator shape absent from this tuple still passes. Widen on sight.
+    for locator in (
+        "docs/",
+        "guides/",
+        "packs/",
+        "packages/",
+        "profiles/",
+        "tools/",
+        "tests/",
+        "web/",
+        "contracts/",
+        ".context/",
+        "workspace.toml",
+        "Makefile",
+        "AGENT_RULES.md",
+        "AGENTS.md",
+        "CONVENTIONS.md",
+        "CHARTER.md",
+        "ARCHITECTURE.md",
+        "RFC-00",
+        "ADR-00",
+    ):
+        assert locator not in text, f"internal locator in shipped guidance: {locator}"
+
+
+def test_rubric_is_reachable_from_both_authoring_surfaces() -> None:
+    """An unreferenced reference is content nobody reads."""
+    skill_body = flattened(SKILL)
+    assert (
+        "[`references/spec-authoring-rubric.md`](references/spec-authoring-rubric.md)"
+        in skill_body
+    )
+    assert "class 1 —" in skill_body
+    spec_body = flattened(SPEC)
+    assert "`references/spec-authoring-rubric.md`" in spec_body
+    assert "This section owns criterion *shape*." in spec_body
+
+
+def test_post_repair_eval_grades_the_four_gaps_the_rubric_gained() -> None:
+    """The second rubric case exists to grade the post-repair pass.
+
+    The first case grades a first draft, where every defect is the author's
+    original wording. This one grades the edit that follows a review round,
+    which is where the contradiction, the one-sided strengthening, the
+    left-behind description and the mismatched instrument actually arise. Each
+    seeded defect is pinned, because dropping one from the prompt silently
+    stops the case grading that gap.
+    """
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    matches = [
+        entry
+        for entry in data["evals"]
+        if entry["id"] == "spec-authoring-rubric-checks-the-repair-not-the-intent"
+    ]
+    assert len(matches) == 1
+    entry = matches[0]
+    assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
+    # The graded actor is repairing, not drafting: the frame is the whole point.
+    assert "I just repaired" in entry["prompt"]
+    assert "before I re-seal" in entry["prompt"]
+    for seeded in (
+        "any rule file containing a numeric literal",
+        "may name a percentile, such as p95",
+        "the rule-authoring guide publishes",
+        "counting how many rule names appear in both files",
+        "no rule file produces a duplicate finding",
+    ):
+        assert seeded in entry["prompt"], f"seeded defect dropped: {seeded}"
+    expected = entry["expected_output"]
+    assert "opposite verdicts" in expected
+    assert "must stay green" in expected
+    assert "stored value" in expected
+    assert "different instrument" in expected
+    assert "cannot fail" in expected
+    assert len(entry["assertions"]) == 6
+
+
+def test_rubric_eval_has_required_shape_and_behaviour() -> None:
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    matches = [
+        entry
+        for entry in data["evals"]
+        if entry["id"] == "spec-authoring-rubric-classes-precede-criterion-shape"
+    ]
+    assert len(matches) == 1
+    entry = matches[0]
+    assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
+    assert len({candidate["id"] for candidate in data["evals"]}) == len(data["evals"])
+    # The graded actor must be the author checking their own pre-seal draft.
+    # A review posture would exercise the one use the rubric disclaims, so pin
+    # the authoring frame, not just the seeded defects.
+    assert "I am drafting" in entry["prompt"]
+    assert "I have not sealed the contract yet" in entry["prompt"]
+    assert "my own draft" in entry["prompt"]
+    assert "Review these" not in entry["prompt"]
+    # Each seeded defect must survive in the prompt, or the case stops grading it.
+    for seeded in (
+        "14 permissions",
+        "build/audit-report.json",
+        "No manifest in the audited set produces an unhandled exception",
+        "path-traversal validation, deferred",
+        "already owns",
+    ):
+        assert seeded in entry["prompt"], f"seeded defect dropped: {seeded}"
+    expected = entry["expected_output"]
+    for demand in (
+        "an obligation authored where an owner already exists",
+        "derivation that reads the registry",
+        "regeneration mechanism",
+        "holds on an empty audited set",
+        "representative valid manifest",
+        "named owner waiver",
+    ):
+        assert demand in expected, f"expected_output drops: {demand}"
+    # The stop rule orders one defect's diagnosis; it does not cap repairs per
+    # artifact. Pin that reading here so the eval and the rubric cannot drift
+    # back into the two incompatible readings a review round found frozen.
+    assert any(
+        "per criterion" in item and "every defect" in item
+        for item in entry["assertions"]
+    )
+    assert "stop orders the diagnosis of a single defect" in entry["expected_output"]
+    assert any("wrong-owner" in item and "before" in item for item in entry["assertions"])
+    assert any("empty state" in item for item in entry["assertions"])
+    assert any("word budget" in item for item in entry["assertions"])

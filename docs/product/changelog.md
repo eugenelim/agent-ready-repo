@@ -54,6 +54,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.9] — 2026-09-09
+
+### Highlights
+
+- **The defects a spec review keeps finding are now named where the spec is
+  written, not only where it is reviewed.** `new-spec` ships a spec-authoring
+  rubric: six failure classes worked in order before criterion shape, starting
+  with the one no criterion craft repairs — an obligation authored where an
+  owner already exists.
+
+### Added
+
+- `new-spec` gained `references/spec-authoring-rubric.md`, reached from the
+  acceptance-criteria step and from the spec template. It orders and diagnoses
+  the failures a criterion-shape review keeps finding: a criterion that holds on
+  empty state, one no design satisfies, one whose value or citation goes stale
+  at its source, one that targets generated output instead of the source that
+  produces it, a hand-written set that has a machine-readable source, refusals
+  with no valid input that must succeed, and a deferral that drops a control
+  nobody may waive. The paired ablation reached four of the six from shipped
+  shape guidance alone; the two it did not are the one-sided refusal set and
+  the criterion aimed at generated output.
+- The rubric carries the two rules that decide what to do with a class rather
+  than how to spot it: a criteria-count threshold starts a conversation and
+  never refuses, and an artifact at the wrong altitude is moved rather than
+  trimmed.
+- A repair pass, because a repair is the likeliest source of the next defect.
+  After changing a rule, the clause the change did not touch is re-read for a
+  second verdict on an input the rule already governed, and any sentence left
+  behind describing where the moved text went is treated as a value that
+  decays.
+- A criterion now has to name both verdicts. The class that catches a criterion
+  no observation can falsify also catches its mirror — one that fires on
+  correct work — so the author states the input that must fail and the correct
+  input that must pass. A check also has to perform the comparison its
+  criterion names, because a near neighbour returns a plausible different
+  number and reads as confirmation.
+- An optional five-shape criterion syntax, offered when a criterion reads
+  ambiguously. It pairs every refusal with the positive path that must still
+  succeed, and it is an aid rather than a house style.
+
+### Changed
+
+- The spec template's `## Acceptance Criteria` section now states that it owns
+  criterion *shape* and routes the failure classes to the rubric, so neither
+  surface restates the other.
+- A figure gets one verdict. Removing precision that nothing reads is now
+  decided after sorting figures into those that can go stale and those that
+  cannot, so a dated past measurement can stay as illustration instead of
+  being both permitted and forbidden.
+
 ## [core][2.25.8] — 2026-09-08
 
 ### Highlights
