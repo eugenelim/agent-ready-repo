@@ -11,7 +11,7 @@ Evidence-grounded research, with the depth dialed to the question. `/desk-resear
 
 The pack has two axes. **Depth** (above) is episodic — one-shot questions. **Lifecycle** is *project mode*: four `research-project-*` skills for a sustained, multi-week investigation that accumulates a corpus and ends in a brief you can hand to a decision. [Episodic vs project research](explanation/episodic-vs-project-research.md) explains when to reach for which.
 
-New here? Walk [your first research session](tutorials/desk-research-first-session.md), then reach for [the pipelines](how-to/desk-research-pipelines.md) when one question needs several skills working together. For a sustained investigation, walk [your first research project](tutorials/your-first-research-project.md).
+New here? Walk [your first research session](tutorials/desk-research-first-session.md), then reach for [the pipelines](how-to/research-pipelines.md) when one question needs several skills working together. For a sustained investigation, walk [your first research project](tutorials/your-first-research-project.md).
 
 ## Tutorials
 
@@ -20,8 +20,9 @@ New here? Walk [your first research session](tutorials/desk-research-first-sessi
 
 ## How-to
 
-- [Run the research pipelines](how-to/desk-research-pipelines.md) — the survey, decision, and archaeology recipes, and what each one produces.
+- [Run the research pipelines](how-to/research-pipelines.md) — the survey, decision, and archaeology recipes, and what each one produces.
 - [Run a research project and feed it into an RFC](how-to/run-a-research-project-into-an-rfc.md) — drive the lifecycle, then promote the brief into an RFC's `NNNN-notes/` companion and *Evidence & prior art*.
+- [Hand an intent to build](../product-engineering/how-to/hand-an-intent-to-build.md) — move shaped work into the build loop.
 
 ## Reference
 
@@ -29,7 +30,7 @@ New here? Walk [your first research session](tutorials/desk-research-first-sessi
 
 ## Explanation
 
-- [Research methodology — the why behind the pack](explanation/desk-research-methodology.md) — why depth is selectable, why sourcing comes before answering, and where confidence grades come from.
+- [Research methodology — the why behind the pack](explanation/research-methodology.md) — why depth is selectable, why sourcing comes before answering, and where confidence grades come from.
 - [Episodic vs project research — the two axes](explanation/episodic-vs-project-research.md) — depth vs lifecycle, the digest middle layer, and when a question deserves a project.
 
 ---
