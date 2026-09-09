@@ -71,7 +71,7 @@
       "expect": {
         "output_contains": [
           "Mode: frame",
-          "Write status: awaiting explicit authorization"
+          "Write status: not authorized"
         ]
       }
     },
@@ -141,6 +141,57 @@
         "Names install reproducibility as a property the suite must guarantee",
         "Identifies shared browser profile state as unsafe across workers",
         "Bounds at least one guarantee to its ecosystem rather than stating it portably"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "subagent-composition",
+      "prompt": "I am adding the delegation described in the supplied skill. Frame the composition contract it needs before I write any of it: what the parent must fix before workers run, and what the draft's current shape would cost me. Do not write files.",
+      "files": [
+        "evals/files/subagent-composition-SKILL.md"
+      ],
+      "patterns": [
+        "skills-and-subagents-common-floor"
+      ],
+      "seeded_defect_assertion": "Identifies unassigned write ownership as unsafe once workers run in parallel",
+      "expected_output": "A read-only frame of the composition contract naming write ownership, the context each worker receives, the concurrency bound, and the result contract and synthesis owner, each as a decision the author must make rather than a rewrite of the draft.",
+      "assertions": [
+        "Identifies unassigned write ownership as unsafe once workers run in parallel",
+        "Frames how much caller context a worker receives as a decision, not a default",
+        "Names a concurrency bound the parent sets rather than one the catalogue size dictates",
+        "States that the parent keeps synthesis rather than adopting a worker's result as the answer",
+        "Requires a structured result contract and a visible outcome for partial failure"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "hook-plugin-design",
+      "prompt": "I am packaging the supplied skill as a plugin with the hook it describes. Frame the design contract it needs before I write any of it: what the hook can and cannot enforce, and what the package boundary would cost me. Do not write files.",
+      "files": [
+        "evals/files/hook-plugin-design-SKILL.md"
+      ],
+      "patterns": [
+        "hooks-common-floor",
+        "plugin-package-common-floor"
+      ],
+      "seeded_defect_assertion": "States that a post-action hook cannot stop the action it observed",
+      "expected_output": "A read-only frame of the hook and package contract naming the lifecycle position enforcement requires, the trust status of repository-supplied policy, component cohesion and least authority, dependency disclosure, and namespace collision, each bounded to what the design must decide.",
+      "assertions": [
+        "States that a post-action hook cannot stop the action it observed",
+        "Treats the repository policy file as untrusted input rather than as hook instructions",
+        "Questions whether the bundled components cohere as one package a user would recognize",
+        "Names the undisclosed shared dependency as something a consumer must see before install",
+        "Identifies the shared command prefix as a namespace collision with the team's own commands"
       ],
       "expect": {
         "output_contains": [
