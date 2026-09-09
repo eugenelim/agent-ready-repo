@@ -166,6 +166,27 @@ produced is kept, because it isolates *which* policies survive:
 So the design rule this replaces the probe with: **policy families ship precise
 or not at all.** A stylistic family may be advisory; it may not block.
 
+**That rule now has independent corroboration, from a different decade and a
+different corpus.** The requirements-smell detector in Femmer et al. (2017)
+applies lexical predicates to authored requirements prose and reports **48%
+precision at 87% recall** on one industrial German-language corpus; its authors
+read the low precision as acceptable *because the tool triages candidates for a
+human rather than issuing verdicts*
+([`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
+§ 1).
+
+**It corroborates the rule without generalising the number.** A later
+re-validation on English financial-domain requirements reported far higher
+precision, so that survey rates the ceiling **domain- and language-dependent
+rather than intrinsic**, `[moderate]` for transfer. The transferable part is
+the design response, not a rate — and the figures are not even the same
+quantity. Smella and its later English re-validation report **precision**, and
+they disagree between corpora. This repository's 27.4% is a **block rate**
+against a 0.4% budget, with precision never measured. So no false-positive
+figure carries across them, and the shared conclusion is procedural rather than
+numeric: a family must be **calibrated on its own corpus** before anyone
+proposes blocking on it. Two independent routes reached that rule.
+
 What would have to be true:
 
 - a sequential dispatch envelope exists at implementation time — **delivered by
