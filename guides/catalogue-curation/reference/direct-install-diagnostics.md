@@ -9,9 +9,8 @@ kind: reference
 
 Installing a skill folder straight from a repository refuses rather than
 guessing. Every refusal carries one of the codes below and the path it objects
-to. Some also print a separate recovery line; where none appears, the message
-itself says what to do, or no route exists to recommend. The table is the
-complete set: nothing else can reach you from this route.
+to. Some also print a separate recovery line. The table is the complete set:
+nothing else can reach you from this route.
 
 Machine-readable schema for the JSON envelope these appear in:
 <https://agentbundle.dev/schema/direct-diagnostics-v1.json>
