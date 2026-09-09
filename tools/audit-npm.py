@@ -124,6 +124,10 @@ class AuditError(Exception):
     """The gate could not run. Always exit 2 — never a pass, never a finding."""
 
 
+class AuditTimeoutError(AuditError):
+    """A transient npm registry timeout prevented the audit."""
+
+
 @dataclass(frozen=True)
 class Finding:
     advisory_id: str
@@ -261,6 +265,16 @@ def _require_report(report: object) -> dict:
                 or raw.get("code")
                 or report.get("message")
                 or raw
+            )
+        # The recorded reproduction printed npm's `network timeout at:` warning
+        # for the bulk-advisory endpoint. Assumption: its unmeasured JSON error
+        # payload carries that phrase too; the stall did not reproduce this run.
+        if any(
+            "network timeout at:" in str(value).casefold()
+            for value in (detail, report.get("message"))
+        ):
+            raise AuditTimeoutError(
+                f"npm audit registry timeout instead of a report: {detail}"
             )
         raise AuditError(
             f"npm audit reported an error instead of a report: "
