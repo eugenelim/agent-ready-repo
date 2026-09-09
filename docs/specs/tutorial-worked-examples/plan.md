@@ -32,8 +32,13 @@ published site before closeout.
 
 ## Construction tests
 
-**Integration tests:** before/after affordance ledgers, site generation, and the
-targeted guide/link/build suites selected by the touched guide packs.
+**Integration tests:** before/after affordance ledgers; the three required
+guide-source gates — `python3 tools/validate_guides.py`,
+`python3 tools/check-guide-index.py`, and
+`python3 tools/lint-guide-titles.py`; and the canonical generated-site gate,
+`make site-link-check`. The Makefile defines that target through `site-build`
+and `site-sync`, so the one command runs `tools/build-site.py`, the web build,
+the documentation-site build, and the rendered-link audit in order.
 
 **Manual verification:** per-target review that supplied values and returned
 content match, remain representative, and use safe placeholders. Record the
@@ -111,16 +116,18 @@ behavior source and verdict in `notes/verification-ledger.md`.
 
 ### T4: Generated tutorials preserve every accepted worked pair
 
-**Depends on:** T1–T3
+**Depends on:** T1-T3
 
 **Mode:** goal-based integration check
 
 **Touches:** `docs-site/src/content/docs/guides/**`, `docs/specs/tutorial-worked-examples/notes/verification-ledger.md`
 
-**Tests:** run `python3 tools/build-site.py`, then `npm run build --prefix web`,
-then `npm run build --prefix docs-site`, then `make site-link-check`; run the
-post-generation exact-path audit and B/C path-set containment comparison. Record
-each command and result in `notes/verification-ledger.md`.
+**Tests:** run `python3 tools/validate_guides.py`,
+`python3 tools/check-guide-index.py`, and
+`python3 tools/lint-guide-titles.py`, then run the single canonical generated
+site and rendered-link path, `make site-link-check`; run the post-generation
+exact-path audit and B/C path-set containment comparison. Record each command
+and result in `notes/verification-ledger.md`.
 
 **Approach:** generate through repository tooling and record all receipts.
 
