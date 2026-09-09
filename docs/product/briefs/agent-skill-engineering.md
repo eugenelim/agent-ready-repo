@@ -164,7 +164,7 @@ describes the target state but remains `PLANNED` until M5 verifies every section
 
 ## Shipped so far
 
-Six of the eleven slice rows below are delivered; the `Spec map` carries each
+Seven of the eleven slice rows below are delivered; the `Spec map` carries each
 one's status, derived from its linked spec rather than maintained here.
 
 | Slice | Delivered |

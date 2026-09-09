@@ -257,6 +257,12 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
             PACK_ROOT / "tests" / "fixtures" / "behavior-results.json"
         ).read_text(encoding="utf-8")
     )
+    # Same last-wins hazard as `_authoring_records`: refuse a repeated id
+    # before collapsing, or a shadowed record escapes every check below.
+    raw_ids = [r["eval_id"] for r in evidence["results"]]
+    assert len(raw_ids) == len(set(raw_ids)), sorted(
+        i for i in set(raw_ids) if raw_ids.count(i) > 1
+    )
     results = {result["eval_id"]: result for result in evidence["results"]}
     cases = {
         case["id"]: case
@@ -936,16 +942,27 @@ SPEC_DIR = (
 
 
 def _authoring_records() -> dict[str, dict]:
+    """Authoring records by id, with duplicate ids refused before collapsing.
+
+    Indexing by `eval_id` is last-wins, so without this a repeated id hides the
+    shadowed record from every per-record guard here — transcript digest and
+    markers, transcript distinctness, round identity, verdict length,
+    `source_files` equality — while the id-set equality stays green because it
+    compares keys. The reachable path is a re-measured round appended rather
+    than replacing its predecessor, which leaves a stale observation identifier
+    and stale verdicts in the shipped evidence.
+    """
     evidence = json.loads(
         (PACK_ROOT / "tests" / "fixtures" / "behavior-results.json").read_text(
             encoding="utf-8"
         )
     )
-    return {
-        r["eval_id"]: r
-        for r in evidence["results"]
-        if r["eval_id"] in AUTHORING_EVAL_IDS
-    }
+    rows = [r for r in evidence["results"] if r["eval_id"] in AUTHORING_EVAL_IDS]
+    ids = [r["eval_id"] for r in rows]
+    assert len(ids) == len(set(ids)), sorted(
+        i for i in set(ids) if ids.count(i) > 1
+    )
+    return {r["eval_id"]: r for r in rows}
 
 
 def test_every_verdict_is_readable_against_its_own_transcript() -> None:

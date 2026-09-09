@@ -120,10 +120,10 @@ write before anything was persisted.
 
 Two inherited, still failing, retained:
 
-| Case | Assertion | Basis |
-| --- | --- | --- |
-| `cross-session-resumption` | Adds a durable record a later session can read to resume | Inherited; the case asks for durability while its sibling assertion requires the read-only boundary preserved |
-| `progressive-result-presentation` | Pairs each incomplete state with the next action it hands the user | Inherited; measured false again this round |
+| Case | Assertion | Prior | Measured | Basis |
+| --- | --- | --- | --- | --- |
+| `cross-session-resumption` | Adds a durable record a later session can read to resume | false | false | Inherited and unchanged; the case asks for durability while its sibling assertion requires the read-only boundary preserved. No new authority: this slice retains rather than adds it. |
+| `progressive-result-presentation` | Pairs each incomplete state with the next action it hands the user | false | false | Inherited and unchanged; measured false again this round, and the one verdict two readings contest. No new authority: this slice retains rather than adds it. |
 
 Three added, each measured false this round and each authorised by the
 repository owner on 2026-09-09 after being shown the assertion, the transcript,
@@ -354,8 +354,10 @@ confirmed byte-identical afterwards.
 | Seeded-defect text belongs to its own case (AC6) | Name a text the case does not declare | `test_each_composition_case_names_a_distinct_seeded_defect_assertion` | `AssertionError: ('hook-plugin-design', 'Not one of its assertions')` |
 | A verdict is readable against its transcript (AC9) | Forge a `captured_response_sha256` | `test_every_verdict_is_readable_against_its_own_transcript` | digest mismatch on the recomputed transcript |
 | One transcript per record (AC9) | Point two records at one transcript | `test_authoring_transcripts_are_one_per_record` | resolved-target collision |
-| Records belong to the declared round (AC12) | Rewrite every record's `observation_id`, leaving `graded_run` declaring the true round | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: (['forged-round'], '2026-09-09-composition-fixtures-r1')` |
+| Records belong to the declared round (AC11) | Rewrite every record's `observation_id`, leaving `graded_run` declaring the true round | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: (['forged-round'], '2026-09-09-composition-fixtures-r1')` |
 | Payload binding survives a swap (AC8) | Exchange the two cases' declared `files` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_authoring_behavior_evidence_matches_its_source_digest` | recorded `source_files` no longer match the declared files |
+| Result-id set admits exactly the widened set (AC12) | Drop `hook-plugin-design` from the recorded results | `test_independent_behavior_results_cover_both_authoring_cases` | set-equality mismatch on the recorded result ids |
+| No record is hidden by a duplicate id (AC9, AC11) | Append a second copy of the `pytest-suite` record | `test_every_verdict_is_readable_against_its_own_transcript` and `test_independent_behavior_results_cover_both_authoring_cases` | `AssertionError: ['pytest-suite']` |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -413,12 +415,12 @@ Completed 2026-09-09.
 
 - **Manifests.** `pack.toml` and `.claude-plugin/plugin.json` both at `0.4.2`,
   one patch above the `0.4.1` they carried at the base commit.
-- **Aggregate (AC24).** `FORCE=1 make build-self` propagated the bump to
+- **Aggregate (AC25).** `FORCE=1 make build-self` propagated the bump to
   `.claude-plugin/marketplace.json` as a single-line change. A second run left
   the file unchanged, which is the check: regeneration-is-a-no-op, since the
   generator writes its target in place and leaves no separate artifact to
   compare against.
-- **Changelog (AC25).** Topmost free-standing `##` entry for the pack.
+- **Changelog (AC26).** Topmost free-standing `##` entry for the pack.
   `Highlights` disposition decided in the same step and recorded in the entry:
   no `### Highlights` section, because the release changes the pack's
   evaluation evidence and not what a consumer can do — no skill body,
@@ -427,7 +429,7 @@ Completed 2026-09-09.
   names, their paths, the dependency edge on the composition-floors slice, and
   the verification evidence. Document remains `PLANNED` and states that the
   Gate 2 verdict belongs to closeout.
-- **Spec index (AC26).** Row added: mixed shape, 27 ACs / 3 tasks.
+- **Spec index (AC27).** Row added: mixed shape, 27 ACs / 3 tasks.
 - **Pack README.** Read and left unchanged: it makes no fixture-inventory or
   evaluation-coverage claim, so there was no stale sentence to reconcile.
 
@@ -445,9 +447,20 @@ the criterion permits.
 ### Review reads
 
 - **AC15, exemption authorities.** All five entries in the exemption set resolve
-  to a ledger record carrying case, assertion text, prior verdict, measured
-  verdict, authority and date. Verified by parsing the set out of the guard and
-  matching each pair against this file.
+  to a ledger record, verified by parsing the set out of the guard and matching
+  each pair against this file. The five do not carry identical fields, and an
+  earlier version of this read claimed they did:
+  - the three **added** this slice carry case, assertion text, prior verdict,
+    measured verdict, owner authority and the date it was given, which is what
+    the Never-do rule enumerates for an exemption change;
+  - the two **inherited** entries carry case, assertion text, prior verdict and
+    measured verdict, and no new authority, because neither was added or altered
+    by this slice. The Never-do rule's field list governs an exemption *change*;
+    retaining an entry whose miss this round measured again is not one. Their
+    standing authority is the slice that added them.
+  Stating this precisely rather than as an unqualified all-five claim is the
+  correction: the earlier wording asserted evidence two of the entries do not
+  carry.
 - **AC20, architecture fields.** Read at close; all four present, `PLANNED`
   retained, no gate verdict claimed.
 
@@ -456,7 +469,7 @@ one: the phrase spans a line wrap, so the substring search missed it. Re-checked
 against whitespace-normalised text. Recorded because a false gap and a real one
 look identical in a grep result.
 
-### AC22 — brief digest re-pinned
+### AC23 — brief digest re-pinned
 
 The registration pinned `sha256-bytes-v1:87f73f2f…`, the brief's digest when T1
 wrote the entry. T1 also edited the brief — adding the Spec-map row and
@@ -487,6 +500,21 @@ longer advertises 3e as in flight.
 | `agentbundle catalogue lint --root . --deep` | exit 0 |
 | `agentbundle catalogue verify --root .` | exit 0 |
 | Workspace projection | no finding for this spec; no `impossible_transition`, no `duplicate_membership` |
+
+## Open, routed onward
+
+**The skill's `references/` tree is not digest-bound in the recorded evidence.**
+Records pin `SKILL.md`, `evals/evals.json` and the payloads. The second
+discarded round is direct evidence that suppressing `references/` materially
+moves the measured responses, so a tree that changes the answers can drift
+without any guard noticing. Measured at close: `references/` has no commit and
+no diff across this slice, so nothing recorded here is stale.
+
+Not repaired here on the owner's decision of 2026-09-09. Widening the binding
+changes the `source_files` contract AC9 and AC12 pin and that the sibling
+review-skill records inherit unchanged; at a Shipped spec that is the amendment
+path, not a closeout edit. Routed to whoever owns the next slice that touches
+this evidence, and named in this slice's pull request.
 
 ## Observed gate failures
 
