@@ -4,20 +4,24 @@
 
 Run 2026-09-04 against
 [`spec-authoring-rubric.md`](../../../packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md)
-as it stood at commit `f6ee0a794`. The result **does not** settle whether a
-skill reference is the right delivery mechanism — see § "What this does not
-measure".
+as it stood that day. The result **does not** settle whether a skill reference
+is the right delivery mechanism — see § "What this does not measure".
 
-**The shipped rubric has since moved, and the delta misses every scored
-paragraph.** Resolve the range with `git diff f6ee0a794..HEAD --
-packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`; no region
-list is kept here, because the one that was kept decayed within two rounds and
-no claim below depends on it. The text each pre-registered defect was scored against — D1 and D2's
-derivation and hand-enumeration clauses, D3's positive-path paragraph, D4's
-projection paragraph, D5's empty-state tell, D6's non-waivable-control
-bullet — is byte-identical across that range. So the scores below stand, and
-§ "Reproducing it" rebuilds arm B from the *current* file, which differs from
-the one measured wherever that diff reports a change.
+**The shipped rubric has moved since, and the move misses every scored
+paragraph.** No revision is pinned here: every candidate was a branch-local
+commit, which orphaned on the next rebase and would not survive a squash merge —
+the decay this document exists to avoid. What the claim rests on instead is the
+list of scored paragraphs below, each of which was byte-identical across the
+measured range at the time of the run: D1 and D2's derivation and
+hand-enumeration clauses, D3's positive-path paragraph, D4's projection
+paragraph, D5's empty-state tell, and D6's non-waivable-control bullet. That is
+a scored-region list, not a delta list; a delta list was kept once and decayed
+within two rounds, so none is kept.
+
+Later edits fell on class 3's and class 6's *Move* paragraphs, class 6's
+*Draft narration* bullet, and the optional-syntax section — none of them scored.
+So the scores below stand, and § "Reproducing it" rebuilds arm B from the
+*current* file, which differs from the measured one in those unscored places.
 
 ## Design
 

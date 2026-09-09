@@ -123,8 +123,8 @@ oversized, which was the symptom; the defect was product-strategy content in a
 capability container, and the repair was re-homing it as an intent rather than
 cutting it.
 
-This is the altitude analogue of rubric class 5, and the rubric states the pair
-rule that distinguishes cutting a criterion from re-homing an artifact.
+This is the altitude analogue of rubric class 5, and the rubric owns that
+class's repair.
 
 ### Corpus
 
@@ -540,8 +540,10 @@ loop had no subtractive move because every finding was closed by writing.
 > **Observed 2026-09-04 to 2026-09-08.** Exhibits for the corpus above. The
 > rules they bear on live in the rubric.
 
-The A1 candidate took seven `adversarial-reviewer` rounds under light mode's
-divergence checkpoint. Three things it showed are new to this corpus.
+The A1 candidate went through repeated `adversarial-reviewer` rounds under
+light mode's divergence checkpoint; the round-numbered artifacts are the count,
+and this section does not restate it. Three things those rounds showed are new
+to this corpus.
 
 **A repair can instantiate the defect it repairs.** § "Corpus" published
 percentiles under a predicate that, run literally, admitted fewer specs than it
@@ -860,11 +862,12 @@ What shipping early costs, recorded rather than glossed:
   Replacing the four already-reachable classes with pointers would keep the
   ordering only by making the reader follow a pointer mid-sequence. Revisit if
   the activation report shows the later classes never firing.
-- **Seven review rounds, and the last one was not clean.** The shipped
-  reference stabilised after round 3; every later blocker was in the prose
-  *around* it, mostly in this brief. Read that as evidence about this brief's
-  coupling to the rubric, which the cut and its guard now bound, rather than as
-  evidence about the reference. § "Authoring and reviewing this brief's own
+- **The rounds did not reach clean.** Classified rather than counted, as
+  § "Success metrics" prescribes: the later rounds' blockers were predominantly
+  in the prose *around* the reference rather than in the reference itself, and
+  mostly in this brief. Read that as evidence about this brief's coupling to the
+  rubric, which the cut and its guard now bound, rather than as evidence about
+  the reference. § "Authoring and reviewing this brief's own
   first deliverable" carries what the rounds showed.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same precedent — § "A1 home"

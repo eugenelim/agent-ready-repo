@@ -109,7 +109,7 @@ are owned by `agent-authoring-input-quality.md` § "The rubric is a deliverable"
 this survey cites them and adds no independent evidence for them, and neither location names an
 instrument or a date, so treat them as an undated repository-local attempt
 rather than a measurement to carry. One says half the flags were wrong; the
-other says the volume alone was 68 times the budget.
+other says the volume alone was about 69 times the budget.
 Neither licenses a general false-positive figure. What both support is the same
 design response: calibrate a family on its own corpus before proposing to block
 on it, and advise until then. `[synthesis]`
