@@ -7,9 +7,12 @@ source of nits, which is the cost it exists to reduce.
 
 Nothing here is a second copy of a rule another surface owns. Classes 2 and 5
 defer criterion *shape* to `../assets/spec.md` § Acceptance Criteria, which owns
-it; classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`, which owns
-those; class 4 states its own rules here, with the one boundary it shares with
-the template named in the class itself.
+it. Every class states its own repairs. What three of them defer is one named
+mechanism each, cited where the class needs it: the citation and
+duplicate-resolution rules for class 1, the disconfirming-evidence probe for
+class 3, and the present-tense body rule for class 6, all owned by `SKILL.md`.
+Class 4 defers no mechanism, and names in the class itself the one boundary it
+shares with the template.
 
 These six are the classes an author can pre-empt, ordered so that when several
 describe the same defect, the earliest one names the repair worth making. The `shaping-reviewer` agent applies them cold
