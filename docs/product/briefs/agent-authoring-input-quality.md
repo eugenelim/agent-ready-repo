@@ -591,6 +591,21 @@ it again; and its tells reached measurements but not narration, which is how a
 review-round tally sat stale across several rounds without looking like a
 figure at all.
 
+**The deliverable converged and its companion did not.** Findings against the
+rubric fell to about two a round and stopped being structural; findings against
+this brief and the two research artifacts held between seven and ten and did
+not fall. Four gaps in the rubric account for most of that, each evidenced by a
+failure in this corpus, and all four are now closed there. The class that
+catches a criterion no observation can falsify did not reach its mirror, a
+criterion that reds on correct text — which is what a repair of the first kind
+produces, three times here. Nothing obliged a check to use the comparison its
+own criterion names, and three wrong verdicts came from a near-neighbour
+measurement instead. Nothing treated a repair as where the following
+round's defect would most likely come from, which is what the late rounds
+measured. And the decay class
+reached figures but not the sentences that describe where a figure lives, which
+is the most common shape a finding took here.
+
 **What actually stopped it was a check, not the repair.** Two roster guards now
 fail if a snapshot returns to the corpus section or a value returns to the bound
 that reads it. That ordering is this corpus's oldest finding — prose that was
