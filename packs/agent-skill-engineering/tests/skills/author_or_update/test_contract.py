@@ -776,6 +776,7 @@ SPEC_DIR = (
     / "specs"
     / "agent-skill-engineering-composition-fixtures"
 )
+TRANSCRIPT_ROOT = SPEC_DIR / "notes" / "transcripts"
 BASE_COMMIT = "d44484b29d1ba0f56cb0baf42fd79b1348e26a58"
 COMPOSITION_CASES = ("subagent-composition", "hook-plugin-design")
 # Per-case pattern lists are fixed by the contract, not derived from the
@@ -1002,7 +1003,16 @@ def test_every_verdict_is_readable_against_its_own_transcript() -> None:
         transcript = SPEC_DIR / record["transcript"]
         resolved = transcript.resolve()
         assert resolved.is_file(), (eval_id, record["transcript"])
-        assert SPEC_DIR.resolve() in resolved.parents, (eval_id, record["transcript"])
+        # The exact directory AC9 names and the host-identity scan walks — not
+        # the spec directory. Confining to SPEC_DIR admits a copy placed beside
+        # spec.md: digest, markers and distinctness all pass while the cited
+        # evidence sits outside the only root that scrubs it. AC9's text, this
+        # guard, and the AC17 scan root must name one directory.
+        assert TRANSCRIPT_ROOT.resolve() in resolved.parents, (
+            eval_id,
+            record["transcript"],
+            "transcripts must live under notes/transcripts/",
+        )
         digest = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
         assert digest == record["captured_response_sha256"], eval_id
         body = resolved.read_text(encoding="utf-8")

@@ -307,9 +307,9 @@ bound to a retained transcript whose digest the record carries and whose bytes
 must contain every declared marker. `subagent-composition` scored 5 of 5 and
 `hook-plugin-design` 4 of 5, both reporting the defect their payload seeds. Six
 of eight inherited results match the prior baseline; two moved and are recorded
-with both values. Five known misses are exempted: three added by this slice, each carrying owner
-authority and its date in the slice's verification ledger, and two inherited
-entries retained unchanged on the authority of the slice that added them. Each widened enumeration and each new
+with both values. Five known misses are exempted, each carrying its owner authority and date in
+the slice's verification ledger; the two inherited entries additionally cite
+the originating slice's record. Each widened enumeration and each new
 transcript binding carries a recorded mutation proof; the slice's verification
 ledger holds the table.
 

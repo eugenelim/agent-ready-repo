@@ -122,8 +122,8 @@ Two inherited, still failing, retained:
 
 | Case | Assertion | Prior | Measured | Basis |
 | --- | --- | --- | --- | --- |
-| `cross-session-resumption` | Adds a durable record a later session can read to resume | false | false | Inherited and unchanged; the case asks for durability while its sibling assertion requires the read-only boundary preserved. No new authority: this slice retains rather than adds it. |
-| `progressive-result-presentation` | Pairs each incomplete state with the next action it hands the user | false | false | Inherited and unchanged; measured false again this round, and the one verdict two readings contest. No new authority: this slice retains rather than adds it. |
+| `cross-session-resumption` | Adds a durable record a later session can read to resume | false | false | Inherited; the case asks for durability while its sibling assertion requires the read-only boundary preserved. Originating record: `docs/specs/agent-skill-engineering-corpus/qa.md`, which records the measurement decision but carries no owner-authority field or date. Authority for retaining it: the repository owner, 2026-09-09, given after being shown that the originating record documents the miss without an authority field. |
+| `progressive-result-presentation` | Pairs each incomplete state with the next action it hands the user | false | false | Inherited; measured false again this round, and the one verdict two readings contest. Originating record and authority: `docs/specs/agent-skill-engineering-languages-and-execution/qa.md` § "Known-miss exemption — authority recorded", the repository owner in session, 2026-08-31. |
 
 Three added, each measured false this round and each authorised by the
 repository owner on 2026-09-09 after being shown the assertion, the transcript,
@@ -339,7 +339,10 @@ structural scans cannot decide this class, which is why it is a recorded read.
 ### Mutation proofs
 
 Every guard this slice adds or widens is listed below and each was proved able
-to fail. Each mutation was restored by editing, never by checkout, and each file
+to fail. Two earlier versions of this table did not support that sentence: the
+AC8 distinctness guard and the AC3 declared-case guard had no killing mutation
+of their own, and the AC8 row proved two other guards instead. Both now have
+one. Each mutation was restored by editing, never by checkout, and each file
 confirmed byte-identical afterwards.
 
 | Invariant | Mutation | Guard that reddened | Assertion message |
@@ -361,6 +364,10 @@ confirmed byte-identical afterwards.
 | The base is the one the ledger records (AC3, AC5, AC8) | Bump `BASE_COMMIT` without changing the ledger's recorded base | `test_the_base_commit_matches_the_one_the_ledger_records` | `AssertionError: BASE_COMMIT is 96d3d08e5... but the ledger records d44484b29...` |
 | Retained transcripts are host-clean (AC17) | Add `/Users/someone/checkout/notes.md` to a retained transcript | `test_recorded_evidence_fields_carry_no_host_identifying_data` | host-identity pattern match in the transcripts root |
 | The transcript scan root is not repointed (AC17) | Point the retained-transcript root at a directory that does not exist | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `AssertionError: ('retained transcripts', 0)` |
+| Payloads are distinct drafts (AC8) | Overwrite one payload with the other's bytes | `test_composition_payloads_are_distinct_non_empty_drafts` | `AssertionError: ('hook-plugin-design', 'subagent-composition')` |
+| Declared-case set equals base plus two (AC3) | Drop an inherited case from the declarations | `test_the_declared_case_set_gains_exactly_the_two_new_ids` | set-equality mismatch against the base-derived set |
+| Transcripts stay inside the scrub root (AC9, AC17) | Copy a transcript beside `spec.md` and repoint its record | `test_every_verdict_is_readable_against_its_own_transcript` | `AssertionError: ('pytest-suite', 'escaped-transcript.md', 'transcripts must live under notes/transcripts/')` |
+| The scan root is the real transcript directory (AC17) | Repoint the root at a sibling directory that also holds ten Markdown files | `test_recorded_evidence_fields_carry_no_host_identifying_data` | root does not equal its independently written expected location |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -407,7 +414,7 @@ case actually declares.
 
 ### Suite state
 
-`packs/agent-skill-engineering/tests`: 242 passed.
+`packs/agent-skill-engineering/tests`: 243 passed.
 
 
 ## T3 — publish and close
@@ -456,14 +463,20 @@ the criterion permits.
   - the three **added** this slice carry case, assertion text, prior verdict,
     measured verdict, owner authority and the date it was given, which is what
     the Never-do rule enumerates for an exemption change;
-  - the two **inherited** entries carry case, assertion text, prior verdict and
-    measured verdict, and no new authority, because neither was added or altered
-    by this slice. The Never-do rule's field list governs an exemption *change*;
-    retaining an entry whose miss this round measured again is not one. Their
-    standing authority is the slice that added them.
-  Stating this precisely rather than as an unqualified all-five claim is the
-  correction: the earlier wording asserted evidence two of the entries do not
-  carry.
+  - the two **inherited** entries now carry all six fields too, each citing the
+    slice that added it. `progressive-result-presentation` traces to
+    `docs/specs/agent-skill-engineering-languages-and-execution/qa.md` §
+    "Known-miss exemption — authority recorded", which carries the owner
+    authority and the date 2026-08-31. `cross-session-resumption` traces to
+    `docs/specs/agent-skill-engineering-corpus/qa.md`, which records the
+    measurement decision but no authority field, so the owner gave one for its
+    retention on 2026-09-09.
+  Two earlier versions of this read were wrong. The first claimed all five
+  carried authority and date when two carried neither. The second corrected the
+  claim by re-reading the Never-do field list as governing an exemption
+  *change* rather than each entry — which contradicts AC15's own per-entry
+  scoping, and the spec outranks a reading of it. This version supplies the
+  fields rather than narrowing the criterion.
 - **AC20, architecture fields.** Read at close; all four present, `PLANNED`
   retained, no gate verdict claimed.
 
@@ -496,7 +509,7 @@ longer advertises 3e as in flight.
 
 | Gate | Result |
 | --- | --- |
-| `packs/agent-skill-engineering/tests` | 242 passed |
+| `packs/agent-skill-engineering/tests` | 243 passed |
 | `tests/roster` projection suites | 104 passed, 12 subtests |
 | `lint-spec-status.py --root .` | exit 0, spec metadata clean |
 | `lint-brief-coverage.py --root .` | exit 0, row resolves as `Shipped` |

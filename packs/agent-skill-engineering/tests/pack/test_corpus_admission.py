@@ -77,6 +77,15 @@ COMPOSITION_TRANSCRIPTS = (
     / "notes"
     / "transcripts"
 )
+# The same location written a second time, independently, so the root's parent
+# assertion is not derived from the root it checks. Without this the walk and
+# its expected parent are one constant: repoint it at any directory holding ten
+# Markdown files and both the floor and the containment check stay green while
+# every real transcript goes unscanned. The five sibling roots each spell their
+# walk and their parent separately; this one has to as well.
+COMPOSITION_TRANSCRIPTS_EXPECTED = PACK.parents[1].joinpath(
+    "docs/specs/agent-skill-engineering-composition-fixtures/notes/transcripts"
+)
 
 HOST_IDENTIFYING_PATTERN_STRINGS = (
     RE_ABS_PATH.pattern,
@@ -863,8 +872,12 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "compiled concepts": COMPILED_CONCEPTS,
         "recorded fixtures": FIXTURES,
         "eval declarations and payloads": PACK / ".apm" / "skills",
-        "retained transcripts": COMPOSITION_TRANSCRIPTS,
+        "retained transcripts": COMPOSITION_TRANSCRIPTS_EXPECTED,
     }
+    assert COMPOSITION_TRANSCRIPTS == COMPOSITION_TRANSCRIPTS_EXPECTED, (
+        str(COMPOSITION_TRANSCRIPTS),
+        str(COMPOSITION_TRANSCRIPTS_EXPECTED),
+    )
     # The root *set* is pinned, not just each root's floor and parent. Three
     # empty dicts satisfy a three-way set equality, and so do three consistently
     # narrowed ones -- which would put back the exact defect this scan was
@@ -888,10 +901,17 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
                 str(path),
             )
         for path in paths:
-            _assert_no_patterns(
-                path.read_text(encoding="utf-8", errors="strict"),
-                HOST_IDENTIFYING_PATTERNS,
-            )
+            # The root label and path travel with the failure. Without them a
+            # match across six roots reports only the regex, and the reader has
+            # no file to scrub or re-measure. The containment assertion just
+            # above already reports exactly this pair.
+            try:
+                _assert_no_patterns(
+                    path.read_text(encoding="utf-8", errors="strict"),
+                    HOST_IDENTIFYING_PATTERNS,
+                )
+            except AssertionError as exc:
+                raise AssertionError(f"{name}: {path}: {exc}") from exc
     for seeded in (
         "/opt/foreign-user/project",
         "/var/folders/foreign-id/T/work",
