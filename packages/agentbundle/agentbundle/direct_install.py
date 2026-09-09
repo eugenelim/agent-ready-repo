@@ -1199,6 +1199,18 @@ def _summarise_and_project(
             print(f"{verb}: cancelled; nothing was written.")
             return 1
 
+    retained_owned_files: dict[str, dict[str, str]] = {}
+    if upgrade_owned_files is not None:
+        retained_owned_files = _delete_removed_projection(
+            args,
+            projection_root=projection_root,
+            removed=removed,
+            owned_files=upgrade_owned_files,
+            scope=scope,
+            adapter=adapter,
+            name=selection.skills[0].name,
+        )
+
     written: dict[str, bytes] = {}
     try:
         for relpath, projected_bytes in planned:
@@ -1237,6 +1249,11 @@ def _summarise_and_project(
             digest=digest,
             adapter=adapter,
             written=written,
+            upgrade_installed_row=installed_row,
+            source_overridden=bool(
+                getattr(args, "_upgrade_source_overridden", False)
+            ),
+            retained_owned_files=retained_owned_files,
         )
     except (DirectStateError, OSError, PathJailError) as exc:
         # The projection succeeded and the row did not, so every projected file
@@ -1274,6 +1291,125 @@ def _summarise_and_project(
     return 0
 
 
+def _upgrade_retry_command(args: object, name: str) -> str:
+    """Return the complete command that retries one standalone upgrade."""
+
+    parts = [
+        "agentbundle",
+        "upgrade",
+        "--skill",
+        name,
+        "--root",
+        str(getattr(args, "output", ".") or "."),
+        "--scope",
+        str(getattr(args, "scope", None) or "repo"),
+        "--adapter",
+        str(getattr(args, "adapter", None) or "claude-code"),
+    ]
+    supplied_source = getattr(args, "source", None)
+    if supplied_source is not None:
+        parts.extend(("--source", str(supplied_source)))
+    parts.append("--yes")
+    return recovery_command(*parts)
+
+
+def _delete_removed_projection(
+    args: object,
+    *,
+    projection_root: Path,
+    removed: list[str],
+    owned_files: dict[str, dict[str, str]],
+    scope: str,
+    adapter: str,
+    name: str,
+) -> dict[str, dict[str, str]]:
+    """Delete obsolete owned files and return entries whose ownership is uncertain."""
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        validate_confined_directory,
+    )
+    from agentbundle.commands._common import resolve_state_path
+    from agentbundle.config import ConfigError, load_state
+
+    if not removed:
+        return {}
+
+    states = []
+    try:
+        for state_scope in ("repo", "user"):
+            state_path = resolve_state_path(state_scope, projection_root)
+            states.append((state_scope, load_state(state_path)))
+    except (ConfigError, OSError):
+        return {relpath: owned_files[relpath] for relpath in removed}
+
+    target_key = (name, adapter)
+    retry = _upgrade_retry_command(args, name)
+    retained: dict[str, dict[str, str]] = {}
+    prune_paths: list[str] = []
+    for relpath in removed:
+        has_other_owner = any(
+            owner != target_key or state_scope != scope
+            for state_scope, state in states
+            for owner in state.owners_of(relpath)
+        )
+        if has_other_owner:
+            continue
+
+        target = projection_root / relpath
+        try:
+            validate_confined_directory(projection_root, target.parent)
+        except UnsafeContentError as exc:
+            if isinstance(exc.__cause__, FileNotFoundError):
+                continue
+            retained[relpath] = owned_files[relpath]
+            continue
+        prune_paths.append(relpath)
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise _refuse(
+                DiagnosticCode.CAT_D020,
+                f"could not remove obsolete owned file {relpath!r}: {exc}",
+                path=relpath,
+                remediation=(
+                    f"Clear the obstruction on file {recovery_command(relpath)}, "
+                    f"then retry: {retry}"
+                ),
+            ) from exc
+
+    directories: set[PurePosixPath] = set()
+    for relpath in prune_paths:
+        parent = PurePosixPath(relpath).parent
+        while parent.parts:
+            directories.add(parent)
+            parent = parent.parent
+
+    for relative in sorted(directories, key=lambda path: len(path.parts), reverse=True):
+        directory = projection_root / relative
+        rendered = relative.as_posix()
+        try:
+            validate_confined_directory(projection_root, directory)
+            if next(directory.iterdir(), None) is not None:
+                continue
+            directory.rmdir()
+        except FileNotFoundError:
+            continue
+        except (OSError, UnsafeContentError) as exc:
+            raise _refuse(
+                DiagnosticCode.CAT_D021,
+                f"could not prune emptied directory {rendered!r}: {exc}",
+                path=rendered,
+                remediation=(
+                    f"Clear the obstruction on directory {recovery_command(rendered)}, "
+                    f"then retry: {retry}"
+                ),
+            ) from exc
+    return retained
+
+
 def _record_direct_rows(
     *,
     target_root: Path,
@@ -1286,6 +1422,9 @@ def _record_direct_rows(
     digest: str,
     adapter: str,
     written: dict[str, bytes],
+    upgrade_installed_row: PackState | None = None,
+    source_overridden: bool = False,
+    retained_owned_files: dict[str, dict[str, str]] | None = None,
 ) -> None:
     """Write one owned state row per installed skill, under the state lock."""
 
@@ -1336,19 +1475,52 @@ def _record_direct_rows(
                 source_path=relative,
                 source_digest=digest,
             )
-            state.packs[(skill.name, adapter)] = PackState(
-                # The sentinel is internal: AC26 keeps it off every rendered
-                # surface, and the receipt above prints no version at all.
-                installed_version=MANIFESTLESS_VERSION_SENTINEL,
-                source=provenance.source,
-                scope=scope,
-                adapter=adapter,
-                source_revision=provenance.source_revision,
-                source_kind=provenance.source_kind,
-                source_path=provenance.source_path,
-                source_digest=provenance.source_digest,
-                files=files,
-            )
+            if retained_owned_files:
+                files.update(retained_owned_files)
+            locked_row = state.row(skill.name, adapter)
+            if upgrade_installed_row is not None:
+                expected_identity = _direct_identity(
+                    upgrade_installed_row.source_kind,
+                    upgrade_installed_row.source,
+                    upgrade_installed_row.source_path,
+                )
+                locked_identity = (
+                    _direct_identity(
+                        locked_row.source_kind,
+                        locked_row.source,
+                        locked_row.source_path,
+                    )
+                    if locked_row is not None
+                    else None
+                )
+                if (
+                    locked_row is None
+                    or locked_identity != expected_identity
+                    or locked_row.source_digest != upgrade_installed_row.source_digest
+                ):
+                    raise DirectStateError(
+                        f"{skill.name!r} changed while this upgrade was writing; "
+                        "the state row was not replaced"
+                    )
+                locked_row.source_revision = provenance.source_revision
+                locked_row.source_digest = provenance.source_digest
+                locked_row.files = files
+                if source_overridden:
+                    locked_row.source = provenance.source
+            else:
+                state.packs[(skill.name, adapter)] = PackState(
+                    # The internal sentinel must never reach a rendered surface;
+                    # the receipt above therefore prints no version at all.
+                    installed_version=MANIFESTLESS_VERSION_SENTINEL,
+                    source=provenance.source,
+                    scope=scope,
+                    adapter=adapter,
+                    source_revision=provenance.source_revision,
+                    source_kind=provenance.source_kind,
+                    source_path=provenance.source_path,
+                    source_digest=provenance.source_digest,
+                    files=files,
+                )
 
     # Root and relpath given explicitly so the jail is the projection root, not
     # the state file's own parent directory, and the scope rail matches the

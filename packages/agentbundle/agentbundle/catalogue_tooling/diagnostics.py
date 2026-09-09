@@ -73,6 +73,8 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D017 = "CAT-D017"   # AC33 budget: total bytes
     CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
     CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
+    CAT_D020 = "CAT-D020"   # an owned file could not be removed during direct upgrade
+    CAT_D021 = "CAT-D021"   # an emptied directory could not be pruned during direct upgrade
     CAT_D022 = "CAT-D022"   # installed manifestless identity requested at a different ref
     CAT_D023 = "CAT-D023"   # standalone skill upgrade cannot select a usable row
     CAT_D024 = "CAT-D024"   # standalone skill upgrade needs scope disambiguation
@@ -83,6 +85,8 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D029 = "CAT-D029"   # source override names a different direct identity
     CAT_D030 = "CAT-D030"   # stored source cannot form a standalone upgrade request
     CAT_D031 = "CAT-D031"   # capability history is unknown or the candidate widens it
+    CAT_D032 = "CAT-D032"   # stored source digest uses an unsupported or malformed format
+    CAT_D033 = "CAT-D033"   # catalogue-only upgrade selected a directly installed row
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -112,6 +116,8 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D017,
         DiagnosticCode.CAT_D018,
         DiagnosticCode.CAT_D019,
+        DiagnosticCode.CAT_D020,
+        DiagnosticCode.CAT_D021,
         DiagnosticCode.CAT_D022,
         DiagnosticCode.CAT_D023,
         DiagnosticCode.CAT_D024,
@@ -122,6 +128,8 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D029,
         DiagnosticCode.CAT_D030,
         DiagnosticCode.CAT_D031,
+        DiagnosticCode.CAT_D032,
+        DiagnosticCode.CAT_D033,
     }
 )
 

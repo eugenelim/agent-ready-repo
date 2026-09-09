@@ -222,6 +222,19 @@ def _set_direct_source(target: Path, source: str | None) -> None:
     state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
+def _set_direct_source_digest(target: Path, digest: str) -> None:
+    """Replace the fixture row's digest while preserving every other field."""
+
+    from agentbundle.config import dump_state, load_state
+
+    state_path = target / ".agentbundle-state.toml"
+    state = load_state(state_path)
+    row = state.row("example", "claude-code")
+    assert row is not None
+    row.source_digest = digest
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
+
+
 def _set_recorded_file_sha(target: Path, relpath: str, sha: str) -> None:
     """Replace one fixture row's recorded per-file integrity digest."""
 
@@ -318,6 +331,49 @@ def test_direct_skill_refuses_catalogue_row_without_command(tmp_path, capsys):
     assert "catalogue pack" in refusal.err
     assert "agentbundle " not in refusal.err
     assert _tree_digests(tmp_path) == before
+
+
+def test_pack_selector_refuses_direct_row_before_catalogue_and_recovery_executes(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle import cli
+    from agentbundle.commands import upgrade
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+
+    def _catalogue_must_not_resolve(*_args, **_kwargs):
+        raise AssertionError("a direct row must refuse before catalogue resolution")
+
+    monkeypatch.setattr(upgrade, "resolve_catalogue", _catalogue_must_not_resolve)
+    monkeypatch.setattr(
+        upgrade, "resolve_catalogue_uri", _catalogue_must_not_resolve
+    )
+    assert cli.main(
+        [
+            "upgrade",
+            "--pack",
+            "example",
+            "--root",
+            str(target),
+            "--scope",
+            "repo",
+        ]
+    ) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D033" in refusal.err
+    command = next(
+        line
+        for line in refusal.err.splitlines()
+        if line.startswith("agentbundle ")
+    )
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert _run_printed_command(command) == 0
 
 
 def test_direct_skill_json_refusal_uses_route_wording(tmp_path, capsys):
@@ -718,6 +774,7 @@ def test_direct_skill_upgrade_plans_writes_and_removals_without_catalogue(
     tmp_path, tmp_path_factory, monkeypatch, capsys
 ):
     from agentbundle.commands import upgrade
+    from agentbundle.config import load_state
 
     storage = tmp_path_factory.mktemp("direct-upgrade-plan")
     acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
@@ -765,8 +822,14 @@ def test_direct_skill_upgrade_plans_writes_and_removals_without_catalogue(
         "print('new')\n"
     )
     projected_obsolete = target / ".claude/skills/example/references/obsolete.md"
-    assert projected_obsolete.read_text() == "old\n"
-    assert projected_obsolete.parent.is_dir()
+    assert not projected_obsolete.exists()
+    assert not projected_obsolete.parent.exists()
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert ".claude/skills/example/references/obsolete.md" not in row.files
+    assert ".claude/skills/example/scripts/added.py" in row.files
 
 
 @pytest.mark.parametrize("dry_run", [False, True])
@@ -887,6 +950,171 @@ def test_direct_skill_upgrade_refuses_an_edited_removal_destination(
     assert "doomed.md" in refusal.err
     assert "upgrade plan" not in refusal.out
     assert _tree_digests(target) == before
+
+
+def test_direct_skill_upgrade_keeps_a_cross_scope_owned_removal(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    doomed = references / "doomed.md"
+    doomed.write_text("publisher\n")
+    monkeypatch.setenv("HOME", str(target))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(target))
+    assert _install_direct(source, target, scope="repo") == 0
+    assert _install_direct(source, target, scope="user") == 0
+    capsys.readouterr()
+    repo_state_path = target / ".agentbundle-state.toml"
+    user_state_path = target / ".agentbundle/state.toml"
+    relpath = ".claude/skills/example/references/doomed.md"
+    assert relpath in load_state(repo_state_path).row("example", "claude-code").files
+    assert relpath in load_state(user_state_path).row("example", "claude-code").files
+    projected = target / relpath
+    doomed.unlink()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+
+    assert _upgrade_direct(target, "--scope", "repo", "--yes") == 0
+    repo_row = load_state(repo_state_path).row("example", "claude-code")
+    user_row = load_state(user_state_path).row("example", "claude-code")
+    assert repo_row is not None and user_row is not None
+    assert projected.exists()
+    assert relpath not in repo_row.files
+    assert relpath in user_row.files
+
+
+def test_direct_skill_upgrade_keeps_ownership_when_peer_state_is_unreadable(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle import config
+    from agentbundle.config import ConfigError, load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    doomed = references / "doomed.md"
+    doomed.write_text("publisher\n")
+    monkeypatch.setenv("HOME", str(target))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(target))
+    assert _install_direct(source, target, scope="repo") == 0
+    assert _install_direct(source, target, scope="user") == 0
+    capsys.readouterr()
+    repo_state_path = target / ".agentbundle-state.toml"
+    peer_state_path = target / ".agentbundle/state.toml"
+    relpath = ".claude/skills/example/references/doomed.md"
+    projected = target / relpath
+    doomed.unlink()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    real_load = config.load_state
+
+    def _refuse_peer(path, *, for_write=False):
+        if path == peer_state_path:
+            raise ConfigError("peer state unreadable")
+        return real_load(path, for_write=for_write)
+
+    monkeypatch.setattr(config, "load_state", _refuse_peer)
+    assert _upgrade_direct(target, "--scope", "repo", "--yes") == 0
+    row = load_state(repo_state_path).row("example", "claude-code")
+    assert row is not None
+    assert projected.exists()
+    assert relpath in row.files
+
+
+def test_direct_skill_upgrade_unlink_failure_keeps_state_and_file(
+    tmp_path, monkeypatch, capsys
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    doomed = references / "doomed.md"
+    doomed.write_text("publisher\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    before = state_path.read_bytes()
+    projected = target / ".claude/skills/example/references/doomed.md"
+    doomed.unlink()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    real_unlink = Path.unlink
+
+    def _refuse_unlink(path, *args, **kwargs):
+        if path == projected:
+            raise PermissionError("fixture obstruction")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", _refuse_unlink)
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D020" in refusal.err
+    assert "doomed.md" in refusal.err
+    assert state_path.read_bytes() == before
+    assert projected.exists()
+
+
+def test_direct_skill_upgrade_prune_failure_keeps_state_and_empty_directory(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    references = skill / "references"
+    references.mkdir()
+    doomed = references / "doomed.md"
+    doomed.write_text("publisher\n")
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    before = state_path.read_bytes()
+    projected = target / ".claude/skills/example/references/doomed.md"
+    projected_directory = projected.parent
+    projected_skill = target / ".claude/skills/example/SKILL.md"
+    projected_skill_before = projected_skill.read_bytes()
+    doomed.unlink()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    real_rmdir = Path.rmdir
+
+    def _refuse_rmdir(path):
+        if path == projected_directory:
+            raise PermissionError("fixture obstruction")
+        return real_rmdir(path)
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(Path, "rmdir", _refuse_rmdir)
+        assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D021" in refusal.err
+    assert "references" in refusal.err
+    retry_command = next(
+        line.split("then retry: ", 1)[1]
+        for line in refusal.err.splitlines()
+        if "then retry: " in line
+    )
+    assert state_path.read_bytes() == before
+    assert not projected.exists()
+    assert projected_directory.is_dir()
+    assert list(projected_directory.iterdir()) == []
+    assert projected_skill.read_bytes() == projected_skill_before
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert _run_printed_command(retry_command) == 0
+    capsys.readouterr()
+    assert not projected_directory.exists()
+    assert projected_skill.read_text().endswith("# second\n")
+    row = load_state(state_path).row("example", "claude-code")
+    assert row is not None
+    assert ".claude/skills/example/references/doomed.md" not in row.files
 
 
 @pytest.mark.parametrize("terminal", ["moved", "removed"])
@@ -1189,6 +1417,163 @@ def test_direct_skill_no_update_still_refuses_adopter_edit(tmp_path, capsys):
     assert "CAT-D027" in refusal.err
     assert "No update available" not in refusal.out
     assert _tree_digests(target) == before
+
+
+def test_direct_skill_upgrade_replaces_only_invalidated_row_fields_once(
+    tmp_path, monkeypatch, capsys
+):
+    from dataclasses import asdict
+
+    from agentbundle import statelock
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    state_path = target / ".agentbundle-state.toml"
+    before_row = load_state(state_path).row("example", "claude-code")
+    assert before_row is not None
+    before = asdict(before_row)
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+
+    calls = 0
+    persist = statelock.persist_state_locked
+
+    def _counting_persist(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return persist(*args, **kwargs)
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(statelock, "persist_state_locked", _counting_persist)
+        assert _upgrade_direct(target, "--yes") == 0
+    assert calls == 1
+    capsys.readouterr()
+
+    after_row = load_state(state_path).row("example", "claude-code")
+    assert after_row is not None
+    after = asdict(after_row)
+    fresh_target = tmp_path / "fresh-target"
+    assert _install_direct(source, fresh_target) == 0
+    fresh_row = load_state(fresh_target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert fresh_row is not None
+    fresh = asdict(fresh_row)
+    rewritten = {"source", "source_revision", "source_digest", "files"}
+    for field in before.keys() - rewritten:
+        assert after[field] == before[field] == fresh[field]
+    assert after["source"] == before["source"] == fresh["source"]
+    assert after["source_revision"] == fresh["source_revision"]
+    assert after["source_digest"] == fresh["source_digest"]
+    assert after["files"] == fresh["files"]
+    assert after["source_digest"] != before["source_digest"]
+
+    capsys.readouterr()
+    assert _upgrade_direct(target, "--yes") == 0
+    assert "No update available for example." in capsys.readouterr().out
+
+
+def test_uncomparable_digest_refusal_preserves_bytes_and_executes_recovery(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle.config import load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    stored = "sha512-1:" + "a" * 128
+    _set_direct_source_digest(target, stored)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D032" in refusal.err
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source_digest == stored
+    command_line = next(
+        line.split("Then run: ", 1)[1]
+        for line in refusal.err.splitlines()
+        if "Then run: " in line
+    )
+    remove_command, install_command = command_line.split(" then ", 1)
+    assert _run_printed_command(remove_command) == 0
+    assert _run_printed_command(install_command) == 0
+    repaired = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert repaired is not None
+    assert repaired.source_digest is not None
+    assert repaired.source_digest.startswith("sha256-1:")
+    assert repaired.source_digest != stored
+
+
+def test_remote_consent_refusal_precedes_uncomparable_digest(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    storage = tmp_path_factory.mktemp("direct-upgrade-consent-before-digest")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    _set_direct_source_digest(target, "sha512-1:" + "a" * 128)
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D008" in refusal.err
+    assert "CAT-D032" not in refusal.err
+
+
+@pytest.mark.parametrize(
+    ("moved_field", "moved_value"),
+    [
+        ("source_path", "skills/concurrent"),
+        ("source_digest", "sha256-1:" + "f" * 64),
+    ],
+)
+def test_direct_skill_upgrade_refuses_when_locked_row_moved(
+    tmp_path, monkeypatch, capsys, moved_field, moved_value
+):
+    from agentbundle import statelock
+    from agentbundle.config import dump_state, load_state
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    skill = _write_direct_skill(source)
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    (skill / "SKILL.md").write_text("---\nname: example\n---\n# second\n")
+    state_path = target / ".agentbundle-state.toml"
+    persist = statelock.persist_state_locked
+
+    def _move_then_persist(path, mutate, **kwargs):
+        state = load_state(path)
+        row = state.row("example", "claude-code")
+        assert row is not None
+        setattr(row, moved_field, moved_value)
+        path.write_text(dump_state(state), encoding="utf-8", newline="\n")
+        return persist(path, mutate, **kwargs)
+
+    monkeypatch.setattr(statelock, "persist_state_locked", _move_then_persist)
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "state write failed" in refusal.err
+    moved = load_state(state_path).row("example", "claude-code")
+    assert moved is not None
+    assert getattr(moved, moved_field) == moved_value
 
 
 def test_direct_skill_dry_run_prints_plan_without_mutation(tmp_path, capsys):

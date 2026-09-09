@@ -9,6 +9,7 @@ control that cannot fail, and this file exists to make that impossible.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import agentbundle.bounded_metadata as bounded_metadata
@@ -522,3 +523,11 @@ def test_confinement_calls_are_the_admitted_mechanisms():
             f"{Path(module.__file__).name} calls an unlisted confinement "
             f"mechanism: {confinement_like - CONFINEMENT_CALLS}"
         )
+
+
+def test_manifestless_state_constructor_comment_states_the_invariant_directly():
+    source = Path(direct_install.__file__).read_text(encoding="utf-8")
+    marker = "state.packs[(skill.name, adapter)] = PackState("
+    constructor = source.split(marker, maxsplit=1)[1]
+    comment = constructor.split("installed_version=", maxsplit=1)[0]
+    assert re.search(r"\b(?:AC\d+|RFC-\d+|ADR-\d+)\b", comment) is None

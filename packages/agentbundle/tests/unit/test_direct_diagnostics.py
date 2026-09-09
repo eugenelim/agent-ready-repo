@@ -281,17 +281,21 @@ def _emitted_codes(tmp_path) -> set[str]:
 
     import agentbundle.direct_source as direct_source
     import agentbundle.direct_source_acquisition as acquisition
+    from agentbundle.catalogue_tooling.diagnostics import DiagnosticCode
     from agentbundle.commands.upgrade import (
         DirectUpgradeError,
         _DirectSkillSelection,
+        _refuse_direct_upgrade,
         _select_direct_skill_row,
         _select_direct_upgrade_source,
+        _uncomparable_digest_refusal,
     )
     from agentbundle.config import PackState, State
     from agentbundle.direct_install import (
         DirectInstallError,
         Selection,
         _capability_upgrade_refusal,
+        _delete_removed_projection,
         _refuse_foreign_owner,
         _select_upgrade_skill,
         run_direct_install,
@@ -565,6 +569,78 @@ def _emitted_codes(tmp_path) -> set[str]:
         )
 
     _record(_raise_capability_refusal)
+
+    # --- upgrade state and deletion refusals -------------------------------
+    deletion_root = tmp_path / "deletion-refusals"
+    deletion_file = deletion_root / ".claude/skills/example/old.md"
+    deletion_file.parent.mkdir(parents=True)
+    deletion_file.write_text("old\n")
+
+    class _DeleteArgs:
+        output = str(deletion_root)
+        scope = "repo"
+        adapter = "claude-code"
+        source = None
+
+    from unittest.mock import patch
+
+    with patch.object(type(deletion_file), "unlink", side_effect=PermissionError("blocked")):
+        _record(
+            lambda: _delete_removed_projection(
+                _DeleteArgs(),
+                projection_root=deletion_root,
+                removed=[".claude/skills/example/old.md"],
+                owned_files={".claude/skills/example/old.md": {"sha": "0" * 64}},
+                scope="repo",
+                adapter="claude-code",
+                name="example",
+            )
+        )
+
+    prune_file = deletion_root / ".claude/skills/example/prune/old.md"
+    prune_file.parent.mkdir(parents=True)
+    prune_file.write_text("old\n")
+    with patch.object(type(prune_file), "rmdir", side_effect=PermissionError("blocked")):
+        _record(
+            lambda: _delete_removed_projection(
+                _DeleteArgs(),
+                projection_root=deletion_root,
+                removed=[".claude/skills/example/prune/old.md"],
+                owned_files={
+                    ".claude/skills/example/prune/old.md": {"sha": "0" * 64}
+                },
+                scope="repo",
+                adapter="claude-code",
+                name="example",
+            )
+        )
+
+    digest_row = PackState(
+        installed_version="0.0.0+agentbundle.manifestless",
+        source=str(collection),
+        source_kind="skill",
+        source_path="skills/example",
+        source_digest="sha512-1:" + "0" * 128,
+    )
+    digest_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", digest_row
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _uncomparable_digest_refusal(
+                "example", digest_selection, collection
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D033,
+                "catalogue-only route selected a direct row",
+                name="example",
+            )
+        )
+    )
 
     # --- installed identity at another ref ---------------------------------
     ref_root = tmp_path / "different-ref"

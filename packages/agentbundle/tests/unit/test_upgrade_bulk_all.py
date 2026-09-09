@@ -588,6 +588,99 @@ def test_nothing_to_upgrade_exits_zero(tmp_path):
     assert any(r.outcome == "skipped" for r in result.rows)
 
 
+def test_direct_row_is_skipped_before_its_source_is_canonicalised(tmp_path):
+    from agentbundle.commands import upgrade
+
+    state = _make_state([
+        ("core", "claude-code", "git+https://example.test/packs", "0.13.6"),
+        ("example", "claude-code", "direct-source-must-not-be-read", "0.0.0"),
+    ])
+    direct = state.row("example", "claude-code")
+    assert direct is not None
+    direct.source_kind = "skill"
+    direct.source_path = "skills/example"
+    _write_state_toml(tmp_path, state)
+    canonicalize = upgrade.canonicalize_source
+
+    def _observe_source(value):
+        assert value != "direct-source-must-not-be-read"
+        return canonicalize(value)
+
+    pack_toml = {"pack": {"version": "0.13.7"}}
+    with patch(
+        "agentbundle.commands.upgrade.canonicalize_source",
+        side_effect=_observe_source,
+    ), _mock_catalogue(tmp_path, pack_toml), _mock_preflight_render(
+        {"README.md": b"content"}
+    ):
+        result = _run_all_capture(
+            _make_args(scope="repo", dry_run=True, fmt="json"), tmp_path
+        )
+        table_result = _run_all_capture(
+            _make_args(scope="repo", dry_run=True, fmt="table"), tmp_path
+        )
+
+    direct_row = next(row for row in result.rows if row.pack == "example")
+    assert direct_row.status == "skipped-direct"
+    assert direct_row.outcome == "skipped-direct"
+    assert f"--root {tmp_path}" in direct_row.direct_route
+    assert "--scope repo" in direct_row.direct_route
+    assert table_result.exit_code == 0
+    assert "skipped-direct" in table_result.stdout
+    assert "—" in table_result.stdout
+    assert f"--root {tmp_path}" in table_result.stdout
+
+
+def test_mixed_bulk_run_completes_catalogue_row_and_counts_direct_skip(tmp_path):
+    state = _make_state([
+        ("core", "claude-code", "git+https://example.test/packs", "0.13.6"),
+        ("example", "claude-code", "git+https://github.com/example/skills@release", "0.0.0"),
+    ])
+    direct = state.row("example", "claude-code")
+    assert direct is not None
+    direct.source_kind = "skill"
+    direct.source_path = "skills/example"
+    _write_state_toml(tmp_path, state)
+    pack_toml = {"pack": {"version": "0.13.7"}}
+
+    with _mock_catalogue(tmp_path, pack_toml), _mock_preflight_render(
+        {"README.md": b"content"}
+    ), _mock_apply_succeeds():
+        result = _run_all_capture(
+            _make_args(scope="repo", yes=True, fmt="json"), tmp_path
+        )
+
+    assert result.exit_code == 0
+    doc = json.loads(result.stdout)
+    rows = {row["pack"]: row for row in doc["rows"]}
+    assert rows["core"]["outcome"] == "completed"
+    assert rows["example"]["status"] == "skipped-direct"
+    assert rows["example"]["outcome"] == "skipped-direct"
+    assert rows["example"]["installed_version"] == "—"
+    assert rows["example"]["direct_route"].startswith("agentbundle upgrade --skill")
+    summary = doc["summary"]
+    assert summary["blocked"] == 0
+    assert summary["skipped"] == 0
+    assert summary["skipped_direct"] == 1
+    assert (
+        summary["upgrade_available"]
+        + summary["up_to_date"]
+        + summary["ahead"]
+        + summary["unknown"]
+        + summary["skipped_direct"]
+        == summary["total"]
+    )
+    assert (
+        summary["completed"]
+        + summary["skipped"]
+        + summary["skipped_direct"]
+        + summary["blocked"]
+        + summary["failed"]
+        + summary["not_attempted"]
+        == summary["total"]
+    )
+
+
 # ---------------------------------------------------------------------------
 # T4 — _apply_single_row extraction and apply loop
 # ---------------------------------------------------------------------------
