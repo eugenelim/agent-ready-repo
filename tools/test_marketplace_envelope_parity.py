@@ -1303,6 +1303,42 @@ def test_resolved_mismatch_is_refused() -> None:
         )
 
 
+def test_resolved_layer_refuses_an_origin_outside_the_audited_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pin the provenance refusal without depending on what is installed.
+
+    The sibling-tree scenario needs `agentbundle` importable from outside
+    `root`, which happens only where an install provides it: true on a
+    contributor's machine, false on a runner, where the child cannot import it
+    at all and the layer refuses through its failed-child branch instead. That
+    leaves the origin comparison unexercised exactly where CI runs, so dropping
+    it would go unnoticed there. Driving the child's payload directly exercises
+    the comparison in both environments.
+    """
+    root = tmp_path / "audited"
+    (root / BUILD_MAIN).parent.mkdir(parents=True)
+    foreign_origin = tmp_path / "sibling-worktree" / BUILD_MAIN
+    payload = json.dumps(
+        {
+            "origin": str(foreign_origin),
+            "branch": EXPECTED_BRANCH,
+            "branch_type": "str",
+            "description": "d",
+            "description_type": "str",
+        }
+    )
+
+    def _resolved_elsewhere(*args: object, **kwargs: object) -> subprocess.CompletedProcess:
+        return subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=payload, stderr=""
+        )
+
+    monkeypatch.setattr(subprocess, "run", _resolved_elsewhere)
+    with pytest.raises(ParityError, match="provenance mismatch"):
+        resolve_build_main_constants(root)
+
+
 def test_resolved_layer_refuses_a_module_from_another_tree(tmp_path: Path) -> None:
     """The provenance refusal, in the scenario it exists for.
 
