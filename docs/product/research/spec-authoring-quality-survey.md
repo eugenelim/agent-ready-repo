@@ -106,7 +106,7 @@ true, on one corpus. This repository's own attempt reports a **block rate**: an
 emphasis-density predicate would have blocked 405 of 1,477 files, 27.4%,
 against a 0.4% per-family budget, with precision never measured. Those figures
 are owned by `agent-authoring-input-quality.md` § "The rubric is a deliverable";
-this survey cites them and adds nothing, and neither location names an
+this survey cites them and adds no independent evidence for them, and neither location names an
 instrument or a date, so treat them as an undated repository-local attempt
 rather than a measurement to carry. One says half the flags were wrong; the
 other says the volume alone was 68 times the budget.

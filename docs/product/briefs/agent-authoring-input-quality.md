@@ -171,10 +171,11 @@ argued with.
 ### Limit interaction
 
 As `assets/spec.md` requires of any quantity
-carrying two: both are reachable, and § "Corpus" carries the figures that show it: a spec at
-the median body length holds the median criteria-per-spec count several times
-over, so neither bound shadows the other. The argument reads no criterion-length
-quantity, because none is published. Criterion size is not a
+carrying two: both are reachable, because they bound different quantities and neither implies
+the other: a spec can exceed the criteria ceiling well inside the body bound, and
+exceed the body bound with few criteria. § "Corpus" publishes each distribution
+separately — criteria per spec, and words per spec — and nothing relating one to
+the other within a spec, so no figure here claims a ratio. Criterion size is not a
 limit, so it can neither dominate nor be dominated.
 
 ### Corpus limits
@@ -192,15 +193,17 @@ shipped rubric states it. One band row is a percentile of this repository's
 corpus — the spec-body bound, from the median and p75 of the 421 specs measured
 2026-09-08 — so the class applies to that row. It has already fired twice here:
 on the predicate that could not reproduce its own figures, and on the
-criterion-length percentiles that section no longer publishes. Decay is real but cheap to answer: two of the six
-rows are repo-derived percentiles, the rest are imported measurements, the corpus
-grows slowly, and a hand measurement is one command. The criteria ceiling is
+criterion-length percentiles that section no longer publishes. Decay is real but
+cheap to answer: exactly one row is a repo-derived percentile, three cite
+measurements imported from outside this repository, one cites shipped decisions
+rather than a measurement, and one is labelled illustrative. The corpus grows
+slowly and a hand measurement is one command. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
 criteria per spec — so a stall threshold needs an order of magnitude rather
 than a maintained script.
 
-What an adopter needs is the **derivation**, which the guidance carries: the
-named glob, the status predicate, and the percentile. Shipping our percentiles
+What an adopter needs is the **derivation**, which rubric class 5 states and the
+guidance carries. Shipping our percentiles
 as numbers would be wrong for every adopter on day one; shipping the derivation
 is right for each. The figures here are dated evidence, refreshed by hand, and a
 slice sized against them cites that date.
@@ -350,9 +353,8 @@ artifact?* For `make ci` the answer is decidable rather than a judgment, and by
 two independent instruments in this repository: the `Makefile` declares
 `ci: build-check lint-ruff lint-mypy test-after-build-check` on one line, and
 `make -np` emits the same prerequisite list from make's own database without
-parsing prose. The candidate rule is one line — **if the definition is
-machine-readable, read it; do not restate it and then prove the restatement
-complete.**
+parsing prose. The candidate rule is the one rubric class 4 now
+states as its first clause.
 
 Note the granularity trap before shaping this: `make ci` names four
 prerequisites while the exhibit split into six lanes. That is not by itself a
@@ -822,8 +824,9 @@ What shipping early costs, recorded rather than glossed:
 - **The activation risk is unretired, and one of its two halves is now
   answered.** § "Assumptions / Risks" names shipping another unactivated rule as
   the most likely failure. All six classes have now been shown to fire
-  (§ "Success metrics", 2026-09-08), so the withdrawal metric is satisfied and
-  no class is a withdrawal candidate. What remains open is the other half:
+  (§ "Success metrics", 2026-09-08), on a record that section marks as not
+  independently verifiable — so the withdrawal metric is satisfied on this
+  session's evidence, and no class is a withdrawal candidate on it. What remains open is the other half:
   whether the classes shipped *as prose* change what an author writes. The
   ablation reaches two defects in two classes; the activation measurement owns
   the rest.
@@ -851,8 +854,9 @@ What shipping early costs, recorded rather than glossed:
   measured marginal value is two defects in two classes, and the
   commissioned survey records vendor guidance that an over-long instruction
   file gets half-ignored. The six ship whole anyway for one reason: the rubric
-  is worked **in order** and stops at the first class that fires, so every
-  class has to be present and in place for the ordering to mean anything.
+  is worked **in order**, stopping at the first class that explains a given
+  defect — never at the first defect — so every class has to be present and in
+  place for the ordering to mean anything.
   Replacing the four already-reachable classes with pointers would keep the
   ordering only by making the reader follow a pointer mid-sequence. Revisit if
   the activation report shows the later classes never firing.
@@ -864,7 +868,7 @@ What shipping early costs, recorded rather than glossed:
   first deliverable" carries what the rounds showed.
 - **The home is renamed.** `spec-authoring-rubric.md`, not
   `failure-point-rubric.md`. Same directory, same precedent — § "A1 home"
-  still governs, with the consumer count corrected above.
+  still governs.
 
 The rubric's own class 1 applies to this entry: it records state, and the
 decision that produced it stays with the owner.
