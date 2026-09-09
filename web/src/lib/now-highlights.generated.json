@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.8"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.8] — 2026-09-08",
+      "changelogAnchor": "core2258--2026-09-08",
+      "highlights": [
+        {
+          "source": "**The defects a spec review keeps finding are now named where the spec is written, not only where it is reviewed.** `new-spec` ships a spec-authoring rubric: six failure classes worked in order before criterion shape, starting with the one no criterion craft repairs — an obligation authored where an owner already exists.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The defects a spec review keeps finding are now named where the spec is written, not only where it is reviewed."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "new-spec"
+            },
+            {
+              "type": "text",
+              "value": " ships a spec-authoring rubric: six failure classes worked in order before criterion shape, starting with the one no criterion craft repairs — an obligation authored where an owner already exists."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.6"
         }
       ],
