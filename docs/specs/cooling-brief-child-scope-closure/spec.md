@@ -275,6 +275,23 @@ entry is not present with an empty `needs`, which is a different fixture.
 - [ ] **AC26 — The `parent` field's reference entry states the cooling
   interaction.** `guides/core/reference/workspace-toml-schema.md`'s `parent` row
   contains the literal `unestablished once the spec has cooled`.
+- [ ] **AC27 — A declared parent resolves by entry kind, not by collection.** A
+  declared value resolves against any workspace entry whose `kind` is `brief`,
+  in whichever collection it is registered, and against no entry of another
+  kind. Four fixtures, each the **Absent** fixture's tree with the child's entry
+  `source.parent` declared and the brief registered one way:
+  - the brief in `brief_queue.shipped` — the declaration resolves, so
+    `canonical.findings` carries no `cooled_child_scope_unknown`;
+  - the brief in `[backlog].open` and the child declaring that path — resolves,
+    and the queued spec is present in `canonical.ready`;
+  - the brief registered as a legacy bare string and the child declaring that
+    path — resolves, and `canonical.findings` carries `legacy_entry` at the
+    brief's path, which is the pre-existing contract and the control proving the
+    fixture built the legacy shape;
+  - a `kind = "spec"` entry additionally listed in `brief_queue.shipped` and the
+    child declaring **that** path — does **not** resolve:
+    `canonical.findings` carries exactly one `cooled_child_scope_unknown` at the
+    child's path and the queued spec is absent from `canonical.ready`.
 
 ## Follow-ons
 

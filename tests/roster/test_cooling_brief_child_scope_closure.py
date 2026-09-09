@@ -620,3 +620,21 @@ def test_a_mis_collected_spec_in_a_brief_queue_does_not_resolve(
         "a mis-collected spec in a brief queue resolved a declaration"
     )
     assert DEPENDANT_PATH not in _ready(result)
+
+
+def test_a_canonical_brief_queue_entry_resolves_a_declaration(
+    tmp_path, engine
+) -> None:
+    """The ordinary case, asserted explicitly rather than left implied.
+
+    *AC27*'s first arm. The other three cases cover the forms that were broken;
+    this one pins the form that always worked, so a repair that narrowed the
+    predicate too far could not pass by satisfying only the exotic arms.
+    """
+    result = _membership_form_fixture(
+        tmp_path / "canonical", engine, brief_entry_form="decoy",
+        child_parent=BRIEF_PATH,
+    )
+    assert not _codes(result, CODE), (
+        "a canonical brief_queue entry did not resolve a correct declaration"
+    )

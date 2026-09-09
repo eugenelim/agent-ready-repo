@@ -304,3 +304,33 @@ extended twice during review to name projections its own commands rewrite, and
 it still missed this one — because this projection is written by a *different*
 command than the one T4 names. A step that produces published content owes both
 the artifact and its regenerator, and the two are not always the same tool.
+
+## 2026-09-08 — Amend the contract to state which memberships resolve a declared parent
+
+A confirming review found the repaired predicate pinned by four tests and by no
+acceptance criterion. The Read-free parent scope section names no criterion for
+kind-based, collection-agnostic resolution: nothing in the spec covers a brief in
+`[backlog].open`, a brief retained as a legacy bare string, or a mis-collected
+`kind = "spec"` entry sitting in a brief queue.
+
+So the durable contract still permitted the defect that produced three of this
+delivery's five review blockers. A later change could revert to collection-keying
+and satisfy every criterion in the spec — the suite would fail, which makes the
+guard real, but not contractual.
+
+Decision: amend. Fire `contract-amendment`, add one criterion, re-approve, and
+re-seal. The owner accepted the cost: the amendment clears the sealed approval
+baseline, so the spec and plan need re-approval and the schedule needs
+recomputing before EXECUTE resumes.
+
+The alternative — ship and record the gap as a follow-on — was declined. The
+reasoning: a criterion is what makes the behaviour survive a later maintainer
+who reads the spec rather than the suite, and this is precisely the predicate
+three independent reviewers each got wrong from a different direction.
+
+**Fixtures are already built.** All four arms exist as cases from the review
+repairs, so the criterion is transcribed from tests that run rather than written
+from intent — the same discipline the parent-scope criteria were derived under.
+
+T0 through T4 are complete and their evidence is carried into the amendment
+rather than discarded.
