@@ -324,6 +324,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pack.toml` declares the matching `handoff` integration.
 - Two eval cases covering the relevant-topic and the absent-or-refused paths.
 
+## [agent-skill-engineering][0.4.3] — 2026-09-09
+
+Adds the two composition behavior fixtures RFC-0097's Gate 2 M2 expanded
+measure names, completing the eleven representative task fixtures it lists.
+
+- `subagent-composition` and `hook-plugin-design` join the authoring workflow's
+  evaluation set, each with an inert payload draft that seeds defects the
+  shipped composition floors govern, and each declaring the pattern identifiers
+  it exercises alongside the assertion that reports its seeded defect.
+- Every authoring case was re-measured in one blind round rather than
+  re-stamped: adding two cases moves the declaration digest every recorded
+  result pins. Six of eight inherited verdicts match the prior baseline.
+- Graded verdicts are now bound to retained response transcripts rather than to
+  the record's own account of itself, so a recorded result can be read back
+  against the bytes it came from.
+- One inherited declaration was corrected under owner authority after the
+  measurement showed the workflow no longer emits the write-status marker it
+  declared.
+
+No `### Highlights` section: this release changes the pack's evaluation
+evidence, not what a consumer of the pack can do. No skill body, reference,
+mode, corpus topic, or provider contract moved. The verdict and its reason are
+recorded here rather than left to a reviewer to infer, per the release
+procedure in `packs/AGENTS.local.md`.
+
 ## [agent-skill-engineering][0.4.2] — 2026-09-09
 
 ### Highlights

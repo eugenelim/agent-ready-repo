@@ -262,8 +262,89 @@ that does not mutate the intended subject proves nothing.
 
 ## T3 — publish and close
 
-Recorded when the task completes.
+Completed 2026-09-09.
+
+### Published surfaces
+
+- **Manifests.** `pack.toml` and `.claude-plugin/plugin.json` both at `0.4.2`,
+  one patch above the `0.4.1` they carried at the base commit.
+- **Aggregate (AC24).** `FORCE=1 make build-self` propagated the bump to
+  `.claude-plugin/marketplace.json` as a single-line change. A second run left
+  the file unchanged, which is the check: regeneration-is-a-no-op, since the
+  generator writes its target in place and leaves no separate artifact to
+  compare against.
+- **Changelog (AC25).** Topmost free-standing `##` entry for the pack.
+  `Highlights` disposition decided in the same step and recorded in the entry:
+  no `### Highlights` section, because the release changes the pack's
+  evaluation evidence and not what a consumer can do — no skill body,
+  reference, mode, corpus topic, or provider contract moved.
+- **Architecture (AC20).** All four RFC-required fields recorded: implemented
+  names, their paths, the dependency edge on the composition-floors slice, and
+  the verification evidence. Document remains `PLANNED` and states that the
+  Gate 2 verdict belongs to closeout.
+- **Spec index (AC26).** Row added: mixed shape, 27 ACs / 3 tasks.
+- **Pack README.** Read and left unchanged: it makes no fixture-inventory or
+  evaluation-coverage claim, so there was no stale sentence to reconcile.
+
+### AC19 — the measure's own list
+
+Compared the recorded result ids against the eleven the M2 expanded measure
+names, transcribed from RFC-0097 § *Experiment / validation*, Gate 2 rather than
+read back out of the fixture: the four foundation cases plus pytest suite,
+Node/browser suite, subagent composition, hook/plugin design, cold-start
+workspace orientation, cross-session resumption, and progressive result
+presentation. None missing. One extra record,
+`knowledge-provider-read-only-entry`, which the measure does not name and which
+the criterion permits.
+
+### Review reads
+
+- **AC15, exemption authorities.** All five entries in the exemption set resolve
+  to a ledger record carrying case, assertion text, prior verdict, measured
+  verdict, authority and date. Verified by parsing the set out of the guard and
+  matching each pair against this file.
+- **AC20, architecture fields.** Read at close; all four present, `PLANNED`
+  retained, no gate verdict claimed.
+
+An earlier automated check of the authority phrase reported a gap that was not
+one: the phrase spans a line wrap, so the substring search missed it. Re-checked
+against whitespace-normalised text. Recorded because a false gap and a real one
+look identical in a grep result.
+
+### AC22 — brief digest re-pinned
+
+The registration pinned `sha256-bytes-v1:87f73f2f…`, the brief's digest when T1
+wrote the entry. T1 also edited the brief — adding the Spec-map row and
+correcting the *Not yet started* paragraph — so the brief moved to
+`sha256-bytes-v1:c5e26fcf…` and the pin went stale within the slice. Re-pinned
+at close against a freshly computed digest. This is why AC22 requires the
+comparison at close rather than at registration.
+
+No other registration was touched. `brief_queue.executing` pins RFC-0097 rather
+than the brief, and the shipped siblings' older pins are the pre-existing drift
+the Follow-on records.
+
+### Close
+
+Spec `Shipped`, plan `Done`, all 27 criteria ticked, registration moved from
+`["ini-009".work].active` to `.shipped`, brief Spec-map row rolled to `Shipped`,
+the in-flight paragraph removed, and the initiative milestone rolled so it no
+longer advertises 3e as in flight.
+
+### Gates
+
+| Gate | Result |
+| --- | --- |
+| `packs/agent-skill-engineering/tests` | 242 passed |
+| `tests/roster` projection suites | 104 passed, 12 subtests |
+| `lint-spec-status.py --root .` | exit 0, spec metadata clean |
+| `lint-brief-coverage.py --root .` | exit 0, row resolves as `Shipped` |
+| `agentbundle catalogue lint --root . --deep` | exit 0 |
+| `agentbundle catalogue verify --root .` | exit 0 |
+| Workspace projection | no finding for this spec; no `impossible_transition`, no `duplicate_membership` |
 
 ## Observed gate failures
 
-None yet.
+None. Two pre-existing warn-only spec-status warnings on unrelated specs were
+present before this slice and are unchanged by it.
+

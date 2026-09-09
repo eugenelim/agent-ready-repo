@@ -287,6 +287,34 @@ an installed surface for the first time: six of the seven previously appeared in
 no file under `packs/*/.apm/`, so a consumer quoting the conformance fixture
 would have quoted literals an adopter never receives.
 
+The composition behavior fixtures now exist, verified 2026-09-09 against pack
+version 0.4.3. **Implemented names and their paths:** `subagent-composition` and
+`hook-plugin-design`, declared in
+`packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/evals.json`
+with payloads at `evals/files/subagent-composition-SKILL.md` and
+`evals/files/hook-plugin-design-SKILL.md`; their graded records in
+`packs/agent-skill-engineering/tests/fixtures/behavior-results.json`; their
+guards in `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`;
+their retained transcripts under
+`docs/specs/agent-skill-engineering-composition-fixtures/notes/transcripts/`.
+**Dependency edge:** the composition-floors slice, whose portable
+skills-and-subagents, hooks and plugin-package floors are the corpus each
+payload seeds defects against and each declaration names as its pattern
+identifiers; the fixtures carry no dependency on the runtime-profile work.
+**Verification evidence:** every authoring case graded in one blind round under
+observation identifier `2026-09-09-composition-fixtures-r1`, with each verdict
+bound to a retained transcript whose digest the record carries and whose bytes
+must contain every declared marker. `subagent-composition` scored 5 of 5 and
+`hook-plugin-design` 4 of 5, both reporting the defect their payload seeds. Six
+of eight inherited results match the prior baseline; two moved and are recorded
+with both values. Five known misses are exempted, each with its authority in the
+slice's verification ledger. Seven mutation proofs cover the widened
+enumerations and the new transcript bindings.
+
+With these two, the eleven representative task fixtures RFC-0097's Gate 2 M2
+expanded measure names all carry a recorded result. Whether that measure and its
+success condition are met is the closeout slice's verdict, not this document's.
+
 This document stays **PLANNED**. Runtime profiles beyond Claude Code — Codex,
 GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI and Google Antigravity —
 are retired to open extension rather than delivery obligations. The router's

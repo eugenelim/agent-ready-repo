@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Composition Fixtures
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md`
   § *Experiment / validation*, Gate 2, for the fixture inventory, its success
   conditions, and the architecture-update fields;

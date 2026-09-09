@@ -179,9 +179,6 @@ one's status, derived from its linked spec rather than maintained here.
 Slice 3b is discarded rather than shipped; its row below is the canonical record
 and states where each of its four residuals went.
 
-**In flight.** Slice 3e has an approved spec and plan and is registered in
-`["ini-009".work].active`; its `Spec map` row below carries its status.
-
 **Not yet started.** Slices 3c, 3d, 5 and 6 exist only as rows in the table
 below. None has a spec, a plan, an intent, or a `workspace.toml` work entry, and
 `["ini-009".work].queue` is empty by the rule in *Derived work* — a confirmed
@@ -314,7 +311,7 @@ promotes and approves them.
 | `agent-skill-engineering-languages-and-execution` | Shipped |
 | `agent-skill-engineering-composition-floors` | Shipped |
 | `agent-skill-engineering-consumer-integrations` | Shipped |
-| `agent-skill-engineering-composition-fixtures` | Implementing |
+| `agent-skill-engineering-composition-fixtures` | Shipped |
 
 ## Backlog and prerequisites
 

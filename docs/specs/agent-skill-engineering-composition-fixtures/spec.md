@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Composition Fixtures
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md)
@@ -160,21 +160,21 @@ the closeout slice.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Both named cases are declared with a complete field set.** The
+- [x] **AC1 — Both named cases are declared with a complete field set.** The
   authoring workflow's `evals/evals.json` declares `subagent-composition` and
   `hook-plugin-design`, and for each the `id`, `prompt`, `expected_output`,
   `assertions`, `expect.output_contains`, and `files` values are non-empty.
-- [ ] **AC2 — Each new case names its own payload.** Every path in each new
+- [x] **AC2 — Each new case names its own payload.** Every path in each new
   case's `files` resolves to a file under the skill root, and the payload set
   each new case names is disjoint from the payload set every other declared case
   names, so a case is graded against the draft its own declaration supplies.
-- [ ] **AC3 — The declared-case set gains exactly these two.** The set of ids
+- [x] **AC3 — The declared-case set gains exactly these two.** The set of ids
   the authoring workflow declares equals the set read from the declarations file
   at the base commit, plus `subagent-composition` and `hook-plugin-design`, with
   no other id added, removed, or renamed. Reading the base set from the base
   commit rather than the working tree is what stops the change under test from
   defining its own baseline.
-- [ ] **AC4 — Each new case declares the pattern identifiers it exercises.**
+- [x] **AC4 — Each new case declares the pattern identifiers it exercises.**
   `subagent-composition` declares exactly
   `["skills-and-subagents-common-floor"]` and `hook-plugin-design` declares
   exactly `["hooks-common-floor", "plugin-package-common-floor"]`, and every one
@@ -182,7 +182,7 @@ the closeout slice.
   `packs/agent-skill-engineering/tests/fixtures/topic-admission.json`. Equality
   per case, not membership in the admitted set: an unrelated admitted topic
   would otherwise satisfy the criterion.
-- [ ] **AC5 — Each new case declares the marker set its closest sibling
+- [x] **AC5 — Each new case declares the marker set its closest sibling
   declares.** Each new case's `expect.output_contains`, as a set, equals the set
   `pytest-suite` declares at the base commit, and `pytest-suite`'s declared set
   on the shipping tree equals the set it declared at the base commit. Equality
@@ -193,7 +193,7 @@ the closeout slice.
   shape — read-only framing over a payload the case supplies. Reading it from
   the base commit, and asserting it unmoved, is what stops this slice widening
   its own allowed set.
-- [ ] **AC6 — Each new case names the assertion that reports its seeded
+- [x] **AC6 — Each new case names the assertion that reports its seeded
   defect.** Each of the two cases declares, alongside its pattern identifiers,
   the exact text of the one assertion in its own list that reports the defect
   the payload seeds; that text is a member of the case's `assertions`; and the
@@ -202,19 +202,19 @@ the closeout slice.
   Without this the seeded-defect subject is whichever assertion the implementer
   has in mind, and dropping it while keeping other true assertions leaves every
   check green.
-- [ ] **AC7 — Each new assertion cites the floor requirement it tests.** For
+- [x] **AC7 — Each new assertion cites the floor requirement it tests.** For
   each assertion either new case declares, the verification ledger records the
   requirement in the declared floor's shipped text that the assertion tests, and
   a reviewer's judgement that a response could satisfy the assertion only by
   meeting that requirement. An assertion a generic response satisfies is the
   failure this addresses, and no predicate over authored prose decides it, so it
   is read at review and recorded rather than gated.
-- [ ] **AC8 — Each payload is a distinct, non-empty draft.** Neither payload is
+- [x] **AC8 — Each payload is a distinct, non-empty draft.** Neither payload is
   empty, and neither is byte-equal to the other or to any payload the base
   commit carried. Whether a payload's prose carries the defect its declaration
   names is the advisory judgement the Testing Strategy names, recorded in the
   verification ledger rather than gated here.
-- [ ] **AC9 — Every graded verdict is readable against its own retained
+- [x] **AC9 — Every graded verdict is readable against its own retained
   transcript.** Every authoring record names a transcript path under this spec's
   `notes/` directory; no two records' paths resolve to the same transcript,
   compared on canonical resolved targets rather than on the path strings, since
@@ -223,13 +223,13 @@ the closeout slice.
   string in the case's `expect.output_contains` appears in it. One transcript
   witnessing several records is the mutation the per-record path and the
   distinctness check exist to stop.
-- [ ] **AC10 — Every recorded verdict is the one the transcript supports.** For
+- [x] **AC10 — Every recorded verdict is the one the transcript supports.** For
   every recorded assertion verdict, the verification ledger records the grading
   context's reading of the transcript passage the verdict rests on. A transcript
   can hash correctly, carry every declared marker, and still contradict a
   recorded `true`; nothing mechanical decides that, so the reading is recorded
   and read at review.
-- [ ] **AC11 — Every authoring record belongs to one declared round.** Every
+- [x] **AC11 — Every authoring record belongs to one declared round.** Every
   authoring result carries the same observation identifier, a verdict per
   declared assertion in declaration order, and its own transcript. Two claims
   are deliberately *not* gated here, because no artifact in the tree
@@ -239,56 +239,56 @@ the closeout slice.
   statement of which defects the payload seeds. Both are attested in the
   verification ledger by the operator who ran the round, alongside the other
   advisory readings the Testing Strategy names.
-- [ ] **AC12 — Every inherited result is re-measured, not re-stamped.** Adding
+- [x] **AC12 — Every inherited result is re-measured, not re-stamped.** Adding
   the two cases moves `evals/evals.json`'s digest, which every authoring record
   pins. Every authoring record the base commit carried holds this round's
   observation identifier and transcript digest, and every digest in its
   `source_files` equals the shipping tree's value for that path.
-- [ ] **AC13 — Each new case's graded response reports its declared defect.**
+- [x] **AC13 — Each new case's graded response reports its declared defect.**
   For each of the two cases, the assertion AC6 names is recorded true, or its
   miss is recorded under AC14 and AC15. A payload whose defect the
   workflow does not surface is a measurement this slice reports, not a payload
   it rewrites.
-- [ ] **AC14 — The exemption set equals the misses this slice measured.** The
+- [x] **AC14 — The exemption set equals the misses this slice measured.** The
   known-miss exemption set names exactly the `(case, assertion text)` pairs
   whose verdict is false in the recorded round; an exemption whose miss the
   measurement repaired is removed; and each exemption still names an assertion
   the case declares.
-- [ ] **AC15 — Every exemption carries a recorded authority.** For each entry in
+- [x] **AC15 — Every exemption carries a recorded authority.** For each entry in
   the exemption set, the verification ledger carries the fields the *Never do*
   rule enumerates. Verified by reading the ledger at close: a set-equality guard
   compares two machine-readable sets and cannot see whether an authority exists.
-- [ ] **AC16 — Every enumeration the plan names equals the set it pins.** Each
+- [x] **AC16 — Every enumeration the plan names equals the set it pins.** Each
   enumeration the plan identifies as scoping which declarations or results a
   pack guard reads equals that set on the shipping tree. The claim is bounded to
   the named enumerations: a consumer that selects records by a computed
   predicate rather than by a literal id set is outside what any search over ids
   finds, and the plan states that limit rather than this criterion asserting a
   coverage it cannot establish.
-- [ ] **AC17 — Structural host-identity scanning is clean over what this slice
+- [x] **AC17 — Structural host-identity scanning is clean over what this slice
   writes.** The pack's shared host-identity patterns match nothing in the two
   payloads, the two declarations, any behavior result this slice writes, or any
   retained transcript. The patterns are structural rather than derived from the
   running environment, so the control fires where it is gated rather than only
   where it was authored.
-- [ ] **AC18 — Both payloads are clean under both portability controls.** The
+- [x] **AC18 — Both payloads are clean under both portability controls.** The
   export-boundary scan's repository-only pattern set matches nothing in either
   payload, and neither payload matches the committed portability grep the pack's
   maintainer procedure requires before commit, which additionally catches a bare
   `RFC-NNNN` or `ADR-NNNN` identifier the pytest scan does not. Each payload
   therefore reads as a portable draft to an installed consumer.
-- [ ] **AC19 — Every fixture the M2 expanded measure names is recorded.**
+- [x] **AC19 — Every fixture the M2 expanded measure names is recorded.**
   `packs/agent-skill-engineering/tests/fixtures/behavior-results.json` carries a
   result for each representative task fixture RFC-0097's M2 expanded measure
   names, compared against that measure's own list rather than against a set
   restated here.
-- [ ] **AC20 — The architecture record carries all four fields the RFC
+- [x] **AC20 — The architecture record carries all four fields the RFC
   requires.** `docs/architecture/agent-skill-engineering.md` records this
   slice's implemented names, their paths, its dependency edge on the composition
   floors slice, and the verification evidence for the two fixtures, and remains
   `PLANNED`. No repository gate asserts these fields, so this is verified by
   reading the record at close, in the same review pass as AC15.
-- [ ] **AC21 — The status and registration pair is consistent at every point
+- [x] **AC21 — The status and registration pair is consistent at every point
   the projection reads it.** The workspace projection emits no
   `impossible_transition` for this spec at either lifecycle point: not when the
   spec reads `Implementing` in `["ini-009".work].active`, and not when it reads
@@ -297,7 +297,7 @@ the closeout slice.
   not the commit shape, because a workspace projection reads a tree and five
   attempts at a Git-history predicate for the pairing each admitted a
   reconciling second commit.
-- [ ] **AC22 — The milestone stops advertising this slice as startable and says
+- [x] **AC22 — The milestone stops advertising this slice as startable and says
   it is in flight.** While this spec's entry sits in `["ini-009".work].active`,
   the `["ini-009"]` milestone string differs from the one the base commit
   carries — read with `git show <base>:workspace.toml`, the same base-commit
@@ -309,7 +309,7 @@ the closeout slice.
   Requiring the string to have moved is what makes this checkable at all. The
   base milestone already contains the substring `3e`, so a criterion asking only
   that the milestone name the slice is satisfied before any work happens.
-- [ ] **AC23 — This spec's own registration pins the brief's current digest.**
+- [x] **AC23 — This spec's own registration pins the brief's current digest.**
   The `["ini-009".work]` entry this slice creates carries, as its
   `source.revision`, the `sha256-bytes-v1` digest of
   `docs/product/briefs/agent-skill-engineering.md` as it stands when the entry
@@ -320,11 +320,11 @@ the closeout slice.
   that the `brief_queue.executing` entry pins RFC-0097 rather than the brief at
   all. That drift predates this slice and is recorded as a Follow-on; absorbing
   it here would make a fixtures slice the owner of workspace hygiene.
-- [ ] **AC24 — The brief's Spec map carries this spec.** The Spec map has a row
+- [x] **AC24 — The brief's Spec map carries this spec.** The Spec map has a row
   for this spec's bare slug. A path-shaped entry does not resolve under
   brief-coverage lint, and that lint reports an unresolved back-link
   informationally and exits zero, so the row is confirmed by reading the brief.
-- [ ] **AC25 — Both authored manifests carry the same bumped version, and the
+- [x] **AC25 — Both authored manifests carry the same bumped version, and the
   aggregate matches its projection.** `pack.toml` and `.claude-plugin/plugin.json`
   carry one patch above the version they carried at the base commit, and
   running the projection generator against the committed tree leaves
@@ -333,14 +333,14 @@ the closeout slice.
   separate artifact to compare against; a hand-edit that diverges from the
   projection reddens it. Whether identical bytes were generated or typed is not
   decidable from a tree and is not claimed.
-- [ ] **AC26 — The changelog entry is topmost for this pack and carries a
+- [x] **AC26 — The changelog entry is topmost for this pack and carries a
   `Highlights` disposition.** `docs/product/changelog.md` carries a
   free-standing `##` entry for this pack at the bumped version, above every
   other entry for it, and the entry either carries a `### Highlights`
   subsection or the release's PR records the verdict that this change alters
   nothing a pack consumer can do, with the reason. Nothing downstream makes that
   call: the public projection is a parser over the file's bytes.
-- [ ] **AC27 — The spec index row matches this spec.** `docs/specs/README.md`
+- [x] **AC27 — The spec index row matches this spec.** `docs/specs/README.md`
   carries a row for this spec stating its shape and its final criterion and task
   counts.
 
