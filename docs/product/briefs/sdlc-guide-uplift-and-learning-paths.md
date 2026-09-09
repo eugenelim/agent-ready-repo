@@ -163,29 +163,29 @@ Spec-map entries.
 
 S1 and S2 have shipped. S3 passed its shaping gate and an owner-authorized
 fourth adversarial round after repairing the third-round construction-gate
-finding; S5 passed its shaping gate and three adversarial rounds. Both are
-registered below as Draft specs pending human approval. S4 remains outside the
-map because its second-round review evidence was indeterminate and requires a
-fresh owner-directed continuation before registration.
+finding. S4 passed a clean-room review after its earlier indeterminate review
+unit was closed and its gate and scope findings were repaired. S5 passed its
+shaping gate and three adversarial rounds. S3-S5 are registered below as Draft
+specs pending human approval.
 
 | Spec | Status |
 | --- | --- |
 | `install-to-ship-walkthrough` | Shipped |
 | `desk-research-build-handover` | Shipped |
 | `guide-invocation-outcome-coverage` | Draft |
+| `tutorial-worked-examples` | Draft |
 | `how-to-sample-output-coverage` | Draft |
 
 ## Open delivery slices
 
-Review-clean S3 and S5 now appear in the Spec map as non-dispatchable Drafts.
-S4 remains confirmed but non-dispatchable for the review-stop reason recorded
-above. Shipped S1 and S2 are recorded with the delivered work above rather than
-mixed into this table.
+Review-clean S3-S5 now appear in the Spec map as non-dispatchable Drafts.
+Shipped S1 and S2 are recorded with the delivered work above rather than mixed
+into this table.
 
 | # | Candidate slice | Open portion | Independently shippable boundary |
 | --- | --- | --- | --- |
 | S3 | Raise invocation and outcome coverage — **confirmed 2026-09-09, review-clean and registered as Draft [`guide-invocation-outcome-coverage`](../../specs/guide-invocation-outcome-coverage/spec.md)** | Guides still lack literal chat inputs and stated outcomes, and user-invocable skill descriptions still lack quoted examples or `Triggers on` phrasing | Every current in-scope target identified by the audit gains its missing source-grounded invocation or outcome affordance; the accepted-base ledger proves positive movement without freezing corpus totals |
-| S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, drafted as [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
+| S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, review-clean and registered as Draft [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
 | S5 | Close the how-to sample-output gap — **confirmed 2026-09-09, review-clean and registered as Draft [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md)** | Sample-output coverage did not move in the earlier uplift, and many invocable-skill how-tos still describe a result without showing a representative agent response | Every current in-scope how-to target shows a source-grounded representative response; reference and explanation pages and related-intent surfaces remain excluded |
 
 ## Rabbit holes

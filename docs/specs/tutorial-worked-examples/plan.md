@@ -32,13 +32,9 @@ published site before closeout.
 
 ## Construction tests
 
-**Integration tests:** before/after affordance ledgers; the three required
-guide-source gates — `python3 tools/validate_guides.py`,
-`python3 tools/check-guide-index.py`, and
-`python3 tools/lint-guide-titles.py`; and the canonical generated-site gate,
-`make site-link-check`. The Makefile defines that target through `site-build`
-and `site-sync`, so the one command runs `tools/build-site.py`, the web build,
-the documentation-site build, and the rendered-link audit in order.
+**Integration tests:** before/after affordance ledgers and the guide-source,
+generated-site, and rendered-link gate receipts whose single canonical command
+list is owned by T4.
 
 **Manual verification:** per-target review that supplied values and returned
 content match, remain representative, and use safe placeholders. Record the
@@ -92,7 +88,9 @@ behavior source and verdict in `notes/verification-ledger.md`.
 
 **Mode:** goal-based check plus manual documentation review
 
-**Touches:** `guides/core/tutorials/**`, `guides/desk-research/tutorials/**`, `guides/figma/tutorials/**`, `guides/frontend-engineering/tutorials/**`
+**Touches:** `guides/core/tutorials/start-a-new-project.md`,
+`guides/desk-research/tutorials/**`, `guides/figma/tutorials/**`,
+`guides/frontend-engineering/tutorials/**`
 
 **Tests:** exact target B/C audit; pair-coherence and source review.
 
