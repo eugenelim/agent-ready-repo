@@ -54,6 +54,24 @@ about — is no longer silent.
 
 ## `wave6-superseded-case-names-contradict-their-bodies` — two retained test names now misdescribe what they assert
 
+**Blocked as of 2026-09-09, and the blocker is this delivery's own doing.** The
+spec is now `Shipped`, so `spec.md` is frozen, and AC17 is a **ticked** criterion
+that pins all three function names by string. Renaming either misdescribing
+function falsifies a ticked criterion in a frozen spec, which admits exactly one
+route: a `Status`-token parenthetical pointing at an ADR, under Approver
+authority — the same route AC59 needed.
+
+So the repair is not a rename. It is an ADR recording that two of the three
+pinned names no longer describe their bodies, plus the rename, plus the `Status`
+pointer. That is a small delivery, not a chore, and it needs an owner.
+
+The alternative reading — that AC17 should never have pinned names by string —
+is worth stating: the criterion's purpose was to prove the three cases were
+*updated rather than deleted*, and it could have been written against the count
+of cases, or their docstrings' subject, instead of their identifiers. Pinning an
+identifier made the identifier immutable, which is not what the criterion was
+for.
+
 **Owner:** unassigned. Routed through `work-intake`.
 
 AC17 pins three function names in
@@ -150,10 +168,35 @@ and one of them starts a `multiprocessing.Process`. A subsequent `git add -A`
 would commit them. That is a consequence of interruption rather than of the
 suite's design, and it is not specific to this suite.
 
-**What would close it.** Write the scaffolding under `tmp_path`, which survives
-interruption because nothing in the repository tree is touched at all. The
-`.gitignore` rules this delivery added stop the residue reaching a commit but
-cannot stop collection, so they are a safety net rather than a fix.
+**Corrected 2026-09-09: the fix recorded here would break the suite.** The
+earlier version said to write the scaffolding under `tmp_path`. Measured, the
+repository-root placement is load-bearing and cannot move:
+
+- `test_grouped_failure_retains_normal_pytest_attribution` passes the scaffolding
+  to pytest as a bare `failure.name` alongside `PROVEN_COMPATIBLE_FILES`, which
+  resolves only with the file in the repository root and the run started there;
+- the path-leak mutator writes `Path(__file__).parents[1] / 'packages' /
+  'agentbundle'`, which resolves only with the file in `<repo>/tools/`;
+- `test_approved_group_collection_has_only_the_characterized_path_delta` asserts
+  an exact `sys.path` prepend delta for the repository root and `tools/`, which
+  is the behaviour under test.
+
+The suite writes into those two directories *because* it characterises pytest's
+collection and `sys.path` behaviour for files at exactly those locations. Moving
+the scaffolding to `tmp_path` would change what the suite measures rather than
+fix a defect in it.
+
+**So the residue is inherent, and the mitigation already shipped.** A run that is
+killed before its `finally` executes leaves files the suite would otherwise
+remove. The three `.gitignore` rules stop them reaching a commit. They cannot
+stop a bare `pytest` from the repository root collecting them, and no
+`testpaths` is configured, so that exposure stands.
+
+**What would actually close it,** if anyone judges it worth closing: register the
+paths for cleanup at interpreter exit as well as in `finally`, so a SIGTERM'd run
+still tidies up. That is a change to another delivery's suite and is not
+obviously worth its risk — the failure mode requires an operator to kill the run
+and then stage with `git add -A` without reading the diff.
 
 **Do not** rewrite that `finally` block. It works.
 
