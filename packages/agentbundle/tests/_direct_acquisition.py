@@ -17,7 +17,6 @@ from agentbundle.catalogue_tooling.results import Severity
 from agentbundle.direct_source_acquisition import (
     AcquiredArchive,
     DirectAcquisitionError,
-    enforce_runtime_floor,
     parse_direct_source,
 )
 
@@ -99,7 +98,13 @@ class GitHttpsAcquisitionFake:
             _inactivity_seconds,
         )
         self.calls.append(source_string)
-        enforce_runtime_floor(source_string)
+        # Deliberately NOT `enforce_runtime_floor`. That floor guards real
+        # acquisition — downloading and extracting a publisher archive — which
+        # this fake never performs; it serves bytes the test already staged
+        # locally. Calling it made every fake-driven test refuse `CAT-D005` on
+        # any interpreter below the floor, which is a property of the runner
+        # rather than of the source under test. The floor keeps its own coverage
+        # in `tests/unit/test_direct_source_acquisition.py`.
         source = parse_direct_source(source_string)
         publication = self._publications.get(
             (f"{source.owner}/{source.repository}", source.ref)
