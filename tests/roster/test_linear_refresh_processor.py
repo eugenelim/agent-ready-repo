@@ -10,6 +10,7 @@ import importlib.util
 import json
 import sys
 import types
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -32,18 +33,33 @@ def _unreached_acquire(_locator: str, _revision: str) -> dict[str, object]:
 
 
 @pytest.fixture(scope="module")
-def linear_mod() -> types.ModuleType:
-    """Load linear.py once per session; stub credbroker to avoid import-time auth."""
+def linear_mod() -> Iterator[types.ModuleType]:
+    """Load linear.py once per module; stub credbroker to avoid import-time auth.
+
+    The stub is removed again on teardown. `types.ModuleType` carries no
+    `__spec__`, and `importlib.util.find_spec` raises `ValueError` rather than
+    returning None for a spec-less entry — so leaving this installed makes any
+    later test in the same process that probes for `credbroker` fail on a
+    module this one invented.
+    """
     credbroker_stub = types.ModuleType("credbroker")
     credbroker_stub.CredentialsMissingError = Exception  # type: ignore[attr-defined]
     credbroker_stub.load_credentials = lambda *a, **kw: None  # type: ignore[attr-defined]
-    sys.modules.setdefault("credbroker", credbroker_stub)
+    # Only uninstall what this fixture installed, and only while it is still
+    # ours: a real credbroker imported meanwhile must survive.
+    stubbed = "credbroker" not in sys.modules
+    if stubbed:
+        sys.modules["credbroker"] = credbroker_stub
 
-    spec = importlib.util.spec_from_file_location("linear_script", LINEAR_SCRIPT)
-    assert spec is not None and spec.loader is not None
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore[union-attr]
-    return mod
+    try:
+        spec = importlib.util.spec_from_file_location("linear_script", LINEAR_SCRIPT)
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        yield mod
+    finally:
+        if stubbed and sys.modules.get("credbroker") is credbroker_stub:
+            del sys.modules["credbroker"]
 
 
 @pytest.fixture(scope="module")

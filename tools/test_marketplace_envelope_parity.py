@@ -1313,5 +1313,18 @@ def test_resolved_layer_refuses_a_module_from_another_tree(tmp_path: Path) -> No
     """
     root = tmp_path / "no-package-here"
     root.mkdir()  # must exist: it is the child's cwd
-    with pytest.raises(ParityError, match="provenance mismatch"):
+    with pytest.raises(ParityError) as raised:
         resolve_build_main_constants(root)
+    # One required outcome reached by two routes, decided by what is installed
+    # rather than by the layer. Where some install still makes the package
+    # importable -- an editable install on a contributor's machine -- the finder
+    # resolves a sibling tree and the layer reports a provenance mismatch. Where
+    # nothing provides it -- CI, where `-I` strips the PYTHONPATH the suite
+    # otherwise relies on -- the child cannot import it at all and the layer
+    # reports the failed child. Both are the refusal this test exists for, so
+    # matching only the first would pin the contributor's environment.
+    message = str(raised.value)
+    assert (
+        "provenance mismatch" in message
+        or "No module named 'agentbundle'" in message
+    ), message
