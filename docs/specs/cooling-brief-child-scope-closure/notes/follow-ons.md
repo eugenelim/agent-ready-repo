@@ -84,11 +84,16 @@ Each docstring names this file, so a reader who lands on the mismatch finds the
 record rather than guessing.
 
 
-## `pack-scripts-cite-internal-governance-records` — a documented rule and the shipped engine disagree
+## `pack-scripts-cite-internal-governance-records` — RESOLVED in this delivery
 
-**Owner:** unassigned. Routed through `work-intake`. Reported rather than
-resolved, because resolving it means either changing the rule or editing eight
-comments this delivery does not own.
+**Status:** closed. Recorded here because the measurement is worth keeping and
+because the register pointed at this entry while it was open.
+
+Originally reported rather than resolved, on the reasoning that fixing it meant
+either changing the rule or editing comments this delivery does not own. The
+owner directed the fix instead: all seven citations were rewritten to state
+their rule directly, and the citation count in both shipped `workspace-status`
+scripts is now zero. `notes/owner-decisions.md` carries that decision.
 
 `packs/AGENTS.md` § *Shipped pack content carries no internal-governance
 citations* says: "Under `packs/`, write portable guidance only. Do not cite this
@@ -121,27 +126,34 @@ which case it should say so. Nothing mechanises it today — no lint checks for
 this pattern under `packs/`, which is why the drift accumulated silently.
 
 
-## `dedup-guard-leaks-untracked-test-files-into-the-repository-root`
+## `interrupted-suites-leave-collectable-test-files-in-the-repository-root`
 
-**Owner:** unassigned. Routed through `work-intake`. Found while running gates
-for this delivery; not caused by it.
+**Owner:** unassigned. Routed through `work-intake`. **This entry replaces an
+earlier one that blamed the suite for leaking. That claim was wrong.**
 
-`tools/test_local_ci_shared_test_deduplication.py` writes scaffolding test
-files into the **repository root** with random suffixes — observed as
-`test_state_guard_following_eo71xn6s.py` and
-`test_state_guard_mutator_z0soap7h.py` — and does not remove them. They are not
-covered by `.gitignore`, so `git status` reports them as untracked additions
-alongside real work.
+`tools/test_local_ci_shared_test_deduplication.py` writes scaffolding tests into
+the repository root — `test_state_guard_mutator_*.py`,
+`test_state_guard_following_*.py`, `state_guard_fs_*` and `state_guard_unused` —
+and **does** clean them up: a `finally` block unlinks every path it creates.
+Verified by construction at base `02742751a`: a complete run is `27 passed in
+168.93s` and leaves the repository root clean.
 
-**Why it matters.** A session that stages with `git add -A` after running that
-suite commits two stub tests into the repository root, where pytest's default
-collection will find them. One of them starts a `multiprocessing.Process`, so
-the leak is not inert. This delivery removed both by hand before committing;
-nothing would have caught it otherwise.
+**What actually happened.** This delivery ran that suite in a foreground shell
+with a 120-second limit. The suite needs about 169 seconds, so it was killed —
+and a killed process does not run `finally`. Two files survived, and this
+delivery misread that as a defect in the suite.
 
-**What would close it.** Either write the scaffolding under `tmp_path` like
-every other suite, or clean up in a fixture teardown. A `.gitignore` entry
-would hide the symptom while leaving the files on disk for collection to find,
-so it is the weaker repair.
+**The residual that is real.** Any interruption of that suite — a timeout, a
+`Ctrl-C`, a crash — leaves files named `test_*.py` in the repository root. No
+`testpaths` is configured, so a bare `pytest` from the root then collects them,
+and one of them starts a `multiprocessing.Process`. A subsequent `git add -A`
+would commit them. That is a consequence of interruption rather than of the
+suite's design, and it is not specific to this suite.
 
-Observed at base `58da5cc7c`, immediately after that file was changed upstream.
+**What would close it.** Write the scaffolding under `tmp_path`, which survives
+interruption because nothing in the repository tree is touched at all. The
+`.gitignore` rules this delivery added stop the residue reaching a commit but
+cannot stop collection, so they are a safety net rather than a fix.
+
+**Do not** rewrite that `finally` block. It works.
+

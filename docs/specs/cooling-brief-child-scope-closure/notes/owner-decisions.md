@@ -185,13 +185,23 @@ This delivery surfaced three defects it did not cause, recorded them in
 fixed here instead. That admits work the accepted contract does not cover, so it
 is recorded as an owner decision rather than treated as in-scope.
 
-1. **`.gitignore` covers the dedup guard's residue.** `/test_state_guard_*.py`
-   is ignored, verified against a real file rather than by reading the pattern.
-   The concern already raised stands and is written into the rule's own comment:
-   ignoring hides the symptom, the files stay on disk, and no `testpaths` is
-   configured, so a bare `pytest` from the repository root still collects them.
-   The owner chose the ignore rule; the stronger repair — the suite writing
-   under `tmp_path` — stays open in `notes/follow-ons.md`.
+1. **`.gitignore` covers an interrupted suite's residue.** Three patterns are
+   ignored — `/test_state_guard_*.py`, `/state_guard_fs_*` and
+   `/state_guard_unused*` — each verified against a real file rather than by
+   reading the pattern.
+
+   **The premise this was requested on was wrong, and the correction is
+   recorded rather than quietly applied.** The dedup guard does not leak: it
+   unlinks every file it creates in a `finally` block, and a complete run —
+   measured, `27 passed in 168.93s` — leaves the repository root clean. The
+   residue this delivery found came from running that suite in a foreground
+   shell with a 120-second limit, so it was killed before `finally` executed.
+
+   The rule is kept because interruption is real and recurring, and a killed
+   run does strand files named `test_*.py` where a bare `pytest` collects them.
+   It stops the residue reaching a commit; it cannot stop collection.
+   `notes/follow-ons.md` carries the corrected entry, including an explicit
+   instruction not to rewrite the working cleanup block.
 2. **All internal-governance citations are removed from the two shipped
    `workspace-status` scripts.** Seven sites carried `AC7`, `AC20`, `AC28`,
    `AC29`, `AC37`, `AC38` and two `RFC-0096` references. Each now states its
