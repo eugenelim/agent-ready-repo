@@ -157,7 +157,16 @@ jobs:
         # gate-sast, and the scan would silently run twice.
         run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
       - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+        # A third-party Google index outage can otherwise red this required gate,
+        # even though ripgrep comes from Ubuntu. Remove this once runner images
+        # stop adding Google's unused Chrome source.
+        run: |
+          for source in /etc/apt/sources.list.d/*; do
+            if [ -f "$source" ] && grep -q 'dl.google.com' "$source"; then
+              sudo rm -- "$source"
+            fi
+          done
+          sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Install ruff + mypy
         run: pip install ruff mypy
       - name: ruff lint (style, imports, common bugs)
