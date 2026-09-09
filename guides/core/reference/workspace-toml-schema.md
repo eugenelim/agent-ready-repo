@@ -163,7 +163,7 @@ Tracker-origin entries require both `ref` and `revision`. Optional fields are:
 
 | Field | Meaning |
 | --- | --- |
-| `parent` | Local parent artifact such as a brief or intent. |
+| `parent` | Local parent artifact such as a brief or intent. Declare it explicitly on a spec entry before that spec cools: the value is **unestablished once the spec has cooled** if the key is absent or names no registered brief, and reconciliation then refuses every **local** `kind = "brief"` dependency until it is declared, while a `cross-repo` brief dependency stays decided by its receipt. A literal `none` is a valid declaration meaning the spec has no parent brief. |
 | `coordination` | Cross-repository coordination reference. |
 | `tracker_profile` | Optional profile hint with `id` and `version`. |
 
@@ -363,6 +363,7 @@ finding identifier as a path only after confirming it is one.
 | `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. | Remove the duplicate after choosing the authoritative membership. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
+| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names no registered brief. | Declare `source.parent` on the named entry — a brief path that resolves to a registered brief entry, or `none` only when that spec has no parent brief. A value naming nothing registered does not clear it. A value naming the wrong registered brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |

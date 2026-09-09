@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.8] — 2026-09-08
+## [core][2.25.9] — 2026-09-09
 
 ### Highlights
 
@@ -104,6 +104,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   decided after sorting figures into those that can go stale and those that
   cannot, so a dated past measurement can stay as illustration instead of
   being both permitted and forbidden.
+
+## [core][2.25.8] — 2026-09-08
+
+### Highlights
+
+- **A cooled delivery's parent link is now declared on its workspace entry, so
+  reconciliation stops guessing.** When a cooled spec's `source.parent` is
+  missing or names no registered brief, `workspace-status` reports
+  `cooled_child_scope_unknown` against that entry and holds every dependency on
+  a brief until someone answers — instead of silently reading the missing value
+  as "this delivery has no parent" and releasing the work.
+- **Declaring `none` is a real answer.** A delivery with no parent brief is
+  declared as such once and dispatches normally, so the new refusal is
+  something a maintainer clears rather than waits out.
+
+### Added
+
+- `cooled_child_scope_unknown`, documented in the `workspace-status` skill and
+  the `workspace.toml` reference with both repairs: a brief path that resolves
+  to a registered membership, or `none` when there is no parent brief.
+
+### Changed
+
+- `source.parent` on a cooled spec entry answers three ways rather than two. A
+  value resolving to a registered brief attributes the delivery to it; a
+  declared empty value attributes nothing; anything else — an absent key, or a
+  value naming no registered brief — is unestablished scope. The declared value
+  is compared as written rather than through the filesystem, so a path that
+  differs only in case does not resolve.
+- The `cool-30-days` closeout procedure now states the precondition: declare
+  `source.parent` before cooling, while the body can still be read.
 
 ## [core][2.25.7] — 2026-09-08
 

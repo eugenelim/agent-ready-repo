@@ -13,23 +13,52 @@
       "changelogAnchor": "core2258--2026-09-08",
       "highlights": [
         {
-          "source": "**The defects a spec review keeps finding are now named where the spec is written, not only where it is reviewed.** `new-spec` ships a spec-authoring rubric: six failure classes worked in order before criterion shape, starting with the one no criterion craft repairs — an obligation authored where an owner already exists.",
+          "source": "**A cooled delivery's parent link is now declared on its workspace entry, so reconciliation stops guessing.** When a cooled spec's `source.parent` is missing or names no registered brief, `workspace-status` reports `cooled_child_scope_unknown` against that entry and holds every dependency on a brief until someone answers — instead of silently reading the missing value as \"this delivery has no parent\" and releasing the work.",
           "segments": [
             {
               "type": "strong",
-              "value": "The defects a spec review keeps finding are now named where the spec is written, not only where it is reviewed."
+              "value": "A cooled delivery's parent link is now declared on its workspace entry, so reconciliation stops guessing."
             },
             {
               "type": "text",
-              "value": " "
+              "value": " When a cooled spec's "
             },
             {
               "type": "code",
-              "value": "new-spec"
+              "value": "source.parent"
             },
             {
               "type": "text",
-              "value": " ships a spec-authoring rubric: six failure classes worked in order before criterion shape, starting with the one no criterion craft repairs — an obligation authored where an owner already exists."
+              "value": " is missing or names no registered brief, "
+            },
+            {
+              "type": "code",
+              "value": "workspace-status"
+            },
+            {
+              "type": "text",
+              "value": " reports "
+            },
+            {
+              "type": "code",
+              "value": "cooled_child_scope_unknown"
+            },
+            {
+              "type": "text",
+              "value": " against that entry and holds every dependency on a brief until someone answers — instead of silently reading the missing value as \"this delivery has no parent\" and releasing the work."
+            }
+          ]
+        },
+        {
+          "source": "**Declaring `none` is a real answer.** A delivery with no parent brief is declared as such once and dispatches normally, so the new refusal is something a maintainer clears rather than waits out.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Declaring `none` is a real answer."
+            },
+            {
+              "type": "text",
+              "value": " A delivery with no parent brief is declared as such once and dispatches normally, so the new refusal is something a maintainer clears rather than waits out."
             }
           ]
         }
