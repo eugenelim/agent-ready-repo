@@ -1,6 +1,6 @@
 # Spec: Site browser quality gate
 
-- **Status:** Shipped (§ Acceptance Criteria's register anchors `print-audit-page-break-quality` and `print-chrome-paint-inventory` were both closed on 2026-08-25 and are recorded in `workspace.toml [backlog].closed`; the first on owner review of regenerated print evidence, the second retired won't-do. AC12's `(deferred:)` marker was removed under an explicit owner ruling — the only body edit made, licensed because `docs/CONVENTIONS.md:435` and `lint-spec-status.py` invariant (iv) admit no path between them. AC12 is closed, not delivered: the navigation-visibility axis was never measured. Not a supersession — every decision here stands)
+- **Status:** Shipped (§ Acceptance Criteria's former register anchors `print-audit-page-break-quality` and `print-chrome-paint-inventory` were both closed on 2026-08-25; their dispositions are recorded in [`notes/print-audit.md`](notes/print-audit.md) and the tech-site completion brief. The first closed on owner review of regenerated print evidence; the second was retired won't-do. AC12's `(deferred:)` marker was removed under an explicit owner ruling — the only body edit made, licensed because `docs/CONVENTIONS.md:435` and `lint-spec-status.py` invariant (iv) admit no path between them. AC12 is closed, not delivered: the navigation-visibility axis was never measured. Not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089

@@ -1,7 +1,7 @@
 # Plan: Site browser quality gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done (§ Tasks' register anchors `print-audit-page-break-quality` and `print-chrome-paint-inventory` were both closed on 2026-08-25 and are recorded in `workspace.toml [backlog].closed`; the first on owner review of regenerated print evidence, the second retired won't-do. No body line here changed. Not a supersession — every decision here stands)
+- **Status:** Done (§ Tasks' former register anchors `print-audit-page-break-quality` and `print-chrome-paint-inventory` were both closed on 2026-08-25; their dispositions are recorded in [`notes/print-audit.md`](notes/print-audit.md) and the tech-site completion brief. The first closed on owner review of regenerated print evidence; the second was retired won't-do. No body line here changed. Not a supersession — every decision here stands)
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
