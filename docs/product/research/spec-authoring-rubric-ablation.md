@@ -7,27 +7,34 @@ Run 2026-09-04 against
 as it stood that day. The result **does not** settle whether a skill reference
 is the right delivery mechanism — see § "What this does not measure".
 
-**The shipped rubric has moved since, and the move misses every scored
-paragraph.** No revision is pinned here: every candidate was a branch-local
-commit, which orphaned on the next rebase and would not survive a squash merge —
-the decay this document exists to avoid. What the claim rests on instead is the
-list of scored paragraphs below, each of which was byte-identical across the
-measured range at the time of the run: D1 and D2's derivation and
-hand-enumeration clauses, D3's positive-path paragraph, D4's projection
-paragraph, D5's empty-state tell, and D6's non-waivable-control bullet. That is
-a scored-region list, not a delta list; a delta list was kept once and decayed
-within two rounds, so none is kept.
+**The shipped rubric has moved since, and two scored regions moved with it.**
+No revision is pinned here: every candidate was a branch-local commit, which
+orphaned on the next rebase and would not survive a squash merge — the decay
+this document exists to avoid. What is kept instead is the region each defect
+was scored against, so a reader can check any score's standing directly: D1 and
+D2 against class 4's decay tell and its derivation clause, D3 against class 3's
+positive-path paragraph, D4 against the projection paragraph, D5 against class
+2's empty-state tell, and D6 against class 6's non-waivable-control bullet.
 
-Later edits fell on class 3's and class 6's *Move* paragraphs, class 6's
-*Draft narration* bullet, and the optional-syntax section — none of them scored.
-So the scores below stand, and § "Reproducing it" rebuilds arm B from the
-*current* file, which differs from the measured one in those unscored places.
+Class 4's decay tell and its derivation clause were both rewritten after the
+run, so **D1 and D2 are evidence about the rubric as measured, not as shipped**,
+and only a re-run settles them. For the other four, compare the named paragraph
+against the current file rather than trusting a claim stored here: an earlier
+revision asserted that no later edit reached a scored region, which was true
+when written and false two rounds on, with nothing to notice. That is also why
+no delta list is kept — one was, and it decayed the same way. § "Reproducing
+it" rebuilds arm B from the *current* file, which is a different text from the
+measured one.
 
 ## Design
 
-A randomised paired ablation over a challenge set, which is the design this
-repository's [oracle survey](agent-behavior-oracle-patterns-survey.md) names as
-the valid one for "did this rule bind?". Both arms received an identical,
+A paired ablation over a pre-registered challenge set. This repository's
+[oracle survey](agent-behavior-oracle-patterns-survey.md) names a *randomized*
+paired ablation over a challenge set as the valid design for "did this rule
+bind?", and this run is that design without the randomisation: defects were
+fixed in advance and arms were assigned by construction. It is therefore a
+controlled comparison that approximates the valid design rather than an
+instance of it, and § "Confounds" records what that costs. Both arms received an identical,
 self-contained brief: the shipped `assets/spec.md` § Acceptance Criteria
 guidance, four draft criteria, a deferral, and one restated rule. The treatment
 arm's brief additionally carried the rubric. Nothing else differed.
@@ -164,6 +171,11 @@ not a stricter one.
   findings, which is the opposite of a volume effect. A length-matched placebo
   arm — arm A plus equally long irrelevant guidance — would settle it and was not
   run.
+- **Nothing was randomised.** The defect set was pre-registered and each arm's
+  material was assigned by construction, so the design controls what differs
+  between arms but not what an unmeasured common cause could do to both. With
+  fixed defects and fixed arms there is nothing left to randomise over; the
+  cost is that this is a controlled comparison, not a randomised one.
 - **n = 2 per arm, one challenge set, one model, one session.** Four runs cannot
   separate a real effect from a consistent one.
 - **The challenge set was written by the same session that wrote the rubric.** It

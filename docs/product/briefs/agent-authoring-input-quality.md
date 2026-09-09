@@ -90,10 +90,12 @@ Every rule shipped here carries the activation contract owned by
 ## Sizing discipline
 
 The abandoned contract at `e1bdde746` carried **39 acceptance criteria in
-11,258 words** — above the 96th percentile on criteria and within 3% of the
-longest spec ever written here. Six of its criteria ran over 150 words, the
-longest at 704. Eleven review rounds, no convergence, abandonment. Sizing is a
-lever on this brief's outcome, not a style preference.
+11,258 words**, six of its criteria over 150 words and the longest at 704.
+Those are frozen properties of one dated artifact. Where it sat against the
+corpus is a live comparison, so run § "Corpus"'s instrument for it rather than
+reading a percentile stored here. The outcome is what matters either way:
+eleven review rounds, no convergence, abandonment. Sizing is a lever on this brief's outcome, not a
+style preference.
 
 ### Altitude precedes size
 
@@ -130,9 +132,10 @@ class's repair.
 
 **This section publishes an instrument, not a snapshot.** Every figure it used
 to carry was an exact count over a corpus that grows, which is rubric class 4's
-decay case; three separate revisions of those figures went stale or failed to
-reproduce inside a week. The bound that reads this corpus is now stated as the
-derivation, so it means the current corpus on the day anyone asks.
+decay case: a stored count of a growing set is wrong as soon as the set moves,
+and nothing here would notice. The bound that reads this corpus is stated as
+the derivation instead, so it means the current corpus on the day anyone
+asks.
 
 **The instrument.** `docs/specs/*/spec.md` at exactly one directory level. The
 status is the first line matching `^-?\s*\*\*Status:\*\*`, which must reduce to
@@ -141,7 +144,32 @@ stripped — the leading `- ` is optional, and omitting that clause is what made
 earlier predicate under-count. A criterion is a checkbox bullet under
 `## Acceptance Criteria`, since roughly half the corpus labels them `**ACn —**`
 and half does not. A spec's word count is the whole file, verbatim, including its
-metadata header. Running it is one command.
+metadata header. § "Corpus exclusion" names the specs a run must leave out;
+that rule is part of the instrument rather than a caveat on it.
+
+Running it is one command, and it stores nothing — which is why it is not the
+regenerator § "Why no regenerator" rejects:
+
+```bash
+python3 - <<'EOF'
+import glob, re, statistics
+EXCLUDE = {"agent-authoring-input-quality"}   # plus A1, A3, A4 and A5's specs
+rows = []
+for path in glob.glob("docs/specs/*/spec.md"):
+    if path.split("/")[2] in EXCLUDE:
+        continue
+    body = open(path, encoding="utf-8").read()
+    status = next(iter(re.findall(r"(?m)^-?\s*\*\*Status:\*\*\s*(.+)$", body)), "")
+    if status.split("(")[0].strip() != "Shipped":
+        continue
+    section = re.search(r"(?ms)^## Acceptance Criteria\n(.*?)(?=^## |\Z)", body)
+    criteria = re.findall(r"(?m)^\s*[-*] \[[ xX]\]", section.group(1)) if section else []
+    rows.append((len(criteria), len(body.split())))
+pct = lambda xs, p: statistics.quantiles(sorted(xs), n=100, method="inclusive")[p - 1]
+for name, xs in ("criteria", [r[0] for r in rows]), ("words", [r[1] for r in rows]):
+    print(f"{name}: n={len(xs)} median={statistics.median(xs):.0f} p75={pct(xs, 75):.0f}")
+EOF
+```
 
 **No percentile is published here.** Not the spec-body pair the band reads, and
 not a criterion-length pair — three attempts at the latter each differed on the
@@ -168,9 +196,9 @@ argued with.
 As `assets/spec.md` requires of any quantity
 carrying two: both are reachable, because they bound different quantities and neither implies
 the other: a spec can exceed the criteria ceiling well inside the body bound, and
-exceed the body bound with few criteria. § "Corpus" publishes each distribution
+exceed the body bound with few criteria. § "Corpus"'s instrument derives each distribution
 separately — criteria per spec, and words per spec — and nothing relating one to
-the other within a spec, so no figure here claims a ratio. Criterion size is not a
+the other within a spec, so no bound here claims a ratio. Criterion size is not a
 limit, so it can neither dominate nor be dominated.
 
 ### Corpus limits
@@ -187,11 +215,10 @@ Rejected: a regenerator slice — and the reason is now structural rather than a
 judgement about cost. Rubric class 4 is the decay class, and one band row reads
 this repository's growing corpus, so the class applies to it. That row states
 the percentile rather than its value, and § "Corpus" publishes the instrument
-rather than a snapshot, so there is no stored figure left to regenerate. Class 4
-fired three times here before that change — on a predicate that could not
-reproduce its own figures, on criterion-length percentiles that no instrument
-reproduced, and on a spec-body pair that went stale within a week — which is
-what a regenerator would have been maintaining. The criteria ceiling is
+rather than a snapshot, so there is no stored figure left to regenerate. What a
+regenerator would maintain is exactly what class 4 rejects: a predicate that
+cannot reproduce its own figures, criterion-length percentiles no instrument
+reproduces, and a spec-body pair that goes stale within a week. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
 criteria per spec — so a stall threshold needs an order of magnitude rather
 than a maintained script.
@@ -206,11 +233,11 @@ slice sized against them cites that date.
 
 This brief does not grade its own sizing: an artifact measuring itself is
 rubric class 6, and the exculpation has to be checkable or it is that same
-defect. What happened: the percentiles were produced on 2026-09-02 by a
-throwaway instrument outside this brief, which first reproduced every figure
-the owner supplied independently. **The corpus-exclusion rule travels with the derivation:** A1, A3, A4 and A5's
-own specs are excluded from any recomputation, or the measurement grades specs
-written to the band it derives from them.
+defect. It is checkable because the brief stores no figure of its own corpus:
+whoever needs one runs § "Corpus"'s instrument, outside this brief, and states
+the date they ran it. **The corpus-exclusion rule travels with the
+derivation:** A1, A3, A4 and A5's own specs are excluded from any run, or the
+measurement grades specs written to the band it derives from them.
 
 ## What actually works, and what does not
 
@@ -866,8 +893,10 @@ What shipping early costs, recorded rather than glossed:
   The [ablation](../research/spec-authoring-rubric-ablation.md), which scored
   a paired arm-A/arm-B run over six pre-registered defects, found four of the
   six already reachable from shipped guidance — and it sampled only four of the
-  six classes, never 1 or 5 — so the
-  measured marginal value is two defects in two classes, and the
+  six classes, never 1 or 5 — so the measured marginal value is two defects in
+  two classes. Two of the four unflipped scores were taken against class 4 text
+  that has since been rewritten, so they are provisional; the two that flipped,
+  which carry the marginal-value claim, were not. and the
   commissioned survey records vendor guidance that an over-long instruction
   file gets half-ignored. The six ship whole anyway for one reason: the rubric
   is worked **in order**, stopping at the first class that explains a given
@@ -975,8 +1004,8 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   predicate.
 - **Do not let the rubric become a review checklist.** It is authoring
   guidance, and it states that bound itself in its opening lines.
-- **Do not hardcode a percentile.** The band is a snapshot; the check
-  recomputes it.
+- **Do not hardcode a percentile.** The band names the percentile; the reader
+  runs § "Corpus"'s instrument for its value on the day they ask.
 
 ## Spec map
 

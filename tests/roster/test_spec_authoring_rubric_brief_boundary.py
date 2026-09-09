@@ -33,8 +33,16 @@ ALTITUDE_TELL = (
 # `test_the_calibration_record_matches_the_measurement` compares it to the tree
 # with the guard's own matcher — flattened text, `---` runs excluded, membership
 # by substring containment. Containment is the load-bearing detail: an earlier
-# record held two runs because it intersected six-word *windows* from both files
-# instead, and containment finds more because quote characters do not break it.
+# record held two runs because it intersected six-word *windows* from both
+# files instead, and windowing splits a run wherever the two files align
+# differently, while containment does not.
+#
+# What containment does not buy is punctuation tolerance. The comparison is
+# byte-exact over whitespace-normalised text, so a restatement that changes one
+# quote, dash or comma inside the run is not found — the same wording with a
+# curly apostrophe is a different string here. That is a blind spot of the
+# matcher, not of the record: this guard catches verbatim drift and nothing
+# weaker, which is the failure that actually recurred.
 #
 # One case is worth naming because it has moved twice. The rubric's § 5 heading
 # was a third shared run while the brief quoted it by name; the brief now cites
@@ -178,12 +186,16 @@ def test_the_repo_derived_bound_states_a_percentile_not_a_value() -> None:
     rows = [r for r in band.splitlines() if r.startswith("| Spec body ")]
     assert len(rows) == 1, f"expected one Spec body row, found {len(rows)}"
     bound = rows[0].split("|")[2]
-    # A percentile *name* legitimately carries digits (`p75`), so strip those
-    # before looking for a magnitude. An earlier version of this assertion
-    # forbade any digit and therefore red on the correct text — the mirror of a
-    # control that cannot fail.
-    magnitudes = re.sub(r"\bp\d{1,3}\b", "", bound)
+    # A percentile *name* legitimately carries digits, in either spelling
+    # (`p75`, `75th percentile`), so strip both before looking for a magnitude.
+    # Two earlier versions red on correct text: one forbade any digit at all,
+    # and one stripped only the `pNN` spelling, so rewriting the same bound in
+    # words would have failed it. Both are the mirror of a control that cannot
+    # fail, and the mirror is what a repair produces.
+    magnitudes = re.sub(r"\bp\d{1,3}\b|\b\d{1,3}(st|nd|rd|th) percentile", "", bound)
     assert not re.search(r"\d", magnitudes), (
         f"the spec-body bound stores a value rather than naming a percentile: {bound.strip()!r}"
     )
-    assert "median" in bound and "p75" in bound
+    # Green in either spelling; red when the row stores a number instead.
+    assert "median" in bound
+    assert "p75" in bound or "percentile" in bound
