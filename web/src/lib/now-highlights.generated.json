@@ -127,6 +127,40 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.43.0"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[agentbundle][0.43.0] — 2026-09-08",
+      "changelogAnchor": "agentbundle0430--2026-09-08",
+      "highlights": [
+        {
+          "source": "**Installed direct skills can now move to later repository revisions.** `agentbundle upgrade --skill <name>` re-runs admission, shows the capability consent surface, previews changes, and removes files dropped upstream before it records the new revision.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Installed direct skills can now move to later repository revisions."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle upgrade --skill <name>"
+            },
+            {
+              "type": "text",
+              "value": " re-runs admission, shows the capability consent surface, previews changes, and removes files dropped upstream before it records the new revision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.25.5"
         }

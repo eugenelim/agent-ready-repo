@@ -1,7 +1,7 @@
 # Plan: Direct skill repository installation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packages/agentbundle/agentbundle/catalogue.py:resolve_catalogue`, `packages/agentbundle/agentbundle/https_catalogue.py:fetch_catalogue_archive`, `packages/agentbundle/agentbundle/commands/install.py:_render_for_repo_scope` and `_check_source_conflict`, and `packages/agentbundle/agentbundle/config.py:State`.
 
 ## Approach
@@ -223,3 +223,7 @@ Apply the five required checklist modules and record dispositions at `docs/specs
 **Verification:** Goal-based; no stub.
 
 Update version, changelog, and release notes for the `contracts/` release impact and the new catalogue acquisition-limit refusal/recovery. **Done when:** the version convention check passes.
+
+## Changelog
+
+- **2026-09-01** — Closed. The spec's final criterion count and the disposition of every criterion that left it are stated once, in `spec.md`'s Follow-ons; this plan does not restate them. Task-to-AC mappings elsewhere in this plan still name criteria that moved: they record what each task did at the time and are deliberately not re-pointed, because the tasks are complete and the follow-on's criterion-provenance table is the current map.

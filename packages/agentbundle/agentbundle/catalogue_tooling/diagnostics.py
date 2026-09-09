@@ -61,7 +61,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D005 = "CAT-D005"   # AC5: interpreter runtime floor below the supported minor
     CAT_D006 = "CAT-D006"   # AC5: acquisition inactivity or download limit breached
     CAT_D007 = "CAT-D007"   # AC6: archive member refused by the extraction filter or link policy
-    CAT_D008 = "CAT-D008"   # AC20: remote noninteractive install or upgrade missing `--yes`
+    CAT_D008 = "CAT-D008"   # noninteractive install or upgrade missing `--yes`
     CAT_D009 = "CAT-D009"   # AC27/AC34: measured-path integrity (link-like, reparse, wrong type)
     CAT_D010 = "CAT-D010"   # AC31: source untraversable or changed during admission
     CAT_D011 = "CAT-D011"   # AC11/AC31: invalid direct identity (slug grammar or length)
@@ -73,6 +73,23 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D017 = "CAT-D017"   # AC33 budget: total bytes
     CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
     CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
+    CAT_D020 = "CAT-D020"   # an owned file could not be removed during direct upgrade
+    CAT_D021 = "CAT-D021"   # an emptied directory could not be pruned during direct upgrade
+    CAT_D022 = "CAT-D022"   # installed manifestless identity requested at a different ref
+    CAT_D023 = "CAT-D023"   # standalone skill upgrade cannot select a usable row
+    CAT_D024 = "CAT-D024"   # standalone skill upgrade needs scope disambiguation
+    CAT_D025 = "CAT-D025"   # standalone skill upgrade needs adapter disambiguation
+    CAT_D026 = "CAT-D026"   # re-resolved source no longer contains the installed skill path
+    CAT_D027 = "CAT-D027"   # standalone upgrade would replace adopter-edited bytes
+    CAT_D028 = "CAT-D028"   # source override requested for a locally installed skill
+    CAT_D029 = "CAT-D029"   # source override names a different direct identity
+    CAT_D030 = "CAT-D030"   # stored source cannot form a standalone upgrade request
+    CAT_D031 = "CAT-D031"   # capability history is unknown or the candidate widens it
+    CAT_D032 = "CAT-D032"   # stored source digest uses an unsupported or malformed format
+    CAT_D033 = "CAT-D033"   # catalogue-only upgrade found ambiguous direct adapter rows
+    CAT_D034 = "CAT-D034"   # standalone skill upgrade does not support JSON output
+    CAT_D035 = "CAT-D035"   # stored ownership path falls outside the selected skill projection
+    CAT_D036 = "CAT-D036"   # catalogue-only upgrade selected one directly installed row
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -102,6 +119,23 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D017,
         DiagnosticCode.CAT_D018,
         DiagnosticCode.CAT_D019,
+        DiagnosticCode.CAT_D020,
+        DiagnosticCode.CAT_D021,
+        DiagnosticCode.CAT_D022,
+        DiagnosticCode.CAT_D023,
+        DiagnosticCode.CAT_D024,
+        DiagnosticCode.CAT_D025,
+        DiagnosticCode.CAT_D026,
+        DiagnosticCode.CAT_D027,
+        DiagnosticCode.CAT_D028,
+        DiagnosticCode.CAT_D029,
+        DiagnosticCode.CAT_D030,
+        DiagnosticCode.CAT_D031,
+        DiagnosticCode.CAT_D032,
+        DiagnosticCode.CAT_D033,
+        DiagnosticCode.CAT_D034,
+        DiagnosticCode.CAT_D035,
+        DiagnosticCode.CAT_D036,
     }
 )
 
