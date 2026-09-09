@@ -456,8 +456,9 @@ def _cooling_selection(result, mode: str) -> tuple[frozenset[Path], tuple]:
     """Return the cooled set and its resolution findings for one mode.
 
     The two travel together because they are one decision. `repair-plan` and
-    `repair-apply` keep pre-Wave-6 behaviour, which means both an empty cooled
-    set and no cooling findings; returning them separately let a caller
+    `repair-apply` predate cooling and keep their original behaviour, which
+    means both an empty cooled set and no cooling findings; returning them
+    separately let a caller
     suppress the exclusion while still emitting findings about it.
     """
     if mode not in {"status", "reconcile", "explain"}:
@@ -670,8 +671,8 @@ def _projected_locator(value: object) -> str | None:
     `_public_canonical_path` degrades anything outside its charset to the
     literal `workspace.toml`. For a finding path that is a safe fallback; for a
     record locator it is a lie — the artifact is excluded correctly while the
-    projection names a different, real file. Wave 5 admits any non-control
-    character up to 1000 bytes, so this case is reachable.
+    projection names a different, real file. The record contract admits any
+    non-control character up to 1000 bytes, so this case is reachable.
     """
     public = _public_canonical_path(value)
     return public if public == value else None

@@ -183,11 +183,31 @@ empty table row. `universal-implementer-dispatch.md` has one attributed child
 that its section does not name in a parseable form.
 
 The section's own prose claims its Status column is "derived from each linked
-spec by the `receive-brief` coverage lint". No such lint exists — `receive-brief`
-ships `SKILL.md` and `evals/` only, and no Python under `tools/`, `packs/`, or
-`tests/` reads a `Spec map`. So the inverted index was rejected: parsing this
-section would fail silently into under-attribution, which is the same class of
-defect as the one being closed.
+spec by the `receive-brief` coverage lint".
+
+**Corrected 2026-09-08, after review refuted the original claim.** This probe
+first recorded that "no such lint exists" and that "no Python under `tools/`,
+`packs/`, or `tests/` reads a `Spec map`". The second half is false. Re-run,
+`grep -rln 'Spec map' --include='*.py' tools/ packs/ tests/` returns seven
+files, including `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`,
+which parses the section and enforces that a Shipped brief's mapped children are
+non-empty and all shipped, as an exit-1 finding wired into the gate chain.
+
+What was true is narrower: `receive-brief` ships no such lint, and the prose
+attributes it to the wrong skill. The lint lives in `author-delivery-brief`.
+
+**The rejection stands on the other two measured facts, which this correction
+does not touch.** 2 of 15 briefs carry no `## Spec map` at all, and of the 13
+that do, only 3 have parseable rows — the formats disagree across backticked
+slugs, bare slugs, the prose "None.", and an empty table row. Parsing this
+section *here* would still fail silently into under-attribution. What changed is
+the reason: not that nothing checks the section, but that what checks it reads
+the brief's own prose while this projection reads workspace entries, and the two
+inputs disagree.
+
+**Why the error mattered.** This probe was cited as the basis for an engine
+comment and for an ADR clause, both of which then asserted that nothing reads
+the section. A search that is narrower than its conclusion propagates as a fact.
 
 ## Probe 7 — a declared parent that names no brief membership escapes the floor
 

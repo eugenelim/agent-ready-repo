@@ -159,3 +159,57 @@ round 4's repair had left resting on no probe: the shipped script exits 0 both
 with and without a finding present, so the exit-code half survives once the
 finding exists. A reviewer independently confirmed the same from `return 0` in
 `workspace_status.py`.
+
+## Rounds 7-9 — implementation review, three reviewers in parallel (2026-09-08)
+
+Run after all three CI workflows were green on the final commit. 24 findings:
+security 5, adversarial 9, quality 10. Adjudicated in one pass: **17 sustained,
+7 refuted, 0 indeterminate.** Blockers: 5.
+
+**All three reviewers found the same line wrong, in three different
+directions.** `brief_membership_paths` keyed on the collection name:
+
+- too wide — no `kind` filter, so a mis-collected `kind = "spec"` entry in a
+  brief queue resolved a declared value and released the fail-closed floor;
+- too narrow — `[backlog].open` admits `kind = "brief"`, so a brief registered
+  there was invisible and a correctly declared child was refused with no repair
+  available;
+- too narrow again — a legacy bare-string brief entry never enters
+  `local_memberships`, with the same consequence.
+
+One kind-based, collection-agnostic predicate over canonical and legacy
+memberships closes all three. M6 and M7 pin it.
+
+**Adjudication stopped three fixes that would have made things worse.** The
+adversarial fix as written would have admitted `backlog.open` without a kind
+filter, making the fail-open reachable in *valid* workspace state. The security
+fix as written would have entrenched the too-narrow half. And one finding was
+refuted outright: `parent = ""` normalises to empty, so dispatching is the
+contract's required outcome, and its proposed fix would have broken three
+criteria. This delivery had already reproduced that behaviour and accepted the
+reviewer's framing of it as a defect; the adjudicator caught that the behaviour
+was correct and the reading was wrong.
+
+**Five refutations rested on authority, not fact.** The `sys.path` line, the
+duplicated row parser, and the isolated-seam request are all directed by the
+accepted contract or the frozen plan. A reviewer reading only the diff cannot
+see that, which is what adjudication against the governing artifacts is for.
+
+**A fix of mine broke a criterion, and the repair caught it immediately.**
+Binding AC24's assertion to its named row failed on the first run — because the
+markup fix applied alongside it had inserted backticks inside the contiguous
+literal the criterion requires. The adjudicator had assumed the literal survives
+either way. Resolved as prose with the literal intact.
+
+**Two criteria had shipped with no test anywhere.** AC9 and AC10 were named in
+the Testing Strategy with this suite as their evidence home, and nothing built
+their fixtures. They exist now, and M8 and M9 kill the suppression mutations
+that were undetectable without them.
+
+**Four claims this delivery made about itself were false.** The `/now/`
+rendering claim, the mutation record's suite size, the "citation count is zero"
+claim, and the fixture writer's equivalence claim. Each is corrected in place
+with what was measured. The citation count is the instructive one: it was
+truthfully counted against a pattern that matched `AC<n>` and `RFC-<n>` and
+missed five wave-vocabulary and spec-slug citations. A count is only as good as
+its denominator, so the denominator now travels with the number.

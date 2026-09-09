@@ -98,8 +98,10 @@ def _multi_workspace(root, *, specs, brief_collection="shipped"):
 
     `specs` is a list of (path, collection, parent, needs) tuples, where parent
     is the raw `source.parent` string or None to omit the key. The emitted shape
-    mirrors the Wave 6 helper's output rather than inventing one, because that
-    is the shape the parser is exercised against everywhere else.
+    follows the Wave 6 helper's, with one deliberate difference: all six
+    `brief_queue` collections are declared here where that helper declares four.
+    Both parse identically; stating the divergence avoids a maintainer assuming
+    one shape where there are two.
     """
     def entry(path, parent, needs, kind="spec"):
         clause = f', parent = "{parent}"' if parent is not None else ""
@@ -325,16 +327,31 @@ def test_the_next_action_says_when_the_empty_answer_is_correct(engine) -> None:
         assert literal in rows[CODE][1], f"{path.name} next action omits the literal"
 
 
+def _table_row(text: str, first_cell: str) -> str:
+    """Return the one table row whose first cell is `first_cell`.
+
+    A criterion that names a row must be checked against that row. A whole-file
+    substring check stays green if the sentence moves to any other row, which is
+    the criterion being violated rather than met.
+    """
+    rows = [
+        line for line in text.splitlines()
+        if line.startswith("|") and line.split("|")[1].strip() == first_cell
+    ]
+    assert len(rows) == 1, f"expected exactly one {first_cell!r} row, found {len(rows)}"
+    return rows[0]
+
+
 def test_the_adopter_closeout_procedure_states_the_precondition() -> None:
     """*AC24*: the `cool-30-days` row names the obligation before cooling."""
-    text = CLOSEOUT_GUIDE.read_text(encoding="utf-8")
-    assert "declare source.parent on its workspace entry" in text
+    row = _table_row(CLOSEOUT_GUIDE.read_text(encoding="utf-8"), "`cool-30-days`")
+    assert "declare source.parent on its workspace entry" in row
 
 
 def test_the_parent_field_reference_states_the_cooling_interaction() -> None:
     """*AC26*: the `parent` row names what cooling does to an undeclared value."""
-    text = SCHEMA_GUIDE.read_text(encoding="utf-8")
-    assert "unestablished once the spec has cooled" in text
+    row = _table_row(SCHEMA_GUIDE.read_text(encoding="utf-8"), "`parent`")
+    assert "unestablished once the spec has cooled" in row
 
 
 def test_the_shipped_command_emits_the_finding(tmp_path, engine) -> None:
@@ -365,3 +382,238 @@ def test_the_shipped_command_emits_the_finding(tmp_path, engine) -> None:
         (f["code"], f["path"]) for f in payload["canonical"]["findings"]
     ]
     assert (CODE, CHILD_PATH) in codes, codes
+
+
+def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"):
+    """Workspace with the brief in `brief_queue.executing`, for AC9 and AC10.
+
+    A brief in `executing` is out of lifecycle vocabulary for its own status, so
+    the fixture draws an `impossible_transition` at the brief independently of
+    anything this delivery adds. That is the point: the two findings must
+    coexist, and neither may erase the other.
+    """
+    def spec_entry(path, parent, needs="[]"):
+        clause = f', parent = "{parent}"' if parent is not None else ""
+        return (f'{{path = "{path}", kind = "spec", '
+                f'source = {{mode = "repo-origin"{clause}}}, '
+                f'summary = "fixture", needs = {needs}}}')
+
+    queue = []
+    if dep_kind == "brief":
+        needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
+        queue.append(spec_entry(DEPENDANT_PATH, None, needs))
+    shipped = [spec_entry(CHILD_PATH, child_parent)]
+    for path, parent in extra_specs:
+        queue.append(spec_entry(path, parent))
+    lines = [
+        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
+        'milestone = "M1"', '', '["ini-002".work]',
+        f'queue = [{", ".join(queue)}]', 'active = []',
+        f'shipped = [{", ".join(shipped)}]', '',
+        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
+        '["ini-002".brief_queue]', 'draft = []', 'ready = []',
+        f'executing = [{{path = "{BRIEF_PATH}", kind = "brief", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
+        'shipped = []', 'withdrawn = []', 'cancelled = []',
+    ]
+    (root / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_unestablished_scope_reports_itself_and_suppresses_nothing(
+    tmp_path, engine
+) -> None:
+    """*AC9*: the new finding coexists with an `impossible_transition`, erasing neither.
+
+    A repository-wide suppression value in the brief's `scope_unevaluable`
+    argument would erase the brief's own violation. This is the case that would
+    fail if it did.
+    """
+    root = tmp_path / "ac9"
+    root.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(root, status="Executing")
+    wave6._child_spec(root, status="Approved", brief="none")
+    (root / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(root, "dependant", status="Approved", brief="none")
+    _executing_workspace(root, child_parent=None)
+    wave6._cool_child(root)
+    result = wave6._reconcile_canonical(root, engine)
+
+    assert len(_codes(result, CODE)) == 1
+    assert _codes(result, CODE)[0].path == CHILD_PATH
+    impossible = [
+        f for f in result.findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ]
+    assert len(impossible) == 1, "the brief's own violation was erased"
+
+    # Both declared: neither finding is owed.
+    other = tmp_path / "ac9-declared"
+    other.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(other, status="Executing")
+    wave6._child_spec(other, status="Approved", brief=BRIEF_PATH)
+    (other / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(other, "dependant", status="Approved", brief="none")
+    _executing_workspace(other, child_parent=BRIEF_PATH)
+    wave6._cool_child(other)
+    declared = wave6._reconcile_canonical(other, engine)
+    assert not _codes(declared, CODE)
+    assert not [
+        f for f in declared.findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ], "control carried a violation; the comparison above proves nothing"
+
+
+def test_an_attributed_cooled_child_still_suppresses_its_parents_violation(
+    tmp_path, engine
+) -> None:
+    """*AC10*: attribution still suppresses, so this delivery removed nothing.
+
+    Without the record the brief carries exactly one `impossible_transition`;
+    with it, the cooled child's attribution makes the brief's child scope
+    unevaluable and the violation is withheld. That shipped behaviour is
+    untouched here, and this is the case that proves it.
+    """
+    root = tmp_path / "ac10"
+    root.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(root, status="Executing")
+    wave6._child_spec(root, status="Approved", brief=BRIEF_PATH)
+    (root / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(root, "second", status="Approved", brief=BRIEF_PATH)
+    _executing_workspace(
+        root, child_parent=BRIEF_PATH,
+        extra_specs=((SECOND_PATH, BRIEF_PATH),), dep_kind="none",
+    )
+
+    before = wave6._reconcile_canonical(root, engine)
+    assert len([
+        f for f in before.findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ]) == 1, "control did not flag the brief; the suppression below proves nothing"
+
+    wave6._cool_child(root)
+    after = wave6._reconcile_canonical(root, engine)
+    assert not [
+        f for f in after.findings
+        if f.code == "impossible_transition" and f.path == BRIEF_PATH
+    ], "attribution stopped suppressing the parent's violation"
+
+
+def test_a_brief_registered_in_any_membership_form_resolves(tmp_path, engine) -> None:
+    """Resolution is by entry kind, not by collection name.
+
+    Three shapes a brief can legitimately take, all of which must resolve a
+    child's declaration: a canonical `brief_queue` entry (covered by the named
+    fixtures above), a brief in `[backlog].open`, and a legacy bare string.
+    Keying on the collection name refused the second and third with no repair
+    available, and admitted a mis-collected spec in the first.
+    """
+    # A brief in `[backlog].open`.
+    root = tmp_path / "backlog"
+    root.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(root, status="Shipped")
+    wave6._child_spec(root, status="Shipped", brief="none")
+    (root / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(root, "dependant", status="Approved", brief="none")
+    other_brief = "docs/product/briefs/brief-b.md"
+    (root / other_brief).write_text(
+        "# Brief: b\n\n- **Status:** Draft\n", encoding="utf-8"
+    )
+    needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
+    lines = [
+        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
+        'milestone = "M1"', '', '["ini-002".work]',
+        f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", '
+        f'needs = {needs}}}]', 'active = []',
+        f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{other_brief}"}}, '
+        'summary = "fixture", needs = []}]', '',
+        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
+        '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
+        f'shipped = [{{path = "{BRIEF_PATH}", kind = "brief", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
+        'withdrawn = []', 'cancelled = []', '',
+        '[backlog]',
+        f'open = [{{path = "{other_brief}", kind = "brief", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
+    ]
+    (root / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    wave6._cool_child(root)
+    result = wave6._reconcile_canonical(root, engine)
+    assert not _codes(result, CODE), (
+        "a brief in [backlog].open did not resolve a correct declaration"
+    )
+    assert DEPENDANT_PATH in _ready(result)
+
+    # A brief registered as a legacy bare string.
+    legacy = tmp_path / "legacy"
+    legacy.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(legacy, status="Shipped")
+    wave6._child_spec(legacy, status="Shipped", brief="none")
+    (legacy / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(legacy, "dependant", status="Approved", brief="none")
+    lines = [
+        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
+        'milestone = "M1"', '', '["ini-002".work]',
+        f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", '
+        f'needs = {needs}}}]', 'active = []',
+        f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{BRIEF_PATH}"}}, '
+        'summary = "fixture", needs = []}]', '',
+        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
+        '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
+        f'shipped = ["{BRIEF_PATH}"]', 'withdrawn = []', 'cancelled = []',
+    ]
+    (legacy / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    wave6._cool_child(legacy)
+    result = wave6._reconcile_canonical(legacy, engine)
+    assert not _codes(result, CODE), (
+        "a legacy bare-string brief did not resolve a correct declaration"
+    )
+
+    # A mis-collected spec in a brief queue must NOT resolve.
+    decoy = tmp_path / "decoy"
+    decoy.mkdir(parents=True, exist_ok=True)
+    wave6._brief_body(decoy, status="Shipped")
+    wave6._child_spec(decoy, status="Shipped", brief="none")
+    (decoy / "docs/specs/child/plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    )
+    wave6._spec(decoy, "dependant", status="Approved", brief="none")
+    wave6._spec(decoy, "decoy", status="Shipped", brief="none")
+    decoy_path = "docs/specs/decoy/spec.md"
+    lines = [
+        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
+        'milestone = "M1"', '', '["ini-002".work]',
+        f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", '
+        f'needs = {needs}}}]', 'active = []',
+        f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{decoy_path}"}}, '
+        'summary = "fixture", needs = []}]', '',
+        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
+        '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
+        f'shipped = [{{path = "{BRIEF_PATH}", kind = "brief", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}, '
+        f'{{path = "{decoy_path}", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
+        'withdrawn = []', 'cancelled = []',
+    ]
+    (decoy / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    wave6._cool_child(decoy)
+    result = wave6._reconcile_canonical(decoy, engine)
+    assert len(_codes(result, CODE)) == 1, (
+        "a mis-collected spec in a brief queue resolved a declaration"
+    )
+    assert DEPENDANT_PATH not in _ready(result)

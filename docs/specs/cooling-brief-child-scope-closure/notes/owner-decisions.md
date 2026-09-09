@@ -203,12 +203,19 @@ is recorded as an owner decision rather than treated as in-scope.
    `notes/follow-ons.md` carries the corrected entry, including an explicit
    instruction not to rewrite the working cleanup block.
 2. **All internal-governance citations are removed from the two shipped
-   `workspace-status` scripts.** Seven sites carried `AC7`, `AC20`, `AC28`,
-   `AC29`, `AC37`, `AC38` and two `RFC-0096` references. Each now states its
-   rule directly, which is what `packs/AGENTS.md` asks for; no comment lost its
-   meaning. The count in those two files is now zero. This resolves the
-   documented-guidance conflict in favour of the guidance, which is the owning
-   source, rather than in favour of the code.
+   `workspace-status` scripts.** Each site now states its rule directly, which
+   is what `packs/AGENTS.md` asks for; no comment lost its meaning.
+
+   **The first pass claimed zero against the wrong denominator.** It matched
+   `AC<n>` and `RFC-<n>` only, cleared seven sites, and recorded zero — while
+   five citations remained that the pattern never looked for: `Wave 7`,
+   `Wave-6` twice, `Wave 5`, and the repository-only spec slug
+   `wave6-dependency-scoped-completion-receipts`. A review measured them. The
+   denominator is now records (`ADR-nnnn`, `RFC-nnnn`), criteria (`AC<n>`), wave
+   vocabulary, and spec slugs, and under that set both files measure zero.
+
+   The lesson is the claim, not the citations: a count is only as good as the
+   pattern that produced it, so the pattern belongs beside the number.
 3. **The ADR index is complete.** ADR-0105's row was added as directed. An
    audit of all 107 ADR files against the index then found one further gap,
    ADR-0060, whose Status is Accepted and whose neighbours 0059 and 0061 are
@@ -283,8 +290,14 @@ failed and the only one that could have.
 
 The regenerator is `python3 tools/build-site.py --journeys-only`. Run at base
 `02742751a` it reported `118 released highlight(s) in 84 release group(s)` and
-changed exactly one file. Both bullets are projected with their inline code
-spans parsed into segments, so the page renders them rather than the raw source.
+changed exactly one file. Segmentation is partial, and the record says so
+because the earlier version of this paragraph claimed otherwise: body text is
+split into `text` and `code` segments, but a bold lead is emitted as one
+`strong` segment whose value is the raw source, and the renderer prints a
+`strong` segment without nested parsing. So the second bullet's `` `none` ``
+reaches the page with its backticks visible. Six earlier releases already carry
+that shape, which makes it the projection's existing behaviour rather than
+something this delivery introduced.
 
 **The lesson for the task shape, not just this instance.** T4's Touches list was
 extended twice during review to name projections its own commands rewrite, and

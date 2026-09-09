@@ -7,9 +7,9 @@
 
 ## Decision summary
 
-- **Decision:** for a cooled spec, `source.parent` on its `workspace.toml` entry answers one of three ways, not two. A declared value **resolving to a brief membership** attributes the child to that brief. A declared **empty** value attributes nothing. Anything else — an **absent key, or a declared value that resolves to no brief membership** — means the child's scope is unknown: the run names the entry in a `cooled_child_scope_unknown` finding and refuses every `kind = "brief"` dependency until a resolving value or an empty one is declared.
+- **Decision:** for a cooled spec, `source.parent` on its `workspace.toml` entry answers one of three ways, not two. A declared value **resolving to a brief membership** attributes the child to that brief. A declared **empty** value attributes nothing. Anything else — an **absent key, or a declared value that resolves to no brief membership** — means the child's scope is unknown: the run names the entry in a `cooled_child_scope_unknown` finding and refuses every **local** `kind = "brief"` dependency until a resolving value or an empty one is declared. A `cross-repo` brief dependency is decided by its four-field receipt, which is a precedence that already ran before this refusal and which this decision leaves in place.
 - **Because:** absence carried two incompatible meanings — "this spec has no parent" and "nobody recorded whether it has one" — and the projection cannot tell them apart without opening a body that cooling forbids. Reading absence as the first meaning is what let a cooled child's brief silently release its dependants.
-- **Applies to:** every cooled `kind = "spec"` entry read by `workspace-status` reconciliation, and every `kind = "brief"` dependency evaluated against it.
+- **Applies to:** every cooled `kind = "spec"` entry read by `workspace-status` reconciliation, and every **local** `kind = "brief"` dependency evaluated against it. A `cross-repo` brief dependency is out of scope: its receipt decides it first.
 - **Tradeoff accepted:** the fail-closed floor is repository-wide, because an unattributed cooled child could belong to any brief and no narrower attribution is sound. Its cost is bounded by being escapable in one token, and measured at zero refusals on this checkout.
 - **Revisit if:** (1) `close-work` gains the ability to stamp the parent link at closeout, making a hand-declared value unnecessary; (2) a read-free brief→child index appears, allowing exact attribution instead of a floor; or (3) the refusal is observed to fire on work whose entry cannot be corrected.
 
@@ -66,8 +66,23 @@ anonymous, which is what the earlier cost measurement was really objecting to.
 | --- | --- | --- |
 | Declared, resolving to a `kind = "brief"` membership | This child belongs to that brief | That brief's `kind = "brief"` dependencies refuse — Wave 6's shipped behaviour, unchanged |
 | Declared empty (`none`, or any value the shipped normalizer folds to nothing) | This spec has no parent | Nothing is attributed; dependants dispatch |
-| **Absent** | Nobody recorded whether it has a parent | `cooled_child_scope_unknown` names the entry; every `kind = "brief"` dependency refuses until a resolving or empty value is declared |
+| **Absent** | Nobody recorded whether it has a parent | `cooled_child_scope_unknown` names the entry; every local `kind = "brief"` dependency refuses until a resolving or empty value is declared |
 | **Declared, resolving to no brief membership** | Something was recorded, but it does not identify a brief this workspace knows | Same as absent. A typo and a brief that has left the register are indistinguishable read-free, and both leave the scope unestablished |
+
+**What counts as a brief membership.** Any workspace entry whose `kind` is
+`brief`, in whichever collection it is registered — a `brief_queue` collection,
+`[backlog].open`, or a retained legacy bare-string entry. Resolution is by entry
+kind, never by collection name. Both alternatives were measured and rejected:
+keying on the collection admitted a mis-collected `kind = "spec"` entry sitting
+in a brief queue, which resolved a declared value that names no brief at all;
+and it missed a brief legitimately registered in `[backlog].open` or as a legacy
+string, which refused a correctly declared child with **no repair available** —
+declaring a resolving path was already done, and declaring empty would be false.
+A refusal with no valid escape is the one property this decision cannot have,
+because it is what licenses the floor at all.
+
+Reading a legacy entry here decides attribution only. It dispatches nothing,
+which is the line the routing contract draws around legacy compatibility.
 
 Only the first two answers establish scope. The unknown class is therefore
 absence *or* unresolvability, not absence alone — a distinction that matters
@@ -126,9 +141,14 @@ never cooled, so reading *it* would be a read-free route to its children and
 would attribute exactly, with no floor at all. Rejected on measurement: 2 of 15
 briefs carry no `## Spec map` section, and of the 13 that do, 3 have parseable
 rows. The formats disagree — backticked slugs, bare slugs, the prose "None.",
-and an empty table row — and the "coverage lint" the section's own prose credits
-with deriving its Status column does not exist. Parsing it would fail silently
-into under-attribution, which is the same defect class being closed.
+and an empty table row. A brief-coverage lint does read that section and does
+enforce a Shipped brief's children being non-empty and all shipped, so the
+section is not unchecked — but it is checked against the brief's own prose, not
+against the workspace entries this projection reads, and the two inputs
+disagree on 2 of 15 briefs today. Parsing it here would fail silently into
+under-attribution, which is the same defect class being closed. The measured
+format disagreement is the reason for rejection; the lint's existence neither
+supports nor weakens it.
 
 **Add a field to `workspace-entry.schema.json` recording that the parent link was
 resolved.** Rejected as unnecessary once the raw value proved to carry the
@@ -146,10 +166,16 @@ refusal that names its entry and lifts on one token.
   a brief path, or `none`. Until `close-work` can stamp it at closeout, that is a
   hand-authored step, and the finding names the entry that needs it.
 - A declaration made *after* the artifact cooled is never validated against the
-  body, because `provenance_mismatch` is suppressed for a cooled entry. The
-  declared-empty answer is therefore trusted, not verified, in that window. This
-  is a known limitation of the decision rather than a defect in it, and it is why
-  the closing spec records the closeout-time writer as its follow-on.
+  body, because `provenance_mismatch` is suppressed for a cooled entry. **Every**
+  declared answer is therefore trusted rather than verified in that window, not
+  only the empty one. Two consequences follow, and both are accepted: a declared
+  empty value on a child that does have a parent releases every dependant; and a
+  declared value naming a *different* registered brief attributes the child
+  there, so the true parent is left out of the fail-closed set and its dependants
+  release with no finding at all. What the decision closes is the case nobody
+  asserted anything about. What it does not close is a wrong assertion, which is
+  why the closing spec records the closeout-time writer as its follow-on and why
+  that follow-on covers misattribution as well as omission.
 - `cooled_child_scope_unknown` joins the public refusal contract, so a consumer
   must preserve its code, repository-relative path, dispatchability, and next
   action. Admitting it was reviewed under `workspace-routing-invariants`

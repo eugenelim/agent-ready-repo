@@ -2688,12 +2688,16 @@ def _dependency_is_satisfied(
     # have changed the brief's terminal state without the workspace membership
     # reflecting it, so the brief's apparent state is not evidence.
     #
-    # The refused set is exactly the normalized `source.parent` values declared
-    # by cooled spec memberships. It is NOT initiative-scoped and does not
-    # consider initiative status: a cooled spec in a paused initiative that
-    # declares a brief owned by an active one still refuses that brief. The
-    # value is also unvalidated against the artifact body, because the cooled
-    # branch of `_structural_findings` returns before the provenance check —
+    # The refused set has two parts. Per brief: the `source.parent` values
+    # declared by cooled spec memberships that resolve to a registered brief.
+    # Repository-wide: every `kind = "brief"` dependency, while any cooled
+    # entry's scope is unestablished — because the brief such an entry belongs
+    # to is exactly what is unknown. Neither part is initiative-scoped and
+    # neither considers initiative status: a cooled spec in a paused initiative
+    # that declares a brief owned by an active one still refuses that brief. A
+    # declared value is unvalidated against the artifact body, because the
+    # cooled branch of `_structural_findings` returns before the provenance
+    # check —
     # for a cooled child the declaration is unverifiable by construction, which
     # is the point of failing closed rather than trusting it.
     # Two ways a brief dependency's child scope is not established. A cooled
@@ -2716,8 +2720,8 @@ def _dependency_is_satisfied(
             # is only there: the four-field receipt match asserted for this one
             # dependency. A lifecycle record cannot stand in — it is completion
             # evidence for the brief as a whole, and projecting the receipt
-            # from its coordination surface is deferred to Wave 7 by
-            # `wave6-dependency-scoped-completion-receipts`. Refusing surfaces
+            # from its coordination surface is deliberately not done here.
+            # Refusing surfaces
             # a real inconsistency rather than concealing one: a brief with a
             # live cross-repo dependant is retained as an exception, not cooled.
             return False, _finding(
@@ -2893,6 +2897,7 @@ def _brief_child_spec_states(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path] = frozenset(),
+    legacy_memberships: "list[LegacyWorkspaceMembership] | tuple[()]" = (),
 ) -> tuple[dict[str, set[str]], frozenset[str], frozenset[str]]:
     """Map each brief to its children's observed states; flag unevaluable scope.
 
@@ -2904,10 +2909,13 @@ def _brief_child_spec_states(
     from the collection alone and so fabricates "Shipped" for anything in
     `work.shipped`.
 
-    briefs_with_cooled_children names every brief a cooled child declares
-    through `source.parent`. For those briefs `invalid_child_scope` is
-    unevaluable and any `kind="brief"` dependency fails closed, so a lifecycle
-    record cannot erase or create a finding about a different artifact.
+    briefs_with_cooled_children names the briefs a cooled child declares
+    through `source.parent` **and whose declaration resolves** to a registered
+    brief membership. A declaration resolving to nothing goes to
+    cooled_scope_unknown instead. For the resolving briefs `invalid_child_scope`
+    is unevaluable and a `kind="brief"` dependency on that brief fails closed,
+    so a lifecycle record cannot erase or create a finding about a different
+    artifact.
 
     cooled_scope_unknown names every cooled spec entry whose parent scope is
     not established: the `source.parent` key is absent, or it holds a value that
@@ -2929,11 +2937,22 @@ def _brief_child_spec_states(
     states: dict[str, set[str]] = {}
     briefs_affected: set[str] = set()
     scope_unknown: set[str] = set()
+    # Resolution is by entry *kind*, never by collection name. Three separate
+    # reviews found the collection test wrong in both directions: it admitted a
+    # mis-collected spec sitting in a brief queue, which resolved a declared
+    # value that names no brief at all; and it missed a brief legitimately
+    # registered in `backlog.open`, which refused a correctly declared child
+    # with no repair available — declaring a resolving path was already done,
+    # and declaring empty would be false.
+    #
+    # Legacy memberships are included because a bare-string brief queue entry
+    # carries `kind = "brief"` and a real path, and a child declaring it has
+    # declared the truth. Reading them here decides attribution only; it
+    # dispatches nothing, which is the line the routing contract draws.
     brief_membership_paths = {
         membership.entry.path
-        for membership in memberships
-        if membership.collection.startswith("brief_queue.")
-        and membership.entry.path is not None
+        for membership in (*memberships, *legacy_memberships)
+        if membership.entry.kind == "brief" and membership.entry.path is not None
     }
     for membership in memberships:
         entry = membership.entry
@@ -3448,7 +3467,10 @@ def run_canonical_reconciliation(
     ]
     cycle_paths = _dependency_cycles(local_memberships)
     brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
-        _brief_child_spec_states(local_memberships, workspace, root, cooled)
+        _brief_child_spec_states(
+            local_memberships, workspace, root, cooled,
+            legacy_memberships=legacy_memberships,
+        )
     )
     # Emitted here rather than in `_structural_findings`, whose findings add
     # their entry to `structurally_blocked_paths` — which refuses every
@@ -3969,11 +3991,12 @@ def _brief_child_scope_is_valid(
         # suppressed. Deliberately does NOT require the set to be non-empty.
         # Most specs declare no `source.parent`, so an empty set here means
         # "no child is attributed to this brief", not "this brief shipped
-        # nothing". No lint supplies the missing non-empty requirement: the
-        # brief's own Spec map is read by nothing in this repository, so an
-        # unattributed shipped child is not caught anywhere. That residual is
-        # unchanged by this delivery, which closes the *undeclared* case for
-        # cooled entries only.
+        # nothing". The non-empty requirement is enforced elsewhere, against a
+        # different source: the brief-coverage lint reads the brief's own Spec
+        # map and fails when a Shipped brief's mapped children are empty or not
+        # all shipped. This projection deliberately does not read that section,
+        # so the two checks cover the same rule over different inputs and
+        # neither substitutes for the other.
         return all(state == "Shipped" for state in child_states)
     return True
 
@@ -4261,8 +4284,9 @@ def analyze(
     should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
-    # repair-plan and the migration paths keep pre-Wave-6 behaviour: they see an
-    # empty cooled set so their operations still reach cooled entries. Whether
+    # repair-plan and the migration paths predate cooling and keep their
+    # original behaviour: they see an empty cooled set, so their operations
+    # still reach cooled entries. Whether
     # cooling constrains them is a deliberate, separately decided change.
     moment = now if now is not None else datetime.datetime.now(datetime.UTC)
     cooling_records: list[Any] = []

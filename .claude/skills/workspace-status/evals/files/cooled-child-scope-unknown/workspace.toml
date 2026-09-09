@@ -5,8 +5,8 @@ milestone = "M1"
 
 # The child spec is cooled by the lifecycle record and its entry declares no
 # `source.parent`. Its parent scope is therefore not established: the brief it
-# belongs to is exactly what nobody recorded, and the body that might say is
-# one RFC-0096 section 7 forbids reading once an artifact has cooled.
+# belongs to is exactly what nobody recorded, and a cooled artifact's body is
+# never read, so the value cannot be recovered from it.
 #
 # So every `kind = "brief"` dependency fails closed until a maintainer declares
 # either a resolving brief path or a literal `none`. Declaring `none` is a real
