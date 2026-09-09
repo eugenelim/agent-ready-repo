@@ -1,6 +1,6 @@
 # Plan: Direct skill identity and upgrade
 
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 - **Repository anchors:** `AGENTS.md`; `docs/CONVENTIONS.md`; `packages/agentbundle/AGENTS.md`; RFC-0098 (D4, D5, D6); the parent spec's `security-evidence.md` as the precedent for this spec's own
 
