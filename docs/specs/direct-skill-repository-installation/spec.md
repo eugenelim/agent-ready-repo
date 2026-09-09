@@ -1,6 +1,6 @@
 # Spec: Direct skill repository installation
 
-- **Status:** Shipped (2026-09-01) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-09-01; superseded in part by ADR-0106 — AC12's old-capability re-derivation clause is replaced by the direct-upgrade capability decision; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0098; RFC-0085; RFC-0031; RFC-0034; ADR-0036; ADR-0039; ADR-0100

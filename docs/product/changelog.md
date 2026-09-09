@@ -69,6 +69,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cannot be established. Records that are independently invalid are still named
   alongside it, so a global cooling failure does not hide a repair someone owes.
 
+## [agentbundle][0.42.0] — 2026-09-08
+
+### Highlights
+
+- **Installed direct skills can now move to later repository revisions.**
+  `agentbundle upgrade --skill <name>` re-runs admission, shows the capability
+  consent surface, previews changes, and removes files dropped upstream before
+  it records the new revision.
+
+### Added
+
+- `--source` supplies the wanted revision for a commit-pinned direct skill.
+  Capability widening and an uninspectable prior declaration fail closed; a
+  content-only or capability-narrowing update can proceed.
+
+### Changed
+
+- An install at a different ref of an installed skill still exits 1, but as a
+  re-coded refusal naming `upgrade --skill --source` rather than as a source
+  collision.
+- A moved `source-path` now refuses where it previously self-healed silently.
+- A byte-identical reinstall still repairs the projection in place.
+- Remove-then-install is the terminating remediation for the two install
+  refusals above.
+
 ## [core][2.25.5] — 2026-09-08
 
 ### Highlights

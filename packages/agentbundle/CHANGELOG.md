@@ -6,6 +6,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.42.0] — 2026-09-08
+
+### Added
+
+- `agentbundle upgrade --skill <name>` now moves an installed direct skill to a
+  later repository revision. `--source` supplies the wanted revision for a
+  commit-pinned row. Upgrade re-runs direct-source admission, shows the install
+  capability consent surface, previews writes and removals, and removes files
+  the new revision dropped before recording the updated row.
+
+### Changed
+
+- An install at a different ref of an installed skill still exits 1, but as a
+  re-coded refusal naming `upgrade --skill --source` rather than as a source
+  collision.
+- A moved `source-path` now refuses where it previously self-healed silently.
+- A byte-identical reinstall still repairs the projection in place.
+- Remove-then-install is the terminating remediation for the two install
+  refusals above.
+
+### Security
+
+- Direct upgrade integrity-binds the installed capability declaration to the
+  row's recorded digest before parsing it. An uninspectable prior declaration
+  or a capability widening fails closed without changing the projection or
+  state.
+
 ## [0.41.1] — 2026-09-01
 
 ### Fixed
