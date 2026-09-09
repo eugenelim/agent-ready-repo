@@ -8,7 +8,7 @@ source of nits, which is the cost it exists to reduce.
 Nothing here is a second copy of a rule another surface owns. Classes 2 and 5
 defer criterion *shape* to `../assets/spec.md` § Acceptance Criteria, which owns
 it; classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`, which owns
-those; class 4 states its two clauses here, with the one boundary it shares with
+those; class 4 states its own rules here, with the one boundary it shares with
 the template named in the class itself.
 
 These six are the classes an author can pre-empt, ordered so that when several
@@ -33,6 +33,19 @@ Check the artifact you wrote, not your intentions for it. Guidance you restated
 by hand is degraded at the point of writing, whatever you knew when you wrote
 it — so read the text as a stranger would, and treat a hand-restated rule as a
 defect on sight rather than as evidence you applied it.
+
+**A repair is the likeliest source of the next defect**, because it is written
+in the belief that the rule is now understood. After changing a rule or a
+criterion, run two checks on the part you did *not* touch:
+
+- **One verdict per input.** Take an input the rule already governed and
+  confirm the rule still returns a single answer for it. A clause that is true
+  on its own can permit what an older clause forbids, and the artifact then
+  satisfies a rule that contradicts itself.
+- **The moved text left a sentence behind.** Relocating a rule leaves a
+  sentence describing where it went. That sentence is a claim about another
+  artifact's state, so it decays under class 4 — cite the new owner rather than
+  summarising it.
 
 ## 1. The design should have delegated
 
@@ -77,6 +90,21 @@ surface — over one an implementer grades from its own output. An agent
 correcting an error that arrives from outside itself succeeds far more often
 than one grading its own prior output, so *where the signal comes from* is part
 of the criterion's design rather than an implementation detail.
+
+**Both directions, or neither.** A criterion that cannot fail and a criterion
+that fires on correct work are one defect seen from either side, and the second
+is the one you write while repairing the first. So name both cases: the input
+that makes it red, and the correct input that must leave it green. A criterion
+with no stated green case gets repaired by weakening it, which loses the red
+case too.
+
+**Measure with the criterion's own instrument.** A criterion names a
+comparison — containment, equality, a threshold, a percentile. Any figure you
+offer as evidence for it, and any check you build to enforce it, has to perform
+*that* comparison. A near neighbour returns a plausible different number and
+reads as confirmation: overlap is not containment, a mean is not a percentile,
+and a count under one boundary rule is not a count under another. When the
+evidence and the criterion disagree, suspect the instrument before the artifact.
 
 `../assets/spec.md` § Acceptance Criteria owns the detectability test and the
 observable-outcome boundary; this class is the question that precedes them.
@@ -132,6 +160,14 @@ signal: the cost is not in getting the number right, it is in storing a number
 at all. Convert it to a derivation or delete it, and do not spend a third
 attempt on the value.
 
+**A sentence describing another artifact is a stored value.** "That section
+publishes A and B", "the only file there is X", "the owner states the pair
+rule" — each freezes a fact about a surface you do not own, goes false the next
+time that surface changes, and has nothing watching. This is the most common
+shape the class takes, because every repair that moves text leaves one behind.
+Cite the section by name and let the reader open it; describe its contents only
+where you would also accept storing its numbers.
+
 Two clauses, and the second does not follow from the first:
 
 - **Nothing hand-enumerated that is derivable.** If a set has a
@@ -140,10 +176,12 @@ Two clauses, and the second does not follow from the first:
   more machinery, and is wrong at the next upstream edit. Compare against the
   definition *at the level it is stated* — a finer decomposition of a coarser
   definition is legitimate.
-- **Nothing precise that is decoration.** A figure or enumeration no criterion
-  depends on is surface that decays and that every review round re-litigates
-  for no gain. Test it by deleting it: if no criterion, gate, or decision
-  changes, it was decoration. This is a test over the *artifact's* precise
+- **Nothing precise that is decoration.** A **live** figure or enumeration no
+  criterion depends on is surface that decays and that every review round
+  re-litigates for no gain. Test it by deleting it: if no criterion, gate, or
+  decision changes, it was decoration. Run this test after the live/frozen
+  sort, not before it: a dated, frozen value nothing reads stays permitted as
+  illustration, because it cannot decay and deleting it buys nothing. This is a test over the *artifact's* precise
   surface, wherever it sits; `../assets/spec.md` § Acceptance Criteria owns the
   narrower question of whether a claim inside a criterion makes a wrong
   implementation detectable. The two intersect on a figure inside a criterion

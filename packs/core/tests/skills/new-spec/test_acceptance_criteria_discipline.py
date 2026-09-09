@@ -387,7 +387,7 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     # said "each class below points there", which was false for four of six.
     assert "Classes 2 and 5 defer criterion *shape* to `../assets/spec.md`" in text
     assert "classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`" in text
-    assert "class 4 states its two clauses here" in text
+    assert "class 4 states its own rules here" in text
     # Class 4's decoration clause intersects the template's claim-minimality
     # rule on a figure inside a criterion. The rubric must name that boundary
     # rather than claim the whole rule, so pin the boundary sentence too.
@@ -411,6 +411,70 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
 # both relate this pack to a `docs/product/` brief, so they cross the pack
 # boundary that `pack-tests-stay-in-pack` enforces. Everything below stays
 # pack-local.
+
+
+def test_rubric_states_both_verdicts_and_names_its_own_instrument() -> None:
+    """Class 2 has to catch the mirror defect it kept producing.
+
+    Twelve review rounds on this rubric produced three guards written *while
+    repairing* a class-2 defect, and all three were themselves class-2
+    defects: a threshold set one word above the duplication it existed to
+    catch, a count assertion that normalised the record to the measurement so
+    an overcount could not red it, and a digit predicate that red on the
+    correct text. The first two are the class as originally stated; the third
+    is its mirror, and the class did not name it.
+
+    Both clauses are pinned because each fails on its own. Deleting the
+    green-case sentence leaves the class one-sided again; deleting the
+    instrument sentence leaves a check free to confirm a criterion with a
+    different comparison than the criterion states.
+    """
+    text = flattened(RUBRIC)
+    assert "Both directions, or neither." in text
+    assert "the correct input that must leave it green" in text
+    assert "Measure with the criterion's own instrument." in text
+    assert "overlap is not containment, a mean is not a percentile" in text
+
+
+def test_rubric_treats_a_repair_as_the_next_defect() -> None:
+    """The largest late-round defect source was the previous round's repair.
+
+    A repair is written in the belief that the rule is now understood, so it
+    is the one edit made without re-reading the clause it did not touch. Pin
+    both checks: the contradiction check, and the sentence-left-behind check
+    that routes a relocation's residue to class 4.
+    """
+    text = flattened(RUBRIC)
+    assert "A repair is the likeliest source of the next defect**" in text
+    assert "One verdict per input." in text
+    assert "The moved text left a sentence behind." in text
+
+
+def test_class_four_governs_descriptions_and_orders_its_two_verdicts() -> None:
+    """Class 4's dominant shape is prose about another artifact, not a figure.
+
+    Most findings against this change turned on a sentence asserting what
+    another document contained, which the class as first written did not
+    reach: "ship the derivation, not the value" says nothing about "that
+    section publishes A and B".
+
+    The second assertion closes a contradiction the class shipped with. The
+    decoration test deletes any figure nothing reads; the decay rule permits a
+    dated figure to remain as illustration, and an illustration is by
+    construction read by nothing — so one figure was both compliant and
+    defective. Ordering the decoration test after the live/frozen sort, and
+    exempting a frozen value there, gives one verdict per figure. Deleting
+    either the ordering sentence or the exemption restores the contradiction
+    and reds this test; so does moving the sort below the bullet.
+    """
+    text = flattened(RUBRIC)
+    assert "A sentence describing another artifact is a stored value." in text
+    assert "Run this test after the live/frozen sort, not before it" in text
+    assert "a dated, frozen value nothing reads stays permitted as illustration" in text
+    body = RUBRIC.read_text(encoding="utf-8")
+    assert body.index("The tell is not the number") < body.index(
+        "Nothing precise that is decoration"
+    ), "the decoration test must follow the live/frozen sort it defers to"
 
 
 def test_rubric_ships_derivations_and_cites_no_internal_locator() -> None:
@@ -470,6 +534,45 @@ def test_rubric_is_reachable_from_both_authoring_surfaces() -> None:
     spec_body = flattened(SPEC)
     assert "`references/spec-authoring-rubric.md`" in spec_body
     assert "This section owns criterion *shape*." in spec_body
+
+
+def test_post_repair_eval_grades_the_four_gaps_the_rubric_gained() -> None:
+    """The second rubric case exists to grade the post-repair pass.
+
+    The first case grades a first draft, where every defect is the author's
+    original wording. This one grades the edit that follows a review round,
+    which is where the contradiction, the one-sided strengthening, the
+    left-behind description and the mismatched instrument actually arise. Each
+    seeded defect is pinned, because dropping one from the prompt silently
+    stops the case grading that gap.
+    """
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    matches = [
+        entry
+        for entry in data["evals"]
+        if entry["id"] == "spec-authoring-rubric-checks-the-repair-not-the-intent"
+    ]
+    assert len(matches) == 1
+    entry = matches[0]
+    assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
+    # The graded actor is repairing, not drafting: the frame is the whole point.
+    assert "I just repaired" in entry["prompt"]
+    assert "before I re-seal" in entry["prompt"]
+    for seeded in (
+        "any rule file containing a numeric literal",
+        "may name a percentile, such as p95",
+        "the rule-authoring guide publishes",
+        "counting how many rule names appear in both files",
+        "no rule file produces a duplicate finding",
+    ):
+        assert seeded in entry["prompt"], f"seeded defect dropped: {seeded}"
+    expected = entry["expected_output"]
+    assert "opposite verdicts" in expected
+    assert "must stay green" in expected
+    assert "stored value" in expected
+    assert "different instrument" in expected
+    assert "cannot fail" in expected
+    assert len(entry["assertions"]) == 6
 
 
 def test_rubric_eval_has_required_shape_and_behaviour() -> None:
