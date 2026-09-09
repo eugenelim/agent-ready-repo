@@ -84,7 +84,13 @@ def _slugify(text: str) -> str:
     text = text.strip().lower()
     keep = string.ascii_lowercase + string.digits + " -_"
     text = "".join(ch for ch in text if ch in keep)
-    return re.sub(r"\s+", "-", text)
+    # One hyphen per whitespace character, not per run. github-slugger — which
+    # is what Starlight actually uses — drops a punctuation character and leaves
+    # the spaces that surrounded it, so "P2 · Shape" emits "p2--shape". Collapsing
+    # the run produced "p2-shape", an anchor no built page carries; the emitted
+    # `id="p2--shape-what-to-build--3-hours"` on build/docs/guides/index.html is
+    # the ground truth this must agree with.
+    return re.sub(r"\s", "-", text)
 
 
 def _anchors_for(path: Path) -> set[str]:

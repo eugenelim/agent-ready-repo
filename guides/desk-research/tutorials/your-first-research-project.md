@@ -19,14 +19,14 @@ lifecycle.
 
 This is project mode — the *lifecycle* axis. It's different from a one-off
 `/desk-research` run (the *depth* axis you met in [your first research
-session](research-first-session.md)). If you're not sure which one you want,
+session](desk-research-first-session.md)). If you're not sure which one you want,
 read [episodic vs project research](../explanation/episodic-vs-project-research.md)
 first — then come back. This tutorial assumes you've decided you want a project.
 
 ## Prerequisites
 
 - The `desk-research` pack installed at user scope (the [first-session
-  tutorial](research-first-session.md) covers the one-time install).
+  tutorial](desk-research-first-session.md) covers the one-time install).
 - A throwaway question you actually care about. This tutorial uses *"which
   Python dependency manager should our team standardize on?"* — swap in your own
   if you like; the steps are identical.

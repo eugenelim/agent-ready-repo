@@ -1044,3 +1044,382 @@ describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
     expect(failures, `whole-guide aside drift:\n${failures.join('\n')}`).toEqual([]);
   }, SCAN_TIMEOUT_MS);
 });
+
+/**
+ * spec/install-to-ship-walkthrough — AC1-AC11, AC13, AC14.
+ *
+ * These read emitted HTML rather than `guides/README.md`. A source-altitude
+ * copy was cut deliberately: `_check_site_route` in the Python entry-link suite
+ * returns without validating a fragment on a docs route, and a walkthrough
+ * authored inside an HTML comment satisfies a raw-source heading scan while
+ * rendering nothing. AC12 (route preservation) is a set difference against
+ * notes/route-baseline.txt and runs as a step in T5, not here.
+ */
+describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
+  const WALKTHROUGH_ID = 'the-install-to-ship-walkthrough';
+  const HUB = join(DOCS_ROOT, 'guides/index.html');
+  const HUB_HREF = `${DOCS_BASE_PATH}guides/#${WALKTHROUGH_ID}`;
+
+  /** Stage names in contract order (AC2). Matched case-insensitively against headings. */
+  const STAGES = [
+    'adopt the catalogue',
+    'shape what to build',
+    'build it',
+    'decide together',
+    'ship and report',
+  ] as const;
+
+  /** AC3's closed set. Written here from the spec, never read off the page. */
+  const ACTIVITIES = [
+    'installation',
+    'shaping',
+    'architecture',
+    'core intake',
+    'build',
+    'governance',
+    'release',
+    'reporting',
+  ] as const;
+
+  const hub = () => doc(HUB);
+  const text = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+  /**
+   * Heading level of an emitted node, or 0.
+   *
+   * Starlight wraps every heading in `<div class="sl-heading-wrapper level-hN">`
+   * alongside its anchor-link, so section content are siblings of the WRAPPER,
+   * not of the heading. Walking the heading's own siblings finds only the
+   * anchor icon and returns an empty section.
+   */
+  function headingLevel(el: Element): number {
+    const wrapped = [...el.classList].find((c) => /^level-h[1-6]$/.test(c));
+    if (wrapped) return Number(wrapped.slice(-1));
+    return /^H[1-6]$/.test(el.tagName) ? Number(el.tagName.slice(1)) : 0;
+  }
+
+  function headingEl(el: Element): Element {
+    return el.querySelector('h1,h2,h3,h4,h5,h6') ?? el;
+  }
+
+  /**
+   * Elements of the level-2 section whose heading matches `match`.
+   *
+   * Scoping matters: Starlight renders a full sidebar of guide links on EVERY
+   * page, so a document-wide href scan is satisfied by navigation chrome and
+   * cannot fail. A mutation deleting a step link from the branch section was
+   * caught only after scoping to the section itself.
+   */
+  function sectionNodes(match: RegExp): Element[] {
+    const d = hub();
+    const wrappers = [...d.querySelectorAll('.sl-heading-wrapper.level-h2, h2')];
+    const start = wrappers.find((w) => match.test(text(headingEl(w))));
+    expect(start, `no level-2 section matching ${match}`).toBeTruthy();
+    const from = start!.closest('.sl-heading-wrapper') ?? start!;
+    const out: Element[] = [];
+    for (let n = from.nextElementSibling; n && headingLevel(n) !== 2; n = n.nextElementSibling) {
+      out.push(n);
+    }
+    return out;
+  }
+
+  /** Elements from the walkthrough heading up to the next level-2 heading. */
+  function walkthroughNodes(): Element[] {
+    const d = hub();
+    const anchor = d.getElementById(WALKTHROUGH_ID);
+    expect(anchor, `no element with id="${WALKTHROUGH_ID}" on the guide hub`).toBeTruthy();
+    const start = anchor!.closest('.sl-heading-wrapper') ?? anchor!;
+    const out: Element[] = [];
+    for (let n = start.nextElementSibling; n && headingLevel(n) !== 2; n = n.nextElementSibling) {
+      out.push(n);
+    }
+    return out;
+  }
+
+  /** Per-stage blocks: each level-3 heading and everything up to the next one. */
+  function stageBlocks(): { heading: Element; body: Element[] }[] {
+    const blocks: { heading: Element; body: Element[] }[] = [];
+    for (const n of walkthroughNodes()) {
+      if (headingLevel(n) === 3) blocks.push({ heading: headingEl(n), body: [] });
+      else if (blocks.length) blocks[blocks.length - 1].body.push(n);
+    }
+    return blocks;
+  }
+
+  /** The one labelled line in a stage body, e.g. "Prerequisite:" or "First value:". */
+  function labelled(body: Element[], label: string): string | undefined {
+    for (const el of body) {
+      const t = text(el);
+      const i = t.toLowerCase().indexOf(`${label.toLowerCase()}:`);
+      if (i !== -1) return t.slice(i + label.length + 1).trim();
+    }
+    return undefined;
+  }
+
+  it('AC1 — the guide hub names the walkthrough', () => {
+    const el = hub().getElementById(WALKTHROUGH_ID);
+    expect(el, `no id="${WALKTHROUGH_ID}"`).toBeTruthy();
+    expect(text(el!).toLowerCase()).toContain('the install-to-ship walkthrough');
+  });
+
+  it('AC2 — five stages in contract order', () => {
+    const headings = stageBlocks().map((b) => text(b.heading).toLowerCase());
+    expect(headings, `stage headings: ${headings.join(' | ')}`).toHaveLength(STAGES.length);
+    STAGES.forEach((name, i) => {
+      expect(headings[i], `stage ${i + 1} should name "${name}"`).toContain(name);
+    });
+  });
+
+  it('AC3 — the walkthrough names all eight lifecycle activities', () => {
+    const body = walkthroughNodes().map((n) => text(n)).join(' ').toLowerCase();
+    const missing = ACTIVITIES.filter((a) => !body.includes(a));
+    expect(missing, `activities never named in the walkthrough: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('AC4 — every prerequisite is none or an earlier stage', () => {
+    const failures: string[] = [];
+    stageBlocks().forEach((block, i) => {
+      const raw = labelled(block.body, 'Prerequisite');
+      if (!raw) {
+        failures.push(`stage ${i + 1} states no prerequisite`);
+        return;
+      }
+      const head = raw.split(/\*\*|For:/)[0];
+      if (/\bnone\b/i.test(head)) return;
+      const refs = [...head.matchAll(/\bP(\d)\b/g)].map((m) => Number(m[1]));
+      if (refs.length === 0) {
+        failures.push(`stage ${i + 1} prerequisite names neither "none" nor a stage: ${head.trim()}`);
+        return;
+      }
+      for (const r of refs) {
+        if (r > i) failures.push(`stage ${i + 1} depends on P${r}, which is not earlier`);
+      }
+    });
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  it('AC5 — five present, pairwise-distinct first values', () => {
+    const values = stageBlocks().map((b) => labelled(b.body, 'First value'));
+    values.forEach((v, i) => {
+      expect(v, `stage ${i + 1} states no first value`).toBeTruthy();
+      expect(v!.length, `stage ${i + 1} first value is empty`).toBeGreaterThan(0);
+    });
+    const normalized = values.map((v) => (v ?? '').toLowerCase());
+    expect(new Set(normalized).size, `first values are not distinct: ${normalized.join(' | ')}`)
+      .toBe(values.length);
+  });
+
+  it('AC6 — every stage but the last links to its successor', () => {
+    const blocks = stageBlocks();
+    const ids = blocks.map((b) => b.heading.getAttribute('id'));
+    const failures: string[] = [];
+    for (let i = 0; i < blocks.length - 1; i++) {
+      const nextId = ids[i + 1];
+      const nextName = STAGES[i + 1];
+      const anchors = blocks[i].body.flatMap((el) => [...el.querySelectorAll('a')]);
+      // One anchor must carry BOTH the naming text and the target: two separate
+      // anchors, one right and one wrong, is the failure this guards.
+      const bound = anchors.some(
+        (a) =>
+          a.getAttribute('href') === `#${nextId}` &&
+          text(a).toLowerCase().includes(nextName),
+      );
+      if (!bound) {
+        failures.push(
+          `stage ${i + 1} has no single anchor naming "${nextName}" and targeting #${nextId}; ` +
+            `anchors found: ${anchors.map((a) => `${text(a)}->${a.getAttribute('href')}`).join(', ') || 'none'}`,
+        );
+      }
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  it('AC7 — the catalogue-extension path sits outside the walkthrough', () => {
+    const inside = walkthroughNodes().map((n) => text(n)).join(' ').toLowerCase();
+    expect(inside, 'the catalogue-extension path is still inside the walkthrough')
+      .not.toContain('extend the catalogue');
+    expect(sectionNodes(/extend the catalogue/i).length, 'the branch section is empty')
+      .toBeGreaterThan(0);
+  });
+
+  it('AC14 — the catalogue-extension branch keeps its four guides', () => {
+    const required = [
+      'catalogue-curation/explanation/why-catalogue-curation',
+      'catalogue-curation/tutorials/your-first-skill',
+      '_shared/how-to/build-an-org-stack-pack',
+      '_shared/how-to/create-a-catalogue',
+    ];
+    const hrefs = sectionNodes(/extend the catalogue/i)
+      .flatMap((n) => [...n.querySelectorAll('a')])
+      .map((a) => a.getAttribute('href') ?? '');
+    const missing = required.filter((slug) => !hrefs.some((h) => h.includes(slug)));
+    expect(missing, `catalogue-extension branch lost links to: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  /** AC8-AC10: one anchor per entry surface binding naming text AND target. */
+  const ENTRIES: [string, string, () => string][] = [
+    ['AC8', 'marketing landing page', () => homePage],
+    ['AC9', 'documentation home', () => join(DOCS_ROOT, 'index.html')],
+    ['AC10', 'getting-started page', () => join(DOCS_ROOT, 'getting-started/index.html')],
+  ];
+
+  for (const [ac, label, pathOf] of ENTRIES) {
+    it(`${ac} — the ${label} enters the walkthrough`, () => {
+      const page = pathOf();
+      expect(existsSync(page), `${page} was not emitted`).toBe(true);
+      const anchors = [...doc(page).querySelectorAll('a')];
+      const bound = anchors.filter(
+        (a) =>
+          (a.getAttribute('href') ?? '').endsWith(HUB_HREF) &&
+          text(a).toLowerCase().includes('install-to-ship walkthrough'),
+      );
+      expect(
+        bound.length,
+        `${label}: no anchor whose text names the install-to-ship walkthrough AND whose href ` +
+          `ends with ${HUB_HREF}. Candidate hrefs: ` +
+          anchors
+            .map((a) => a.getAttribute('href') ?? '')
+            .filter((h) => h.includes('guides/'))
+            .join(', '),
+      ).toBeGreaterThan(0);
+    });
+  }
+
+  it('AC11 — the walkthrough heading is addressable in the built site', () => {
+    expect(existsSync(HUB), `${HUB} was not emitted`).toBe(true);
+    expect(
+      readFileSync(HUB, 'utf8').includes(`id="${WALKTHROUGH_ID}"`),
+      `the built guide hub carries no id="${WALKTHROUGH_ID}"`,
+    ).toBe(true);
+  });
+
+  it('AC13 — internal links on the three entry surfaces resolve', () => {
+    const surfaces = [homePage, join(DOCS_ROOT, 'index.html'), HUB];
+    const failures: string[] = [];
+    for (const page of surfaces) {
+      for (const a of doc(page).querySelectorAll('a')) {
+        const href = a.getAttribute('href') ?? '';
+        if (!href.startsWith('/') || href.startsWith('//')) continue;
+        const pathname = href.split('#')[0].split('?')[0];
+        if (!pathname || /\.[a-z0-9]+$/i.test(pathname)) continue;
+        const rel = pathname.replace(/^\/agent-ready-repo/, '').replace(/\/$/, '');
+        const target = join(BUILD_ROOT, rel, 'index.html');
+        if (!existsSync(target)) {
+          failures.push(`${relative(BUILD_ROOT, page)}: ${href} -> no emitted ${relative(BUILD_ROOT, target)}`);
+        }
+      }
+    }
+    expect(failures, `unresolved internal links:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+});
+
+/**
+ * spec/desk-research-build-handover — AC1, AC2, AC3.
+ *
+ * AC2 reads authored Markdown and is deliberately OUTSIDE the build-gated
+ * describe below: a source check that silently skips when the site has not been
+ * built would be a control that cannot fail.
+ */
+describe('desk-research pack link integrity', () => {
+  const PACK = join(REPO_ROOT, 'guides/desk-research');
+
+  /** Every *.md under the pack, found by walking — never a literal list. */
+  function packMarkdown(dir = PACK, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) packMarkdown(p, out);
+      else if (entry.endsWith('.md')) out.push(p);
+    }
+    return out;
+  }
+
+  it('AC2 — every inline in-tree link resolves', () => {
+    const files = packMarkdown();
+    // Traversal guard: the walk must find more than the pack root's own README,
+    // or a verifier that never recursed would look identical to one that did.
+    expect(files.length, 'the pack walk found no Markdown files').toBeGreaterThan(1);
+
+    const failures: string[] = [];
+    for (const file of files) {
+      // Strip fenced and indented code first: link-shaped text in a sample is
+      // not a published link, and reporting it would be a false defect.
+      const src = readFileSync(file, 'utf8')
+        .replace(/^```[\s\S]*?^```/gm, '')
+        .replace(/^(?: {4}|\t).*$/gm, '');
+      for (const m of src.matchAll(/(?<!!)\[[^\]]*\]\(([^)\s]+)\)/g)) {
+        const raw = m[1];
+        if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || raw.startsWith('//') || raw.startsWith('#')) continue;
+        const target = raw.split('#')[0];
+        if (!target) continue;
+        const resolved = join(file, '..', target);
+        const ok =
+          existsSync(resolved) &&
+          (!statSync(resolved).isDirectory() || existsSync(join(resolved, 'README.md')));
+        if (!ok) {
+          failures.push(`${relative(REPO_ROOT, file)}: ${raw}`);
+        }
+      }
+    }
+    expect(failures, `unresolvable in-tree links:\n${failures.join('\n')}`).toEqual([]);
+  });
+});
+
+describe.skipIf(!docsBuilt)('desk-research build handover', () => {
+  const PACK_PAGE = join(DOCS_ROOT, 'guides/desk-research/index.html');
+  const HANDOVER = 'guides/product-engineering/how-to/hand-an-intent-to-build';
+
+  /** The one container Starlight puts a page's own authored Markdown in. */
+  function articleBody(path: string): Element {
+    const d = doc(path);
+    const bodies = d.querySelectorAll('.sl-markdown-content');
+    // Exactly one, asserted: a Starlight rename would otherwise yield zero and
+    // every search inside it would pass vacuously.
+    expect(
+      bodies.length,
+      `expected exactly one .sl-markdown-content on ${relative(DOCS_ROOT, path)}; ` +
+        'a different count means Starlight renamed the container and this check ' +
+        'is no longer scoped to the article body',
+    ).toBe(1);
+    return bodies[0];
+  }
+
+  function handoverAnchors(): HTMLAnchorElement[] {
+    const body = articleBody(PACK_PAGE);
+    return [...body.querySelectorAll('a')].filter((a) => {
+      const href = a.getAttribute('href') ?? '';
+      const text = (a.textContent ?? '').toLowerCase();
+      return (
+        href.includes(HANDOVER) &&
+        text.includes('hand an intent') &&
+        // A closed disclosure is in the body and binds text+target, but the
+        // reader must open it first — that is not one click from the front door.
+        a.closest('details') === null
+      );
+    }) as HTMLAnchorElement[];
+  }
+
+  it('AC1 — the pack front door links to the handover, in the article body', () => {
+    expect(existsSync(PACK_PAGE), `${PACK_PAGE} was not emitted`).toBe(true);
+    const anchors = handoverAnchors();
+    expect(
+      anchors.length,
+      'no anchor in the desk-research article body binds handover naming text to the ' +
+        'handover target outside a collapsed disclosure. Body anchors: ' +
+        [...articleBody(PACK_PAGE).querySelectorAll('a')]
+          .map((a) => `${(a.textContent ?? '').trim()}->${a.getAttribute('href')}`)
+          .join(', '),
+    ).toBeGreaterThan(0);
+  });
+
+  it('AC3 — the handover link resolves to an emitted page', () => {
+    const anchors = handoverAnchors();
+    expect(anchors.length, 'AC1 must hold before AC3 can be judged').toBeGreaterThan(0);
+    for (const a of anchors) {
+      const href = a.getAttribute('href') ?? '';
+      const pathname = href.split('#')[0].split('?')[0].replace(/\/$/, '');
+      const rel = pathname.replace(/^\/agent-ready-repo/, '');
+      const target = join(BUILD_ROOT, rel, 'index.html');
+      expect(existsSync(target), `${href} -> no emitted ${relative(BUILD_ROOT, target)}`).toBe(true);
+    }
+  });
+});

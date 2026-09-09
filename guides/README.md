@@ -9,16 +9,19 @@ kind: explanation
 
 Use this catalogue to add repeatable, supervised ways of working to your agent. Start with the outcome you need; the linked pack guides explain what to install, what to ask for, what the agent produces, and where a human decides.
 
-## Follow a path
+## The install-to-ship walkthrough
 
-A path is an ordered set of guides that ends at a handoff, not at a document.
-Each names what you must already have and roughly what it costs. Start at the
-front door and work down; the two tables after this one are alternate ways in
+This route is an ordered set of guides from installation to a governed,
+reported release. Each stage names what you must already have, roughly what it
+costs, and which stage comes next. Start at the front door and work down. The
+branch section below it, and the two tables further down, are alternate ways in
 once you know the shape.
 
 ### P1 · Adopt the catalogue — ~1 hour
 
 **Prerequisite:** none. **For:** anyone, first session.
+
+Installation starts by choosing the route that fits your repository.
 
 1. [Choose an install route](_shared/explanation/install-routes.md)
 2. [Install the whole lifecycle](_shared/how-to/install-the-whole-lifecycle.md)
@@ -27,6 +30,8 @@ once you know the shape.
 
 **First value:** `workspace status` answers what to work on next.
 **Ends at:** a repository whose queues you can read.
+
+Next: [P2 · Shape what to build](#p2--shape-what-to-build--3-hours).
 
 ### P2 · Shape what to build — ~3 hours
 
@@ -37,6 +42,8 @@ assumption, break it down. Reach past it to the **robust path** — situation,
 opportunities, options, bet, capability map — only when the problem itself is
 unclear or the bet is large enough to need a recorded rationale. [The intent
 tree](product-engineering/explanation/the-intent-tree.md) explains the choice.
+Use this shaping route to turn that intent into an architecture concept and
+Core intake.
 
 1. [Gather evidence](desk-research/) when the answer is not already known
 2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `frame-intent`
@@ -53,6 +60,8 @@ first, then [identify opportunities](product-engineering/how-to/identify-opportu
 **Ends at:** Core intake, which selects the route from the content — a spec, a
 delivery brief, or a minimum repository intent.
 
+Next: [P3 · Build it](#p3--build-it--2-hours).
+
 ### P3 · Build it — ~2 hours
 
 **Prerequisite:** P2, or an existing spec. **For:** engineer, agent.
@@ -64,6 +73,8 @@ delivery brief, or a minimum repository intent.
 
 **First value:** a spec and plan you approved before any code was written.
 **Ends at:** a merged change, and the decision to merge is yours.
+
+Next: [P4 · Decide together](#p4--decide-together--15-hours).
 
 ### P4 · Decide together — ~1.5 hours
 
@@ -79,9 +90,13 @@ an architecture concept is what an RFC or ADR is written *from*.
 **First value:** a circulated proposal with its alternatives written down.
 **Ends at:** an accepted decision that outlives the people who made it.
 
+Next: [P5 · Ship and report](#p5--ship-and-report--2-hours).
+
 ### P5 · Ship and report — ~2 hours
 
 **Prerequisite:** P3. **For:** delivery lead, SRE.
+
+This release and reporting stage takes the build through its human ship gate.
 
 1. [The release loop](release-engineering/explanation/the-release-loop.md)
 2. [Run a release](release-engineering/how-to/run-a-release.md)
@@ -90,6 +105,8 @@ an architecture concept is what an RFC or ADR is written *from*.
 
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.
+
+## A branch after the walkthrough: extend the catalogue
 
 ### P6 · Extend the catalogue — ~3 hours
 

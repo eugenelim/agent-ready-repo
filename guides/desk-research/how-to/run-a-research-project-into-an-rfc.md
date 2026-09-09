@@ -90,7 +90,7 @@ and link the companion — don't paste the corpus:
   unknowable is a risk to state plainly, not to pretend away.
 
 Link the companion explicitly, e.g. *"Full evidence in
-[`0041-notes/python-dep-manager-brief.md`](0041-notes/python-dep-manager-brief.md)."*
+`0041-notes/python-dep-manager-brief.md`."*
 
 ## Common variations
 
