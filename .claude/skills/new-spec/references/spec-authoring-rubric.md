@@ -104,14 +104,33 @@ exclusion or budget, and state one representative input that must be accepted.
 
 It is true when written and false later, with nothing to notice the change.
 
-**Tells while writing.** An exact count over a set that grows. A figure derived
-from another figure. A line-number citation. A relative date. A value copied
-from a source that owns it.
+**The tell is not the number, it is what the number counts.** A figure decays
+only if the thing it counts can change after you publish it. A count of current
+state — specs in a directory, files matching a glob, rules in a registry, rounds
+a review has taken — is **live** and will go stale. A count of a past event,
+dated, is **frozen** and cannot. Sort your figures that way first; auditing the
+frozen ones is wasted effort, and it is how a live one gets missed.
+
+**Live tells.** An exact count over a growing set. A count of the artifact's own
+process or history, which looks like narration rather than measurement and so
+escapes notice. A figure derived from another figure. A line-number citation. A
+relative date. A revision identifier that only exists on a branch. A value
+copied from a source that owns it.
 
 **Move.** Ship the derivation, not the value: the glob, the predicate, the
-command, or the query that recomputes it. Where a number must appear, date it
-and name the instrument that produced it, so a reader can tell evidence from a
-constant.
+command, or the query that recomputes it.
+
+**Dating a value does not save it.** "Measured on <date> by <instrument>" makes
+a stale figure honest, not current, and a bound that reads it still decays. So:
+**if anything reads the figure — a bound, a gate, a decision — state the
+derivation in the place that reads it**, not the value. Name the percentile, not
+the number it evaluated to. A dated value may illustrate, and nothing may read
+an illustration.
+
+**A figure you have restated twice is the defect.** The second correction is the
+signal: the cost is not in getting the number right, it is in storing a number
+at all. Convert it to a derivation or delete it, and do not spend a third
+attempt on the value.
 
 Two clauses, and the second does not follow from the first:
 
