@@ -123,7 +123,9 @@ review is recorded.
 
 - Assert every accepted skill reports quoted-example evidence under the audit
   tool's owned grammar and the exact phrase `Triggers on` in its description.
-- Run each affected pack's focused tests/evaluations and catalogue verification.
+- Run each affected pack's focused tests/evaluations, then run
+  `agentbundle catalogue lint --root . --deep` and
+  `agentbundle catalogue verify --root .` as separate successful source gates.
 - Verify pack/plugin version equality for matching plugins.
 
 **Approach:**
@@ -133,7 +135,9 @@ review is recorded.
 - Apply required patch-version, changelog, plugin, and eval maintenance per
   affected pack.
 
-**Done when:** all accepted skill rows pass phrase and release-coherence checks.
+**Done when:** all accepted skill rows pass phrase and release-coherence checks,
+and both deep catalogue lint and catalogue verification have successful
+receipts.
 
 ### T3: Published projections preserve the accepted improvement
 
@@ -150,6 +154,9 @@ review is recorded.
   `make site-link-check` in that order.
 - Confirm the verification ledger contains successful receipts for all three
   guide-source gates from T1 before declaring generation complete.
+- Confirm the verification ledger contains successful receipts for T2's deep
+  catalogue lint and catalogue verification and for the repository self-host
+  command before declaring projection complete.
 - Rerun the affordance audit after generation and compare exact accepted paths.
 - Run the targeted build/link checks selected by the touched projections.
 

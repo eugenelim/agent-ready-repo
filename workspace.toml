@@ -73,9 +73,9 @@ backlog = [
 executing = [
   # Executing 2026-09-09. Ready -> Executing when its first mapped spec,
   # install-to-ship-walkthrough (slice S1), reached Shipped; a brief with a
-  # Shipped child is Executing, not Shipped. S2 is Shipped and S5 is a
-  # review-clean registered Draft. S3 and S4 remain outside the Spec map and
-  # work queue after their recorded review stops. Ready again 2026-09-09 earlier
+  # Shipped child is Executing, not Shipped. S2 is Shipped; S3 and S5 are
+  # review-clean registered Drafts. S4 remains outside the Spec map and work
+  # queue after its recorded review stop. Ready again 2026-09-09 earlier
   # the same day after the material affordance-slice amendment passed a fresh
   # shaping review and the owner explicitly confirmed its boundaries.
   {path = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/product/intents/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:d0ff456f4541b9d2b06819ac7b886ffdfe670f08772f1a4791c3b8eece213cf3"}, summary = "Make one install-to-ship SDLC walkthrough obvious from the landing page and close the remaining guide affordance gaps", needs = []},
@@ -356,10 +356,15 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
+  # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
+  # 2026-09-09 and registered after a clean shaping review and the
+  # owner-authorized fourth adversarial round. It remains Draft and requires
+  # human approval before dispatch.
+  {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:c542af21296e63e7b1fb084e7d2884634e1bfe92284700d5d0963c63c7868e37", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S5 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and three adversarial
   # rounds. It remains Draft and requires human approval before dispatch.
-  {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:7b8a533962be8e464f700b79e09a74e9b9a0ed5036f348fdaf82f7ce5b6f90cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
+  {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:c542af21296e63e7b1fb084e7d2884634e1bfe92284700d5d0963c63c7868e37", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
