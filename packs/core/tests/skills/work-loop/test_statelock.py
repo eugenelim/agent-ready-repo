@@ -599,6 +599,78 @@ def test_concurrent_reclaimers_yield_one_holder(tmp: Path) -> None:
 
 
 # STUB: AC9
+def test_reclaim_leaves_a_superseded_snapshot_alone(tmp: Path) -> None:
+    """A reclaimer holding a superseded snapshot must not move a live lock.
+
+    `test_concurrent_reclaimers_yield_one_holder` above asserts the same
+    invariant but only observes it: it spawns five contenders and hopes the
+    damaging interleaving occurs, so it passed on a machine where the schedule
+    never produced one and failed on a runner where it did. This case *forces*
+    the interleaving instead, so it is red or green for a reason rather than by
+    luck.
+
+    Forced: B snapshots the stale lock, A reclaims it and acquires, then B acts
+    on its now-superseded snapshot. If B renames A's live lock away, the lock
+    path is free while A is inside its section and any third contender's
+    O_CREAT|O_EXCL admits a second holder. Asserting on the freed path rather
+    than on a second process keeps the case deterministic and single-process.
+    """
+    mod = _load()
+    target = _target(tmp, "superseded")
+    lock = target.with_name(target.name + ".lock")
+    lock.write_text("statelock1 " + "a" * 32 + " 99999\n", encoding="utf-8")
+    old = time.time() - 10_000
+    os.utime(lock, (old, old))
+
+    # B looks at the stale lock, then stalls before acting on what it saw.
+    b_observed = os.lstat(lock)
+    b_record = mod._read_record(lock)
+
+    # A reclaims that same stale lock and acquires it. A is now the live holder.
+    mod._reclaim(lock, b_observed, b_record)
+    a_fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    os.write(a_fd, ("statelock1 " + "b" * 32 + f" {os.getpid()}\n").encode("ascii"))
+    os.close(a_fd)
+    a_inode = os.lstat(lock).st_ino
+
+    # Observing after the fact proves nothing: a reclaimer that moves the live
+    # lock puts it straight back with os.link, restoring the same inode, so the
+    # damage is invisible by the time this returns. The free window has to be
+    # sampled while it is open, and the restore call is the one moment inside it
+    # the module reliably reaches. Recording the destination's existence there
+    # is a read, not a redirection: the real os.link still runs.
+    freed_while_held = {"seen": False}
+    real_link = os.link
+
+    def recording_link(src, dst, *args, **kwargs):
+        if not Path(dst).exists():
+            freed_while_held["seen"] = True
+        return real_link(src, dst, *args, **kwargs)
+
+    mod.os.link = recording_link
+    try:
+        # B resumes and acts on its superseded snapshot.
+        mod._reclaim(lock, b_observed, b_record)
+    finally:
+        mod.os.link = real_link
+
+    if freed_while_held["seen"]:
+        fail("reclaim-leaves-superseded-alone",
+             "the lock path was free while a live holder held it, so a third "
+             "contender's O_CREAT|O_EXCL would have admitted a second holder")
+        return
+    if not lock.exists():
+        fail("reclaim-leaves-superseded-alone",
+             "the lock path was left free while a live holder held it")
+        return
+    if os.lstat(lock).st_ino != a_inode:
+        fail("reclaim-leaves-superseded-alone",
+             "the live holder's lockfile was replaced by a superseded reclaimer")
+        return
+    ok("reclaim-leaves-superseded-alone")
+
+
+# STUB: AC9
 def test_reclaim_refuses_unrecognised_file(tmp: Path) -> None:
     """An ancient file that is not our record must not be deleted."""
     mod = _load()
