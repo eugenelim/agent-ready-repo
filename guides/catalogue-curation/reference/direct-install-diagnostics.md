@@ -36,10 +36,10 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D017` | Total bytes |
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
 | `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
-| `CAT-D020` | A standalone skill upgrade could not safely remove an owned file; clear the obstruction on that file before retrying |
+| `CAT-D020` | A standalone skill upgrade refused removal because an owned file could not be removed safely or its recorded path fell outside the selected skill projection; clear the obstruction or repair the state entry before retrying |
 | `CAT-D021` | A standalone skill upgrade removed an obsolete file but could not prune an emptied directory; clear the obstruction on that directory before retrying |
 | `CAT-D022` | An installed direct identity was requested from the same source at a different ref; use `upgrade --skill <name> --source <source>` |
-| `CAT-D023` | A standalone skill upgrade could not read required state, select a usable installed manifestless row, or use the requested output form |
+| `CAT-D023` | A standalone skill upgrade could not read required state or select a usable installed manifestless row |
 | `CAT-D024` | A standalone skill upgrade matched more than one scope; pass `--scope repo` or `--scope user` |
 | `CAT-D025` | A standalone skill upgrade matched more than one adapter; pass `--adapter <adapter>` |
 | `CAT-D026` | A standalone skill upgrade re-resolved its source, but the recorded source path no longer identifies the installed skill |
@@ -48,8 +48,9 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D029` | A standalone skill upgrade was given a source override that names a different repository identity |
 | `CAT-D030` | A standalone skill upgrade cannot form a request from absent, legacy, malformed, or unconfined stored source provenance |
 | `CAT-D031` | A standalone skill upgrade cannot verify a non-widening transition because the installed capability history is unknown or the incoming declarations widen allowed tools, boundaries, or credential use |
-| `CAT-D032` | A standalone skill upgrade cannot compare the stored source digest because its algorithm or encoding is unsupported; reinstall to record a digest this build understands |
+| `CAT-D032` | A standalone skill upgrade cannot compare the stored source digest because it is absent, malformed, or uses an unsupported algorithm or encoding; reinstall to record a digest this build understands |
 | `CAT-D033` | Catalogue-only `upgrade --pack` selected a directly installed row; use the row's direct lifecycle route instead |
+| `CAT-D034` | Standalone `upgrade --skill` does not support JSON output; use table output instead |
 
 ## Reading a refusal
 

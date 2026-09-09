@@ -312,20 +312,21 @@ def _unusable_stored_source_refusal(
         selection.row.adapter,
         "--yes",
     )
-    install_command = recovery_command(
-        "agentbundle",
-        "install",
-        placeholder,
-        "--skill",
-        name,
-        "--scope",
-        selection.scope,
-        "--adapter",
-        selection.row.adapter,
-        "--output",
-        root,
-        "--yes",
+    install_parts = ["agentbundle", "install", placeholder]
+    if selection.row.source_path != ".":
+        install_parts.extend(("--skill", name))
+    install_parts.extend(
+        (
+            "--scope",
+            selection.scope,
+            "--adapter",
+            selection.row.adapter,
+            "--output",
+            root,
+            "--yes",
+        )
     )
+    install_command = recovery_command(*install_parts)
     edited_step = ""
     if edited_paths:
         rendered_paths = ", ".join(
@@ -575,19 +576,14 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
         _print_direct_upgrade_refusal(refusal)
         return 1
 
-    try:
-        source, source_overridden = _select_direct_upgrade_source(
-            name, selection, getattr(args, "source", None)
-        )
-    except DirectUpgradeError as refusal:
-        _print_direct_upgrade_refusal(refusal)
-        return 1
     needs_consent = not getattr(args, "yes", False) and not getattr(
         args, "dry_run", False
     )
+    requested_source = getattr(args, "source", None)
+    consent_source = requested_source if requested_source is not None else selection.row.source
     if (
-        isinstance(source, str)
-        and source.startswith("git+https://")
+        isinstance(consent_source, str)
+        and consent_source.startswith("git+https://")
         and needs_consent
     ):
         consent_refusal = _refuse_direct_upgrade(
@@ -597,6 +593,13 @@ def _run_direct_skill(args: argparse.Namespace, root: Path) -> int:
             remediation="Re-run with --yes, or use --dry-run to preview without writing.",
         )
         _print_direct_upgrade_refusal(consent_refusal)
+        return 1
+    try:
+        source, source_overridden = _select_direct_upgrade_source(
+            name, selection, requested_source
+        )
+    except DirectUpgradeError as refusal:
+        _print_direct_upgrade_refusal(refusal)
         return 1
     from agentbundle.direct_source_state import DirectStateError, comparable_digest
 
@@ -1521,7 +1524,7 @@ def run(args: argparse.Namespace) -> int:
     if standalone_skill:
         if getattr(args, "format", "table") == "json":
             refusal = _refuse_direct_upgrade(
-                DiagnosticCode.CAT_D023,
+                DiagnosticCode.CAT_D034,
                 "--format json is not supported for standalone --skill; use --format table",
                 name=str(args.skill),
             )
@@ -1611,6 +1614,22 @@ def run(args: argparse.Namespace) -> int:
         user_state_for_check if effective_scope == "user" else repo_state_for_check
     )
     _rows = effective_check.rows_for_pack(pack_name) if effective_check else {}
+    direct_rows = {
+        adapter: row
+        for adapter, row in _rows.items()
+        if row.source_kind in {"skill", "pack"}
+    }
+    if cli_adapter is None and len(_rows) > 1 and len(direct_rows) == len(_rows):
+        rendered_rows = ", ".join(f"{adapter} (—)" for adapter in sorted(_rows))
+        choices = " or ".join(f"--adapter {adapter}" for adapter in sorted(_rows))
+        refusal = _refuse_direct_upgrade(
+            DiagnosticCode.CAT_D033,
+            f"{pack_name!r} is directly installed for multiple adapters: {rendered_rows}",
+            name=pack_name,
+            remediation=f"Use standalone --skill and pass {choices}.",
+        )
+        _print_direct_upgrade_refusal(refusal)
+        return 1
     if cli_adapter is not None:
         if cli_adapter not in _rows:
             print(
@@ -1624,12 +1643,14 @@ def run(args: argparse.Namespace) -> int:
     elif len(_rows) == 1:
         target_adapter = next(iter(_rows))
     elif len(_rows) > 1:
-        from agentbundle.commands._common import format_adapter_versions
-
+        rendered_rows = ", ".join(
+            f"{adapter} ({'—' if row.source_kind in {'skill', 'pack'} else row.installed_version})"
+            for adapter, row in sorted(_rows.items())
+        )
         print(
             f"upgrade: {pack_name} installed for multiple adapters at "
             f"{effective_scope} scope; pass --adapter to pick one: "
-            f"{format_adapter_versions(_rows)}",
+            f"{rendered_rows}",
             file=sys.stderr,
         )
         return 1

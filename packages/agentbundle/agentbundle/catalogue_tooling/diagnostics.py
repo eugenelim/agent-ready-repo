@@ -87,6 +87,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D031 = "CAT-D031"   # capability history is unknown or the candidate widens it
     CAT_D032 = "CAT-D032"   # stored source digest uses an unsupported or malformed format
     CAT_D033 = "CAT-D033"   # catalogue-only upgrade selected a directly installed row
+    CAT_D034 = "CAT-D034"   # standalone skill upgrade does not support JSON output
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -130,6 +131,7 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D031,
         DiagnosticCode.CAT_D032,
         DiagnosticCode.CAT_D033,
+        DiagnosticCode.CAT_D034,
     }
 )
 

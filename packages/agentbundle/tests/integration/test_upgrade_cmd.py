@@ -386,10 +386,40 @@ def test_direct_skill_json_refusal_uses_route_wording(tmp_path, capsys):
 
     assert _upgrade_direct(target, "--format", "json") == 1
     refusal = capsys.readouterr()
-    assert "CAT-D023" in refusal.err
+    assert "CAT-D034" in refusal.err
     assert "not supported for standalone --skill" in refusal.err
     assert "not yet supported with --pack" not in refusal.err
     assert _tree_digests(target) == before
+
+
+def test_pack_selector_classifies_multi_adapter_direct_rows_before_versions(
+    tmp_path, capsys
+):
+    from agentbundle import cli
+
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_direct_skill(source)
+    assert _install_direct(source, target, adapter="claude-code") == 0
+    assert _install_direct(source, target, adapter="codex") == 0
+    capsys.readouterr()
+
+    assert cli.main(
+        [
+            "upgrade",
+            "--pack",
+            "example",
+            "--root",
+            str(target),
+            "--scope",
+            "repo",
+        ]
+    ) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D033" in refusal.err
+    assert "claude-code (—)" in refusal.err
+    assert "codex (—)" in refusal.err
+    assert "0.0.0+agentbundle.manifestless" not in refusal.err
 
 
 def test_direct_skill_upgrade_succeeds(
@@ -504,6 +534,26 @@ def test_direct_skill_upgrade_refuses_an_unusable_stored_source(
     )
     assert len(set(named_placeholders)) == 1
     assert _tree_digests(target) == before
+
+
+def test_remote_consent_refusal_precedes_unusable_stored_source(
+    tmp_path, tmp_path_factory, monkeypatch, capsys
+):
+    storage = tmp_path_factory.mktemp("direct-upgrade-consent-before-source")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    source_tree = tmp_path / "source"
+    _write_direct_skill(source_tree)
+    source = "git+https://github.com/example/skills@release"
+    acquisition.publish("example/skills", "release", source_tree)
+    target = tmp_path / "target"
+    assert _install_direct(source, target) == 0
+    capsys.readouterr()
+    _set_direct_source(target, "git+https://github.com/example/skills@main")
+
+    assert _upgrade_direct(target) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D008" in refusal.err
+    assert "CAT-D030" not in refusal.err
 
 
 def test_direct_skill_upgrade_preserves_absolute_source_spelling(tmp_path, capsys):
@@ -673,6 +723,69 @@ def test_direct_skill_source_override_moves_each_remote_ref_kind(
     )
 
 
+def test_root_single_unusable_source_recovery_omits_skill_selector(
+    tmp_path, monkeypatch, capsys
+):
+    from agentbundle import cli
+    from agentbundle.config import load_state
+
+    original = tmp_path / "original" / "example"
+    original.mkdir(parents=True)
+    (original / "SKILL.md").write_text(
+        "---\nname: example\n---\n# old\n", encoding="utf-8"
+    )
+    target = tmp_path / "target"
+    assert cli.main(
+        [
+            "install",
+            str(original),
+            "--scope",
+            "repo",
+            "--adapter",
+            "claude-code",
+            "--output",
+            str(target),
+            "--yes",
+        ]
+    ) == 0
+    capsys.readouterr()
+    _set_direct_source(target, None)
+
+    replacement = tmp_path / "replacement" / "example"
+    replacement.mkdir(parents=True)
+    (replacement / "SKILL.md").write_text(
+        "---\nname: example\n---\n# wanted\n", encoding="utf-8"
+    )
+    assert _upgrade_direct(target, "--yes") == 1
+    refusal = capsys.readouterr()
+    recovery = next(
+        line.split("Then run: ", 1)[1]
+        for line in refusal.err.splitlines()
+        if "Then run: " in line
+    )
+    uninstall_command, install_command = recovery.split(" then ", 1)
+    install_argv = shlex.split(install_command)
+    assert "--skill" not in install_argv
+    placeholder = install_argv[2]
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert _run_printed_command(uninstall_command) == 0
+    filled_install = install_command.replace(
+        placeholder, shlex.quote(str(replacement))
+    )
+    assert _run_printed_command(filled_install) == 0
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source_path == "."
+    assert (target / ".claude/skills/example/SKILL.md").read_text(
+        encoding="utf-8"
+    ).endswith("# wanted\n")
+
+
 def test_direct_skill_source_override_refuses_a_local_row(tmp_path, capsys):
     source = tmp_path / "source"
     target = tmp_path / "target"
@@ -710,6 +823,68 @@ def test_direct_skill_source_override_refuses_a_different_repository(
     assert "CAT-D029" in refusal.err
     assert acquisition.calls == []
     assert _tree_digests(target) == before
+
+
+@pytest.mark.parametrize("edited_kind", ["incoming", "removal"])
+def test_source_override_adopter_edit_retry_preserves_wanted_revision(
+    tmp_path, tmp_path_factory, monkeypatch, capsys, edited_kind
+):
+    from agentbundle.config import load_state
+
+    storage = tmp_path_factory.mktemp(f"direct-edit-retry-{edited_kind}")
+    acquisition = GitHttpsAcquisitionFake(monkeypatch, storage)
+    first_tree = tmp_path / "first"
+    wanted_tree = tmp_path / "wanted"
+    first_skill = _write_direct_skill(first_tree)
+    wanted_skill = _write_direct_skill(wanted_tree, "# wanted\n")
+    for skill in (first_skill, wanted_skill):
+        references = skill / "references"
+        references.mkdir()
+        (references / "keep.md").write_text("keep\n", encoding="utf-8")
+    (first_skill / "references" / "doomed.md").write_text(
+        "publisher\n", encoding="utf-8"
+    )
+
+    repository = "git+https://github.com/example/skills"
+    installed = f"{repository}@{'1' * 40}"
+    wanted = f"{repository}@{'2' * 40}"
+    acquisition.publish("example/skills", "1" * 40, first_tree, revision="1" * 40)
+    acquisition.publish("example/skills", "2" * 40, wanted_tree, revision="2" * 40)
+    target = tmp_path / "target"
+    assert _install_direct(installed, target) == 0
+    capsys.readouterr()
+
+    projected_skill = target / ".claude/skills/example/SKILL.md"
+    recorded_skill = projected_skill.read_bytes()
+    edited_path = projected_skill
+    if edited_kind == "removal":
+        edited_path = target / ".claude/skills/example/references/doomed.md"
+    edited_path.write_text("adopter edit\n", encoding="utf-8")
+
+    assert _upgrade_direct(target, "--source", wanted, "--yes") == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D027" in refusal.err
+    retry = next(
+        line.split("then run ", 1)[1].removesuffix(".")
+        for line in refusal.err.splitlines()
+        if "then run " in line
+    )
+    retry_argv = shlex.split(retry)
+    assert retry_argv[retry_argv.index("--source") + 1] == wanted
+
+    if edited_kind == "incoming":
+        projected_skill.write_bytes(recorded_skill)
+    else:
+        edited_path.unlink()
+    assert _run_printed_command(retry) == 0
+    row = load_state(target / ".agentbundle-state.toml").row(
+        "example", "claude-code"
+    )
+    assert row is not None
+    assert row.source == wanted
+    assert row.source_revision == "2" * 40
+    assert projected_skill.read_text(encoding="utf-8").endswith("# wanted\n")
+    assert not (target / ".claude/skills/example/references/doomed.md").exists()
 
 
 def test_different_ref_install_remediation_executes_from_another_directory(

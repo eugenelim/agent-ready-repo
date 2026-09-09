@@ -42,6 +42,12 @@ class DirectCodeTableLintTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("registered codes", result.stdout)
 
+    def test_digest_row_names_every_uncomparable_stored_shape(self) -> None:
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        row = next(line for line in table.splitlines() if "`CAT-D032`" in line)
+        for shape in ("absent", "malformed", "unsupported"):
+            self.assertIn(shape, row)
+
     def test_a_registered_code_missing_from_the_table_fails(self) -> None:
         table = self.tmp / TABLE
         kept = [

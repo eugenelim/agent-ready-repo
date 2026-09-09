@@ -12,6 +12,7 @@ now — its tasks have no API in the LLD yet.
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import os
 
@@ -263,6 +264,41 @@ def test_every_registered_direct_code_has_a_raise_site():
         f"adopter table documents must be emittable, or the table promises a "
         f"refusal that cannot happen."
     )
+
+
+def test_delete_removed_projection_refuses_forged_out_of_prefix_ownership(tmp_path):
+    """An adopter-writable ownership row cannot delete outside its skill prefix."""
+
+    from agentbundle.direct_install import DirectInstallError, _delete_removed_projection
+
+    target = tmp_path / "pyproject.toml"
+    target.write_text("project-owned\n", encoding="utf-8")
+
+    class _Args:
+        output = str(tmp_path)
+        scope = "repo"
+        adapter = "claude-code"
+        source = None
+
+    with pytest.raises(DirectInstallError) as excinfo:
+        _delete_removed_projection(
+            _Args(),
+            projection_root=tmp_path,
+            skill_target=".claude/skills",
+            removed=["pyproject.toml"],
+            owned_files={
+                "pyproject.toml": {
+                    "sha": hashlib.sha256(target.read_bytes()).hexdigest()
+                }
+            },
+            scope="repo",
+            adapter="claude-code",
+            name="example",
+        )
+
+    assert excinfo.value.diagnostic.code == "CAT-D020"
+    assert "malformed ownership path" in excinfo.value.diagnostic.message
+    assert target.read_text(encoding="utf-8") == "project-owned\n"
 
 
 def _emitted_codes(tmp_path) -> set[str]:
@@ -589,6 +625,7 @@ def _emitted_codes(tmp_path) -> set[str]:
             lambda: _delete_removed_projection(
                 _DeleteArgs(),
                 projection_root=deletion_root,
+                skill_target=".claude/skills",
                 removed=[".claude/skills/example/old.md"],
                 owned_files={".claude/skills/example/old.md": {"sha": "0" * 64}},
                 scope="repo",
@@ -605,6 +642,7 @@ def _emitted_codes(tmp_path) -> set[str]:
             lambda: _delete_removed_projection(
                 _DeleteArgs(),
                 projection_root=deletion_root,
+                skill_target=".claude/skills",
                 removed=[".claude/skills/example/prune/old.md"],
                 owned_files={
                     ".claude/skills/example/prune/old.md": {"sha": "0" * 64}
@@ -637,6 +675,15 @@ def _emitted_codes(tmp_path) -> set[str]:
             _refuse_direct_upgrade(
                 DiagnosticCode.CAT_D033,
                 "catalogue-only route selected a direct row",
+                name="example",
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D034,
+                "standalone skill upgrade does not support JSON output",
                 name="example",
             )
         )
@@ -693,6 +740,7 @@ def _emitted_codes(tmp_path) -> set[str]:
             upgrade_owned_files={
                 ".claude/skills/alpha/SKILL.md": {"sha": "0" * 64}
             },
+            upgrade_args=_Args(),
         )
     )
     return emitted

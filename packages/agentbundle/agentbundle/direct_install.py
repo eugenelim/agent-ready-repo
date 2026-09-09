@@ -1112,6 +1112,7 @@ def _summarise_and_project(
             source_string,
             planned,
             upgrade_owned_files=upgrade_owned_files,
+            upgrade_args=args,
             upgrade_source_overridden=bool(
                 getattr(args, "_upgrade_source_overridden", False)
             ),
@@ -1204,6 +1205,7 @@ def _summarise_and_project(
         retained_owned_files = _delete_removed_projection(
             args,
             projection_root=projection_root,
+            skill_target=skill_target,
             removed=removed,
             owned_files=upgrade_owned_files,
             scope=scope,
@@ -1317,6 +1319,7 @@ def _delete_removed_projection(
     args: object,
     *,
     projection_root: Path,
+    skill_target: str,
     removed: list[str],
     owned_files: dict[str, dict[str, str]],
     scope: str,
@@ -1334,6 +1337,26 @@ def _delete_removed_projection(
 
     if not removed:
         return {}
+
+    expected_prefix = PurePosixPath(skill_target) / name
+    for relpath in removed:
+        relative = PurePosixPath(relpath)
+        if (
+            relative.is_absolute()
+            or "\\" in relpath
+            or ".." in relative.parts
+            or relative.parts[: len(expected_prefix.parts)] != expected_prefix.parts
+            or len(relative.parts) == len(expected_prefix.parts)
+        ):
+            raise _refuse(
+                DiagnosticCode.CAT_D020,
+                f"refusing malformed ownership path outside {expected_prefix.as_posix()!r}",
+                path=relpath,
+                remediation=(
+                    "Repair or remove the malformed ownership entry in the state file "
+                    f"before retrying: {_upgrade_retry_command(args, name)}"
+                ),
+            )
 
     states = []
     try:
@@ -1701,6 +1724,7 @@ def _refuse_foreign_owner(
     planned: list[tuple[str, bytes]],
     *,
     upgrade_owned_files: dict[str, dict[str, str]] | None = None,
+    upgrade_args: object | None = None,
     upgrade_source_overridden: bool = False,
 ) -> None:
     """Refuse to overwrite a row or a directory this source does not own.
@@ -1828,18 +1852,10 @@ def _refuse_foreign_owner(
                 else DiagnosticCode.CAT_D009
             )
             if upgrade_owned_files is not None:
-                rerun = recovery_command(
-                    "agentbundle",
-                    "upgrade",
-                    "--skill",
-                    selection.skills[0].name,
-                    "--root",
-                    str(projection_root),
-                    "--scope",
-                    scope,
-                    "--adapter",
-                    adapter,
-                    "--yes",
+                if upgrade_args is None:
+                    raise AssertionError("upgrade arguments are required for upgrade retry")
+                rerun = _upgrade_retry_command(
+                    upgrade_args, selection.skills[0].name
                 )
                 remediation = (
                     "Move the adopter-edited file aside before upgrading, then run "
@@ -1866,19 +1882,9 @@ def _refuse_foreign_owner(
             projection_root, relpath, None, recorded_sha
         ):
             continue
-        rerun = recovery_command(
-            "agentbundle",
-            "upgrade",
-            "--skill",
-            selection.skills[0].name,
-            "--root",
-            str(projection_root),
-            "--scope",
-            scope,
-            "--adapter",
-            adapter,
-            "--yes",
-        )
+        if upgrade_args is None:
+            raise AssertionError("upgrade arguments are required for upgrade retry")
+        rerun = _upgrade_retry_command(upgrade_args, selection.skills[0].name)
         raise _refuse(
             DiagnosticCode.CAT_D027,
             f"{relpath} is adopter-edited and the new source would remove it",
