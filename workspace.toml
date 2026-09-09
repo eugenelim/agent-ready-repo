@@ -220,9 +220,9 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  {path = "docs/specs/cooling-brief-child-scope-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Give a cooled child a parent link readable without opening its body: source.parent answers three ways, and an absent or unresolvable value is unknown scope that names the entry and fails closed on every brief dependency", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/cooling-brief-child-scope-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Give a cooled child a parent link readable without opening its body: source.parent answers three ways, and an absent or unresolvable value is unknown scope that names the entry and fails closed on every brief dependency", needs = []},
   {path = "docs/specs/distribution-route-registry/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Build all three routes through one generic six-field registry with no route-name branches in shared code", needs = [{type = "local", kind = "spec", path = "docs/specs/portable-agent-plugin-projection/spec.md"}]},
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
   # spec-authoring time by owner decision rather than at work-loop dispatch.

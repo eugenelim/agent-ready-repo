@@ -1,6 +1,6 @@
 # Spec: Cooling brief child scope closure
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6 and §7 and its 2026-09-03 Errata, which scope Wave 7b to the read-free parent link; [ADR-0106](../../adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md), which decides the three answers and licenses the `Status` pointer this delivery writes; `status-projection-and-context-exclusion`, Shipped and frozen, which owns the child-state set and the AC59 half ADR-0106 supersedes; `workspace-routing-invariants`, Shipped and frozen, whose § *Ask first* governs a new finding code and whose § *Always do* requires the smallest safe next action; `thirty-day-cooling-and-retirement`, Shipped and frozen, which owns what cooling means
@@ -143,42 +143,42 @@ entry is not present with an empty `needs`, which is a different fixture.
 
 ### Read-free parent scope
 
-- [ ] **AC1 — A declared, resolving parent marks its brief.** The **Declared**
+- [x] **AC1 — A declared, resolving parent marks its brief.** The **Declared**
   fixture: the queued spec is absent from `canonical.ready` and
   `canonical.findings` carries `unsatisfied_dependency` at the brief's path.
   Without the `Cooling` record the queued spec is present and
   `canonical.findings` is empty.
-- [ ] **AC2 — A declared empty parent marks nothing.** The **Empty** fixture:
+- [x] **AC2 — A declared empty parent marks nothing.** The **Empty** fixture:
   the queued spec is present in `canonical.ready` and `canonical.findings` is
   empty.
-- [ ] **AC3 — An absent parent on a cooled entry is named.** The **Absent**
+- [x] **AC3 — An absent parent on a cooled entry is named.** The **Absent**
   fixture: `canonical.findings` carries exactly one
   `cooled_child_scope_unknown`, at `docs/specs/child/spec.md`.
-- [ ] **AC4 — Unestablished scope refuses a brief dependency.** For the
+- [x] **AC4 — Unestablished scope refuses a brief dependency.** For the
   **Absent** fixture the queued spec is absent from `canonical.ready` and
   `canonical.findings` carries `unsatisfied_dependency` at the brief's path. For
   the **Empty** fixture it is present.
-- [ ] **AC5 — The parent is read from the entry, never the body.** The
+- [x] **AC5 — The parent is read from the entry, never the body.** The
   **Absent** fixture with the child's body brief set to the brief and the
   dependant entry absent: `canonical.findings` carries exactly one
   `cooled_child_scope_unknown`, at the child's path.
-- [ ] **AC6 — A declared parent resolving to no membership is unestablished.**
+- [x] **AC6 — A declared parent resolving to no membership is unestablished.**
   The **Absent** fixture with the child's entry `source.parent` set to
   `docs/product/briefs/Brief-1.md` while the registered membership is
   `docs/product/briefs/brief-1.md`: `canonical.findings` carries exactly one
   `cooled_child_scope_unknown`, at the child's path.
-- [ ] **AC7 — The answer is per entry.** The **Empty** fixture plus
+- [x] **AC7 — The answer is per entry.** The **Empty** fixture plus
   `docs/specs/other/spec.md` in `work.shipped`, body `Status: Shipped`, body
   brief `none`, entry omitting `source.parent`, with `Cooling` records naming
   both specs and the dependant entry absent: `canonical.findings` carries
   exactly one `cooled_child_scope_unknown`, at `docs/specs/other/spec.md`.
-- [ ] **AC8 — Unestablished scope does not refuse a non-brief dependency.** The
+- [x] **AC8 — Unestablished scope does not refuse a non-brief dependency.** The
   **Absent** fixture with its queued spec replaced by `docs/specs/second/spec.md` in
   `work.queue`, body `Status: Approved`, body brief `none`, entry omitting
   `source.parent`, carrying a `kind = "spec"` dependency on
   `docs/specs/child/spec.md`: `canonical.ready` contains
   `docs/specs/second/spec.md`.
-- [ ] **AC9 — Unestablished scope reports itself and suppresses nothing.** Brief
+- [x] **AC9 — Unestablished scope reports itself and suppresses nothing.** Brief
   in `brief_queue.executing`, body `Status: Executing`. Child in `work.shipped`,
   body `Status: Approved`, body brief `none`, entry omitting `source.parent`. `docs/specs/dependant/spec.md` in `work.queue`, body
   `Status: Approved`, body brief `none`, entry omitting `source.parent`, carrying
@@ -186,7 +186,7 @@ entry is not present with an empty `needs`, which is a different fixture.
   `cooled_child_scope_unknown` at the child's path and one
   `impossible_transition` at the brief's. With the child's body brief and entry
   `source.parent` both set to the brief instead, it carries neither.
-- [ ] **AC10 — An attributed cooled child still suppresses its parent's
+- [x] **AC10 — An attributed cooled child still suppresses its parent's
   violation.** Brief in `brief_queue.executing`, body `Status: Executing`. Child
   in `work.shipped`, body `Status: Approved`, body brief and entry
   `source.parent` the brief. `docs/specs/second/spec.md` in `work.queue`, body
@@ -194,30 +194,30 @@ entry is not present with an empty `needs`, which is a different fixture.
   naming the child, and no dependency anywhere. `canonical.findings` carries no
   `impossible_transition` at the brief's path. Without the record it carries
   exactly one there.
-- [ ] **AC11 — A cooled brief is satisfied ahead of the refusal.** The
+- [x] **AC11 — A cooled brief is satisfied ahead of the refusal.** The
   **Absent** fixture with a second `Cooling` record naming the brief: the queued
   spec is present in `canonical.ready`.
-- [ ] **AC12 — An uncooled entry disagreeing with its body is named.** The
+- [x] **AC12 — An uncooled entry disagreeing with its body is named.** The
   **Absent** fixture with the child's body brief set to the brief and **no**
   `Cooling` record, and again with the child's entry `source.parent` set to
   `none` instead of omitted: `canonical.findings` carries one
   `provenance_mismatch` at the child's path and no
   `cooled_child_scope_unknown`.
-- [ ] **AC13 — An uncooled entry agreeing with its body is not named.** The
+- [x] **AC13 — An uncooled entry agreeing with its body is not named.** The
   **Empty** fixture with **no** `Cooling` record: `canonical.findings` carries no
   `provenance_mismatch` entry at the child's path.
 
 ### The Wave 6 supersession
 
-- [ ] **AC14 — The pointer takes the licensed form.**
+- [x] **AC14 — The pointer takes the licensed form.**
   `docs/specs/status-projection-and-context-exclusion/spec.md`'s
   `- **Status:**` line reads `Shipped (superseded in part by ADR-0106 — ` then a
   clause naming `AC59`, then `; everything else stands)`.
-- [ ] **AC15 — The frozen body is otherwise unchanged.** Substituting that
+- [x] **AC15 — The frozen body is otherwise unchanged.** Substituting that
   file's `- **Status:**` line with the content that line has at this branch's
   merge base with `origin/main` yields a file byte-identical to that merge-base
   content.
-- [ ] **AC16 — Both sites pinning the edited file carry its new digest.**
+- [x] **AC16 — Both sites pinning the edited file carry its new digest.**
 `cooling-scope-closure`'s AC23 pins file digests in two
   places — the dict in `tests/roster/test_cooling_scope_closure.py` and the table
   in `docs/specs/cooling-scope-closure/spec.md`. Both hold, for
@@ -225,7 +225,7 @@ entry is not present with an empty `needs`, which is a different fixture.
   SHA-256 after its `Status`-line edit; neither retains
   `2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d`, and
   `tests/roster/test_cooling_scope_closure.py` passes.
-- [ ] **AC17 — The three superseded Wave 6 cases are updated, not deleted.**
+- [x] **AC17 — The three superseded Wave 6 cases are updated, not deleted.**
   `tests/roster/test_status_projection_and_context_exclusion.py` still defines
   `test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone`,
   `test_cooled_parentless_child_scope_residual_is_pinned` and
@@ -237,45 +237,45 @@ entry is not present with an empty `needs`, which is a different fixture.
 
 ### Surfaces
 
-- [ ] **AC18 — The code is documented where the gate looks.**
+- [x] **AC18 — The code is documented where the gate looks.**
   `packs/core/.apm/skills/workspace-status/SKILL.md` and
   `guides/core/reference/workspace-toml-schema.md` each carry a row for
   `cooled_child_scope_unknown` with a reason and a next action.
-- [ ] **AC19 — The next action says when the empty answer is correct.** That
+- [x] **AC19 — The next action says when the empty answer is correct.** That
   code's value in `_FINDING_NEXT_ACTIONS` in
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`,
   and both documentation rows'
   next actions each contain the literal
   `only when that spec has no parent brief`.
-- [ ] **AC20 — Every projection matches its source.** Every file
+- [x] **AC20 — Every projection matches its source.** Every file
   `FORCE=1 make build-self` writes for the `workspace-status` skill is byte-equal
   to its counterpart under `packs/core/.apm`, and re-running that command
   produces no further change.
-- [ ] **AC21 — This delivery moved the release surface.** `packs/core/pack.toml`,
+- [x] **AC21 — This delivery moved the release surface.** `packs/core/pack.toml`,
   `packs/core/.claude-plugin/plugin.json` and the topmost dated `[core]` heading
   in `docs/product/changelog.md` carry one identical version, whose
   `(major, minor, patch)` tuple is strictly greater than the tuple in
   `packs/core/pack.toml` at this branch's merge base with `origin/main`.
-- [ ] **AC22 — The eval harness names the code.**
+- [x] **AC22 — The eval harness names the code.**
   `packs/core/.apm/skills/workspace-status/evals/evals.json` carries an eval
   whose `expected_output` names `cooled_child_scope_unknown`.
-- [ ] **AC23 — The eval ids stay distinct.** Every `id` in that file's `evals`
+- [x] **AC23 — The eval ids stay distinct.** Every `id` in that file's `evals`
   list occurs exactly once.
 
-- [ ] **AC24 — The adopter closeout procedure states the precondition.**
+- [x] **AC24 — The adopter closeout procedure states the precondition.**
   `guides/core/how-to/close-and-disposition-work.md`'s `cool-30-days` row
   contains the literal `declare source.parent on its workspace entry`.
-- [ ] **AC25 — The shipped command emits the finding.**
+- [x] **AC25 — The shipped command emits the finding.**
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py reconcile
   --root <fixture>`, run from inside this checkout against the **Absent**
   fixture, exits 0 and its stdout carries a `canonical.findings` entry whose
   `code` is `cooled_child_scope_unknown`. Probe 16 establishes both halves of
   that shape against the shipped script: exit 0 holds with a finding present, and
   the code is reachable at `canonical.findings[].code`.
-- [ ] **AC26 — The `parent` field's reference entry states the cooling
+- [x] **AC26 — The `parent` field's reference entry states the cooling
   interaction.** `guides/core/reference/workspace-toml-schema.md`'s `parent` row
   contains the literal `unestablished once the spec has cooled`.
-- [ ] **AC27 — A declared parent resolves by entry kind, not by collection.** A
+- [x] **AC27 — A declared parent resolves by entry kind, not by collection.** A
   declared value resolves against any workspace entry whose `kind` is `brief`,
   in whichever collection it is registered, and against no entry of another
   kind. Four fixtures, each the **Absent** fixture's tree with the child's entry
