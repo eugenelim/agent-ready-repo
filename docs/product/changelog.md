@@ -67,13 +67,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `new-spec` gained `references/spec-authoring-rubric.md`, reached from the
-  acceptance-criteria step and from the spec template. It names the failures
-  shape rules cannot see: a criterion that holds on empty state, one no design
-  satisfies, one whose value or citation goes stale at its source, one that
-  targets generated output instead of the source that produces it, a
-  hand-written set that has a machine-readable source, refusals with no valid
-  input that must succeed, and a deferral that drops a control nobody may
-  waive.
+  acceptance-criteria step and from the spec template. It orders and diagnoses
+  the failures a criterion-shape review keeps finding: a criterion that holds on
+  empty state, one no design satisfies, one whose value or citation goes stale
+  at its source, one that targets generated output instead of the source that
+  produces it, a hand-written set that has a machine-readable source, refusals
+  with no valid input that must succeed, and a deferral that drops a control
+  nobody may waive. The paired ablation reached four of the six from shipped
+  shape guidance alone; the two it did not are the one-sided refusal set and
+  the criterion aimed at generated output.
 - The rubric carries the two rules that decide what to do with a class rather
   than how to spot it: a criteria-count threshold starts a conversation and
   never refuses, and an artifact at the wrong altitude is moved rather than

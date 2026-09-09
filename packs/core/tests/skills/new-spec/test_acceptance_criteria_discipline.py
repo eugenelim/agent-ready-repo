@@ -386,8 +386,13 @@ def test_rubric_defers_criterion_shape_and_stays_authoring_guidance() -> None:
     # Pin the deferral map, not a universal claim about it: an earlier draft
     # said "each class below points there", which was false for four of six.
     assert "Classes 2 and 5 defer criterion *shape* to `../assets/spec.md`" in text
-    assert "classes 1, 3 and 6 defer their repair mechanics to `SKILL.md`" in text
-    assert "class 4 states its own rules here" in text
+    # The map named a category — "their repair mechanics" — where classes 3 and
+    # 6 both state repairs locally, so it over-claimed twice over. It now names
+    # the single mechanism each class defers, and this pin holds it to that
+    # form: a return to the categorical claim reds here.
+    assert "Every class states its own repairs." in text
+    assert "one named mechanism each, cited where the class needs it" in text
+    assert "Class 4 defers no mechanism" in text
     # Class 4's decoration clause intersects the template's claim-minimality
     # rule on a figure inside a criterion. The rubric must name that boundary
     # rather than claim the whole rule, so pin the boundary sentence too.

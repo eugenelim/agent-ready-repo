@@ -161,15 +161,38 @@ def test_the_corpus_section_publishes_an_instrument_not_a_snapshot() -> None:
     class 4's move is to ship the derivation rather than the value, so § "Corpus"
     carries the instrument and no snapshot.
 
-    The predicate is comma-grouped digits, which is what a spec count, a
-    criteria count or a word percentile looks like here. Dates (`2026-09-08`)
-    and the status regex carry no comma, so they pass; re-adding
-    "421 specs, 6,465 criteria" or a "median 1,607" reds.
+    The section's contract is absolute — it publishes *no* figure — so the
+    predicate is any multi-digit magnitude in its prose, not a formatting
+    guess. An earlier revision looked only for comma-grouped digits, on the
+    reasoning that a spec count or a word percentile looks like `6,465` here.
+    That missed the recurrence path the section itself creates: the instrument
+    it publishes prints `n=246 median=1509 p75=2634`, ungrouped, and the
+    section tells a reader who needs a number to run it — so pasting that
+    output back as prose passed the guard it exists to fail.
+
+    Three things are removed before the check, each because it is not a
+    magnitude: the fenced instrument block, whose code legitimately contains
+    numbers; an ISO date, which is a frozen stamp; and a percentile *name* in
+    either spelling. What remains may carry single digits, which is how the
+    section cites `class 4` and how `§ 5` is written.
+
+    Both directions, since a repair to a one-sided check is where the mirror
+    defect enters. Green on the current section, which names class 4 and shows
+    `Shipped (2026-05-26)` as a status example. Red on "421 specs, 6,465
+    criteria", on "median 1,607", and on "246 specs, median 1509 words" — the
+    last being the case the comma predicate let through.
     """
     corpus = _brief_section("Corpus")
-    grouped = sorted(set(re.findall(r"\b\d{1,3},\d{3}\b", corpus)))
-    assert not grouped, (
-        f"§ Corpus publishes a snapshot figure again: {grouped}. "
+    # Assert the strip found the block rather than silently removing nothing or
+    # everything: a fence-count change means this seam needs re-reading.
+    fences = re.findall(r"```.*?```", corpus, flags=re.S)
+    assert len(fences) == 1, f"expected one fenced instrument block, found {len(fences)}"
+    prose = re.sub(r"```.*?```", " ", corpus, flags=re.S)
+    prose = re.sub(r"\d{4}-\d{2}-\d{2}", " ", prose)
+    prose = re.sub(r"\bp\d{1,3}\b|\b\d{1,3}(?:st|nd|rd|th) percentile\b", " ", prose)
+    magnitudes = sorted(set(re.findall(r"\d[\d,]*\d", prose)))
+    assert not magnitudes, (
+        f"§ Corpus publishes a snapshot figure again: {magnitudes}. "
         "Class 4's move is the derivation, not the value."
     )
     assert "publishes an instrument, not a snapshot" in " ".join(corpus.split())
