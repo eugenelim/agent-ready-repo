@@ -196,14 +196,30 @@ non-empty and all shipped, as an exit-1 finding wired into the gate chain.
 What was true is narrower: `receive-brief` ships no such lint, and the prose
 attributes it to the wrong skill. The lint lives in `author-delivery-brief`.
 
-**The rejection stands on the other two measured facts, which this correction
-does not touch.** 2 of 15 briefs carry no `## Spec map` at all, and of the 13
-that do, only 3 have parseable rows — the formats disagree across backticked
-slugs, bare slugs, the prose "None.", and an empty table row. Parsing this
-section *here* would still fail silently into under-attribution. What changed is
-the reason: not that nothing checks the section, but that what checks it reads
-the brief's own prose while this projection reads workspace entries, and the two
-inputs disagree.
+**The rejection stands, but on re-measured numbers rather than the original
+ones.** The first version of this correction carried "2 of 15" and "the 13 that
+do" forward unchanged, and a confirming review found both stale. Re-measured at
+base `3e0e58150`:
+
+```
+non-template briefs: 16
+carrying a '## Spec map' section: 14
+of those, with parseable rows: 5
+briefs named by at least one source.parent: 5
+briefs where the Spec map and the entry-derived set disagree: 0
+```
+
+The parser used for that count was validated first — it extracts real slugs
+from the 5 briefs that have them, so the zero is a measurement rather than an
+artifact of a parser returning empty sets.
+
+So parsing this section here would find nothing to attribute for 11 of 16
+briefs, which is under-attribution and the same defect class being closed. Where
+both sides carry entries they agree, so the objection is coverage, not conflict.
+
+**The table above this correction is stale too** and is retained as measured at
+its original base rather than as current fact: three of its rows have since
+changed row counts.
 
 **Why the error mattered.** This probe was cited as the basis for an engine
 comment and for an ADR clause, both of which then asserted that nothing reads

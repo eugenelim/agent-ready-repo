@@ -75,11 +75,18 @@ anonymous, which is what the earlier cost measurement was really objecting to.
 kind, never by collection name. Both alternatives were measured and rejected:
 keying on the collection admitted a mis-collected `kind = "spec"` entry sitting
 in a brief queue, which resolved a declared value that names no brief at all;
-and it missed a brief legitimately registered in `[backlog].open` or as a legacy
-string, which refused a correctly declared child with **no repair available** —
-declaring a resolving path was already done, and declaring empty would be false.
-A refusal with no valid escape is the one property this decision cannot have,
-because it is what licenses the floor at all.
+and it missed a brief legitimately registered in `[backlog].open`, which
+refused a correctly declared child with **no repair available** — declaring a
+resolving path was already done, and declaring empty would be false. A refusal
+with no valid escape is the one property this decision cannot have, because it
+is what licenses the floor at all.
+
+The legacy bare-string case is included on narrower grounds. A repair does exist
+there: `legacy_entry` already fires on such an entry and its next action is to
+register a canonical one, which resolves the declaration as a side effect. It is
+included because reporting a correct declaration as unestablished is a
+misdiagnosis regardless of whether some other repair happens to clear it, and
+because the maintainer who must act is the brief's owner, not the child's.
 
 Reading a legacy entry here decides attribution only. It dispatches nothing,
 which is the line the routing contract draws around legacy compatibility.
@@ -143,12 +150,17 @@ briefs carry no `## Spec map` section, and of the 13 that do, 3 have parseable
 rows. The formats disagree — backticked slugs, bare slugs, the prose "None.",
 and an empty table row. A brief-coverage lint does read that section and does
 enforce a Shipped brief's children being non-empty and all shipped, so the
-section is not unchecked — but it is checked against the brief's own prose, not
-against the workspace entries this projection reads, and the two inputs
-disagree on 2 of 15 briefs today. Parsing it here would fail silently into
-under-attribution, which is the same defect class being closed. The measured
-format disagreement is the reason for rejection; the lint's existence neither
-supports nor weakens it.
+section is not unchecked — but it checks the brief's own prose, not the
+workspace entries this projection reads.
+
+Measured at base `3e0e58150`: of 16 non-template briefs, 2 carry no `## Spec
+map` section at all, and of the 14 that do, only 5 have parseable rows — the
+other 9 hold an empty table, a prose "None.", or rows in a shape no parser
+reads. Parsing this section here would therefore find nothing to attribute for
+11 of 16 briefs and would fail silently into under-attribution, which is the
+same defect class being closed. Where both sides are non-empty they agree, so
+the objection is coverage, not conflict. The lint's existence neither supports
+nor weakens the rejection.
 
 **Add a field to `workspace-entry.schema.json` recording that the parent link was
 resolved.** Rejected as unnecessary once the raw value proved to carry the

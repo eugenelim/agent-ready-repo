@@ -387,10 +387,12 @@ def test_the_shipped_command_emits_the_finding(tmp_path, engine) -> None:
 def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"):
     """Workspace with the brief in `brief_queue.executing`, for AC9 and AC10.
 
-    A brief in `executing` is out of lifecycle vocabulary for its own status, so
-    the fixture draws an `impossible_transition` at the brief independently of
-    anything this delivery adds. That is the point: the two findings must
-    coexist, and neither may erase the other.
+    The body status is `Executing`, which is exactly what
+    `brief_queue.executing` expects, so the `impossible_transition` these two
+    cases assert does **not** come from a status/collection mismatch. Measured,
+    its detail is `brief child scope`: it comes from the child-scope arm of
+    `_brief_child_scope_is_valid`, because the brief's only child contributes no
+    state. Both cases depend on that arm, so a change to it will surface here.
     """
     def spec_entry(path, parent, needs="[]"):
         clause = f', parent = "{parent}"' if parent is not None else ""
@@ -504,17 +506,13 @@ def test_an_attributed_cooled_child_still_suppresses_its_parents_violation(
     ], "attribution stopped suppressing the parent's violation"
 
 
-def test_a_brief_registered_in_any_membership_form_resolves(tmp_path, engine) -> None:
-    """Resolution is by entry kind, not by collection name.
+def _membership_form_fixture(root, engine, *, brief_entry_form, child_parent):
+    """Build a cooled child declaring a parent, with the brief registered one of three ways.
 
-    Three shapes a brief can legitimately take, all of which must resolve a
-    child's declaration: a canonical `brief_queue` entry (covered by the named
-    fixtures above), a brief in `[backlog].open`, and a legacy bare string.
-    Keying on the collection name refused the second and third with no repair
-    available, and admitted a mis-collected spec in the first.
+    `brief_entry_form` is "backlog", "legacy", or "decoy". Resolution is by entry
+    kind rather than collection name, so the first two must resolve a correct
+    declaration and the third must not.
     """
-    # A brief in `[backlog].open`.
-    root = tmp_path / "backlog"
     root.mkdir(parents=True, exist_ok=True)
     wave6._brief_body(root, status="Shipped")
     wave6._child_spec(root, status="Shipped", brief="none")
@@ -522,11 +520,31 @@ def test_a_brief_registered_in_any_membership_form_resolves(tmp_path, engine) ->
         "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
     )
     wave6._spec(root, "dependant", status="Approved", brief="none")
-    other_brief = "docs/product/briefs/brief-b.md"
-    (root / other_brief).write_text(
-        "# Brief: b\n\n- **Status:** Draft\n", encoding="utf-8"
-    )
     needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
+    canonical_brief = (
+        f'{{path = "{BRIEF_PATH}", kind = "brief", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
+    )
+    backlog = "open = []"
+
+    if brief_entry_form == "backlog":
+        other = "docs/product/briefs/brief-b.md"
+        (root / other).write_text("# Brief: b\n\n- **Status:** Draft\n", encoding="utf-8")
+        backlog = (
+            f'open = [{{path = "{other}", kind = "brief", '
+            'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]'
+        )
+        brief_shipped = f"[{canonical_brief}]"
+    elif brief_entry_form == "legacy":
+        brief_shipped = f'["{BRIEF_PATH}"]'
+    else:
+        wave6._spec(root, "decoy", status="Shipped", brief="none")
+        brief_shipped = (
+            f"[{canonical_brief}, "
+            '{path = "docs/specs/decoy/spec.md", kind = "spec", '
+            'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]'
+        )
+
     lines = [
         '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
         'milestone = "M1"', '', '["ini-002".work]',
@@ -534,85 +552,70 @@ def test_a_brief_registered_in_any_membership_form_resolves(tmp_path, engine) ->
         'source = {mode = "repo-origin"}, summary = "fixture", '
         f'needs = {needs}}}]', 'active = []',
         f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
-        f'source = {{mode = "repo-origin", parent = "{other_brief}"}}, '
+        f'source = {{mode = "repo-origin", parent = "{child_parent}"}}, '
         'summary = "fixture", needs = []}]', '',
         '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
         '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
-        f'shipped = [{{path = "{BRIEF_PATH}", kind = "brief", '
-        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
-        'withdrawn = []', 'cancelled = []', '',
-        '[backlog]',
-        f'open = [{{path = "{other_brief}", kind = "brief", '
-        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
+        f'shipped = {brief_shipped}', 'withdrawn = []', 'cancelled = []', '',
+        '[backlog]', backlog,
     ]
     (root / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     wave6._cool_child(root)
-    result = wave6._reconcile_canonical(root, engine)
+    return wave6._reconcile_canonical(root, engine)
+
+
+def test_a_brief_in_the_repository_backlog_resolves_a_declaration(
+    tmp_path, engine
+) -> None:
+    """`[backlog].open` admits `kind = "brief"`, so a brief there must resolve.
+
+    Keying on the collection name refused this with no repair available: the
+    child had already declared a resolving path, and declaring `none` would be
+    false.
+    """
+    result = _membership_form_fixture(
+        tmp_path / "backlog", engine, brief_entry_form="backlog",
+        child_parent="docs/product/briefs/brief-b.md",
+    )
     assert not _codes(result, CODE), (
         "a brief in [backlog].open did not resolve a correct declaration"
     )
     assert DEPENDANT_PATH in _ready(result)
 
-    # A brief registered as a legacy bare string.
-    legacy = tmp_path / "legacy"
-    legacy.mkdir(parents=True, exist_ok=True)
-    wave6._brief_body(legacy, status="Shipped")
-    wave6._child_spec(legacy, status="Shipped", brief="none")
-    (legacy / "docs/specs/child/plan.md").write_text(
-        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+
+def test_a_legacy_bare_string_brief_resolves_a_declaration(tmp_path, engine) -> None:
+    """A retained legacy brief entry carries `kind = "brief"` and a real path.
+
+    Reading it decides attribution only; it dispatches nothing. The entry still
+    draws its own `legacy_entry`, which is pre-existing contract and not this
+    delivery's to change — asserted here so the case cannot pass on a fixture
+    that silently produced no legacy entry at all.
+    """
+    result = _membership_form_fixture(
+        tmp_path / "legacy", engine, brief_entry_form="legacy",
+        child_parent=BRIEF_PATH,
     )
-    wave6._spec(legacy, "dependant", status="Approved", brief="none")
-    lines = [
-        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
-        'milestone = "M1"', '', '["ini-002".work]',
-        f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
-        'source = {mode = "repo-origin"}, summary = "fixture", '
-        f'needs = {needs}}}]', 'active = []',
-        f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
-        f'source = {{mode = "repo-origin", parent = "{BRIEF_PATH}"}}, '
-        'summary = "fixture", needs = []}]', '',
-        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
-        '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
-        f'shipped = ["{BRIEF_PATH}"]', 'withdrawn = []', 'cancelled = []',
-    ]
-    (legacy / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    wave6._cool_child(legacy)
-    result = wave6._reconcile_canonical(legacy, engine)
     assert not _codes(result, CODE), (
         "a legacy bare-string brief did not resolve a correct declaration"
     )
-
-    # A mis-collected spec in a brief queue must NOT resolve.
-    decoy = tmp_path / "decoy"
-    decoy.mkdir(parents=True, exist_ok=True)
-    wave6._brief_body(decoy, status="Shipped")
-    wave6._child_spec(decoy, status="Shipped", brief="none")
-    (decoy / "docs/specs/child/plan.md").write_text(
-        "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
+    assert [f for f in result.findings if f.code == "legacy_entry"], (
+        "control: the fixture produced no legacy entry, so it proves nothing"
     )
-    wave6._spec(decoy, "dependant", status="Approved", brief="none")
-    wave6._spec(decoy, "decoy", status="Shipped", brief="none")
-    decoy_path = "docs/specs/decoy/spec.md"
-    lines = [
-        '["ini-002"]', 'name = "Cooling fixture"', 'status = "active"',
-        'milestone = "M1"', '', '["ini-002".work]',
-        f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
-        'source = {mode = "repo-origin"}, summary = "fixture", '
-        f'needs = {needs}}}]', 'active = []',
-        f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
-        f'source = {{mode = "repo-origin", parent = "{decoy_path}"}}, '
-        'summary = "fixture", needs = []}]', '',
-        '["ini-002".shaping_queue]', 'active = []', 'backlog = []', '',
-        '["ini-002".brief_queue]', 'draft = []', 'ready = []', 'executing = []',
-        f'shipped = [{{path = "{BRIEF_PATH}", kind = "brief", '
-        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}, '
-        f'{{path = "{decoy_path}", kind = "spec", '
-        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}]',
-        'withdrawn = []', 'cancelled = []',
-    ]
-    (decoy / "workspace.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    wave6._cool_child(decoy)
-    result = wave6._reconcile_canonical(decoy, engine)
+
+
+def test_a_mis_collected_spec_in_a_brief_queue_does_not_resolve(
+    tmp_path, engine
+) -> None:
+    """Resolution is by entry kind, so a `kind = "spec"` decoy must not resolve.
+
+    Keying on the collection name admitted this and released the fail-closed
+    floor: the child declared a path naming no brief at all, and the run treated
+    it as attributed.
+    """
+    result = _membership_form_fixture(
+        tmp_path / "decoy", engine, brief_entry_form="decoy",
+        child_parent="docs/specs/decoy/spec.md",
+    )
     assert len(_codes(result, CODE)) == 1, (
         "a mis-collected spec in a brief queue resolved a declaration"
     )

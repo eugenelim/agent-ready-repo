@@ -213,3 +213,59 @@ with what was measured. The citation count is the instructive one: it was
 truthfully counted against a pattern that matched `AC<n>` and `RFC-<n>` and
 missed five wave-vocabulary and spec-slug citations. A count is only as good as
 its denominator, so the denominator now travels with the number.
+
+## Round 10 — confirming review of the repairs (2026-09-08)
+
+Scoped to the repair commit and the rebase resolutions. 6 concerns, 1 nit, no
+blockers. Six applied; one is an owner decision and is open.
+
+**Three findings were this delivery asserting numbers or mechanisms it had not
+constructed — inside the corrections for that exact failure mode.**
+
+- The ADR clause added while correcting probe 6 claimed the Spec map and the
+  workspace entries "disagree on 2 of 15 briefs today". Measured: the corpus is
+  16 non-template briefs and the two sides disagree on **zero**. The number was
+  invented by conflating probe 6's *format* measurement with a *disagreement*
+  measurement that had never been run.
+- The probe correction carried "2 of 15" and "the 13 that do" forward as the
+  surviving facts. Both were stale: 16 briefs, 14 with a `## Spec map`, 5 with
+  parseable rows.
+- The new AC9/AC10 fixture docstring said a brief in `brief_queue.executing` is
+  "out of lifecycle vocabulary for its own status". It is not — that collection
+  expects exactly `Executing`. Measured, the `impossible_transition` both cases
+  depend on carries detail `brief child scope` and comes from the child-scope
+  arm.
+
+The re-measurement validated its own parser before trusting the zero, because a
+parser returning empty sets would have produced the same number for the wrong
+reason. It extracts real slugs from the 5 briefs that carry them.
+
+**The rejection of the Spec-map alternative survives on a stronger basis than
+the one recorded.** Parsing that section would find nothing to attribute for 11
+of 16 briefs. Where both sides carry entries they agree, so the objection is
+coverage, not conflict — which is what the ADR now says.
+
+**One justification was overclaimed.** The ADR said the too-narrow predicate left
+"no repair available" for both the `[backlog].open` and the legacy branch. True
+of the first; the legacy branch already emits `legacy_entry`, whose next action
+is to register a canonical entry, which resolves the declaration as a side
+effect. The legacy inclusion now stands on its own narrower ground: reporting a
+correct declaration as unestablished is a misdiagnosis regardless.
+
+**The eval had been left on the pre-repair wording.** Both published cells moved
+from "registered membership" to "registered brief entry" precisely because the
+old phrasing admitted a non-brief membership, and the eval that grades an agent
+reporting that action still quoted the old text. `packs/AGENTS.md` requires a
+non-cosmetic pack change to update its eval harness; it now agrees, with an
+assertion covering the misattribution caveat.
+
+**The three membership arms are now three cases.** They had been one function
+with three sequential arms, so a failure in the first hid the other two — and
+those arms are the too-wide and too-narrow directions the whole repair turns on.
+Split, each kills its own mutation alone: dropping the legacy half kills only the
+legacy case, dropping the kind filter kills only the decoy case.
+
+**Open, and an owner decision.** The repaired predicate is pinned by tests but
+by no acceptance criterion: no AC covers which memberships resolve a declared
+parent, so the durable contract still permits the collection-keyed defect. Adding
+one to a pinned `Implementing` spec needs the `contract-amendment` route.
