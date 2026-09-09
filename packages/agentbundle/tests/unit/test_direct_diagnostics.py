@@ -296,7 +296,7 @@ def test_delete_removed_projection_refuses_forged_out_of_prefix_ownership(tmp_pa
             name="example",
         )
 
-    assert excinfo.value.diagnostic.code == "CAT-D020"
+    assert excinfo.value.diagnostic.code == "CAT-D035"
     assert "malformed ownership path" in excinfo.value.diagnostic.message
     assert target.read_text(encoding="utf-8") == "project-owned\n"
 
@@ -634,6 +634,19 @@ def _emitted_codes(tmp_path) -> set[str]:
             )
         )
 
+    _record(
+        lambda: _delete_removed_projection(
+            _DeleteArgs(),
+            projection_root=deletion_root,
+            skill_target=".claude/skills",
+            removed=["outside.md"],
+            owned_files={"outside.md": {"sha": "0" * 64}},
+            scope="repo",
+            adapter="claude-code",
+            name="example",
+        )
+    )
+
     prune_file = deletion_root / ".claude/skills/example/prune/old.md"
     prune_file.parent.mkdir(parents=True)
     prune_file.write_text("old\n")
@@ -675,6 +688,15 @@ def _emitted_codes(tmp_path) -> set[str]:
             _refuse_direct_upgrade(
                 DiagnosticCode.CAT_D033,
                 "catalogue-only route selected a direct row",
+                name="example",
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D036,
+                "catalogue-only route selected one direct row",
                 name="example",
             )
         )

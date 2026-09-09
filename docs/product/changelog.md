@@ -103,8 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collision.
 - A moved `source-path` now refuses where it previously self-healed silently.
 - A byte-identical reinstall still repairs the projection in place.
-- Remove-then-install is the terminating remediation for the two install
-  refusals above.
+- Remove-then-install is the terminating remediation for the moved-`source-path`
+  collision.
 
 ## [core][2.25.5] — 2026-09-08
 

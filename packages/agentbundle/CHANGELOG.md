@@ -23,8 +23,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   collision.
 - A moved `source-path` now refuses where it previously self-healed silently.
 - A byte-identical reinstall still repairs the projection in place.
-- Remove-then-install is the terminating remediation for the two install
-  refusals above.
+- Remove-then-install is the terminating remediation for the moved-`source-path`
+  collision.
 
 ### Security
 

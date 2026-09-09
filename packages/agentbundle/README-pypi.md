@@ -27,7 +27,7 @@ still exits 1, but its re-coded refusal names `upgrade --skill --source` instead
 of reporting a source collision; a moved `source-path` now refuses instead of
 silently self-healing; and a byte-identical reinstall still repairs the
 projection in place. Remove-then-install is the terminating remediation for the
-two install refusals.
+moved-`source-path` collision.
 
 ## What's new in 0.42.0
 

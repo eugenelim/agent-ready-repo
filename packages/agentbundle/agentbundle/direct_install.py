@@ -1349,7 +1349,7 @@ def _delete_removed_projection(
             or len(relative.parts) == len(expected_prefix.parts)
         ):
             raise _refuse(
-                DiagnosticCode.CAT_D020,
+                DiagnosticCode.CAT_D035,
                 f"refusing malformed ownership path outside {expected_prefix.as_posix()!r}",
                 path=relpath,
                 remediation=(

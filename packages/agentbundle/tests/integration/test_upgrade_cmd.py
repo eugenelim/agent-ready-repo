@@ -293,19 +293,26 @@ def test_direct_skill_adapter_ambiguity_names_adapter_flag(tmp_path, capsys):
     assert _upgrade_direct(target, "--adapter", "codex") == 0
 
 
-def _write_state_kind(target: Path, source_kind: str | None) -> None:
+def _write_state_kind(
+    target: Path,
+    source_kind: str | None,
+    *,
+    adapters: tuple[str, ...] = ("claude-code",),
+) -> None:
     from agentbundle.config import PackState, State, dump_state
 
     target.mkdir(parents=True, exist_ok=True)
     state = State(
         packs={
-            ("example", "claude-code"): PackState(
+            ("example", adapter): PackState(
                 installed_version="0.0.0+agentbundle.manifestless",
                 source="/publisher/example",
                 source_kind=source_kind,
                 source_path="skills/example" if source_kind == "skill" else None,
                 source_digest="sha256-1:" + "0" * 64,
+                adapter=adapter,
             )
+            for adapter in adapters
         }
     )
     (target / ".agentbundle-state.toml").write_text(dump_state(state))
@@ -364,7 +371,7 @@ def test_pack_selector_refuses_direct_row_before_catalogue_and_recovery_executes
         ]
     ) == 1
     refusal = capsys.readouterr()
-    assert "CAT-D033" in refusal.err
+    assert "CAT-D036" in refusal.err
     command = next(
         line
         for line in refusal.err.splitlines()
@@ -393,9 +400,10 @@ def test_direct_skill_json_refusal_uses_route_wording(tmp_path, capsys):
 
 
 def test_pack_selector_classifies_multi_adapter_direct_rows_before_versions(
-    tmp_path, capsys
+    tmp_path, monkeypatch, capsys
 ):
     from agentbundle import cli
+    from agentbundle.direct_source import recovery_command
 
     source = tmp_path / "source"
     target = tmp_path / "target"
@@ -420,6 +428,52 @@ def test_pack_selector_classifies_multi_adapter_direct_rows_before_versions(
     assert "claude-code (—)" in refusal.err
     assert "codex (—)" in refusal.err
     assert "0.0.0+agentbundle.manifestless" not in refusal.err
+    command = recovery_command(
+        "agentbundle",
+        "upgrade",
+        "--skill",
+        "example",
+        "--root",
+        str(target),
+        "--scope",
+        "repo",
+        "--adapter",
+        "codex",
+        "--yes",
+    )
+    assert command in refusal.err
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert _run_printed_command(command) == 0
+
+
+def test_pack_selector_multi_adapter_direct_pack_has_no_upgrade_route(
+    tmp_path, capsys
+):
+    from agentbundle import cli
+
+    _write_state_kind(
+        tmp_path,
+        "pack",
+        adapters=("claude-code", "codex"),
+    )
+
+    assert cli.main(
+        [
+            "upgrade",
+            "--pack",
+            "example",
+            "--root",
+            str(tmp_path),
+            "--scope",
+            "repo",
+        ]
+    ) == 1
+    refusal = capsys.readouterr()
+    assert "CAT-D033" in refusal.err
+    assert "no direct pack upgrade route is built" in refusal.err
+    assert "agentbundle " not in refusal.err
 
 
 def test_direct_skill_upgrade_succeeds(

@@ -9,8 +9,8 @@ kind: reference
 
 Installing a skill folder straight from a repository refuses rather than
 guessing. Every refusal carries one of the codes below, the path it objects
-to, and a recovery line. The table is the complete set: nothing else can
-reach you from this route.
+to, and, when an actionable next step exists, a recovery line. The table is
+the complete set: nothing else can reach you from this route.
 
 Machine-readable schema for the JSON envelope these appear in:
 <https://agentbundle.dev/schema/direct-diagnostics-v1.json>
@@ -36,7 +36,7 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D017` | Total bytes |
 | `CAT-D018` | Logical path segment carries a control or surrogate code point |
 | `CAT-D019` | Publisher candidate value failed the output allowlist, a declared `allowed-tools` value could not be normalized, or an internal refusal (path-jail, direct-state, or bounded-metadata) reached the install boundary |
-| `CAT-D020` | A standalone skill upgrade refused removal because an owned file could not be removed safely or its recorded path fell outside the selected skill projection; clear the obstruction or repair the state entry before retrying |
+| `CAT-D020` | A standalone skill upgrade could not remove an obsolete owned file; clear the obstruction on that file before retrying |
 | `CAT-D021` | A standalone skill upgrade removed an obsolete file but could not prune an emptied directory; clear the obstruction on that directory before retrying |
 | `CAT-D022` | An installed direct identity was requested from the same source at a different ref; use `upgrade --skill <name> --source <source>` |
 | `CAT-D023` | A standalone skill upgrade could not read required state or select a usable installed manifestless row |
@@ -49,8 +49,10 @@ Machine-readable schema for the JSON envelope these appear in:
 | `CAT-D030` | A standalone skill upgrade cannot form a request from absent, legacy, malformed, or unconfined stored source provenance |
 | `CAT-D031` | A standalone skill upgrade cannot verify a non-widening transition because the installed capability history is unknown or the incoming declarations widen allowed tools, boundaries, or credential use |
 | `CAT-D032` | A standalone skill upgrade cannot compare the stored source digest because it is absent, malformed, or uses an unsupported algorithm or encoding; reinstall to record a digest this build understands |
-| `CAT-D033` | Catalogue-only `upgrade --pack` selected a directly installed row; use the row's direct lifecycle route instead |
+| `CAT-D033` | Catalogue-only `upgrade --pack` found direct rows for multiple adapters; each manifestless skill row names its standalone command, while a direct pack row states that no upgrade route is built |
 | `CAT-D034` | Standalone `upgrade --skill` does not support JSON output; use table output instead |
+| `CAT-D035` | A standalone skill upgrade found a recorded ownership path outside the selected skill projection; repair or remove the malformed state entry before retrying |
+| `CAT-D036` | Catalogue-only `upgrade --pack` selected one directly installed row; use the row's direct lifecycle route instead |
 
 ## Reading a refusal
 
@@ -72,4 +74,3 @@ admitted; only a greater value refuses.
 An integrity refusal is never reported as a budget breach: a symlink inside
 a skill folder is a link, not an oversized one, and it carries its own code
 and the path it was found at.
-

@@ -1620,13 +1620,45 @@ def run(args: argparse.Namespace) -> int:
         if row.source_kind in {"skill", "pack"}
     }
     if cli_adapter is None and len(_rows) > 1 and len(direct_rows) == len(_rows):
+        from agentbundle.direct_source import recovery_command
+
         rendered_rows = ", ".join(f"{adapter} (—)" for adapter in sorted(_rows))
-        choices = " or ".join(f"--adapter {adapter}" for adapter in sorted(_rows))
+        skill_commands = [
+            recovery_command(
+                "agentbundle",
+                "upgrade",
+                "--skill",
+                pack_name,
+                "--root",
+                str(root),
+                "--scope",
+                effective_scope,
+                "--adapter",
+                adapter,
+                "--yes",
+            )
+            for adapter, row in sorted(_rows.items())
+            if row.source_kind == "skill"
+        ]
+        pack_adapters = sorted(
+            adapter for adapter, row in _rows.items() if row.source_kind == "pack"
+        )
+        message = (
+            f"{pack_name!r} is directly installed for multiple adapters: "
+            f"{rendered_rows}"
+        )
+        if pack_adapters:
+            message += (
+                "; no direct pack upgrade route is built for "
+                f"{', '.join(pack_adapters)}"
+            )
         refusal = _refuse_direct_upgrade(
             DiagnosticCode.CAT_D033,
-            f"{pack_name!r} is directly installed for multiple adapters: {rendered_rows}",
+            message,
             name=pack_name,
-            remediation=f"Use standalone --skill and pass {choices}.",
+            remediation=(
+                f"Use {' or '.join(skill_commands)}." if skill_commands else None
+            ),
         )
         _print_direct_upgrade_refusal(refusal)
         return 1
@@ -1691,7 +1723,7 @@ def run(args: argparse.Namespace) -> int:
                 "--yes",
             )
         refusal = _refuse_direct_upgrade(
-            DiagnosticCode.CAT_D033,
+            DiagnosticCode.CAT_D036,
             f"{pack_name!r} is directly installed; --pack is catalogue-only",
             name=pack_name,
             remediation=remediation,

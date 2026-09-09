@@ -48,6 +48,22 @@ class DirectCodeTableLintTests(unittest.TestCase):
         for shape in ("absent", "malformed", "unsupported"):
             self.assertIn(shape, row)
 
+    def test_unlink_and_malformed_ownership_rows_stay_distinct(self) -> None:
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        rows = {
+            code: next(line for line in table.splitlines() if f"`{code}`" in line)
+            for code in ("CAT-D020", "CAT-D035")
+        }
+        self.assertIn("obsolete owned file", rows["CAT-D020"])
+        self.assertNotIn("state entry", rows["CAT-D020"])
+        self.assertIn("malformed state entry", rows["CAT-D035"])
+
+    def test_reference_qualifies_recovery_line_promise(self) -> None:
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        introduction = table.split("| Code | Meaning |", 1)[0]
+        self.assertIn("when an actionable next step exists", introduction)
+        self.assertNotIn("the path it objects\nto, and a recovery line", introduction)
+
     def test_a_registered_code_missing_from_the_table_fails(self) -> None:
         table = self.tmp / TABLE
         kept = [

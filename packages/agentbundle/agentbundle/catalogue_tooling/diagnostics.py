@@ -86,8 +86,10 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D030 = "CAT-D030"   # stored source cannot form a standalone upgrade request
     CAT_D031 = "CAT-D031"   # capability history is unknown or the candidate widens it
     CAT_D032 = "CAT-D032"   # stored source digest uses an unsupported or malformed format
-    CAT_D033 = "CAT-D033"   # catalogue-only upgrade selected a directly installed row
+    CAT_D033 = "CAT-D033"   # catalogue-only upgrade found ambiguous direct adapter rows
     CAT_D034 = "CAT-D034"   # standalone skill upgrade does not support JSON output
+    CAT_D035 = "CAT-D035"   # stored ownership path falls outside the selected skill projection
+    CAT_D036 = "CAT-D036"   # catalogue-only upgrade selected one directly installed row
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -132,6 +134,8 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D032,
         DiagnosticCode.CAT_D033,
         DiagnosticCode.CAT_D034,
+        DiagnosticCode.CAT_D035,
+        DiagnosticCode.CAT_D036,
     }
 )
 
