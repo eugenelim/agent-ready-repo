@@ -11,6 +11,10 @@ import os
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agentbundle.config import PackState
 
 from agentbundle.bounded_metadata import BoundedMetadataError
 from agentbundle.catalogue_tooling.diagnostics import (
@@ -277,10 +281,14 @@ def capability_block(
     *,
     source: str,
     revision: str | None,
+    digest: str,
     scope: str,
     adapter: str,
+    destination: str,
     skill_digest: str,
     payload_digests: dict[str, tuple[str, str]],
+    stored_revision: str | None = None,
+    stored_digest: str | None = None,
 ) -> list[str]:
     """One per-selected-skill capability block, per AC19.
 
@@ -294,7 +302,9 @@ def capability_block(
 
     allowed_tools = _normalised_allowed_tools(metadata, source=source)
     nested = metadata.get("metadata")
-    boundaries = _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    boundaries = (
+        _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    )
     credentialed = nested.get("credentialed") if isinstance(nested, dict) else None
 
     # Every value below that a publisher controls goes through the allowlist,
@@ -310,19 +320,38 @@ def capability_block(
 
     lines = [
         f"skill: {_publisher(skill.name, 'skill name')}",
+        f"  selection:   {_publisher(skill.name, 'skill name')}",
         f"  source:      {escape_path_value(source)}",
         f"  revision:    {escape_path_value(revision) if revision else '—'}",
-        f"  scope:       {scope}",
-        f"  adapter:     {adapter}",
-        # `undeclared (unrestricted)` rather than an empty list: an absent
-        # declaration is not a restriction to nothing, it is no restriction.
-        f"  allowed-tools: {_render_tools(safe_tools)}",
-        f"  boundaries:  "
-        f"{', '.join(_publisher(b, 'boundaries') for b in boundaries) if boundaries else '—'}",
-        f"  credentialed: "
-        f"{_publisher(credentialed, 'credentialed') if credentialed is not None else '—'}",
-        f"  SKILL.md:    {skill_digest}",
+        f"  digest:      {escape_path_value(digest)}",
     ]
+    if stored_revision is not None or stored_digest is not None:
+        lines.extend(
+            [
+                "  stored revision: "
+                f"{escape_path_value(stored_revision) if stored_revision else '—'}",
+                "  re-resolved revision: "
+                f"{escape_path_value(revision) if revision else '—'}",
+                "  stored digest: "
+                f"{escape_path_value(stored_digest) if stored_digest else '—'}",
+                f"  re-resolved digest: {escape_path_value(digest)}",
+            ]
+        )
+    lines.extend(
+        [
+            f"  scope:       {scope}",
+            f"  adapter:     {adapter}",
+            f"  destination: {escape_path_value(destination)}",
+            # `undeclared (unrestricted)` rather than an empty list: an absent
+            # declaration is not a restriction to nothing, it is no restriction.
+            f"  allowed-tools: {_render_tools(safe_tools)}",
+            f"  boundaries:  "
+            f"{', '.join(_publisher(b, 'boundaries') for b in boundaries) if boundaries else '—'}",
+            f"  credentialed: "
+            f"{_publisher(credentialed, 'credentialed') if credentialed is not None else '—'}",
+            f"  SKILL.md:    {skill_digest}",
+        ]
+    )
     for relpath in sorted(payload_digests):
         digest, mode = payload_digests[relpath]
         lines.append(f"    {escape_path_value(relpath)}  {digest}  {mode}")
@@ -366,6 +395,97 @@ def _normalised_allowed_tools(metadata: dict, *, source: str) -> list[str]:
             remediation="Ask the publisher to correct the declaration.",
         )
     return sorted({value for value in candidates if value})
+
+
+@dataclass(frozen=True)
+class _CapabilityAxes:
+    """The three declarations whose widening requires explicit consent."""
+
+    allowed_tools: frozenset[str]
+    boundaries: frozenset[str]
+    credentialed: str
+
+
+def _capability_axes(metadata: dict, *, source: str) -> _CapabilityAxes:
+    """Normalize the three capability declarations from parsed frontmatter."""
+
+    from agentbundle.direct_source_state import _normalised_credentialed
+
+    nested = metadata.get("metadata")
+    boundaries = _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
+    credentialed = nested.get("credentialed") if isinstance(nested, dict) else None
+    return _CapabilityAxes(
+        allowed_tools=frozenset(_normalised_allowed_tools(metadata, source=source)),
+        boundaries=frozenset(boundaries),
+        credentialed=_normalised_credentialed(credentialed),
+    )
+
+
+def _read_projected_capability_axes(
+    projection_root: Path,
+    relpath: str,
+    row: PackState,
+) -> _CapabilityAxes | None:
+    """Read integrity-bound capability history, or return unknown."""
+
+    from agentbundle.bounded_metadata import MetadataLimits, parse_bounded_metadata
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        read_confined_regular_file,
+    )
+
+    recorded_sha = row.file_sha(relpath)
+    if recorded_sha is None:
+        return None
+    try:
+        data = read_confined_regular_file(
+            projection_root,
+            projection_root / relpath,
+            max_bytes=MetadataLimits().max_skill_bytes,
+        )
+    except (OSError, UnsafeContentError):
+        return None
+    if hashlib.sha256(data).hexdigest() != recorded_sha:
+        return None
+    if not data.startswith((b"---\n", b"---\r\n", b"---\r")):
+        return None
+    try:
+        metadata = parse_bounded_metadata(data)
+        return _capability_axes(metadata, source=relpath)
+    except (BoundedMetadataError, DirectInstallError):
+        return None
+
+
+def _capability_widenings(
+    previous: _CapabilityAxes | None,
+    candidate: _CapabilityAxes,
+) -> tuple[str, ...]:
+    """Name every widening; unknown history is independently unsafe."""
+
+    if previous is None:
+        return ("installed capability history is unknown",)
+
+    widened: list[str] = []
+    if previous.allowed_tools and not candidate.allowed_tools:
+        widened.append("allowed-tools stops restricting")
+    elif previous.allowed_tools and candidate.allowed_tools:
+        added_tools = candidate.allowed_tools - previous.allowed_tools
+        if added_tools:
+            widened.append(f"allowed-tools adds {', '.join(sorted(added_tools))}")
+
+    added_boundaries = candidate.boundaries - previous.boundaries
+    if added_boundaries:
+        widened.append(f"boundaries adds {', '.join(sorted(added_boundaries))}")
+
+    safe_credentialed = {"false", "undeclared"}
+    if (
+        previous.credentialed != candidate.credentialed
+        and candidate.credentialed not in safe_credentialed
+    ):
+        widened.append(
+            f"credentialed moves from {previous.credentialed} to {candidate.credentialed}"
+        )
+    return tuple(widened)
 
 
 def _string_set(value: object) -> list[str]:
@@ -485,12 +605,12 @@ def resolve_skill_target(adapter: str, source: str) -> str:
     )
 
 
-def _print_refusal(diagnostic) -> None:
+def _print_refusal(diagnostic, *, verb: str = "install") -> None:
     """Print a registered refusal with its path and recovery, on stderr."""
 
     import sys
 
-    print(f"install: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
+    print(f"{verb}: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
     if diagnostic.path:
         print(f"  at: {escape_path_value(diagnostic.path)}", file=sys.stderr)
     if diagnostic.remediation:
@@ -572,6 +692,154 @@ def run_direct_install(args, source: Path | str) -> int:
             forget_remote_root_identity(acquired_root)
 
 
+def _missing_upgrade_path_refusal(
+    args: object,
+    *,
+    source_string: str,
+    source_path: object,
+) -> DirectInstallError:
+    """Build recovery for a recorded envelope path the source no longer admits."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    root = str(getattr(args, "output", ".") or ".")
+    scope = str(getattr(args, "scope", None) or "repo")
+    adapter = str(getattr(args, "adapter", None) or "claude-code")
+    remove_command = recovery_command(
+        "agentbundle",
+        "uninstall",
+        "--pack",
+        name,
+        "--root",
+        root,
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--yes",
+    )
+    install_command = recovery_command(
+        "agentbundle",
+        "install",
+        source_string,
+        "--skill",
+        "<new-source-path>",
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--output",
+        root,
+        "--yes",
+    )
+    rendered_path = str(source_path) if source_path is not None else "<missing>"
+    return _refuse(
+        DiagnosticCode.CAT_D026,
+        f"recorded source path {rendered_path!r} no longer admits skill {name!r}; "
+        "for a moved collection skill, replace <new-source-path> with the new "
+        "path's final skill-name segment",
+        path=rendered_path,
+        remediation=(
+            f"moved: {remove_command} then {install_command}; "
+            f"removed: {remove_command}"
+        ),
+    )
+
+
+def _capability_upgrade_refusal(
+    args: object,
+    *,
+    classification: DirectClassification,
+    source_string: str,
+    revision: str | None,
+    relpath: str,
+    widenings: tuple[str, ...],
+    include_remediation: bool = True,
+) -> DirectInstallError:
+    """Build a terminating recovery for unknown or widened capability history."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    root = str(getattr(args, "output", ".") or ".")
+    scope = str(getattr(args, "scope", None) or "repo")
+    adapter = str(getattr(args, "adapter", None) or "claude-code")
+    remove_command = recovery_command(
+        "agentbundle",
+        "uninstall",
+        "--pack",
+        name,
+        "--root",
+        root,
+        "--scope",
+        scope,
+        "--adapter",
+        adapter,
+        "--yes",
+    )
+    remote = _split_git_https_ref(source_string)
+    recovery_source = (
+        f"{remote[0]}@{revision}"
+        if remote is not None and revision is not None
+        else source_string
+    )
+    install_parts = ["agentbundle", "install", recovery_source]
+    if classification.shape == "collection":
+        install_parts.extend(("--skill", name))
+    install_parts.extend(
+        (
+            "--scope",
+            scope,
+            "--adapter",
+            adapter,
+            "--output",
+            root,
+            "--yes",
+        )
+    )
+    install_command = recovery_command(*install_parts)
+    rendered_reasons = "; ".join(widenings)
+    rendered_root = recovery_command(root)
+    rendered_projection = recovery_command(relpath)
+    remediation = (
+        f"If it exists, first move and keep {rendered_projection} from "
+        f"installation root {rendered_root} outside that root, or remove it. "
+        f"Then run: {remove_command} then {install_command}"
+        if include_remediation
+        else None
+    )
+    return _refuse(
+        DiagnosticCode.CAT_D031,
+        f"cannot verify a non-widening capability transition for {name!r}: "
+        f"{rendered_reasons}",
+        path=relpath,
+        remediation=remediation,
+    )
+
+
+def _select_upgrade_skill(
+    args: object,
+    *,
+    classification: DirectClassification,
+    source_string: str,
+    source_path: object,
+) -> Selection:
+    """Select the installed envelope by its recorded admitted path."""
+
+    requested = getattr(args, "skill", None)
+    name = str(requested[0]) if isinstance(requested, list) and requested else "skill"
+    matches = [
+        skill
+        for skill in classification.skills
+        if _candidate_source_coordinates(classification, skill)[1] == source_path
+        and skill.name == name
+    ]
+    if len(matches) == 1 and isinstance(source_path, str):
+        return Selection(tuple(matches), explicit=True)
+    raise _missing_upgrade_path_refusal(
+        args, source_string=source_string, source_path=source_path
+    )
+
+
 def _install_admitted_source(
     args, *, source: Path, source_string: str, revision: str | None
 ) -> int:
@@ -583,6 +851,24 @@ def _install_admitted_source(
         validate_direct_source,
     )
 
+    if hasattr(args, "_upgrade_source_path"):
+        from agentbundle.catalogue_tooling.file_safety import (
+            UnsafeContentError,
+            validate_confined_directory,
+        )
+
+        source_path = args._upgrade_source_path
+        try:
+            if not isinstance(source_path, str):
+                raise UnsafeContentError("recorded source path is missing")
+            validate_confined_directory(source, source / source_path)
+        except (OSError, UnsafeContentError):
+            refusal = _missing_upgrade_path_refusal(
+                args, source_string=source_string, source_path=source_path
+            )
+            _print_refusal(refusal.diagnostic, verb="upgrade")
+            return 1
+
     admission = validate_direct_source(source)
     if not admission.ok:
         for diagnostic in admission.diagnostics:
@@ -592,12 +878,20 @@ def _install_admitted_source(
     assert classification is not None
 
     try:
-        selection = select_collection_skills(
-            classification,
-            source=source_string,
-            requested=getattr(args, "skill", None),
-            all_skills=bool(getattr(args, "all_skills", False)),
-        )
+        if not hasattr(args, "_upgrade_source_path"):
+            selection = select_collection_skills(
+                classification,
+                source=source_string,
+                requested=getattr(args, "skill", None),
+                all_skills=bool(getattr(args, "all_skills", False)),
+            )
+        else:
+            selection = _select_upgrade_skill(
+                args,
+                classification=classification,
+                source_string=source_string,
+                source_path=args._upgrade_source_path,
+            )
     except DirectInstallError as exc:
         # The listing is built OUTSIDE this handler on purpose. It renders
         # publisher values, so it can raise its own refusal — and computed here
@@ -614,9 +908,14 @@ def _install_admitted_source(
             # AC18: a disallowed candidate value refuses the whole invocation
             # rather than being elided, because a partial listing would print
             # `--all-skills` recovery covering more than the reader was shown.
-            _print_refusal(listing_refusal.diagnostic)
+            _print_refusal(
+                listing_refusal.diagnostic,
+                verb=getattr(args, "_direct_verb", "install"),
+            )
             return 1
-        _print_refusal(exc.diagnostic)
+        _print_refusal(
+            exc.diagnostic, verb=getattr(args, "_direct_verb", "install")
+        )
         if listing:
             # AC18: publisher values appear only inside the delimiters, emitted
             # by the one helper the consent summary also uses.
@@ -647,7 +946,9 @@ def _install_admitted_source(
         # paths on stderr.
         diagnostic = getattr(exc, "diagnostic", None)
         if diagnostic is not None:
-            _print_refusal(diagnostic)
+            _print_refusal(
+                diagnostic, verb=getattr(args, "_direct_verb", "install")
+            )
         else:
             print(
                 f"install: [{DiagnosticCode.CAT_D019.value}] {exc}",
@@ -721,7 +1022,8 @@ def _summarise_and_project(
         # the spelling that defeats that rule while looking careful.
         projection_root = target_root
     digest = direct_source_digest(classification)
-
+    upgrade_digest = getattr(args, "_upgrade_source_digest", None)
+    installed_row = getattr(args, "_upgrade_installed_row", None)
     blocks = []
     for skill in selection.skills:
         payload = {
@@ -755,10 +1057,18 @@ def _summarise_and_project(
                 skill,
                 source=source_string,
                 revision=revision,
+                digest=digest,
                 scope=scope,
                 adapter=adapter,
+                destination=str(projection_root / skill_target / skill.name),
                 skill_digest=skill_digest,
                 payload_digests=payload,
+                stored_revision=(
+                    installed_row.source_revision if installed_row is not None else None
+                ),
+                stored_digest=(
+                    installed_row.source_digest if installed_row is not None else None
+                ),
             )
         )
     # On stderr, like every refusal. On stdout, `install <source> --yes >
@@ -766,30 +1076,6 @@ def _summarise_and_project(
     # the install went ahead — the one output that must not be redirectable
     # away from the person consenting.
     print(render_admissibility_summary(blocks, source=source_string), file=sys.stderr)
-
-    if getattr(args, "dry_run", False):
-        # AC25: a preview writes nothing at all, and says which files it would
-        # have written so the reader can check before consenting.
-        print("\nwould install (dry run — nothing written):")
-        for skill in selection.skills:
-            for measured in skill.files:
-                relative = measured.path.relative_to(skill.envelope)
-                print(f"  {skill_target}/{skill.name}/{escape_path_value(relative)}")
-        return 0
-
-    if not getattr(args, "yes", False) and not sys.stdin.isatty():
-        print(
-            "install: refusing to install a direct source without confirmation. "
-            "Re-run with --yes for non-interactive use; the summary above is "
-            "printed either way.",
-            file=sys.stderr,
-        )
-        return 1
-    if not getattr(args, "yes", False):
-        answer = input("\nInstall these skills? [y/N] ").strip().lower()
-        if answer not in {"y", "yes"}:
-            print("install: cancelled; nothing was written.")
-            return 1
 
     # Every destination is validated BEFORE the first write. `write_jailed`
     # checks each name as it goes, so a publisher-chosen payload name that fails
@@ -806,9 +1092,126 @@ def _summarise_and_project(
                 safety.assert_portable_name(segment)
             planned.append((relpath, measured.data))
 
-    _refuse_foreign_owner(
-        projection_root, selection, skill_target, scope, adapter, source_string, planned
+    upgrade_owned_files = getattr(args, "_upgrade_owned_files", None)
+    planned_paths = {relpath for relpath, _projected_bytes in planned}
+    removed = (
+        sorted(set(upgrade_owned_files) - planned_paths)
+        if upgrade_owned_files is not None
+        else []
     )
+
+    destination_refusal: DirectInstallError | None = None
+    try:
+        _refuse_foreign_owner(
+            projection_root,
+            selection,
+            classification,
+            skill_target,
+            scope,
+            adapter,
+            source_string,
+            planned,
+            upgrade_owned_files=upgrade_owned_files,
+            upgrade_args=args,
+            upgrade_source_overridden=bool(
+                getattr(args, "_upgrade_source_overridden", False)
+            ),
+        )
+    except DirectInstallError as exc:
+        if (
+            upgrade_owned_files is None
+            or exc.diagnostic.code != DiagnosticCode.CAT_D027.value
+        ):
+            raise
+        destination_refusal = exc
+
+    if upgrade_owned_files is not None:
+        upgraded_skill = selection.skills[0]
+        skill_relpath = f"{skill_target}/{upgraded_skill.name}/SKILL.md"
+        previous_axes = (
+            _read_projected_capability_axes(
+                projection_root,
+                skill_relpath,
+                installed_row,
+            )
+            if installed_row is not None
+            else None
+        )
+        candidate_axes = _capability_axes(
+            skill_metadata(upgraded_skill), source=source_string
+        )
+        widenings = _capability_widenings(previous_axes, candidate_axes)
+        if widenings:
+            capability_refusal = _capability_upgrade_refusal(
+                args,
+                classification=classification,
+                source_string=source_string,
+                revision=revision,
+                relpath=skill_relpath,
+                widenings=widenings,
+                include_remediation=destination_refusal is None,
+            )
+            if destination_refusal is not None:
+                _print_refusal(destination_refusal.diagnostic, verb="upgrade")
+                _print_refusal(capability_refusal.diagnostic, verb="upgrade")
+                return 1
+            raise capability_refusal
+
+    if destination_refusal is not None:
+        raise destination_refusal
+
+    if upgrade_digest is not None and digest == upgrade_digest:
+        selected_name = selection.skills[0].name
+        print(f"No update available for {selected_name}.")
+        return 0
+
+    if upgrade_owned_files is not None:
+        print("\nupgrade plan:")
+        for relpath, _projected_bytes in sorted(planned):
+            print(f"  write {escape_path_value(relpath)}")
+        for relpath in removed:
+            print(f"  remove {escape_path_value(relpath)}")
+
+    if getattr(args, "dry_run", False):
+        # AC25: a preview writes nothing at all, and says which files it would
+        # have written so the reader can check before consenting.
+        if upgrade_owned_files is None:
+            print("\nwould install (dry run — nothing written):")
+            for relpath, _projected_bytes in planned:
+                print(f"  {escape_path_value(relpath)}")
+        return 0
+
+    if not getattr(args, "yes", False) and not sys.stdin.isatty():
+        upgrade_refusal = getattr(args, "_upgrade_noninteractive_refusal", None)
+        if upgrade_refusal is not None:
+            _print_refusal(upgrade_refusal, verb="upgrade")
+            return 1
+        print(
+            "install: refusing to install a direct source without confirmation. "
+            "Re-run with --yes for non-interactive use; the summary above is "
+            "printed either way.",
+            file=sys.stderr,
+        )
+        return 1
+    if not getattr(args, "yes", False):
+        verb = str(getattr(args, "_direct_verb", "install"))
+        answer = input(f"\n{verb.capitalize()} these skills? [y/N] ").strip().lower()
+        if answer not in {"y", "yes"}:
+            print(f"{verb}: cancelled; nothing was written.")
+            return 1
+
+    retained_owned_files: dict[str, dict[str, str]] = {}
+    if upgrade_owned_files is not None:
+        retained_owned_files = _delete_removed_projection(
+            args,
+            projection_root=projection_root,
+            skill_target=skill_target,
+            removed=removed,
+            owned_files=upgrade_owned_files,
+            scope=scope,
+            adapter=adapter,
+            name=selection.skills[0].name,
+        )
 
     written: dict[str, bytes] = {}
     try:
@@ -848,6 +1251,11 @@ def _summarise_and_project(
             digest=digest,
             adapter=adapter,
             written=written,
+            upgrade_installed_row=installed_row,
+            source_overridden=bool(
+                getattr(args, "_upgrade_source_overridden", False)
+            ),
+            retained_owned_files=retained_owned_files,
         )
     except (DirectStateError, OSError, PathJailError) as exc:
         # The projection succeeded and the row did not, so every projected file
@@ -885,6 +1293,146 @@ def _summarise_and_project(
     return 0
 
 
+def _upgrade_retry_command(args: object, name: str) -> str:
+    """Return the complete command that retries one standalone upgrade."""
+
+    parts = [
+        "agentbundle",
+        "upgrade",
+        "--skill",
+        name,
+        "--root",
+        str(getattr(args, "output", ".") or "."),
+        "--scope",
+        str(getattr(args, "scope", None) or "repo"),
+        "--adapter",
+        str(getattr(args, "adapter", None) or "claude-code"),
+    ]
+    supplied_source = getattr(args, "source", None)
+    if supplied_source is not None:
+        parts.extend(("--source", str(supplied_source)))
+    parts.append("--yes")
+    return recovery_command(*parts)
+
+
+def _delete_removed_projection(
+    args: object,
+    *,
+    projection_root: Path,
+    skill_target: str,
+    removed: list[str],
+    owned_files: dict[str, dict[str, str]],
+    scope: str,
+    adapter: str,
+    name: str,
+) -> dict[str, dict[str, str]]:
+    """Delete obsolete owned files and return entries whose ownership is uncertain."""
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        validate_confined_directory,
+    )
+    from agentbundle.commands._common import resolve_state_path
+    from agentbundle.config import ConfigError, load_state
+
+    if not removed:
+        return {}
+
+    expected_prefix = PurePosixPath(skill_target) / name
+    for relpath in removed:
+        relative = PurePosixPath(relpath)
+        if (
+            relative.is_absolute()
+            or "\\" in relpath
+            or ".." in relative.parts
+            or relative.parts[: len(expected_prefix.parts)] != expected_prefix.parts
+            or len(relative.parts) == len(expected_prefix.parts)
+        ):
+            raise _refuse(
+                DiagnosticCode.CAT_D035,
+                f"refusing malformed ownership path outside {expected_prefix.as_posix()!r}",
+                path=relpath,
+                remediation=(
+                    "Repair or remove the malformed ownership entry in the state file "
+                    f"before retrying: {_upgrade_retry_command(args, name)}"
+                ),
+            )
+
+    states = []
+    try:
+        for state_scope in ("repo", "user"):
+            state_path = resolve_state_path(state_scope, projection_root)
+            states.append((state_scope, load_state(state_path)))
+    except (ConfigError, OSError):
+        return {relpath: owned_files[relpath] for relpath in removed}
+
+    target_key = (name, adapter)
+    retry = _upgrade_retry_command(args, name)
+    retained: dict[str, dict[str, str]] = {}
+    prune_paths: list[str] = []
+    for relpath in removed:
+        has_other_owner = any(
+            owner != target_key or state_scope != scope
+            for state_scope, state in states
+            for owner in state.owners_of(relpath)
+        )
+        if has_other_owner:
+            continue
+
+        target = projection_root / relpath
+        try:
+            validate_confined_directory(projection_root, target.parent)
+        except UnsafeContentError as exc:
+            if isinstance(exc.__cause__, FileNotFoundError):
+                continue
+            retained[relpath] = owned_files[relpath]
+            continue
+        prune_paths.append(relpath)
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise _refuse(
+                DiagnosticCode.CAT_D020,
+                f"could not remove obsolete owned file {relpath!r}: {exc}",
+                path=relpath,
+                remediation=(
+                    f"Clear the obstruction on file {recovery_command(relpath)}, "
+                    f"then retry: {retry}"
+                ),
+            ) from exc
+
+    directories: set[PurePosixPath] = set()
+    for relpath in prune_paths:
+        parent = PurePosixPath(relpath).parent
+        while parent.parts:
+            directories.add(parent)
+            parent = parent.parent
+
+    for relative in sorted(directories, key=lambda path: len(path.parts), reverse=True):
+        directory = projection_root / relative
+        rendered = relative.as_posix()
+        try:
+            validate_confined_directory(projection_root, directory)
+            if next(directory.iterdir(), None) is not None:
+                continue
+            directory.rmdir()
+        except FileNotFoundError:
+            continue
+        except (OSError, UnsafeContentError) as exc:
+            raise _refuse(
+                DiagnosticCode.CAT_D021,
+                f"could not prune emptied directory {rendered!r}: {exc}",
+                path=rendered,
+                remediation=(
+                    f"Clear the obstruction on directory {recovery_command(rendered)}, "
+                    f"then retry: {retry}"
+                ),
+            ) from exc
+    return retained
+
+
 def _record_direct_rows(
     *,
     target_root: Path,
@@ -897,6 +1445,9 @@ def _record_direct_rows(
     digest: str,
     adapter: str,
     written: dict[str, bytes],
+    upgrade_installed_row: PackState | None = None,
+    source_overridden: bool = False,
+    retained_owned_files: dict[str, dict[str, str]] | None = None,
 ) -> None:
     """Write one owned state row per installed skill, under the state lock."""
 
@@ -938,12 +1489,8 @@ def _record_direct_rows(
                 for relpath, payload in written.items()
                 if tuple(PurePosixPath(relpath).parts[: len(owned)]) == owned
             }
-            if classification.shape == "direct-pack":
-                kind, relative = "pack", None
-            else:
-                kind = "skill"
-                relative = skill.envelope.relative_to(classification.root).as_posix()
             stored_source = stored_source_for(source_string, scope, target_root)
+            kind, relative = _candidate_source_coordinates(classification, skill)
             provenance = build_provenance(
                 source=stored_source,
                 source_revision=revision,
@@ -951,19 +1498,52 @@ def _record_direct_rows(
                 source_path=relative,
                 source_digest=digest,
             )
-            state.packs[(skill.name, adapter)] = PackState(
-                # The sentinel is internal: AC26 keeps it off every rendered
-                # surface, and the receipt above prints no version at all.
-                installed_version=MANIFESTLESS_VERSION_SENTINEL,
-                source=provenance.source,
-                scope=scope,
-                adapter=adapter,
-                source_revision=provenance.source_revision,
-                source_kind=provenance.source_kind,
-                source_path=provenance.source_path,
-                source_digest=provenance.source_digest,
-                files=files,
-            )
+            if retained_owned_files:
+                files.update(retained_owned_files)
+            locked_row = state.row(skill.name, adapter)
+            if upgrade_installed_row is not None:
+                expected_identity = _direct_identity(
+                    upgrade_installed_row.source_kind,
+                    upgrade_installed_row.source,
+                    upgrade_installed_row.source_path,
+                )
+                locked_identity = (
+                    _direct_identity(
+                        locked_row.source_kind,
+                        locked_row.source,
+                        locked_row.source_path,
+                    )
+                    if locked_row is not None
+                    else None
+                )
+                if (
+                    locked_row is None
+                    or locked_identity != expected_identity
+                    or locked_row.source_digest != upgrade_installed_row.source_digest
+                ):
+                    raise DirectStateError(
+                        f"{skill.name!r} changed while this upgrade was writing; "
+                        "the state row was not replaced"
+                    )
+                locked_row.source_revision = provenance.source_revision
+                locked_row.source_digest = provenance.source_digest
+                locked_row.files = files
+                if source_overridden:
+                    locked_row.source = provenance.source
+            else:
+                state.packs[(skill.name, adapter)] = PackState(
+                    # The internal sentinel must never reach a rendered surface;
+                    # the receipt above therefore prints no version at all.
+                    installed_version=MANIFESTLESS_VERSION_SENTINEL,
+                    source=provenance.source,
+                    scope=scope,
+                    adapter=adapter,
+                    source_revision=provenance.source_revision,
+                    source_kind=provenance.source_kind,
+                    source_path=provenance.source_path,
+                    source_digest=provenance.source_digest,
+                    files=files,
+                )
 
     # Root and relpath given explicitly so the jail is the projection root, not
     # the state file's own parent directory, and the scope rail matches the
@@ -1007,6 +1587,37 @@ def stored_source_for(source_string: str, scope: str, root: Path) -> str:
         return relative_repo_source(Path(source_string), root)
     except DirectStateError:
         return source_string
+
+
+def _direct_identity(
+    source_kind: str | None, source: str | None, source_path: str | None
+) -> tuple[str | None, str | None, str | None]:
+    """Return the direct collision identity without normalising stored bytes."""
+
+    remote = _split_git_https_ref(source)
+    identity_source = remote[0] if remote is not None else source
+    return source_kind, identity_source, source_path
+
+
+def _split_git_https_ref(source: str | None) -> tuple[str, str] | None:
+    """Return a git+https repository and its non-empty trailing ref."""
+
+    if source is None or not source.startswith("git+https://"):
+        return None
+    repository, separator, ref = source.rpartition("@")
+    if not separator or not ref:
+        return None
+    return repository, ref
+
+
+def _candidate_source_coordinates(
+    classification: DirectClassification, skill: DirectSkill
+) -> tuple[str, str | None]:
+    """Return the source kind and path shared by preflight and state writes."""
+
+    if classification.shape == "direct-pack":
+        return "pack", None
+    return "skill", skill.envelope.relative_to(classification.root).as_posix()
 
 
 def _report_unowned(written: dict[str, bytes]) -> None:
@@ -1064,14 +1675,57 @@ def _destination_holds_foreign_content(
     return on_disk not in state.shas_for(relpath)
 
 
+def _upgrade_destination_is_edited(
+    root: Path,
+    relpath: str,
+    incoming: bytes | None,
+    recorded_sha: str | None,
+) -> bool:
+    """True when measurable destination bytes match neither upgrade baseline."""
+
+    from agentbundle.catalogue_tooling.file_safety import (
+        UnsafeContentError,
+        sha256_confined_regular_file,
+    )
+
+    try:
+        on_disk = sha256_confined_regular_file(root, root / relpath)
+    except FileNotFoundError:
+        return False
+    except UnsafeContentError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return False
+        raise _refuse(
+            DiagnosticCode.CAT_D009,
+            f"{relpath} could not be inspected safely: {exc}",
+            path=relpath,
+            remediation="Repair or remove the unsafe destination before upgrading.",
+        ) from None
+    except OSError as exc:
+        raise _refuse(
+            DiagnosticCode.CAT_D009,
+            f"{relpath} could not be inspected safely: {exc}",
+            path=relpath,
+            remediation="Repair or remove the unsafe destination before upgrading.",
+        ) from None
+    if incoming is not None and on_disk == hashlib.sha256(incoming).hexdigest():
+        return False
+    return recorded_sha is None or on_disk != recorded_sha
+
+
 def _refuse_foreign_owner(
     projection_root: Path,
     selection: Selection,
+    classification: DirectClassification,
     skill_target: str,
     scope: str,
     adapter: str,
     source_string: str,
     planned: list[tuple[str, bytes]],
+    *,
+    upgrade_owned_files: dict[str, dict[str, str]] | None = None,
+    upgrade_args: object | None = None,
+    upgrade_source_overridden: bool = False,
 ) -> None:
     """Refuse to overwrite a row or a directory this source does not own.
 
@@ -1110,10 +1764,20 @@ def _refuse_foreign_owner(
         existing = state.row(skill.name, adapter)
         if existing is None:
             continue
-        same_source = (
-            existing.source_kind in {"pack", "skill"} and existing.source == stored
+        candidate_kind, candidate_path = _candidate_source_coordinates(classification, skill)
+        candidate_identity = _direct_identity(candidate_kind, stored, candidate_path)
+        existing_identity = _direct_identity(
+            existing.source_kind, existing.source, existing.source_path
         )
-        if not same_source:
+        source_changed = existing.source != stored
+        upgradeable_ref_change = (
+            candidate_kind == "skill"
+            and _split_git_https_ref(existing.source) is not None
+            and _split_git_https_ref(stored) is not None
+        )
+        if existing_identity != candidate_identity or (
+            source_changed and not upgradeable_ref_change
+        ):
             raise _refuse(
                 DiagnosticCode.CAT_D009,
                 f"{skill.name!r} is already installed at {scope} scope for "
@@ -1124,6 +1788,29 @@ def _refuse_foreign_owner(
                     "do not collide. Overwriting would orphan the files the "
                     "existing row owns."
                 ),
+            )
+        if source_changed and not upgrade_source_overridden:
+            command = recovery_command(
+                "agentbundle",
+                "upgrade",
+                "--skill",
+                skill.name,
+                "--source",
+                source_string,
+                "--root",
+                str(projection_root),
+                "--scope",
+                scope,
+                "--adapter",
+                adapter,
+                "--yes",
+            )
+            raise _refuse(
+                DiagnosticCode.CAT_D022,
+                f"{skill.name!r} is already installed from this source at "
+                "a different ref",
+                path=source_string,
+                remediation=f"Run {command} to move the installed skill to this ref.",
             )
 
     # Per DESTINATION, not per skill name. `State.owners_of` is the blessed
@@ -1147,16 +1834,63 @@ def _refuse_foreign_owner(
                     "no later install, upgrade, or uninstall can resolve."
                 ),
             )
-        if _destination_holds_foreign_content(
-            projection_root, relpath, projected_bytes, state
-        ):
-            raise _refuse(
-                DiagnosticCode.CAT_D009,
-                f"{relpath} already exists and no install put its content there",
-                path=relpath,
-                remediation=(
+        recorded = upgrade_owned_files.get(relpath) if upgrade_owned_files is not None else None
+        recorded_sha = recorded.get("sha") if recorded is not None else None
+        edited = (
+            _upgrade_destination_is_edited(
+                projection_root, relpath, projected_bytes, recorded_sha
+            )
+            if upgrade_owned_files is not None
+            else _destination_holds_foreign_content(
+                projection_root, relpath, projected_bytes, state
+            )
+        )
+        if edited:
+            code = (
+                DiagnosticCode.CAT_D027
+                if upgrade_owned_files is not None
+                else DiagnosticCode.CAT_D009
+            )
+            if upgrade_owned_files is not None:
+                if upgrade_args is None:
+                    raise AssertionError("upgrade arguments are required for upgrade retry")
+                rerun = _upgrade_retry_command(
+                    upgrade_args, selection.skills[0].name
+                )
+                remediation = (
+                    "Move the adopter-edited file aside before upgrading, then run "
+                    f"{rerun}."
+                )
+            else:
+                remediation = (
                     "Move or delete the existing file first. It is either "
                     "hand-authored or locally edited, and this source would "
                     "replace it with publisher content silently."
-                ),
+                )
+            raise _refuse(
+                code,
+                f"{relpath} already exists and no install put its content there",
+                path=relpath,
+                remediation=remediation,
             )
+
+    if upgrade_owned_files is None:
+        return
+    for relpath in sorted(set(upgrade_owned_files) - {path for path, _data in planned}):
+        recorded_sha = upgrade_owned_files[relpath].get("sha")
+        if not _upgrade_destination_is_edited(
+            projection_root, relpath, None, recorded_sha
+        ):
+            continue
+        if upgrade_args is None:
+            raise AssertionError("upgrade arguments are required for upgrade retry")
+        rerun = _upgrade_retry_command(upgrade_args, selection.skills[0].name)
+        raise _refuse(
+            DiagnosticCode.CAT_D027,
+            f"{relpath} is adopter-edited and the new source would remove it",
+            path=relpath,
+            remediation=(
+                "Move the adopter-edited file aside before upgrading, then run "
+                f"{rerun}."
+            ),
+        )

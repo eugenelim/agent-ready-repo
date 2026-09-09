@@ -49,10 +49,10 @@ adapter and scope.
 
 **In scope:**
 
-- The route contract and the minimal route resolver (Phase 0); the portable Agent Plugin
-  projection (Phase 1A); the canonical MCP primitive with direct `agentbundle` install
-  parity and route projections (Phase 1B); registry extraction once three real routes
-  exist (Phase 2); the native Codex route and its marketplace, plus user-scope
+- In delivery order, matching the confirmed slice table below. The route contract and the minimal route resolver (Phase 0); the portable Agent
+  Plugin projection (Phase 1A); registry extraction once three real routes exist
+  (Phase 2); the canonical MCP primitive with direct `agentbundle` install parity and
+  route projections (Phase 1B); the native Codex route and its marketplace, plus user-scope
   trigger parity for both Claude and Codex publishers (Phase 3); the Kiro Power
   route profile (Phase 4); Claude-manifest migration and public-matrix updates
   (Phase 5).
@@ -85,8 +85,11 @@ adapter and scope.
 
 A bounded, ordered programme of six phases, sequenced by dependency rather than by
 product. Phase 1 contains two independently shippable slices: the portable package
-baseline (1A), followed by the canonical MCP primitive and its end-to-end install parity
-(1B). A phase that requires a new dependency, a new authoring surface, or a public
+baseline (1A) and the canonical MCP primitive with its end-to-end install parity (1B).
+They are not adjacent. Registry extraction (Phase 2) runs between them, so the delivery
+order is 0 → 1A → 2 → 1B → 3 → 4 → 5. Phase 1A supplies the third real route that
+gates extraction; 1B supplies a canonical primitive and does not. See the
+[RFC-0092 erratum](../../rfc/0092-first-class-distribution-routes.md#errata). A phase that requires a new dependency, a new authoring surface, or a public
 compatibility break leaves this programme until an approved amendment moves the boundary.
 
 ## Rabbit holes
@@ -148,16 +151,19 @@ to ship independently.
 | --- | --- | --- |
 | Phase 0 — route contract | Route-owned contract, minimal resolver, APM re-parenting, unchanged Claude/APM golden output | — |
 | Phase 1A — portable projection | Vendored portable schemas, deterministic Agent Plugin manifest and skills projection, extension namespaces | Phase 0 |
-| Phase 1B — canonical MCP parity | Canonical MCP source/model, direct `agentbundle` install projections for capable adapters, portable and claimed native-route projections, fail-closed security controls | Phase 1A |
-| Phase 2 — registry extraction | Generic six-field route registry extracted from three real routes | Phase 1B |
-| Phase 3 — native Codex route | Native package and marketplace manifest, hook translation, shared user-scope publication eligibility with Claude, unrelated-commit trigger suppression, honest components-only claim until adaptation prerequisites exist | Phase 2 |
+| Phase 2 — route dispatch and portable-route completion | Every route-consuming surface derives its route set from the contract; no route-name branches in shared code | Phase 1A |
+| Phase 2b — route set opening | One reusable route schema shape so a route needs no schema entry, with the value confinement that removing the per-route pins requires | Phase 2 |
+| Phase 1B — canonical MCP parity | Canonical MCP source/model, direct `agentbundle` install projections for capable adapters, portable and claimed native-route projections, fail-closed security controls | Phase 2 |
+| Phase 3 — native Codex route | Native package and marketplace manifest, hook translation, shared user-scope publication eligibility with Claude, unrelated-commit trigger suppression, honest components-only claim until adaptation prerequisites exist | Phase 1B, Phase 2b |
 | Phase 4 — Kiro Power profile | Portable-package route profile, Kiro admission and activation semantics, empty extension point unless separately approved | Phase 3 |
 | Phase 5 — migration and claims | Claude-manifest residue migration, public support matrices, compatibility-alias expiry and programme closeout | Phase 4 |
 
 The parity rule is evaluated in the slice that introduces a canonical primitive,
 not deferred to a later route or cleanup phase. Phase 1B is the first application:
 MCP must work through direct `agentbundle` installation and the routes that claim MCP
-support before that slice can ship.
+support before that slice can ship. Running Phase 2 first does not weaken the rule —
+the registry carries no primitive of its own, and 1B still discharges parity in its own
+slice, through the registry rather than through per-route branches.
 
 ## Spec map
 
@@ -169,11 +175,13 @@ independently here. Remaining confirmed slices stay as typed backlog intents unt
 | --- | --- |
 | `distribution-route-contract` | Shipped |
 | `portable-agent-plugin-projection` | Shipped |
+| `distribution-route-registry` | Shipped |
 
 ## Derived work
 
-Each confirmed slice materializes its own spec through `new-spec`; Phase 0 is the
-first such delivery contract and remains non-dispatchable until human approval.
+Each confirmed slice materializes its own spec through `new-spec`, and a promoted
+spec remains non-dispatchable until human approval. Phase 0 and Phase 1A have
+shipped, and the Phase 2 registry spec has shipped.
 Phase 1 deliberately produces separate portable projection and canonical MCP
 parity specs. The follow-on artifacts RFC-0092 names are the
 distribution-route contract, the portable projection, the canonical MCP primitive, the

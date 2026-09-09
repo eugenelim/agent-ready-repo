@@ -61,6 +61,7 @@ from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
     REPO_ROOT,
+    _load_distribution_route_contract,
     derive_projectable_subset,
     discover_packs,
     validate_pack_uniqueness,
@@ -70,6 +71,10 @@ from agentbundle.build.projection_io import (
 )
 from agentbundle.build.projection_io import (
     render_diagnostic_path as _render_diagnostic_path,
+)
+from agentbundle.build.route_lookup import (
+    read_route_declarations,
+    resolve_route_behaviors,
 )
 from agentbundle.build.user_libs import (
     apply_projection as _user_libs_apply,
@@ -1583,77 +1588,107 @@ def run_build_check_drift_gates(
     # ------------------------------------------------------------------
     # Gate 1: Writer-template drift
     #
-    # Cross-validate `packs/` (source of truth) against
-    # `<output_dir>/dist/claude-plugins/` (build output). For every source
-    # pack carrying `.claude-plugin/plugin.json`, the derived projection
-    # MUST exist and MUST be byte-identical to the canonical template.
+    # Cross-validate `packs/` (source of truth) against each build output whose
+    # route declares an install-marker lifecycle trigger. Every admitted pack's
+    # derived projection MUST exist and MUST be byte-identical to the canonical
+    # template.
     # `make build-check` depends on `build` so the `dist/` tree is always
     # populated when this gate runs; a missing `dist/` is a hard failure,
     # not a silent skip.
     # ------------------------------------------------------------------
+    early_lifecycle_failures: list[str] = []
+    late_lifecycle_failures: list[str] = []
     template_path = _resolve_install_marker_template_path()
     if not template_path.exists():
-        failures.append(
+        early_lifecycle_failures.append(
             f"build-check: canonical install-marker template not found at "
             f"{template_path}; cannot run writer-template drift check"
         )
     elif not packs_dir.is_dir():
-        failures.append(
+        early_lifecycle_failures.append(
             f"build-check: packs_dir {packs_dir} not a directory; cannot "
-            f"enumerate Claude-plugins-route packs for drift check"
+            f"enumerate lifecycle-marker packs for drift check"
         )
     else:
         template_hash = hashlib.sha256(template_path.read_bytes()).hexdigest()
-        dist_plugins = output_dir / "dist" / "claude-plugins"
-        # Fourth predicate site (docs/specs/claude-plugin-route-scope): a
-        # repo-only pack has no derived claude-plugins projection after the
-        # filter, so expecting one here would hard-fail the required gate for
-        # every such pack. Gate 1c (APM) and Gate 3 (source-shape) are
-        # deliberately NOT narrowed — both legitimately cover every pack.
-        from agentbundle.build.main import pack_is_publishable
-
-        expected_packs = [
+        source_packs = [
             pack_dir
             for pack_dir in sorted(packs_dir.iterdir())
             if pack_dir.is_dir()
             and not pack_dir.name.startswith("_")
             and (pack_dir / "pack.toml").exists()
-            and (pack_dir / ".claude-plugin" / "plugin.json").exists()
-            and pack_is_publishable(pack_dir)
         ]
-        if expected_packs and not dist_plugins.is_dir():
-            failures.append(
-                f"build-check: writer-template drift — dist/claude-plugins/ "
-                f"not present at {dist_plugins} (run `make build` before "
-                f"`make build-check`, or use the `build-check` target which "
-                f"depends on `build`)"
+        # This gate's contract is to append named failures and return a code, so
+        # an unusable route contract becomes one of those failures rather than a
+        # traceback out of the gate chain.
+        try:
+            route_contract = _load_distribution_route_contract()
+            declarations = read_route_declarations(route_contract)
+            behaviors = resolve_route_behaviors(route_contract)
+        except (OSError, RuntimeError, ValueError) as exc:
+            early_lifecycle_failures.append(
+                f"build-check: distribution route contract is unusable: {exc}; "
+                f"cannot check install-marker drift"
             )
-        else:
+            declarations = {}
+            behaviors = {}
+        for identity, declaration in declarations.items():
+            if declaration.lifecycle_trigger is None:
+                continue
+            behavior = behaviors.get(identity)
+            if behavior is None:
+                # `declarations` is keyed by declared identity and `behaviors`
+                # by the contract's route-table key. The schema pins them equal;
+                # a mismatch is a named failure, not a KeyError out of the gate.
+                early_lifecycle_failures.append(
+                    f"build-check: distribution route {identity!r} has no "
+                    f"registered behavior; cannot check install-marker drift"
+                )
+                continue
+            marker_relative_path = behavior.lifecycle_marker_relative_path
+            drift_label = behavior.lifecycle_marker_drift_label
+            if marker_relative_path is None or drift_label is None:
+                continue
+            route_failures = (
+                late_lifecycle_failures
+                if behavior.lifecycle_marker_drift_after_runtime_checks
+                else early_lifecycle_failures
+            )
+            expected_packs = [
+                pack_dir
+                for pack_dir in source_packs
+                if behavior.admits_lifecycle_marker_pack(pack_dir)
+            ]
+            dist_route = output_dir / "dist" / declaration.output_subdir
+            if expected_packs and not dist_route.is_dir():
+                route_failures.append(
+                    f"build-check: {drift_label} — "
+                    f"dist/{declaration.output_subdir}/ not present at {dist_route} "
+                    f"(run `make build` before `make build-check`, or use the "
+                    f"`build-check` target which depends on `build`)"
+                )
+                continue
             for pack_dir in expected_packs:
                 derived_marker = (
-                    dist_plugins
-                    / pack_dir.name
-                    / ".claude-plugin"
-                    / "scripts"
-                    / "install-marker.py"
+                    dist_route / pack_dir.name / marker_relative_path
                 )
                 if not derived_marker.exists():
-                    failures.append(
-                        f"build-check: writer-template drift — "
-                        f"pack {pack_dir.name} has a source plugin.json but "
-                        f"no projected install-marker.py at {derived_marker} "
+                    route_failures.append(
+                        f"build-check: {drift_label} — pack {pack_dir.name} "
+                        f"has no projected install-marker.py at {derived_marker} "
                         f"(derivation rail broken or partial build)"
                     )
                     continue
-                derived_hash = hashlib.sha256(
-                    derived_marker.read_bytes()
-                ).hexdigest()
-                if derived_hash != template_hash:
-                    failures.append(
-                        f"build-check: writer-template drift — "
-                        f"{pack_dir.name}/.claude-plugin/scripts/install-marker.py "
+                if hashlib.sha256(derived_marker.read_bytes()).hexdigest() != template_hash:
+                    marker_display_path = (
+                        Path(pack_dir.name) / marker_relative_path
+                    ).as_posix()
+                    route_failures.append(
+                        f"build-check: {drift_label} — {marker_display_path} "
                         f"diverges from canonical template at {template_path}"
                     )
+
+    failures.extend(early_lifecycle_failures)
 
     # ------------------------------------------------------------------
     # Gate 1b: _data/ ↔ templates/ parity (Concern 6)
@@ -1698,51 +1733,10 @@ def run_build_check_drift_gates(
             )
 
     # ------------------------------------------------------------------
-    # Gate 1c: APM writer-template drift
-    #
-    # Every dist/apm/<pack>/.apm/hooks/install-marker.py must be byte-
-    # identical to the canonical template. Same rail as Gate 1 (claude-
-    # plugins side); extends the surface to the APM projection so a future
-    # implementer who accidentally diverges the APM-projected writer (or
-    # forgets to refresh dist/apm/ after editing the template) is caught
-    # at make build-check. APM packs are every pack — the apm derivation
-    # runs on the full packs_dir, not just packs declaring claude-plugin.
+    # Gate 1c: lifecycle-marker failures that historically followed runtime
+    # parity checks keep their reporting position.
     # ------------------------------------------------------------------
-    if template_path.exists() and packs_dir.is_dir():
-        template_hash_apm = hashlib.sha256(template_path.read_bytes()).hexdigest()
-        dist_apm = output_dir / "dist" / "apm"
-        apm_packs = [
-            pack_dir
-            for pack_dir in sorted(packs_dir.iterdir())
-            if pack_dir.is_dir()
-            and not pack_dir.name.startswith("_")
-            and (pack_dir / "pack.toml").exists()
-        ]
-        if apm_packs and not dist_apm.is_dir():
-            failures.append(
-                f"build-check: APM writer-template drift — dist/apm/ not "
-                f"present at {dist_apm} (run `make build` before "
-                f"`make build-check`)"
-            )
-        else:
-            for pack_dir in apm_packs:
-                apm_marker = (
-                    dist_apm / pack_dir.name / ".apm" / "hooks" / "install-marker.py"
-                )
-                if not apm_marker.exists():
-                    failures.append(
-                        f"build-check: APM writer-template drift — "
-                        f"pack {pack_dir.name} has no projected APM "
-                        f"install-marker.py at {apm_marker} "
-                        f"(APM derivation rail broken or partial build)"
-                    )
-                    continue
-                if hashlib.sha256(apm_marker.read_bytes()).hexdigest() != template_hash_apm:
-                    failures.append(
-                        f"build-check: APM writer-template drift — "
-                        f"dist/apm/{pack_dir.name}/.apm/hooks/install-marker.py "
-                        f"diverges from canonical template at {template_path}"
-                    )
+    failures.extend(late_lifecycle_failures)
 
     # ------------------------------------------------------------------
     # Gate 3: Source-shape plugin.json

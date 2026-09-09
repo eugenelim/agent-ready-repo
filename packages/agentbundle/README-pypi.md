@@ -14,6 +14,31 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.43.0
+
+An installed direct skill can now move to a later repository revision with
+`agentbundle upgrade --skill <name>`. The command re-runs direct-source
+admission, shows the same capability consent surface as install, refuses a
+capability widening, previews writes and removals, and deletes files the new
+revision dropped before recording the updated row.
+
+Install identity now excludes the repository ref. An install at a different ref
+still exits 1, but its re-coded refusal names `upgrade --skill --source` instead
+of reporting a source collision; a moved `source-path` now refuses instead of
+silently self-healing; and a byte-identical reinstall still repairs the
+projection in place. Remove-then-install is the terminating remediation for the
+moved-`source-path` collision.
+
+## What's new in 0.42.0
+
+The portable Agent Plugin route now reaches every command that works with
+distribution routes. `validate` accepts a pack declaring the
+`per-pack-agent-plugin` recipe, `render --target agent-plugin` selects it,
+`install --emit-install-routes` also writes `agent-plugins/<pack>/`, and
+`install`, `diff`, and `upgrade` each recognise a portable install. Every
+surface now reads its route set from the route contract, so a route declared
+there reaches all of them at once. Published package bytes are unchanged.
+
 ## What's new in 0.41.1
 
 The same release as 0.41.0, which never reached PyPI: its release run failed a

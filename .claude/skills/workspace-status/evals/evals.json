@@ -278,6 +278,40 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 11,
+      "prompt": "Why won't the dependant spec in this initiative start? Its brief looks shipped.",
+      "expected_output": "The agent uses the workspace-status canonical reconciliation. The cooled `docs/specs/child/spec.md` entry declares no `source.parent`, so its parent scope is unestablished and reconciliation reports a `cooled_child_scope_unknown` finding at that entry's path, plus an `unsatisfied_dependency` at the brief. The agent explains that the brief's apparent Shipped state is not evidence while a cooled child's scope is unknown, and that the repair is to declare `source.parent` on the named entry -- a brief path that resolves to a registered brief entry, or `none` only when that spec has no parent brief. It does not suggest guessing a brief path: a value naming nothing registered will not clear the refusal, and a value naming the wrong registered brief will clear it while misattributing the spec silently, because once the spec has cooled the declaration is trusted rather than verified. It names the entry rather than the brief as the thing to edit, does not read the cooled artifact's body, and makes no write or lifecycle decision.",
+      "assertions": [
+        "Reports cooled_child_scope_unknown at the cooled entry's own path",
+        "Names the workspace entry as the repair target, not the brief",
+        "Offers both repairs: a brief path resolving to a registered brief entry, or none when there is no parent brief",
+        "Does not treat the brief's Shipped state as evidence the dependency is satisfied",
+        "Does not read or infer from the cooled artifact's body",
+        "Performs no write, compaction, deletion, or lifecycle transition",
+        "Does not suggest guessing a brief path, which would misattribute silently"
+      ],
+      "files": [
+        "evals/files/cooled-child-scope-unknown/workspace.toml",
+        "evals/files/cooled-child-scope-unknown/docs/specs/child/spec.md",
+        "evals/files/cooled-child-scope-unknown/docs/specs/child/plan.md",
+        "evals/files/cooled-child-scope-unknown/docs/specs/dependant/spec.md",
+        "evals/files/cooled-child-scope-unknown/docs/specs/dependant/plan.md",
+        "evals/files/cooled-child-scope-unknown/docs/product/briefs/brief-1.md",
+        "evals/files/cooled-child-scope-unknown/docs/lifecycle/child.json"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "cooled_child_scope_unknown",
+          "source.parent"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
     }
   ]
 }

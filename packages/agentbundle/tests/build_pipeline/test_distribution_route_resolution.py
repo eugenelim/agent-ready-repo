@@ -168,9 +168,20 @@ def test_aggregate_rejects_adapter_outside_route_permission(
 
 
 def test_distribution_routes_have_no_registration_surface() -> None:
-    """Prove Phase 0 did not introduce registry or discovery dispatch."""
+    """Registration stays internal, explicit, and free of dynamic discovery."""
+    lookup = import_module("agentbundle.build.route_lookup")
+
     assert not hasattr(build_main, "ROUTE_REGISTRY")
     assert not hasattr(build_main, "register_distribution_route")
+    assert not hasattr(lookup, "register_distribution_route")
+    assert isinstance(lookup._ROUTE_BEHAVIOR_FACTORIES, tuple)
+    assert len(lookup._ROUTE_BEHAVIOR_FACTORIES) == len(_contract()["route"])
+    source = Path(lookup.__file__).read_text(encoding="utf-8")
+    for route_name in _contract()["route"]:
+        assert repr(route_name) not in source
+        assert f'"{route_name}"' not in source
+    assert "pkgutil" not in source
+    assert "import_module" not in source
 
 
 def test_apm_has_no_fabricated_adapter_dispatch(tmp_path: Path) -> None:

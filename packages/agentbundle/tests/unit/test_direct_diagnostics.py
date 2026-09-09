@@ -12,6 +12,7 @@ now — its tasks have no API in the LLD yet.
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import os
 
@@ -217,9 +218,10 @@ def test_every_registered_direct_code_has_a_raise_site():
     import agentbundle.direct_source as direct_source
     import agentbundle.direct_source_acquisition as direct_source_acquisition
     from agentbundle.catalogue_tooling.diagnostics import DIRECT_CODES
+    from agentbundle.commands import upgrade
 
     referenced: set[str] = set()
-    for module in (direct_source, direct_source_acquisition, direct_install):
+    for module in (direct_source, direct_source_acquisition, direct_install, upgrade):
         tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if (
@@ -264,6 +266,41 @@ def test_every_registered_direct_code_has_a_raise_site():
     )
 
 
+def test_delete_removed_projection_refuses_forged_out_of_prefix_ownership(tmp_path):
+    """An adopter-writable ownership row cannot delete outside its skill prefix."""
+
+    from agentbundle.direct_install import DirectInstallError, _delete_removed_projection
+
+    target = tmp_path / "pyproject.toml"
+    target.write_text("project-owned\n", encoding="utf-8")
+
+    class _Args:
+        output = str(tmp_path)
+        scope = "repo"
+        adapter = "claude-code"
+        source = None
+
+    with pytest.raises(DirectInstallError) as excinfo:
+        _delete_removed_projection(
+            _Args(),
+            projection_root=tmp_path,
+            skill_target=".claude/skills",
+            removed=["pyproject.toml"],
+            owned_files={
+                "pyproject.toml": {
+                    "sha": hashlib.sha256(target.read_bytes()).hexdigest()
+                }
+            },
+            scope="repo",
+            adapter="claude-code",
+            name="example",
+        )
+
+    assert excinfo.value.diagnostic.code == "CAT-D035"
+    assert "malformed ownership path" in excinfo.value.diagnostic.message
+    assert target.read_text(encoding="utf-8") == "project-owned\n"
+
+
 def _emitted_codes(tmp_path) -> set[str]:
     """Every direct code an actual refusal emits, one scenario per code.
 
@@ -280,8 +317,24 @@ def _emitted_codes(tmp_path) -> set[str]:
 
     import agentbundle.direct_source as direct_source
     import agentbundle.direct_source_acquisition as acquisition
+    from agentbundle.catalogue_tooling.diagnostics import DiagnosticCode
+    from agentbundle.commands.upgrade import (
+        DirectUpgradeError,
+        _DirectSkillSelection,
+        _refuse_direct_upgrade,
+        _select_direct_skill_row,
+        _select_direct_upgrade_source,
+        _uncomparable_digest_refusal,
+    )
+    from agentbundle.config import PackState, State
     from agentbundle.direct_install import (
         DirectInstallError,
+        Selection,
+        _capability_upgrade_refusal,
+        _delete_removed_projection,
+        _refuse_foreign_owner,
+        _select_upgrade_skill,
+        run_direct_install,
         sanitise_publisher_value,
         select_collection_skills,
     )
@@ -295,6 +348,7 @@ def _emitted_codes(tmp_path) -> set[str]:
             direct_source.DirectAdmissionError,
             acquisition.DirectAcquisitionError,
             DirectInstallError,
+            DirectUpgradeError,
         ) as exc:
             emitted.add(exc.diagnostic.code)
 
@@ -443,6 +497,274 @@ def _emitted_codes(tmp_path) -> set[str]:
         )
     )
     _record(lambda: sanitise_publisher_value("aㅤb", "description", source="s"))
+
+    # --- standalone upgrade selection --------------------------------------
+    direct_row = PackState(
+        installed_version="0.0.0+agentbundle.manifestless",
+        source="/publisher/example",
+        source_kind="skill",
+        source_path="skills/example",
+        source_digest="sha256-1:" + "0" * 64,
+    )
+    empty_state = State()
+    one_row = State(packs={("example", "claude-code"): direct_row})
+    two_adapters = State(
+        packs={
+            ("example", "claude-code"): direct_row,
+            ("example", "codex"): PackState(
+                installed_version=direct_row.installed_version,
+                source=direct_row.source,
+                source_kind="skill",
+                source_path=direct_row.source_path,
+                source_digest=direct_row.source_digest,
+                adapter="codex",
+            ),
+        }
+    )
+
+    def _select(repo_state, user_state=None):
+        return _select_direct_skill_row(
+            "example",
+            requested_scope=None,
+            requested_adapter=None,
+            repo_state=repo_state,
+            repo_root=tmp_path,
+            user_state=user_state,
+            user_root=tmp_path / "user" if user_state is not None else None,
+        )
+
+    _record(lambda: _select(empty_state))
+    _record(lambda: _select(one_row, one_row))
+    _record(lambda: _select(two_adapters))
+    direct_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", direct_row
+    )
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example",
+            direct_selection,
+            "git+https://github.com/example/skills@release-2",
+        )
+    )
+    remote_row = PackState(
+        installed_version=direct_row.installed_version,
+        source="git+https://github.com/example/skills@release-1",
+        source_kind="skill",
+        source_path=direct_row.source_path,
+        source_digest=direct_row.source_digest,
+    )
+    remote_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", remote_row
+    )
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example",
+            remote_selection,
+            "git+https://github.com/other/skills@release-2",
+        )
+    )
+    missing_source_row = PackState(
+        installed_version=direct_row.installed_version,
+        source=None,
+        source_kind="skill",
+        source_path=direct_row.source_path,
+        source_digest=direct_row.source_digest,
+    )
+    missing_source_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", missing_source_row
+    )
+    _record(
+        lambda: _select_direct_upgrade_source(
+            "example", missing_source_selection, None
+        )
+    )
+
+    class _UpgradeArgs:
+        skill = ["example"]
+        output = str(tmp_path)
+        scope = "repo"
+        adapter = "claude-code"
+
+    _record(
+        lambda: _select_upgrade_skill(
+            _UpgradeArgs(),
+            classification=admitted,
+            source_string=str(collection),
+            source_path="skills/missing",
+        )
+    )
+
+    def _raise_capability_refusal():
+        raise _capability_upgrade_refusal(
+            _UpgradeArgs(),
+            classification=admitted,
+            source_string=str(collection),
+            revision=None,
+            relpath=".claude/skills/example/SKILL.md",
+            widenings=("allowed-tools adds Bash",),
+        )
+
+    _record(_raise_capability_refusal)
+
+    # --- upgrade state and deletion refusals -------------------------------
+    deletion_root = tmp_path / "deletion-refusals"
+    deletion_file = deletion_root / ".claude/skills/example/old.md"
+    deletion_file.parent.mkdir(parents=True)
+    deletion_file.write_text("old\n")
+
+    class _DeleteArgs:
+        output = str(deletion_root)
+        scope = "repo"
+        adapter = "claude-code"
+        source = None
+
+    from unittest.mock import patch
+
+    with patch.object(type(deletion_file), "unlink", side_effect=PermissionError("blocked")):
+        _record(
+            lambda: _delete_removed_projection(
+                _DeleteArgs(),
+                projection_root=deletion_root,
+                skill_target=".claude/skills",
+                removed=[".claude/skills/example/old.md"],
+                owned_files={".claude/skills/example/old.md": {"sha": "0" * 64}},
+                scope="repo",
+                adapter="claude-code",
+                name="example",
+            )
+        )
+
+    _record(
+        lambda: _delete_removed_projection(
+            _DeleteArgs(),
+            projection_root=deletion_root,
+            skill_target=".claude/skills",
+            removed=["outside.md"],
+            owned_files={"outside.md": {"sha": "0" * 64}},
+            scope="repo",
+            adapter="claude-code",
+            name="example",
+        )
+    )
+
+    prune_file = deletion_root / ".claude/skills/example/prune/old.md"
+    prune_file.parent.mkdir(parents=True)
+    prune_file.write_text("old\n")
+    with patch.object(type(prune_file), "rmdir", side_effect=PermissionError("blocked")):
+        _record(
+            lambda: _delete_removed_projection(
+                _DeleteArgs(),
+                projection_root=deletion_root,
+                skill_target=".claude/skills",
+                removed=[".claude/skills/example/prune/old.md"],
+                owned_files={
+                    ".claude/skills/example/prune/old.md": {"sha": "0" * 64}
+                },
+                scope="repo",
+                adapter="claude-code",
+                name="example",
+            )
+        )
+
+    digest_row = PackState(
+        installed_version="0.0.0+agentbundle.manifestless",
+        source=str(collection),
+        source_kind="skill",
+        source_path="skills/example",
+        source_digest="sha512-1:" + "0" * 128,
+    )
+    digest_selection = _DirectSkillSelection(
+        "repo", tmp_path / ".agentbundle-state.toml", digest_row
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _uncomparable_digest_refusal(
+                "example", digest_selection, collection
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D033,
+                "catalogue-only route selected a direct row",
+                name="example",
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D036,
+                "catalogue-only route selected one direct row",
+                name="example",
+            )
+        )
+    )
+    _record(
+        lambda: (_ for _ in ()).throw(
+            _refuse_direct_upgrade(
+                DiagnosticCode.CAT_D034,
+                "standalone skill upgrade does not support JSON output",
+                name="example",
+            )
+        )
+    )
+
+    # --- installed identity at another ref ---------------------------------
+    ref_root = tmp_path / "different-ref"
+    ref_skill = _skill(ref_root / "skills" / "alpha", "alpha")
+    ref_target = tmp_path / "different-ref-target"
+    ref_target.mkdir()
+
+    class _Args:
+        catalogue = str(ref_root)
+        output = str(ref_target)
+        pack = profile = scope = adapter = None
+        skill = ["alpha"]
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert run_direct_install(_Args(), ref_root) == 0
+    state_file = ref_target / ".agentbundle-state.toml"
+    state_before = state_file.read_text()
+    first_ref = "git+https://github.com/example/alpha@release-1"
+    state_after = state_before.replace(f'source = "{ref_root}"', f'source = "{first_ref}"')
+    assert state_after != state_before
+    state_file.write_text(state_after)
+    ref_classification = direct_source.admit_direct_source(ref_root)
+    ref_selection = Selection(ref_classification.skills, explicit=True)
+    second_ref = "git+https://github.com/example/alpha@release-2"
+    _record(
+        lambda: _refuse_foreign_owner(
+            ref_target,
+            ref_selection,
+            ref_classification,
+            ".claude/skills",
+            "repo",
+            "claude-code",
+            second_ref,
+            [(".claude/skills/alpha/SKILL.md", (ref_skill / "SKILL.md").read_bytes())],
+        )
+    )
+    projected = ref_target / ".claude/skills/alpha/SKILL.md"
+    projected.write_text("# adopter edit\n")
+    _record(
+        lambda: _refuse_foreign_owner(
+            ref_target,
+            ref_selection,
+            ref_classification,
+            ".claude/skills",
+            "repo",
+            "claude-code",
+            first_ref,
+            [(".claude/skills/alpha/SKILL.md", (ref_skill / "SKILL.md").read_bytes())],
+            upgrade_owned_files={
+                ".claude/skills/alpha/SKILL.md": {"sha": "0" * 64}
+            },
+            upgrade_args=_Args(),
+        )
+    )
     return emitted
 
 

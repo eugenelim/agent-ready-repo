@@ -114,8 +114,11 @@ dependency of pack source or of a target runtime.
   the build adapter and projection interfaces.
 - A distribution route is declared in `contracts/distribution-routes.toml` with
   package identity, layout, manifest projector, component capabilities,
-  marketplace projector, and lifecycle trigger. Until the route-registry phase,
-  each route maps to an existing named projector in build orchestration.
+  marketplace projector, and lifecycle trigger. Build orchestration looks the
+  route's behavior up from that declaration; shared build-time code names no
+  route. Route-specific code lives in a module serving exactly one route. See
+  [`docs/architecture/agentbundle.md`](docs/architecture/agentbundle.md) for the
+  dispatch shape and the steps to add a route.
 - A projection mode is implemented under `agentbundle.build.projections` and
   selected by an adapter contract.
 - A credential broker implements the credentialed-primitive contract without

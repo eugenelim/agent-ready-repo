@@ -269,6 +269,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      `assets/spec.md`'s `## Acceptance Criteria` guidance owns the
      criterion-shape rules, including the independence boundary, worked examples, limits,
      claim minimality, and the mechanism give-away; apply that section here.
+     Work [`references/spec-authoring-rubric.md`](references/spec-authoring-rubric.md)'s
+     six failure classes in order first: they precede shape, and class 1 —
+     an obligation authored where an owner already exists — outranks every
+     criterion-craft question below it.
      See step 9 for citation discipline and step 5 for the corpus obligation.
    - **Body narrates history or the future.** Write the spec in the
      present tense, as if the feature already exists and always worked
@@ -541,7 +545,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    introduced it. If the available review history cannot establish either
    origin, stop and ask the owner. Unresolved origin never authorizes a repair.
    The origin mark informs repair sequencing and review learning; it never
-   changes the adjudicator's verdict.
+   changes the adjudicator's verdict. A `prior-round-repair` origin means the
+   repair is now the defect source, so before writing the next one, apply
+   [`references/spec-authoring-rubric.md`](references/spec-authoring-rubric.md)'s
+   repair checks to the clause the earlier repair left untouched.
 
    When a green gate is used as evidence for a disposition, state what the gate
    proves and one relevant blind spot. For a green spec-status lint, cite the

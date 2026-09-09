@@ -42,6 +42,33 @@ class DirectCodeTableLintTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("registered codes", result.stdout)
 
+    def test_digest_row_names_every_uncomparable_stored_shape(self) -> None:
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        row = next(line for line in table.splitlines() if "`CAT-D032`" in line)
+        for shape in ("absent", "malformed", "unsupported"):
+            self.assertIn(shape, row)
+
+    def test_unlink_and_malformed_ownership_rows_stay_distinct(self) -> None:
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        rows = {
+            code: next(line for line in table.splitlines() if f"`{code}`" in line)
+            for code in ("CAT-D020", "CAT-D035")
+        }
+        self.assertIn("obsolete owned file", rows["CAT-D020"])
+        self.assertNotIn("state entry", rows["CAT-D020"])
+        self.assertIn("malformed state entry", rows["CAT-D035"])
+
+    def test_reference_qualifies_recovery_line_promise(self) -> None:
+        # The promise is about the separate recovery LINE, not about advice in
+        # general: CAT-D034's message names an actionable step ("use --format
+        # table") while its diagnostic carries no remediation, so an earlier
+        # wording keyed on "an actionable next step" was still false for it.
+        table = (REPO_ROOT / TABLE).read_text(encoding="utf-8")
+        introduction = table.split("| Code | Meaning |", 1)[0]
+        self.assertIn("Some also print a separate recovery line", introduction)
+        self.assertNotIn("and, when an actionable next step exists, a recovery line", introduction)
+        self.assertNotIn("the path it objects\nto, and a recovery line", introduction)
+
     def test_a_registered_code_missing_from_the_table_fails(self) -> None:
         table = self.tmp / TABLE
         kept = [
@@ -71,18 +98,22 @@ class DirectCodeTableLintTests(unittest.TestCase):
         # set grows, so this is the direction that matters most.
         registry = self.tmp / REGISTRY
         text = registry.read_text(encoding="utf-8")
+        # Anchored on the FIRST member, which never moves. Anchoring on the
+        # current last member made every task that registers a code edit this
+        # fixture, and the injected ordinal is held far above any real
+        # allocation for the same reason.
         text = text.replace(
-            '    CAT_D019 = "CAT-D019"',
-            '    CAT_D020 = "CAT-D020"   # a newly registered refusal\n'
-            '    CAT_D019 = "CAT-D019"',
+            '    CAT_D001 = "CAT-D001"',
+            '    CAT_D090 = "CAT-D090"   # a newly registered refusal\n'
+            '    CAT_D001 = "CAT-D001"',
         ).replace(
-            "        DiagnosticCode.CAT_D019,\n    }",
-            "        DiagnosticCode.CAT_D019,\n        DiagnosticCode.CAT_D020,\n    }",
+            "        DiagnosticCode.CAT_D001,",
+            "        DiagnosticCode.CAT_D001,\n        DiagnosticCode.CAT_D090,",
         )
         registry.write_text(text, encoding="utf-8")
         result = _run(self.tmp)
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("CAT-D020", result.stderr)
+        self.assertIn("CAT-D090", result.stderr)
 
     def test_a_non_literal_registry_is_refused(self) -> None:
         # The lint reads the frozenset by `ast` parse rather than importing it,

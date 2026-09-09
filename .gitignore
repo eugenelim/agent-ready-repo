@@ -115,3 +115,15 @@ docs/knowledge/*.lock.stale-*
 
 # Coverage artifacts from local --cov runs (binary; never committed).
 .coverage
+
+# Scaffolding written into the repository root by
+# tools/test_local_ci_shared_test_deduplication.py. That suite cleans up after
+# itself in a `finally` block, so a complete run leaves nothing behind; these
+# rules cover an *interrupted* run, where the cleanup never executes. A killed
+# run strands files named `test_*.py` in the root, and with no `testpaths`
+# configured a bare `pytest` from the root then collects them — one of them
+# starts a `multiprocessing.Process`. Ignoring stops them reaching a commit; it
+# cannot stop collection. Writing the scaffolding under `tmp_path` would.
+/test_state_guard_*.py
+/state_guard_fs_*
+/state_guard_unused*

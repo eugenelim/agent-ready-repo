@@ -11,7 +11,9 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
@@ -20,8 +22,47 @@ from agentbundle.catalogue_tooling.file_safety import (
 from agentbundle.catalogue_tooling.manifest import MANIFEST_NAME, plugin_json_path
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity, VerifyResult
 
+if TYPE_CHECKING:
+    from agentbundle.build.route_lookup import DistributionRouteDeclaration
+
 _AGENTBUNDLE_VERSION: str | None = None
 _PACK_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _distribution_route_declarations() -> Mapping[
+    str, DistributionRouteDeclaration
+]:
+    """Return the bundled distribution-route declarations."""
+    from agentbundle.build import route_lookup
+    from agentbundle.build.main import _load_distribution_route_contract
+
+    return route_lookup.read_route_declarations(_load_distribution_route_contract())
+
+
+def _distribution_output_subdirs() -> frozenset[str]:
+    """Return every output subtree declared by a distribution route."""
+    return frozenset(
+        declaration.output_subdir
+        for declaration in _distribution_route_declarations().values()
+    )
+
+
+def _marketplace_projected_output_subdirs() -> tuple[str, ...]:
+    """Return every route subtree whose manifests feed a marketplace.
+
+    This step validates per-pack manifests and the marketplace that lists them,
+    so a route declaring no marketplace projector has nothing here to check.
+    Every match is returned rather than a single one: a second marketplace route
+    should widen the scan, not make the contract unusable and hard-fail
+    verification for every pack.
+    """
+    return tuple(
+        sorted(
+            declaration.output_subdir
+            for declaration in _distribution_route_declarations().values()
+            if declaration.marketplace_projector is not None
+        )
+    )
 
 
 def _get_agentbundle_version() -> str:
@@ -1225,13 +1266,28 @@ def _step_plugin_manifests(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
     """Step 13: validate generated claude-plugin manifests against schema."""
-    dist_dir = tmpdir / "dist" / "claude-plugins"
+    try:
+        marketplace_subdirs = _marketplace_projected_output_subdirs()
+    except ImportError:
+        # Same fail-soft the engine-module import below already applies: with
+        # no engine available there is nothing to validate against.
+        return []
+    except (OSError, ValueError) as exc:
+        # Fail CLOSED on an unreadable route contract, for the same reason an
+        # unresolvable schema below is a diagnostic: the subtree to validate is
+        # read from that contract, so losing it disables the whole step.
+        return [_err(
+            "CAT-V-013",
+            "distribution-routes.toml unavailable — cannot validate plugin "
+            f"manifests: {exc}",
+        )]
+    dist_dirs = [tmpdir / "dist" / subdir for subdir in marketplace_subdirs]
     root_marketplace = root / ".claude-plugin" / "marketplace.json"
     # No early return on `dist_dir` alone: the ROOT marketplace is checked
     # independently, so gating both on a built dist tree would make the root
     # check unreachable whenever `dist/` is absent — a gate that only looks
     # like a gate.
-    if not dist_dir.exists() and not root_marketplace.exists():
+    if not any(path.exists() for path in dist_dirs) and not root_marketplace.exists():
         return []
 
     try:
@@ -1280,8 +1336,13 @@ def _step_plugin_manifests(
             return
         diags.extend(_validate_marketplace_entries(payload, entry_schema, label))
 
-    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")) \
-            if dist_dir.exists() else []:
+    manifest_paths = sorted(
+        manifest
+        for dist_dir in dist_dirs
+        if dist_dir.exists()
+        for manifest in dist_dir.rglob("*.claude-plugin/plugin.json")
+    )
+    for manifest_path in manifest_paths:
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception as exc:
@@ -1297,10 +1358,11 @@ def _step_plugin_manifests(
     # marketplace.json` is the file `claude plugin marketplace add <owner>/<repo>`
     # actually reads, and it is written by a second writer
     # (`build/self_host.py:_aggregate_marketplace`).
-    dist_marketplace = dist_dir / "marketplace.json"
-    if dist_marketplace.exists():
-        _check_marketplace(dist_marketplace,
-                           str(dist_marketplace.relative_to(tmpdir)))
+    for dist_dir in dist_dirs:
+        dist_marketplace = dist_dir / "marketplace.json"
+        if dist_marketplace.exists():
+            _check_marketplace(dist_marketplace,
+                               str(dist_marketplace.relative_to(tmpdir)))
 
     if root_marketplace.exists():
         _check_marketplace(root_marketplace, ".claude-plugin/marketplace.json")
@@ -1345,7 +1407,7 @@ def _step_output_drift(
 
     diags: list[Diagnostic] = []
 
-    projection_roots = {"claude-plugins", "apm"}
+    projection_roots = _distribution_output_subdirs()
 
     def in_scope(relative: Path) -> bool:
         return (
