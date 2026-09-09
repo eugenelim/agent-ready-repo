@@ -1019,3 +1019,58 @@ the approver.
   `packages/agentbundle/tests/fixtures/distribution-routes/golden.json` and its
   mutation-sensitive construction test provide the implementation evidence.
   This correction changes no output and adds no projector.
+
+- **2026-09-02 (Approver: eugenelim) — P13 places registry extraction before the
+  canonical MCP primitive.** P13 wrote Phase 1 as one undivided phase carrying both
+  the portable Agent Plugin route and the canonical MCP primitive, and placed Phase 2
+  after it. The delivery brief later split Phase 1 into 1A (portable projection) and
+  1B (canonical MCP parity). That split invalidated the premise the placement rested
+  on: D1's gate for extraction is "three real routes exist", and it is the portable
+  route — Phase 1A — that supplies the third. MCP is a canonical *primitive*, not a
+  route, so Phase 1B does not advance D1's gate and nothing in the accepted rationale
+  requires it to precede extraction. The corrected order is
+  **0 → 1A → 2 → 1B → 3 → 4 → 5**; Phase 1B still precedes Phase 3, which ships MCP
+  on the native Codex route. Implementation evidence: `contracts/distribution-routes.toml`
+  declares three routes (`apm:8`, `agent-plugin:26`, `claude-plugins:45`) with Phase 0
+  and Phase 1A shipped, and `contracts/distribution-routes.schema.json` duplicates a
+  per-route block three times (`:38`, `:181`, `:542`). MCP adds a capability entry
+  inside each applicable route block rather than a fourth route, so under the
+  uncorrected order Phase 1B pays that duplication three times over — once per
+  block — where extraction first collapses the three blocks into one shape it
+  extends once. This
+  correction reverses no other decision: D1's gate, D3's route set, D5's canonical-MCP
+  and refuse-not-drop semantics, D6's fail-closed rule, the same-wave parity invariant,
+  the relative order of Phases 3-5, and the content of every phase all stand. It changes
+  no output and adds no projector. Delivery sequencing remains owned by
+  [the programme brief](../product/briefs/distribution-routes-programme.md), whose
+  confirmed slice table records the corrected order.
+
+- **2026-09-03 (Approver: eugenelim) — corrects the 2026-09-02 rationale; the ordering
+  stands.** That entry justified running Phase 2 before Phase 1B on the grounds that
+  extraction "collapses the three blocks into one shape it extends once." Delivery review
+  withdrew the schema generalization from the Phase 2 slice: `distribution-routes.schema.json`
+  holds 33 single-value enum pins per route, and four of the eight refusal classes in the
+  shipped `distribution-route-contract` spec rest on them declaratively. Two review rounds
+  against a generalizing design produced sixteen findings, seven tracing to that one premise —
+  an unconfined capability `target-path`, a route `identity` diverging from its table key, an
+  `output-subdir` changing beneath an unchanged layout name, an unconstrained
+  `adapter-projector`, and handler-declared compatibility metadata that is self-authorizing.
+  The schema therefore stays closed, so the collapse the prior entry relied on does not occur
+  and its stated reason is void.
+  **The corrected reason.** Phase 1A shipped the `agent-plugin` route into one of ten
+  route-consuming *files* — `build/main.py:402`, so it builds — and left it absent from
+  `commands/validate.py:37`, `commands/install.py:59`, `commands/render.py:136`,
+  `commands/diff.py:160`, `commands/upgrade.py:84`,
+  `catalogue_tooling/verify.py:1348`, `build/self_host.py:1607`, `build/lint_packs.py:517`,
+  and the byte goldens. The route emits a package that nothing validates, renders, verifies,
+  build-checks, lints, or pins; `verify.py:1348` in particular means it has shipped
+  unverified. This counts files; the registry spec's audit counts the fifteen decision sites
+  inside them, which is why it reads fourteen of fifteen rather than nine of ten. Phase 2
+  derives each surface from the route contract, which closes all nine and
+  makes the same omission structurally impossible for the Codex route. Adding the canonical MCP
+  primitive first would extend a route set that most of the toolchain still ignores. The order
+  **0 → 1A → 2 → 1B → 3 → 4 → 5** is unchanged; only its justification is corrected.
+  **What does not change.** D1's gate, D3's route set, D5, D6, the same-wave parity invariant,
+  the relative order of Phases 3-5, and the content of every phase all stand. Opening the route
+  set remains desirable and is recorded as a named follow-on on the Phase 2 spec, with its own
+  value-confinement obligations, rather than being abandoned.

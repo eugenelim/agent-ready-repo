@@ -47,20 +47,107 @@ if TYPE_CHECKING:
 import contextlib
 from datetime import UTC
 
+from agentbundle.build import route_lookup
+from agentbundle.build.main import _load_distribution_route_contract
 from agentbundle.commands._drop_warning import enumerate_event_dropped_wirings
 
 # enumerate_event_dropped_wirings is imported at module level so it is
 # patchable from tests (the mock target is
 # ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
 
-# Preserve the legacy opt-in install surface even as catalogue builds gain new
-# distribution routes. The aggregate marketplace recipe was part of that
-# surface before the portable Agent Plugin route landed.
-_LEGACY_INSTALL_ROUTE_RECIPES = (
-    "per-pack-claude-plugin",
-    "per-pack-apm-package",
-    "marketplace",
-)
+# The bundled route declarations decide which recipes and output roots belong
+# to the opt-in dist-tree install surface.
+
+
+@functools.cache
+def _legacy_install_route_recipes() -> tuple[str, ...]:
+    """Return the recipes the opt-in dist-tree install surface renders."""
+    from agentbundle.build.main import default_recipes
+
+    return default_recipes()
+
+
+def _declared_output_subdirs() -> tuple[str, ...]:
+    """Return declared output subtrees in the order routes are built.
+
+    Ordered by each route's declared build order rather than alphabetically:
+    two user-visible lines are rendered from this, and build order keeps the
+    routes that existed before in the positions they already occupied, so a new
+    route appends rather than reshuffling what adopters read.
+    """
+    contract = _load_distribution_route_contract()
+    declarations = route_lookup.read_route_declarations(contract)
+    behaviors = route_lookup.resolve_route_behaviors(contract)
+    return tuple(
+        declarations[identity].output_subdir
+        for identity in sorted(
+            declarations, key=lambda name: behaviors[name].build_order
+        )
+    )
+
+
+# Read once on first use rather than at import. `diff` and `upgrade` import
+# this module for the shared prefix predicate, and an unreadable bundled
+# contract must reach them as a raised failure they can report, not as an
+# import-time traceback out of an unrelated command.
+@functools.cache
+def _distribution_output_subdirs() -> tuple[str, ...]:
+    """Return the declared output subtrees, reading the contract once."""
+    return _declared_output_subdirs()
+
+
+@functools.cache
+def _dist_tree_prefixes() -> tuple[str, ...]:
+    """Return each declared output subtree as a path prefix."""
+    return tuple(f"{subdir}/" for subdir in _distribution_output_subdirs())
+
+
+def _is_dist_tree_path(relpath: str) -> bool:
+    """Return whether a recorded path belongs to a distribution route."""
+    return relpath == "marketplace.json" or relpath.startswith(_dist_tree_prefixes())
+
+
+def _resolves_under(candidate: Path, root: Path) -> bool:
+    """Whether ``candidate`` really lives under ``root`` after resolution.
+
+    These paths are composed from an output subdirectory the route contract
+    supplies, and the result is handed to `shutil.rmtree`. The schema pins the
+    declared values today, but a destructive path should not depend on that:
+    resolve links first, then verify the prefix.
+    """
+    try:
+        resolved_root = root.resolve(strict=False)
+        resolved = candidate.resolve(strict=False)
+    except (OSError, RuntimeError):
+        return False
+    return resolved != resolved_root and resolved.is_relative_to(resolved_root)
+
+
+def _dist_tree_pack_subtrees(root: Path, pack_name: str) -> tuple[Path, ...]:
+    """Return the contract-declared dist-tree subtrees for one pack."""
+    return tuple(
+        root / subdir / pack_name
+        for subdir in _distribution_output_subdirs()
+    )
+
+
+def _emitted_install_routes_line(
+    pack_name: str, route_paths: list[str]
+) -> str:
+    """Format the ordered route-emission summary for one installed pack."""
+    return (
+        f"emitted install routes for {pack_name} at "
+        f"{_format_route_list(route_paths)}"
+    )
+
+
+def _dist_tree_removal_lines(subtree_roots: list[str]) -> list[str]:
+    """Format the ordered destructive-action notices for dist-tree subtrees."""
+    return [
+        f"install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        f"{root_rel}/ (recursively)"
+        for root_rel in subtree_roots
+    ]
 
 
 @dataclass
@@ -1184,7 +1271,7 @@ def _run(args: argparse.Namespace) -> int:
                 # opt-in on the CLI surface).
                 repo_projection = render_pack(
                     pack_dir,
-                    recipes=_LEGACY_INSTALL_ROUTE_RECIPES,
+                    recipes=_legacy_install_route_recipes(),
                 )
             else:
                 # Default: per-IDE projection at repo scope.
@@ -1377,8 +1464,7 @@ def _run(args: argparse.Namespace) -> int:
         # adapter but still render the dist-tree fallback, not just the
         # explicit --emit-install-routes producer.
         _is_dist_tree = emit_install_routes or any(
-            rp == "marketplace.json" or rp.startswith(("claude-plugins/", "apm/"))
-            for rp in projection
+            _is_dist_tree_path(rp) for rp in projection
         )
         if _is_dist_tree:
             fp = FootprintPlan(FootprintVerdict.PROCEED, {}, [])
@@ -1905,10 +1991,9 @@ def _run(args: argparse.Namespace) -> int:
             # here — it has already run by this point, and a second copy of the
             # rule would drift from the one in build/main.py.
             routes = []
-            for subdir in ("claude-plugins", "apm"):
-                route_dir = Path(output_root) / subdir / pack_name
+            for route_dir in _dist_tree_pack_subtrees(Path(output_root), pack_name):
                 if route_dir.is_dir():
-                    routes.append(f"{output_root}/{subdir}/{pack_name}/")
+                    routes.append(f"{route_dir}/")
             # Emit both the new route-list summary AND the legacy
             # plain-text line. Order: route-list first (the new info)
             # so adopters reading the tail see the existing
@@ -1916,10 +2001,7 @@ def _run(args: argparse.Namespace) -> int:
             # invariant every legacy-layout integration test asserts
             # against (last non-empty stdout line is the install
             # recap).
-            print(
-                f"emitted install routes for {pack_name} at "
-                f"{_format_route_list(routes)}"
-            )
+            print(_emitted_install_routes_line(pack_name, routes))
             print(f"installed: {pack_name} @ repo")
         elif plan.scope == "repo" and repo_target_adapter is not None:
             # Per-IDE projection at repo scope.
@@ -2441,15 +2523,11 @@ def _maybe_emit_dropped_warning(
 def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
     """Return legacy dist-tree projection files for ``pack_name``.
 
-    Scans ``<root>/claude-plugins/<pack>/`` and ``<root>/apm/<pack>/`` —
-    the two per-pack subtrees the legacy ``per-pack-claude-plugin`` and
-    ``per-pack-apm-package`` recipes produce. Other top-level
-    directories (``.claude/`` etc.) belong to trigger (c)'s
-    ``safety.scan_for_pack_artifacts`` scan, not this one.
+    Scans every contract-declared route subtree. Other top-level directories
+    belong to ``safety.scan_for_pack_artifacts`` instead.
     """
     out: list[Path] = []
-    for top in ("claude-plugins", "apm"):
-        base = root / top / pack_name
+    for base in _dist_tree_pack_subtrees(root, pack_name):
         if not base.exists():
             continue
         for entry in base.rglob("*"):
@@ -2586,17 +2664,17 @@ def _classify_pre_rfc0012_state(
                 # scanned file list, which could diverge from what rmtree
                 # actually takes). Decline → return 1 having touched nothing:
                 # no rmtree, no packs.pop, no state rewrite.
+                subtrees = tuple(
+                    subtree
+                    for subtree in _dist_tree_pack_subtrees(output_root, pack_name)
+                    if subtree.exists() and _resolves_under(subtree, output_root)
+                )
                 subtree_roots = [
-                    f"{top}/{pack_name}"
-                    for top in ("claude-plugins", "apm")
-                    if (output_root / top / pack_name).exists()
+                    subtree.relative_to(output_root).as_posix()
+                    for subtree in subtrees
                 ]
-                for root_rel in subtree_roots:
-                    print(
-                        f"install --force will REMOVE pre-RFC-0012 dist-tree "
-                        f"subtree: {root_rel}/ (recursively)",
-                        file=sys.stderr,
-                    )
+                for line in _dist_tree_removal_lines(subtree_roots):
+                    print(line, file=sys.stderr)
                 if not confirm_or_refuse(
                     yes=yes,
                     question=(
@@ -2616,11 +2694,9 @@ def _classify_pre_rfc0012_state(
                     _INBAND_DETECTION_SEEN.discard(key)
                     return 1
 
-                for top in ("claude-plugins", "apm"):
-                    subtree = output_root / top / pack_name
-                    if subtree.exists():
-                        with contextlib.suppress(OSError):
-                            shutil.rmtree(subtree)
+                for subtree in subtrees:
+                    with contextlib.suppress(OSError):
+                        shutil.rmtree(subtree)
                 repo_state.packs.pop((pack_name, repo_target_adapter), None)
                 state_path = output_root / ".agentbundle-state.toml"
                 if state_path.exists():
