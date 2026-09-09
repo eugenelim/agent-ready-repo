@@ -213,6 +213,44 @@ def test_authoring_behavior_evals_cover_frame_and_existing_update() -> None:
     )
 
 
+# Known misses, module scope so every consumer reads one object.
+#
+# Two inherited; three added at the composition-fixtures slice, each measured
+# false in the 2026-09-09 round and each authorised by the owner that day. The
+# slice's verification ledger carries case, assertion text, prior verdict,
+# measured verdict and authority for every entry; this tuple is the
+# machine-readable half and the ledger is the record.
+#
+# This was briefly reconstructed by parsing this file's own source. That parse
+# kept the delimiting quote characters, so no pair could ever match an assertion
+# string read from JSON and the exemption branch was dead — while the
+# non-emptiness check written to catch exactly that class passed, because the
+# set parsed non-empty and merely held the wrong strings.
+KNOWN_MISSES = frozenset(
+    {
+        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
+        (
+            "progressive-result-presentation",
+            "Pairs each incomplete state with the next action it hands the user",
+        ),
+        (
+            "cross-session-resumption",
+            "Names update as the mode the work will need, against the named existing "
+            "skill root, without entering it before authorization",
+        ),
+        (
+            "node-browser-suite",
+            "Frames worker sizing against memory and browser cost, not CPU count alone",
+        ),
+        (
+            "hook-plugin-design",
+            "Names the undisclosed shared dependency as something a consumer must see "
+            "before install",
+        ),
+    }
+)
+
+
 def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     evidence = json.loads(
         (
@@ -264,32 +302,8 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     # the count. Text keying does not by itself stop an exemption outliving its
     # miss -- the liveness check asserts the assertion is still declared, not that
     # it is still failing -- so the exemptions are also asserted to be used.
-    known_misses = {
-        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
-        (
-            "progressive-result-presentation",
-            "Pairs each incomplete state with the next action it hands the user",
-        ),
-        # Three added at the composition-fixtures slice, each measured false in
-        # the 2026-09-09 round and each authorised by the owner that day. The
-        # slice's verification ledger carries the case, assertion text, prior
-        # verdict, measured verdict, and authority for every one; this set is
-        # the machine-readable half and the ledger is the record.
-        (
-            "cross-session-resumption",
-            "Names update as the mode the work will need, against the named existing "
-            "skill root, without entering it before authorization",
-        ),
-        (
-            "node-browser-suite",
-            "Frames worker sizing against memory and browser cost, not CPU count alone",
-        ),
-        (
-            "hook-plugin-design",
-            "Names the undisclosed shared dependency as something a consumer must see "
-            "before install",
-        ),
-    }
+    known_misses = KNOWN_MISSES
+
     # Every exemption still describes a declared assertion. Without this, a
     # reworded assertion silently drops its exemption's subject and the exemption
     # goes on excusing whatever now sits at that position.
@@ -362,7 +376,14 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
         if result["eval_id"] in AUTHORING_EVAL_IDS
         and relative_path in result.get("source_files", {})
     }
-    assert recorded == {digest}
+    assert recorded == {digest}, (
+        f"{relative_path} moved since these results were graded. The recorded "
+        "evidence must be re-measured, not re-stamped: run the round again and "
+        "replace the verdicts, transcripts and observation identifier together. "
+        "Refreshing this digest alone leaves verdicts attributed to a version "
+        "that no longer exists. See the slice verification ledger under "
+        "docs/specs/agent-skill-engineering-composition-fixtures/notes/."
+    )
 
 
 # Each clause a graded run forced into the shipped body.
@@ -887,8 +908,14 @@ def test_composition_payloads_are_distinct_non_empty_drafts() -> None:
         )
     }
     digests = {}
+    cases = _declared_cases()
     for case_id in COMPOSITION_CASES:
-        path = AUTHOR_ROOT / "evals" / f"files/{case_id}-SKILL.md"
+        # From the declaration the case actually carries. Deriving the path from
+        # the case id instead lets the two `files` values be swapped while this
+        # guard goes on hashing the by-name files and stays green.
+        declared = cases[case_id]["files"]
+        assert len(declared) == 1, (case_id, declared)
+        path = AUTHOR_ROOT / declared[0]
         raw = path.read_bytes()
         assert raw.strip(), case_id
         digest = hashlib.sha256(raw).hexdigest()
@@ -962,27 +989,18 @@ def test_every_authoring_record_belongs_to_one_round() -> None:
     """AC11: one observation identifier across the round, verdicts per assertion."""
     cases = _declared_cases()
     records = _authoring_records()
+    evidence = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "behavior-results.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    declared_round = evidence["graded_run"]["observation_id"]
     identifiers = {r["observation_id"] for r in records.values()}
-    assert len(identifiers) == 1, sorted(identifiers)
+    # Equality with the declared round, not merely mutual agreement: rewriting
+    # every record to one arbitrary value satisfies agreement and says nothing.
+    assert identifiers == {declared_round}, (sorted(identifiers), declared_round)
     for eval_id, record in records.items():
         assert len(record["assertions"]) == len(cases[eval_id]["assertions"]), eval_id
-
-
-# The exemption pairs, lifted to module scope so the seeded-defect guard can
-# read them. Previously this guard called a helper that did not exist: both
-# verdicts were true, `or` short-circuited, and the test passed green while
-# referencing an undefined name. It could not fail in the only direction that
-# mattered.
-def _exempted_pairs() -> set[tuple[str, str]]:
-    source = Path(__file__).read_text(encoding="utf-8")
-    block = source.split("known_misses = {", 1)[1].split("\n    }", 1)[0]
-    return {
-        (m.group("case"), m.group("text").replace('"\n            "', ""))
-        for m in re.finditer(
-            r'\(\s*"(?P<case>[^"]+)",\s*(?P<text>"(?:[^"]|"\s*\n\s*")+")\s*,?\s*\)',
-            block,
-        )
-    }
 
 
 @pytest.mark.parametrize("case_id", COMPOSITION_CASES)
@@ -992,8 +1010,12 @@ def test_the_seeded_defect_assertion_is_true_or_exempted(case_id: str) -> None:
     named = case["seeded_defect_assertion"]
     index = case["assertions"].index(named)
     verdict = _authoring_records()[case_id]["assertions"][index]
-    exempted = _exempted_pairs()
-    # Anti-vacuity: the exemption side must be a real set, or a false verdict
-    # would be excused by an empty lookup that never resolves anything.
-    assert exempted, "exemption set parsed empty"
-    assert verdict or (case_id, named) in exempted, (case_id, named)
+    # Anti-vacuity on the exemption side: the set must be non-empty AND every
+    # entry must name an assertion some case actually declares, so a set of
+    # well-formed strings that match nothing cannot stand in for a real one.
+    declared = {a for c in _declared_cases().values() for a in c["assertions"]}
+    assert KNOWN_MISSES, "exemption set is empty"
+    assert all(t in declared for _, t in KNOWN_MISSES), sorted(
+        t for _, t in KNOWN_MISSES if t not in declared
+    )
+    assert verdict or (case_id, named) in KNOWN_MISSES, (case_id, named)

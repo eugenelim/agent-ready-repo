@@ -164,7 +164,7 @@ describes the target state but remains `PLANNED` until M5 verifies every section
 
 ## Shipped so far
 
-Five of the eleven slice rows below are delivered; the `Spec map` carries each
+Six of the eleven slice rows below are delivered; the `Spec map` carries each
 one's status, derived from its linked spec rather than maintained here.
 
 | Slice | Delivered |
@@ -175,6 +175,7 @@ one's status, derived from its linked spec rather than maintained here.
 | 2b — languages and execution economics | Python/pytest and TypeScript/Node depth for skill scripts, evaluations and pack verification, plus execution-economics topics for local runs, CI, worktrees, locks, shared hosts and load detection. |
 | 3a — composition floors and pilot profile | The three portable composition floors (skills-plus-subagents, hooks, plugin package), the runtime capability-claim ledger, and the retrieval-dated Claude Code pilot profile — three probed capabilities and four sourced-but-unprobed. |
 | 4 — consumer integrations | `work-loop` and `architect-design` each reach the installed provider through a bounded step that inlines its own request, addressed by contract version because ADR-0097 forbids a consumer naming a generated router. The seam's seven-value diagnostic vocabulary reaches an installed surface, both packs declare the seam, and `catalogue-authoring-standards.md` § 11 carries the obligation for the next consumer. |
+| 3e — composition behavior fixtures | The subagent-composition and hook/plugin-design behavior fixtures, each seeding defects a shipped composition floor governs and each graded blind against a retained transcript. With these two, every representative task fixture RFC-0097's Gate 2 M2 expanded measure names carries a recorded result. |
 
 Slice 3b is discarded rather than shipped; its row below is the canonical record
 and states where each of its four residuals went.

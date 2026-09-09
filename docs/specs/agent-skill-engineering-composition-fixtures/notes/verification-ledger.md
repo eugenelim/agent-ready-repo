@@ -188,13 +188,135 @@ response that does not meet the underlying requirement.
 
 ### Per-verdict transcript readings (AC10)
 
-The grading context returned a per-assertion verdict for every case with a
-one-sentence reading wherever it judged false or close. Those readings are
-reproduced in the exemption tables above and in the moved-verdict table; every
-other verdict was judged true against its transcript with no qualification.
-Each verdict rests on the transcript retained at
-`notes/transcripts/<case-id>.md`, whose digest the record carries and whose
-bytes the guard recomputes.
+One reading per recorded verdict, produced by a grading context reading each
+transcript fresh and without sight of the earlier round's verdicts. Forty-two
+verdicts, forty-two readings. An earlier version of this section recorded only
+the five readings where the grader had qualified itself and substituted a
+blanket sentence for the rest; AC10 asks for a reading per verdict, so the
+blanket sentence was not evidence and the remaining readings were obtained.
+
+**`frame-new-skill`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response opens with “Read-only” and closes with “Mode: frame” and “Write status: not authorized.” |
+| 1 | true | The “Activation boundary” supplies five realistic prompts each under both “Should activate” and “Should not activate.” |
+| 2 | true | Activation is defined separately from the “Boundaries” authority table and the later “Non-goals” section. |
+| 3 | true | The response proposes a SKILL.md-plus-references tree while stating “No files created” and “Files changed: none.” |
+
+**`update-existing-skill`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The “Current contract inventory” catalogs the existing name, activation boundary, outcome, input, non-goals, authority, structure, and portability floor. |
+| 1 | true | The response retains pre-execution migration review and says options A, B, and D leave `filesystem_read_untrusted` unchanged while B only narrows activation. |
+| 2 | true | The A–E candidate list identifies each possible edit and its authority implications while explicitly refusing to infer which unspecified change the user wants. |
+| 3 | true | The response requires “Explicit write authorization” and then names frontmatter, boundary, activation, retained-behavior, and link verification. |
+
+**`cold-start-orientation`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response begins with “Mode: frame” and “Write status: not authorized.” |
+| 1 | true | The observable outcome and portability sections name repository identity documentation, effective scoped instructions, verification and commit conventions, VCS state, request paths, and the architecture entry point as orientation inputs. |
+| 2 | true | The response states the stopping point as “orientation complete, no files changed; say what to build” and lists planning or performing the later change as a non-goal. |
+| 3 | true | It repeatedly states the orientation is read-only and concludes “No files were created or changed.” |
+
+**`cross-session-resumption`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | false | The response remains in “Mode: frame” and discusses a future mode transition but never explicitly names `update` as the required eventual mode against a confirmed existing skill root. |
+| 1 | false | It only proposes possible handoff or checkpoint designs and explicitly reports “Files changed: none,” so no durable resumption record is added. |
+| 2 | true | The response inventories the existing activation, outcome, authority, and non-goals, says any design must account for all four, and plans verification that “the review contract still holds.” |
+| 3 | true | It states that nothing will be written until authorization and asks for explicit confirmation before any mutation, especially the write-capable option 4. |
+
+**`progressive-result-presentation`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response identifies itself as read-only framing and closes with “Mode: frame” and “Write status: not authorized.” |
+| 1 | true | The completion-state vocabulary explicitly names `complete / partial / blocked / not started`. |
+| 2 | false **(contested — see below)** | It requires every incomplete receipt to carry exactly one next action with its precondition, and the evidence section applies that rule to partial, blocked, and interrupted outcomes. |
+| 3 | true | It forbids silently narrowing scope to manufacture `complete` and requires unavailable progress information to be reported as `partial` rather than `complete`. |
+
+**`knowledge-provider-read-only-entry`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response explicitly begins “Mode: knowledge-provider.” |
+| 1 | true | It designs the root index, decision-oriented child indexes, leaves, routing, provenance, and retrieval evaluation while stating that nothing was written. |
+| 2 | true | The security section says “Entry is read-only” and that the mode gains no write authority merely through entry or time spent in it. |
+| 3 | true | The closing paragraph says answering the root question does not authorize writing and that file creation needs separate explicit authorization immediately before the write. |
+
+**`pytest-suite`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The bare-import passage treats unique module identity as necessary to prevent full-corpus runs from silently testing another skill’s cached module, making it a correctness contract rather than style. |
+| 1 | true | The cleanup passage specifies per-test `tmp_path`, notes that end-of-session cleanup can be skipped by interruption or process death, and places scratch directories outside the repository tree. |
+| 2 | true | The shared-fixture passage calls shared mutable state a defect because parallel workers race and serial order can alter the verdict. |
+| 3 | true | The response explicitly trades fixture scope and process cost against assurance by allowing expensive fixtures the widest scope their assertions permit and preferring function calls over interpreter spawning. |
+
+**`node-browser-suite`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | false | The worker section rejects CPU count as the sole concurrency input but never frames worker sizing against memory consumption or per-browser cost. |
+| 1 | true | The install section requires preinstalled, version-checked dependencies and explains that installing during tests can resolve a different dependency set and mutate the lockfile. |
+| 2 | true | The shared-state section calls a reused profile directory a correctness defect and names cookies, localStorage, service workers, cache, and locking as cross-worker contamination. |
+| 3 | true | The language-extension section confines runner APIs, worker models, Node versions, and browser-driver details to the unevidenced `typescript-node` ecosystem rather than promoting them to the portable floor. |
+
+**`subagent-composition`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response identifies 200 concurrent writers and a shared-summary lost-update race, then assigns all writes to the parent. |
+| 1 | true | It rejects automatic full-conversation inheritance and instead defines a deliberately scoped, self-contained worker brief containing only the necessary root, fields, rules, schema, and trust statement. |
+| 2 | true | Under “Bound the concurrency,” it makes the parent fix a batch width and dispatch workers in waves instead of deriving fan-out from all roughly 200 catalogue entries. |
+| 3 | true | The response says the parent aggregates all worker returns and that this aggregate—not the last worker’s summary—is the audit result. |
+| 4 | true | It requires a uniform return schema with `complete / partial / failed` and mandates that missing, failed, or interrupted units remain named and counted in the aggregate. |
+
+**`hook-plugin-design`**
+
+| # | Verdict | Reading |
+| --- | --- | --- |
+| 0 | true | The response states that a hook firing after publication cannot prevent publication and can only report on an artifact already released. |
+| 1 | true | It explicitly treats `.release-guard/policy.md` as untrusted data whose embedded directives cannot widen authority or become instructions. |
+| 2 | true | The response observes that the hook, linter, formatter, and Slack digest have no common trigger and recommends separating their distinct outcomes. |
+| 3 | false | Although it exposes the HTTP-client coupling and notes that installing the guard also installs a network surface, it never explicitly requires that dependency to be disclosed to consumers before installation. |
+| 4 | true | It says matching the team’s existing `release` prefix deliberately creates ambiguous resolution between installed and local commands. |
+
+#### One contested verdict, resolved conservatively
+
+`progressive-result-presentation[2]` — "Pairs each incomplete state with the
+next action it hands the user" — is the one assertion on which two independent
+readings of the same transcript disagree.
+
+- The grading round read it **false**: the response requires one next action in
+  general but never pairs `not started` or `interruption` with a concrete
+  handed-off action.
+- The readings pass read it **true**: the response requires every incomplete
+  receipt to carry exactly one next action with its precondition, and applies
+  that to partial, blocked and interrupted outcomes.
+
+Both are defensible against the transcript, which enumerates four states and
+mandates one next action per receipt without pairing state to action
+individually. The same assertion also passed in the second discarded round, so
+three readings have produced two verdicts.
+
+The recorded verdict stays **false** and the inherited exemption stays. A
+contested verdict resolves to the recorded miss rather than to the reading that
+would let an exemption be deleted: choosing the other way would remove a
+standing exemption on the strength of a judgement call with no principled
+tie-break, which is how a green tree gets bought.
+
+The underlying defect is in the assertion, not in the workflow's behaviour: it
+does not say whether a universal rule over receipts satisfies "each incomplete
+state", so two careful readers reach opposite answers. It is an inherited
+declaration this slice does not own. Sharpening it belongs to whoever owns that
+case; it is raised in this slice's pull request rather than recorded as a
+durable follow-on, per the work-loop's disposition rule for excluded work.
 
 ### Payload-defect readings (AC5, advisory)
 
@@ -216,34 +338,57 @@ structural scans cannot decide this class, which is why it is a recorded read.
 
 ### Mutation proofs
 
-Every guard this slice adds or widens was proved able to fail. Each mutation was
-restored by editing, never by checkout, and each file confirmed byte-identical
-afterwards.
+Every guard this slice adds or widens is listed below and each was proved able
+to fail. Each mutation was restored by editing, never by checkout, and each file
+confirmed byte-identical afterwards.
 
-| Invariant | Mutation | Guard that reddened |
-| --- | --- | --- |
-| `AUTHORING_EVAL_IDS` scopes the digest sweep | Remove `hook-plugin-design` | `test_the_authoring_eval_id_set_covers_every_declared_case` |
-| Declared-case set equals base plus two | Remove both new ids from the equality | `test_authoring_behavior_evals_cover_frame_and_existing_update` |
-| `AUTHOR_EVIDENCE_SOURCES` covers every pinned source | Remove the hook/plugin payload | `test_independent_behavior_results_cover_both_authoring_cases` |
-| A verdict is readable against its transcript | Forge a `captured_response_sha256` | `test_every_verdict_is_readable_against_its_own_transcript` |
-| One transcript per record | Point two records at one transcript | `test_authoring_transcripts_are_one_per_record` |
-| One observation identifier per round | Give one record a different identifier | `test_every_authoring_record_belongs_to_one_round` |
-| A seeded-defect miss is exempted or fails | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard |
+| Invariant | Mutation | Guard that reddened | Assertion message |
+| --- | --- | --- | --- |
+| `AUTHORING_EVAL_IDS` scopes the digest sweep | Remove `hook-plugin-design` | `test_the_authoring_eval_id_set_covers_every_declared_case` | `AUTHORING_EVAL_IDS is [...] against declared [...]. Narrowing this set removes a graded result from the digest sweep` |
+| Declared-case set equals base plus two | Remove both new ids from the equality | `test_authoring_behavior_evals_cover_frame_and_existing_update` | set-equality mismatch on the declared id set |
+| `AUTHOR_EVIDENCE_SOURCES` covers every pinned source | Remove the hook/plugin payload | `test_independent_behavior_results_cover_both_authoring_cases` | `set(result["source_files"]) <= set(AUTHOR_EVIDENCE_SOURCES)` |
+| Required declaration fields are non-empty (AC1) | Empty `hook-plugin-design`'s `prompt` | `test_composition_cases_declare_a_complete_field_set` | `AssertionError: ('hook-plugin-design', 'prompt')` |
+| Each new case names its own payload (AC2) | Point a new case at an inherited payload | `test_each_composition_case_names_its_own_payload` | `AssertionError: ('hook-plugin-design', 'evals/files/pytest-suite-SKILL.md')` |
+| Per-case pattern list is exact (AC4) | Swap in an unrelated admitted topic | `test_composition_case_declares_its_exact_pattern_list` | declared list not equal to the fixed per-case list |
+| Marker set equals the sibling's base set (AC5) | Declare `Mode: knowledge-provider` on a framing case | `test_composition_cases_reuse_the_sibling_marker_set` | `AssertionError: subagent-composition` |
+| Seeded-defect text belongs to its own case (AC6) | Name a text the case does not declare | `test_each_composition_case_names_a_distinct_seeded_defect_assertion` | `AssertionError: ('hook-plugin-design', 'Not one of its assertions')` |
+| A verdict is readable against its transcript (AC9) | Forge a `captured_response_sha256` | `test_every_verdict_is_readable_against_its_own_transcript` | digest mismatch on the recomputed transcript |
+| One transcript per record (AC9) | Point two records at one transcript | `test_authoring_transcripts_are_one_per_record` | resolved-target collision |
+| Records belong to the declared round (AC12) | Rewrite every record's `observation_id`, leaving `graded_run` declaring the true round | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: (['forged-round'], '2026-09-09-composition-fixtures-r1')` |
+| Payload binding survives a swap (AC8) | Exchange the two cases' declared `files` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_authoring_behavior_evidence_matches_its_source_digest` | recorded `source_files` no longer match the declared files |
+| Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
+
+**Two mutations that first appeared to prove the guard sound, and did not.**
+Both were defects in the mutation, not the guard, and both are recorded because
+a mis-aimed mutation looks exactly like a passing proof.
+
+- The payload-swap mutation was first run against the distinctness guard alone,
+  which stayed green — correctly, since a swap leaves both payloads non-empty
+  and distinct. Re-run across the suite, it reddens two other guards through the
+  recorded `source_files`. The proof was aimed at a guard that does not own the
+  property.
+- The round-identity mutation first replaced every occurrence of the identifier
+  in the file, which moved `graded_run.observation_id` along with the records, so
+  they still agreed. Isolating the mutation to the records reddens it.
+
+An earlier mutation in this slice had the same shape: a forty-character JSON
+substring matched an earlier record, so it flipped the wrong case's verdict and
+the guard correctly stayed green.
 
 **A guard that could not fail, found and repaired.** The seeded-defect guard was
 first written as `assert verdict or (case_id, named) in _known_miss_pairs()`,
-calling a helper that did not exist. Both verdicts were true, `or`
-short-circuited, and the test passed green while referencing an undefined name —
-it could not fail in the only direction that mattered. It now parses the
-exemption set from the module and asserts that set is non-empty before using it.
-Recorded because the slice's whole subject is controls that cannot fail, and
-this one was written in the middle of it.
+calling a helper that did not exist; both verdicts were true, `or`
+short-circuited, and the test passed while referencing an undefined name.
 
-**A mutation that did not land.** The first attempt at the seeded-defect proof
-replaced a 40-character JSON substring that occurs earlier in the file, so it
-flipped `frame-new-skill`'s first verdict instead and the guard correctly stayed
-green. Retargeted by byte offset within the intended record. A mutation proof
-that does not mutate the intended subject proves nothing.
+**A second dead control behind the first repair.** The replacement helper parsed
+the exemption pairs out of this module's own source text and kept the delimiting
+quote characters, so every parsed pair held a quoted string while the assertion
+texts read from JSON carry none — no exemption could ever match, and the
+exemption branch of AC13 was dead. The anti-vacuity assertion added to catch
+exactly that class passed, because it tested that the set was non-empty rather
+than that its contents resolved. The pairs are now a module constant with no
+parse, and the anti-vacuity check asserts every entry names an assertion some
+case actually declares.
 
 ### Scans
 
@@ -347,4 +492,3 @@ longer advertises 3e as in flight.
 
 None. Two pre-existing warn-only spec-status warnings on unrelated specs were
 present before this slice and are unchanged by it.
-
