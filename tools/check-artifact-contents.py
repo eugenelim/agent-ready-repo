@@ -73,6 +73,7 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^Windows-only$",
         r"^hardcoded POSIX /tmp path$",
         r"^no seed primitives in core fixture; skip$",
+        r"^case-insensitive filesystem cannot hold both spellings$",
         # The only load-conditional entry, and deliberately the narrowest
         # pattern here: every number is required, so it admits this one
         # message shape and nothing else. Registered because
