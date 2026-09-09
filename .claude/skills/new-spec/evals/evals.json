@@ -162,6 +162,19 @@
         "Returns the dropped trust-boundary validation to scope or records an explicit named owner waiver",
         "Defers criterion-shape questions to the spec template's owning section and adds no word budget"
       ]
+    },
+    {
+      "id": "spec-authoring-rubric-checks-the-repair-not-the-intent",
+      "prompt": "I just repaired the Acceptance Criteria on my `manifest lint` spec after a review round, and I want to check the repair before I re-seal it. What I changed: (1) AC-3 now reads \"the linter rejects any rule file containing a numeric literal\", because the review found a rule file that had hard-coded a threshold. (2) AC-6 I left alone; it says \"a rule file may name a percentile, such as p95\". (3) I added a sentence to Scope: \"the rule-authoring guide publishes the full literal deny-list and its two exemptions\". (4) AC-9 says \"the linter's overlap against the published rule corpus stays above 0.9\", and my evidence note records that I measured it by counting how many rule names appear in both files. (5) AC-11 says \"no rule file produces a duplicate finding\". What is wrong with the repair?",
+      "expected_output": "The repair is treated as the likeliest source of the next defect, so the clauses it did not touch are re-read. AC-3 and AC-6 give opposite verdicts on one input: `p95` contains a numeric literal, so a rule file AC-6 permits is a rule file AC-3 rejects, and the pair is reconciled or one is dropped rather than both left standing. The strengthened AC-3 is also the mirror of a criterion that cannot fail — it fires on correct work — so the repair names both cases: the input that must red, and the correct input that must stay green. The Scope sentence describing what the rule-authoring guide publishes is a stored value about a surface this spec does not own, and is replaced by a citation to that guide rather than a summary of it. AC-9's evidence is rejected because it was produced by a different instrument than the criterion names: a count of shared rule names is not the overlap the criterion states, so the instrument is suspected before the artifact and the stated comparison is the one measured. AC-11 holds when no rule file exists, so it cannot fail, and the falsifying state is named instead.",
+      "assertions": [
+        "Treats the repair itself as the defect source and re-reads the clauses the repair did not touch",
+        "Names the contradiction between the strengthened literal rule and the sibling that permits a percentile name, and reconciles the pair rather than leaving both",
+        "Requires the repair to name the correct input that must stay green, not only the input that must red",
+        "Replaces the Scope sentence describing another document's contents with a citation to that document",
+        "Rejects the overlap evidence because a count of shared names is not the comparison the criterion states, and suspects the instrument before the artifact",
+        "Rejects the duplicate-finding criterion because it holds when no rule file exists, and names the falsifying state"
+      ]
     }
   ]
 }
