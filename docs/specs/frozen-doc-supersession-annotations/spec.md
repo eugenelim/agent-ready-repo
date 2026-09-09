@@ -5,7 +5,7 @@ slug: frozen-doc-supersession-annotations
 
 # Spec: frozen-doc supersession annotations, decided per document
 
-- **Status:** Shipped
+- **Status:** Shipped (§ Decision 6's former register anchor `adr-0050-supersession-body-survey` closed after the living MkDocs-to-Starlight residue was repaired by `marketing-docs-link-repair`; frozen historical bodies remain unchanged. Not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** none — see § Named deviation
 - **Mode:** full (governance surface — it applies `docs/CONVENTIONS.md`

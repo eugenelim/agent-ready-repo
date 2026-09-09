@@ -1,6 +1,6 @@
 # Spec: Agent skill engineering consumer integrations
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (§ Follow-ons' three consumer-side security-review controls all closed 2026-09-08; their dispositions are recorded in [`notes/consumer-security-review-closures.md`](notes/consumer-security-review-closures.md), because `workspace.toml [backlog].closed` no longer carries closure records. The fourth follow-on, RFC-0097:189's behavioural half, is unaffected: it remains open under its original slug, which AC16 and its roster test pin. No body line changed. Not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
