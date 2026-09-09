@@ -23,7 +23,16 @@ from pathlib import Path
 
 from agentbundle import render, safety
 from agentbundle.commands._common import check_spec_version_gate, resolve_state_path
+from agentbundle.commands.install import _is_dist_tree_path
 from agentbundle.config import ConfigError, load_pack_toml
+
+
+def _was_dist_tree_install(pack_state: object) -> bool:
+    """Return whether recorded files use a distribution-route output tree."""
+    return any(
+        _is_dist_tree_path(relpath)
+        for relpath in pack_state.files  # type: ignore[attr-defined]
+    )
 
 
 def run(args: argparse.Namespace) -> int:
@@ -156,10 +165,7 @@ def run(args: argparse.Namespace) -> int:
     # When state has no row (a maintainer running diff against a fresh
     # render directory, the test_diff_cmd.py shape), fall back to the
     # dist-tree render — that's the catalogue-publishing surface.
-    _use_dist_tree = pack_state is None or any(
-        rp.startswith(("apm/", "claude-plugins/")) or rp == "marketplace.json"
-        for rp in pack_state.files
-    )
+    _use_dist_tree = pack_state is None or _was_dist_tree_install(pack_state)
     try:
         if _use_dist_tree:
             rendered: dict[str, bytes] = render.render_pack(pack_path)

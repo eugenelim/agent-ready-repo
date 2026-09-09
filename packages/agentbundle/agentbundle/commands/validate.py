@@ -33,17 +33,23 @@ if TYPE_CHECKING:
 
 # Stdlib only — no third-party deps.
 
-# Six-recipe enumerated set from the sibling distribution-adapters spec.
-VALID_RECIPES: frozenset[str] = frozenset(
-    {
-        "per-pack-claude-plugin",
-        "per-pack-apm-package",
-        "marketplace",
-        "per-pack-overlay",
-        "composite-agents-md",
-        "composite-marketplace",
-    }
+# Pack-declarable route recipes follow the bundled route contract. The three
+# composite/overlay recipes deliberately have no distribution route.
+# Routeless recipes a pack may declare. These three carry no distribution route
+# and are listed rather than derived, because `self-host` is also routeless and
+# must NOT be pack-declarable — it is the repository's own overlay recipe, not a
+# pack surface. Deriving this set from the recipe declarations would admit it.
+_NON_ROUTE_RECIPES = frozenset(
+    {"per-pack-overlay", "composite-agents-md", "composite-marketplace"}
 )
+
+
+def valid_recipes() -> frozenset[str]:
+    """Return every recipe a pack may declare."""
+    from agentbundle.build.main import default_recipes
+
+    return _NON_ROUTE_RECIPES | frozenset(default_recipes())
+
 
 # Location of pack.schema.json relative to the repo root.  The schema is
 # bundled in contracts/ and is also bundled at
@@ -179,10 +185,10 @@ def run(args) -> int:
     # ── 4. Recipe gate ────────────────────────────────────────────────────
     recipes = _extract_recipes(pack_data)
     for recipe in recipes:
-        if recipe not in VALID_RECIPES:
+        if recipe not in valid_recipes():
             print(
                 f"validate: unknown recipe {recipe!r}; "
-                f"valid recipes are {sorted(VALID_RECIPES)}",
+                f"valid recipes are {sorted(valid_recipes())}",
                 file=sys.stderr,
             )
             return 1

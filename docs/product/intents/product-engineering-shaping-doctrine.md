@@ -24,6 +24,11 @@ The product-engineering methods support discovery and framing but do not consist
 - Replace fixed-count options with: "explore enough materially different options to expose the real decision; do not invent alternatives to satisfy a number" (RFC-0071 Area C).
 - Replace G0/G1.5/G2 with plain English in user-facing output and update evals with weak fixtures (RFC-0071 Area C).
 - Rename `voice-and-microcopy` to `ux-writing` following the ADR-0038 alias-free precedent, and update cross-references in the PE and XD packs (RFC-0071 D2 / Area C).
+- Update `packs/product-engineering/JOURNEY.md` so its `whatChanges` field links
+  the shaping doctrine to the Digital Experience Contract, then regenerate the
+  journey projection. This absorbs
+  `digital-experience-contract-pe-journey-xref`; the generated web file is not
+  edited directly.
 
 ## Open questions the RFC left
 

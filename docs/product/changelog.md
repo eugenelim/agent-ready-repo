@@ -54,31 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-<<<<<<< HEAD
-## [core][2.25.7] — 2026-09-08
+## [core][2.25.8] — 2026-09-08
 
 ### Highlights
 
-<<<<<<< HEAD
-- **Closeout now keeps unrelated work visible when it shares a path with a
-  cooled legacy entry.** A second entry at the same path still blocks closeout,
-  so maintainers are not told to invoke `close-work` while that work remains
-  unresolved.
-
-### Fixed
-
-- Cooled work exclusion is keyed on each entry's position in its lifecycle list
-  rather than on its path. A legacy `spec/<slug>` entry can no longer hide a
-  second entry stored at the same path — including one the canonical layer
-  rejects, which reaches closeout through its own parse and so could reproduce
-  any value the exclusion matched on.
-
-=======
 - **The defects a spec review keeps finding are now named where the spec is
-  written, not only where it is reviewed.** `new-spec` ships a
-  spec-authoring rubric: six failure classes worked in order before criterion
-  shape, starting with the one no criterion craft repairs — an obligation
-  authored where an owner already exists.
+  written, not only where it is reviewed.** `new-spec` ships a spec-authoring
+  rubric: six failure classes worked in order before criterion shape, starting
+  with the one no criterion craft repairs — an obligation authored where an
+  owner already exists.
 
 ### Added
 
@@ -86,12 +70,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   acceptance-criteria step and from the spec template. It names the failures
   shape rules cannot see: a criterion that holds on empty state, one no design
   satisfies, one whose value or citation goes stale at its source, one that
-  targets generated output instead of the source that produces it, a hand-written
-  set that has a machine-readable source, refusals with no valid input that must
-  succeed, and a deferral that drops a control nobody may waive.
+  targets generated output instead of the source that produces it, a
+  hand-written set that has a machine-readable source, refusals with no valid
+  input that must succeed, and a deferral that drops a control nobody may
+  waive.
 - The rubric carries the two rules that decide what to do with a class rather
-  than how to spot it: a criteria-count threshold starts a conversation and never
-  refuses, and an artifact at the wrong altitude is moved rather than trimmed.
+  than how to spot it: a criteria-count threshold starts a conversation and
+  never refuses, and an artifact at the wrong altitude is moved rather than
+  trimmed.
+- A repair pass, because a repair is the likeliest source of the next defect.
+  After changing a rule, the clause the change did not touch is re-read for a
+  second verdict on an input the rule already governed, and any sentence left
+  behind describing where the moved text went is treated as a value that
+  decays.
+- A criterion now has to name both verdicts. The class that catches a criterion
+  no observation can falsify also catches its mirror — one that fires on
+  correct work — so the author states the input that must fail and the correct
+  input that must pass. A check also has to perform the comparison its
+  criterion names, because a near neighbour returns a plausible different
+  number and reads as confirmation.
 - An optional five-shape criterion syntax, offered when a criterion reads
   ambiguously. It pairs every refusal with the positive path that must still
   succeed, and it is an aid rather than a house style.
@@ -101,7 +98,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The spec template's `## Acceptance Criteria` section now states that it owns
   criterion *shape* and routes the failure classes to the rubric, so neither
   surface restates the other.
->>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
+- A figure gets one verdict. Removing precision that nothing reads is now
+  decided after sorting figures into those that can go stale and those that
+  cannot, so a dated past measurement can stay as illustration instead of
+  being both permitted and forbidden.
+
+## [core][2.25.7] — 2026-09-08
+
+### Fixed
+
+- A work-loop state-lock reclaim no longer moves a lock it has not just
+  confirmed is the one it judged stale. A contender working from a snapshot that
+  a successful reclaim had already superseded could displace the new holder's
+  lock and leave the lock path briefly free while that holder was still inside
+  its critical section, which admitted a second holder. The reclaim path now
+  re-checks inode identity and the per-hold record immediately before moving
+  anything, and leaves a lock it no longer recognises alone.
 
 ## [core][2.25.6] — 2026-09-08
 
@@ -148,8 +160,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Accepted provider content is retained in a `knowledge-evidence.v1` envelope;
   rejected content is neither cited nor copied.
 
-=======
->>>>>>> bbe2be9b5 (feat(core): give new-spec a spec-authoring rubric)
+## [core][2.25.4] — 2026-09-08
+
+### Highlights
+
+- **Closeout now keeps unrelated work visible when it shares a path with a
+  cooled legacy entry.** A second entry at the same path still blocks closeout,
+  so maintainers are not told to invoke `close-work` while that work remains
+  unresolved.
+
+### Fixed
+
+- Cooled work exclusion is keyed on each entry's position in its lifecycle list
+  rather than on its path. A legacy `spec/<slug>` entry can no longer hide a
+  second entry stored at the same path — including one the canonical layer
+  rejects, which reaches closeout through its own parse and so could reproduce
+  any value the exclusion matched on.
+
+
 ## [core][2.25.3] — 2026-09-08
 
 ### Highlights
@@ -272,23 +300,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
 
-
-## [core][2.25.0] — 2026-09-04
-
-### Highlights
-
-- **A work-loop phase now decides which behavioural rules an authoring agent is taught.** A registry inside the `work-loop` skill declares the policy families each phase carries, and a selector turns one phase into the ordered families it selects, each with its enforcement tier and a fingerprint of the file that teaches it.
-
-### Added
-
-- `references/policy-families.md` — five policy families, two `precise` and three `advisory`, and a selection map covering every legal work-loop phase plus the reserved `DIRECT-LIGHT` key for the light path, which records no phase of its own.
-- `scripts/select-policy-families.py` — prints one delivery record for a phase, and refuses before delivering anything when the registry is malformed: an unknown phase, a duplicate or unknown family, a module that is unresolvable, wrongly namespaced, or resolves outside the resolution root, a bad tier, or a version pair that disagrees.
-- `guides/core/reference/phase-scoped-policy-delivery.md` — how to declare a family, how to choose its tier, and how to read a refusal.
-
-### Notes
-
-- A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
-- The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
 
 ## [core][2.24.4] — 2026-09-04
 
@@ -1098,6 +1109,34 @@ routes to the reference and that the reference still carries the rule.
   least-privilege posture in supported adapter projections.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
+
+## [agentbundle][0.42.0] — 2026-09-03
+
+### Added
+
+- The portable Agent Plugin route reaches every command that works with
+  distribution routes. `validate` accepts a pack declaring the
+  `per-pack-agent-plugin` recipe, which it rejected before; `render --target
+  agent-plugin` selects that recipe; `install --emit-install-routes` also
+  writes `agent-plugins/<pack>/`; `install`, `diff`, and `upgrade` each
+  recognise a portable install; and `catalogue verify` reports output drift
+  under `agent-plugins/`, which it previously ignored.
+
+### Changed
+
+- Every route-consuming surface reads its route set from the distribution-route
+  contract rather than from a list maintained beside it, so a route declared in
+  the contract reaches all of them at once.
+- The repo-scope install summary and the `install --force` removal notice each
+  list every route subtree involved, in the order the routes are built, so the
+  two already listed keep their positions and the new one is appended.
+- `install --force` now also removes `agent-plugins/<pack>/` during its
+  pre-RFC-0012 dist-tree cleanup, because that cleanup is derived from the
+  declared route set. With `--yes` the removal is unattended, so an unrelated
+  `agent-plugins/<pack>/` beside a managed tree should be moved first. Every
+  subtree is verified to resolve under the output root before removal.
+
+Published package bytes are unchanged for all three routes.
 
 ## [agentbundle][0.41.1] — 2026-09-01
 

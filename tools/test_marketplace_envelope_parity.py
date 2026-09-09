@@ -1303,6 +1303,43 @@ def test_resolved_mismatch_is_refused() -> None:
         )
 
 
+def test_resolved_layer_refuses_an_origin_outside_the_audited_tree(
+    tmp_path: Path,
+) -> None:
+    """Pin the provenance refusal without depending on what is installed.
+
+    The refusal exists for a finder that resolves the module to a sibling
+    worktree. Reaching it needs an origin outside the audited tree, which on a
+    contributor's machine comes from an editable install and on a runner never
+    happens at all -- there the child cannot import the package and the layer
+    refuses through its failed-child branch, leaving this comparison unreached
+    exactly where CI runs.
+
+    An install is not the only way to get there. The audited tree can provide
+    `agentbundle/__init__.py` that points `__path__` at a sibling directory, so
+    the real child's `find_spec` resolves `agentbundle.build.main` out of that
+    sibling. That reproduces the measured scenario through `_RESOLVE_CHILD`
+    itself, in any environment, with nothing installed.
+    """
+    package_root = tmp_path / "audited" / BUILD_MAIN.parts[0] / BUILD_MAIN.parts[1]
+    sibling = tmp_path / "sibling-worktree" / "agentbundle"
+    (sibling / "build").mkdir(parents=True)
+    (sibling / "__init__.py").write_text("", encoding="utf-8")
+    (sibling / "build" / "__init__.py").write_text("", encoding="utf-8")
+    (sibling / "build" / "main.py").write_text(
+        f'_DIST_BRANCH = "{EXPECTED_BRANCH}"\n_MARKETPLACE_DESCRIPTION = "d"\n',
+        encoding="utf-8",
+    )
+    shim = package_root / "agentbundle"
+    shim.mkdir(parents=True)
+    shim.joinpath("__init__.py").write_text(
+        f"__path__ = [{str(sibling)!r}]\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ParityError, match="provenance mismatch"):
+        resolve_build_main_constants(tmp_path / "audited")
+
+
 def test_resolved_layer_refuses_a_module_from_another_tree(tmp_path: Path) -> None:
     """The provenance refusal, in the scenario it exists for.
 

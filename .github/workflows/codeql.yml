@@ -31,7 +31,9 @@ on:
 # Pull-request runs share a ref group, so a newer PR push supersedes an in-flight
 # scan. Every non-PR run (push or schedule) gets a unique run_id group, preventing
 # a push-to-main from evicting the weekly re-scan; for a security scanner, a
-# redundant scan is safer than one silently evicted while pending.
+# redundant scan is safer than one silently evicted while pending. Concurrent
+# non-PR runs can upload SARIF out of order, temporarily showing an older result
+# until the next analysis; that consequence is accepted in favor of non-eviction.
 concurrency:
   group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
