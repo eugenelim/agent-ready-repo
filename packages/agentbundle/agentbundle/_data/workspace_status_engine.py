@@ -2896,8 +2896,8 @@ def _brief_child_spec_states(
     memberships: list[WorkspaceMembership],
     workspace: dict,
     root: Path | None,
-    cooled: frozenset[Path] = frozenset(),
-    legacy_memberships: "list[LegacyWorkspaceMembership] | tuple[()]" = (),
+    cooled: frozenset[Path],
+    legacy_memberships: list[LegacyWorkspaceMembership],
 ) -> tuple[dict[str, set[str]], frozenset[str], frozenset[str]]:
     """Map each brief to its children's observed states; flag unevaluable scope.
 
