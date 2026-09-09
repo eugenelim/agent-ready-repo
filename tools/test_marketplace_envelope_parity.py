@@ -1304,39 +1304,40 @@ def test_resolved_mismatch_is_refused() -> None:
 
 
 def test_resolved_layer_refuses_an_origin_outside_the_audited_tree(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     """Pin the provenance refusal without depending on what is installed.
 
-    The sibling-tree scenario needs `agentbundle` importable from outside
-    `root`, which happens only where an install provides it: true on a
-    contributor's machine, false on a runner, where the child cannot import it
-    at all and the layer refuses through its failed-child branch instead. That
-    leaves the origin comparison unexercised exactly where CI runs, so dropping
-    it would go unnoticed there. Driving the child's payload directly exercises
-    the comparison in both environments.
+    The refusal exists for a finder that resolves the module to a sibling
+    worktree. Reaching it needs an origin outside the audited tree, which on a
+    contributor's machine comes from an editable install and on a runner never
+    happens at all -- there the child cannot import the package and the layer
+    refuses through its failed-child branch, leaving this comparison unreached
+    exactly where CI runs.
+
+    An install is not the only way to get there. The audited tree can provide
+    `agentbundle/__init__.py` that points `__path__` at a sibling directory, so
+    the real child's `find_spec` resolves `agentbundle.build.main` out of that
+    sibling. That reproduces the measured scenario through `_RESOLVE_CHILD`
+    itself, in any environment, with nothing installed.
     """
-    root = tmp_path / "audited"
-    (root / BUILD_MAIN).parent.mkdir(parents=True)
-    foreign_origin = tmp_path / "sibling-worktree" / BUILD_MAIN
-    payload = json.dumps(
-        {
-            "origin": str(foreign_origin),
-            "branch": EXPECTED_BRANCH,
-            "branch_type": "str",
-            "description": "d",
-            "description_type": "str",
-        }
+    package_root = tmp_path / "audited" / BUILD_MAIN.parts[0] / BUILD_MAIN.parts[1]
+    sibling = tmp_path / "sibling-worktree" / "agentbundle"
+    (sibling / "build").mkdir(parents=True)
+    (sibling / "__init__.py").write_text("", encoding="utf-8")
+    (sibling / "build" / "__init__.py").write_text("", encoding="utf-8")
+    (sibling / "build" / "main.py").write_text(
+        f'_DIST_BRANCH = "{EXPECTED_BRANCH}"\n_MARKETPLACE_DESCRIPTION = "d"\n',
+        encoding="utf-8",
+    )
+    shim = package_root / "agentbundle"
+    shim.mkdir(parents=True)
+    shim.joinpath("__init__.py").write_text(
+        f"__path__ = [{str(sibling)!r}]\n", encoding="utf-8"
     )
 
-    def _resolved_elsewhere(*args: object, **kwargs: object) -> subprocess.CompletedProcess:
-        return subprocess.CompletedProcess(
-            args=[], returncode=0, stdout=payload, stderr=""
-        )
-
-    monkeypatch.setattr(subprocess, "run", _resolved_elsewhere)
     with pytest.raises(ParityError, match="provenance mismatch"):
-        resolve_build_main_constants(root)
+        resolve_build_main_constants(tmp_path / "audited")
 
 
 def test_resolved_layer_refuses_a_module_from_another_tree(tmp_path: Path) -> None:
