@@ -970,7 +970,7 @@ backlog = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M3 · slice 4 consumer integrations shipped; 3c and 3e are unblocked and parallel, 3d needs 3c, 5 needs 3c, 6 closes — see the brief's slice table"
+milestone = "M3 · slice 3e composition behavior fixtures in flight; slice 4 consumer integrations shipped; 3c unblocked, 3d needs 3c, 5 needs 3c, 6 closes — see the brief's slice table"
 
 ["ini-009".brief_queue]
 executing = [
@@ -985,6 +985,7 @@ backlog = []
 
 ["ini-009".work]
 active  = [
+  { path = "docs/specs/agent-skill-engineering-composition-fixtures/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:87f73f2f9d7dfe068817918a8883441e443d4f19ffd9ca1507e15bdfd5b84827", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add the subagent-composition and hook/plugin-design behavior fixtures, graded blind against retained transcripts, and re-measure every inherited authoring result the shared digest moves", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-composition-floors/spec.md" }] },
 ]
 queue   = [
 ]

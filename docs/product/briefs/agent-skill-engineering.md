@@ -179,11 +179,14 @@ one's status, derived from its linked spec rather than maintained here.
 Slice 3b is discarded rather than shipped; its row below is the canonical record
 and states where each of its four residuals went.
 
-**Not yet started.** Slices 3c, 3d, 3e, 5 and 6 exist only as rows in the table
+**In flight.** Slice 3e has an approved spec and plan and is registered in
+`["ini-009".work].active`; its `Spec map` row below carries its status.
+
+**Not yet started.** Slices 3c, 3d, 5 and 6 exist only as rows in the table
 below. None has a spec, a plan, an intent, or a `workspace.toml` work entry, and
 `["ini-009".work].queue` is empty by the rule in *Derived work* — a confirmed
-slice is a decomposition target, not permission to dispatch. **3c and 3e are
-both unblocked**, since their only hard predecessor is shipped slice 3a.
+slice is a decomposition target, not permission to dispatch. **3c is
+unblocked**, since its only hard predecessor is shipped slice 3a.
 
 ## Confirmed delivery slices
 
@@ -311,6 +314,7 @@ promotes and approves them.
 | `agent-skill-engineering-languages-and-execution` | Shipped |
 | `agent-skill-engineering-composition-floors` | Shipped |
 | `agent-skill-engineering-consumer-integrations` | Shipped |
+| `agent-skill-engineering-composition-fixtures` | Implementing |
 
 ## Backlog and prerequisites
 
