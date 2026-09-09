@@ -128,31 +128,26 @@ class's repair.
 
 ### Corpus
 
-**Re-measured 2026-09-08. One clause of the predicate was wrong.** The earlier
-statement required a leading `- ` on the status line, and 18 shipped specs carry
-a bare `**Status:**` without it, so run literally it reached only 403 of 421
-specs.
+**This section publishes an instrument, not a snapshot.** Every figure it used
+to carry was an exact count over a corpus that grows, which is rubric class 4's
+decay case; three separate revisions of those figures went stale or failed to
+reproduce inside a week. The bound that reads this corpus is now stated as the
+derivation, so it means the current corpus on the day anyone asks.
 
 **The instrument.** `docs/specs/*/spec.md` at exactly one directory level. The
 status is the first line matching `^-?\s*\*\*Status:\*\*`, which must reduce to
 the leading token `Shipped` once an annotation (`Shipped (2026-05-26)`) is
-stripped. A criterion is a checkbox bullet under `## Acceptance Criteria`, since
-roughly half the corpus labels them `**ACn —**` and half does not. A spec's word
-count is the whole file, verbatim, including its metadata header.
+stripped — the leading `- ` is optional, and omitting that clause is what made an
+earlier predicate under-count. A criterion is a checkbox bullet under
+`## Acceptance Criteria`, since roughly half the corpus labels them `**ACn —**`
+and half does not. A spec's word count is the whole file, verbatim, including its
+metadata header. Running it is one command.
 
-**Measured 2026-09-08: 421 specs, 6,465 criteria.** Criteria per spec: p25 9,
-median 12, p75 18, p90 28, max 104. Words per spec: p25 1,044, median 1,607,
-p75 2,398, p90 3,949, max 11,569. Criteria per spec is unchanged from
-2026-09-02, which is the check that this is the instrument that produced the
-original figures.
-
-**No criterion-length percentile is published.** Three attempts to state an
-instrument that reproduced one failed, each differing from the last on the block
-boundary. The band uses criterion length only to order criteria for the shape
-test, never as a bound, so no bound reads a percentile — and by the decoration
-test, a figure nothing depends on and that three attempts could not reproduce is
-surface to delete rather than a fourth thing to get right. Derive one if a
-decision ever needs it, and state the boundary you used.
+**No percentile is published here.** Not the spec-body pair the band reads, and
+not a criterion-length pair — three attempts at the latter each differed on the
+block boundary and none reproduced. A reader who needs a number runs the
+instrument and states the date they ran it; a reader who needs a bound reads the
+band, which names the percentile rather than its value.
 
 ### Band
 
@@ -164,7 +159,7 @@ argued with.
 | Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
 | Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. |
 | Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria while its median-length criteria were quiet. § "Corpus" publishes no criterion-length percentile and records why. |
-| Spec body | ≤1,607 words; past 2,398 needs a stated reason | Measured, repo-local: the corpus median and p75, § "Corpus", 2026-09-08. |
+| Spec body | at or under the corpus median; past the corpus p75 needs a stated reason | Measured, repo-local, and stated as the derivation rather than a value so it cannot go stale: run § "Corpus"'s instrument and take the median and p75 of the words-per-spec distribution. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
 | Floor | never below one surface plus its verification and its guide | **Illustrative, not measured** — the label was overstated: cutting 8,500 → 2,100 tokens per step raised turns-to-solve from 4.0 to 14.0 while total consumption fell only 14% (Augment 2025), which is a practitioner writeup with no controlled arm and the only published number on the trade-off. **Smaller is not safer.** |
 
@@ -188,16 +183,15 @@ establishes a criteria *floor*.
 
 ### Why no regenerator
 
-Rejected: a regenerator slice. Rubric class 4 is the decay class, and the
-shipped rubric states it. One band row is a percentile of this repository's
-corpus — the spec-body bound, from the median and p75 of the 421 specs measured
-2026-09-08 — so the class applies to that row. It has already fired twice here:
-on the predicate that could not reproduce its own figures, and on the
-criterion-length percentiles that section no longer publishes. Decay is real but
-cheap to answer: exactly one row is a repo-derived percentile, three cite
-measurements imported from outside this repository, one cites shipped decisions
-rather than a measurement, and one is labelled illustrative. The corpus grows
-slowly and a hand measurement is one command. The criteria ceiling is
+Rejected: a regenerator slice — and the reason is now structural rather than a
+judgement about cost. Rubric class 4 is the decay class, and one band row reads
+this repository's growing corpus, so the class applies to it. That row states
+the percentile rather than its value, and § "Corpus" publishes the instrument
+rather than a snapshot, so there is no stored figure left to regenerate. Class 4
+fired three times here before that change — on a predicate that could not
+reproduce its own figures, on criterion-length percentiles that no instrument
+reproduced, and on a spec-body pair that went stale within a week — which is
+what a regenerator would have been maintaining. The criteria ceiling is
 screening-only — its evidence status is stated once, in the § "Band" row for
 criteria per spec — so a stall threshold needs an order of magnitude rather
 than a maintained script.
@@ -556,6 +550,26 @@ had sampled defects. Each passed a careful re-read by its author and failed the
 first external check, with the governing rule in context every time. **This is
 the corpus's first population of failures in *repairs to* contracts rather than
 in contracts.**
+
+**Shipping the rule did not make the author follow it.** Rubric class 4 is the
+decay class, and the same session that shipped it let three separate figure sets
+decay in the document that ships it — each caught by a review round, none by the
+author, with the rule in context throughout. The rule was not wrong; it was
+unactionable in four specific ways, all now repaired in class 4 itself: it gave
+no way to tell a live figure from a frozen one, so effort went to dated
+observations that cannot decay while a live count went stale; it accepted "dated
+and instrumented" as sufficient, which is what each of the three stale sets
+was; it named no stopping rule, so the answer to a stale figure was to measure
+it again; and its tells reached measurements but not narration, which is how a
+review-round tally sat stale across several rounds without looking like a
+figure at all.
+
+**What actually stopped it was a check, not the repair.** Two roster guards now
+fail if a snapshot returns to the corpus section or a value returns to the bound
+that reads it. That ordering is this corpus's oldest finding — prose that was
+loaded and acknowledged fired never — and it applies to the strengthened rule
+too: treat the class-4 revision as the cheaper half and the guards as the
+binding half.
 
 **A line-oriented search over wrapped prose returns confident wrong answers.**
 Four times in one session, `grep` for a phrase spanning a line break reported

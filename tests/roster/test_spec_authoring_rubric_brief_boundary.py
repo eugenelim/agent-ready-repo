@@ -14,6 +14,7 @@ that declaration checkable, rather than leaving it a claim that can go stale.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -133,3 +134,56 @@ def test_the_brief_restates_no_run_of_the_rubrics_text() -> None:
         f"the brief restates {len(shared)} run(s) of {n}+ words from the rubric; "
         f"cite the class by number instead. First: {shared[0]!r}"
     )
+
+
+def _brief_section(title: str) -> str:
+    """Return one `###` section of the brief, heading excluded."""
+    body = BRIEF.read_text(encoding="utf-8")
+    start = body.index(f"### {title}\n")
+    rest = body[start + len(f"### {title}\n"):]
+    end = rest.find("\n### ")
+    return rest if end == -1 else rest[:end]
+
+
+def test_the_corpus_section_publishes_an_instrument_not_a_snapshot() -> None:
+    """The one growing-corpus figure set is the brief's own decay case.
+
+    Three revisions of these percentiles went stale or failed to reproduce
+    inside a week, each caught by a review round rather than by a check. Rubric
+    class 4's move is to ship the derivation rather than the value, so § "Corpus"
+    carries the instrument and no snapshot.
+
+    The predicate is comma-grouped digits, which is what a spec count, a
+    criteria count or a word percentile looks like here. Dates (`2026-09-08`)
+    and the status regex carry no comma, so they pass; re-adding
+    "421 specs, 6,465 criteria" or a "median 1,607" reds.
+    """
+    corpus = _brief_section("Corpus")
+    grouped = sorted(set(re.findall(r"\b\d{1,3},\d{3}\b", corpus)))
+    assert not grouped, (
+        f"§ Corpus publishes a snapshot figure again: {grouped}. "
+        "Class 4's move is the derivation, not the value."
+    )
+    assert "publishes an instrument, not a snapshot" in " ".join(corpus.split())
+
+
+def test_the_repo_derived_bound_states_a_percentile_not_a_value() -> None:
+    """The only band row reading this corpus must not store a number.
+
+    Stated as a value it decayed within a week of each measurement; stated as
+    the derivation it means the current corpus whenever it is read. A digit in
+    the Bound cell is the regression.
+    """
+    band = _brief_section("Band")
+    rows = [r for r in band.splitlines() if r.startswith("| Spec body ")]
+    assert len(rows) == 1, f"expected one Spec body row, found {len(rows)}"
+    bound = rows[0].split("|")[2]
+    # A percentile *name* legitimately carries digits (`p75`), so strip those
+    # before looking for a magnitude. An earlier version of this assertion
+    # forbade any digit and therefore red on the correct text — the mirror of a
+    # control that cannot fail.
+    magnitudes = re.sub(r"\bp\d{1,3}\b", "", bound)
+    assert not re.search(r"\d", magnitudes), (
+        f"the spec-body bound stores a value rather than naming a percentile: {bound.strip()!r}"
+    )
+    assert "median" in bound and "p75" in bound
