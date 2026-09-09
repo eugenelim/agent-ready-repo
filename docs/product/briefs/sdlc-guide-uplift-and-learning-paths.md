@@ -170,9 +170,9 @@ Both require a fresh owner-directed continuation before registration.
 
 | Spec | Status |
 | --- | --- |
-| [`install-to-ship-walkthrough`](../../specs/install-to-ship-walkthrough/spec.md) | Shipped |
-| [`desk-research-build-handover`](../../specs/desk-research-build-handover/spec.md) | Shipped |
-| [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md) | Draft |
+| `install-to-ship-walkthrough` | Shipped |
+| `desk-research-build-handover` | Shipped |
+| `how-to-sample-output-coverage` | Draft |
 
 ## Open delivery slices
 
