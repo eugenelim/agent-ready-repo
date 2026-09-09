@@ -124,6 +124,20 @@ CHAINED = _report(
 
 ERROR_PAYLOAD = {"error": {"code": "ENETUNREACH", "summary": "request to registry failed"}}
 
+TIMEOUT_PAYLOAD = {
+    # Assumed JSON form: the recorded reproduction captured this phrase only in
+    # npm's warn line, and the stall did not reproduce to capture its payload.
+    "message": "network timeout at: https://registry.npmjs.org/-/npm/v1/"
+    "security/advisories/bulk",
+    "error": {"summary": "", "detail": ""},
+}
+
+TIMEOUT_CODE_PAYLOAD = {
+    "message": "network timeout at: https://registry.npmjs.org/-/npm/v1/"
+    "security/advisories/bulk",
+    "error": {"summary": "", "detail": "", "code": "ETIMEDOUT"},
+}
+
 NO_VERSION = {"vulnerabilities": {}, "metadata": {}}
 
 # A shape npm does not emit: blocking severity with no advisories to explain it.
@@ -275,6 +289,60 @@ def main() -> int:
     print("evaluate() — fail-closed (spec AC1a)")
     expect_error("error_payload_is_tool_error", lambda: m.evaluate(ERROR_PAYLOAD, {}))
     expect_error("missing_report_version_is_tool_error", lambda: m.evaluate(NO_VERSION, {}))
+
+    print("evaluate() — assumed registry timeout payload")
+    try:
+        m.evaluate(TIMEOUT_PAYLOAD, {})
+        check("registry_timeout_has_a_distinct_error", False, "no AuditError raised")
+    except m.AuditError as exc:
+        check(
+            "registry_timeout_has_a_distinct_error",
+            type(exc).__name__ == "AuditTimeoutError",
+            f"raised {type(exc).__name__}: {exc}",
+        )
+
+    try:
+        m.evaluate(TIMEOUT_CODE_PAYLOAD, {})
+        check("code_timeout_has_a_distinct_error", False, "no AuditError raised")
+    except m.AuditError as exc:
+        check(
+            "code_timeout_has_a_distinct_error",
+            type(exc).__name__ == "AuditTimeoutError",
+            f"raised {type(exc).__name__}: {exc}",
+        )
+
+    print("main() — timeout in the lockfile loop")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        _write_allowlist(root)
+        (root / "web").mkdir()
+        (root / "web" / "package-lock.json").write_text("{}", encoding="utf-8")
+
+        def _live_probe() -> None:
+            return None
+
+        def _timeout_audit(_project_dir):
+            return TIMEOUT_PAYLOAD
+
+        original_probe, original_audit = m.run_canary_probe, m.run_audit_with_retry
+        stderr = io.StringIO()
+        try:
+            m.run_canary_probe = _live_probe
+            m.run_audit_with_retry = _timeout_audit
+            with contextlib.redirect_stderr(stderr):
+                exit_code = m.main(["--root", str(root)])
+        finally:
+            m.run_canary_probe, m.run_audit_with_retry = original_probe, original_audit
+        check(
+            "loop_registry_timeout_exit_is_2",
+            exit_code == 2,
+            f"exit_code={exit_code}; stderr={stderr.getvalue()}",
+        )
+        check(
+            "loop_registry_timeout_names_the_network_timeout",
+            "network timeout at:" in stderr.getvalue(),
+            stderr.getvalue(),
+        )
 
     print("_require_report() — name the cause npm actually supplied")
     MEASURED = {
