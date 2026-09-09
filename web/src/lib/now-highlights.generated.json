@@ -5,6 +5,69 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.7"
+        }
+      ],
+      "date": "2026-09-08",
+      "heading": "[core][2.25.7] — 2026-09-08",
+      "changelogAnchor": "core2257--2026-09-08",
+      "highlights": [
+        {
+          "source": "**A cooled delivery's parent link is now declared on its workspace entry, so reconciliation stops guessing.** When a cooled spec's `source.parent` is missing or names no registered brief, `workspace-status` reports `cooled_child_scope_unknown` against that entry and holds every dependency on a brief until someone answers — instead of silently reading the missing value as \"this delivery has no parent\" and releasing the work.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A cooled delivery's parent link is now declared on its workspace entry, so reconciliation stops guessing."
+            },
+            {
+              "type": "text",
+              "value": " When a cooled spec's "
+            },
+            {
+              "type": "code",
+              "value": "source.parent"
+            },
+            {
+              "type": "text",
+              "value": " is missing or names no registered brief, "
+            },
+            {
+              "type": "code",
+              "value": "workspace-status"
+            },
+            {
+              "type": "text",
+              "value": " reports "
+            },
+            {
+              "type": "code",
+              "value": "cooled_child_scope_unknown"
+            },
+            {
+              "type": "text",
+              "value": " against that entry and holds every dependency on a brief until someone answers — instead of silently reading the missing value as \"this delivery has no parent\" and releasing the work."
+            }
+          ]
+        },
+        {
+          "source": "**Declaring `none` is a real answer.** A delivery with no parent brief is declared as such once and dispatches normally, so the new refusal is something a maintainer clears rather than waits out.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Declaring `none` is a real answer."
+            },
+            {
+              "type": "text",
+              "value": " A delivery with no parent brief is declared as such once and dispatches normally, so the new refusal is something a maintainer clears rather than waits out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.6"
         }
       ],

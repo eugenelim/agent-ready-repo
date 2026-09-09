@@ -264,3 +264,30 @@ still shipped, because nothing measures the length at authoring time — the
 failure surfaces only in a roster run that takes about fifteen minutes. The
 summary is now 391 characters and names all four follow-ons rather than the two
 the longer version listed.
+
+## 2026-09-08 — T4 omitted the web reprojection its own `Highlights` step requires
+
+Recorded here because `plan.md` is frozen. Found by CI, not by inspection or by
+any local gate.
+
+T4 makes the `Highlights` disposition an explicit step and answers it yes,
+drafting the bullets under `### Highlights` in the changelog. It does not name
+what that answer obliges downstream: `web/src/lib/now-highlights.generated.json`
+is a tracked projection of those bullets and the `/now/` page renders from it.
+
+`FORCE=1 make build-self` does not emit web projections, so the file stayed at
+`[core][2.25.6]` while the changelog said `[core][2.25.7]`. Neither
+`SKIP_SAST=1 make build-check` nor the roster suites read it. Only `make test`
+does, which is why the remote `test-corpus` workflow was the only gate that
+failed and the only one that could have.
+
+The regenerator is `python3 tools/build-site.py --journeys-only`. Run at base
+`02742751a` it reported `118 released highlight(s) in 84 release group(s)` and
+changed exactly one file. Both bullets are projected with their inline code
+spans parsed into segments, so the page renders them rather than the raw source.
+
+**The lesson for the task shape, not just this instance.** T4's Touches list was
+extended twice during review to name projections its own commands rewrite, and
+it still missed this one — because this projection is written by a *different*
+command than the one T4 names. A step that produces published content owes both
+the artifact and its regenerator, and the two are not always the same tool.
