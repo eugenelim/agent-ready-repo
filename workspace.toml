@@ -516,6 +516,15 @@ open = [
   # Unblocks when runtime root semantics are reacquired and the command strategy
   # is approved.
   {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
+  # Not a mechanical level-shift, and RFC-0095 D3 says so itself: the 48 bare
+  # `### Added`/`### Fixed` sections sit at the same heading level as the nested
+  # entries, so a uniform re-levelling grafts each onto whichever versioned
+  # entry precedes it — D3's worked example is a bare `### Fixed` about
+  # `agentbundle pack evals run` sitting under `[atlassian][0.9.0]`. Separating
+  # them "needs per-section judgement about which artifact each orphaned block
+  # belongs to, and re-ordering rather than re-levelling", in a file now ~6,900
+  # lines. Treat as a data migration with its own verification burden, never as
+  # a sweep.
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
   {path = "docs/product/intents/route-decision-analysis-depth.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/distribution-route-registry/spec.md"}, summary = "Give the route-decision checker cross-module depth under its own contract: follow route values across module boundaries, derive the discriminator field set from the route types, cover projector-identity and .get() dispatch, and derive the single-route exemption from the registration the lookup resolves through -- each exemption pinned by a mutation. Split out of distribution-route-registry after five review rounds in which each widening opened the next round's hole", needs = []},
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
@@ -635,6 +644,17 @@ open = [
 
   {path = "docs/specs/house-voice-writing-craft/notes/apm-leak-lint-rfc.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/house-voice-writing-craft/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Retire the obsolete APM leak-lint RFC proposal after the concrete sweep shipped and catalogue verification replaced the deleted standalone linter", needs = []},
 
+  # Not mechanical, despite the note file naming the exact two-line edit. The
+  # removal falsifies a ticked criterion on a Shipped spec:
+  # docs/specs/architect-platform-grounding/spec.md AC "ML / SaaS remain
+  # named-but-unbacked" asserts the rubric still names SaaS, and records that as
+  # a met criterion of its own PR rather than a deferral. ADR-0032 and ADR-0035
+  # (both Accepted) likewise record ML/SaaS as named-but-unbacked; ADR-0032 says
+  # its decision "neither backs nor removes them", so removal is outside what
+  # either ADR settled rather than forbidden by them.
+  # Unblocks when an erratum against that ticked AC, or a superseding ADR,
+  # carries the removal. Doing the rubric edit alone leaves a Shipped spec
+  # asserting a state the shipped pack contradicts.
   {path = "docs/specs/agentic-well-architected-overlay/notes/ml-saas-serverless-workload-class-lenses.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentic-well-architected-overlay/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Remove the unsupported SaaS workload-lens claim while preserving the backed GenAI, data and ML, and serverless routes", needs = []},
 
   {path = "docs/specs/atlassian-sso-cookie/notes/atlassian-sso-cookie-live-dc-read-transcript.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/atlassian-sso-cookie/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Capture the approved corporate-SSO Atlassian Data Center read flow in a credential-free transcript", needs = []},
