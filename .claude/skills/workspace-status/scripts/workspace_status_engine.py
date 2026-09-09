@@ -2949,10 +2949,17 @@ def _brief_child_spec_states(
     # carries `kind = "brief"` and a real path, and a child declaring it has
     # declared the truth. Reading them here decides attribution only; it
     # dispatches nothing, which is the line the routing contract draws.
+    # Two comprehensions rather than one over an unpacked pair: the canonical
+    # and legacy membership types differ, so unpacking them together widens the
+    # element type to `object` and the attribute access stops type-checking.
     brief_membership_paths = {
         membership.entry.path
-        for membership in (*memberships, *legacy_memberships)
+        for membership in memberships
         if membership.entry.kind == "brief" and membership.entry.path is not None
+    } | {
+        legacy.entry.path
+        for legacy in legacy_memberships
+        if legacy.entry.kind == "brief" and legacy.entry.path is not None
     }
     for membership in memberships:
         entry = membership.entry
