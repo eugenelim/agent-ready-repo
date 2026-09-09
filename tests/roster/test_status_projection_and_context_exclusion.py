@@ -1929,14 +1929,15 @@ def test_a_cooled_child_contributes_no_fabricated_state(tmp_path, engine) -> Non
 
 
 def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engine) -> None:
-    """AC59: the fail-closed set is exactly the briefs a cooled child declares.
+    """ADR-0106: a cooled spec leaves an unrelated brief alone once it declares `none`.
 
-    A spec that declares no `source.parent` is not attributed to any brief. Two
-    conservative repairs that attributed such specs anyway -- to every brief in
-    the workspace, then to every brief in the initiative -- were withdrawn: 81
-    of 92 specs in this repository's main initiative declare no `source.parent`,
-    so either rule refused every brief dependency whenever an ordinary spec
-    cooled. This pins the availability half of the criterion.
+    Superseded in part by ADR-0106. AC59 held that an undeclared `source.parent`
+    marked no brief, so absence carried the availability guarantee. ADR-0106
+    splits absence in two: a declared **empty** value marks nothing and releases
+    every dependency, while an **absent** key is unknown scope and fails closed.
+    The availability half this case pins therefore survives unchanged in
+    substance -- it is now conditioned on declaring `none` rather than on
+    declaring nothing at all, which is what gives a maintainer a way out.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")
@@ -1945,7 +1946,7 @@ def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engi
     _brief_workspace(
         root,
         child_collection="shipped",
-        child_source_parent=None,
+        child_source_parent="none",
         brief_collection="shipped",
     )
 
@@ -1959,20 +1960,29 @@ def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engi
     after = _reconcile_canonical(root, engine)
     ready_after = {e.entry.path for e in after.evaluations if e.dispatchable}
     assert "docs/specs/dependant/spec.md" in ready_after, (
-        "cooling a spec that declares no source.parent refused an unrelated brief"
+        "cooling a spec that declares an empty source.parent refused an unrelated brief"
     )
     assert not [f for f in after.findings if f.path == BRIEF_PATH]
+    assert not [
+        f for f in after.findings if f.code == "cooled_child_scope_unknown"
+    ], "a declared empty value is an answer, not unknown scope"
 
 
 def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> None:
-    """Residual `cooling-brief-child-scope`: a body-only brief link is unprotected.
+    """ADR-0106 closes the gap this case was written to pin.
 
-    The child names its brief in the artifact body, not in `source.parent`, so
-    the link is not recoverable without the read RFC-0096 section 7 forbids. The
-    child drops out of the parent's child-state set and the empty set reads as
-    compliance, so cooling erases the brief's `impossible_transition`. This is
-    the shipped gap, pinned so that closing it has to change this test
-    deliberately rather than silently.
+    The child still names its brief in the artifact body only, so the link is
+    still not recoverable without the read RFC-0096 section 7 forbids. What
+    changed is the answer to an absent `source.parent`: the entry's scope is
+    unknown, so every `kind = "brief"` dependency fails closed and the run names
+    the entry a maintainer can edit rather than the brief they cannot.
+
+    The pinning worked as intended -- closing the gap had to change this test
+    deliberately, which is what happened. The function name is retained because
+    AC17 of `cooling-brief-child-scope-closure` pins it, to prove the case was
+    updated rather than deleted; it now pins the closure rather than the gap,
+    and that name/body mismatch is recorded in that spec's
+    `notes/follow-ons.md`.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")
@@ -1988,39 +1998,48 @@ def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> N
     before = _reconcile_canonical(root, engine)
     assert any(
         f.code == "impossible_transition" and f.path == BRIEF_PATH for f in before.findings
-    ), "control did not flag the brief; the residual below is not demonstrated"
+    ), "control did not flag the brief; the change below is not demonstrated"
 
     _cool_child(root)
     after = _reconcile_canonical(root, engine)
-    # The observable the Follow-ons row names: the brief's dependants are NOT
-    # held back, because a body-only link is not recoverable read-free. Both
-    # candidate closures — recovering the link, or attributing conservatively —
-    # change exactly this, whereas the erased `impossible_transition` stays
-    # erased under either, so asserting that absence pinned nothing.
-    assert "docs/specs/dependant/spec.md" in {
+    # The observable has inverted. The brief's dependants ARE held back now,
+    # and the entry is named. The erased `impossible_transition` stays erased
+    # under this closure as it did under the gap, so it is still not asserted
+    # here -- an absence that both states share pins nothing.
+    assert "docs/specs/dependant/spec.md" not in {
         e.entry.path for e in after.evaluations if e.dispatchable
-    }, "the residual is closed — update AC59 and remove the Follow-ons row"
-    assert not [
+    }, "an undeclared parent on a cooled entry no longer fails closed"
+    assert [
+        f for f in after.findings
+        if f.code == "cooled_child_scope_unknown"
+        and f.path == "docs/specs/child/spec.md"
+    ], "the refusal fired without naming the entry a maintainer must repair"
+    assert [
         f for f in after.findings
         if f.code == "unsatisfied_dependency" and f.path == BRIEF_PATH
-    ], "the residual is closed — update AC59 and remove the Follow-ons row"
+    ], "the brief dependency was not refused"
 
 
 def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
     tmp_path, engine
 ) -> None:
-    """AC59: a cooled spec that declares no `source.parent` marks no brief.
+    """ADR-0106: the unknown-scope floor crosses initiative boundaries.
 
-    The refused set is exactly the `source.parent` values declared by cooled
-    specs. There is no initiative filter — an earlier docstring here claimed one
-    and named a `ini_slug` mutation that does not exist, which made this look
-    like a scoping test when it is an attribution test. The cooled spec below
-    happens to live in another initiative, but what makes the brief safe is that
-    the spec declares no parent at all.
+    Superseded in part by ADR-0106. There is still no initiative filter, and
+    this is still an attribution test rather than a scoping one. What changed is
+    the direction of the answer: a cooled spec that declares no parent at all no
+    longer marks *no* brief, it makes *every* brief's scope unknown, because the
+    brief it belongs to is exactly what nobody recorded. The ini-003 spec below
+    is left undeclared and cooled deliberately, so what this case now pins is
+    that the floor is repository-wide and not initiative-scoped.
 
-    Killing mutation: attribute parentless cooled specs to every brief (the
-    withdrawn conservative rule) — the ini-002 brief enters
-    briefs_with_cooled_children and its dependant is refused.
+    Killing mutation: scope the refusal to the cooled entry's own initiative --
+    the ini-002 dependant dispatches and the cross-initiative floor is lost.
+
+    The function name is retained because AC17 of
+    `cooling-brief-child-scope-closure` pins it, to prove the case was updated
+    rather than deleted. The name now contradicts the body; that mismatch is
+    recorded in that spec's `notes/follow-ons.md`.
     """
     root = tmp_path
     _brief_body(root, status="Shipped")
@@ -2090,6 +2109,12 @@ def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
 
     result = _reconcile_canonical(root, engine)
     ready_paths = {e.entry.path for e in result.evaluations if e.dispatchable}
-    assert "docs/specs/dependant/spec.md" in ready_paths, (
-        "dependant blocked — a cooled spec in ini-003 affected the ini-002 brief"
+    assert "docs/specs/dependant/spec.md" not in ready_paths, (
+        "a cooled undeclared spec in ini-003 left the ini-002 brief dispatchable; "
+        "the unknown-scope floor is not crossing initiative boundaries"
     )
+    assert [
+        f for f in result.findings
+        if f.code == "cooled_child_scope_unknown"
+        and f.path == "docs/specs/unrelated/spec.md"
+    ], "the ini-003 entry was not named as the one to repair"

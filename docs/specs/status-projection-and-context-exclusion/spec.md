@@ -1,6 +1,6 @@
 # Spec: Status projection and context exclusion
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by ADR-0106 — an absent `source.parent` on a cooled entry no longer reads as "no parent"; everything else stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §7 and §9; `thirty-day-cooling-and-retirement` (Shipped, live dependency); `close-work-extraction-and-immediate-disposition` (Shipped, live dependency)
