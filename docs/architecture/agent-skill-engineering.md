@@ -311,12 +311,12 @@ observation identifier `2026-09-09-composition-fixtures-r2`, with each verdict
 bound to a retained transcript whose digest the record carries and whose bytes
 must contain every declared marker. The round was re-taken in full after a
 rebase moved two of the three corpus topics the new fixtures route to; the
-superseded round and the three verdict rows that moved are recorded in the
-slice's verification ledger. `subagent-composition` and `hook-plugin-design`
-each scored full marks, both reporting the defect their payload seeds. Known
-misses are exempted, each carrying its owner authority and date in the slice's
-verification ledger; the inherited entries additionally cite the originating
-slice's record. Each widened enumeration and each new
+superseded round and the two verdict rows that moved are recorded in the
+slice's verification ledger. Both new cases report the defect their payload
+seeds: `subagent-composition` scored 5 of 5 and `hook-plugin-design` 4 of 5,
+its remaining miss exempted. Known misses are exempted, each carrying its
+owner authority and date in the slice's verification ledger; the inherited
+entries additionally cite the originating slice's record. Each widened enumeration and each new
 transcript binding carries a recorded mutation proof; the slice's verification
 ledger holds the table.
 

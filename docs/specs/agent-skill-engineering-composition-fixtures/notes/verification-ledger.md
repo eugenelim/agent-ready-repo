@@ -400,6 +400,7 @@ confirmed byte-identical afterwards.
 | The pattern set cannot be emptied at its source (AC17) | Empty `HOST_IDENTIFYING_PATTERN_STRINGS` in the pack suite | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: the pack suite declares no host-identifying patterns` |
 | A declared write status is one the skill can emit (AC4) | Declare `Write status: pending owner sign-off` | `test_every_declared_write_status_is_one_the_skill_can_emit` | value not in the receipt vocabulary |
 | The vocabulary is read, not guessed (AC4) | Collapse `SKILL.md`'s receipt line to a single value | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: the receipt line parsed to {'not authorized'}` |
+| The vocabulary comes from the receipt section (AC4) | Move the vocabulary line above `## Completion receipt` and rename the receipt's own field to `Authorization status:` | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: the Completion receipt section carries 0 lines beginning 'Write status: '` |
 | The receipt vocabulary has exactly one home (AC4) | Add a second `Write status: ` line above the receipt offering a wider list, and declare its extra value | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: SKILL.md carries 2 lines beginning 'Write status: '` |
 | The round identifier is not blank (AC11, AC12) | Set `graded_run.observation_id` and all ten record identifiers to `""` | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: graded_run carries observation_id ''` |
 
@@ -668,16 +669,24 @@ lists and authored neither. Responses run 4.6–10.5 KB, against `r1`'s 4.8–9.
 KB, so the instrument sits in the same band that distinguished the recorded
 round from the two discarded ones.
 
-**Result: seven of ten verdict rows are unchanged. Three moved.**
+**Result: eight of ten verdict rows are unchanged. Two moved.**
 
 | Case | `r1` | `r2` | Reading |
 | --- | --- | --- | --- |
 | `progressive-result-presentation` | `TTFT` | `TTTT` | index 2 newly true; the response pairs every stop reason with a `next_action` and `next_action_needs`. Its exemption is deleted — an exemption that excuses nothing is a false record of a miss. |
-| `hook-plugin-design` | `TTTFT` | `TTTTT` | index 3 newly true; the response names the shared HTTP client as a transitive cost a linter-only installer carries. Exemption deleted for the same reason. |
-| `node-browser-suite` | `FTTT` | `FTTF` | index 3 newly false. Newly exempted — see below. |
+| `node-browser-suite` | `FTTT` | `FTTF` | index 3 newly false. Newly exempted — see the AC15 record below. |
 
-Both new composition cases now score full marks and both still report the
-defect their payload seeds.
+`hook-plugin-design` is **not** in that table, and the correction is worth
+keeping visible. The `r2` grading initially read index 3 as true and this
+table recorded the move; round 9 found the retained transcript does not carry
+it, so the verdict went back to `false` and the exemption was restored. The
+row stayed here saying the opposite for one round — the sixth stale-companion
+instance in this slice and the first created by the repair for a previous one.
+`hook-plugin-design` is `TTTFT` in both rounds.
+
+Both new composition cases report the defect their payload seeds.
+`subagent-composition` scored 5 of 5. `hook-plugin-design` scored 4 of 5, its
+index-3 miss exempted under the authority recorded below.
 
 **The new miss, and why it is exempted rather than repaired.**
 `node-browser-suite[3]` asks the response to bound at least one guarantee to

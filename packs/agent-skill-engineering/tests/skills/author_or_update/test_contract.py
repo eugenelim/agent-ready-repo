@@ -931,19 +931,25 @@ def test_every_declared_write_status_is_one_the_skill_can_emit() -> None:
     identically whether the skill is right or wrong.
     """
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    # Every such line, not the first. Taking the first match makes any earlier
-    # prose line the vocabulary -- an example offering a wider pipe-separated
-    # list would silently admit a value the receipt cannot carry, which is the
-    # thing this guard exists to stop.
+    # Scoped to the receipt section, not the whole body. A line read from
+    # anywhere in `SKILL.md` is not "the vocabulary the receipt declares": move
+    # the real line into a non-normative example and rename the receipt's own
+    # field, and a whole-body search still finds exactly one line with several
+    # values and stays green while the contract underneath it has changed.
+    receipt = re.search(
+        r"^## Completion receipt$(.*?)(?=^## |\Z)", body, re.M | re.S
+    )
+    assert receipt, "SKILL.md has no '## Completion receipt' section"
     lines = [
         candidate
-        for candidate in body.splitlines()
+        for candidate in receipt.group(1).splitlines()
         if candidate.startswith("Write status: ")
     ]
     assert len(lines) == 1, (
-        f"SKILL.md carries {len(lines)} lines beginning 'Write status: '; the "
-        "receipt vocabulary must have exactly one home, or this guard cannot "
-        "know which line is the contract"
+        f"the Completion receipt section carries {len(lines)} lines beginning "
+        "'Write status: '; the vocabulary must have exactly one home inside "
+        "the section that owns the contract, or this guard cannot know which "
+        "line is the contract"
     )
     line = lines[0]
     vocabulary = {value.strip() for value in line[len("Write status: "):].split("|")}
