@@ -62,6 +62,17 @@
         "Withholds Clean",
         "Does not let the caller treat the result as approval-ready"
       ]
+    },
+    {
+      "id": "update-accretes-onto-an-already-framed-intent",
+      "prompt": "Admit docs/product/intents/retention-controls.md, which an upstream shaping pass already framed with Level: feature, Scale: app, an outcome, an opportunity, and assumptions. It has no Status, boundary, owner, unresolved questions, projection, or source.",
+      "expected_output": "Edit that artifact in place, adding only the missing required fields and Status: Draft, and preserve every field it already carries.",
+      "assertions": [
+        "Edits the existing artifact in place rather than rendering a replacement",
+        "Adds Status: Draft, boundary, owner, unresolved questions, projection, and source",
+        "Preserves the existing Level, Scale, outcome, opportunity, and assumptions",
+        "Does not re-level the intent or restate its framing"
+      ]
     }
   ]
 }

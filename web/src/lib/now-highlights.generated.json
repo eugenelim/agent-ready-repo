@@ -5,6 +5,53 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.10"
+        }
+      ],
+      "date": "2026-09-10",
+      "heading": "[core][2.25.10] — 2026-09-10",
+      "changelogAnchor": "core22510--2026-09-10",
+      "highlights": [
+        {
+          "source": "**The directory your intents land in is now described in the conventions you install with them.** `CONVENTIONS.md` reads an intent on two axes: the altitude it sits at, and how far it has travelled from a framed bet to a ratified outcome. Only a feature-level intent becomes a spec directly.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The directory your intents land in is now described in the conventions you install with them."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "CONVENTIONS.md"
+            },
+            {
+              "type": "text",
+              "value": " reads an intent on two axes: the altitude it sits at, and how far it has travelled from a framed bet to a ratified outcome. Only a feature-level intent becomes a spec directly."
+            }
+          ]
+        },
+        {
+          "source": "**Admitting an intent that was already shaped upstream adds to it instead of overwriting it.** The outcome, altitude and assumptions you framed survive the handoff into repository work.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Admitting an intent that was already shaped upstream adds to it instead of overwriting it."
+            },
+            {
+              "type": "text",
+              "value": " The outcome, altitude and assumptions you framed survive the handoff into repository work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.9"
         }
       ],

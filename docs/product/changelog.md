@@ -54,6 +54,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.10] — 2026-09-10
+
+### Highlights
+
+- **The directory your intents land in is now described in the conventions you
+  install with them.** `CONVENTIONS.md` reads an intent on two axes: the
+  altitude it sits at, and how far it has travelled from a framed bet to a
+  ratified outcome. Only a feature-level intent becomes a spec directly.
+- **Admitting an intent that was already shaped upstream adds to it instead of
+  overwriting it.** The outcome, altitude and assumptions you framed survive
+  the handoff into repository work.
+
+### Added
+
+- `CONVENTIONS.md` § 5b documents `docs/product/intents/`. **Altitude** is the
+  `Level:` field, an open set running
+  `product-vision › product-strategy › capability › feature`: a feature intent
+  becomes a spec directly and that spec names it in its `Discovery:` header, a
+  higher altitude decomposes into child intents first, and `Level` stays absent
+  until the altitude is settled. **Stage** is which fields the artifact
+  carries — framed states the bet, admitted adds status, boundary, owner,
+  unresolved questions, projection and source, and ratified reaches
+  `Status: Accepted` after an independent shaping review and human
+  confirmation.
+
+### Changed
+
+- `intake-intent` now scopes its minimization rule to creation. Updating an
+  existing intent applies the missing required fields in place and keeps every
+  field already present, including an altitude an upstream shaping pass
+  stamped; the renderer's whole-document output never replaces an existing
+  intent. Previously the creation contract — write only the minimum, omit what
+  the source does not establish — read as licence to re-render over a framed
+  intent, dropping its opportunity, assumptions and altitude.
+- `CONVENTIONS.md` § Intent-scoped completion names which sense of "intent" it
+  governs: the agreed scope of a change, not the artifact class above.
+
 ## [core][2.25.9] — 2026-09-09
 
 ### Highlights

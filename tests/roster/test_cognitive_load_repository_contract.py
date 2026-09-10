@@ -161,6 +161,7 @@ def test_rule_linter_rejects_nested_topic_path(tmp_path: Path) -> None:
 _SYMLINK_SHIMS = ("CLAUDE.md", "web/CLAUDE.md", "docs-site/CLAUDE.md")
 _IMPORT_SHIMS = (
     "docs/CLAUDE.md",
+    "docs/product/CLAUDE.md",
     "guides/CLAUDE.md",
     "packages/CLAUDE.md",
     "packages/_example/CLAUDE.md",

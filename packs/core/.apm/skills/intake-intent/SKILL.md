@@ -45,7 +45,8 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 
 Write only the minimum needed for repository admission:
 
-- `Status` (`Draft` on creation);
+- `Status` — `Draft` on creation, and `Draft` when an update finds the field
+  absent; never re-level a status the artifact already carries;
 - outcome;
 - boundary;
 - owner;
@@ -59,7 +60,11 @@ product altitude to make the template look complete.
 
 When a repository intent already exists, update that artifact in place. Its
 path is its identity; do not create a renamed copy merely to match this pack's
-default `docs/product/intents/<slug>.md` convention.
+default `docs/product/intents/<slug>.md` convention. Minimization governs
+creation only. On an update, apply the missing required fields with `Edit` and
+keep every field already present, carrying an existing `Level` through rather
+than re-deriving it; the renderer emits a whole document and never replaces an
+existing intent.
 
 ### Source admission
 
@@ -98,10 +103,12 @@ destination, not permission to write or register it.
 3. Preserve an existing repository path; otherwise confirm the proposed
    repository-relative destination.
 4. Minimize source provenance without dereferencing it. Stop on a refusal.
-5. Render the required fields and only the optional fields supported by the
-   source.
-6. Write the confined artifact, then let the calling intake workflow register
-   one non-dispatchable pointer when registration was requested.
+5. For a new artifact, render the required fields and only the optional fields
+   supported by the source. For an existing one, do not render: apply the
+   missing required fields to that artifact with `Edit`.
+6. Write the confined artifact — the rendered new file, or the in-place edit —
+   then let the calling intake workflow register one non-dispatchable pointer
+   when registration was requested.
 7. Run the shaping-review gate below before an intent can become `Accepted`.
 8. Stop with the intent path, authority mode, changed state, verification, and
    remaining unresolved questions. Do not begin delivery work.

@@ -32,6 +32,12 @@ If the work only needs minimum repository admission before a solution artifact
 is selected, Core uses `intake-intent`. That route creates or updates the
 repository intent and stops after admission; it does not begin delivery work.
 
+When your shaped intent already sits at the destination path, admission
+**accretes**: Core adds the fields routing needs — status, boundary, owner,
+unresolved questions, projection, and source — to that artifact in place, and
+keeps the framing you wrote, including its altitude. It does not re-render the
+file or restate your outcome.
+
 The handoff supplies bounded context and provenance. It does not approve an
 artifact or skip a human gate, so continue only when Core shows the next route
 and its required approval.
