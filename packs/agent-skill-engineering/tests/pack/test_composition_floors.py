@@ -39,11 +39,20 @@ SUBJECT_COUNTS = {
 # length is pinned so a class cannot be dropped silently.
 FORBIDDEN_IDENTIFIER_CLASSES = (
     ("runtime-config-directory", re.compile(r"(?<![\w.])\.(?:claude|kiro|gemini|cursor|codex|antigravity)\b")),
-    ("runtime-settings-file", re.compile(r"\b(?:settings|hooks|plugin|mcp_config)\.json\b")),
+    ("runtime-settings-file", re.compile(r"\b(?:settings|hooks|mcp_config)\.json\b|(?<!\w)\.[a-z][\w.-]*/plugin\.json\b")),
     ("lifecycle-event-token", re.compile(r"\b(?:Pre|Post|User|Session|Stop|Notification)[A-Z][A-Za-z]+\b")),
     ("runtime-environment-variable", re.compile(r"\b[A-Z][A-Z0-9]*_(?:CODE|CLI|AGENT|SUBAGENT)_[A-Z0-9_]+\b")),
     ("runtime-home-path", re.compile(r"~/\.[a-z][\w.-]*")),
 )
+
+
+def _fired(specimen: str) -> list[str]:
+    """Return the forbidden identifier classes that match a specimen."""
+    return [
+        name
+        for name, pattern in FORBIDDEN_IDENTIFIER_CLASSES
+        if pattern.search(specimen)
+    ]
 
 
 def _collapse(text: str) -> str:
@@ -108,6 +117,123 @@ def test_the_delegation_floor_states_its_conservative_default(subjects) -> None:
     assert _collapse(floor["conservative_default"]) in body
 
 
+def test_the_delegation_floor_does_not_require_a_profile_for_unanswered_questions() -> None:
+    """An unavailable profile is not the sole resolution route."""
+    body = _collapse(_body("skills-and-subagents-common-floor"))
+    assert _collapse(
+        "Record it as unresolved and consult the runtime profile."
+    ) not in body
+
+
+def test_the_delegation_floor_resolves_an_unanswerable_capability_conservatively() -> None:
+    """An unanswerable capability remains with the parent as absent."""
+    body = _collapse(_body("skills-and-subagents-common-floor"))
+    assert _collapse(
+        "A capability question the floor cannot answer and no runtime profile covers "
+        "is treated as absent rather than assumed present."
+    ) in body
+    assert _collapse("The operation stays in the parent.") in body
+
+
+def test_the_delegation_floor_states_the_outbound_context_boundary() -> None:
+    """A worker receives only the context its parent passes."""
+    body = _collapse(_body("skills-and-subagents-common-floor"))
+    outbound = (
+        "The worker receives only the context the parent passes it, not the "
+        "parent's conversation."
+    )
+    assert _collapse(outbound) in body
+
+
+def test_the_delegation_floor_states_the_inbound_result_boundary() -> None:
+    """A parent receives only the worker's declared result."""
+    body = _collapse(_body("skills-and-subagents-common-floor"))
+    inbound = (
+        "The parent receives only the worker's declared result, and the worker's "
+        "intermediate reads do not return."
+    )
+    assert _collapse(inbound) in body
+
+
+def _reader_facing(slug: str) -> str:
+    """Return a floor body with its provenance section removed.
+
+    A provenance block restates its group's clause verbatim, so an assertion
+    over the whole file is discharged by that copy and cannot fail on the
+    reader-facing placement it claims to guard. These checks are about what a
+    reader of the floor is told, which is everything above
+    `## Provenance and lifecycle`.
+    """
+    return _collapse(_body(slug).split("## Provenance and lifecycle")[0])
+
+
+@pytest.mark.parametrize(
+    ("behavior", "expected"),
+    [
+        pytest.param(
+            "root-manifest",
+            "The manifest is `plugin.json` at the plugin root.",
+            id="root-manifest",
+        ),
+        pytest.param(
+            "path-confinement",
+            "Every package-supplied path a client reads or executes resolves "
+            "within the filesystem-resolved plugin root.",
+            id="path-confinement",
+        ),
+        pytest.param(
+            "recommended-semantic-versioning",
+            "`version` uses semantic versioning as a recommendation, and a client "
+            "does not reject a plugin for a version string that fails it.",
+            id="recommended-semantic-versioning",
+        ),
+        pytest.param(
+            "isolated-failure",
+            "A failure isolated to a component type, entry, or process still "
+            "leaves independently valid components loadable.",
+            id="isolated-failure",
+        ),
+    ],
+)
+def test_the_plugin_floor_states_each_portable_core_behavior(
+    behavior: str, expected: str
+) -> None:
+    """Each specification-fixed behavior remains independently detectable."""
+    assert _collapse(expected) in _reader_facing("plugin-package-common-floor"), behavior
+
+
+def test_the_plugin_floor_does_not_defer_manifest_shape() -> None:
+    """Neither retired manifest-deferral sentence survives in the floor."""
+    body = _collapse(_body("plugin-package-common-floor"))
+    forbidden = (
+        "leaves the manifest to the runtime profile",
+        "manifest shape, install commands, and enablement behavior are "
+        "runtime-specific and are deliberately absent here",
+    )
+    present = [sentence for sentence in forbidden if _collapse(sentence) in body]
+    assert not present, present
+
+
+@pytest.mark.parametrize(
+    "concern",
+    (
+        "installation",
+        "discovery location",
+        "distribution",
+        "enablement",
+        "permissions",
+        "sandboxing",
+        "user experience",
+    ),
+)
+def test_the_plugin_floor_keeps_each_delegated_concern_client_owned(
+    concern: str,
+) -> None:
+    """Each client-delegated concern has its own regression signal."""
+    body = _collapse(_body("plugin-package-common-floor"))
+    assert _collapse(f"A client owns {concern}.") in body, concern
+
+
 def test_the_hooks_floor_states_its_degradation_behaviour(subjects) -> None:
     """RFC-0097 D3 requires a hook recommendation to state the degradation when
     a runtime lacks the capability. Without this the floor can pass subject
@@ -164,6 +290,23 @@ def test_each_forbidden_class_fires_on_its_own_specimen(name, specimen) -> None:
         if pattern.search(specimen)
     ]
     assert matched == [name], (name, specimen, matched)
+
+
+def test_the_guard_admits_the_specification_filename() -> None:
+    # red at the accepted base: `runtime-settings-file` fires on the bare name
+    assert _fired("the manifest is plugin.json at the plugin root") == []
+
+
+def test_the_guard_flags_a_runtime_owned_manifest() -> None:
+    # green before and after: the erosion control on the narrowed class.
+    # Membership, not equality: this specimen names a runtime directory too,
+    # so `runtime-config-directory` fires on it as well, correctly and
+    # irrelevantly to this control. A measured probe of the base predicate
+    # returned both class names for it, which is how the first draft of this
+    # stub — asserting an exact single-element list — was caught.
+    assert "runtime-settings-file" in _fired(
+        "its manifest lives at .claude-plugin/plugin.json"
+    )
 
 
 def test_the_forbidden_class_tuple_is_pinned() -> None:

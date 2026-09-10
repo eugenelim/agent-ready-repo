@@ -1,9 +1,9 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-31",
-  "source_digest": "sha256:5b3038ca46dc89b93dbbcb6b32c91f0924eb964c44375959993fa5260d43c129",
-  "router_digest": "sha256:575aeb694153a7ff472c0f0701ac538df97a8bdc6f8f135374bf610609f1e39e",
-  "generated_tree_digest": "sha256:09998130a6b239f3d10de2c01ac7b882d8214e5fa357a21796c03ee8af36b2ca",
+  "evaluated_at": "2026-09-09",
+  "source_digest": "sha256:b87ff5944f46be8dce3106494af05767c81228131a15a9a4c7f4df9491aeed59",
+  "router_digest": "sha256:c626bd7f5561e1cab8a67e292d665919aa4bbedc5e084a0cbd49e02140c6b9f9",
+  "generated_tree_digest": "sha256:f01b15ec9cda4a62e4ffea58f78654b2f235418b614264eb074822d39a0c0ce0",
   "case_fixture_digest": "sha256:56928b600f0e21e4b6fc0ad0f0c35c072394a551a2e353b28a74f87d6349c527",
   "results": [
     {
@@ -33,8 +33,7 @@
     {
       "id": "authorization-at-trigger",
       "actual_topics": [
-        "framing-and-trigger-quality",
-        "activation-discoverability-and-mode-wayfinding"
+        "framing-and-trigger-quality"
       ]
     },
     {
@@ -58,14 +57,12 @@
     {
       "id": "mode-loading",
       "actual_topics": [
-        "instruction-density-and-progressive-disclosure",
-        "activation-discoverability-and-mode-wayfinding"
+        "instruction-density-and-progressive-disclosure"
       ]
     },
     {
       "id": "asset-or-reference",
       "actual_topics": [
-        "resources-scripts-and-exit-contracts",
         "instruction-density-and-progressive-disclosure"
       ]
     },
@@ -96,13 +93,13 @@
     {
       "id": "python-extension",
       "actual_topics": [
-        "python-and-pytest"
+        "resources-scripts-and-exit-contracts"
       ]
     },
     {
       "id": "node-extension",
       "actual_topics": [
-        "typescript-node-and-javascript-test-runners"
+        "resources-scripts-and-exit-contracts"
       ]
     },
     {
@@ -154,8 +151,7 @@
     {
       "id": "depth-library-root-index",
       "actual_topics": [
-        "depth-libraries-and-okf-knowledge-providers",
-        "instruction-density-and-progressive-disclosure"
+        "depth-libraries-and-okf-knowledge-providers"
       ]
     },
     {
@@ -253,8 +249,7 @@
     {
       "id": "node-runner-workers",
       "actual_topics": [
-        "typescript-node-and-javascript-test-runners",
-        "worktrees-state-locks-and-shared-host-admission"
+        "typescript-node-and-javascript-test-runners"
       ]
     },
     {
@@ -339,7 +334,8 @@
     {
       "id": "nm-python-vs-node",
       "actual_topics": [
-        "worktrees-state-locks-and-shared-host-admission"
+        "python-and-pytest",
+        "typescript-node-and-javascript-test-runners"
       ]
     },
     {
@@ -352,8 +348,7 @@
     {
       "id": "nm-ci-vs-lock",
       "actual_topics": [
-        "worktrees-state-locks-and-shared-host-admission",
-        "pack-and-ci-critical-paths"
+        "worktrees-state-locks-and-shared-host-admission"
       ]
     },
     {
@@ -372,8 +367,7 @@
     {
       "id": "delegate-write-ownership",
       "actual_topics": [
-        "skills-and-subagents-common-floor",
-        "worktrees-state-locks-and-shared-host-admission"
+        "skills-and-subagents-common-floor"
       ]
     },
     {
@@ -385,8 +379,7 @@
     {
       "id": "delegate-partial-failure",
       "actual_topics": [
-        "skills-and-subagents-common-floor",
-        "progressive-result-presentation-and-next-actions"
+        "skills-and-subagents-common-floor"
       ]
     },
     {
@@ -404,8 +397,7 @@
     {
       "id": "hook-untrusted-config",
       "actual_topics": [
-        "hooks-common-floor",
-        "trust-boundaries-and-instruction-provenance"
+        "hooks-common-floor"
       ]
     },
     {
@@ -453,8 +445,7 @@
     {
       "id": "claude-code-parallel-sessions",
       "actual_topics": [
-        "claude-code-skills-subagents-hooks-and-plugins",
-        "worktrees-state-locks-and-shared-host-admission"
+        "claude-code-skills-subagents-hooks-and-plugins"
       ]
     },
     {
@@ -496,15 +487,13 @@
     {
       "id": "depth-library-inert-activation",
       "actual_topics": [
-        "depth-libraries-and-okf-knowledge-providers",
-        "framing-and-trigger-quality"
+        "depth-libraries-and-okf-knowledge-providers"
       ]
     },
     {
       "id": "depth-library-matched-modules",
       "actual_topics": [
-        "depth-libraries-and-okf-knowledge-providers",
-        "instruction-density-and-progressive-disclosure"
+        "depth-libraries-and-okf-knowledge-providers"
       ]
     },
     {

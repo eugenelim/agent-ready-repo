@@ -10,9 +10,18 @@ license: Apache-2.0 OR MIT
 ## Scope and routing signals
 
 Use when a set of skills and adjacent components is about to be distributed as
-one installable unit. A package is a distribution container, not a universal
-manifest, so the floor covers what any container must answer and leaves the
-manifest to the runtime profile.
+one installable unit. The portable package contract stands without a runtime
+profile. The manifest is `plugin.json` at the plugin root. Every
+package-supplied path a client reads or executes resolves within the
+filesystem-resolved plugin root. `version` uses semantic versioning as a
+recommendation, and a client does not reject a plugin for a version string that
+fails it. A failure isolated to a component type, entry, or process still leaves
+independently valid components loadable.
+
+Clients decide how to realize the concerns that the portable contract delegates.
+A client owns installation. A client owns discovery location. A client owns
+distribution. A client owns enablement. A client owns permissions. A client owns
+sandboxing. A client owns user experience.
 
 ## Decisions and minimum evidence
 
@@ -63,10 +72,25 @@ For the components a package most often carries, consult
 
 ## Provenance and lifecycle
 
-Portable floor for the agent-skill-engineering pack. Maintain as governed OKF
-source; generated router copies are not authoring surfaces. Manifest shape,
-install commands, and enablement behavior are runtime-specific and are
-deliberately absent here.
+**portable plugin core contract:**
+
+The manifest is `plugin.json` at the plugin root. Every package-supplied path a
+client reads or executes resolves within the filesystem-resolved plugin root.
+`version` uses semantic versioning as a recommendation, and a client does not
+reject a plugin for a version string that fails it. A failure isolated to a
+component type, entry, or process still leaves independently valid components
+loadable.
+
+Last verified: 2026-09-09. Revalidate when the Agent Plugins specification or
+either conforming runtime changes its plugin contract.
+
+- Agent Plugins specification — https://agent-plugins.org/specification
+  Retrieved 2026-09-09; version 1.0.0.
+- OpenAI plugin build documentation —
+  https://developers.openai.com/plugins/build/plugins
+  Retrieved 2026-09-09; none exposed.
+- Kiro Powers creation documentation — https://kiro.dev/docs/powers/create/
+  Retrieved 2026-09-09; last updated 2026-08-04.
 
 **Applicability limit:** This guidance is an observed practice from the 23 packs
 in the catalogue that developed this pack and ship a package manifest, censused

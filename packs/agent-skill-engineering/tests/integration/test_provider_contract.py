@@ -9,6 +9,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 # Anchored literally so every path this suite opens is statically confined.
 PROVIDER_CONTRACT_MD = (
@@ -518,6 +520,11 @@ def test_language_extension_families_are_distinct_and_populated() -> None:
         "Neither has a language-specific topic body",
         "not active foundation modes",
         "future extension families",
+        "Reserved for the later slice that covers runtime composition",
+        "Seven further runtime profiles, the router's per-claim state reporting, "
+        "provider authoring, runtime packaging, installation, projection, "
+        "publication, and catalogue governance belong to later slices or external "
+        "delivery tooling",
     )
     for label, path in shipped.items():
         # Collapsed, not raw. These are absence assertions over hard-wrapped
@@ -554,6 +561,58 @@ def test_language_extension_families_are_distinct_and_populated() -> None:
     seam = shipped["seam reference"].read_text(encoding="utf-8")
     assert "version range" in seam
     assert "portable floor" in seam
+
+
+def test_architecture_does_not_reserve_the_eight_profile_slice() -> None:
+    """AC11: the architecture has its own future-profile promise to remove."""
+
+    architecture = (
+        Path(__file__).resolve().parents[4]
+        / "docs"
+        / "architecture"
+        / "agent-skill-engineering.md"
+    )
+    body = " ".join(architecture.read_text(encoding="utf-8").split())
+    assert "belong to the slice that completes the eight profiles" not in body
+
+
+def test_readme_plugin_core_agrees_with_package_floor() -> None:
+    """The README may advertise the portable plugin core only when its floor exists."""
+
+    pack_root = Path(__file__).resolve().parents[2]
+    readme = pack_root / "README.md"
+    package_floor = (
+        pack_root
+        / "okf"
+        / "agent-skill-engineering-foundation"
+        / "concepts"
+        / "plugin-package-common-floor.md"
+    )
+    assert "portable plugin core" in readme.read_text(encoding="utf-8")
+    assert "portable plugin core contract:" in package_floor.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "fact",
+    (
+        "Slice 3 now has portable skills-and-subagents, hooks, and plugin-package floors, "
+        "plus the Claude Code runtime profile.",
+        "are retired to open extension rather than delivery obligations.",
+        "belong to the `3c-r` row of "
+        "`docs/product/briefs/agent-skill-engineering.md`, scoped to the shipped ledger.",
+    ),
+)
+def test_architecture_states_slice_three_runtime_profile_facts(fact: str) -> None:
+    """The planned architecture records the implemented slice without reserving it."""
+
+    architecture = (
+        Path(__file__).resolve().parents[4]
+        / "docs"
+        / "architecture"
+        / "agent-skill-engineering.md"
+    )
+    body = " ".join(architecture.read_text(encoding="utf-8").split())
+    assert fact in body, fact
 
 
 def test_provider_pattern_failure_surfaces_conform_as_declared() -> None:

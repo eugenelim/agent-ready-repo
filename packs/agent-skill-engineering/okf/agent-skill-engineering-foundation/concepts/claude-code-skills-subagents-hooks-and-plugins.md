@@ -31,12 +31,21 @@ precedence. Treat the second group as reported behavior, not as support.
 
 ## Construction method
 
-Delegate to a subagent when the work is bounded and its intermediate reads
-should not reach the main context, because a non-fork subagent starts from a
-fresh context window rather than inheriting the conversation. Keep long
-reference material in a skill body rather than in always-loaded context, because
-the body enters context only on invocation. Use a separate worktree when two
-sessions would otherwise edit one checkout.
+Delegate bounded work through `agents/` when its intermediate reads should not
+reach the main context, because a non-fork subagent starts from a fresh context
+window rather than inheriting the conversation. Keep long reference material in
+`skills/` rather than in always-loaded context, because a skill body enters
+context only on invocation. Use a separate worktree when two sessions would
+otherwise edit one checkout.
+
+## Packaging and components
+
+Claude Code reads its plugin manifest from a client-specific location beside the
+package root rather than at the root. The specification's root-manifest filename
+is `plugin.json`. A package carrying its manifest only at the plugin root is not
+discovered by this runtime.
+Package components can include `agents/`, `skills/`, and `hooks/`; keep each
+component's behavior and failure handling scoped to that component.
 
 ## Evidence and evaluation
 
@@ -74,12 +83,14 @@ freshness is independent of the portable floors, and every operative claim
 carries its own state.
 
 **delegation and skill-loading contract:**
-Delegated work runs in a fresh context window that does not inherit the parent conversation, and a skill's body enters context only when the skill is invoked.
-Last verified: 2026-08-31.
-Revalidate when a release changes subagent context construction or skill body loading.
+Delegated work runs in a fresh context window that does not inherit the parent conversation, a skill's body enters context only when the skill is invoked, and Claude Code reads its plugin manifest from a client-specific location beside the package root rather than at the root; the specification's root-manifest filename is `plugin.json`; a package carrying its manifest only at the plugin root is not discovered by this runtime.
+Last verified: 2026-09-09.
+Revalidate when a release changes subagent context construction, skill body loading, or plugin manifest discovery.
 Ecosystem: Claude Code.
 Version range: Claude Code >= 2.1.251, upper bound open.
 Claude Code subagents reference — https://code.claude.com/docs/en/sub-agents
 Retrieved at: 2026-08-31. Version state: 2.1.251.
 Claude Code skills reference — https://code.claude.com/docs/en/skills
 Retrieved at: 2026-08-31. Version state: none exposed.
+Claude Code plugins reference — https://code.claude.com/docs/en/plugins
+Retrieved at: 2026-09-09. Version state: none exposed.

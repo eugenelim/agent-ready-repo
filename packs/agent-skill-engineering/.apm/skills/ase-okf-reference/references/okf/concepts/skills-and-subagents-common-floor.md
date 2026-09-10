@@ -27,14 +27,19 @@ behavior, result contract, and synthesis owner apply? How are duplicate
 exploration, conflicting writes, partial failures, and cancellation handled?
 
 An answer that the floor cannot supply is a runtime question, not a gap in the
-design. Record it as unresolved and consult the runtime profile.
+design. Consult the runtime profile where one covers it. A capability question
+the floor cannot answer and no runtime profile covers is treated as absent
+rather than assumed present. The operation stays in the parent.
 
 ## Construction method
 
 Default conservatively. Delegate bounded, independent work. Prefer read-heavy
 parallelism. Assign explicit ownership before any parallel write. Pass only the
 skill context the delegate needs. Cap concurrency. Require a structured result
-rather than free prose. Keep final synthesis and authority in the parent loop.
+rather than free prose. The worker receives only the context the parent passes
+it, not the parent's conversation. The parent receives only the worker's
+declared result, and the worker's intermediate reads do not return. Keep final
+synthesis and authority in the parent loop.
 
 ## Evidence and evaluation
 

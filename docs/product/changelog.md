@@ -324,6 +324,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pack.toml` declares the matching `handoff` integration.
 - Two eval cases covering the relevant-topic and the absent-or-refused paths.
 
+## [agent-skill-engineering][0.4.2] — 2026-09-09
+
+### Highlights
+
+- A skill author deciding whether to hand work to an isolated worker, or whether
+  to ship a set of components as one package, now gets those concepts from the
+  corpus instead of being routed to a runtime profile that does not exist.
+
+### Added
+
+- The portable package floor states the four behaviours the Agent Plugins v1
+  portable core fixes for every conforming client: the manifest's filename and
+  its location at the package root, confinement of every package-supplied path
+  to the resolved package root, semantic versioning as a recommendation a client
+  may not reject a package for failing, and component-level failure isolation
+  under which one failing component still leaves independently valid components
+  loadable. All seven concerns the specification delegates to clients are named
+  as client-owned.
+- The portable delegation floor states the value crossing at each direction of
+  the delegation boundary — the worker receives only the context the parent
+  passes it and not the parent's conversation; the parent receives only the
+  worker's declared result, and the worker's intermediate reads do not return.
+- The Claude Code profile states the one runtime divergence that changes an
+  authoring decision: this runtime reads its plugin manifest from a
+  client-specific location beside the package root rather than at the root, so a
+  package carrying its manifest only at the root is not discovered here. It
+  teaches the delegation and packaging concepts through this runtime's own
+  component surfaces.
+
+### Changed
+
+- An unanswerable capability question now has a stated conservative resolution
+  rather than only a pointer to a runtime profile: it is treated as absent
+  rather than assumed present, and the operation stays in the parent.
+- Runtime profiles beyond Claude Code are recorded as open extension rather than
+  reserved for later delivery. Each names an admission condition a contributor
+  can satisfy from outside any delivery sequence.
+- Both retrieval records were re-measured against the recompiled router by an
+  independent read-only reader. Precision 1.000, recall 0.910, exact selection
+  0.907, bounded selection 1.000, against a floor of 0.90 on each; the
+  forty-prompt negative set still answers nothing.
+
 ## [agent-skill-engineering][0.4.1] — 2026-09-04
 
 ### Highlights

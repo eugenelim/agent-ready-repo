@@ -133,17 +133,17 @@
           "ecosystem": "pytest and CPython",
           "sources": [
             {
-              "identity": "pytest documentation \u2014 https://docs.pytest.org/en/stable/explanation/pythonpath.html",
+              "identity": "pytest documentation — https://docs.pytest.org/en/stable/explanation/pythonpath.html",
               "retrieved_at": "2026-08-30",
               "version": "9.1.1"
             },
             {
-              "identity": "CPython unittest documentation \u2014 https://docs.python.org/3/library/unittest.html",
+              "identity": "CPython unittest documentation — https://docs.python.org/3/library/unittest.html",
               "retrieved_at": "2026-08-30",
               "version": "3.14.7"
             },
             {
-              "identity": "CPython tempfile documentation \u2014 https://docs.python.org/3/library/tempfile.html",
+              "identity": "CPython tempfile documentation — https://docs.python.org/3/library/tempfile.html",
               "retrieved_at": "2026-08-30",
               "version": "3.14.7"
             }
@@ -167,27 +167,27 @@
           "ecosystem": "Node.js and Playwright",
           "sources": [
             {
-              "identity": "Node.js test runner documentation \u2014 https://nodejs.org/api/test.html",
+              "identity": "Node.js test runner documentation — https://nodejs.org/api/test.html",
               "retrieved_at": "2026-08-30",
               "version": "26.8.1"
             },
             {
-              "identity": "Playwright parallelism documentation \u2014 https://playwright.dev/docs/test-parallel",
+              "identity": "Playwright parallelism documentation — https://playwright.dev/docs/test-parallel",
               "retrieved_at": "2026-08-30",
               "version": "1.62"
             },
             {
-              "identity": "Node.js packages documentation \u2014 https://nodejs.org/api/packages.html",
+              "identity": "Node.js packages documentation — https://nodejs.org/api/packages.html",
               "retrieved_at": "2026-08-30",
               "version": "26.8.1"
             },
             {
-              "identity": "Node.js child process documentation \u2014 https://nodejs.org/api/child_process.html",
+              "identity": "Node.js child process documentation — https://nodejs.org/api/child_process.html",
               "retrieved_at": "2026-08-30",
               "version": "26.8.1"
             },
             {
-              "identity": "npm ci documentation \u2014 https://docs.npmjs.com/cli/v11/commands/npm-ci/",
+              "identity": "npm ci documentation — https://docs.npmjs.com/cli/v11/commands/npm-ci/",
               "retrieved_at": "2026-08-30",
               "version_state": "none exposed"
             }
@@ -249,12 +249,12 @@
           ],
           "sources": [
             {
-              "identity": "GitHub Actions workflow syntax \u2014 https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+              "identity": "GitHub Actions workflow syntax — https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
               "retrieved_at": "2026-08-30",
               "version_state": "none exposed"
             },
             {
-              "identity": "GitLab CI needs documentation \u2014 https://docs.gitlab.com/ci/yaml/needs/",
+              "identity": "GitLab CI needs documentation — https://docs.gitlab.com/ci/yaml/needs/",
               "retrieved_at": "2026-08-30",
               "version_state": "none exposed"
             }
@@ -278,12 +278,12 @@
           ],
           "sources": [
             {
-              "identity": "GitHub Actions dependency caching \u2014 https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching",
+              "identity": "GitHub Actions dependency caching — https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching",
               "retrieved_at": "2026-08-30",
               "version_state": "none exposed"
             },
             {
-              "identity": "GitLab CI caching documentation \u2014 https://docs.gitlab.com/ci/caching/",
+              "identity": "GitLab CI caching documentation — https://docs.gitlab.com/ci/caching/",
               "retrieved_at": "2026-08-30",
               "version_state": "none exposed"
             }
@@ -300,7 +300,7 @@
               "mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.",
               "subsystem": "build gate",
               "observed_at": "2026-08-17",
-              "detail": "job split cut the measured critical path from 430\u2013450s to 185s and stopped when coordination dominated"
+              "detail": "job split cut the measured critical path from 430–450s to 185s and stopped when coordination dominated"
             },
             {
               "mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.",
@@ -363,7 +363,7 @@
     {
       "topic": "plugin-package-common-floor",
       "reviewer": "foundation-corpus-reviewer",
-      "last_verified": "2026-08-31",
+      "last_verified": "2026-09-09",
       "claim_groups": [
         {
           "name": "package container floor",
@@ -374,6 +374,40 @@
           ],
           "applicability_limit": "This guidance is an observed practice from the 23 packs in the catalogue that developed this pack and ship a package manifest, censused on 2026-08-31. It is not established beyond that population.",
           "revalidation_trigger": "Revalidate when the package-manifest census changes or a claim is promoted to doctrine."
+        },
+        {
+          "name": "portable plugin core contract",
+          "basis": "doctrine",
+          "promotion_class": "two-runtime-public-contract",
+          "clause": "The manifest is `plugin.json` at the plugin root. Every package-supplied path a client reads or executes resolves within the filesystem-resolved plugin root. `version` uses semantic versioning as a recommendation, and a client does not reject a plugin for a version string that fails it. A failure isolated to a component type, entry, or process still leaves independently valid components loadable.",
+          "runtimes": [
+            {
+              "runtime": "OpenAI Codex",
+              "clause": "The manifest is `plugin.json` at the plugin root. Every package-supplied path a client reads or executes resolves within the filesystem-resolved plugin root. `version` uses semantic versioning as a recommendation, and a client does not reject a plugin for a version string that fails it. A failure isolated to a component type, entry, or process still leaves independently valid components loadable."
+            },
+            {
+              "runtime": "Kiro",
+              "clause": "The manifest is `plugin.json` at the plugin root. Every package-supplied path a client reads or executes resolves within the filesystem-resolved plugin root. `version` uses semantic versioning as a recommendation, and a client does not reject a plugin for a version string that fails it. A failure isolated to a component type, entry, or process still leaves independently valid components loadable."
+            }
+          ],
+          "sources": [
+            {
+              "identity": "Agent Plugins specification — https://agent-plugins.org/specification",
+              "retrieved_at": "2026-09-09",
+              "version": "1.0.0"
+            },
+            {
+              "identity": "OpenAI plugin build documentation — https://developers.openai.com/plugins/build/plugins",
+              "retrieved_at": "2026-09-09",
+              "version_state": "none exposed"
+            },
+            {
+              "identity": "Kiro Powers creation documentation — https://kiro.dev/docs/powers/create/",
+              "retrieved_at": "2026-09-09",
+              "last_updated": "2026-08-04"
+            }
+          ],
+          "revalidation_trigger": "Revalidate when the Agent Plugins specification or either conforming runtime changes its plugin contract."
         }
       ]
     },
@@ -399,12 +433,12 @@
           ],
           "sources": [
             {
-              "identity": "Claude Code hooks reference \u2014 https://code.claude.com/docs/en/hooks",
+              "identity": "Claude Code hooks reference — https://code.claude.com/docs/en/hooks",
               "retrieved_at": "2026-08-31",
               "version_state": "none exposed"
             },
             {
-              "identity": "Kiro hooks documentation \u2014 https://kiro.dev/docs/hooks/",
+              "identity": "Kiro hooks documentation — https://kiro.dev/docs/hooks/",
               "retrieved_at": "2026-08-31",
               "last_updated": "2026-08-21"
             }
@@ -416,29 +450,34 @@
     {
       "topic": "claude-code-skills-subagents-hooks-and-plugins",
       "reviewer": "foundation-corpus-reviewer",
-      "last_verified": "2026-08-31",
+      "last_verified": "2026-09-09",
       "claim_groups": [
         {
           "name": "delegation and skill-loading contract",
           "basis": "doctrine",
           "promotion_class": "single-ecosystem-contract",
-          "clause": "Delegated work runs in a fresh context window that does not inherit the parent conversation, and a skill's body enters context only when the skill is invoked.",
+          "clause": "Delegated work runs in a fresh context window that does not inherit the parent conversation, a skill's body enters context only when the skill is invoked, and Claude Code reads its plugin manifest from a client-specific location beside the package root rather than at the root; the specification's root-manifest filename is `plugin.json`; a package carrying its manifest only at the plugin root is not discovered by this runtime.",
           "ecosystem": "Claude Code.",
           "version_range": "Claude Code >= 2.1.251, upper bound open.",
           "fixture": "claude-code-capability-probes",
           "sources": [
             {
-              "identity": "Claude Code subagents reference \u2014 https://code.claude.com/docs/en/sub-agents",
+              "identity": "Claude Code subagents reference — https://code.claude.com/docs/en/sub-agents",
               "retrieved_at": "2026-08-31",
               "version": "2.1.251"
             },
             {
-              "identity": "Claude Code skills reference \u2014 https://code.claude.com/docs/en/skills",
+              "identity": "Claude Code skills reference — https://code.claude.com/docs/en/skills",
               "retrieved_at": "2026-08-31",
+              "version_state": "none exposed"
+            },
+            {
+              "identity": "Claude Code plugins reference — https://code.claude.com/docs/en/plugins",
+              "retrieved_at": "2026-09-09",
               "version_state": "none exposed"
             }
           ],
-          "revalidation_trigger": "Revalidate when a release changes subagent context construction or skill body loading."
+          "revalidation_trigger": "Revalidate when a release changes subagent context construction, skill body loading, or plugin manifest discovery."
         }
       ]
     }
