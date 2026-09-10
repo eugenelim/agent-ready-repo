@@ -54,6 +54,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.11] — 2026-09-10
+
+### Highlights
+
+- **Checking where the work stands costs a fraction of what it did.** The
+  orientation payload now carries the decisions you act on rather than the full
+  working set behind them, and the saving grows with the size of your
+  workspace. Ask for the long form when you want it.
+- **The spec and traceability checks report what they found instead of listing
+  it.** A passing run prints its summary lines and says how many items it
+  withheld, so nothing goes quietly missing. Anything that fails still prints
+  in full.
+
+### Changed
+
+- `workspace-status`: the `status` subcommand no longer emits
+  `canonical.evaluations`. Every dispatch decision it carried is already in
+  `canonical.ready`, `.active`, `.blocked`, and `.findings`, and the list grows
+  with the workspace. Pass `--include-evaluations` to restore it; `reconcile`
+  and `explain` are unchanged and still carry it.
+- `workspace-status`: `repo_backlog.open` entries now carry only `room`,
+  `slug`-or-`path`, `summary`, and `needs` — the fields a consumer renders plus
+  the dependency list. The `kind`, `entry_type`, and `source` keys had no
+  reader. This applies to every mode, so `reconcile` and `status` stay in
+  agreement.
+- `work-loop`: `lint-spec-status.py` counts warn-only findings instead of
+  listing them, and names the count in its clean summary. `--verbose` restores
+  the full listing. A run with a hard violation still lists everything,
+  warnings included.
+- `work-loop`: `lint-traceability.py` withholds its per-item detail lines on a
+  passing run, printing its summary lines plus a count of what it withheld.
+  `--verbose` restores them, and any non-zero exit prints in full.
+
 ## [core][2.25.10] — 2026-09-10
 
 ### Highlights

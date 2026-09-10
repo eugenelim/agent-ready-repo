@@ -140,6 +140,12 @@ canonical.active                 — canonical valid work.active specs; resumabl
 canonical.blocked                — canonical non-dispatchable entries and retained legacy memberships
 canonical.findings               — stable finding code/path/dispatchable/next_action records (no raw artifact text)
 canonical.legacy_memberships     — retained legacy context; always non-dispatchable
+canonical.evaluations            — full per-entry evaluation list. Omitted by `status`,
+                                   which is the orientation mode: every dispatch decision
+                                   it carries is already in ready/active/blocked/findings,
+                                   and it grows with the workspace. Pass
+                                   `--include-evaluations` to restore it; `reconcile` and
+                                   `explain` always carry it.
 canonical.*[].origin_mode        — repository or tracker origin from structured provenance
 canonical.*[].profile            — active tracker profile id/version when declared
 canonical.*[].refresh            — compared/accepted revisions, unresolved-conflict flag,
@@ -478,7 +484,9 @@ render:
   ...
 ```
 
-Prefix each entry with its declared `room` (`[shape]` or `[build]`). Display
+Each entry carries exactly `room`, `slug`-or-`path`, `summary`, and `needs` —
+the fields rendered here plus the dependency list. Prefix each entry with its
+declared `room` (`[shape]` or `[build]`). Display
 `slug` when present, otherwise display `path` (target five-field entries use
 `path`). Iterate in array order. Use `summary` from the JSON when present. Only
 when a legacy `slug`

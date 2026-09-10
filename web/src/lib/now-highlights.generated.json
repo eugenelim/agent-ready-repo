@@ -5,6 +5,45 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.11"
+        }
+      ],
+      "date": "2026-09-10",
+      "heading": "[core][2.25.11] — 2026-09-10",
+      "changelogAnchor": "core22511--2026-09-10",
+      "highlights": [
+        {
+          "source": "**Checking where the work stands costs a fraction of what it did.** The orientation payload now carries the decisions you act on rather than the full working set behind them, and the saving grows with the size of your workspace. Ask for the long form when you want it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Checking where the work stands costs a fraction of what it did."
+            },
+            {
+              "type": "text",
+              "value": " The orientation payload now carries the decisions you act on rather than the full working set behind them, and the saving grows with the size of your workspace. Ask for the long form when you want it."
+            }
+          ]
+        },
+        {
+          "source": "**The spec and traceability checks report what they found instead of listing it.** A passing run prints its summary lines and says how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The spec and traceability checks report what they found instead of listing it."
+            },
+            {
+              "type": "text",
+              "value": " A passing run prints its summary lines and says how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.10"
         }
       ],

@@ -250,7 +250,9 @@ shipped = []
         )
         self._make_canonical_spec(root, "example", "Approved")
 
-        result = _run_cli("status", "--root", str(root))
+        # canonical.evaluations is opt-in in status mode; this case is about the
+        # metadata each evaluation carries, so it asks for the full payload.
+        result = _run_cli("status", "--include-evaluations", "--root", str(root))
 
         self.assertEqual(result.returncode, 0, result.stderr)
         item = json.loads(result.stdout)["canonical"]["evaluations"][0]
@@ -277,7 +279,7 @@ shipped = []
 """
         )
 
-        result = _run_cli("status", "--root", str(root))
+        result = _run_cli("status", "--include-evaluations", "--root", str(root))
 
         self.assertEqual(result.returncode, 0, result.stderr)
         canonical = json.loads(result.stdout)["canonical"]
@@ -343,7 +345,7 @@ status = "unresolved"
         )
         (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
 
-        result = _run_cli("status", "--root", str(root))
+        result = _run_cli("status", "--include-evaluations", "--root", str(root))
 
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
@@ -877,7 +879,9 @@ backlog = []
 """
         )
 
-        result = _run_cli("status", "--root", str(root))
+        # --include-evaluations on purpose: the sanitization contract has to hold
+        # on the widest payload, not only on the narrowed default.
+        result = _run_cli("status", "--include-evaluations", "--root", str(root))
 
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
@@ -1576,15 +1580,12 @@ class RepoBacklogContractTests(_CliBase):
                     "slug": "example-build",
                     "room": "build",
                     "needs": ["backlog:prerequisite"],
-                    "source": "spec/example",
                     "summary": "Implement the example",
                 },
                 {
                     "slug": "example-shape",
                     "room": "shape",
-                    "entry_type": "research",
                     "needs": ["backlog:example-build"],
-                    "source": {"mode": "repo-origin"},
                     "summary": "Research the example",
                 },
             ],
@@ -1612,6 +1613,85 @@ class RepoBacklogContractTests(_CliBase):
         self.assertEqual(reconcile["reconciliation"]["type2"], [])
         self.assertEqual(reconcile["reconciliation"]["type3"], [])
 
+    def test_repo_backlog_projects_only_rendered_fields(self) -> None:
+        """`kind`, `entry_type`, and `source` have no renderer and are not emitted.
+
+        Killing mutation: restore any of the three keys to
+        `_repo_backlog_entry_dict`'s projection tuple and this reddens. The
+        fixture is asserted non-empty first, so the subset check cannot pass by
+        describing an empty backlog.
+        """
+        rendered = {"room", "slug", "path", "summary", "needs"}
+        for mode, fixture in (("status", "mixed"), ("status", "target"),
+                              ("reconcile", "mixed")):
+            with self.subTest(mode=mode, fixture=fixture):
+                data = self._run_mode(mode, self._fixture_root(fixture))
+                entries = data["repo_backlog"]["open"]
+                self.assertTrue(entries, "fixture emitted no backlog entries")
+                for entry in entries:
+                    self.assertEqual(
+                        set(entry) - rendered,
+                        set(),
+                        f"unrendered key emitted: {sorted(set(entry) - rendered)}",
+                    )
+
+    def test_status_omits_evaluations_by_default(self) -> None:
+        """AC1: the orientation payload drops the largest unread block.
+
+        Killing mutation: remove the `data["canonical"].pop("evaluations", None)`
+        at the status dispatch and this reddens. `ready` is asserted present so
+        the absence check cannot pass on an empty or failed canonical pass.
+        """
+        data = self._run_mode("status", self._fixture_root("mixed"))
+        self.assertNotIn("evaluations", data["canonical"])
+        self.assertIn("ready", data["canonical"])
+        self.assertTrue(data["canonical"]["performed"])
+
+    def test_include_evaluations_restores_the_full_payload(self) -> None:
+        """AC1: `--include-evaluations` is a pure restore, changing nothing else.
+
+        Killing mutation: drop the flag, or make the pop unconditional, and the
+        equality below fails. Comparing the two payloads key-for-key means a
+        restore that also perturbed another block would not pass.
+        """
+        # A canonical queue entry, not a backlog fixture: the backlog fixtures
+        # are legacy-shaped and evaluate to nothing, which would let the
+        # equality below be satisfied by two empty payloads agreeing.
+        root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/example/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "example", needs = []},
+]
+active = []
+shipped = []
+"""
+        )
+        self._make_canonical_spec(root, "example", "Approved")
+        default = self._run_mode("status", root)
+        full = json.loads(
+            _run_cli("status", "--include-evaluations", "--root", str(root)).stdout
+        )
+        self.assertTrue(full["canonical"]["evaluations"], "fixture evaluated nothing")
+        self.assertEqual(
+            {k: v for k, v in full["canonical"].items() if k != "evaluations"},
+            default["canonical"],
+        )
+        self.assertEqual(
+            {k: v for k, v in full.items() if k != "canonical"},
+            {k: v for k, v in default.items() if k != "canonical"},
+        )
+
+    def test_reconcile_keeps_evaluations(self) -> None:
+        """Only `status` narrows; `reconcile` remains the full-fidelity mode."""
+        data = self._run_mode("reconcile", self._fixture_root("mixed"))
+        self.assertIn("evaluations", data["canonical"])
+
     def test_status_repo_backlog_empty(self) -> None:
         data = self._run_mode("status", self._fixture_root("empty"))
         self.assertEqual(data["repo_backlog"], {"open": []})
@@ -1627,8 +1707,6 @@ class RepoBacklogContractTests(_CliBase):
             [
                 {
                     "path": "docs/product/intents/example.md",
-                    "kind": "intent",
-                    "source": {"mode": "repo-origin"},
                     "summary": "Frame the example",
                     "needs": [{
                         "type": "local",
@@ -1639,8 +1717,6 @@ class RepoBacklogContractTests(_CliBase):
                 },
                 {
                     "path": "docs/specs/example-defect/spec.md",
-                    "kind": "defect",
-                    "source": {"mode": "repo-origin"},
                     "summary": "Fix the example",
                     "needs": [],
                     "room": "build",
@@ -1669,7 +1745,6 @@ class RepoBacklogContractTests(_CliBase):
                 "slug": "display-only",
                 "room": "build",
                 "needs": ["backlog:external"],
-                "source": "spec/example",
                 "summary": "Display-only item",
             }],
         )

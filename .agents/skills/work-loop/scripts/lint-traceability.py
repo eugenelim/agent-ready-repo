@@ -103,6 +103,12 @@ except ModuleNotFoundError:  # pragma: no cover - py<3.11
 # layer-skip. `outcome` is the root (never a backward orphan); `component` is
 # the leaf (never a forward orphan — its cross-repo consumer is the release
 # loop).
+# Every per-item report line is indented with this prefix; every summary line
+# starts with `lint-traceability:`. `main` withholds the former on a passing
+# non-verbose run, so a new detail line MUST keep this prefix to stay
+# suppressible. `test_every_detail_line_carries_the_detail_prefix` pins that.
+_DETAIL_PREFIX = "  - "
+
 CHAIN = (
     "outcome", "opportunity", "capability", "screen", "action",
     "service", "contract", "spec", "component",
@@ -1330,6 +1336,11 @@ def main(argv: list[str] | None = None) -> int:
         help="structural orphans exit 1 (the convergence-/CI-gate posture); "
              "dangling edges and cycles exit 1 in every mode.",
     )
+    parser.add_argument(
+        "--verbose", action="store_true",
+        help="list every per-item detail line; without it a passing run prints "
+             "only its summary lines and a count of what it withheld.",
+    )
     args = parser.parse_args(argv)
     root = _validated_root(args.root)
 
@@ -1340,8 +1351,21 @@ def main(argv: list[str] | None = None) -> int:
               f"{exc}", file=sys.stderr)
         return 0
 
-    for line in out:
+    # A passing run withholds the per-item detail lines, which are informational
+    # and dominate the byte count; the `lint-traceability:` summary lines always
+    # print. Any non-zero exit prints in full, so a failure is never truncated.
+    hidden = 0
+    if args.verbose or exit_hint != 0:
+        emitted = out
+    else:
+        emitted = [ln for ln in out if not ln.startswith(_DETAIL_PREFIX)]
+        hidden = len(out) - len(emitted)
+
+    for line in emitted:
         print(line)
+    if hidden:
+        print(f"lint-traceability: {hidden} detail line(s) hidden — re-run with "
+              "--verbose to list them.")
     if hard:
         for v in hard:
             print(f"lint-traceability: {v}", file=sys.stderr)
