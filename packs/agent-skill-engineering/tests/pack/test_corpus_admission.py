@@ -66,27 +66,6 @@ VERSION_UPPER_BOUND = re.compile(r"(?:<=|<)\s*\d|upper\s+bound\s+open", re.IGNOR
 # their obligation permits: recorded evidence may contain sanctioned internal
 # references, while neither recorded evidence nor projections may identify a
 # maintainer or host.
-# Graded transcripts retained by the composition-fixtures slice. Outside the
-# pack tree because they are slice evidence, not shipped content; inside this
-# scan because they are raw captured output.
-COMPOSITION_TRANSCRIPTS = (
-    PACK.parents[1]
-    / "docs"
-    / "specs"
-    / "agent-skill-engineering-composition-fixtures"
-    / "notes"
-    / "transcripts"
-)
-# The same location written a second time, independently, so the root's parent
-# assertion is not derived from the root it checks. Without this the walk and
-# its expected parent are one constant: repoint it at any directory holding ten
-# Markdown files and both the floor and the containment check stay green while
-# every real transcript goes unscanned. The five sibling roots each spell their
-# walk and their parent separately; this one has to as well.
-COMPOSITION_TRANSCRIPTS_EXPECTED = PACK.parents[1].joinpath(
-    "docs/specs/agent-skill-engineering-composition-fixtures/notes/transcripts"
-)
-
 HOST_IDENTIFYING_PATTERN_STRINGS = (
     RE_ABS_PATH.pattern,
     r"/var/folders/[A-Za-z0-9_/-]+",
@@ -845,19 +824,6 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
             for path in (PACK / ".apm" / "skills").rglob("evals/**/*")
             if path.is_file()
         ),
-        # Retained graded transcripts. They are committed repository files that
-        # no other root reaches, and they are raw model output — the one class
-        # here most likely to carry an absolute path or a host name. Scanning
-        # them was named in the composition-fixtures plan and then not wired,
-        # so a future re-measurement could have committed host data green.
-        # Every regular file, not `*.md`. The evidence guard admits any regular
-        # file under this root, so a suffix filter here leaves a `.txt`
-        # transcript cited as evidence and never scanned, while the ten
-        # Markdown fixtures keep the floor green. The sibling roots above walk
-        # every regular file for the same reason.
-        "retained transcripts": sorted(
-            path for path in COMPOSITION_TRANSCRIPTS.rglob("*") if path.is_file()
-        ),
     }
     FLOORS = {
         "admission record": 1,
@@ -865,7 +831,6 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "compiled concepts": 16,
         "recorded fixtures": 8,
         "eval declarations and payloads": 8,
-        "retained transcripts": 10,
     }
     # Each root's expected parent, so a floor cannot be satisfied by files from
     # somewhere else. A count alone cannot see a repointed root: aiming the eval
@@ -877,12 +842,7 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "compiled concepts": COMPILED_CONCEPTS,
         "recorded fixtures": FIXTURES,
         "eval declarations and payloads": PACK / ".apm" / "skills",
-        "retained transcripts": COMPOSITION_TRANSCRIPTS_EXPECTED,
     }
-    assert COMPOSITION_TRANSCRIPTS == COMPOSITION_TRANSCRIPTS_EXPECTED, (
-        str(COMPOSITION_TRANSCRIPTS),
-        str(COMPOSITION_TRANSCRIPTS_EXPECTED),
-    )
     # The root *set* is pinned, not just each root's floor and parent. Three
     # empty dicts satisfy a three-way set equality, and so do three consistently
     # narrowed ones -- which would put back the exact defect this scan was
@@ -894,7 +854,6 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
             "compiled concepts",
             "recorded fixtures",
             "eval declarations and payloads",
-            "retained transcripts",
         }
     )
     assert set(roots) == set(FLOORS) == set(PARENTS) == SCANNED_ROOTS
@@ -925,9 +884,9 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
             scanned.append(resolved)
         for path in scanned:
             # The root label and path travel with the failure. Without them a
-            # match across six roots reports only the regex, and the reader has
-            # no file to scrub or re-measure. The containment assertion just
-            # above already reports exactly this pair.
+            # match across the scanned roots reports only the regex, and
+            # the reader has no file to scrub or re-measure. The containment
+            # assertion just above already reports exactly this pair.
             try:
                 _assert_no_patterns(
                     path.read_text(encoding="utf-8", errors="strict"),

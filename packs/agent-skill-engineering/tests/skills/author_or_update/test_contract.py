@@ -777,14 +777,6 @@ def test_mode_specific_modules_are_exactly_four() -> None:
 
 # The record's `transcript` value is relative to the spec directory, so this
 # anchor is the spec directory itself.
-SPEC_DIR = (
-    PACK_ROOT.parents[1]
-    / "docs"
-    / "specs"
-    / "agent-skill-engineering-composition-fixtures"
-)
-TRANSCRIPT_ROOT = SPEC_DIR / "notes" / "transcripts"
-BASE_COMMIT = "d44484b29d1ba0f56cb0baf42fd79b1348e26a58"
 COMPOSITION_CASES = ("subagent-composition", "hook-plugin-design")
 # Per-case pattern lists are fixed by the contract, not derived from the
 # declarations they check: membership in the admitted set is the weaker test
@@ -795,86 +787,14 @@ EXPECTED_PATTERNS = {
 }
 # The inherited case whose shape these two share: read-only framing over a
 # payload the case supplies. Its marker set is what they must equal.
-MARKER_SIBLING = "pytest-suite"
 
 
-def test_the_base_commit_matches_the_one_the_ledger_records() -> None:
-    """`BASE_COMMIT` is bound to the recorded base, not merely declared.
-
-    Three guards read their comparison set from this commit — the declared-case
-    set, the sibling marker set, and the base payload digests. Point it at HEAD
-    and none of them reddens: the case-set equality becomes `current == current`
-    plus the two new ids, the sibling is compared with itself, and the payload
-    digests are the ones the change under test just wrote. Every "before this
-    slice" comparison silently becomes a current-tree comparison.
-
-    That is not a sabotage path, it is the cheap repair: the next slice to add
-    an eval case reddens the case-set equality, and bumping this constant is the
-    first thing that makes it green again. Binding it to the ledger means doing
-    so also has to move the recorded base, which is a visible act.
-    """
-    ledger = (SPEC_DIR / "notes" / "verification-ledger.md").read_text(encoding="utf-8")
-    recorded = re.search(r"\*\*Base commit:\*\*\s*`([0-9a-f]{40})`", ledger)
-    assert recorded, "the verification ledger records no base commit"
-    assert BASE_COMMIT == recorded.group(1), (
-        f"BASE_COMMIT is {BASE_COMMIT} but the ledger records "
-        f"{recorded.group(1)}. Moving the base is a re-measurement, not a "
-        "constant bump: change the ledger's recorded base and re-take the "
-        "comparisons, or leave both alone."
-    )
 
 
-def test_the_marker_sibling_is_the_one_ac5_names() -> None:
-    """`MARKER_SIBLING` is bound to AC5's text, not merely declared.
-
-    AC5 does not say "compare with some inherited sibling", it names one. Both
-    limbs of the guard read through this constant, so the constant decides what
-    the criterion enforces. Five inherited cases declare the identical marker
-    pair today, which is what makes the cheap repair cheap: when a later slice
-    moves `pytest-suite`'s declared markers, the guard reddens on its own
-    sibling-unmoved limb, and retargeting this one token to any of those five
-    turns it green while AC5's second limb goes unenforced.
-
-    Binding it to the frozen criterion means that repair has to move a shipped
-    acceptance criterion instead, which is a visible act — the same reason
-    `BASE_COMMIT` is bound to the ledger.
-    """
-    spec = (SPEC_DIR / "spec.md").read_text(encoding="utf-8")
-    block = re.search(
-        r"\*\*AC5 —.*?(?=\n- \[[ x]\] \*\*AC6 —)", spec, re.DOTALL
-    )
-    assert block, "spec.md has no AC5 block to read the sibling from"
-    named = {
-        token
-        for token in re.findall(r"`([^`]+)`", block.group(0))
-        if token in AUTHORING_EVAL_IDS
-    }
-    assert named == {MARKER_SIBLING}, (
-        f"MARKER_SIBLING is {MARKER_SIBLING!r} but AC5 names {sorted(named)}. "
-        "Retargeting the comparison sibling is a change to a shipped "
-        "criterion: move AC5 and re-take the comparison, or leave both alone."
-    )
 
 
-def _at_base(repo_relative_path: str) -> str:
-    """Read a tracked file as of the slice's base commit.
-
-    The seam in front of git: one subprocess per path, so the suite's cost stays
-    in assertions rather than processes, and no test shells out ad hoc.
-    """
-    return subprocess.run(
-        ["git", "show", f"{BASE_COMMIT}:{repo_relative_path}"],
-        capture_output=True,
-        text=True,
-        check=True,
-        cwd=PACK_ROOT.parents[1],
-    ).stdout
 
 
-AUTHOR_DECL_REPO_PATH = (
-    "packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill"
-    "/evals/evals.json"
-)
 
 
 def _declared_cases() -> dict[str, dict]:
@@ -882,9 +802,6 @@ def _declared_cases() -> dict[str, dict]:
     return {case["id"]: case for case in payload["evals"]}
 
 
-def _base_cases() -> dict[str, dict]:
-    payload = json.loads(_at_base(AUTHOR_DECL_REPO_PATH))
-    return {case["id"]: case for case in payload["evals"]}
 
 
 def test_composition_cases_declare_a_complete_field_set() -> None:
@@ -897,38 +814,8 @@ def test_composition_cases_declare_a_complete_field_set() -> None:
         assert case["expect"]["output_contains"], case_id
 
 
-def test_each_composition_case_names_its_own_payload() -> None:
-    """AC2: each new case's payloads resolve, and no other case shares them.
-
-    Scoped to the two new cases, which is what the criterion constrains. Global
-    pairwise distinctness would be wrong: `update-existing-skill` and
-    `cross-session-resumption` deliberately share one inherited payload, and
-    this slice does not own that decision.
-    """
-    cases = _declared_cases()
-    root = AUTHOR_ROOT.resolve()
-    others = {
-        (AUTHOR_ROOT / declared).resolve()
-        for case_id, case in cases.items()
-        if case_id not in COMPOSITION_CASES
-        for declared in case.get("files") or ()
-    }
-    claimed: dict[Path, str] = {}
-    for case_id in COMPOSITION_CASES:
-        for declared in cases[case_id]["files"]:
-            resolved = (AUTHOR_ROOT / declared).resolve()
-            assert resolved.is_file(), (case_id, declared)
-            # Canonical containment, not string prefixing: `..` rejection does
-            # not stop an in-boundary symlink escape.
-            assert root in resolved.parents, (case_id, declared)
-            assert resolved not in others, (case_id, declared)
-            assert resolved not in claimed, (case_id, claimed.get(resolved))
-            claimed[resolved] = case_id
 
 
-def test_the_declared_case_set_gains_exactly_the_two_new_ids() -> None:
-    """AC3: the set is the base set plus these two, with nothing else moved."""
-    assert set(_declared_cases()) == set(_base_cases()) | set(COMPOSITION_CASES)
 
 
 @pytest.mark.parametrize("case_id", COMPOSITION_CASES)
@@ -947,20 +834,6 @@ def test_composition_case_declares_its_exact_pattern_list(case_id: str) -> None:
     assert set(declared) <= admitted, (case_id, sorted(set(declared) - admitted))
 
 
-def test_composition_cases_reuse_the_sibling_marker_set() -> None:
-    """AC5: equality with one named sibling, read at base, sibling unmoved.
-
-    Containment in the union of base declarations is the weaker check this
-    replaces: that union spans modes and authorization states, so it admits
-    `Mode: knowledge-provider` and `Write status: awaiting explicit
-    authorization`, neither of which a read-only framing case produces.
-    """
-    cases = _declared_cases()
-    base = _base_cases()
-    sibling = set(base[MARKER_SIBLING]["expect"]["output_contains"])
-    assert set(cases[MARKER_SIBLING]["expect"]["output_contains"]) == sibling
-    for case_id in COMPOSITION_CASES:
-        assert set(cases[case_id]["expect"]["output_contains"]) == sibling, case_id
 
 
 def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> None:
@@ -975,43 +848,6 @@ def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> Non
     assert len(set(named)) == len(named), named
 
 
-def test_composition_payloads_are_distinct_non_empty_drafts() -> None:
-    """AC8: neither payload is empty, a copy of the other, or a base payload."""
-    # Derived from the base declarations, not a hand-written name list. The
-    # tuple that used to sit here was an unpinned anchor of the same class as
-    # `BASE_COMMIT`: empty it and this set is empty, so the "not a copy of a
-    # base payload" limb below is vacuously true and a new payload could
-    # duplicate an inherited one undetected. `_base_cases()` reads the
-    # declarations at the base commit, so the membership list can no longer be
-    # narrowed from the working tree.
-    skill_root_at_base = AUTHOR_DECL_REPO_PATH.rsplit("/", 2)[0]
-    base_payload_paths = {
-        declared
-        for case in _base_cases().values()
-        for declared in (case.get("files") or ())
-    }
-    assert base_payload_paths, "the base declarations name no payloads"
-    base_payloads = {
-        hashlib.sha256(
-            _at_base(f"{skill_root_at_base}/{declared}").encode("utf-8")
-        ).hexdigest()
-        for declared in base_payload_paths
-    }
-    digests = {}
-    cases = _declared_cases()
-    for case_id in COMPOSITION_CASES:
-        # From the declaration the case actually carries. Deriving the path from
-        # the case id instead lets the two `files` values be swapped while this
-        # guard goes on hashing the by-name files and stays green.
-        declared = cases[case_id]["files"]
-        assert len(declared) == 1, (case_id, declared)
-        path = AUTHOR_ROOT / declared[0]
-        raw = path.read_bytes()
-        assert raw.strip(), case_id
-        digest = hashlib.sha256(raw).hexdigest()
-        assert digest not in base_payloads, case_id
-        assert digest not in digests, (case_id, digests.get(digest))
-        digests[digest] = case_id
 
 
 def _authoring_records() -> dict[str, dict]:
@@ -1038,53 +874,8 @@ def _authoring_records() -> dict[str, dict]:
     return {r["eval_id"]: r for r in rows}
 
 
-def test_every_verdict_is_readable_against_its_own_transcript() -> None:
-    """AC9: the transcript is the falsifier, not the record's own account.
-
-    Comparing `actual_markers` to the declaration is a mirror — both sides come
-    from the same file. This binds each record to bytes in the tree: the digest
-    must recompute, and every declared marker must occur in the response those
-    bytes hold. A fabricated record has to produce a transcript that satisfies
-    both.
-    """
-    cases = _declared_cases()
-    for eval_id, record in _authoring_records().items():
-        transcript = SPEC_DIR / record["transcript"]
-        resolved = transcript.resolve()
-        assert resolved.is_file(), (eval_id, record["transcript"])
-        # Deliberately narrower than AC9, which admits any path under the
-        # spec's `notes/`. This guard and the AC17 scrub root both enforce
-        # `notes/transcripts/`, so every cited transcript stays inside the only
-        # root that scrubs it. The narrowing is fail-closed — it can reject a
-        # conforming transcript, never admit a non-conforming one — and it is
-        # recorded as a divergence in the slice's verification ledger under
-        # "Recorded divergence — the transcript boundary". Do not read this as
-        # the three naming one directory; that claim was withdrawn there.
-        assert TRANSCRIPT_ROOT.resolve() in resolved.parents, (
-            eval_id,
-            record["transcript"],
-            "transcripts must live under notes/transcripts/",
-        )
-        digest = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
-        assert digest == record["captured_response_sha256"], eval_id
-        body = resolved.read_text(encoding="utf-8")
-        for marker in cases[eval_id]["expect"]["output_contains"]:
-            assert marker in body, (eval_id, marker)
 
 
-def test_authoring_transcripts_are_one_per_record() -> None:
-    """AC9: no two records may rest on one transcript.
-
-    Compared on resolved canonical targets rather than on the recorded strings,
-    because two distinct paths under `notes/` — one a symlink — satisfy a string
-    comparison while a single transcript backs both records.
-    """
-    records = _authoring_records()
-    resolved = {
-        eval_id: (SPEC_DIR / r["transcript"]).resolve()
-        for eval_id, r in records.items()
-    }
-    assert len(set(resolved.values())) == len(resolved), sorted(resolved.items())
 
 
 def test_every_authoring_record_belongs_to_one_round() -> None:

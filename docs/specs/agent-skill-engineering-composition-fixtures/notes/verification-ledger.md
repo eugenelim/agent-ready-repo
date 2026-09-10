@@ -374,6 +374,9 @@ confirmed byte-identical afterwards.
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 | The scan reads inside the root, not through a link out of it (AC17) | Symlink `notes/transcripts/escaped.md` at a clean external Markdown file | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `AssertionError: ('retained transcripts', '<root>/escaped.md', 'symlink')` |
 | The AC5 sibling is the one the criterion names (AC5) | Retarget `MARKER_SIBLING` to `node-browser-suite`, which declares the identical marker pair | `test_the_marker_sibling_is_the_one_ac5_names` | `AssertionError: MARKER_SIBLING is 'node-browser-suite' but AC5 names ['pytest-suite']` |
+| Retained transcripts stay host-clean after the move (AC17) | Append `/Users/someone/checkout/notes.md` to a retained transcript | `test_retained_transcripts_carry_no_host_identifying_data` | host-identity pattern match on the transcript |
+| The relocated scan reads inside the root (AC17) | Symlink a clean external Markdown file into the transcript root | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: ('<root>/escaped.md', 'symlink')` |
+| The pattern set cannot be emptied at its source (AC17) | Empty `HOST_IDENTIFYING_PATTERN_STRINGS` in the pack suite | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: the pack suite declares no host-identifying patterns` |
 | The round identifier is not blank (AC11, AC12) | Set `graded_run.observation_id` and all ten record identifiers to `""` | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: graded_run carries observation_id ''` |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -610,6 +613,51 @@ The generalisation: a sweep reaches only the shapes its seed contains. Round
 7's seed was "hand-written collection", so it could not see a hand-written
 scalar. The anchors in this module are now every literal that a comparison
 reads through, collection or not.
+
+## Recorded divergence — this slice's evidence guards do not live where the plan puts them
+
+`plan.md` names
+`packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
+as the home for the declare-and-pin coverage, and `spec.md` names the same
+module and `test_corpus_admission.py`. Eight of those guards, two helpers and
+the retained-transcript scan now live in
+`tests/roster/test_ase_composition_fixture_evidence.py` instead. The approved
+artifacts are frozen and keep their original wording; this is the record of
+where the coverage actually is.
+
+**Why it moved.** `tools/lint-pack-test-boundary.py`'s `pack-tests-stay-in-pack`
+check refuses a pack test that reaches above its owning pack, and reported 32
+findings against this slice. Two classes:
+
+- **Repository-level reads.** `SPEC_DIR`, `TRANSCRIPT_ROOT` and `_at_base`'s
+  `cwd` at the repository root. The frozen spec, its ledger and the retained
+  transcripts are slice evidence under `docs/specs/`, not pack content, and
+  `git show <base>` runs from the repository root.
+- **Joins a static reading cannot confine.** `AUTHOR_ROOT / declared`, where
+  `declared` comes from `evals.json` at runtime. The pack module states the
+  rule it broke on its own line 16: paths are literal "so every path this
+  suite opens is statically confined to its own pack". Runtime containment
+  checking is a repository-level guarantee, not a pack-local one.
+
+The lint has no allowlist for this check and names the destination, so the
+move was forced rather than chosen. The split is by what a guard has to read,
+not by which criterion it serves: several criteria are now covered from both
+sides, and every property the plan named still has a guard.
+
+**How this was missed for eight review rounds.** The gate was never run. The
+local gate set used through rounds 1 to 8 was an inherited list — the pack
+suite, the roster suite and five lints — and `make build-check`, which chains
+the boundary lint, was not in it. Two adversarial lenses and a quality lens
+read the diff without running it either. It surfaced the first time the branch
+was pushed and `build-check.yml` ran on CI. An inherited gate list is not the
+gate set.
+
+**What did not change.** The relocated guards keep their assertions, their
+messages and their recorded mutations. Three were re-proved after the move: a
+seeded host path in a transcript, a symlink out of the transcript root, and an
+emptied pattern set at its source. The host-identity pattern strings are read
+from the pack suite rather than restated, so the two trees cannot drift to
+different pattern lists.
 
 ## Audit gap — four review rounds are absent from the cohort record
 
