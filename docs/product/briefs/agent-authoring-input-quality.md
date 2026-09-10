@@ -12,10 +12,16 @@ converge on. Today most of what review finds is not the subject but the way it
 was written, and a contract can be sized past every point where this repository
 has ever converged without anything objecting.
 
-Three things change:
+Four things change:
 
 - **A criterion states an outcome that can fail, once, in one place**, and a
   plan task says what to verify rather than spelling out the assertion.
+- **The author constructs the smallest sufficient criterion set before writing
+  the numbered checklist.** Each criterion represents a distinct contract
+  obligation; scenarios demonstrate that obligation, while implementation
+  tasks, test cases, repository gates, rationale and examples stay with their
+  existing owners. A large set is permitted when the obligations are genuinely
+  distinct — criterion count is measured, never used as a refusal.
 - **A plan records whether an owner already exists** for the responsibility it
   is about to design, alongside the imitation anchors the template asks for.
 - **A contract is sized before it is written**, against what this repository
@@ -35,7 +41,14 @@ contract still gets things wrong; what a loop does on that discovery is
   that failure alone: findings over a wrong mechanism score there as success.
 - Every rule shipped here can be shown to have fired at least once. A rule with
   no firing is withdrawn, not re-worded.
-- A contract over the sizing band stalls at authoring, not at round six.
+- An authoring evaluation records candidate obligations, final criteria and
+  every merge, removal or relocation between them. It succeeds when seeded
+  implementation details, duplicate claims and example-only variants do not
+  become criteria, while every seeded objective and non-waivable guardrail
+  remains represented. A lower raw count alone is not success.
+- An unusually large criterion set gets a set-level necessity, uniqueness,
+  consistency and completeness pass at authoring, not a numerical refusal or a
+  round-six discovery.
 
 **First firing evidence, 2026-09-08.** Every rubric class fired at least once
 while the A1 candidate was authored and reviewed, so none is a withdrawal
@@ -57,6 +70,11 @@ deliverable, is open.
 **In scope**
 
 - The failure-point rubric, and the authoring instructions derived from it.
+- **Acceptance-criteria set construction** in `new-spec`: identify the contract
+  obligations worth accepting, attach disconfirming and positive scenarios,
+  route non-contract material to its owner, and check the resulting set as a
+  whole before review. This is distinct from applying the existing rubric to
+  each criterion after it has been drafted.
 - **The delegation anchor:** a plan records whether an existing owner for the
   contract was found.
 - **Sizing discipline** — the band below, shipped as dated evidence plus the
@@ -78,10 +96,17 @@ deliverable, is open.
 
 ## Constraints / Appetite
 
-**Everything here waits on the activation measurement's report** (owner
+**A1, A3, A4 and A5 wait on the activation measurement's report** (owner
 decision, 2026-09-02). If that report says written guidance does not bind here,
-these deliverables become machinery — and machinery leaves this brief until an
+those deliverables become machinery — and machinery leaves this brief until an
 approved amendment sets its appetite.
+
+**A6 does not wait on that report** (owner decision, 2026-09-10). The shipped
+rubric candidate is sufficient vocabulary for its set-construction procedure,
+and A6's frozen three-case evaluation directly tests whether the changed
+`new-spec` instructions alter authored criteria without dropping obligations or
+guardrails. That evaluation is A6's delivery gate. It makes no portable or
+general causal claim about written guidance, which remains M's question.
 
 Every rule shipped here carries the activation contract owned by
 [`guidance-activation-measurement.md`](guidance-activation-measurement.md)
@@ -153,7 +178,7 @@ regenerator § "Why no regenerator" rejects:
 ```bash
 python3 - <<'EOF'
 import glob, re, statistics
-EXCLUDE = {"agent-authoring-input-quality"}   # plus A1, A3, A4 and A5's specs
+EXCLUDE = {"agent-authoring-input-quality"}   # plus A1, A3, A4, A5 and A6's specs
 rows = []
 for path in glob.glob("docs/specs/*/spec.md"):
     if path.split("/")[2] in EXCLUDE:
@@ -185,7 +210,7 @@ argued with.
 | Dimension | Bound | Origin |
 | --- | --- | --- |
 | Owning surfaces | one primary surface per slice | Measured, not repo-local, and now triangulated: 1 file → 95% resolution, 2 → 42% (SWE-bench Verified, Ganhotra 2025); Agentless localization falls 81.7% → 58.3% → 56.3% across file, function and edit-location stages; SWE-bench Pro resolves ~23% at 4.1 files against >70% on near-single-line work. Those figures are measured; that localization rather than repair is where the success is *lost* is an attribution no published ablation makes, so treat it as a synthesis. |
-| Criteria per spec | ceiling of 10, **never a floor** | **Screening only, but no longer unevidenced.** Practitioner ceiling ~10. Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they establish the *shape* and not the threshold. This corpus records scope but not outcome, so no percentile of it corroborates a ceiling either. |
+| Criteria per spec | **no fixed ceiling.** Record the count and use corpus position to order set-level scrutiny; count never rejects a spec or proves it is well-shaped. | Joint satisfaction of independent verifiable constraints falls 77.7% → 33.0% from one-to-two up to four-to-eight, and 57.1% → 7.5% from two to eight, decaying near-multiplicatively. Both are single-generation benchmarks over stateless constraints, not an implementation loop with gates between attempts, so they support treating more obligations as more cognitive load while establishing neither a safe threshold nor that a large contract contains unnecessary criteria. This repository's own corpus includes legitimately large specs and supplies no review-outcome linkage from which to derive a cap. |
 | Criterion size | **not a word budget.** The gate is semantic atomicity, owned by `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria — the conjunction/substitution test and worked examples E1–E5. Rubric § 5 owns how length is used against that test. | Hard AC word budgets are already rejected here: `docs/specs/shaping-review-contracts/spec.md` ships it as a ticked criterion, RFC-0099 states "no hard word budget is added", and `new-spec/SKILL.md` Procedure step 6 makes shaping review reject one — "additionally rejects hard AC word budgets". The length signal is real but is a sampler, not a bound: RFC-0098 took 16 rounds with ~60 findings concentrated in its three longest criteria while its median-length criteria were quiet. § "Corpus" publishes no criterion-length percentile and records why. |
 | Spec body | at or under the corpus median; past the corpus p75 needs a stated reason | Measured, repo-local, and stated as the derivation rather than a value so it cannot go stale: run § "Corpus"'s instrument and take the median and p75 of the words-per-spec distribution. |
 | Human-equivalent duration | under one hour | Measured: R² = 0.83 against success, ~1 hour ≈ 50% (METR 2025). |
@@ -193,13 +218,14 @@ argued with.
 
 ### Limit interaction
 
-As `assets/spec.md` requires of any quantity
-carrying two: both are reachable, because they bound different quantities and neither implies
-the other: a spec can exceed the criteria ceiling well inside the body bound, and
-exceed the body bound with few criteria. § "Corpus"'s instrument derives each distribution
-separately — criteria per spec, and words per spec — and nothing relating one to
-the other within a spec, so no bound here claims a ratio. Criterion size is not a
-limit, so it can neither dominate nor be dominated.
+As `assets/spec.md` requires of any quantity carrying two: both are reachable,
+because they measure different properties and neither implies the other. A spec
+can carry an unusually large criterion set well inside the body bound, and
+exceed the body bound with few criteria. § "Corpus"'s instrument derives each
+distribution separately — criteria per spec, and words per spec — and nothing
+relating one to the other within a spec, so no bound here claims a ratio.
+Criterion count and criterion length are diagnostic signals rather than limits;
+the set-level and semantic-atomicity checks decide what changes.
 
 ### Corpus limits
 
@@ -218,10 +244,9 @@ the percentile rather than its value, and § "Corpus" publishes the instrument
 rather than a snapshot, so there is no stored figure left to regenerate. What a
 regenerator would maintain is exactly what class 4 rejects: a predicate that
 cannot reproduce its own figures, criterion-length percentiles no instrument
-reproduces, and a spec-body pair that goes stale within a week. The criteria ceiling is
-screening-only — its evidence status is stated once, in the § "Band" row for
-criteria per spec — so a stall threshold needs an order of magnitude rather
-than a maintained script.
+reproduces, and a spec-body pair that goes stale within a week. Criteria count
+is an observed input to the authoring pass, not a threshold, so there is no
+count bound for a maintained script to publish.
 
 What an adopter needs is the **derivation**, which rubric class 5 states and the
 guidance carries. Shipping our percentiles
@@ -236,8 +261,63 @@ rubric class 6, and the exculpation has to be checkable or it is that same
 defect. It is checkable because the brief stores no figure of its own corpus:
 whoever needs one runs § "Corpus"'s instrument, outside this brief, and states
 the date they ran it. **The corpus-exclusion rule travels with the
-derivation:** A1, A3, A4 and A5's own specs are excluded from any run, or the
+derivation:** A1, A3, A4, A5 and A6's own specs are excluded from any run, or the
 measurement grades specs written to the band it derives from them.
+
+### Author criteria from obligations, not from every check
+
+The missing authoring move is **selection before wording**. The shipped rubric
+can diagnose a criterion after an author has proposed it; it does not tell
+`new-spec` which candidate facts deserve criteria or stop one contract
+obligation from expanding into a criterion for every example, test and delivery
+chore.
+
+Prior art supports separating those roles rather than imposing a count. OpenSpec
+separates a normative requirement from one or more concrete scenarios and keeps
+implementation tasks in a different artifact; its change format also records
+only added, modified and removed requirements rather than restating the whole
+current contract ([OpenSpec](https://github.com/Fission-AI/OpenSpec), primary
+project source). The existing
+[`spec-authoring-quality-survey.md`](../research/spec-authoring-quality-survey.md)
+places the same distinction against ISO/IEC/IEEE 29148's individual and
+set-level characteristics, INCOSE's singularity and uniqueness rules, GitHub
+Spec Kit's specify/clarify/plan separation, and Kiro's optional EARS syntax.
+None supplies evidence for a universally safe number of criteria. The import is
+the requirement/scenario/task separation and the set-level pass, not a format
+migration or a numerical cap.
+
+`new-spec` therefore authors the set in this order:
+
+1. Name the changed contract obligations implied by the Objective and
+   Boundaries. When an existing contract owns unchanged behaviour, cite it;
+   admit only its changed obligation rather than copying its surrounding rules.
+2. Admit a candidate as a criterion only when its failure would independently
+   block shipment: an externally observable behaviour, a required refusal or
+   recovery path, a compatibility or safety guardrail, or a measurable quality
+   property under named conditions.
+3. Give each admitted obligation a positive and disconfirming scenario. Several
+   scenarios that exercise the same obligation remain evidence or testing
+   detail for one criterion; they do not become several criteria merely because
+   several tests will exist.
+4. Route implementation choices and tasks to the plan, concrete cases and
+   fixtures to Testing Strategy, existing repository obligations to their
+   owner, explanatory prose to the body, and duplicates or decoration out of
+   the contract. A gate or artifact becomes a criterion only when its observable
+   behaviour is itself part of the product contract.
+5. Check the resulting set for necessity, uniqueness, consistency, joint
+   feasibility and coverage of every Objective outcome and non-waivable
+   Boundary. A large irreducible set survives; independently shippable clusters
+   become a decomposition proposal rather than being compressed into compound
+   criteria.
+
+The authoring evaluation measures the move without adding a durable run schema.
+For a frozen corpus containing a small change, a legitimately large change and
+an amendment to an existing contract, retain the authoring transcript's
+candidate count, final count and disposition of every candidate as `admit`,
+`merge`, `relocate` or `remove`. Score obligation and protected-guardrail recall
+first, non-criterion rejection second, and count only as a descriptive outcome.
+The candidate fails if it obtains a smaller set by losing a distinct obligation
+or guardrail. This is the measurement A6 owns.
 
 ## What actually works, and what does not
 
@@ -843,17 +923,17 @@ Each condition names the row it kills and the report line that decides it.
 
 ## Proposed slices
 
-None is confirmed and no spec is authored. Slice sizes are targets a spec
-author writes to under § "Sizing discipline", and the AC ceiling is governed by
-rubric class 5, which states how a count threshold is used and what it never
-becomes.
+None is confirmed and no spec is authored. Slice sizing follows § "Sizing
+discipline". Criterion count is reported as evidence about the proposed
+contract, not used as a global target or gate.
 
-| # | Slice | Owning surface | Verification | Guide | AC ceiling | Gating |
+| # | Slice | Owning surface | Verification | Guide | Sizing check | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric class | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | 10 | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
-| A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | 6 | after A1 |
-| A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | 6 | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
-| A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | 10 | **conditional** — after M, and only if the kill conditions above do not fire |
+| A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric class | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | per-criterion failure classes; no count target | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
+| A6 | Acceptance-criteria set construction: select distinct contract obligations, attach scenarios, route non-AC material and run the set-level pass described above | `packs/core/.apm/skills/new-spec/SKILL.md`'s acceptance-criteria procedure, with criterion shape remaining owned by `assets/spec.md` | frozen small, legitimately large and existing-contract amendment cases; candidate-to-final dispositions scored for obligation/guardrail recall and non-criterion rejection | `guides/core/reference/acceptance-criteria-authoring.md` | candidate and final counts reported; no fixed ceiling | no M or completed-A1 dependency; the shipped rubric candidate is the input and A6's own evaluation is the delivery gate |
+| A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | one primary surface | after A1 |
+| A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | one primary surface | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
+| A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | named at confirmation | **conditional** — after M, and only if the kill conditions above do not fire |
 
 ### A rubric candidate exists, and A1 stays open
 
@@ -936,12 +1016,14 @@ decision that produced it stays with the owner.
 
 ### Guide ownership
 
-A1 ships a new guide. Measured 2026-09-02: **no adopter-facing Core guide owns
-acceptance-criteria authoring.** `guides/core/reference/spec-shape-and-lld.md`
+A1 and A6 jointly establish a new guide. Measured 2026-09-02: **no
+adopter-facing Core guide owns acceptance-criteria authoring.** A1 contributes
+the per-criterion failure rubric; A6 contributes selection, scenario placement,
+routing and the set-level pass. `guides/core/reference/spec-shape-and-lld.md`
 owns the `Shape:` field, durable outputs and the plan's LLD — it notes that UI
-states and measurable NFRs rise to criteria but carries no criterion rubric — so
-A1 cannot extend it. A3 belongs there because the `Repository anchors` field
-lives in the plan that guide owns.
+states and measurable NFRs rise to criteria but carries no criterion-authoring
+procedure — so neither A1 nor A6 can extend it. A3 belongs there because the
+`Repository anchors` field lives in the plan that guide owns.
 
 ### A1 home
 
@@ -957,10 +1039,10 @@ shipped guidance, so a rubric there would not reach adopters.
 
 ### Slice relationships
 
-A1 and A3 share one guide, each extending its own section. The guide is
-the secondary surface, not the primary one, so sharing it does not breach the
-one-primary-surface bound; three slices editing three sections of one reference
-page is not one slice.
+A1 and A6 share the acceptance-criteria guide, each extending its own section.
+The guide is the secondary surface, not the primary one, so sharing it does not
+breach the one-primary-surface bound. A3 extends the existing
+`spec-shape-and-lld.md` guide instead.
 
 - **A3 is the template field alone.** Rejected: pairing it with the repository-anchoring rule, which is a second surface in an unnamed home and breaches the one-surface bound. Whether repository-anchoring prose also has to move is A5's prose-budget
 question, not A3's.
@@ -970,7 +1052,16 @@ deliverable: the rubric with no instruction change is content nobody reads, and
 the instruction change with no rubric has no source. Splitting them lands below
 the over-splitting floor.
 
-- **A3 and A4 are independent** and run in any order once A1 lands.
+- **A6 is not another rubric.** A1 diagnoses defects in proposed criteria; A6
+decides which contract obligations become criteria, how scenarios relate to
+them, and where rejected candidates go. It depends on A1's vocabulary but has a
+separate authoring behavior and a separate evaluation oracle. The candidate
+rubric already supplies that vocabulary, so A6 does not wait for A1's remaining
+activation and guide work. If A6 lands first, it creates the set-construction
+section of their shared guide; A1 later adds the per-criterion section.
+
+- **A3 and A4 are independent** and run in any order once A1 lands. A6 is
+independent of that sequence.
 
 **A5 is deliberately not size-assessable yet, and that is a state rather than a
 gap.** Its worker home, verification and guide are named at its confirmation
@@ -983,9 +1074,11 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 
 ## Assumptions / Risks
 
-- **This brief ships another unactivated rule.** The most likely failure, and
-  the reason everything waits on the activation report. The withdrawal metric
-  above is the guard.
+- **This brief ships another unactivated rule.** The most likely failure for
+  A1, A3, A4 and A5, and the reason they wait on the activation report. The
+  withdrawal metric above is the guard. A6 instead has a direct behavioral
+  evaluation and fails its own delivery gate if the instructions do not change
+  the authored set as required.
 - **The ownership survey ships, observably runs, and leaves recognition still
   failing.** Every kill condition above is a necessity condition; none covers
   "it ran and did not work". A survey can return a correct landscape the author
@@ -993,10 +1086,11 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   confirmed.
 - **The rubric grows into doctrine on one instance.** The hypothesis is in
   `[backlog].open` with what would earn it.
-- **The sizing band is screening evidence dressed as a bound.** The criteria
-  count's evidence status is the § "Band" row's to state; whatever it says, the
-  count should stall a contract for a conversation and never silently refuse
-  one.
+- **Pressure to reduce count hides requirements or creates compound
+  criteria.** A6 scores obligation and protected-guardrail recall before
+  non-criterion rejection, and count is descriptive only. A genuinely large
+  contract is preferable to a smaller checklist that is incomplete or cannot
+  be ticked honestly.
 
 ## Ready gaps (Draft only)
 
@@ -1004,7 +1098,7 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   policy families, so A1 waits on
   [`phase-scoped-policy-delivery.md`](phase-scoped-policy-delivery.md) and
   [`policy-arrival-validator.md`](policy-arrival-validator.md) as well as on M's
-  report. A3, A4 and A5 inherit that through A1.
+  report. A3, A4 and A5 inherit that through A1. A6 explicitly does not.
 - **Open, but not a Ready blocker: the mechanical ownership declaration.** Its
   decision sits at A5's confirmation gate by owner decision, recorded with the
   evidence in § "The survey is a lean". A5 is gated after M, so no slice waits
@@ -1019,6 +1113,9 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   predicate.
 - **Do not let the rubric become a review checklist.** It is authoring
   guidance, and it states that bound itself in its opening lines.
+- **Do not count scenarios as requirements.** Several scenarios may establish
+  one contract obligation; the testing strategy owns concrete cases unless a
+  case changes the obligation itself.
 - **Do not hardcode a percentile.** The band names the percentile; the reader
   runs § "Corpus"'s instrument for its value on the day they ask.
 
@@ -1045,6 +1142,10 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
   does not", the
   constraint-count and localization evidence in § "Band", and the external-signal
   effect size in § "External binding".
+- Quick primary-source check, 2026-09-10: OpenSpec's current project guidance
+  separates normative requirements, concrete scenarios and implementation
+  tasks, and represents changes as requirement deltas. It supports A6's role
+  separation but supplies no evidence for a criterion-count cap.
 - Promoted on 2026-09-02 from a shaping intent of the same slug, added at
   `082285e73` and removed by that promotion; it was itself split out of
   [`work-loop-next-action.md`](work-loop-next-action.md).
