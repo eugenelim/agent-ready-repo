@@ -148,6 +148,16 @@ without one, offsets live in memory only.
 
 ---
 
+> **Superseded in part, 2026-09-10.** The measurements below describe the
+> engine as it stood when this survey was written, and `core` 2.25.14 changed
+> it the same day: the transition line now carries fourteen fields, records the
+> override flag, and derives the first phase's start from the run's engine
+> state. Three findings in [§ What the pilot measured](#what-the-pilot-measured)
+> and one entry under [§ Known unknowns](#known-unknowns) are annotated inline
+> where that release closed them. Everything about the external standards
+> landscape is unaffected. A spec citing this document should cite the
+> annotated claims as history, not as current state.
+
 ## What the pilot measured
 
 A throwaway spec was driven through the real `loop-engine.py` for 17
@@ -157,7 +167,8 @@ build a view of time-in-phase, gate failures, and stalls. Three first-party
 findings came out of it, none of which the literature could have supplied.
 
 **Only five of the eight roadmap events are reachable from
-`.loop-run/events.jsonl`.** The engine writes a seven-field line per transition
+`.loop-run/events.jsonl`.** *(As measured, before core 2.25.14 widened it to
+fourteen.)* The engine writes a seven-field line per transition
 (`seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`) over 15 FSM event names.
 Walking all 15 against the eight gives:
 
@@ -168,9 +179,9 @@ Walking all 15 against the eight gives:
 | Sourced by an FSM event | `spec-shipped` | `done` |
 | Derived from another field | `gate-reached` | exact — a transition whose `to` is a gate state |
 | Derived from another field | `spec-started` | approximate — start time not recorded |
-| Needs an envelope change | `gate-waived` | none |
-| Needs an envelope change | `budget-exceeded` | none |
-| Needs an envelope change | `spec-stalled` | none |
+| Needs an envelope change | `gate-waived` | none — *closed by core 2.25.14 (`waived`)* |
+| Needs an envelope change | `budget-exceeded` | none — *partly closed by core 2.25.14 (`budgets`, `retry_state`); see that release's reachability limits* |
+| Needs an envelope change | `spec-stalled` | none — *`phase_s` added in core 2.25.14; the terminal-stall blind spot below still stands* |
 
 **The retry counters are invisible to the event log.** Measured: after a real
 `gates-failed` and a real `findings-remain`, `implementation_retry_count`,
@@ -234,11 +245,65 @@ fully configured case sent data.
   The `plan` and `invoke_workflow` operation names suggest the SIG intends to,
   but nothing is published and the conventions are pre-stable, so any name
   chosen today may be invalidated. No available evidence settles it.
-- **Unknowable:** the true start time of a run's first phase from the current
+- ~~**Unknowable:** the true start time of a run's first phase from the current
   envelope. `cmd_init` records nothing, so the data never existed — no analysis
-  recovers it, only an engine change does.
+  recovers it, only an engine change does.~~ **Resolved 2026-09-10 by core
+  2.25.14**, and the reasoning was wrong rather than merely overtaken:
+  `cmd_init` does record a start, as `last_transition_at` in
+  `engine-state.json`. The data existed in a file this survey did not check.
+  Classifying it unknowable was a failure to look, not an absence of evidence.
 
 ---
+
+## Open follow-ons from the 2026-09-10 review
+
+Two reviewers examined the `core` 2.25.14 envelope change. The claim defects
+they found were fixed in that release; the design defects below were
+deliberately registered instead, because each needs a decision rather than a
+repair. They share one root cause: **the engine writes the line, but
+`loop-cohort` owns the retry counters and moves them in a separate step**, so
+the line reports a lagging snapshot of state it does not control.
+
+1. **`retry_state` is half-reachable.** `max_attempts_reached` cannot occur on
+   the implementation axis at all — no override exists for `gates-failed` and
+   its guard refuses unconditionally at the cap — and on the review axis it
+   occurs only on an overridden line. Deciding this means choosing where the
+   counter is read, not editing the field. Options: read after the cohort
+   increments, have the engine own the counters, or narrow the field to the
+   one axis that can produce both values.
+2. **`budgets` can contradict the enforced cap.** The guard resolves an absent
+   or non-integer cap to its own default and enforces it; the snapshot reports
+   `null`. A line can therefore show no cap for a run about to be refused.
+   Fixing it means sharing one cap-resolution helper between guard and
+   snapshot.
+3. **`wave-passed` is classified as no decision.** All three exits from
+   `CODE-VERIFICATION` are outcomes of the same gate, but `wave-passed` gets
+   `result: null` while `gates-clean` gets `success`, so a multi-wave run
+   counts every verification failure and only its final pass. `plan-locked` has
+   the same problem in `spec-plan` mode, where it is the terminal transition
+   and so a completed run reports no result at all.
+4. **The line carries no schema version.** `engine-state.json` has
+   `SCHEMA_VERSION`; the event line has none. The pack and its consumer
+   (`agentbundle`'s workspace MCP) version independently, so a reader cannot
+   distinguish "written by a writer too old to emit this field" from "written
+   as unknown" — the silent-zero failure the null-not-omitted rule exists to
+   prevent.
+5. **The two event-classification maps have no completeness guard.**
+   `_GATE_RESULTS` and `_RETRY_BUDGET_FOR_EVENT` are hand-maintained and sit
+   far from the transition tables; a newly added FSM event silently gets
+   `result: null`. The repository already uses table-walking completeness
+   guards for this class.
+6. **The reader side has no executing test.** Every case in
+   `packages/agentbundle/tests/test_workspace_mcp_event_bridge.py` is a skip
+   stub, so the compatibility claim rests on code inspection alone.
+7. **`ADR-0064` describes the line as seven fields** and cites a
+   `design.md:317` location that no longer resolves. One home should be
+   canonical for this schema.
+
+Separately and already documented in the pack's `state-schema.md`: a retry cap
+reached without an override is refused by a guard, and a refused transition
+writes no line, so budget exhaustion is indistinguishable from a stall in the
+event log alone. Closing that means recording refusals.
 
 ## Sources
 

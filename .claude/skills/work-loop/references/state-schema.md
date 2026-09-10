@@ -126,22 +126,39 @@ cannot.
 | `phase_started_at` | When the `from` state was entered, so consecutive phases abut. On the first line this is what `init` wrote, which is the run's start. |
 | `phase_s` | Whole seconds spent in `from`. Never negative. `null` when either timestamp is unusable. |
 | `result` | What the gate decided: `success` or `failure`. `null` when the transition is a handoff or wave boundary rather than a decision. |
-| `retry_state` | Why a retry-bearing failure is where it is: `in_progress` or `max_attempts_reached`. `null` for every event that draws down no retry budget. |
+| `retry_state` | Why a retry-bearing failure is where it is: `in_progress` or `max_attempts_reached`. `null` both for an event that draws down no retry budget and for one whose counters were not readable — see the reachability note. |
 | `awaiting_input` | `true` when `to` is a state that waits on a human decision. |
 | `waived` | `true` when this transition carried `--allow-retry-cap-override`. |
 | `budgets` | The cohort retry counters and their caps at transition time: `implementation_retry_count`, `max_implementation_retries`, `review_retry_count`, `max_review_retries`. |
 
 `result` and `retry_state` are deliberately separate. One field cannot carry
 both, because the same value would have to mean "failed once, retrying" and
-"failed and out of attempts". Read together with `waived`, the three describe
-a budget-exhausted continuation exactly: `failure` + `max_attempts_reached` +
-`waived: true`.
+"failed and out of attempts".
 
-**A cap reached without a waiver writes no line.** The retry cap is enforced by
-a guard that refuses the transition, and a refused transition records nothing.
-A run that exhausts its budget therefore goes quiet rather than saying why it
-stopped, so to a reader of this log alone that case is indistinguishable from a
-stall. Check the cohort state when a run ends without a terminal transition.
+**Reachability — read this before relying on `retry_state`.** The field is
+narrower than its two values suggest, in three ways.
+
+- *The counters lag by one round.* `loop-cohort` increments them **after** the
+  transition is fired, so the line recording the round that spends the last of
+  a budget still reads `in_progress`. Treat `in_progress` as "the budget had
+  room when this line was written", never as "another attempt will be allowed".
+- *On the review axis*, `max_attempts_reached` appears only on a line that
+  carried `--allow-retry-cap-override`. Without the override the transition at
+  the cap is refused, and a refused transition writes nothing.
+- *On the implementation axis it cannot appear at all.* No override exists for
+  `gates-failed`, and its guard refuses unconditionally once the counter
+  reaches the cap, so that transition is either written below the cap or not
+  written.
+
+**A cap reached without an override writes no line.** A run that exhausts its
+budget therefore goes quiet rather than saying why it stopped, so to a reader
+of this log alone that case is indistinguishable from a stall. Check the cohort
+state when a run ends without a terminal transition.
+
+**`budgets` and the guard can disagree.** The guard resolves an absent or
+non-integer cap to its own default and enforces that; this snapshot reports
+only what `state.json` actually holds, using `null` for anything it cannot
+read. A line may therefore show no cap for a run the guard is about to refuse.
 
 Two properties consumers depend on. A field that cannot be determined is
 `null` and is still present, because a key that disappears reads as zero to

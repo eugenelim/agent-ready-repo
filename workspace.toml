@@ -429,6 +429,19 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
+  # adversarial + quality review and registered rather than repaired because
+  # each needs an owner decision, not an edit. Shared root cause: the engine
+  # writes the line but `loop-cohort` owns the retry counters and moves them in
+  # a separate step, so the line reports a lagging snapshot of state it does
+  # not control. Sharpest two: `retry_state: max_attempts_reached` is
+  # unreachable on the implementation axis entirely, and the line carries no
+  # schema version while its consumer (`agentbundle` workspace MCP) versions
+  # independently. The claim defects from the same review were fixed in
+  # 2.25.14; only these were deferred. Lives in the survey because this change
+  # ran direct-light with no spec directory, so there is no notes/ home for it.
+  # Unblocks when: an owner decides where the retry counter is read.
+  {path = "docs/product/research/agent-loop-otel-envelope-survey.md", kind = "defect", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"}, summary = "Seven registered follow-ons on the work-loop event-line envelope: retry_state reachability, budgets-versus-guard cap disagreement, wave-passed classification, a missing line schema version, no completeness guard on the two event-classification maps, no executing reader-side test, and a stale ADR-0064 schema statement", needs = []},
   # The Makefile's own `Revisit if` note beside --strict has now fired with
   # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
   # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.

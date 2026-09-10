@@ -1,6 +1,7 @@
 """Tests for loop-engine events.jsonl outbox protocol."""
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -14,6 +15,17 @@ _SCRIPTS = (
 )
 _LOOP_ENGINE = _SCRIPTS / "loop-engine.py"
 _LOOP_COHORT = _SCRIPTS / "loop-cohort.py"
+
+# Loaded under a pack- and skill-qualified name so a sibling skill's module of
+# the same stem cannot bind first. Driving the CLI cannot reach the
+# best-effort guards below it: every path that would make the cohort file
+# unreadable also fails the run_id preflight, so the transition never gets far
+# enough to build a line. These contracts need the functions directly.
+_spec = importlib.util.spec_from_file_location(
+    "core_work_loop_loop_engine_events_under_test", _LOOP_ENGINE
+)
+le = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(le)
 
 
 def _run(script: Path, *args: str, cwd: Path) -> subprocess.CompletedProcess:
@@ -191,19 +203,31 @@ class TestLifecycleFields:
     def test_budgets_carry_the_counters_and_their_caps(
         self, tmp_path: pytest.TempDir
     ) -> None:
+        """Each budget field must carry its OWN value, not merely a matching one.
+
+        The template ships `0, 5, 0, 5`, so comparing each field against the
+        cohort file passes under any permutation that maps 0 to 0 and 5 to 5 —
+        a swap of the implementation and review counters would go unnoticed.
+        These four values are pairwise distinct so only the correct wiring
+        passes.
+        """
         repo = _init_git_repo(tmp_path)
         spec_dir = _make_spec_dir(repo)
         _engine_init(repo, spec_dir)
+        distinct = {
+            "implementation_retry_count": 1,
+            "max_implementation_retries": 7,
+            "review_retry_count": 2,
+            "max_review_retries": 9,
+        }
+        assert len(set(distinct.values())) == 4, "the fixture must stay pairwise distinct"
+        cohort_path = spec_dir / "state.json"
+        cohort = json.loads(cohort_path.read_text())
+        cohort.update(distinct)
+        cohort_path.write_text(json.dumps(cohort))
+
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
-        budgets = self._events(repo)[0]["budgets"]
-        cohort = json.loads((spec_dir / "state.json").read_text())
-        for field in (
-            "implementation_retry_count",
-            "max_implementation_retries",
-            "review_retry_count",
-            "max_review_retries",
-        ):
-            assert budgets[field] == cohort[field], field
+        assert self._events(repo)[0]["budgets"] == distinct
 
     def test_waived_is_false_without_the_flag(self, tmp_path: pytest.TempDir) -> None:
         repo = _init_git_repo(tmp_path)
@@ -246,6 +270,89 @@ class TestLifecycleFields:
         event = self._events(repo)[1]
         assert event["to"] == "SPEC-HUMAN-GATE"
         assert event["budgets"]["review_retry_count"] is None
+
+
+class TestPhaseDurationArithmetic:
+    """`_phase_duration_s` directly — an end-to-end run cannot reach these branches.
+
+    Two transitions land in the same second, so an assertion on a live run
+    holds whether or not the clamp and the parse guard exist.
+    """
+
+    def test_it_counts_whole_seconds(self) -> None:
+        assert le._phase_duration_s("2026-01-01T00:00:00Z", "2026-01-01T00:00:42Z") == 42
+
+    def test_a_backwards_clock_step_clamps_to_zero(self) -> None:
+        """Without the clamp this returns -42, which sums as a real measurement."""
+        assert le._phase_duration_s("2026-01-01T00:00:42Z", "2026-01-01T00:00:00Z") == 0
+
+    @pytest.mark.parametrize(
+        "started", ["", "not-a-time", "2026-01-01 00:00:00", "2026-01-01T00:00:00+00:00"]
+    )
+    def test_an_unparseable_start_yields_none_not_an_exception(self, started: str) -> None:
+        assert le._phase_duration_s(started, "2026-01-01T00:00:42Z") is None
+
+    def test_an_absent_start_yields_none(self) -> None:
+        assert le._phase_duration_s(None, "2026-01-01T00:00:42Z") is None
+
+    def test_an_unparseable_end_yields_none(self) -> None:
+        assert le._phase_duration_s("2026-01-01T00:00:00Z", "garbage") is None
+
+
+class TestBestEffortReadsCannotCostATransition:
+    """`_budget_snapshot` must absorb every unreadable-cohort shape.
+
+    The line is built before the write path's own guard, so anything raising
+    here would abort a transition that previously succeeded.
+    """
+
+    def _all_none(self, snapshot: dict) -> None:
+        assert set(snapshot) == set(le._BUDGET_FIELDS), "every key must still be present"
+        assert all(v is None for v in snapshot.values()), snapshot
+
+    def test_an_absent_cohort_file(self, tmp_path: pytest.TempDir) -> None:
+        self._all_none(le._budget_snapshot(tmp_path))
+
+    def test_a_directory_where_the_cohort_file_belongs(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        (tmp_path / "state.json").mkdir()
+        self._all_none(le._budget_snapshot(tmp_path))
+
+    def test_a_symlinked_cohort_file(self, tmp_path: pytest.TempDir) -> None:
+        real = tmp_path / "elsewhere.json"
+        real.write_text(json.dumps({"review_retry_count": 3}))
+        (tmp_path / "state.json").symlink_to(real)
+        self._all_none(le._budget_snapshot(tmp_path))
+
+    @pytest.mark.parametrize("body", ["", "{", "null", "[]", '"a string"', "\x00\xff"])
+    def test_unusable_cohort_content(self, tmp_path: pytest.TempDir, body: str) -> None:
+        (tmp_path / "state.json").write_text(body, errors="ignore")
+        self._all_none(le._budget_snapshot(tmp_path))
+
+    @pytest.mark.parametrize("value", ["5", 5.0, True, None, [], {}])
+    def test_a_non_integer_counter_is_dropped_not_coerced(
+        self, tmp_path: pytest.TempDir, value: object
+    ) -> None:
+        """`True` is an int in Python; reporting it as a count would be nonsense."""
+        (tmp_path / "state.json").write_text(
+            json.dumps({"review_retry_count": value, "max_review_retries": 5})
+        )
+        snapshot = le._budget_snapshot(tmp_path)
+        assert snapshot["review_retry_count"] is None
+        assert snapshot["max_review_retries"] == 5
+
+    def test_lifecycle_fields_never_raise_on_a_hostile_cohort(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        (tmp_path / "state.json").mkdir()
+        fields = le._lifecycle_fields(
+            tmp_path, {"last_transition_at": "garbage"}, "2026-01-01T00:00:00Z",
+            event="findings-remain", next_state="SPEC-PLAN-DRAFTING", waived=False,
+        )
+        assert fields["phase_s"] is None
+        assert fields["retry_state"] is None
+        assert fields["result"] == "failure"
 
 
 class TestOutcomeAndReasonAxes:
