@@ -109,6 +109,34 @@ to proceed to cohort operations without another human signal.
 - `plan-rejected` — build strategy rejected; fires from `PLAN-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
 - `contract-amendment` — code-mode-only return from `CODE-IMPLEMENTATION` to `SPEC-PLAN-DRAFTING`; requires explicit owner-authority, stable follow-on reason, and at least one stable evidence reference for every completed task. Each repeated CLI reference uses `Tn=<stable-ref>`. It snapshots and pins completed work, clears only remaining approval/schedule state, and reuses the ordinary review, human-gate, approval, scheduling, and `plan-locked` path. Exact replay completes either cross-file crash window without a second history entry.
 
+**Fields on each `.loop-run/events.jsonl` line.** `loop-engine transition`
+appends one line per transition. The first seven fields identify the
+transition; the rest let a consumer answer questions the transition alone
+cannot.
+
+| Field | Meaning |
+| --- | --- |
+| `seq` | Transition sequence number, starting at 1. |
+| `run_id` | The run's UUID; matches both state files. |
+| `spec` | Spec directory, repository-relative where resolvable. |
+| `from` | State being left. |
+| `event` | FSM event fired. |
+| `to` | State entered. |
+| `at` | When the transition happened, `%Y-%m-%dT%H:%M:%SZ`. |
+| `phase_started_at` | When the `from` state was entered, so consecutive phases abut. On the first line this is what `init` wrote, which is the run's start. |
+| `phase_s` | Whole seconds spent in `from`. Never negative. `null` when either timestamp is unusable. |
+| `waived` | `true` when this transition carried `--allow-retry-cap-override`. |
+| `budgets` | The cohort retry counters and their caps at transition time: `implementation_retry_count`, `max_implementation_retries`, `review_retry_count`, `max_review_retries`. |
+
+Two properties consumers depend on. A field that cannot be determined is
+`null` and is still present, because a key that disappears reads as zero to
+anything summing durations or comparing a counter against its cap. And the
+counters are *copied* here, not owned here — `loop-engine transition` moves
+none of them, so a line records the values as they stood when it was written.
+
+Timestamps are whole seconds, so `phase_s` is a whole-second figure. That is
+adequate for agent-paced phases and not for anything shorter.
+
 **Exit contract — `check`.** `loop-cohort check --phase <phase>` exits 0 when
 the phase is satisfied and non-zero when it isn't, with a one-line reason on
 stderr. Treat non-zero as "stop and surface."
