@@ -13,7 +13,7 @@
       "changelogAnchor": "core22511--2026-09-10",
       "highlights": [
         {
-          "source": "**Checking where the work stands costs a fraction of what it did.** The orientation payload drops from about 220,000 characters to 87,000, because it now carries the decisions you act on rather than the full working set behind them. Ask for the long form when you want it.",
+          "source": "**Checking where the work stands costs a fraction of what it did.** The orientation payload now carries the decisions you act on rather than the full working set behind them, and the saving grows with the size of your workspace. Ask for the long form when you want it.",
           "segments": [
             {
               "type": "strong",
@@ -21,12 +21,12 @@
             },
             {
               "type": "text",
-              "value": " The orientation payload drops from about 220,000 characters to 87,000, because it now carries the decisions you act on rather than the full working set behind them. Ask for the long form when you want it."
+              "value": " The orientation payload now carries the decisions you act on rather than the full working set behind them, and the saving grows with the size of your workspace. Ask for the long form when you want it."
             }
           ]
         },
         {
-          "source": "**The spec and traceability checks report what they found instead of listing it.** On a repository where both pass they print three lines between them instead of 646, and each names how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full.",
+          "source": "**The spec and traceability checks report what they found instead of listing it.** A passing run prints its summary lines and says how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full.",
           "segments": [
             {
               "type": "strong",
@@ -34,7 +34,7 @@
             },
             {
               "type": "text",
-              "value": " On a repository where both pass they print three lines between them instead of 646, and each names how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full."
+              "value": " A passing run prints its summary lines and says how many items it withheld, so nothing goes quietly missing. Anything that fails still prints in full."
             }
           ]
         }

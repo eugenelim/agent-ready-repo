@@ -199,10 +199,10 @@ def _repo_backlog_entry_dict(entry) -> dict:
 
     `room`, `slug`-or-`path`, and `summary` are what `SKILL.md` renders;
     `needs` is load-bearing because `SKILL.md` forbids rereading raw TOML to
-    determine dependencies. `kind`, `entry_type`, and `source` have no reader
-    and were 9.1% of the emitted payload across a 143-entry backlog, so they
-    are deliberately not projected. Narrowing applies to every mode, keeping
-    `reconcile` and `status` byte-identical here.
+    determine dependencies. `kind`, `entry_type`, and `source` have no reader,
+    so they are deliberately not projected — an emitted field with no consumer
+    is re-sent to the model on every later request in an agent call. Narrowing
+    applies to every mode, keeping `reconcile` and `status` identical here.
     """
     result = {"room": entry.room, "needs": entry.needs}
     for key in ("slug", "path", "summary"):
@@ -2328,8 +2328,9 @@ def main(argv: list[str] | None = None) -> int:
             action="store_true",
             default=False,
             help="Restore canonical.evaluations, the full per-entry evaluation "
-                 "list. Roughly doubles the payload; the dispatch decisions it "
-                 "carries are already in canonical.ready/active/blocked/findings.",
+                 "list. It grows with the size of the workspace and can dominate "
+                 "the payload; the dispatch decisions it carries are already in "
+                 "canonical.ready/active/blocked/findings.",
         )
     migration_subcommand = subcommand in {
         "repair-plan", "repair-apply", "repair-rollback"

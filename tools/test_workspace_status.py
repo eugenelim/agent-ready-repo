@@ -1579,8 +1579,17 @@ _WORK_LOOP_CONTRACT_HASH = (
 # work-loop still writes spec.md `Status: Shipped`, workspace-status still owns
 # workspace.toml queue/active/shipped — and the status vocabulary, the
 # deferral-anchor requirement, and the doc-drift bullet are all untouched.
+#
+# Re-pinned again for one added sentence in the doc-drift bullet: `--verbose`
+# now lists the warn-only findings that `lint-spec-status.py`'s clean summary
+# only counts. Reviewed as the pin requires, and the engine needs no edit —
+# this names an output flag on an existing invocation. It writes nothing, adds
+# no invariant, and leaves ownership unchanged: work-loop still writes spec.md
+# `Status: Shipped`, workspace-status still owns workspace.toml
+# queue/active/shipped. The status vocabulary, the deferral-anchor
+# requirement, and the invariants the bullet lists are all untouched.
 _WORK_LOOP_FINISH_HASH = (
-    "1c41a94b5be57d688bec98530e073f6147c734efcb1284272e8ee18bc6c331cc"
+    "56bbfebd0e5a273d7ddbf867f7c019e70040ae0177c878e463ffc87c6cfc72a0"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

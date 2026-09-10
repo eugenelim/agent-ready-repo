@@ -143,7 +143,7 @@ canonical.legacy_memberships     — retained legacy context; always non-dispatc
 canonical.evaluations            — full per-entry evaluation list. Omitted by `status`,
                                    which is the orientation mode: every dispatch decision
                                    it carries is already in ready/active/blocked/findings,
-                                   and it is roughly half the payload. Pass
+                                   and it grows with the workspace. Pass
                                    `--include-evaluations` to restore it; `reconcile` and
                                    `explain` always carry it.
 canonical.*[].origin_mode        — repository or tracker origin from structured provenance

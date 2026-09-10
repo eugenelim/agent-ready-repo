@@ -13,6 +13,9 @@ python3 tools/build-site.py --journeys-only   # writes web/src/lib/now-highlight
 python3 -m pytest tools/test_build_site_routing.py -k now -q
 ```
 
+Write each highlight as a `-` bullet. The parser extracts only bullets, so a
+paragraph is dropped silently and the staleness check above still passes.
+
 A changelog edit committed without the regenerated JSON fails
 `test_the_committed_now_projection_matches_the_changelog_source` with
 ``web/src/lib/now-highlights.generated.json is stale — run `python3

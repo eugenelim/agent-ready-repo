@@ -1116,5 +1116,5 @@ def test_every_detail_line_carries_the_detail_prefix(tmp_path: Path) -> None:
     for ln in out.splitlines():
         if not ln:
             continue
-        expect(ln.startswith("  - ") or ln.startswith("lint-traceability:"),
+        expect(ln.startswith(("  - ", "lint-traceability:")),
                f"line is neither a detail nor a summary line: {ln!r}")
