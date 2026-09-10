@@ -327,8 +327,8 @@ can be missing both guide outcomes.
 - Give the large case a genuinely irreducible obligation set, so a candidate
   that compresses it fails on recall rather than on count.
 
-**Done when:** the new tests are red before the entries land and green after,
-and the full pack suite passes.
+**Done when:** every Tests bullet above passes, each having been red before the
+entries landed and green after, and the full pack suite is green.
 
 ### T4: The recorded run discharges the delivery gate
 
@@ -363,6 +363,7 @@ close this task, and the count closes nothing.
 **Depends on:** T1, T2, T3, T4
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
 `docs/product/changelog.md`, `workspace.toml`,
 `.agents/`, `.claude/`
 
@@ -373,6 +374,10 @@ close this task, and the count closes nothing.
   --root .` resolves this spec under its brief.
 - `python3 .agents/skills/work-loop/scripts/lint-traceability.py --root .` exits
   0. The 433 informational orphans are pre-existing.
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite that
+  carries the sweep below. Without this command the sweep has no closing
+  oracle: it would be authored, never executed, and the task would still meet
+  its gate.
 - **AC19 across every shipped surface, not just the procedure span.** T1's
   check slices `SKILL.md` because that is where the percentile trigger and the
   prohibition must coexist. AC19 is wider: no shipped surface may make a
@@ -409,8 +414,10 @@ close this task, and the count closes nothing.
   `Accepted` and stays out of every collection — the reconciler rejects a
   terminal Accepted intent.
 
-**Done when:** all four commands above pass and `make build-self` leaves no
-drift.
+**Done when:** every Tests bullet above passes, including the pack-local suite
+with the cross-surface sweep present and its mutation proof recorded and
+restored, and `make build-self` leaves no drift. Counting the commands here is
+what went stale when one was added.
 
 ## Rollout
 
