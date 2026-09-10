@@ -429,6 +429,7 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {path = "docs/specs/loop-tooling-hygiene/notes/loop-cli-option-and-constant-hygiene.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-tooling-hygiene/spec.md", revision = "56bec2b1ba73c7cefb82898e151cea05d6f51169"}, summary = "Name schema_version once instead of three bare literals, and correct schedule --plan's help text to the single path it accepts", needs = []},
   # Cut from spec/desk-research-build-handover on 2026-09-09 by owner scope
   # decision, not missed. That slice guards one pack's inline links at source;
   # this is the general, emitted-side control. It matters because
