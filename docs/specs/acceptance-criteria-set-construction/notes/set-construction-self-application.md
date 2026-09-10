@@ -413,3 +413,45 @@ about acceptance-criteria set construction, so they are not this spec's contract
 and no criterion here carries them. They are recorded as delivery learning. If
 they should ship as guidance, that is a slice of its own against the plan
 template, and the owner cuts it.
+
+## Addendum 8 — accepted residual concerns, under the repository's own rule
+
+Fifteen shaping rounds produced no `Clean` verdict. The residue is accepted here
+under the mechanism `work-loop-review-economics` already states in its Boundary:
+*"Owners may explicitly accept residual concerns outside protected risk classes.
+Acceptance must name the concern and consequence; silence, arbitrary round caps,
+and elapsed budget are not acceptance."* Owner-authorized 2026-09-10.
+
+That rule is deliberately the instrument rather than a round count, because the
+same Boundary rejects a round cap as acceptance. Fifteen rounds is not why this
+is accepted; each concern below is named with its consequence, and none falls in
+a protected class.
+
+**Protected-class check.** The named classes are security, privacy, data-loss,
+migration, mixed-version, public-contract, destructive-operation and
+human-approval. All five concerns below are properties of this repository's own
+test oracle or plan prose. None changes what an adopter may rely on, so none is
+public-contract; none touches the other seven. Stated as a judgement, not a
+mechanical result.
+
+| Concern | Consequence if it bites | Protected? |
+| --- | --- | --- |
+| The single-homing pinned set is a proxy. A stage carrying two rule sentences where only one is pinned is not covered by the floor. | A rule could be duplicated into a second authoring surface without the suite noticing; caught at review by the rubric's first class, or not at all. | No |
+| The oracle matches exact sentences, so a paraphrased second home is invisible. | Same as above, for reworded duplication. | No |
+| The suite checks presence-in-owner and absence-elsewhere but never counts occurrences *inside* the owner, so a reworded second copy within one file passes. | A rule stated twice in one authoring surface ships green. Reported by a peer session, not found by our own review. | No |
+| Plan traceability from criteria to construction evidence holds by reference to the spec's own group, not by a mechanical check. | A later edit could leave a criterion without construction evidence silently. | No |
+| T1's `Tests:Approach` ratio is 12.7× against the template's ~2× smell, after a reduction from 19.8×. | Measured, not hypothetical: prose-described assertions are what supplied the family-A findings that dominated rounds 8-15. | No |
+
+The last one is the only concern with a *measured* consequence, so it is accepted
+with a reason rather than as trivia. Two things bound it. The eliminator
+disposition now routes exact assertion wording to build-discovery, which is what
+took T1 down by 36%. And the residual height is partly an instrument artifact:
+the ~2× smell divides by `Approach`, which for a task whose deliverable *is*
+prose compresses to a line or two — "write the procedure" — so the ratio inflates
+without indicating over-specification. That is a finding about the smell's
+calibration on prose-authoring tasks, and it belongs to whoever owns the
+template rather than to this slice.
+
+**What acceptance does not cover.** No `Clean` verdict exists, so the spec stays
+`Draft` and unindexed until the owner approves it on this record. Acceptance of
+these five concerns is not approval of the contract.

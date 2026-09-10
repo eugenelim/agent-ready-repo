@@ -20,8 +20,10 @@ acceptance-criteria step carries an ordered selection procedure: name the
 changed contract obligations, admit only candidates whose failure independently
 blocks shipment *and* whose observing surface the author can name, attach one
 positive and one disconfirming scenario per admitted obligation, route every
-rejected candidate to a named owner, then run a set-level necessity,
-uniqueness, consistency, joint-feasibility and coverage pass.
+rejected candidate to a named owner — including, for an obligation whose
+content only the build can settle, a discovery predicate in the plan rather than
+an answer invented at approval time — then run a set-level necessity, uniqueness,
+consistency, joint-feasibility and coverage pass.
 
 The procedure is a **self-check the author runs while authoring**, not a gate
 another party applies afterwards. Its load-bearing move is that a criterion is
@@ -161,8 +163,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The procedure routes each rejected candidate to a named destination:
       implementation choices to the plan, concrete cases and fixtures to
       Testing Strategy, an existing repository obligation to its owner,
-      explanatory prose to the body, and a duplicate or decoration out of the
-      contract.
+      explanatory prose to the body, a duplicate or decoration out of the
+      contract, and an obligation whose content only the build can settle to the
+      plan as a discovery predicate carrying its constraint, required outcome
+      and verification mode.
 - [ ] The set-level pass tests necessity, uniqueness, consistency, joint
       feasibility, and coverage.
 - [ ] The procedure defines coverage as satisfied for an Objective outcome or a
