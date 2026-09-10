@@ -120,6 +120,39 @@ RULES = (
         "skill",
         "Take the cheapest disconfirming evidence before review.",
     ),
+    # Plan-authoring rules. A fact written into a task instead of the design
+    # supplied most of the late review findings on the slice that added these,
+    # so each is pinned to one owner rather than left to convention.
+    (
+        "facts-belong-to-design",
+        "skill",
+        "Tasks are jobs to be done, not fact containers",
+    ),
+    (
+        "done-when-is-a-pointer",
+        "skill",
+        "points at the task's own `Tests` and never restates them",
+    ),
+    (
+        "gate-read-obligation-in-tests",
+        "skill",
+        "An obligation a completion gate must read belongs in `Tests`",
+    ),
+    (
+        "claim-matches-its-oracle",
+        "skill",
+        "names the comparison its oracle performs",
+    ),
+    (
+        "relocate-before-reducing",
+        "skill",
+        "One ratio, two causes, opposite remedies.",
+    ),
+    (
+        "owner-gets-decision-facts",
+        "skill",
+        "A round count is not a fact anyone can act on",
+    ),
 )
 EXAMPLES = (
     ('E1', 'splits', 'Two different predicates; no single sentence covers both.', '`writer.py` emits `manifest.json` with keys in byte-sorted order, and `--dry-run` prints that manifest without writing a file.'),
