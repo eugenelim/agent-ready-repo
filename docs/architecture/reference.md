@@ -89,3 +89,22 @@ depend on build internals.
   generated projection; a projection is never an authoring dependency.
 - Default to no new dependency. Before adding one, record it in the owning
   package instructions or an ADR.
+- **Identify an acceptance criterion and a verification item opaquely and
+  append-only, scoped to its own spec directory.** Assign once; never renumber
+  on insertion or reorder; never reuse after removal, recording the removal in
+  the artifact's retired list. A verification item's identifier is independent
+  of the criterion and the task it serves, never derived from either. Cite
+  across specs with the `spec:<slug>/` marker the plan template already uses for
+  cross-spec task dependencies.
+
+  Three reasons, evidenced in
+  [the identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md).
+  Positional numbering makes identity a function of position, so an insertion
+  silently invalidates every existing reference — the failure this repository
+  measured across three review rounds on one spec. A derived identifier inherits
+  its parent's instability, which is why three independent test-management tools
+  keep a test's identifier separate from the requirement it verifies. And the
+  scope is the spec directory rather than the repository because a global
+  counter is a shared mutable resource across concurrent worktrees: this
+  repository collided on one such counter, the released pack version, twice in a
+  single day.
