@@ -177,16 +177,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The set-level pass additionally reads coverage from the criteria back to
       their observers: every admitted criterion has exactly one observing
       surface, and a criterion with none, or with two, fails the pass.
-- [ ] The set-level pass reads the criteria back to the Objective as well:
-      every admitted criterion names the Objective outcome or non-waivable
-      Boundary its failure would leave unmet, and a criterion that names neither
-      is decoration and is cut.
+- [ ] The set-level pass reads the criteria back to what they serve: every
+      admitted criterion names the Objective outcome, non-waivable Boundary, or
+      applicable Durable Output its failure would leave unmet. A criterion that
+      names none of those is decoration and is cut.
 - [ ] The procedure defines the necessity check operationally: for each
-      criterion, name the input that makes it red, then confirm that neither a
-      sibling criterion nor an existing repository control — a test, lint or
-      gate the repository already runs — reds on that same input. A criterion
-      whose red input is already covered is merged, removed, or reduced to a
-      citation of the owner that covers it.
+      criterion, state its whole failure predicate — the input, the expected
+      outcome, and the observing surface — then confirm no sibling criterion and
+      no existing repository control already enforces that same predicate. A
+      matching input alone is not coverage: two controls can red on one input
+      while asserting different outcomes. A criterion whose predicate is already
+      enforced is merged, removed, or reduced to a citation of that owner.
 - [ ] `guides/core/reference/acceptance-criteria-authoring.md` publishes the
       procedure's five stages.
 - [ ] That guide cites the criterion-shape owner by document name and restates
@@ -220,8 +221,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       outcome only, and records that a smaller set obtained by losing a
       distinct obligation or guardrail is a failure.
 - [ ] The recorded three-case run retains every seeded objective and
-      non-waivable guardrail, and admits no seeded implementation detail,
-      duplicate claim or example-only variant as a criterion.
+      non-waivable guardrail.
+- [ ] That run admits no seeded implementation detail, duplicate claim or
+      example-only variant as a criterion.
 
 ## Assumptions
 

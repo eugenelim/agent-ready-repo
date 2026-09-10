@@ -169,7 +169,7 @@ Traces to: AC1, AC2.
 `RULES` is a hand-declared tuple that the suite iterates, so no assertion can
 notice a rule sentence nobody pinned. Whether a sentence states a rule is a
 judgement and therefore not mechanizable. The per-stage floor bounds the
-proxy's incompleteness; it does not close it. Traces to: AC18, AC18.
+proxy's incompleteness; it does not close it. Traces to: AC18.
 
 **A requirement without its consequence reads as advice.** Three criteria pair a
 requirement with what happens when it is unmet — composition with
@@ -205,11 +205,11 @@ whole-file token deny-list is unavailable either way; see the probe under
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below. Each bullet names its criteria and the observation; the
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
-- **AC18, AC18.** Extend `RULES`, owner `skill`; the parametrised owner test
-  then gives AC18 per entry. Add one assertion that the pinned set reaches each
-  of the five stage intervals, the fifth closing at the end of the procedure
-  span. The set is the spec's Testing Strategy goal-based group, inherited by
-  reference.
+- **AC18.** Extend `RULES`, owner `skill`. Per-entry single-homing is the
+  pre-existing owner test's job and is no longer a criterion of this slice; what
+  this task adds is one assertion that the pinned set reaches each of the five
+  stage intervals, the fifth closing at the end of the procedure span. The set
+  is the spec's Testing Strategy goal-based group, inherited by reference.
 - **AC1, AC2.** Two offset comparisons over the stage markers.
 - **AC3, AC5, AC10.** Both clauses of each criterion — requirement and
   consequence.
@@ -437,9 +437,9 @@ what went stale when one was added.
   than to reword.
 - **The single-homing oracle cannot see a paraphrase — named, not closed.** The
   suite compares exact sentences over a hand-listed tuple, so a restatement in
-  different words is invisible to it. AC18 is therefore scoped to the pinned set
-  and AC18 puts a per-stage floor under it, so together they promise exactly
-  what the oracle delivers and no more.
+  different words is invisible to it. Per-entry single-homing belongs to the
+  suite's own owner test, and AC18 adds only the per-stage floor, so this slice
+  promises exactly what it delivers and no more.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.
