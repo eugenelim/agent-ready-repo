@@ -363,6 +363,50 @@ set-level characteristics have no counterpart in our authoring guidance. EARS
 carries no controlled defect-reduction evidence in sixteen years, so it ships
 as an optional aid and never as a gate.
 
+### A criterion syntax was tested by rewriting, and rejected
+
+**Measured 2026-09-10 by attempting the rewrite rather than reasoning about
+it.** Two samples: 72 shipped criteria drawn from 36 distinct shipped specs at
+most two per spec, and the 21 criteria of a spec drafted that day. Each
+criterion was sorted into one of three buckets — an EARS pattern applies and
+exposes a clause that was missing or implicit; a pattern applies but the
+sentence gains only a modal verb; or no pattern applies without inventing a
+trigger or an actor. Shipped sample: 3, 53, 16. Drafted spec: 0, 18, 3. These
+are dated figures behind a settled decision, and nothing recomputes them.
+
+**Why the fit is poor here, and it is not about rewrite cost.** The five
+templates assume a thing that acts when something happens to it, which is the
+domain they were built for. A large part of what this repository accepts is a
+different kind of claim: what a document holds, that a piece of work was
+carried out, a verdict already measured, or a property held across several
+surfaces at once. A modal verb turns a record of completed work into a standing
+promise, which is a change of meaning rather than of style.
+
+**The uniformity argument does not survive its own test.** Applying the
+templates would touch 56 of the 72 and 18 of the 21, and in 53 and 18 of those
+the only change is the modal. Everything else keeps the prose it has. Mixed
+shapes across one checklist read as less uniform than the single rule already
+in force, that a criterion names an outcome someone can observe.
+
+**What it did earn.** Attempting one state-driven rewrite exposed a real defect:
+a criterion naming two separate thresholds, with the band between them left
+undecided. One diagnostic hit in 21. That is the value of reaching for a
+template when a criterion reads oddly, and it is the use already shipped.
+
+**Decision: keep the local vernacular; do not fork the published one.** A
+house extension forfeits the only advantage adoption offered, because a reader
+who already knows the published form would then have to learn where ours
+departs, and it leaves us maintaining a dialect. Suggest a shape, never require
+one.
+
+**A closed list of criterion forms is not reachable, and class 4 says why.** A
+hand-kept catalogue of forms owes a completeness nobody can pay, and the next
+unfamiliar kind of artifact breaks it — the same objection that class raises
+against any parallel list kept by hand. What works instead is a few worked
+exemplars, marked plainly as an open set, which is how the surface owning
+criterion shape already teaches its boundary. Enumerating the forms is the
+fool's errand; exhibiting some of them is not.
+
 ### External binding
 
 A rule's value is whether it binds to something outside the document. **That
