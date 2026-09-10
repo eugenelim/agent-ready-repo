@@ -269,9 +269,13 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
     # The seed no longer links the architecture overview: that section is
     # conditional, and the seed tells adopters to delete the file when it would
     # duplicate a source they already have. Core still ships it.
+    # `docs/AGENTS.md` is deliberately no longer linked. Naming one scoped file
+    # in the lookup read as discharging the obligation for that whole subtree,
+    # so a scoped file nested deeper went unread; the lookup now describes the
+    # walk instead. It also stops the seed hard-coding a path an adopter
+    # repository need not have. Core still ships the file.
     assert relative_links == {
         "AGENT_RULES.md",
-        "docs/AGENTS.md",
         "docs/CONVENTIONS.md",
     }
     # Every linked target is a seeded file, or the link dangles on install.

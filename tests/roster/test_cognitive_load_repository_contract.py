@@ -67,8 +67,14 @@ def test_root_and_seed_use_the_same_compact_lookup_instruction() -> None:
     for source in (ROOT / "AGENTS.md", SEEDS / "AGENTS.md"):
         content = source.read_text(encoding="utf-8")
         assert instruction in content
-        assert "[`docs/AGENTS.md`](docs/AGENTS.md)" in content
-        assert "Read both lookup files with one bounded, repository-confined operation" in content
+        # The lookup must send the reader up the whole path, not to one named
+        # scoped file. Naming `docs/AGENTS.md` here read as discharging the
+        # obligation for everything under docs/, so `docs/product/AGENTS.md`
+        # was skipped and the rule it owns went unread.
+        assert "start in its own directory and walk up to the repository root" in content
+        assert "stopping at the first hit silently skips the rest" in content
+        assert "[`docs/AGENTS.md`](docs/AGENTS.md)" not in content
+        assert "Read each lookup file with one bounded, repository-confined operation" in content
         assert "identity changes while opening" in content
         assert "do not claim this check covered the host load" in content
 

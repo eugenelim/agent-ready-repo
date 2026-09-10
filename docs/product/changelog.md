@@ -83,6 +83,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `new-spec`: the rubric requires a containment check to name the region it is
   about. When a document restates its own claims, an artifact-wide containment
   check passes on the restatement and never reads the region in question.
+- The seeded `AGENTS.md` rule lookup now sends an agent up the whole path to the
+  file it is changing, reading every scoped `AGENTS.md` from that file's own
+  directory to the repository root. It previously named one scoped file, which
+  read as discharging the obligation for that whole subtree and silently skipped
+  any scoped file nested deeper.
 
 ### Fixed
 
