@@ -11,6 +11,7 @@ live in [RFCs](../rfc/).
 - [`pack-manifest.md`](pack-manifest.md) — pack metadata projection.
 - [`agentbundle.md`](agentbundle.md) — CLI, build, install, and adaptation.
 - [`loop-infrastructure.md`](loop-infrastructure.md) — work-loop execution state and controls.
+- [`loop-contract.md`](loop-contract.md) — the spec/plan pair the loop runs against: artifact ownership and item identity.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md) — intake, artifacts, and workspace routing.
 - [`workspace-mcp/design.md`](workspace-mcp/design.md) — per-session workspace MCP service.
 - [`verification-graph.md`](verification-graph.md) — measured facts: local gate graph, remote workflow fleet, required contexts, and platform classification.
