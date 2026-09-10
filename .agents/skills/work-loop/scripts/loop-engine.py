@@ -145,13 +145,16 @@ def _get_repo_root() -> Path:
             capture_output=True, text=True, encoding="utf-8", check=False,
             env=safe_env, timeout=SUBPROCESS_TIMEOUT_S,
         )
-    except subprocess.TimeoutExpired as exc:
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         # Raised as ValueError because every caller already handles that; a bare
-        # TimeoutExpired would surface as a traceback.
-        raise ValueError(
-            f"git rev-parse --show-toplevel timed out after "
-            f"{SUBPROCESS_TIMEOUT_S:.0f}s"
-        ) from exc
+        # TimeoutExpired would surface as a traceback. FileNotFoundError — no `git`
+        # on PATH — belongs in the same clause and was missing from it: every
+        # engine verb reaches this through `_resolve_spec_dir`, whose caller
+        # catches only ValueError, so a container without git got a 33-line
+        # traceback where `loop-cohort.py`'s twin returns one bounded line. Both
+        # copies now refuse identically; `test_missing_git_binary_refuses_without_a_traceback`
+        # pins the pair.
+        raise ValueError(f"could not determine repo root: {exc}") from exc
     if r.returncode != 0 or not r.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
     return Path(r.stdout.strip()).resolve()
