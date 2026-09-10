@@ -59,12 +59,20 @@ def symlink_or_skip(
     return True
 
 
-def run(root: Path, *extra: str) -> tuple[int, str, str]:
+def run_raw(root: Path, *extra: str) -> tuple[int, str, str]:
+    """Invoke the linter exactly as given — no flags added."""
     proc = subprocess.run(
         [sys.executable, str(LINTER), "--root", str(root), *extra],
         capture_output=True, text=True,
     )
     return proc.returncode, proc.stdout, proc.stderr
+
+
+def run(root: Path, *extra: str) -> tuple[int, str, str]:
+    """Run with `--verbose`: the full output shape every per-item assertion
+    below was written against. A passing run now withholds detail lines by
+    default, so tests about that default use `run_raw` explicitly."""
+    return run_raw(root, "--verbose", *extra)
 
 
 def write(path: Path, text: str) -> None:
@@ -1038,3 +1046,75 @@ def test_no_hardcoded_path() -> None:
     for i, ln in enumerate(lines):
         if re.search(r'"(docs|packages)"', ln) and not (start < i < end):
             pytest.fail(f"hardcoded artifact path at line {i + 1}: {ln.strip()}")
+
+
+def _tree_with_detail_lines(root: Path) -> None:
+    """A tree that exits 0 but still reports per-item detail lines.
+
+    Needs a discovery anchor (the brief) or the linter no-ops entirely; `beta`
+    has no producer, so it is reported as a structural orphan.
+    """
+    write_brief(root, "b")
+    write_spec(root, "alpha", brief="b", component="alpha-svc")
+    write_component(root, "alpha-svc")
+    write_spec(root, "beta", component="beta-svc")  # no producer -> orphan
+    write_component(root, "beta-svc")
+
+
+def test_detail_lines_are_hidden_on_a_passing_run(tmp_path: Path) -> None:
+    """AC4: a passing run prints summaries and a count, not the per-item list.
+
+    Killing mutation: print `out` unconditionally in `main` and this reddens.
+    The paired verbose run is the positive control, so a tree that produced no
+    detail lines at all could not make this pass.
+    """
+    _tree_with_detail_lines(tmp_path)
+    quiet_rc, quiet_out, _ = run_raw(tmp_path)
+    loud_rc, loud_out, _ = run_raw(tmp_path, "--verbose")
+
+    expect(quiet_rc == 0 and loud_rc == 0,
+           f"fixture must pass in both modes: {quiet_rc}/{loud_rc}")
+    detail = [ln for ln in loud_out.splitlines() if ln.startswith("  - ")]
+    expect(bool(detail), f"positive control: verbose printed no detail: {loud_out}")
+    expect(not [ln for ln in quiet_out.splitlines() if ln.startswith("  - ")],
+           f"default run must withhold every detail line: {quiet_out}")
+    expect(f"{len(detail)} detail line(s) hidden" in quiet_out,
+           f"default run must report {len(detail)} hidden: {quiet_out}")
+    for ln in loud_out.splitlines():
+        if ln.startswith("lint-traceability:"):
+            expect(ln in quiet_out, f"summary line was withheld: {ln}")
+
+
+def test_a_failing_run_prints_every_line_without_verbose(tmp_path: Path) -> None:
+    """AC4: a non-zero exit is never truncated.
+
+    Killing mutation: drop `or exit_hint != 0` from the guard in `main` and
+    this reddens, because a --strict failure loses the orphan detail that
+    explains it.
+    """
+    _tree_with_detail_lines(tmp_path)
+    strict_rc, strict_out, _ = run_raw(tmp_path, "--strict")
+    full_rc, full_out, _ = run_raw(tmp_path, "--strict", "--verbose")
+
+    expect(strict_rc == 1, f"--strict must fail on this tree: {strict_rc}")
+    expect(full_rc == 1, f"positive control: verbose must fail too: {full_rc}")
+    expect(strict_out == full_out,
+           "a failing run must print exactly what --verbose prints")
+    expect("hidden" not in strict_out,
+           f"a failing run withholds nothing, so it claims nothing: {strict_out}")
+
+
+def test_every_detail_line_carries_the_detail_prefix(tmp_path: Path) -> None:
+    """The suppression filter keys on `_DETAIL_PREFIX`; every non-summary line
+    must carry it, or a new report line would silently become unsuppressible.
+
+    Killing mutation: change any `out.append(f"  - ...")` site to a different
+    indent and this reddens.
+    """
+    _tree_with_detail_lines(tmp_path)
+    _, out, _ = run_raw(tmp_path, "--verbose")
+    for ln in out.splitlines():
+        if not ln:
+            continue
+        expect(ln.startswith("  - ") or ln.startswith("lint-traceability:"),
+               f"line is neither a detail nor a summary line: {ln!r}")

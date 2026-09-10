@@ -57,7 +57,10 @@ def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
 
 
 def run_lint(
-    root: Path, base_ref: str | None = None, all_specs: bool = False
+    root: Path,
+    base_ref: str | None = None,
+    all_specs: bool = False,
+    verbose: bool = False,
 ) -> tuple[int, str, str]:
     """Run the CLI from the temporary repository that owns ``root``."""
     subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
@@ -66,6 +69,8 @@ def run_lint(
         argv += ["--base-ref", base_ref]
     if all_specs:
         argv.append("--all")
+    if verbose:
+        argv.append("--verbose")
     proc = subprocess.run(argv, capture_output=True, text=True, cwd=str(root))
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -291,7 +296,7 @@ def test_invariant_ii_no_base() -> None:
     with best_effort_tempdir() as tmp:
         root = Path(tmp)  # plain dir, not a git repo, no base ref
         write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
-        rc, _, err = run_lint(root)  # resolve_default_base_ref → None
+        rc, _, err = run_lint(root, verbose=True)  # resolve_default_base_ref → None
         expect(rc == 0, f"no base ref → (ii) skipped, should exit 0, got {rc}: {err}")
         expect("no base ref resolvable" in err, f"expected skip warning: {err}")
 
@@ -366,7 +371,7 @@ def test_reference_candidates_outside_root_do_not_resolve() -> None:
             "`../../../../outside.py`.",
         )
 
-        rc, out, err = run_lint(root)
+        rc, out, err = run_lint(root, verbose=True)
 
         expect(rc == 0, f"reference findings remain warn-only, got {rc}: {err}")
         expect("outside.md" in err, f"outside doc target must not resolve: {err}")
@@ -396,7 +401,7 @@ def test_contract_file_symlink_outside_root_does_not_resolve() -> None:
             return
         write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
 
-        rc, out, err = run_lint(root)
+        rc, out, err = run_lint(root, verbose=True)
 
         expect(rc == 0, f"contract finding remains warn-only, got {rc}: {err}")
         expect("does not resolve to a file" in err,
@@ -451,7 +456,7 @@ def test_invariant_iii_warn_only() -> None:
             f"{_AC_HEADER}- [ ] AC1\n",
             encoding="utf-8",
         )
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"dangling doc ref must be warn-only (exit 0), got {rc}")
         expect("invariant (iii)" in err, f"expected invariant (iii) warning: {err}")
 
@@ -479,7 +484,7 @@ def test_iii_code_ref_resolves_and_missing() -> None:
         touch(root, "tools/real.py")
         write_spec_body(root, "coderef",
                         "Touches `tools/real.py` and `tools/missing.py`.")
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"code-ref check must be warn-only (exit 0), got {rc}")
         expect("tools/missing.py" in err, f"missing code ref should warn: {err}")
         expect("tools/real.py" not in err, f"resolving code ref must not warn: {err}")
@@ -497,7 +502,7 @@ def test_iii_code_ref_exclusions_with_controls() -> None:
             "Controls: `tools/install.py`, `packages/real/x.py`, "
             "`tools/lint-missing.py`, `packs/core/ctrl-missing.toml`.",
         )
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"exit 0 expected, got {rc}: {err}")
         # excluded shapes never warn
         for excluded in ("`install.py`", "packages/<pkg>", "lint-*.py", "...x.toml"):
@@ -505,7 +510,7 @@ def test_iii_code_ref_exclusions_with_controls() -> None:
         # brace-expansion shorthand is excluded even when rooted (so the brace
         # rule, not the root check, is what's under test).
         write_spec_body(root, "braces", "See `packages/adapters/{a,b}.py`.")
-        rc2, _, err2 = run_lint(root)
+        rc2, _, err2 = run_lint(root, verbose=True)
         expect("{a,b}" not in err2 and rc2 == 0,
                f"brace-expansion shorthand must not warn: {err2}")
         # shape-matched full-path controls DO warn
@@ -523,7 +528,7 @@ def test_iii_code_ref_suffix_strip() -> None:
             "See `tools/y.py:42`, `tools/y.py:42:10`, `tools/y.py#L42`; "
             "but `tools/gone.py:7` is stale.",
         )
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"exit 0 expected, got {rc}")
         expect("tools/y.py" not in err, f"located path (with locator) must not warn: {err}")
         expect("tools/gone.py" in err, f"missing path with locator should warn: {err}")
@@ -533,7 +538,7 @@ def test_iii_code_ref_markdown_link() -> None:
     with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec_body(root, "linkref", "See [the helper](../../tools/nope.py).")
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"exit 0 expected, got {rc}")
         expect("nope.py" in err, f"dangling markdown code link should warn: {err}")
 
@@ -574,7 +579,7 @@ def test_v_forward_without_backward_warns() -> None:
         # contract exists but carries no x-spec back-ref, and no REGISTRY.md
         write_contract(root, "contracts/openapi/orders.yaml", "openapi: 3.1.0\n")
         write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"missing backward ref must be warn-only (exit 0), got {rc}")
         expect("invariant (v)" in err, f"expected invariant (v) warning: {err}")
 
@@ -603,12 +608,12 @@ def test_v_extensionless_registry_and_dangling() -> None:
             "→ docs/specs/payments/\n")
         write_spec_with_contract(
             root, "payments", "`contracts/proto/payments/v1/payments.proto`")
-        rc, _, err = run_lint(root)
+        rc, _, err = run_lint(root, verbose=True)
         expect(rc == 0, f"registry-backed extensionless should exit 0, got {rc}: {err}")
         expect("invariant (v)" not in err, f"REGISTRY backref should satisfy (v): {err}")
         # a Contract: header naming a non-existent contract warns (dangling)
         write_spec_with_contract(root, "ghost", "`contracts/openapi/ghost.yaml`")
-        rc2, _, err2 = run_lint(root)
+        rc2, _, err2 = run_lint(root, verbose=True)
         expect(rc2 == 0 and "invariant (v)" in err2 and "ghost.yaml" in err2,
                f"dangling Contract: ref should warn (v), warn-only: {err2}")
 
@@ -634,7 +639,7 @@ def test_contract_registry_symlink_outside_root_does_not_supply_backref() -> Non
             return
         write_spec_with_contract(root, "payments", f"`{token}`")
 
-        rc, out, err = run_lint(root)
+        rc, out, err = run_lint(root, verbose=True)
 
         expect(rc == 0, f"registry finding remains warn-only, got {rc}: {err}")
         expect("lacks a backward" in err,
@@ -1144,7 +1149,7 @@ def test_near_miss_heading_is_warned_not_silently_accepted() -> None:
         # --all because the subject is a spec IDENTICAL to base. The scoped
         # default skips it by design, so this invariant's behaviour lives in the
         # exhaustive mode -- which is the mode CI runs.
-        rc, out, err = run_lint(root, base_ref="HEAD", all_specs=True)
+        rc, out, err = run_lint(root, base_ref="HEAD", all_specs=True, verbose=True)
         assert rc == 0, f"a near miss must warn, not fail: {out}\n{err}"
         assert "`## Acceptance Criteria`" in err, err
 
@@ -1401,7 +1406,7 @@ def test_scoped_run_keeps_dangling_reference_warnings_repo_wide() -> None:
         git_init_commit(root)
 
         write_spec(root, "changed", "Draft", "- [x] changed body\n")
-        rc, _out, err = run_lint(root, base_ref="HEAD")
+        rc, _out, err = run_lint(root, base_ref="HEAD", verbose=True)
 
     assert rc == 0, err
     assert "docs/specs/unchanged/spec.md" in err, err
@@ -1434,6 +1439,74 @@ def test_scoped_run_keeps_deferral_anchors_repo_wide() -> None:
 
     assert rc == 1, f"a broken deferral anchor must fail the scoped run: {out}\n{err}"
     assert "invariant (iv)" in err, err
+
+
+def _spec_with_dangling_ref(root: Path, name: str = "linky") -> None:
+    """A Draft spec whose only defect is a warn-only invariant (iii) finding."""
+    p = root / "docs" / "specs" / name / "spec.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        f"# Spec: {name}\n\n- **Status:** Draft\n\n"
+        "See [the plan](plan.md) which does not exist.\n\n"
+        f"{_AC_HEADER}- [ ] AC1\n",
+        encoding="utf-8",
+    )
+
+
+def test_warn_only_findings_are_hidden_without_verbose() -> None:
+    """A clean run counts warn-only findings instead of listing them.
+
+    Killing mutation: drop the `args.verbose or hard` guard in `main` and the
+    first assertion reddens. The paired verbose run is the positive control —
+    without it, a fixture that produced no warning at all would also pass.
+    """
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        _spec_with_dangling_ref(root)
+        quiet_rc, quiet_out, quiet_err = run_lint(root)
+        loud_rc, loud_out, loud_err = run_lint(root, verbose=True)
+
+    expect(quiet_rc == 0 and loud_rc == 0,
+           f"a warn-only finding must not fail either run: {quiet_rc}/{loud_rc}")
+    expect("invariant (iii)" in loud_err,
+           f"positive control: --verbose must list the warning: {loud_err}")
+    expect("invariant (iii)" not in quiet_err,
+           f"default run must not list the warning: {quiet_err}")
+    # Tie the reported count to the warnings the verbose run actually listed,
+    # rather than to a number restated from the implementation.
+    listed = sum(1 for ln in loud_err.splitlines() if "warning:" in ln)
+    expect(listed > 0, f"positive control: verbose listed nothing: {loud_err}")
+    expect(f"{listed} warning(s) hidden" in quiet_out,
+           f"default run must report {listed} hidden: {quiet_out}")
+    expect("hidden" not in loud_out,
+           f"--verbose must not claim anything is hidden: {loud_out}")
+
+
+def test_a_failing_run_still_lists_warnings_without_verbose() -> None:
+    """A HARD violation prints everything, warnings included.
+
+    Truncating a failure is the defect this flag must not introduce.
+    Killing mutation: change the guard to `if warn and args.verbose` and this
+    reddens, because the warning disappears from the failing run.
+    """
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        _spec_with_dangling_ref(root)
+        # Plan vocabulary in a spec is a HARD violation.
+        bad = root / "docs" / "specs" / "badstatus" / "spec.md"
+        bad.parent.mkdir(parents=True, exist_ok=True)
+        bad.write_text(
+            f"# Spec: badstatus\n\n- **Status:** Executing\n\n{_AC_HEADER}- [ ] AC1\n",
+            encoding="utf-8",
+        )
+        rc, out, err = run_lint(root, all_specs=True)
+
+    expect(rc == 1, f"the bad status must fail the run: {rc}\n{out}\n{err}")
+    expect("invariant (iii)" in err,
+           f"a failing run must still list warn-only findings: {err}")
+    expect("hard violation(s)" in err, f"expected the hard summary: {err}")
+    expect("hidden" not in out + err,
+           f"a failing run hides nothing, so it claims nothing hidden: {out}{err}")
 
 
 def test_scoped_run_reports_the_coverage_it_achieved() -> None:
