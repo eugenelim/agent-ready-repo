@@ -255,6 +255,12 @@ fully configured case sent data.
 
 ---
 
+## Companion artifact
+
+The vocabulary question this survey raised — whether the workflow orchestrators'
+terms could be adopted rather than inventing our own — is answered in
+[the adoption bake-off](workflow-lifecycle-vocabulary-comparison-matrix.md).
+
 ## Open follow-ons from the 2026-09-10 review
 
 Two reviewers examined the `core` 2.25.14 envelope change. The claim defects
