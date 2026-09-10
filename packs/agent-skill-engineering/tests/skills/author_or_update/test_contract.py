@@ -229,10 +229,6 @@ KNOWN_MISSES = frozenset(
     {
         ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
         (
-            "progressive-result-presentation",
-            "Pairs each incomplete state with the next action it hands the user",
-        ),
-        (
             "cross-session-resumption",
             "Names update as the mode the work will need, against the named existing "
             "skill root, without entering it before authorization",
@@ -241,10 +237,18 @@ KNOWN_MISSES = frozenset(
             "node-browser-suite",
             "Frames worker sizing against memory and browser cost, not CPU count alone",
         ),
+        # Same cause as the row above, reached by a second assertion in r2. The
+        # response withheld every ecosystem-specific mechanism because the
+        # `typescript-node` topic is not present, which is the contract's
+        # normal degraded path -- the topic lives in a separate skill reached
+        # only through capability metadata. This assertion asks the response to
+        # bound a guarantee to its ecosystem, so in the degraded path the
+        # contract forbids exactly what the assertion requires and no response
+        # can satisfy both.
         (
-            "hook-plugin-design",
-            "Names the undisclosed shared dependency as something a consumer must see "
-            "before install",
+            "node-browser-suite",
+            "Bounds at least one guarantee to its ecosystem rather than stating it "
+            "portably",
         ),
     }
 )
@@ -903,3 +907,49 @@ def test_the_seeded_defect_assertion_is_true_or_exempted(case_id: str) -> None:
         t for _, t in KNOWN_MISSES if t not in declared
     )
     assert verdict or (case_id, named) in KNOWN_MISSES, (case_id, named)
+
+
+def test_every_declared_write_status_is_one_the_skill_can_emit() -> None:
+    """Declared markers come from the receipt vocabulary SKILL.md fixes.
+
+    The receipt line offers three values, so pinning one is a choice among
+    legal answers rather than a statement of the contract. Twice now a case
+    has declared a value the skill could legitimately not produce for that
+    prompt -- `cross-session-resumption`, then
+    `knowledge-provider-read-only-entry` in the opposite direction -- and both
+    times the declaration was corrected after a measurement, not before.
+
+    This cannot decide which of the three a given prompt should produce; that
+    is a judgement about the response. What it does stop is the cheaper error
+    underneath both corrections: a declaration pinning a string the skill has
+    no way to emit, which is unfalsifiable by measurement because it fails
+    identically whether the skill is right or wrong.
+    """
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    line = next(
+        (
+            candidate
+            for candidate in body.splitlines()
+            if candidate.startswith("Write status: ")
+        ),
+        None,
+    )
+    assert line, "SKILL.md declares no write-status receipt line"
+    vocabulary = {value.strip() for value in line[len("Write status: "):].split("|")}
+    assert len(vocabulary) >= 2, (
+        f"the receipt line parsed to {vocabulary}; a single-value read means "
+        "the separator changed and this guard is comparing against noise"
+    )
+    for case_id, case in sorted(_declared_cases().items()):
+        declared = [
+            marker
+            for marker in case["expect"]["output_contains"]
+            if marker.startswith("Write status: ")
+        ]
+        assert len(declared) == 1, (case_id, declared)
+        value = declared[0][len("Write status: "):]
+        assert value in vocabulary, (
+            f"{case_id} declares write status {value!r}, which is not one of "
+            f"{sorted(vocabulary)} — the skill cannot emit it, so the case can "
+            "never pass no matter how the skill behaves"
+        )

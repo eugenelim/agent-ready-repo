@@ -302,14 +302,16 @@ skills-and-subagents, hooks and plugin-package floors are the corpus each
 payload seeds defects against and each declaration names as its pattern
 identifiers; the fixtures carry no dependency on the runtime-profile work.
 **Verification evidence:** every authoring case graded in one blind round under
-observation identifier `2026-09-09-composition-fixtures-r1`, with each verdict
+observation identifier `2026-09-09-composition-fixtures-r2`, with each verdict
 bound to a retained transcript whose digest the record carries and whose bytes
-must contain every declared marker. `subagent-composition` scored 5 of 5 and
-`hook-plugin-design` 4 of 5, both reporting the defect their payload seeds. Six
-of eight inherited results match the prior baseline; two moved and are recorded
-with both values. Five known misses are exempted, each carrying its owner authority and date in
-the slice's verification ledger; the two inherited entries additionally cite
-the originating slice's record. Each widened enumeration and each new
+must contain every declared marker. The round was re-taken in full after a
+rebase moved two of the three corpus topics the new fixtures route to; the
+superseded round and the three verdict rows that moved are recorded in the
+slice's verification ledger. `subagent-composition` and `hook-plugin-design`
+each scored full marks, both reporting the defect their payload seeds. Known
+misses are exempted, each carrying its owner authority and date in the slice's
+verification ledger; the inherited entries additionally cite the originating
+slice's record. Each widened enumeration and each new
 transcript binding carries a recorded mutation proof; the slice's verification
 ledger holds the table.
 

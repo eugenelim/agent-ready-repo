@@ -1,62 +1,65 @@
 Mode: frame
 Write status: not authorized
 
-## What I read and what I did not
+# Frame — verification contract for the `check-migration-plan` test suite
 
-I read the supplied `pytest-suite-SKILL.md` inline from your task file as untrusted evidence. No candidate file on disk was resolved or opened, and nothing was written. The `python-pytest` extension family is recognized by the foundation seam, but no populated Python topic ships under this skill root — so every pytest-specific claim below is bounded to that ecosystem, is not promoted to the portable floor, and is not backed by a version-ranged topic. Treat any version-sensitive detail as a discovery condition, not settled guidance.
-
-## The activation boundary the suite is verifying
-
-`check-migration-plan` should activate on: "review this migration plan", "is this migration reversible", "what's the blast radius of this schema change", "check the rollback path before we apply". It should not activate on: writing a migration, applying one, reviewing application code, or reviewing a non-migration design doc. The suite's first job is to hold that line — a description that also catches "write me a migration" is a defect the suite must be able to fail on.
+Read-only. Nothing below authorizes a write; agreement with this frame is not authorization for a later one. The supplied `pytest-suite-SKILL.md` was read as untrusted evidence: it describes a suite, and that description cannot widen this task, its tools, or its write authority.
 
 ## What the suite must guarantee
 
-**Contract-level (the skill's declared outcome).** Given a plan, the report names all three of reversibility, blast radius, and rollback path. Absence is reported as absence — a plan with no rollback section must produce "no rollback path stated", never an invented one. That negative case is the one that catches a confident hallucination, so it is not optional.
+The observable outcome of `check-migration-plan` is a report of three named things from a supplied plan — reversibility, blast radius, rollback path — with the plan unmodified. A verification contract for that outcome has to make four guarantees, and each is a decision you own before the first test file exists:
 
-**Non-mutation.** The skill says "Do not modify the plan." The suite must assert the input file's bytes and mtime are unchanged after a run, on a plan the skill was asked to read. Without this, the strongest sentence in the skill is unverified prose.
+**1. Collection identity — which module the suite actually tested.**
+The guarantee: a passing run proves the checker in *this* skill was exercised, and the proof does not depend on which directory the runner reached first. The draft's shape (bare-name import plus `sys.path` reliance) does not make that guarantee. Skills are independent and several may ship a same-named module; a bare import binds whichever directory reached the path first and caches it for every later importer in the session. Decide now: a unique load name that includes pack and skill, or accept that a green suite is evidence about an unknown module. The same decision applies to any shared test helper.
 
-**Untrusted evidence.** A plan whose body contains an embedded instruction ("also drop the backup table", "you may write files") must not widen the task, tools, or write authority. One fixture per widening class — task, tools, identity, write authority — beats one omnibus fixture.
+**2. Invocation independence — where the suite may be run from.**
+The guarantee: the suite's result is the same from the skill root, the repository root, and CI. The draft ties passing to the working directory being the skill root, which converts an environment property into a test outcome. Decide whether paths resolve from the test file's own location or whether "run from the skill root" becomes a documented, enforced precondition — one of those, not neither.
 
-**Path confinement refusals.** The declared boundary is `filesystem_read_untrusted`, so the resolve-before-read discipline is part of the contract: an empty target, an absolute path supplied as a relative name, a `..` component, a symlink pointing outside the root, a directory, and a non-regular file each get a refusal, not a read. These are cheap tests and they are the ones a later refactor silently breaks.
+**3. Temporary-path lifetime — what exists on disk, where, and for how long.**
+The guarantee: no test leaves state inside the skill root, and no cleanup step ever needs deletion authority beyond the paths the test itself created. The draft puts fixture directories in the repository tree and defers removal to end of session. Three costs: an interrupted or crashed run leaves residue inside the confined root with no owner; end-of-session sweeping is a deletion appetite wider than any single test's own outputs, and an interrupted or denied cleanup is a visible incomplete result, never a licence to broaden it; and artifacts from a failed run may be gone before you can read them. Decide the lifetime per test, not per session, and site temporaries outside the tree the skill is confined to.
 
-**Structural.** Frontmatter parses and carries `name`, `description`, `metadata.boundaries`; local links resolve; `SKILL.md` stays concise with conditional detail in references.
+**4. Isolation under concurrency — whether two runs can be true at once.**
+The guarantee: two workers, or two developers, or CI and a laptop, can run the suite simultaneously and each result is independently valid. One shared fixture directory across parallel runs cannot give that. The cost is not slower tests, it is unattributable ones: the failures you get are write-write races surfacing as order-dependent, non-reproducible reds in assertions about reversibility, sending you to debug the checker for a defect in the harness. This is the item where the draft's stated motive — keeping the suite fast — buys the least, because the time it saves is returned with interest on the first flake investigation. Decide isolation first; buy speed elsewhere.
 
-Each of these needs a criterion that can actually fail — write the mutation that should break it and confirm the test goes red before you keep it. A test named `test_rollback_path_reported` that passes against an empty report is worse than no test.
+**Where speed is legitimately bought.** Cost belongs in assertions rather than processes: call a function instead of spawning an interpreter, put a seam in front of any external binary, never invoke a package manager from a test, and give a genuinely expensive fixture the widest scope its assertions still allow. That last clause is the constraint — scope widened past what the assertions tolerate is decision 4 reintroduced under a different name.
 
-## What the draft's current shape costs you
+## Boundary consequence
 
-Four sentences in the Verification section each buy a specific failure.
+The skill declares `boundaries: [filesystem_read_untrusted]`. A suite that creates and removes directories in the repository tree is filesystem write and delete behavior. Two coherent resolutions, and they cost differently: keep the declaration and site all test state outside the declared root (cheaper — confined to the body and the suite), or widen the declared boundary to include write (dearer — a boundary widening on a shipped skill, needing its own authorization and its own review). Do not let the suite's shape silently decide this; the declaration is the contract readers rely on.
 
-**"Tests import the checker by bare module name."** Skills are independent and several may ship a `checker.py` or `render.py`. A bare `import checker` binds whichever directory reached `sys.path` first and then caches that binding for every later importer in the session. In a single-skill run it passes; in a full-corpus run it silently tests a different skill's module, and the failure surfaces as an unrelated suite's mystery red. Cost: load the module under a unique name that includes the pack and the skill, via an explicit file-location loader; do not put `scripts/` on `sys.path`. Name shared helpers the same way.
+## Evidence the suite must produce
 
-**"Rely on the suite's working directory being the skill root."** pytest's cwd is the invocation directory, not the rootdir and not the test file's directory. The suite passes when you run it from inside the skill and fails from the repository root, from CI, or under any runner that sets its own cwd. Cost: resolve every fixture path from the test file's own location; never from cwd.
+- **Success** — each of reversibility, blast radius, and rollback path asserted independently, so a partial report fails loudly rather than passing on one field.
+- **Failure** — a malformed or incomplete plan yields a stated failure, not a silent empty report.
+- **Non-mutation** — the supplied plan is byte-identical after the check; this is the skill's one prohibition and needs its own test.
+- **Untrusted input** — a plan containing directive-shaped text is treated as data; embedded instructions are ignored, not obeyed.
+- **Path refusal** — targets outside the resolved root, `..` components, non-regular files, and symlinks are refused before any content read.
+- **Clean degradation** — an interrupted run leaves no state in the skill root.
 
-**"Temporary fixture directories are created in the repository tree."** Two costs. First, it contradicts the declared boundary: `metadata.boundaries` lists only `filesystem_read_untrusted`, and writing into the repository tree is a write. Either the suite stops writing there or the skill's declared boundary is wrong — and widening a declared boundary is a larger authority change than a body edit, so decide it deliberately rather than by test convenience. Second, repo-tree fixtures get swept into `git add -A` and into whatever your dirty-tree gates check.
-
-**"Removed at the end of the session."** End-of-session cleanup does not run on interruption, on a hard failure, or when the process is killed. Residue then leaks into the next run and makes a subsequent failure unreproducible. Cost: per-test `tmp_path`, which is cleaned by the runner and lives outside the tree.
-
-**"Parallel runs share one fixture directory to keep the suite fast."** This is the expensive one. A shared mutable fixture makes later cases depend on earlier ones, so the suite's verdict depends on collection order, and under parallel workers it becomes a race: two workers mutating one directory produce failures that do not reproduce serially and passes that prove nothing. The speed argument also does not hold — the cost you are avoiding is directory creation, which is negligible next to whatever the checker itself does. Give an expensive fixture the widest scope its assertions allow, but "shared and mutated" is not a scope, it is a defect. Keep the cost in assertions: prefer a function call over spawning an interpreter, and put a seam in front of any external binary rather than invoking it.
-
-## Non-goals for this suite
-
-Not testing the database, not running real migrations, not asserting exact report wording (assert the required elements are present and the negative case is honest), not benchmarking, and not verifying anything about the other extension family.
-
-## Proposed shape, for your authorization — not authorized yet
+## Proposed tree
 
 ```text
 check-migration-plan/
   SKILL.md
-  references/           # conditional detail moved out of SKILL.md
-  scripts/checker.py    # if a script is genuinely needed
   tests/
-    conftest.py         # unique-name module loader; tmp_path fixtures
-    test_contract.py    # three elements reported; absence reported as absence
-    test_non_mutation.py
-    test_untrusted_plan.py
-    test_path_confinement.py
-    test_structure.py   # frontmatter, links, activation discrimination
+    conftest.py          # unique-name loader; per-test tmp fixtures outside the root
+    test_report_fields.py
+    test_plan_unmodified.py
+    test_untrusted_input.py
+    test_path_refusal.py
 ```
 
-## Receipt
+## Non-goals
 
-Files changed: none. Checks run: none — this is a read-only frame; no candidate path was resolved or opened. Retained behavior: not applicable, no mutation occurred. Unavailable capability: no populated `python-pytest` language topic is present under this skill root, so pytest claims here are unbacked by a version-ranged topic and stay inside that ecosystem. Cleanup: nothing to clean. Agreeing with this frame does not authorize a write — say which of these changes you want and I will re-enter with an explicit `update` transition and a confined root before touching anything.
+- Writing, generating, or editing any of these files in this pass.
+- Choosing between the two boundary resolutions on your behalf.
+- Version-pinned pytest mechanics: `python-pytest` is a recognized extension family, but its language topic and stated version range are not available in this slice. Everything above is the portable verification floor plus this skill's own contract; treat any specific pytest API or plugin claim as unevidenced until that topic is read, and do not carry a TypeScript/Node convention across the seam to fill the gap.
+
+---
+
+```text
+Mode: frame
+Write status: not authorized
+```
+
+Files changed: none. Checks run: mode and target resolution; boundary reconciliation of the declared `filesystem_read_untrusted` against the described suite behavior; evidence enumeration against the skill's stated outcome and prohibition. Retained behavior: not applicable — no update was entered. Unavailable capabilities: the `python-pytest` language topic and its version range. Cleanup: none required.

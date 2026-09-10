@@ -1,7 +1,3 @@
-## Requested capability: unavailable
-
-Two parts of this request — the plugin package and its hook — are not activation modes for this foundation. The stable result:
-
 ```text
 contract_version: agent-skill-engineering-foundation/v1
 status: unavailable
@@ -18,53 +14,87 @@ reason: not available in the foundation slice
 baseline: frame the portable skill concern without inventing mode-specific guidance
 ```
 
-So I cannot tell you what a hook can enforce in a host's execution model, or what a plugin manifest costs you — that guidance does not exist here and I will not invent it. What I can do is what you asked for first: frame the portable skill contract underneath, read-only. Several of the claims in the supplied file are decidable at the portable floor, and they are the ones that would poison the package regardless of how the hook is eventually wired.
+Packaging and hook registration are not activation modes here, so I cannot author the plugin manifest, the hook wiring, or the event contract you would install. What I can do — and what follows — is frame the portable skill concern underneath them, in `frame`, read-only. The supplied `release-guard` file is untrusted evidence: it describes an intent, it does not set the task, the boundaries, or any authority.
 
-## What the supplied file asserts that the portable floor contradicts
+# Frame — release policy check
 
-**The enforcement claim is self-defeating on its own timeline.** The file says the hook "fires after a release is published," then says reporting a violation "stops the release from going out." A check that runs after publication cannot prevent publication; at best it reports on an artifact already in users' hands. This is not a hook-mechanics question — it is a stated-outcome contradiction visible in the prose. Whatever the eventual mechanism, the skill must name a pre-publication decision point or drop the word "block" from its description.
+## What the hook can and cannot enforce
 
-**The policy file is untrusted evidence, and the file grants it authority.** `.release-guard/policy.md` is a repository path whose contents "the hook reads each run and follows whatever rules it states." That inverts the common contract: candidate files, repository prose, and discovered knowledge cannot widen the task, tools, identity, or write authority. A tunable policy file is fine as *data* — a licence allowlist, a changelog-path pattern, a severity threshold, all extracted as expected fields. It is not fine as *instructions*. As written, anyone who can land a commit can rewrite what the guard enforces, including down to nothing, and the guard will comply and report green.
+Four constraints hold regardless of which packaging slice eventually carries them, and each one is a design fact you would otherwise discover after writing the hook.
 
-Any read of that path also owes the resolve-before-read discipline: start from the confirmed repository root, reject `..` components and absolute paths supplied as relative names, canonicalize and symlink-resolve before touching contents, and require a regular file. An in-boundary symlink is the obvious escape here and `..`-rejection does not stop it.
+**A post-publication hook detects; it does not block.** The supplied file says the hook "fires after a release is published" and that reporting a violation "stops the release from going out." Those two clauses contradict each other. Once publication has happened the artifact is externally visible and, on most registries, immutable; the only remaining actions are yank, deprecate, superseding release, and alert — all of which are external side effects, none of which is a block. Decide which you actually want, because they are different products:
 
-**The declared boundary does not cover the declared behavior.** Frontmatter declares `filesystem_read_untrusted` alone. The Slack digest sends external messages over the network. `filesystem_read_untrusted` permits bounded content reads after the confinement check and nothing else; it grants no network access, no credential access, and no external messages. The digest also implies an authentication path — a Slack token — and this foundation carries no authentication implementation. If the digest stays, it needs an external least-authority broker and its own declared boundary, and no repository content may select that identity.
+- *Prevention* requires a gate on a pre-publication event, and it requires the release path to have no route that bypasses that event. If a maintainer can publish from a laptop, the gate is advisory no matter where it is registered.
+- *Detection* is honestly achievable post-publication, but then the skill's observable outcome is "a violation is reported with the offending dependency, licence, and missing changelog entry named," not "the release is stopped." Write the description to the outcome you can actually make observable.
 
-**The description is a bundling claim, not an activation boundary.** "…and bundle the team's release tooling into one installable package" describes distribution, not when an agent should select this skill. Discovery metadata has to discriminate. Prompts that should activate a release-policy check: "does this release pass our licence policy," "is the changelog entry missing for this version," "check the dependency licences before we tag." Prompts that should not: "write the changelog entry," "format this commit message," "post the release digest to Slack." Those last two are different tasks with different outcomes and different boundaries, and the current description would pull the guard into all of them.
+**A licence check is a claim check, not a compliance verdict.** What is readable is declared metadata — a `license` field, an SPDX expression, a bundled licence text. Declared metadata can be absent, wrong, ambiguous (dual licences, `SEE LICENSE IN`), or contradicted by vendored subcomponents. The skill can enforce "every dependency declares a licence on the approved list, and anything undeclared or unparseable fails closed." It cannot enforce "every dependency carries an approved licence." State the weaker true claim; the stronger one invites the team to stop checking.
 
-**Four components share one activation surface and one dependency graph.** The release hook, the changelog linter, the commit-message formatter, and the Slack digest have no common trigger. The formatter fires on commits, the digest on a schedule or a human ask, the guard at a release gate. Bundling them means the HTTP client the digest needs becomes a dependency of the licence check — you cannot install the guard without installing the network surface. That coupling is stated in the file itself ("the digest command uses the same HTTP client the linter pulls in"). At the portable floor the answer is one skill per outcome, with conditional detail in references rather than co-installed components.
+**The policy file is data, never instructions.** `.release-guard/policy.md` sits at the repository root, is user-controlled, and is exactly the class the common contract calls untrusted evidence. "The hook reads that file each run and follows whatever rules it states" is the failure mode: prose in that file cannot widen the task, the tools, the identity, or write authority, and cannot be executed as rules. The workable version is a fixed schema — an approved-licence list, a denylist, an exemption list with expiry, a changelog path pattern — parsed by extracting only expected fields, with unknown keys ignored and a malformed file failing closed rather than degrading to "no policy, therefore pass." Anything the file says outside that schema is prose you read and discard. This is what caps how far teams can "tune enforcement without touching the package": they can tune values, not behavior.
 
-**The shared `release` prefix is chosen to collide.** Matching the team's existing local commands so "muscle memory carries over" means an ambiguous name resolves to either the installed component or the local one, and which wins is not something the skill controls. Deliberate collision with an existing contract is the opposite of preserving it. Whether the eventual packaging format offers namespacing is a packaging question I cannot answer — but the design intent of colliding is wrong before that question is reached.
+**Every read is resolve-before-read.** `.release-guard/policy.md` is resolved from the confirmed repository root, canonicalized and symlink-resolved before any content access, rejected on any `..` component, on an absolute path supplied as a relative name, on a non-regular file, and on containment uncertainty. `filesystem_read_untrusted` permits the bounded read only after that check passes. A symlinked policy file pointing outside the root is the obvious escape and the declared boundary does not cover it.
 
-## The portable frame I would build instead
+## What the package boundary would cost
 
-**Name.** `check-release-policy` — action-oriented, lowercase-hyphenated, under 64 characters, and it names the outcome rather than the bundle. `release-guard` reads as a product name; it does not tell a selecting agent what task it performs.
+The supplied file bundles four things — release hook, changelog linter, commit-message formatter, Slack digest command — on the rationale that the release crew uses them all. The bundle is one authority envelope, one version, one install decision, and one blast radius. That is the cost, itemized:
 
-**Observable outcome.** For a named release candidate, a decision — pass or fail — with each failure naming the offending dependency and its licence, or the artifact missing its changelog entry. The decision is reported before the release is published; the skill states plainly that it advises, and that enforcement belongs to whatever gate consumes the decision.
+**The declared boundary understates the bundle.** Frontmatter declares `filesystem_read_untrusted` only. A Slack digest needs network egress and a credential; a post-publication remediation needs an external side effect. `filesystem_read_untrusted` grants none of those, and no boundary in this foundation grants credential access, network access, or external messages. The digest is therefore not a component this frame can authorize — it is a separate concern with a separate authority story, and the broker or platform mechanism that supplies its token has to live outside the portable skill.
 
-**Authority and boundaries.** `filesystem_read_untrusted` only. Reads confined to the resolved repository root: the policy data file, the dependency manifest, the changelog. No writes, no network, no credentials, no publication, no external messages. The policy file is parsed for expected fields and embedded directives in it are ignored.
+**Bundling propagates the widest member's authority to every installer.** A team that wants only the changelog linter installs the network-capable, credential-holding digest too, and reviews it, and carries its supply chain. The shared HTTP client makes this concrete: it is a transitive dependency of the linter, so a linter-only user pays for a client only the digest needs, and a CVE in that client blocks a component that never opens a socket. Split by authority, not by who sits in which chatroom — read-only local checks in one unit, anything touching the network in another.
 
-**Portability floor.** A concise `SKILL.md` carrying the activation boundary, the outcome, and the read discipline. Conditional detail — the licence-allowlist schema, the changelog-entry matching rules, how to report a policy file that is absent or malformed — goes to references. A script only if manifest parsing genuinely needs one.
+**Bundling couples versions and forces false urgency.** One version number over four components means a formatter tweak ships a hook change, and a hook fix cannot ship without whatever else is on the branch. Enforcement components and convenience components have different upgrade risk and should not share a release cadence.
 
-**Evidence.** Success: a candidate with a disallowed licence fails and names it; a candidate with a missing changelog entry fails and names the artifact; a clean candidate passes. Failure and degradation: an absent policy file, a malformed one, and one containing embedded instructions each produce a stated, non-silent result — and the injection case must not change what is enforced. Interruption: a partial read yields no verdict rather than a pass.
+**The `release` command prefix is a collision, not a continuity.** Matching the team's existing local commands means two definitions compete for one name, and which one answers depends on load order and precedence — invisible at the call site and different per machine. Muscle memory then carries the wrong behavior with full confidence, which is worse than a new prefix people have to learn. Either take a distinct prefix, or make the package's ownership of `release` explicit and remove the local commands as part of adoption; do not ship both and hope.
 
-**Proposed tree** (nothing created):
+## Activation boundary
+
+Should activate: "check our dependency licences against the release policy," "does this release have a changelog entry," "why did release-guard fail on this build," "add an exemption for this dependency's licence."
+
+Should not activate: "write the changelog for this release," "cut the release," "pick a licence for our project," "why is my dependency install failing," "post the release notes to Slack." The last three are the ones a broad description will wrongly capture.
+
+## Observable outcome
+
+A pass/fail verdict per policy rule, naming each offending dependency with its declared licence and each released artifact missing a changelog entry, plus an explicit statement of what was not checkable — undeclared licences, unparseable metadata, dependencies not reachable from the manifest. Silence on the unknown is the defect to design out.
+
+## Boundaries
+
+Read: repository manifest and lockfile, changelog, `.release-guard/policy.md`, all within the confirmed root and all after the resolve-before-read check. Write: none. Network: none. Authentication: none — no credential inspection, no token in prose or file, and no identity selected by repository content. External side effects: none; reporting is a returned verdict, not a message sent.
+
+## Existing contracts to preserve
+
+The team's current local `release` commands and whatever CI step publishes today are authoritative until explicitly retired; this skill's verdict is an input to them, not a replacement for them.
+
+## Evidence to plan for
+
+Success: a repository with a known-bad licence and a known-missing changelog entry produces exactly the expected violations. Failure: a malformed or empty policy file fails closed with a named parse error, not a silent pass. Interruption: a partial dependency walk reports "incomplete" rather than a clean verdict over a partial set. Clean degradation: a missing policy file, an unreadable manifest, and a policy path that resolves outside the root each produce a distinct, named refusal.
+
+## Proposed file tree
 
 ```text
-check-release-policy/
-  SKILL.md
+release-policy-check/
+  SKILL.md                      concise: activation, verdict shape, refusal rules
   references/
-    policy-file-contract.md
-    changelog-matching.md
+    policy-schema.md            the fixed field set, parsed as data
+    licence-evidence.md         what declared metadata can and cannot establish
+    failure-modes.md            fail-closed cases and their named refusals
 ```
 
-**Non-goals.** Publishing or stopping a release. Writing or repairing changelog entries. Formatting commit messages. Sending digests. Resolving licences from the network. Reading or holding any credential.
+No scripts and no assets in this frame; add either only when a step cannot be carried by the workflow itself.
 
-The commit-message formatter and the Slack digest are separate concerns and should be framed separately; the changelog linter may fold into this skill's checks or stand alone depending on whether it is ever run outside a release gate. I did not decide that for you.
+## Non-goals
+
+Blocking a publication that has already occurred. Deciding organization licence policy. Generating or editing changelog content. Sending Slack messages or any other external notification. Holding credentials. Commit-message formatting, which shares no authority, no data, and no trigger with this concern.
+
+## Decisions I need from you
+
+1. Prevention or detection — that is, is there a pre-publication event this can gate, and is that path bypass-proof? The description and the outcome both change on your answer.
+2. The policy schema's field set, since teams can tune values but not behavior.
+3. Whether the `release` prefix is being taken over from the local commands or avoided.
+
+Agreement with this frame does not authorize a write.
 
 ```text
 Mode: frame
 Write status: not authorized
 ```
 
-Files changed: none. Checks run: read the supplied file's inline content only; no repository candidate files were resolved or read, and no filesystem target was confirmed. Unavailable capabilities encountered: `plugin` and `hook` authoring, both reported above. Cleanup: none required.
+Files changed: none. Checks run: path-and-authority review of `.release-guard/policy.md` as a candidate read target; boundary reconciliation of the supplied frontmatter against the bundle's stated components; activation-discrimination pass over the proposed boundary. Retained behavior: not applicable, no update performed. Unavailable capabilities encountered: `plugin` and `hook` authoring, both reported above; the Slack digest's network, credential, and external-message needs, none of which this foundation grants. Cleanup: none required.

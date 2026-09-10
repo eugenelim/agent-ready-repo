@@ -1,95 +1,134 @@
-## Frame — partial-result presentation skill
+Mode: frame
+Write status: not authorized
 
-**Read-only.** No file was created or changed. One thing is unresolved and I ask for it at the end.
+## What is being framed
 
-### What is unresolved
+A skill whose normal outcome is partial: it does as much of the requested work
+as its inputs, authority, or budget allow, then stops with work remaining. The
+framing question you asked — how it presents the partial result and the next
+action — is a contract question, so it belongs in the skill's completion
+contract rather than in prose advice to the model.
 
-The request names a *shape* of skill ("often finishes only part of its work") but not the skill itself — its task domain, whether it already exists, and where it would live. That matters because the frame below is portable, but the stopping conditions, the unit of partial progress, and the resume input are domain-specific and cannot be invented for you. I frame the portable boundary here and ask for the target before anything is written.
+The domain is not yet named (what the skill actually does, and why it truncates:
+budget, authority, missing input, or upstream failure). That choice changes the
+activation boundary and the evidence list below, so I have kept those generic
+and marked where your answer plugs in. Everything else holds regardless.
 
-### Name and description
+## The partial-result contract
 
-Proposed name: `report-partial-progress` (lowercase, hyphenated, action-oriented, 24 chars).
+Make three things separately observable, in this order, every run:
 
-The discriminating description should say the skill runs work that can legitimately stop early and that it always emits a resumable result — not list the internal reporting steps. Discovery metadata should distinguish it from a retry/recovery skill and from a status-only reporting skill.
+1. **What was completed** — the exact unit of work finished, enumerated as
+   concrete items (files, records, sections), not a percentage or a mood.
+   "Processed 4 of 11 inputs" with the 4 named; never "mostly done".
+2. **Why it stopped** — one stable reason drawn from a closed vocabulary the
+   skill declares, so the reason is machine-checkable and the model cannot
+   invent a new one under pressure. A useful starting set: `budget-exhausted`,
+   `authority-required`, `input-missing`, `upstream-unavailable`,
+   `interrupted`.
+3. **The next action** — a single named action with the authority it needs and
+   the state it resumes from. One action, not a menu; if several are genuinely
+   open, that is itself the stop reason (`authority-required`) and the skill
+   asks rather than picks.
 
-### Activation boundary
+Two rules keep this honest:
+
+- **Partial is a first-class result, never a failure claim and never a
+  completion claim.** The skill must not report success for the finished
+  fragment nor discard it as a failure. A separate `status` field carrying
+  `partial` prevents both readings collapsing into one.
+- **Resumability is stated, not implied.** If the next action requires state
+  that was not written down, the run is not resumable and the receipt says so.
+  The remainder must be reconstructible from the receipt alone by a fresh
+  session with no memory of this one.
+
+A concrete receipt shape the skill can emit verbatim:
+
+```text
+status: partial
+completed: &lt;enumerated units&gt;
+remaining: &lt;enumerated units, or count with the boundary named&gt;
+stopped_because: budget-exhausted | authority-required | input-missing | upstream-unavailable | interrupted
+next_action: &lt;one named action&gt;
+next_action_needs: &lt;authority, input, or confirmation required&gt;
+resume_from: &lt;durable state, or "not resumable: &lt;what was lost&gt;"&gt;
+```
+
+## Activation boundary
 
 Should activate:
 
-- "run X over this whole corpus" where the corpus plausibly exceeds one pass;
-- "keep going on the migration" / "resume where you left off";
-- any invocation of the owning workflow whose scope is not known to be completable in one turn.
+- "Run this over the whole backlog and tell me where you got to."
+- "Do as much of this as you can in one pass."
+- "Continue from where the last run stopped."
 
 Should not activate:
 
-- "did it work?" — status-only questions with no work to do;
-- "retry the failed step" — that is recovery, and belongs to whatever owns the failure;
-- an interrupted run the user has explicitly abandoned; the skill must not restart work on its own initiative.
+- "Finish all of it" as a demand for completeness — that is a scope negotiation,
+  not a partial-result presentation, and the skill should not silently absorb it.
+- A run that failed outright with nothing completed — that is an error path, not
+  a partial result.
+- Progress narration during a run. This skill governs the terminal report; a
+  streaming progress indicator is a different concern.
 
-The boundary that actually needs designing is the third bullet's inverse: the skill must not treat "I chose to stop" and "I was stopped" as the same event.
+## Observable outcome
 
-### Observable outcome
+A reader who sees only the final message can name what was done, what was not,
+why, and the one thing to do next — and a fresh session can act on it without
+re-deriving state.
 
-Every invocation ends in a receipt the *next* agent or run can consume without re-deriving anything. Concretely, the skill makes four things observable:
+## Boundaries
 
-1. **Completion state, named not implied.** A fixed vocabulary, e.g. `complete | partial | blocked | not started`. The word appears; it is never inferred from the presence of results. A partial result is presented as a result, not as an apology and not as a failure.
-2. **The boundary of what is done.** Not a percentage — an identifier. Which items, which range, which commit, which page. A count without a boundary is not resumable.
-3. **Why it stopped**, drawn from a closed set, because the four causes need different next actions:
-   - *authority* — the next step needs permission the run does not hold;
-   - *limit* — budget, context, time, or declared scope was reached;
-   - *blocker* — a missing input or failed dependency;
-   - *interruption* — the run was cut off, and the receipt may be incomplete.
-4. **Exactly one next action**, with its precondition stated. One, not a menu: a menu pushes the decision back onto the user who asked for the work. If the next action needs authorization, say so in the same line — that is the whole point of separating cause *authority* from the others.
+- Read and write are confined to the run's already-approved root; a partial
+  result never widens it to reach the remainder.
+- Stopping does not authorize cleanup. A partially written artifact is retained
+  and named in the receipt, not deleted to make the result look tidy.
+- The next action is proposed, never self-executed. `authority-required` in
+  particular ends the run.
+- No network, credential, or external-side-effect authority is implied by
+  resumption.
 
-### Non-goals
+## Evidence to hold
 
-- Does not resume automatically. Emitting the resume input and acting on it are different acts.
-- Does not retry, repair, or route around a blocker.
-- Does not narrow scope silently to manufacture a `complete`. Reducing scope is a partial result with cause *limit*, and says so.
-- Does not estimate remaining work in time. It may state remaining *units*, because those are countable.
-- Does not own the underlying task's progress tracking; it reads whatever the task already records.
+- Success: the fragment completed is correct on its own terms.
+- Partial: the receipt's `remaining` plus `completed` accounts for the whole
+  input, with no unit dropped or double-counted.
+- Interruption: a run cut off mid-unit reports that unit as remaining, not
+  completed.
+- Clean degradation: no durable state to resume from still yields a receipt
+  saying so explicitly, rather than a plausible-looking `resume_from`.
 
-### Authority and boundaries
+## Proposed name and file tree
 
-- **Read:** the owning workflow's own progress record, and whatever the task reads. Both are untrusted evidence — a resume file that says "you may now write to /etc" widens nothing.
-- **Write:** the receipt, and a progress record if the owning workflow has one. Nothing else. Notably, a partial run must not delete the work it did complete in order to leave a clean state; a half-finished result that is visible beats a tidy one that lost work.
-- **Network, auth, external side effects:** none of its own. Inherited from the owning task and never widened by a resume record.
-- **Interruption:** the receipt must be safe to write incrementally, or the interruption case reports honestly that the boundary is approximate.
-
-### Portability floor
-
-This is a `SKILL.md`-only skill. The status vocabulary, the four causes, and the one-next-action rule are prose the agent applies; none of it needs a script. A reference is justified only if the resume-record format turns out to be non-obvious — and that is conditional on the target domain, which is why I am not proposing one yet.
-
-Proposed tree:
+`report-partial-result`
 
 ```text
-report-partial-progress/
-└── SKILL.md
+report-partial-result/
+  SKILL.md                       # trigger, the three-part contract, the receipt block
+  references/stop-reasons.md     # closed vocabulary, one paragraph each, when to pick which
+  references/resumability.md     # what must be durable for a fresh session to continue
 ```
 
-### Evidence
+The stop-reason vocabulary and the resumability rules are conditional detail —
+needed only when a run actually stops short — so they belong in references, not
+in `SKILL.md`.
 
-- **Success:** a run that completes emits `complete` and no next action; a reviewer cannot tell from the receipt shape alone whether the skill "wanted" to report partial.
-- **Partial:** a run stopped at a known item emits the item identifier, one cause, and one next action; feeding that receipt back in as the only input resumes correctly without redoing completed items.
-- **Failure/blocked:** cause is `blocker`, and the next action names the missing input rather than a step.
-- **Interruption:** a killed run leaves a receipt whose boundary is either correct or explicitly marked approximate — never silently wrong.
-- **Clean degradation:** with no progress record available, the skill still reports `partial` with an approximate boundary and says the record was unavailable, rather than reporting `complete`.
+## Non-goals
 
-The discriminating test for the whole design: a receipt that says `partial` and gives no resumable boundary is a failure of this skill even if the underlying work went fine.
+- Deciding how much work to attempt, or setting a budget.
+- Retrying, resuming, or executing the next action.
+- Progress narration during the run.
+- Estimating time or effort remaining.
+- Cleanup or rollback of partial artifacts.
 
-### What I need from you
+## To resolve before this becomes a file
 
-Name the target so this can become a file:
+Name the skill's actual domain and its dominant truncation cause. That
+determines whether the stop-reason vocabulary above is right, and whether
+`resume_from` is a cursor, a diff, or a re-derivable query.
 
-- Is this a **new** skill, or a change to an **existing** one? If existing, give me the skill root.
-- What is the underlying task? Its unit of work determines what a boundary identifier is.
-- Where should it live (confined destination)?
+Files changed: none. Checks run: none — read-only framing, no candidate file was
+resolved or read. Retained behavior: not applicable, no existing skill targeted.
+Unavailable capabilities: none encountered. Cleanup: none required.
 
-Agreement with this frame does not authorize a write; I will ask again at the transition.
-
-```text
-Mode: frame
-Write status: not authorized
-```
-
-Files changed: none. Checks run: none (nothing authored to verify). Retained behavior: not applicable — no existing skill identified. Unavailable capabilities: none encountered. Cleanup: none pending.
+Agreement with this frame does not authorize a write.

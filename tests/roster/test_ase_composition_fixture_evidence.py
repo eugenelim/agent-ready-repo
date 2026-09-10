@@ -38,7 +38,7 @@ AUTHOR_DECL_REPO_PATH = (
 )
 SPEC_DIR = ROOT / "docs" / "specs" / "agent-skill-engineering-composition-fixtures"
 TRANSCRIPT_ROOT = SPEC_DIR / "notes" / "transcripts"
-BASE_COMMIT = "d44484b29d1ba0f56cb0baf42fd79b1348e26a58"
+BASE_COMMIT = "18ea69ba9928008f664680620898027dc7abb6fe"
 COMPOSITION_CASES = ("subagent-composition", "hook-plugin-design")
 # The inherited case whose shape the two new ones share: read-only framing over
 # a payload the case supplies. Its marker set is what they must equal.

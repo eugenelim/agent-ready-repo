@@ -5,14 +5,25 @@ this file is where anything measured during the build is recorded.
 
 ## Base
 
-- **Base commit:** `d44484b29d1ba0f56cb0baf42fd79b1348e26a58`. Every "before this
-  slice" comparison set — AC3's declared-case set, AC5's marker set, AC8's
+- **Base commit:** `18ea69ba9928008f664680620898027dc7abb6fe`. Every "before
+  this slice" comparison set — AC3's declared-case set, AC5's marker set, AC8's
   payload digests, AC12's inherited records, AC22's milestone string — is read
-  from this commit with `git show d44484b29:<path>`.
-- **Base freshness:** `check-base-freshness.py` returned
-  `{"status": "ok", "message": "head is current", "target": "origin/main"}` on
-  2026-09-09, before the first edit. The branch tip and `origin/main` were the
-  same commit, so the base commit above is also the merge-base.
+  from this commit with `git show 18ea69ba9:<path>`.
+- **The base moved once, after round 8.** It was
+  `d44484b29d1ba0f56cb0baf42fd79b1348e26a58` for rounds 1 to 8.
+  `check-base-freshness.py` returned `{"status": "ok", "message": "head is
+  current"}` on 2026-09-09 before the first edit, and `{"status": "surface",
+  "message": "branch is 4 commit(s) behind 'origin/main'"}` when re-run after
+  round 8. The branch was rebased onto `origin/main`, which is why the base and
+  the merge-base are the same commit again.
+- **Moving it did not move any comparison.** The authoring skill tree
+  `packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/` is
+  byte-identical between the old and the new base: the same eight inherited
+  case ids, the same declarations, the same payloads. Only the commit id
+  changed, so AC3, AC5, AC8 and AC12 compare against exactly the bytes they
+  compared against before. What did change is the corpus the skill reads while
+  being graded, which is why the round was re-taken — see "Re-measurement after
+  the rebase".
 - **Base milestone,** recorded because AC22 compares against it:
   `M3 · slice 4 consumer integrations shipped; 3c and 3e are unblocked and
   parallel, 3d needs 3c, 5 needs 3c, 6 closes — see the brief's slice table`
@@ -48,7 +59,11 @@ Completed 2026-09-09 in one commit. Evidence, in the order the task names it:
 
 ## T2 — declare, pin, grade, reconcile
 
-Completed 2026-09-09. Observation identifier `2026-09-09-composition-fixtures-r1`.
+Completed 2026-09-09. The round recorded below was
+`2026-09-09-composition-fixtures-r1`; it was superseded in full by
+`…-r2` after the rebase — see "Re-measurement after the rebase". The
+attestation and the two discarded rounds are kept because they describe the
+instrument, which `r2` reused unchanged.
 
 ### Round attestation (AC11)
 
@@ -357,7 +372,7 @@ confirmed byte-identical afterwards.
 | Seeded-defect text belongs to its own case (AC6) | Name a text the case does not declare | `test_each_composition_case_names_a_distinct_seeded_defect_assertion` | `AssertionError: ('hook-plugin-design', 'Not one of its assertions')` |
 | A verdict is readable against its transcript (AC9) | Forge a `captured_response_sha256` | `test_every_verdict_is_readable_against_its_own_transcript` | digest mismatch on the recomputed transcript |
 | One transcript per record (AC9) | Point two records at one transcript | `test_authoring_transcripts_are_one_per_record` | resolved-target collision |
-| Records belong to the declared round (AC11) | Rewrite every record's `observation_id`, leaving `graded_run` declaring the true round | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: (['forged-round'], '2026-09-09-composition-fixtures-r1')` |
+| Records belong to the declared round (AC11) | Rewrite every record's `observation_id`, leaving `graded_run` declaring the true round | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: (['forged-round'], '2026-09-09-composition-fixtures-r2')` |
 | Payload binding survives a swap (AC8) | Exchange the two cases' declared `files` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_authoring_behavior_evidence_matches_its_source_digest` | recorded `source_files` no longer match the declared files |
 | Result-id set admits exactly the widened set (AC12) | Drop `hook-plugin-design` from the recorded results | `test_independent_behavior_results_cover_both_authoring_cases` | set-equality mismatch on the recorded result ids |
 | No record is hidden by a duplicate id (AC9, AC11) | Append a second copy of the `pytest-suite` record | `test_every_verdict_is_readable_against_its_own_transcript` and `test_independent_behavior_results_cover_both_authoring_cases` | `AssertionError: ['pytest-suite']` |
@@ -377,6 +392,8 @@ confirmed byte-identical afterwards.
 | Retained transcripts stay host-clean after the move (AC17) | Append `/Users/someone/checkout/notes.md` to a retained transcript | `test_retained_transcripts_carry_no_host_identifying_data` | host-identity pattern match on the transcript |
 | The relocated scan reads inside the root (AC17) | Symlink a clean external Markdown file into the transcript root | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: ('<root>/escaped.md', 'symlink')` |
 | The pattern set cannot be emptied at its source (AC17) | Empty `HOST_IDENTIFYING_PATTERN_STRINGS` in the pack suite | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: the pack suite declares no host-identifying patterns` |
+| A declared write status is one the skill can emit (AC4) | Declare `Write status: pending owner sign-off` | `test_every_declared_write_status_is_one_the_skill_can_emit` | value not in the receipt vocabulary |
+| The vocabulary is read, not guessed (AC4) | Collapse `SKILL.md`'s receipt line to a single value | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: the receipt line parsed to {'not authorized'}` |
 | The round identifier is not blank (AC11, AC12) | Set `graded_run.observation_id` and all ten record identifiers to `""` | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: graded_run carries observation_id ''` |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -613,6 +630,92 @@ The generalisation: a sweep reaches only the shapes its seed contains. Round
 7's seed was "hand-written collection", so it could not see a hand-written
 scalar. The anchors in this module are now every literal that a comparison
 reads through, collection or not.
+
+## Re-measurement after the rebase
+
+The round recorded here is `2026-09-09-composition-fixtures-r2`. It replaces
+`…-r1` in full: all ten authoring cases were re-executed and re-graded, and
+every record's transcript, digest and verdicts are from `r2`.
+
+**Why the round was re-taken.** The branch was four commits behind
+`origin/main`, and one of them rewrote two of the three OKF concept topics the
+new fixtures route to — `skills-and-subagents-common-floor` and
+`plugin-package-common-floor`. The subagent floor gained the sentence "The
+worker receives only the context the parent passes it, not the parent's
+conversation", which is the defect `subagent-composition`'s payload seeds; the
+plugin floor gained a portable core contract. `r1` graded the skill against
+corpus bytes that no longer exist. The `references/` Follow-on names this exact
+exposure, and here it stopped being hypothetical.
+
+**Instrument.** Unchanged from `r1` and attested on the same terms: one
+isolated context per case holding no authoring material, receiving the shipped
+`SKILL.md`, the skill's own `references/` tree, and the prompt with its
+payload. Withheld from every executor: the assertion list, the pattern
+identifiers, the seeded-defect naming, and the expected markers. Grading ran in
+a further separate context that received the transcripts and the assertion
+lists and authored neither. Responses run 4.6–10.5 KB, against `r1`'s 4.8–9.6
+KB, so the instrument sits in the same band that distinguished the recorded
+round from the two discarded ones.
+
+**Result: seven of ten verdict rows are unchanged. Three moved.**
+
+| Case | `r1` | `r2` | Reading |
+| --- | --- | --- | --- |
+| `progressive-result-presentation` | `TTFT` | `TTTT` | index 2 newly true; the response pairs every stop reason with a `next_action` and `next_action_needs`. Its exemption is deleted — an exemption that excuses nothing is a false record of a miss. |
+| `hook-plugin-design` | `TTTFT` | `TTTTT` | index 3 newly true; the response names the shared HTTP client as a transitive cost a linter-only installer carries. Exemption deleted for the same reason. |
+| `node-browser-suite` | `FTTT` | `FTTF` | index 3 newly false. Newly exempted — see below. |
+
+Both new composition cases now score full marks and both still report the
+defect their payload seeds.
+
+**The new miss, and why it is exempted rather than repaired.**
+`node-browser-suite[3]` asks the response to bound at least one guarantee to
+its ecosystem rather than stating it portably. The `typescript-node` topic
+lives in a separate skill reached only through capability metadata and is not
+present, so the response withheld every ecosystem-specific mechanism and said
+so. That is the same cause already exempted at index 0 of the same case, and
+it is the contract's normal degraded path rather than a defect.
+
+The assertion is unsatisfiable in that path, and this is worth stating plainly:
+the contract forbids naming ecosystem mechanism without the topic, and the
+assertion requires naming it, so no response can satisfy both while the topic
+is absent. `r1` scored it true, which on this reading was the weaker behaviour
+— a response that named mechanism it had no evidence for. The exemption records
+a contradiction between a declared assertion and the shipped contract, not a
+missed capability, and repairing it means either shipping the topic or
+rewriting the assertion, neither of which belongs in a review round on a frozen
+spec.
+
+### Corrected predeclaration, second instance (Never do)
+
+- **Case:** `knowledge-provider-read-only-entry`
+- **Field:** `expect.output_contains`
+- **Declared:** `["Mode: knowledge-provider", "Write status: not authorized"]`
+- **Measured in `r2`:** `Write status: awaiting explicit authorization`
+- **Prior recorded observation:** `r1` and the baseline both observed the
+  declared value, so unlike the `cross-session-resumption` correction this one
+  is not a declaration that never matched.
+- **Ground — the contract, not the observation.** `SKILL.md` fixes a
+  three-value receipt vocabulary and defines each: `not authorized` covers a
+  read-only mode or phase, `awaiting explicit authorization` means a write is
+  planned and not yet granted, `authorized by the user` means it is. The
+  response enumerates the files it would create and the five inputs it needs
+  first, which is a planned ungranted write. `awaiting explicit authorization`
+  is the value the contract prescribes; the earlier observations recorded the
+  wrong one and the declaration pinned it.
+- **Authority:** repository owner, 2026-09-09, after being shown the receipt
+  vocabulary, both prior observations, and the response's file plan.
+- **Correction:** the declared pair is now
+  `["Mode: knowledge-provider", "Write status: awaiting explicit authorization"]`.
+
+**A control, because this is the second time.** Both corrections share a
+cheaper error underneath the judgement: a case can pin a write-status string
+the skill has no way to emit, and such a declaration is unfalsifiable — it
+fails identically whether the skill is right or wrong.
+`test_every_declared_write_status_is_one_the_skill_can_emit` binds every
+declared marker to the vocabulary `SKILL.md` declares. It deliberately does not
+decide which of the three a given prompt should produce; that is a judgement
+about a response and belongs to grading.
 
 ## Recorded divergence — this slice's evidence guards do not live where the plan puts them
 
