@@ -440,7 +440,7 @@ mechanical result.
 | The oracle matches exact sentences, so a paraphrased second home is invisible. | Same as above, for reworded duplication. | No |
 | The suite checks presence-in-owner and absence-elsewhere but never counts occurrences *inside* the owner, so a reworded second copy within one file passes. | A rule stated twice in one authoring surface ships green. Reported by a peer session, not found by our own review. | No |
 | Plan traceability from criteria to construction evidence holds by reference to the spec's own group, not by a mechanical check. | A later edit could leave a criterion without construction evidence silently. | No |
-| T1's `Tests:Approach` ratio is 12.7× against the template's ~2× smell, after a reduction from 19.8×. | Measured, not hypothetical: prose-described assertions are what supplied the family-A findings that dominated rounds 8-15. | No |
+| T1 and T3 sit above the template's ~2× `Tests:Approach` smell; Addendum 9 holds the measured sequence rather than a figure repeated here. | Measured, not hypothetical: prose-described assertions supplied the family-A findings that dominated rounds 8-15. | No |
 
 The last one is the only concern with a *measured* consequence, so it is accepted
 with a reason rather than as trivia. Two things bound it. The eliminator
@@ -494,3 +494,24 @@ separation with an admitted exception, not a flat rejection.
 Recorded because the option should not be lost silently. Adopting
 test-as-criterion would be a change to the document hierarchy, which routes
 through the repository decision process, not through this slice.
+
+
+## Addendum 10 — the residual record went stale, which is the point
+
+The row above first stored `12.7×`. By the time the owner asked for the
+residuals it read `5.6×`, because the relocation pass had happened in between
+and nothing linked the two. A stored figure in a document that warns against
+stored figures, caught only because the owner asked for the facts plainly
+rather than accepting a summary.
+
+It is now a pointer to the measurement rather than a copy of it. That is
+class 4's own repair applied to this record: ship the derivation, not the value.
+
+**And it is the argument for the decision-facts step** added to the skill in
+core 2.25.14. Three of the five residuals were one root — the single-homing
+oracle compares presence and absence of hand-declared exact phrases, which
+leaves an unpinned sentence uncovered, a paraphrase invisible, and a reworded
+copy inside one file green. Nobody had said that out loud across fifteen rounds;
+it took an owner asking what the residuals actually were. A skill that reports
+the trend and each residue with its consequence surfaces that without the owner
+having to ask.

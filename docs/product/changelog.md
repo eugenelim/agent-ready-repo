@@ -54,6 +54,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.14] — 2026-09-10
+
+### Highlights
+
+- **`new-spec` now tells you where a fact belongs, and hands you the facts to
+  decide with.** Plans kept accumulating design reasoning inside task lists —
+  why an assertion had to take a particular shape — where it went stale against
+  everything else and generated review findings of its own. The rule is now
+  explicit: a fact belongs in the design unless a task must implement or verify
+  it, because tasks are jobs to be done rather than containers for facts. And
+  when a spec reaches you for approval, the skill reports the finding trend and
+  every remaining concern with its consequence, rather than a verdict you cannot
+  check.
+
+### Added
+
+- `new-spec`: six plan-authoring rules in the plan step. A fact belongs in
+  `## Design (LLD)` unless a task must implement or verify it; `Done when`
+  points at the task's own `Tests` and never restates them; an obligation a
+  completion gate must read belongs in `Tests` rather than `Approach`, which no
+  gate observes; a claim about what a check proves names the comparison its
+  oracle performs, or names the proxy where it cannot; a `Tests`-outruns-
+  `Approach` ratio is read before it is cut, because the same ratio means
+  either misplaced design (relocate) or surplus detail (reduce); and a
+  whole-plan walk before review checks construction evidence both ways, each
+  `Done when` against its own `Tests`, one home per condition, and one
+  definition per shared bound.
+- `new-spec`: a step before human approval that reports the finding trend by
+  round, every residual concern with its consequence, and what the residue
+  implies — and refuses to seek acceptance for a residue in a protected risk
+  class. A round count is not a fact an owner can act on.
+
 ## [core][2.25.13] — 2026-09-10
 
 ### Highlights
