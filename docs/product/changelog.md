@@ -54,6 +54,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.12] — 2026-09-10
+
+### Highlights
+
+- **A machine without `git` installed now gets one line of explanation instead
+  of a stack trace.** Every `loop-engine` command needs `git` to confirm the
+  spec directory sits inside your repository. When the command could not find
+  `git` at all, it ended in a 33-line Python trace — more output than a whole
+  successful run of the loop — while its sibling tool answered the same
+  situation in a single line. Both now say the same thing the same way.
+
+### Fixed
+
+- `work-loop`: `loop-engine.py` refuses with `could not determine repo root:
+  …` when the `git` binary is absent from `PATH`, instead of raising an
+  unhandled `FileNotFoundError`. Every verb (`init`, `transition`, `status`,
+  `reset`) reaches the repository-root lookup through the spec-directory
+  confinement check, whose caller only ever handled `ValueError`, so the
+  missing-binary case escaped as a traceback. `loop-cohort.py`'s copy of the
+  helper already converted it; the two now refuse identically. The refusal is
+  unchanged in every other respect — same exit code, no write performed, and
+  the confinement decision itself is untouched.
+
 ## [core][2.25.11] — 2026-09-10
 
 ### Highlights

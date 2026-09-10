@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import signal
 import stat
 import subprocess
@@ -87,18 +88,18 @@ def symlink_or_skip(
     return True
 
 
-def run_engine(*args) -> tuple[int, str, str]:
+def run_engine(*args, env: dict[str, str] | None = None) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, str(ENGINE)] + [str(a) for a in args],
-        capture_output=True, text=True, check=False,
+        capture_output=True, text=True, check=False, env=env,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def run_cohort(*args) -> tuple[int, str, str]:
+def run_cohort(*args, env: dict[str, str] | None = None) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, str(COHORT)] + [str(a) for a in args],
-        capture_output=True, text=True, check=False,
+        capture_output=True, text=True, check=False, env=env,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -1032,6 +1033,55 @@ def test_engine_state_reader_rejects_non_regular_path(tmp: Path) -> None:
         fail(name, f"failure did not identify the required file type: {out} {err}")
     else:
         ok(name)
+
+
+def test_missing_git_binary_refuses_without_a_traceback(tmp: Path) -> None:
+    """No `git` on PATH is a bounded refusal, identically in both loop tools.
+
+    `_resolve_spec_dir` is the confinement check every engine verb passes
+    through, and it catches only ValueError. While `_get_repo_root` let a
+    FileNotFoundError through, a host without git got a 33-line traceback —
+    more output than an entire successful run — where `loop-cohort.py`'s
+    duplicate helper returned one line for the same input. Both copies are
+    asserted here on purpose: the defect was drift between them, so a future
+    divergence in EITHER direction has to redden.
+    """
+    name = "missing-git-binary-refuses-without-a-traceback"
+    spec_dir = make_spec_dir(tmp, name)
+    run_engine("init", str(spec_dir), "--mode", "code")
+
+    # An existing but EMPTY directory, never PATH="": an absent or empty PATH
+    # sends subprocess to `os.defpath`, where a real /usr/bin/git satisfies the
+    # lookup and this case would pass without reaching the branch at all.
+    empty_bin = tmp / "no-git-here"
+    empty_bin.mkdir()
+    nogit_env = {**os.environ, "PATH": str(empty_bin)}
+    if shutil.which("git", path=str(empty_bin)) is not None:
+        fail(name, "fixture PATH still resolves git, so the case proves nothing")
+        return
+
+    # Positive control. Without it every assertion below is also satisfied by a
+    # `status` that is broken for some unrelated reason, on empty state or not.
+    rc_ok, _, err_ok = run_engine("status", str(spec_dir), "--json")
+    if rc_ok != 0:
+        fail(name, f"positive control failed — status is broken on its own: {err_ok}")
+        return
+
+    rc, out, err = run_engine("status", str(spec_dir), "--json", env=nogit_env)
+    stream = out + err
+    if rc == 0:
+        fail(name, "engine accepted a spec-dir whose confinement it could not check")
+    elif "Traceback" in stream:
+        fail(name, f"missing git escaped the diagnostic boundary: {stream}")
+    elif "could not determine repo root" not in stream:
+        fail(name, f"refusal did not name the repo-root failure: {stream!r}")
+    else:
+        c_rc, c_out, c_err = run_cohort("status", str(spec_dir), env=nogit_env)
+        c_stream = c_out + c_err
+        if c_rc == 0 or "Traceback" in c_stream:
+            fail(name, f"cohort no longer bounds the same input: {c_stream}")
+        else:
+            ok(name)
 
 
 def test_status_json_after_init(tmp: Path) -> None:
