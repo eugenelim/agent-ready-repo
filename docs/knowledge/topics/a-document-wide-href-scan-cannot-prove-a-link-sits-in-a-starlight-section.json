@@ -1,0 +1,56 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-CHANGE"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T03:22:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-5d5c4064b76d14be014173d943a4418dfc6ec84b75c04124ebdbd2c1832d11f3",
+      "mutation_id": "dc1f7e60ec1b578265131002566732864afebb28e69cccde981c3f974766f489",
+      "observed_at": "2026-09-09T03:22:00Z",
+      "producer": "new-spec",
+      "reviewed_disposition": "promoted",
+      "scope": "web",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "web/src/test/rendered-output.test.ts"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 66739,
+      "kind": "sha256-bytes-v1",
+      "sha256": "e1ebef6f4bbc6c2284075a85f805acf006db2deed09afcef6ac10c2d3aeada8b"
+    },
+    "path": "web/src/test/rendered-output.test.ts"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "web",
+    "docs-site",
+    "tools"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 9967,
+        "kind": "sha256-bytes-v1",
+        "sha256": "90b588bb6b9c9ee468c5a01aecd7425667c6a79c3904418dcd22a55fb4523396"
+      },
+      "path": "tools/test_documentation_entry_links.py"
+    }
+  ],
+  "synthesis": {
+    "body": "Starlight renders the full guide sidebar on every page, so a document-wide href scan over an emitted page proves nothing about a particular section. A case asserting that the relocated catalogue-extension section still linked to its four guides passed under a mutation that deleted one of those step links, because the sidebar carried the same href; it only failed once scoped to the section's own nodes. Two mechanics make the scoping work. First, heading ids resolve through a wrapper: Starlight emits <div class=\"sl-heading-wrapper level-hN\"> around each heading, and section content are siblings of that WRAPPER, not of the heading -- walking the heading's own siblings yields only the anchor icon and an empty section. Second, the slug is not the obvious one: '### P2 - Shape what to build - ~3 hours' emits id=\"p2--shape-what-to-build--3-hours\", because github-slugger drops the punctuation and keeps the spaces that surrounded it, so a slugifier that collapses whitespace runs to a single hyphen derives a different anchor than the site serves.",
+    "kind": "gotcha"
+  },
+  "title": "A document-wide href scan cannot prove a link sits in a section: the Starlight sidebar carries every href",
+  "topic_key": "a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section"
+}

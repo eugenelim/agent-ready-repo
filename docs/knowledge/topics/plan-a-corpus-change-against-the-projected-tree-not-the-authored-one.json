@@ -1,0 +1,64 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-VERIFY",
+    "CQ-CHANGE"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T23:20:25Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-3f7fc5a7b47a27460eb6d6f831de80119400924c8dd9b5d5fa09b2c88f863bc8",
+      "mutation_id": "582cd6b118b309c31840e0415173df9a497b22e5461100e28f7e1fbd1daf108b",
+      "observed_at": "2026-09-09T23:20:25Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 44841,
+      "kind": "sha256-bytes-v1",
+      "sha256": "c4bd5acefbe4b072cee5219a0f6409134da3c352a0418603752f9c482d5d4bc5"
+    },
+    "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs",
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 38010,
+        "kind": "sha256-bytes-v1",
+        "sha256": "d2dd24b8cd36339042b4cd3b8d291904665ed816c5dcea67ca9c482a71712e41"
+      },
+      "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/notes/verification-ledger.md"
+    },
+    {
+      "digest": {
+        "byte_length": 12896,
+        "kind": "sha256-bytes-v1",
+        "sha256": "6fcfd5b5776f25855e1a49653377c0f8e44d18026a0a540c7014dc9e9c0c1450"
+      },
+      "path": "packs/agent-skill-engineering/tests/pack/test_pack_boundary.py"
+    }
+  ],
+  "synthesis": {
+    "body": "Two owner-authorized amendments in one delivery came from the same blind spot: the anchor-test sweep checked digests and counts over authored sources, while two separate shipped guards scan the compiled projection. One guard requires a doctrine group's provenance block to appear in the compiled body, so the first task adding such a group cannot pass without a recompile; the other forbids delivery-mechanic literals anywhere in the projected tree, so a criterion requiring one was unsatisfiable and only failed after the recompile made it visible. A third consequence follows from the first: because the compiled source digest binds recorded evaluation runs, the recompile and the re-measurement must travel INSIDE the task that makes the last authored edit -- a separate later task can never share its wave, and gates run at wave boundaries. Before planning tasks over a corpus that ships compiled, enumerate which guards read the projection and which read the source, and place the recompile accordingly.",
+    "kind": "gotcha"
+  },
+  "title": "Plan a corpus change against the projected tree, not the authored one",
+  "topic_key": "plan-a-corpus-change-against-the-projected-tree-not-the-authored-one"
+}

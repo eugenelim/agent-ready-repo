@@ -1,0 +1,62 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-REVIEW",
+    "CQ-CHANGE"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T17:57:15Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-9055c22bcc09dfb38c3dc7f2f1180e744ae24401cf4f3e811dab933422766be3",
+      "mutation_id": "887bc7206fca83d6881c80c2eb499c736607c60ba18b75b681818127b3d9dd3d",
+      "observed_at": "2026-09-09T17:57:15Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 29988,
+      "kind": "sha256-bytes-v1",
+      "sha256": "eb639f3e5d8e05f3dfa7b2554376dec4b81d2c7f6f532a70a66ed8ed77edfa30"
+    },
+    "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 44841,
+        "kind": "sha256-bytes-v1",
+        "sha256": "c4bd5acefbe4b072cee5219a0f6409134da3c352a0418603752f9c482d5d4bc5"
+      },
+      "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"
+    },
+    {
+      "digest": {
+        "byte_length": 24243,
+        "kind": "sha256-bytes-v1",
+        "sha256": "a607a71524e1547418f815959215baf515745ee87c2a6ea30b5845f2e09aaa43"
+      },
+      "path": "docs/specs/spec-authoring-discipline/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "When a spec or plan clause has produced a sustained review finding under two successive wordings, delete it rather than reword it again. Two clauses in one delivery each failed twice: a boundary scope gloss that first forbade the surfaces the durable-output table assigns and then, reworded, made that table a write allowlist and forbade every working surface the tasks construct; and a durable-output row whose partial task list was wrong under every subset because every task produced the evidence. Deletion cost nothing in both cases because another surface already owned the fact. The wider pattern is that after the first review round most sustained findings were introduced by earlier repairs -- so after changing a rule, check the surface you did NOT touch, not the one you did. The three failure shapes that recurred: a criterion whose selector moved while a task still selected by the old predicate, a task whose approach changed without its tests, and an accounting row that had to list a newly added producer.",
+    "kind": "gotcha"
+  },
+  "title": "Delete a clause that has sustained a review finding twice; do not reword it a third time",
+  "topic_key": "delete-a-clause-that-has-sustained-a-finding-twice-do-not-reword-it-a-third-time"
+}

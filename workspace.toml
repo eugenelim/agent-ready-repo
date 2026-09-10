@@ -429,6 +429,24 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The Makefile's own `Revisit if` note beside --strict has now fired with
+  # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
+  # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.
+  # ADR-0017 names pin-or-vendor as the mitigation; ADR-0102 forbids reaching for
+  # SEMGREP_EXCLUDE without a stated residual and a retirement trigger. The
+  # reporting half shipped in core 2.25.12; this is the rules half.
+  # Mechanism and measurement: captured observation
+  # kco-202609-eedad38fd2209acf34ec0420454aff1af6624a058c89124f1b77e8b48f5a8f52
+  # in docs/knowledge/observations/gotcha/2026-09.jsonl.
+  {path = "docs/product/intents/semgrep-registry-ruleset-pinning.md", kind = "intent", source = {mode = "repo-origin", ref = "Makefile"}, summary = "Pin or vendor the p/python and p/security-audit registry rulesets so a slow rule cannot red the SAST gate on code the diff never touched", needs = []},
+  # Registered rather than landed because the rule has two candidate owners and
+  # splitting it across both would duplicate it: packs/AGENTS.md owns authoring
+  # in a compiled pack, work-loop owns the wave and gate mechanics that decide
+  # where the recompile sits. Caused two owner-authorized amendments in one
+  # delivery. Mechanism: captured observation
+  # kco-202609-3f7fc5a7b47a27460eb6d6f831de80119400924c8dd9b5d5fa09b2c88f863bc8
+  # in docs/knowledge/observations/gotcha/2026-09.jsonl.
+  {path = "docs/product/intents/projected-tree-planning-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"}, summary = "A planner can tell which guards read the compiled projection and which read authored sources, and places the recompile in the task that makes the last authored edit", needs = []},
   # Cut from spec/desk-research-build-handover on 2026-09-09 by owner scope
   # decision, not missed. That slice guards one pack's inline links at source;
   # this is the general, emitted-side control. It matters because

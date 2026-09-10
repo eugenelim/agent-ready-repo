@@ -13,7 +13,7 @@ and Gemini CLI. The repository self-hosts the packs it publishes.
 
 ## Rule lookups
 
-Before your first user-facing response or unrelated tool call, silently read [`AGENT_RULES.md`](AGENT_RULES.md), then every `always` rule and every conditional rule there that matches the work. For work under `docs/`, also read the scoped [`docs/AGENTS.md`](docs/AGENTS.md). Read both lookup files with one bounded, repository-confined operation that rejects links, reparse points, non-regular files, multiple links, oversized files, and identity changes while opening. If the host loaded a file before agent control, do not claim this check covered the host load.
+Before your first user-facing response or unrelated tool call, silently read [`AGENT_RULES.md`](AGENT_RULES.md), then every `always` rule and every conditional rule there that matches the work. Also read every scoped `AGENTS.md` on the path to the file you are changing: start in its own directory and walk up to the repository root, reading each one you find. A nested scoped file does not replace the one above it, so stopping at the first hit silently skips the rest. Read each lookup file with one bounded, repository-confined operation that rejects links, reparse points, non-regular files, multiple links, oversized files, and identity changes while opening. If the host loaded a file before agent control, do not claim this check covered the host load.
 
 ## Documentation
 
@@ -110,11 +110,11 @@ External quality gate: none declared.
 
 ## Scoped instructions
 
-The nearest `AGENTS.md` above a changed file applies. Scoped guidance exists
-under `packs/`, `profiles/`, `packages/`, `guides/`, `web/`, `docs-site/`, and
-`tools/`, with deeper files under `packs/core/`, `packs/frontend-engineering/`,
-`packages/agentbundle/`, and `packages/credbroker/`.
+A scoped `AGENTS.md` carries deltas for its subtree; everything above it still
+applies. [§ Rule lookups](#rule-lookups) owns which ones a change obliges you to
+read — do not substitute a remembered list of directories for that walk, because
+a scoped file added later would not be in it and the omission is silent.
 
-Read the applicable scoped file before acting. Report stale or conflicting
-instructions instead of working around them. Repository maintainers should also
+Report stale or conflicting instructions instead of working around them.
+Repository maintainers should also
 read [`AGENTS.local.md`](AGENTS.local.md).

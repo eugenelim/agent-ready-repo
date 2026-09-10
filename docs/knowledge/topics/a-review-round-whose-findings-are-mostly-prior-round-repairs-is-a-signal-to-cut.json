@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T03:20:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-00c6de441fc281a04019e3631d6cf9bc9ad1a51fabc6af79ddf540aef1865720",
+      "mutation_id": "3effe0c1934070ef4a58c1a2ade529f287026a261f33c9883d3fd8282f684b6a",
+      "observed_at": "2026-09-09T03:20:00Z",
+      "producer": "new-spec",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "docs/specs/install-to-ship-walkthrough/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 17701,
+      "kind": "sha256-bytes-v1",
+      "sha256": "ef02c628499bdd989673af17f057eebef7a1a8255e6754702e36e423f59f0191"
+    },
+    "path": "docs/specs/install-to-ship-walkthrough/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs",
+    "packs/core"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 18153,
+        "kind": "sha256-bytes-v1",
+        "sha256": "0d7ef760ef241dadf74dda0d03ab927faa55380c9628524227341eff49e8d767"
+      },
+      "path": "docs/specs/install-to-ship-walkthrough/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A plan that specifies more test mechanism than an implementer needs generates its own review findings. Across five spec-stage review rounds on install-to-ship-walkthrough the sustained counts fell 26, 10, 8, 4, 1 -- but 6 of the 10 in round 2 and 6 of the 8 in round 3 were defects introduced by the previous round's repairs, not by the original draft. Each of those rounds converged only when the repair REMOVED a claim: a two-altitude source-plus-rendered check design collapsed to rendered-only, a browser-gate visibility claim was withdrawn to a stated accepted gap, and a scalar route count became a committed route set. new-spec already names the rule -- when a reviewer keeps finding under-specification in the plan rather than defects in the spec, the plan is over-specified: reduce it, do not extend it. Make the ratio visible: tag every finding draft-origin or prior-round-repair, and treat any round whose findings are majority prior-round-repair as the signal to cut. Under that discipline the follow-on slice was drafted at 4 criteria and 3 tasks rather than 14 and 5.",
+    "kind": "antipattern"
+  },
+  "title": "A review round whose findings are mostly prior-round repairs is the signal to cut the plan, not extend it",
+  "topic_key": "a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut"
+}

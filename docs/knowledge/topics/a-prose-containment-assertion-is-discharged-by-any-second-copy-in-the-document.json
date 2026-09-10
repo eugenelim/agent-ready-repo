@@ -1,0 +1,63 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-10T00:32:23Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-a429eb0b4fecb5f428db252e65020881e743724d264a4cca64a69538e810342a",
+      "mutation_id": "8507ba4c11b96215122e5625a9710844249c0c697329d332cca52e7c5618a0a4",
+      "observed_at": "2026-09-10T00:32:23Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 12570,
+      "kind": "sha256-bytes-v1",
+      "sha256": "c275bce71b73930622468f127be77d48d0ed30c04c545ebfa7153d78b82fe75c"
+    },
+    "path": "packs/agent-skill-engineering/tests/pack/test_composition_floors.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs",
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 59940,
+        "kind": "sha256-bytes-v1",
+        "sha256": "81881bda03c82e5964b679e43d40cb3b06f136e852541bf94877cc61adae1357"
+      },
+      "path": "packs/agent-skill-engineering/tests/pack/test_corpus_admission.py"
+    },
+    {
+      "digest": {
+        "byte_length": 38010,
+        "kind": "sha256-bytes-v1",
+        "sha256": "d2dd24b8cd36339042b4cd3b8d291904665ed816c5dcea67ca9c482a71712e41"
+      },
+      "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/notes/verification-ledger.md"
+    }
+  ],
+  "synthesis": {
+    "body": "Three separate controls in one delivery could not fail for this reason. A verification-date check was satisfied by the block's own source retrieval dates; after the first repair it was satisfied by a source's exposed last-updated date; and a placement check was satisfied by the provenance block that restates every clause verbatim. The shape is always the same -- the assertion reads the WHOLE artifact while the property is about ONE REGION of it. Scope the read to the region the property is about, and prove the repair by measuring the old and the new predicate on the same mutated state rather than by asserting the fix. When a document deliberately restates its claims for provenance, treat the restatement as a second surface, not as redundant text: any containment check will find its match there first.",
+    "kind": "gotcha"
+  },
+  "title": "A prose-containment assertion over a governed document is discharged by any second copy of the same sentence",
+  "topic_key": "a-prose-containment-assertion-is-discharged-by-any-second-copy-in-the-document"
+}

@@ -1,0 +1,63 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-DIAGNOSE"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-09T03:21:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-43b240cb94a85bb57b6c908b7e4cdaf71a4845bdd3c591750d02d42c083ed0ba",
+      "mutation_id": "8c8f53647d7f7072ebcdbc5df69bad60c6b4a81b3a4d4521bb3d227df7a43094",
+      "observed_at": "2026-09-09T03:21:00Z",
+      "producer": "new-spec",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "tools/build-site.py"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 98439,
+      "kind": "sha256-bytes-v1",
+      "sha256": "8227c9812c0c290e1985edead14b0ec38b10b794d268b2e3c29a14a8b6b0ee24"
+    },
+    "path": "tools/build-site.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools",
+    "guides"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 11524,
+        "kind": "sha256-bytes-v1",
+        "sha256": "4e666bad62085f80e1c066539d8fc8d526b1209e343343a5473cf97e76f4ed83"
+      },
+      "path": "tools/check-rendered-site-links.py"
+    },
+    {
+      "digest": {
+        "byte_length": 2898,
+        "kind": "sha256-bytes-v1",
+        "sha256": "b06183cb78948731606bb95932ef5b48175fc9371a9ccdd77b84791f30d92eb6"
+      },
+      "path": "guides/desk-research/README.md"
+    }
+  ],
+  "synthesis": {
+    "body": "tools/build-site.py rewrites an unresolvable in-tree Markdown link into an external GitHub blob locator, which moves it out of tools/check-rendered-site-links.py's scope because that audit checks internal links only. A mistyped in-repo link therefore ships as an external 404 while the gate stays green. Measured on 2026-09-09: guides/desk-research/ carried six unresolvable relative .md links -- README.md naming how-to/desk-research-pipelines.md and explanation/desk-research-methodology.md when the files are research-pipelines.md and research-methodology.md, and your-first-research-project.md naming research-first-session.md when the file is desk-research-first-session.md -- while make site-link-check reported 73,075 links across 288 pages clean. The emitted page carried an external blob locator pointing back at the non-existent guides/ path. Detect this class from both sides: walk authored guides/ links against the filesystem, and assert no emitted page carries an external blob locator pointing back under guides/. A clean site-link-check is not evidence that in-tree guide links resolve.",
+    "kind": "gotcha"
+  },
+  "title": "build-site.py rewrites an unresolvable in-tree link into an external blob URL, out of the link audit's scope",
+  "topic_key": "build-site-rewrites-an-unresolvable-in-tree-link-into-an-external-blob-404"
+}

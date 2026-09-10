@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DIAGNOSE",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-04T17:07:52Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-eedad38fd2209acf34ec0420454aff1af6624a058c89124f1b77e8b48f5a8f52",
+      "mutation_id": "c8a81e86656ec20e9ea430ae68774ec658278eaf1bd68186b2cb92e5e89121a5",
+      "observed_at": "2026-09-04T17:07:52Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "gates-clean",
+      "source": {
+        "path": "Makefile"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 8158,
+      "kind": "sha256-bytes-v1",
+      "sha256": "63ba2bd956a318adc4fd61237283d5db2c5854e988a69cc11763f812edea9e89"
+    },
+    "path": "tools/run-semgrep-gate.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools",
+    "Makefile"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 42707,
+        "kind": "sha256-bytes-v1",
+        "sha256": "95e52021af3fc071034f86475acd5720c0b29a491fd748ec4eb2bf48cbf31368"
+      },
+      "path": "Makefile"
+    }
+  ],
+  "synthesis": {
+    "body": "A SAST gate that turns the scanner's own diagnostics into a failure signal reds on files the diff never touched. Semgrep run with --strict exits non-zero on a per-file time-budget breach, not only on a finding, so several tools gating at once on one machine fail the build on unrelated code. The discriminator is that the timed-out file set reshuffles between runs: a real defect names the same file every time; a budget breach names different files and a count that tracks load rather than the diff. Observed across four runs of one unchanged tree: 3 timeouts on one file, then 14 across six files, then 3 again, then 0 and a clean exit, at load 95 to 226 on 10 cores. Diagnose it by checking load, confirming the named file is absent from the diff, and running the exact failing invocation against that file alone -- it exits 0. The repair is to re-run when the machine is quiet, or to pin or vendor the unpinned registry rulesets whose rules are the ones timing out. Do NOT widen the scanner's exclude list: that trades a transient failure for a permanent blind spot, and it needs a stated residual and a retirement trigger. Do not report the gate green on the strength of a single passing re-run either -- report the count, the load and the varying file set.",
+    "kind": "gotcha"
+  },
+  "title": "semgrep --strict fails the build on untouched files when the host is contended",
+  "topic_key": "semgrep-strict-fails-the-build-on-untouched-files-when-the-host-is-contended"
+}
