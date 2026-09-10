@@ -273,8 +273,15 @@ def _assert_doctrine_projections(
 
 
 def _claude_code_profile_body() -> str:
-    """Return the authored Claude Code profile with line wrapping normalized."""
-    return _collapse((CONCEPTS / f"{CLAUDE_CODE_PROFILE}.md").read_text(encoding="utf-8"))
+    """Return the authored Claude Code profile with line wrapping normalized.
+
+    Globs the owning directory and indexes by stem rather than joining a
+    variable onto a path: the pack-test boundary linter cannot statically prove a
+    joined variable stays in-pack, and the sibling suites already use this idiom
+    for the same reason.
+    """
+    authored = {path.stem: path for path in CONCEPTS.glob("*.md") if path.is_file()}
+    return _collapse(authored[CLAUDE_CODE_PROFILE].read_text(encoding="utf-8"))
 
 
 def _unsupported_modes() -> set[str]:

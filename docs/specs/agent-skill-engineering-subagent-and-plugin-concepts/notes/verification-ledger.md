@@ -633,3 +633,71 @@ only control the test admits for that blind spot.
 Pack and integration 261 passed; conformance 51; roster projection and
 consumer-integrations 58; OKF compiler check `OKF000 check clean`; spec-status
 lint clean. All exit 0.
+
+## CI failures and their correction
+
+Eight checks failed on the first CI run against three root causes. `main` at the
+rebase base was green, so all three were this change's to answer.
+
+### Self-host projection — five of the eight
+
+`CAT-V-015 self-host projection is out of date` cascaded into `gate-main`, both
+`make build-check` jobs, `Gate D — catalogue artifact smoke`, and
+`Lifecycle hooks`. The dry run found exactly one drift,
+`.claude-plugin/marketplace.json`: the aggregated marketplace manifest pins each
+pack's version, so the `0.4.1` to `0.4.2` bump required regenerating it.
+`make build-self` resolved it and `catalogue verify` is clean.
+
+Earlier in this delivery the pack was judged not self-hosted, on the evidence
+that no `.claude/skills/ase-okf-reference` projection exists and the pack is
+absent from `catalogue.toml`. That evidence was real and the conclusion drawn
+from it was wrong: the marketplace manifest is a self-host output regardless of
+whether the pack projects into this repository's own skills tree. The Makefile
+target was used rather than the `agentbundle` on `PATH`, which resolves to a
+site-packages copy outside this worktree.
+
+### Pack-test boundary — the `Caps enforcer self-test`
+
+Two breaches. Four hits where the architecture assertions reached above the pack
+through `Path(__file__).resolve().parents[4]`, and one where
+`CONCEPTS / f"{CLAUDE_CODE_PROFILE}.md"` joined a variable onto a path the linter
+cannot statically prove stays in-pack. The second is fixed by globbing the owning
+directory and indexing by stem, the idiom the sibling suites already use and
+which this repository's own code comments document. The first is fixed by moving
+that coverage to `tests/roster/test_agent_skill_engineering_subagent_and_plugin_concepts.py`,
+where it runs, reddens on a restored reserving sentence, and additionally pins
+the document's `PLANNED` status so the two absence checks cannot be satisfied by
+a document that also claimed a status this slice may not grant.
+
+**The rule was available before the code was written.** `packs/AGENTS.md` states
+it in its second sentence -- "The pack owns its runtime export and test
+boundary" -- and `tools/lint-pack-test-boundary.py` enforces it.
+
+That file was never deliberately read. The host injected it as a scoped-guidance
+reminder when a command touched `packs/`, and two of its rules were applied from
+that injection -- the version bump and the ban on internal-governance citations
+in shipped pack content -- while the framing sentence was not. PLAN step 1a
+instructs reading the effective root and scoped `AGENTS.md` for the files in
+scope; that step was skipped in favour of what the injection surfaced. The
+`## Writing pack tests` section covers module naming and suite cost and does not
+restate the boundary, and the standards document it routes to does not mention
+it, so the sentence above the section is the authority. Relying on an injection
+rather than reading the scoped file is how it was missed. The
+quality lens then raised the relocation and it was refuted as a preference,
+because neither `packs/AGENTS.md`'s framing sentence nor the enforcing lint was
+in the authority set supplied to the adjudicator. The reviewer was right. The
+incomplete brief is a second failure downstream of the first, not the cause.
+
+### A high-severity advisory that was not this change's
+
+`GHSA-7w5x-hrqm-74c2` (high), `smol-toml` denial of service via malformed TOML,
+in `docs-site`. This change touches no lockfile and no docs-site file, and the
+advisory reds any pull request once disclosed. Taken as a Tier 1 reproducible
+ride-along under the bundled-fixes carve-out, with the owner's instruction to fix
+CI: `npm audit fix --package-lock-only`, run in `docs-site`.
+
+Verified against the resolved package set rather than the manifest, because a
+fix group can carry a transitive major: resolved count unchanged at 590, one
+package in and one out, `smol-toml` 1.7.0 to 1.8.0 within the same major, three
+changed lines in one file, `package.json` untouched. `tools/audit-npm.py` then
+reported `✓ docs-site: no blocking advisories`, exit 0.
