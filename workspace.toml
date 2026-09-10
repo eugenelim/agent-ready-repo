@@ -189,7 +189,7 @@ draft     = [
   #      the same invocation. Killing A4 leaves B's spike intact. Keep the two
   #      consistent in shape when either is specified; never cut them as one
   #      slice. B now owns the full statement of this; A points at it.
-  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric and the authoring instructions derived from it, a delegation anchor, sizing discipline shipped as a regenerator, the step-5a satisfiability widening, and a conditional ownership survey", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/guidance-activation-measurement.md"}]},
+  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   #
   # B -- `needs` is deliberately empty. B1, the declared-shape gate, never
   # depended on the activation measurement and can start in parallel with M
