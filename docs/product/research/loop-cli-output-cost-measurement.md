@@ -1,15 +1,21 @@
 # Loop CLI output cost: measured, with a do-not-shrink verdict
 
-Measured 2026-09-10 against `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
-and `loop-cohort.py`, the last two unmeasured agent-facing surfaces in this
-family. Feeds the accepted
+- **Run date:** 2026-09-10
+- **Owner:** eugenelim, Platform Core maintainer
+- **Verdict:** these two scripts' output is contract-bound and should not
+  shrink; the measurement surfaced one correctness defect, fixed in core
+  2.25.12
+
+Measured against `packs/core/.apm/skills/work-loop/scripts/loop-engine.py` and
+`loop-cohort.py`, the last two unmeasured agent-facing surfaces in this family.
+Feeds the accepted
 [work-loop delivery efficiency](../intents/work-loop-delivery-efficiency.md)
 intent.
 
-**Verdict: these two scripts' output should not shrink.** The removable
-fraction is small, and most of what remains is a contract the calling agent
-parses or a byte-pinned test fixture. Recorded here so a future session does
-not repeat the measurement or act on a static `print(` count.
+The removable fraction is small, and most of what remains is either a contract
+the calling agent parses or a byte-pinned test fixture. Recorded here so a
+future session does not repeat the measurement or act on a static `print(`
+count.
 
 ## How it was measured
 
@@ -27,24 +33,32 @@ and the worst single event is on an error path.
 ## Result
 
 A complete happy-path run is **62 lines / 4,933 characters across 27
-commands** — about 2.3 lines and 183 characters per command.
+commands** — about 2.3 lines and 183 characters per command. The rows below
+account for all 27 and sum to the total.
 
-| Command | Lines | Chars |
-| --- | --- | --- |
-| `loop-cohort status` (human) | 21 | 833 |
-| `loop-cohort status --json` | 1 | 812 |
-| `loop-engine status` (human) | 12 | 363 |
-| `loop-engine status --json` | 1 | 333 |
-| `loop-cohort schedule` (3-task plan) | 5 | 326 |
-| `loop-cohort init` | 1 | 296 |
-| 11 × `loop-engine transition` | 11 | 1,224 |
-| 10 remaining cohort verbs | 9 | 698 |
+| Command(s) | n | Lines | Chars |
+| --- | ---: | ---: | ---: |
+| `loop-cohort status` (human) | 1 | 21 | 833 |
+| `loop-cohort status --json` | 1 | 1 | 812 |
+| `loop-engine status` (human) | 1 | 12 | 363 |
+| `loop-engine status --json` | 1 | 1 | 333 |
+| `loop-cohort schedule` (3-task plan) | 1 | 5 | 326 |
+| `loop-cohort init` | 1 | 1 | 296 |
+| `loop-engine transition` | 11 | 11 | 1,214 |
+| `loop-engine init --json` | 1 | 1 | 99 |
+| `approve-plan`, `schedule check-current`, `identity`, `wave check` ×2, `wave advance`, `raw-classify`, `review record` | 8 | 8 | 609 |
+| `loop-cohort plan check-current` (stderr; exit 1 is the documented signal) | 1 | 1 | 48 |
+| **Total** | **27** | **62** | **4,933** |
+
+Stdout alone is 61 lines / 4,885 characters; the remaining line and 48
+characters are `plan check-current`'s refusal on stderr.
 
 `schedule` is the only output proportional to input. Against the largest real
 plan in the repository at the time (`docs/specs/site-ui-primitives/plan.md`, 25
 tasks) it produced 12 lines / 780 characters, so a large-plan run is about
-5,400 characters. For scale, `workspace-status`'s `status` payload alone was
-220,195 characters before core 2.25.11 reduced it.
+5,400 characters. For scale, `workspace-status`'s `status` payload alone went
+from 220,195 to 86,510 characters in core 2.25.11 (figures from that change's
+commit message, `0b75130bd`; the changelog entry states no number).
 
 ## Why it cannot shrink
 
@@ -63,7 +77,8 @@ pins 39 `loop-cohort` rows — every `identity`, `plan check-current`, `schedule
 check-current`, `check`, and `wave check` message, on both streams, with exit
 codes.
 
-Best-case non-contract headroom was about 1,000 characters (18%): the
+Best-case non-contract headroom was about 1,000 characters — 20% of the
+4,933-character three-task run, 18% of the ~5,400-character large-plan run: the
 `predicted-disjoint` caveat repeated once per wave, `loop-cohort init`'s
 absolute path, and the `status` fields no reference names as parsed. The
 realistic saving is roughly half that, because both `status` commands are 47%
@@ -86,14 +101,26 @@ but not `OSError`. That was a correctness defect, not verbosity, and core
 2.25.12 fixed it in both copies of the helper.
 
 The same shape had already appeared once in this family: `lint-spec-status.py`
-was mis-ranked by a static count because its real cost was 183 warn-only
-stderr lines rather than its single stdout line.
+was mis-ranked by a static count because its real cost was its warn-only stderr
+lines rather than its single stdout line. Measured on this repository on the run
+date, `lint-spec-status.py --root . --verbose` emits 183 of them; the default
+run counts them instead, which is what core 2.25.11 changed.
 
 ## Structural note
 
-Six helpers are duplicated between the two scripts: `_diag`, `stop`,
-`_resolve_spec_dir`, `_get_repo_root`, `_statelock`, and `_locked`. Exactly one
-has a parity control — `test_loader_copies_are_structurally_identical` in
-`packs/core/tests/skills/work-loop/test_loop_guards.py`, which AST-compares the
-three loader copies and refuses to skip when one is missing. The traceback
-defect above lived in one of the five uncovered copies.
+Seven helpers are duplicated between the two scripts. Six share a name —
+`_diag`, `stop`, `_resolve_spec_dir`, `_get_repo_root`, `_statelock`, `_locked`
+— and the seventh is the guards loader, named `_guards` in `loop-engine.py` and
+`load_guards` in `loop-cohort.py` and `check-spec-status.py`.
+
+**Only the guards loader has a parity control**, and it is the one helper of
+the seven that does: `test_loader_copies_are_structurally_identical` in
+`packs/core/tests/skills/work-loop/test_loop_guards.py` AST-compares its three
+copies and refuses to skip when one is missing. The other **six have none**,
+and `_get_repo_root` — where the traceback defect lived, in both copies at once
+— is one of them.
+
+That asymmetry is the finding: the repository already knows this duplication
+pattern needs a parity control and has a good one, but it covers the only
+helper whose copies were deliberately kept identical, not the six that drifted
+into being merely similar.
