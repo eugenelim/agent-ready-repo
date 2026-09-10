@@ -9,8 +9,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 # Anchored literally so every path this suite opens is statically confined.
 PROVIDER_CONTRACT_MD = (

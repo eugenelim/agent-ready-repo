@@ -701,3 +701,28 @@ fix group can carry a transitive major: resolved count unchanged at 590, one
 package in and one out, `smol-toml` 1.7.0 to 1.8.0 within the same major, three
 changed lines in one file, `package.json` untouched. `tools/audit-npm.py` then
 reported `✓ docs-site: no blocking advisories`, exit 0.
+
+### Second CI round — an unused import the relocation left behind
+
+`gate-main` failed at its first step, `ruff lint`, which skipped every later step
+in that job. `F401`: `pytest` imported but unused in
+`packs/agent-skill-engineering/tests/integration/test_provider_contract.py`.
+Moving the two parametrized architecture tests out of that file removed its only
+`@pytest.mark.parametrize` use and left the import behind.
+
+The first removal attempt was refused by its own guard, which counted three
+occurrences of the string `pytest` in the file and concluded the module was in
+use. Two of those are string literals — `"python-pytest"` and
+`"python-and-pytest"` — so the guard was measuring the wrong thing. Replaced with
+an AST walk for `Name` and `Attribute` nodes referencing the module, which
+returned zero references and zero function decorators, after which the import was
+removed.
+
+`make lint-ruff` and `make lint-mypy` both exit 0 — mypy being a step CI never
+reached, because ruff's failure skipped it. Pack suite 257 passed; the four
+agent-skill-engineering roster files 72 passed.
+
+Both local lint gates were available throughout this delivery and neither was run
+until CI named one. The gate set used after each task was the pack, conformance,
+roster and compiler checks; `make lint-ruff` and `make lint-mypy` are separate
+targets and were not in it.
