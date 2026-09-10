@@ -110,12 +110,23 @@ def test_the_forbidden_claim_set_is_pinned() -> None:
 
 
 def test_the_absence_register_entries_for_later_slices_are_not_matched() -> None:
-    """The register still records seven runtime profiles as reserved. Those are
-    true absences and must survive the scan above."""
+    """The register's true absences must survive the forbidden-claim scan above.
+
+    The loop is the control; the count assertion above it is the precondition
+    that gives the control a real subject, so a register that lost its
+    runtime-profile entries could not pass this vacuously.
+
+    Those seven entries read "Reserved for the later slice that covers runtime
+    composition" until the 2026-09-04 erratum retired those profiles to open
+    extension. The precondition follows the register rather than pinning the
+    retired wording: what it must establish is that seven runtime-profile
+    absences are present for the scan to have something to wrongly match.
+    """
     register = (
         PACK / "okf" / "agent-skill-engineering-foundation" / "concepts"
         / "declared-absent" / "unpopulated-leaves.md"
     ).read_text(encoding="utf-8")
-    assert "Reserved for the later slice that covers runtime composition" in register
+    collapsed = " ".join(register.split())
+    assert collapsed.count("Open extension") == 7
     for claim in FORBIDDEN_ABSENCE_CLAIMS:
-        assert claim not in " ".join(register.split())
+        assert claim not in collapsed

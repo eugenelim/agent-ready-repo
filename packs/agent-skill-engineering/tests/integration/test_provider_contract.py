@@ -518,6 +518,11 @@ def test_language_extension_families_are_distinct_and_populated() -> None:
         "Neither has a language-specific topic body",
         "not active foundation modes",
         "future extension families",
+        "Reserved for the later slice that covers runtime composition",
+        "Seven further runtime profiles, the router's per-claim state reporting, "
+        "provider authoring, runtime packaging, installation, projection, "
+        "publication, and catalogue governance belong to later slices or external "
+        "delivery tooling",
     )
     for label, path in shipped.items():
         # Collapsed, not raw. These are absence assertions over hard-wrapped
@@ -554,6 +559,22 @@ def test_language_extension_families_are_distinct_and_populated() -> None:
     seam = shipped["seam reference"].read_text(encoding="utf-8")
     assert "version range" in seam
     assert "portable floor" in seam
+
+
+def test_readme_plugin_core_agrees_with_package_floor() -> None:
+    """The README may advertise the portable plugin core only when its floor exists."""
+
+    pack_root = Path(__file__).resolve().parents[2]
+    readme = pack_root / "README.md"
+    package_floor = (
+        pack_root
+        / "okf"
+        / "agent-skill-engineering-foundation"
+        / "concepts"
+        / "plugin-package-common-floor.md"
+    )
+    assert "portable plugin core" in readme.read_text(encoding="utf-8")
+    assert "portable plugin core contract:" in package_floor.read_text(encoding="utf-8")
 
 
 def test_provider_pattern_failure_surfaces_conform_as_declared() -> None:

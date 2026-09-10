@@ -18,6 +18,7 @@ AUTHOR_EVALS = (
     PACK / ".apm" / "skills" / "author-or-update-agent-skill" / "evals" / "evals.json"
 )
 BEHAVIOR_RESULTS = FIXTURES / "behavior-results.json"
+UNSUPPORTED_MODE_CASES = FIXTURES / "unsupported-mode-cases.json"
 # Line-scoped, and matched per line rather than against the whole file. An
 # unanchored `.search()` over the full text with `^...$` and no MULTILINE can
 # only match a file whose entire content is one token, so a reviewer name
@@ -54,6 +55,7 @@ LANGUAGE_SPECIFIC_TOPICS = {
 RUNTIME_PROFILE_TOPICS = {
     "claude-code-skills-subagents-hooks-and-plugins",
 }
+CLAUDE_CODE_PROFILE = "claude-code-skills-subagents-hooks-and-plugins"
 SINGLE_ECOSYSTEM_TOPICS = LANGUAGE_SPECIFIC_TOPICS | RUNTIME_PROFILE_TOPICS
 SOURCE_IDENTITY = re.compile(r"\S.*\s+(?:—\s*)?https?://\S+")
 ABSOLUTE_URL = re.compile(r"https?://[^\s)\]>]+")
@@ -103,6 +105,11 @@ def _admitted_topics_from_compiled_tree() -> set[str]:
 
 
 UNPOPULATED_RECORD = COMPILED_CONCEPTS / "declared-absent" / "unpopulated-leaves.md"
+AUTHORED_UNPOPULATED_RECORD = CONCEPTS / "declared-absent" / "unpopulated-leaves.md"
+RUNTIME_PROFILE_LEAF_SLUG = re.compile(
+    r"^(?!claude-code-)[a-z0-9]+(?:-[a-z0-9]+)*-skills-"
+    r"(?:subagents|agents)-hooks-and-(?:plugins|powers|extensions)$"
+)
 
 
 def _unpopulated_leaves_from_compiled_record() -> set[str]:
@@ -125,6 +132,27 @@ def _unpopulated_leaves_from_compiled_record() -> set[str]:
         if line.startswith("## ")
     }
     assert leaves, "the register declares no leaves"
+    return leaves
+
+
+def _retired_runtime_leaf_fields() -> dict[str, tuple[str, str]]:
+    """Return authored absence fields for non-Claude runtime-profile leaves."""
+    text = AUTHORED_UNPOPULATED_RECORD.read_text(encoding="utf-8")
+    leaves: dict[str, tuple[str, str]] = {}
+    for leaf in re.finditer(r"^## (?P<slug>[^\n]+)\n(?P<body>[\s\S]*?)(?=^## |\Z)", text, re.MULTILINE):
+        slug = leaf["slug"]
+        if RUNTIME_PROFILE_LEAF_SLUG.fullmatch(slug) is None:
+            continue
+        fields = dict(
+            re.findall(
+                r"^\*\*(Why absent|What would admit it)\.\*\*\s+([\s\S]*?)(?=^\*\*|\Z)",
+                leaf["body"],
+                re.MULTILINE,
+            )
+        )
+        assert fields.keys() == {"Why absent", "What would admit it"}, slug
+        leaves[slug] = (fields["Why absent"], fields["What would admit it"])
+    assert len(leaves) == 7, leaves
     return leaves
 
 
@@ -203,8 +231,25 @@ def _assert_doctrine_projection(topic: dict[str, object], group: dict[str, objec
     """Assert record-to-body and body-to-record parity for one doctrine group."""
     block = _group_provenance_block(body, group["name"])
     claim = group["clause"] if "clause" in group else group["mechanism"]
-    for value in (claim, topic["last_verified"], group["revalidation_trigger"]):
+    for value in (claim, group["revalidation_trigger"]):
         assert _collapse(str(value)) in _collapse(block), (group["name"], value)
+    # The concept's verification date must appear on its own account, not on a
+    # cited source's. A bare containment is discharged by any date the block
+    # projects for a source, so a record whose `last_verified` disagreed with the
+    # body could not redden it -- the disagreement this control exists to catch.
+    # Discount *every* value a source contributes, not one field: a source
+    # projects its retrieval date and, separately, its exposed version state,
+    # which may itself be a date. An earlier repair discounted only
+    # `retrieved_at`, which left a live `last updated` date able to stand in for
+    # the concept's own. Then require the date to survive.
+    residual = _collapse(block)
+    for source in group.get("sources", ()):
+        for projected in (source["retrieved_at"], _source_version_state(source)):
+            residual = residual.replace(_collapse(str(projected)), "", 1)
+    assert _collapse(str(topic["last_verified"])) in residual, (
+        group["name"],
+        topic["last_verified"],
+    )
     if group["promotion_class"] == "single-ecosystem-contract":
         for field in ("ecosystem", "version_range"):
             assert _collapse(str(group[field])) in _collapse(block), (group["name"], field)
@@ -225,6 +270,40 @@ def _assert_doctrine_projections(
     """Require the doctrine record to project independently to both body forms."""
     _assert_doctrine_projection(topic, group, authored)
     _assert_doctrine_projection(topic, group, compiled)
+
+
+def _claude_code_profile_body() -> str:
+    """Return the authored Claude Code profile with line wrapping normalized.
+
+    Globs the owning directory and indexes by stem rather than joining a
+    variable onto a path: the pack-test boundary linter cannot statically prove a
+    joined variable stays in-pack, and the sibling suites already use this idiom
+    for the same reason.
+    """
+    authored = {path.stem: path for path in CONCEPTS.glob("*.md") if path.is_file()}
+    return _collapse(authored[CLAUDE_CODE_PROFILE].read_text(encoding="utf-8"))
+
+
+def _unsupported_modes() -> set[str]:
+    """Return the unavailable authoring modes from their contract fixture."""
+    cases = json.loads(UNSUPPORTED_MODE_CASES.read_text(encoding="utf-8"))["cases"]
+    return {str(case["mode"]) for case in cases}
+
+
+def _mode_invocation(sentence: str, modes: set[str]) -> str | None:
+    """Return an unavailable mode directed at the reader, if one is present."""
+    for mode in modes:
+        named_mode = rf"`?{re.escape(mode)}`?"
+        direction = re.compile(
+            rf"\b(?:invoke|select|run|use|choose)\s+(?:the\s+)?{named_mode}\b"
+            rf"|\bpackage\s+with\s+(?:the\s+)?{named_mode}\b"
+            rf"|\b(?:you|your team|the reader|an? author|authors?)\s+"
+            rf"(?:should|must)\b[^.!?]*?{named_mode}\b",
+            re.IGNORECASE,
+        )
+        if direction.search(sentence):
+            return mode
+    return None
 
 
 def _assert_no_patterns(text: str, patterns: tuple[re.Pattern[str], ...]) -> None:
@@ -258,11 +337,21 @@ def test_topology_transcription_is_complete() -> None:
 def test_foundation_pins_hold_the_shipped_cases() -> None:
     """Every inherited pin reproduces the current measurement.
 
-    Not "reproduces the pre-change value": two of the 24 pins were re-taken
-    under recorded owner authority when this slice admitted the language topics,
-    and the slice `qa.md` names both with their prior and current values. The
-    fixture is therefore not an untouched baseline, and reading it as one is how
-    a future re-record passes unnoticed.
+    Not "reproduces the pre-change value": pins have been re-taken more than
+    once under recorded owner authority, most recently when five of the 24 moved
+    as the corpus was re-measured against a recompiled router. The fixture is
+    therefore not an untouched baseline, and reading it as one is how a future
+    re-record passes unnoticed.
+
+    This equality cannot by itself detect an unrecorded re-take -- the naming
+    record is that control, and it lives in the owning slice's
+    `notes/verification-ledger.md`, which `docs/CONVENTIONS.md` assigns as the
+    home for an execution-produced observation. A maintainer auditing a pin
+    change reads that ledger for each moved pin's prior and current value and
+    for any recorded caveat about the instrument that measured it. An earlier
+    version of this docstring named a per-slice `qa.md` and a two-pin count;
+    both were stale, which defeats the only compensating control this test
+    admits for its acknowledged blind spot.
     """
     pins = json.loads(
         (FIXTURES / "foundation-retrieval-pins.json").read_text(encoding="utf-8")
@@ -386,6 +475,32 @@ def test_doctrine_group_source_parity_holds_in_both_projections() -> None:
     assert group["fixture"] not in body
     with pytest.raises(AssertionError):
         _assert_doctrine_projections(topic, group, body, f"{body}{group['fixture']}")
+
+
+def test_a_source_exposed_date_cannot_stand_in_for_the_concepts_own() -> None:
+    """A source's own date must not discharge the concept's verification date.
+
+    Seeded control for the shadowing this check exists to catch. The bare
+    containment it replaced was satisfied by any date the block projected for a
+    cited source, and its first repair discounted only `retrieved_at`, which left
+    a source's exposed `last_updated` able to stand in. Both shapes are seeded so
+    neither returns silently.
+    """
+    for shadowing_field in ("retrieved_at", "last_updated"):
+        source = {
+            "identity": "pytest documentation — https://docs.pytest.org/en/stable/",
+            "retrieved_at": "2026-08-29",
+            "last_updated": "2026-08-04",
+        }
+        group = _single_ecosystem_group(sources=(source,))
+        topic = _doctrine_topic(group)
+        # The body states the concept's real verification date; the record then
+        # claims a date only the cited source projects. Nothing but the source
+        # carries that value, so the check must redden.
+        body = _doctrine_body(topic, group)
+        topic["last_verified"] = source[shadowing_field]
+        with pytest.raises(AssertionError):
+            _assert_doctrine_projection(topic, group, body)
 
 
 def test_doctrine_parity_rejects_a_source_missing_from_one_projection() -> None:
@@ -776,7 +891,7 @@ def test_reviewer_identity_is_rejected_from_both_projections() -> None:
 
 
 def test_shipped_body_matches_the_admission_record() -> None:
-    """Observed-practice limits remain portable and equal in both projections."""
+    """Admission-record claims match their available authored projections."""
 
     record = json.loads(ADMISSION.read_text(encoding="utf-8"))
     # Resolve by globbing each root and indexing by stem rather than joining a
@@ -799,6 +914,13 @@ def test_shipped_body_matches_the_admission_record() -> None:
         for group in topic["claim_groups"]:
             if group["basis"] != "observed-practice":
                 _assert_doctrine_group_shape(topic, group)
+                # Every doctrine group verifies both projections, with no
+                # per-topic exemption. An earlier exemption for the runtime
+                # profile was justified by a deferred recompile and outlived it;
+                # the compiler gate is not accepted as the owner of doctrine
+                # provenance parity, because a doctrine block has no second pin
+                # of the kind the declared-absent register's transcription gives
+                # its leaf set.
                 _assert_doctrine_projections(topic, group, authored, compiled)
                 continue
             limit = group["applicability_limit"]
@@ -809,6 +931,74 @@ def test_shipped_body_matches_the_admission_record() -> None:
             assert _collapse(limit) in _collapse(compiled)
             for repository_marker in ("packs/", ".apm/skills/", "agent-skill-engineering"):
                 assert repository_marker not in limit
+
+
+def test_claude_code_profile_states_plugin_manifest_location() -> None:
+    """AC7: the authored profile gives Claude Code's manifest location."""
+    assert _collapse(
+        "Claude Code reads its plugin manifest from a client-specific location beside the "
+        "package root rather than at the root."
+    ) in (
+        _claude_code_profile_body()
+    )
+
+
+def test_claude_code_profile_states_root_manifest_non_discovery() -> None:
+    """AC8: the authored profile states the consequence of root-only placement."""
+    assert _collapse(
+        "A package carrying its manifest only at the plugin root is not discovered by this runtime."
+    ) in _claude_code_profile_body()
+
+
+def test_claude_code_profile_names_agents_for_delegation() -> None:
+    """AC13: delegation names the runtime's agent component surface."""
+    delegation = _collapse("Delegate bounded work through `agents/`")
+    assert delegation in _claude_code_profile_body()
+
+
+def test_claude_code_profile_names_skills_for_delegation() -> None:
+    """AC13: delegation names the runtime's skill component surface."""
+    delegation = _collapse("Keep long reference material in `skills/`")
+    assert delegation in _claude_code_profile_body()
+
+
+def test_claude_code_profile_names_manifest_for_packaging() -> None:
+    """AC14: packaging names the runtime's manifest surface."""
+    packaging = _collapse(
+        "Claude Code reads its plugin manifest from a client-specific location beside the "
+        "package root rather than at the root."
+    )
+    assert packaging in _claude_code_profile_body()
+
+
+def test_claude_code_profile_names_hooks_for_packaging() -> None:
+    """AC14: packaging names the runtime's hook component surface."""
+    packaging = _collapse("Package components can include `agents/`, `skills/`, and `hooks/`;")
+    assert packaging in _claude_code_profile_body()
+
+
+def test_claude_code_profile_omits_client_manifest_path() -> None:
+    """AC7: the authored profile carries no client delivery path."""
+    assert ".claude-plugin/plugin.json" not in _claude_code_profile_body()
+
+
+def test_concept_prose_does_not_direct_readers_to_an_unavailable_mode() -> None:
+    """AC12: concept prose may name unavailable modes but not direct their use."""
+    modes = _unsupported_modes()
+    assert modes
+    specimen_mode = sorted(modes)[0]
+    rejected_specimen = f"Use `{specimen_mode}` to distribute a component."
+    accepted_specimen = f"`{specimen_mode}` names a mode concept in this discussion."
+
+    assert _mode_invocation(rejected_specimen, modes) == specimen_mode
+    assert _mode_invocation(accepted_specimen, modes) is None
+
+    for root in (CONCEPTS, COMPILED_CONCEPTS):
+        bodies = sorted(root.glob("*.md"))
+        assert bodies, root
+        for body in bodies:
+            for sentence in re.split(r"(?<=[.!?])\s+", body.read_text(encoding="utf-8")):
+                assert _mode_invocation(sentence, modes) is None, (body, sentence)
 
 
 def test_admitted_topics_are_topology_leaves() -> None:
@@ -1018,6 +1208,22 @@ def test_the_register_transcription_can_disagree_with_the_register() -> None:
     record = json.loads(REGISTER_TRANSCRIPTION.read_text(encoding="utf-8"))
     drifted = list(record["leaves"])[:-1]
     assert sorted(drifted) != sorted(_unpopulated_leaves_from_compiled_record())
+
+
+def test_retired_runtime_leaf_reasons_are_open_extensions() -> None:
+    """AC9: authored non-Claude runtime leaves are open extensions, not reservations."""
+    for slug, (why_absent, _) in _retired_runtime_leaf_fields().items():
+        reason = _collapse(why_absent).lower()
+        assert "open extension" in reason, slug
+        assert "reserved" not in reason, slug
+        assert "slice" not in reason, slug
+
+
+def test_retired_runtime_leaf_admission_conditions_are_delivery_independent() -> None:
+    """AC10: authored non-Claude runtime leaves admit on external evidence."""
+    delivery_stage = re.compile(r"\b(?:delivery\s+)?slice\b|\bmilestone\b|\bprogramme\s+stage\b")
+    for slug, (_, admission) in _retired_runtime_leaf_fields().items():
+        assert delivery_stage.search(_collapse(admission).lower()) is None, slug
 
 
 def _probe_fixture_resolves(fixture: str, ledger: dict) -> bool:

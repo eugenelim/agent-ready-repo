@@ -93,45 +93,59 @@ execution cost, evidenced as one practice.
 
 ## codex-skills-subagents-hooks-and-plugins
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## github-copilot-skills-subagents-hooks-and-plugins
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## cursor-skills-subagents-hooks-and-plugins
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## kiro-ide-skills-agents-hooks-and-powers
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## kiro-cli-skills-subagents-hooks-and-powers
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## gemini-cli-skills-subagents-hooks-and-extensions
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## google-antigravity-skills-subagents-hooks-and-plugins
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
+**Why absent.** Open extension: a contributor may add this runtime guidance;
+no planned work holds it.
 
-**What would admit it.** That slice's admission run.
+**What would admit it.** Current first-party documentation establishing this
+runtime's named components and their authoring contract.
 
 ## authentication-and-secret-context-isolation
 

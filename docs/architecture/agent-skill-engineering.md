@@ -263,15 +263,14 @@ of 40. Activation re-observed headless at 18/18 with zero exclusivity
 violations. Behaviour graded over eight authoring cases with 30 of 32 assertions
 holding and two misses recorded as measured.
 
-The composition-floors slice admitted four further leaves: the portable
-skills-and-subagents, hooks and plugin-package floors, and one runtime profile
-for Claude Code. Sixteen of thirty-six subjects are carried and twenty remain
-recorded as absent. Capability claims are held in a runtime capability-claim
-ledger whose four lifecycle states and three-value profile roll-up are computed
-from each row rather than declared beside it, and whose window runs from a
-source's retrieval date rather than from a verification date an author can
-advance. Claude Code rolls up `complete-current` with three probe-backed
-`verified` rows and four `experimental` ones.
+Slice 3 now has portable skills-and-subagents, hooks, and plugin-package floors,
+plus the Claude Code runtime profile. Sixteen of thirty-six subjects are carried
+and twenty remain recorded as absent. Capability claims are held in a runtime
+capability-claim ledger whose four lifecycle states and three-value profile
+roll-up are computed from each row rather than declared beside it, and whose
+window runs from a source's retrieval date rather than from a verification date
+an author can advance. Claude Code rolls up `complete-current` with three
+probe-backed `verified` rows and four `experimental` ones.
 
 The consumer half now exists. `work-loop` and `architect-design` each carry a
 bounded step that inlines its own request to the capability exposing
@@ -288,9 +287,9 @@ an installed surface for the first time: six of the seven previously appeared in
 no file under `packs/*/.apm/`, so a consumer quoting the conformance fixture
 would have quoted literals an adopter never receives.
 
-This document stays **PLANNED**. Seven runtime profiles — Codex, GitHub Copilot,
-Cursor, Kiro IDE, Kiro CLI, Gemini CLI and Google Antigravity — are not
-implemented, and neither is the router's per-claim state and roll-up reporting:
-the shipped provider response is a closed field set with no channel for a
-capability state, so that reporting and the contract change it needs belong to
-the slice that completes the eight profiles.
+This document stays **PLANNED**. Runtime profiles beyond Claude Code — Codex,
+GitHub Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI and Google Antigravity —
+are retired to open extension rather than delivery obligations. The router's
+per-claim state and roll-up reporting, and the provider response-contract change
+it needs, belong to the `3c-r` row of
+`docs/product/briefs/agent-skill-engineering.md`, scoped to the shipped ledger.
