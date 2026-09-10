@@ -824,6 +824,38 @@ def test_the_base_commit_matches_the_one_the_ledger_records() -> None:
     )
 
 
+def test_the_marker_sibling_is_the_one_ac5_names() -> None:
+    """`MARKER_SIBLING` is bound to AC5's text, not merely declared.
+
+    AC5 does not say "compare with some inherited sibling", it names one. Both
+    limbs of the guard read through this constant, so the constant decides what
+    the criterion enforces. Five inherited cases declare the identical marker
+    pair today, which is what makes the cheap repair cheap: when a later slice
+    moves `pytest-suite`'s declared markers, the guard reddens on its own
+    sibling-unmoved limb, and retargeting this one token to any of those five
+    turns it green while AC5's second limb goes unenforced.
+
+    Binding it to the frozen criterion means that repair has to move a shipped
+    acceptance criterion instead, which is a visible act — the same reason
+    `BASE_COMMIT` is bound to the ledger.
+    """
+    spec = (SPEC_DIR / "spec.md").read_text(encoding="utf-8")
+    block = re.search(
+        r"\*\*AC5 —.*?(?=\n- \[[ x]\] \*\*AC6 —)", spec, re.DOTALL
+    )
+    assert block, "spec.md has no AC5 block to read the sibling from"
+    named = {
+        token
+        for token in re.findall(r"`([^`]+)`", block.group(0))
+        if token in AUTHORING_EVAL_IDS
+    }
+    assert named == {MARKER_SIBLING}, (
+        f"MARKER_SIBLING is {MARKER_SIBLING!r} but AC5 names {sorted(named)}. "
+        "Retargeting the comparison sibling is a change to a shipped "
+        "criterion: move AC5 and re-take the comparison, or leave both alone."
+    )
+
+
 def _at_base(repo_relative_path: str) -> str:
     """Read a tracked file as of the slice's base commit.
 
@@ -1066,6 +1098,17 @@ def test_every_authoring_record_belongs_to_one_round() -> None:
     )
     declared_round = evidence["graded_run"]["observation_id"]
     identifiers = {r["observation_id"] for r in records.values()}
+    # The identifier has to be one, and it has to be something. Equality holds
+    # just as well when both sides are blank, and a blank round identifier
+    # satisfies AC11 and AC12 while destroying the correlation they exist to
+    # keep: nothing then ties a transcript or a verdict to a measurement round.
+    for label, value in [("graded_run", declared_round)] + sorted(
+        (eval_id, r["observation_id"]) for eval_id, r in records.items()
+    ):
+        assert isinstance(value, str) and value.strip(), (
+            f"{label} carries observation_id {value!r}; a round identifier must "
+            "be a non-empty string, or the records name no round at all"
+        )
     # Equality with the declared round, not merely mutual agreement: rewriting
     # every record to one arbitrary value satisfies agreement and says nothing.
     assert identifiers == {declared_round}, (sorted(identifiers), declared_round)

@@ -372,6 +372,9 @@ confirmed byte-identical afterwards.
 | Every retained transcript is scanned, whatever its suffix (AC17) | Add a `.txt` transcript carrying `/Users/someone/checkout` under the transcript root | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `retained transcripts: <path>/leaked.txt: (/Users/\|/home/\|/opt/\|/var/\|/etc/\|C:\\)` |
 | A new payload does not duplicate a base payload (AC8) | Overwrite a new payload with an inherited payload's bytes | `test_composition_payloads_are_distinct_non_empty_drafts` | recorded digest present in the base-payload set |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
+| The scan reads inside the root, not through a link out of it (AC17) | Symlink `notes/transcripts/escaped.md` at a clean external Markdown file | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `AssertionError: ('retained transcripts', '<root>/escaped.md', 'symlink')` |
+| The AC5 sibling is the one the criterion names (AC5) | Retarget `MARKER_SIBLING` to `node-browser-suite`, which declares the identical marker pair | `test_the_marker_sibling_is_the_one_ac5_names` | `AssertionError: MARKER_SIBLING is 'node-browser-suite' but AC5 names ['pytest-suite']` |
+| The round identifier is not blank (AC11, AC12) | Set `graded_run.observation_id` and all ten record identifiers to `""` | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: graded_run carries observation_id ''` |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
 Both were defects in the mutation, not the guard, and both are recorded because
@@ -434,10 +437,21 @@ Completed 2026-09-09.
   generator writes its target in place and leaves no separate artifact to
   compare against.
 - **Changelog (AC26).** Topmost free-standing `##` entry for the pack.
-  `Highlights` disposition decided in the same step and recorded in the entry:
-  no `### Highlights` section, because the release changes the pack's
-  evaluation evidence and not what a consumer can do — no skill body,
-  reference, mode, corpus topic, or provider contract moved.
+  `Highlights` disposition decided in the same step: no `### Highlights`
+  section, because the release changes the pack's evaluation evidence and not
+  what a consumer can do — no skill body, reference, mode, corpus topic, or
+  provider contract moved. The entry states that verdict and its reason as
+  context for a reader of the changelog, but that is not where AC26 or step 4
+  of the `packs/AGENTS.local.md` release procedure puts the record: both name
+  the PR's *What did you not change that you considered?* answer. Round 8
+  corrected the entry, which had claimed the procedure sanctioned the
+  changelog as the location — a false attribution a later release could have
+  followed while skipping the answer the step exists to produce. **AC26's
+  second disjunct is therefore discharged outside the tree and is still open
+  at this writing:** the verdict and reason must appear in that PR answer when
+  the PR opens. Nothing in the repository can check it — the evidence is an
+  external artifact — so it is carried here rather than treated as closed by
+  the tick.
 - **Architecture (AC20).** All four RFC-required fields recorded: implemented
   names, their paths, the dependency edge on the composition-floors slice, and
   the verification evidence. Document remains `PLANNED` and states that the
@@ -572,20 +586,42 @@ was enumerated and checked for whether narrowing it reddens something:
 | `EXPECTED_PATTERNS` | per-case equality, and a missing key raises under the parametrisation |
 | `AUTHOR_ROUTES` | inherited from before this slice; parametrised route resolution |
 | `base_payloads` | **was unpinned** — now derived from the base declarations, proved |
+| `MARKER_SIBLING` | **was unpinned, and outside this sweep's seed** — now bound to AC5's text, proved in round 8 |
 
 `BASE_COMMIT` is bound to this ledger's recorded base, proved in round 3. No
 hand-written comparison set in the module is now narrowable without a guard
 reddening.
 
+**The sweep had its own blind spot, found in round 8.** It enumerated
+collections, and `MARKER_SIBLING` is a scalar — one string naming the sibling
+AC5 compares against. Both limbs of the AC5 guard read through it, so it
+decides what that criterion enforces, and it was unpinned for the same reason
+`BASE_COMMIT` had been: a bare literal. Five inherited cases declare the
+identical marker pair today, which is what makes the cheap repair cheap — when
+a later slice moves `pytest-suite`'s markers, the guard reddens on its own
+sibling-unmoved limb, and retargeting this one token to any of the five turns
+it green while AC5's second limb goes unenforced. It is now bound to AC5's
+text, so that repair has to move a shipped criterion instead. Proved by
+retargeting it to `node-browser-suite`: the AC5 guard itself stays green — 47
+of 48 tests pass — and only the binding reddens, which is the reviewer's
+premise confirmed rather than merely accepted.
+
+The generalisation: a sweep reaches only the shapes its seed contains. Round
+7's seed was "hand-written collection", so it could not see a hand-written
+scalar. The anchors in this module are now every literal that a comparison
+reads through, collection or not.
+
 ## Audit gap — four review rounds are absent from the cohort record
 
-Post-implementation review ran five rounds. Rounds 1 to 4 fired
+Post-implementation review has run eight rounds. Rounds 1 to 4 fired
 `findings-remain` but the controller never ran `review record --fingerprint`
 after them, so `review_round_count` and `review_retry_count` stayed at zero and
 the review retry cap of 5 never engaged across four findings-bearing rounds.
-Round 5 is recorded correctly and reads `round=1 retry=1`.
+Round 5 is the first recorded correctly and read `round=1 retry=1`; rounds 6, 7
+and 8 follow, so the register now reads `round=4 retry=4` against a cap of 5
+while the true count of findings-bearing rounds is eight.
 
-The raw reports and adjudications for all five rounds are retained under
+The raw reports and adjudications for all eight rounds are retained under
 `.context/reviews/<run-id>/` and are validated and classified, so the evidence
 exists; what is missing is the cohort's own count of it. The cap that exists to
 force a convergence decision was therefore inert, and that decision was made by

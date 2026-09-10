@@ -900,12 +900,30 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
     assert set(roots) == set(FLOORS) == set(PARENTS) == SCANNED_ROOTS
     for name, paths in roots.items():
         assert len(paths) >= FLOORS[name], (name, len(paths))
+        # Containment is checked on the canonical path, and the scan reads that
+        # path. `rglob` selects entries with `is_file()`, which follows links,
+        # and `path.parents` reads the spelling of the unresolved path -- so a
+        # symlink committed under a root passes both the floor and a lexical
+        # parent check while the read lands on a file outside the root. The
+        # bytes actually committed for such an entry are the link target, which
+        # is exactly where an absolute host path would sit, and they would
+        # never be scanned. `packs/AGENTS.md` states the rule this restores:
+        # canonicalize the full target and re-check the boundary before every
+        # read, because rejecting `..` does not stop an in-boundary link escape.
+        expected_root = PARENTS[name].resolve(strict=True)
+        scanned = []
         for path in paths:
-            assert PARENTS[name] in path.parents or PARENTS[name] == path.parent, (
+            assert not path.is_symlink(), (name, str(path), "symlink")
+            resolved = path.resolve(strict=True)
+            assert resolved.is_file(), (name, str(path), "not a regular file")
+            assert expected_root in resolved.parents, (
                 name,
                 str(path),
+                str(resolved),
+                str(expected_root),
             )
-        for path in paths:
+            scanned.append(resolved)
+        for path in scanned:
             # The root label and path travel with the failure. Without them a
             # match across six roots reports only the regex, and the reader has
             # no file to scrub or re-measure. The containment assertion just

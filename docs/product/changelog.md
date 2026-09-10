@@ -345,9 +345,7 @@ measure names, completing the eleven representative task fixtures it lists.
 
 No `### Highlights` section: this release changes the pack's evaluation
 evidence, not what a consumer of the pack can do. No skill body, reference,
-mode, corpus topic, or provider contract moved. The verdict and its reason are
-recorded here rather than left to a reviewer to infer, per the release
-procedure in `packs/AGENTS.local.md`.
+mode, corpus topic, or provider contract moved.
 
 ## [agent-skill-engineering][0.4.2] — 2026-09-09
 
