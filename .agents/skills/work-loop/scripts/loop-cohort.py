@@ -146,7 +146,12 @@ def _get_repo_root() -> Path:
             capture_output=True, text=True, encoding="utf-8", check=False,
             env=safe_env, timeout=GIT_TIMEOUT_S,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        # The class, not one member of it — `PATH` holding a directory named
+        # `git` raises PermissionError, which reached this tool's callers as a
+        # 33-line traceback. Kept identical to `loop-engine.py`'s copy; the
+        # refusal text of both is asserted by
+        # `test_git_lookup_failure_refuses_boundedly_in_both_tools`.
         raise ValueError(f"could not determine repo root: {exc}") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")

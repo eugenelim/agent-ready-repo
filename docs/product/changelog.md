@@ -54,6 +54,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.13] — 2026-09-10
+
+### Highlights
+
+- **A machine that cannot run `git` now gets one line of explanation instead of
+  a stack trace.** Every `loop-engine` and `loop-cohort` command needs `git` to
+  confirm the spec directory sits inside your repository. When `git` could not
+  be run at all — not installed, or a `PATH` entry shadowing it with something
+  unexecutable — the command ended in a 33-line Python trace that also printed
+  internal file paths, more output than a whole successful run of the loop.
+  Both tools now answer that situation the same way, in one line.
+
+### Fixed
+
+- `work-loop`: `loop-engine.py` and `loop-cohort.py` refuse with `could not
+  determine repo root: …` whenever the `git` lookup fails, instead of raising
+  an unhandled `OSError`. Every verb reaches the repository-root lookup through
+  the spec-directory confinement check, whose caller only ever handled
+  `ValueError`, so a missing `git` binary (`FileNotFoundError`) or one that
+  resolves but cannot execute (`PermissionError`) escaped as a traceback from
+  both tools. Both now bound the whole `OSError` class, matching how
+  `lint-knowledge.py` and `lint-traceability.py` already bound the same call.
+  The refusal is unchanged in every other respect — same exit code, no write
+  performed, and the confinement decision itself is untouched.
+
 ## [core][2.25.12] — 2026-09-10
 
 ### Highlights
