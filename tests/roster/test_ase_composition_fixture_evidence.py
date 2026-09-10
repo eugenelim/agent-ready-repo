@@ -232,7 +232,7 @@ def test_composition_payloads_are_distinct_non_empty_drafts() -> None:
         ).hexdigest()
         for declared in base_payload_paths
     }
-    digests = {}
+    digests: dict[str, str] = {}
     cases = _declared_cases()
     for case_id in COMPOSITION_CASES:
         # From the declaration the case actually carries. Deriving the path from
