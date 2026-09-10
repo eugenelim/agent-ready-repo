@@ -850,8 +850,13 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         # here most likely to carry an absolute path or a host name. Scanning
         # them was named in the composition-fixtures plan and then not wired,
         # so a future re-measurement could have committed host data green.
+        # Every regular file, not `*.md`. The evidence guard admits any regular
+        # file under this root, so a suffix filter here leaves a `.txt`
+        # transcript cited as evidence and never scanned, while the ten
+        # Markdown fixtures keep the floor green. The sibling roots above walk
+        # every regular file for the same reason.
         "retained transcripts": sorted(
-            path for path in COMPOSITION_TRANSCRIPTS.rglob("*.md") if path.is_file()
+            path for path in COMPOSITION_TRANSCRIPTS.rglob("*") if path.is_file()
         ),
     }
     FLOORS = {

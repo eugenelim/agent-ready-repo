@@ -1010,11 +1010,14 @@ def test_every_verdict_is_readable_against_its_own_transcript() -> None:
         transcript = SPEC_DIR / record["transcript"]
         resolved = transcript.resolve()
         assert resolved.is_file(), (eval_id, record["transcript"])
-        # The exact directory AC9 names and the host-identity scan walks — not
-        # the spec directory. Confining to SPEC_DIR admits a copy placed beside
-        # spec.md: digest, markers and distinctness all pass while the cited
-        # evidence sits outside the only root that scrubs it. AC9's text, this
-        # guard, and the AC17 scan root must name one directory.
+        # Deliberately narrower than AC9, which admits any path under the
+        # spec's `notes/`. This guard and the AC17 scrub root both enforce
+        # `notes/transcripts/`, so every cited transcript stays inside the only
+        # root that scrubs it. The narrowing is fail-closed — it can reject a
+        # conforming transcript, never admit a non-conforming one — and it is
+        # recorded as a divergence in the slice's verification ledger under
+        # "Recorded divergence — the transcript boundary". Do not read this as
+        # the three naming one directory; that claim was withdrawn there.
         assert TRANSCRIPT_ROOT.resolve() in resolved.parents, (
             eval_id,
             record["transcript"],

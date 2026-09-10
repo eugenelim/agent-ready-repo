@@ -369,6 +369,7 @@ confirmed byte-identical afterwards.
 | Transcripts stay inside the scrub root (AC9, AC17) | Copy a transcript beside `spec.md` and repoint its record | `test_every_verdict_is_readable_against_its_own_transcript` | `AssertionError: ('pytest-suite', 'escaped-transcript.md', 'transcripts must live under notes/transcripts/')` |
 | The scan root is the real transcript directory (AC17) | Repoint the root at a sibling directory that also holds ten Markdown files | `test_recorded_evidence_fields_carry_no_host_identifying_data` | root does not equal its independently written expected location |
 | Verdicts are booleans, not truthy values (AC11, AC13, AC14) | Replace a `true` verdict with the JSON string `"false"` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_the_seeded_defect_assertion_is_true_or_exempted` | `AssertionError: ('subagent-composition', 0, 'str')` |
+| Every retained transcript is scanned, whatever its suffix (AC17) | Add a `.txt` transcript carrying `/Users/someone/checkout` under the transcript root | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `retained transcripts: <path>/leaked.txt: (/Users/\|/home/\|/opt/\|/var/\|/etc/\|C:\\)` |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
