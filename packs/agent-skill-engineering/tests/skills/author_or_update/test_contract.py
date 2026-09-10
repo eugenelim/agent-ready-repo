@@ -945,15 +945,25 @@ def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> Non
 
 def test_composition_payloads_are_distinct_non_empty_drafts() -> None:
     """AC8: neither payload is empty, a copy of the other, or a base payload."""
+    # Derived from the base declarations, not a hand-written name list. The
+    # tuple that used to sit here was an unpinned anchor of the same class as
+    # `BASE_COMMIT`: empty it and this set is empty, so the "not a copy of a
+    # base payload" limb below is vacuously true and a new payload could
+    # duplicate an inherited one undetected. `_base_cases()` reads the
+    # declarations at the base commit, so the membership list can no longer be
+    # narrowed from the working tree.
+    skill_root_at_base = AUTHOR_DECL_REPO_PATH.rsplit("/", 2)[0]
+    base_payload_paths = {
+        declared
+        for case in _base_cases().values()
+        for declared in (case.get("files") or ())
+    }
+    assert base_payload_paths, "the base declarations name no payloads"
     base_payloads = {
         hashlib.sha256(
-            _at_base(f"{AUTHOR_DECL_REPO_PATH.rsplit('/', 1)[0]}/{name}").encode("utf-8")
+            _at_base(f"{skill_root_at_base}/{declared}").encode("utf-8")
         ).hexdigest()
-        for name in (
-            "files/update-existing-SKILL.md",
-            "files/pytest-suite-SKILL.md",
-            "files/node-browser-suite-SKILL.md",
-        )
+        for declared in base_payload_paths
     }
     digests = {}
     cases = _declared_cases()

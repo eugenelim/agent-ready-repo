@@ -370,6 +370,7 @@ confirmed byte-identical afterwards.
 | The scan root is the real transcript directory (AC17) | Repoint the root at a sibling directory that also holds ten Markdown files | `test_recorded_evidence_fields_carry_no_host_identifying_data` | root does not equal its independently written expected location |
 | Verdicts are booleans, not truthy values (AC11, AC13, AC14) | Replace a `true` verdict with the JSON string `"false"` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_the_seeded_defect_assertion_is_true_or_exempted` | `AssertionError: ('subagent-composition', 0, 'str')` |
 | Every retained transcript is scanned, whatever its suffix (AC17) | Add a `.txt` transcript carrying `/Users/someone/checkout` under the transcript root | `test_recorded_evidence_fields_carry_no_host_identifying_data` | `retained transcripts: <path>/leaked.txt: (/Users/\|/home/\|/opt/\|/var/\|/etc/\|C:\\)` |
+| A new payload does not duplicate a base payload (AC8) | Overwrite a new payload with an inherited payload's bytes | `test_composition_payloads_are_distinct_non_empty_drafts` | recorded digest present in the base-payload set |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -500,6 +501,16 @@ No other registration was touched. `brief_queue.executing` pins RFC-0097 rather
 than the brief, and the shipped siblings' older pins are the pre-existing drift
 the Follow-on records.
 
+**The pin went stale a second time, within review.** Two review-repair commits
+after the T3 close edited the brief again — the delivered-slice count and the
+3e row — so the digest pinned at close stopped describing HEAD. Nothing caught
+it, because as this slice's own Follow-on records, no gate reads
+`source.revision`. Re-pinned at the end of round 7, deliberately as the last
+edit in the round that touches the brief: any later brief edit re-stales it
+silently, and this is the second time that has happened in one slice. A
+standing check belongs to the workspace-hygiene Follow-on, not to a closeout
+edit on a frozen spec.
+
 ### Close
 
 Spec `Shipped`, plan `Done`, all 27 criteria ticked, registration moved from
@@ -542,6 +553,29 @@ resolved in code:
 **Withdrawn claim.** The round-4 commit message and an earlier line here said
 the criterion, the guard and the scrub root "name one place". They do not. The
 guard and the scrub root name one place; the criterion names its parent.
+
+## Anchor sweep — every hand-written comparison set in the guard module
+
+Round 7 found the base-payload population unpinned, the same class as
+`BASE_COMMIT` in round 3. Rather than wait for the next instance, every
+hand-written literal collection in
+`packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
+was enumerated and checked for whether narrowing it reddens something:
+
+| Anchor | Narrowing caught by |
+| --- | --- |
+| `AUTHORING_EVAL_IDS` | its own equality against the declared set |
+| `AUTHOR_EVIDENCE_SOURCES` | the `source_files` subset assertion; proved in round 1 |
+| `KNOWN_MISSES` | the bidirectional exemption check — dropping a live exemption leaves an unexempted false verdict |
+| `MEASUREMENT_FORCED_CLAUSES` | its own set-equality pin |
+| `COMPOSITION_CASES` | AC3's equality: narrowing it makes the declared set unequal to base plus two |
+| `EXPECTED_PATTERNS` | per-case equality, and a missing key raises under the parametrisation |
+| `AUTHOR_ROUTES` | inherited from before this slice; parametrised route resolution |
+| `base_payloads` | **was unpinned** — now derived from the base declarations, proved |
+
+`BASE_COMMIT` is bound to this ledger's recorded base, proved in round 3. No
+hand-written comparison set in the module is now narrowable without a guard
+reddening.
 
 ## Audit gap — four review rounds are absent from the cohort record
 
