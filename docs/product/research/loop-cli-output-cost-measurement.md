@@ -123,14 +123,18 @@ and `_get_repo_root` — where the traceback defect lived, in both copies at onc
 The six split further, AST-compared with docstrings dropped — the same
 criterion the existing control uses:
 
-| Helper | Copies |
-| --- | --- |
-| `_diag`, `_resolve_spec_dir` | identical |
-| `stop`, `_get_repo_root`, `_statelock`, `_locked` | differ |
+| Helper | Copies | Reachable by the existing technique? |
+| --- | --- | --- |
+| `_diag`, `_resolve_spec_dir` | identical | yes, unchanged |
+| `stop`, `_statelock`, `_get_repo_root` | differ only by an identifier | yes, with name tolerance |
+| `_locked` | differs structurally | no |
 
-That split is the actionable part. `_diag` and `_resolve_spec_dir` are already
-coverable by the existing control's technique unchanged. The four that differ
-need a comparison that tolerates the differences that are deliberate — `stop`
-carries each tool's own prefix, `_statelock` and `_locked` name their own tool
-in an error string — which is the work a future session would have to scope.
-`_get_repo_root` is in that group, and it is where this defect lived.
+That split is the actionable part, and the three groups need different work.
+`_diag` and `_resolve_spec_dir` are already coverable unchanged. `stop` and
+`_statelock` differ only by the tool literal, and `_get_repo_root` only by a
+local name (`r` versus `result`) and its timeout constant's name, so a
+name-tolerant comparison reaches all three — `_get_repo_root` among them, which
+is where this defect lived. `_locked` is not reachable by any name tolerance:
+`loop-engine.py` inlines the lock acquisition and its two `stop()` calls, while
+`loop-cohort.py` delegates its whole body to `with_state_lock`. Making those two
+comparable is a refactor, not a test.
