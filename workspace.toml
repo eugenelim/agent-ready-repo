@@ -429,6 +429,24 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The Makefile's own `Revisit if` note beside --strict has now fired with
+  # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
+  # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.
+  # ADR-0017 names pin-or-vendor as the mitigation; ADR-0102 forbids reaching for
+  # SEMGREP_EXCLUDE without a stated residual and a retirement trigger. The
+  # reporting half shipped in core 2.25.12; this is the rules half.
+  # Mechanism and measurement: captured observation
+  # kco-202609-eedad38fd2209acf34ec0420454aff1af6624a058c89124f1b77e8b48f5a8f52
+  # in docs/knowledge/observations/gotcha/2026-09.jsonl.
+  {path = "docs/product/intents/semgrep-registry-ruleset-pinning.md", kind = "intent", source = {mode = "repo-origin", ref = "Makefile"}, summary = "Pin or vendor the p/python and p/security-audit registry rulesets so a slow rule cannot red the SAST gate on code the diff never touched", needs = []},
+  # Registered rather than landed because the rule has two candidate owners and
+  # splitting it across both would duplicate it: packs/AGENTS.md owns authoring
+  # in a compiled pack, work-loop owns the wave and gate mechanics that decide
+  # where the recompile sits. Caused two owner-authorized amendments in one
+  # delivery. Mechanism: captured observation
+  # kco-202609-3f7fc5a7b47a27460eb6d6f831de80119400924c8dd9b5d5fa09b2c88f863bc8
+  # in docs/knowledge/observations/gotcha/2026-09.jsonl.
+  {path = "docs/product/intents/projected-tree-planning-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"}, summary = "A planner can tell which guards read the compiled projection and which read authored sources, and places the recompile in the task that makes the last authored edit", needs = []},
   # No `revision`: the pin would have to name a commit on this branch, which a
   # squash merge does not preserve. Five sibling defect entries omit it for the
   # same reason; the rest pin a commit already reachable from main.
@@ -475,22 +493,6 @@ open = [
   # Load-bearing unknown: no host is known to admit a blocking hook verdict.
   {path = "docs/product/intents/cross-adapter-behavior-enforcement.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make a published behavior control run regardless of model or host by putting it on the pre-execution path rather than in prose: a structured policy primitive an adopter can extend, a blocking control whose per-host contract is established first, and a multi-adapter runner so a non-Claude model can be measured at all", needs = []},
   {path = "docs/specs/cooling-scope-closure/notes/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of nine adjudicated findings on the withdrawn cooling-scope-closure amendment remain open; the file records each closure with its evidence. Open: a plan whose Done-when requires editing a hash-frozen plan.md, which nothing detects at approval time; and AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships. Both need an owner decision rather than a repair", needs = []},
-  # Only reproduces on a case-insensitive filesystem, so macOS sees it and a
-  # Linux remote does not. The skip itself is correct — the fixture writes
-  # `Notes.md` and `notes.md` into one envelope and a case-insensitive host
-  # collapses them, so there is no refusal to assert. What is missing is the
-  # sdist gate's allowance for it. Introduced 2026-08-31 in 4e270684e, an
-  # ancestor of this branch's base 1134701ba, and confirmed by that ancestry
-  # rather than by a clean-worktree run.
-  # Environmental, not a code defect: nothing in the tree under `web/` changed.
-  # Reproduced outside `make` by running `npm audit --json` in `web/` directly,
-  # which prints `npm warn audit network timeout at:
-  # https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`. The sibling
-  # `docs-site/` lockfile audits clean in the same shell, so it is that one
-  # bulk-advisory request, not npm or the network as a whole. Seen twice with a
-  # host load average of 86-200.
-  {slug = "pre-existing-audit-npm-bulk-advisory-timeout", source = "pre-flight/2026-09-03", summary = "tools/audit-npm.py --root . exits 2 with 'npm audit reported an error instead of a report' because the web/ lockfile's bulk advisory request to registry.npmjs.org times out; the tool reports the empty npm error payload rather than distinguishing a network timeout from a real audit error. Give the bulk request a retry with backoff, or classify a timeout separately from an audit failure so a transient registry stall does not read as a SAST gate failure"},
-  {slug = "pre-existing-sdist-gate-rejects-case-insensitive-skip", source = "pre-flight/2026-09-03", summary = "tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite fails on any case-insensitive filesystem: the published suite emits 'SKIPPED tests/unit/test_direct_admission.py:937: case-insensitive filesystem cannot hold both spellings', which is outside the gate's _EXPECTED_SKIP_REASONS allowlist, so a correct platform skip reads as a forbidden one. Add the reason to that allowlist, or make the fixture build a case-distinct pair, so the release gate is runnable on macOS"},
   {path = "docs/specs/dependency-scoped-completion-receipts/notes/follow-ons.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of three RFC-0096 receipt follow-ons stay open. Entry-removal precondition: reassigned to rfc0096-wave7c-pruning -- stranding harm refuted by measurement, but nothing makes the file and entry removals atomic and a record field cannot supply that. Cooled cross-repo deferral slug: still Wave 7b's. Reclassified schema gap: closed by docs/specs/reclassified-lifecycle-result/. Both settled in rfc0096-wave7c-lifecycle-record-decisions.md; the linked notes file is frozen, so status lives here", needs = []},
   {path = "docs/specs/loop-cohort-state-lock/notes/reclaim-residual.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A state-lock reclaim's identity check and its rename are two operations, so a holder acquiring between them is displaced and reports StateLockLost having done nothing wrong. Not closable by checking harder -- POSIX has no rename-if-unchanged. Atomic takeover is disproved and recorded: rename replaces unconditionally, so every contender with the same stale snapshot wins in turn, measured at three to five holders. The note carries the forced-interleaving reproduction", needs = []},
   {path = "docs/specs/reclassified-lifecycle-result/notes/follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two RFC-0096 Wave 7c follow-ons. (1) rfc0096-wave7c-pruning: a pruning session must prove its own precondition -- an artifact's file and its workspace entry must be removed together -- and nothing makes the two removals atomic. (2) Moving AC23-pinned files falsifies cooling-scope-closure's AC23 TITLE and its Durable Outputs line \"neither may change\"; the AC body still holds, so the repair is a retitle. Caused by this delivery and Wave 7b; its owner restates it. RFC-0096:380 names the slice", needs = []},

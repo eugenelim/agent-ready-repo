@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.12"
+          "version": "2.25.13"
         }
       ],
       "date": "2026-09-10",
-      "heading": "[core][2.25.12] — 2026-09-10",
-      "changelogAnchor": "core22512--2026-09-10",
+      "heading": "[core][2.25.13] — 2026-09-10",
+      "changelogAnchor": "core22513--2026-09-10",
       "highlights": [
         {
           "source": "**A machine that cannot run `git` now gets one line of explanation instead of a stack trace.** Every `loop-engine` and `loop-cohort` command needs `git` to confirm the spec directory sits inside your repository. When `git` could not be run at all — not installed, or a `PATH` entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line.",
@@ -62,6 +62,40 @@
             {
               "type": "text",
               "value": " entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.12"
+        }
+      ],
+      "date": "2026-09-10",
+      "heading": "[core][2.25.12] — 2026-09-10",
+      "changelogAnchor": "core22512--2026-09-10",
+      "highlights": [
+        {
+          "source": "**Review feedback is guidance about the criterion, not an edit request for the sentence.** `new-spec`'s authoring rubric now says how to repair from a finding: name the property the clause establishes, ask whether that property is right, and look for its siblings before rewriting. It also gives you a way to notice when you have been patching text instead — and explains why a check that reads a whole document can silently pass on a second copy of the sentence it was looking for.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Review feedback is guidance about the criterion, not an edit request for the sentence."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "new-spec"
+            },
+            {
+              "type": "text",
+              "value": "'s authoring rubric now says how to repair from a finding: name the property the clause establishes, ask whether that property is right, and look for its siblings before rewriting. It also gives you a way to notice when you have been patching text instead — and explains why a check that reads a whole document can silently pass on a second copy of the sentence it was looking for."
             }
           ]
         }

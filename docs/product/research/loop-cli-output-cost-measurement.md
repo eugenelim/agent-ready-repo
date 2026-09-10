@@ -4,7 +4,7 @@
 - **Owner:** eugenelim, Platform Core maintainer
 - **Verdict:** these two scripts' output is contract-bound and should not
   shrink; the measurement surfaced one correctness defect, fixed in core
-  2.25.12
+  2.25.13
 
 Measured against `packs/core/.apm/skills/work-loop/scripts/loop-engine.py` and
 `loop-cohort.py`, the last two unmeasured agent-facing surfaces in this family.
@@ -98,7 +98,7 @@ path. A `git` lookup failure produced a 33-line, ~2,220-character traceback
 that also printed absolute internal script paths — more output than an entire
 successful run — because `_get_repo_root` converted `subprocess.TimeoutExpired`
 but not `OSError`. That was a correctness defect, not verbosity, and core
-2.25.12 fixed it in both copies of the helper.
+2.25.13 fixed it in both copies of the helper.
 
 The same shape had already appeared once in this family: `lint-spec-status.py`
 was mis-ranked by a static count because its real cost was its warn-only stderr
@@ -120,7 +120,17 @@ copies and refuses to skip when one is missing. The other **six have none**,
 and `_get_repo_root` — where the traceback defect lived, in both copies at once
 — is one of them.
 
-That asymmetry is the finding: the repository already knows this duplication
-pattern needs a parity control and has a good one, but it covers the only
-helper whose copies were deliberately kept identical, not the six that drifted
-into being merely similar.
+The six split further, AST-compared with docstrings dropped — the same
+criterion the existing control uses:
+
+| Helper | Copies |
+| --- | --- |
+| `_diag`, `_resolve_spec_dir` | identical |
+| `stop`, `_get_repo_root`, `_statelock`, `_locked` | differ |
+
+That split is the actionable part. `_diag` and `_resolve_spec_dir` are already
+coverable by the existing control's technique unchanged. The four that differ
+need a comparison that tolerates the differences that are deliberate — `stop`
+carries each tool's own prefix, `_statelock` and `_locked` name their own tool
+in an error string — which is the work a future session would have to scope.
+`_get_repo_root` is in that group, and it is where this defect lived.

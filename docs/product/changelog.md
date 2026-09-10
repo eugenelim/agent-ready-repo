@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.12] — 2026-09-10
+## [core][2.25.13] — 2026-09-10
 
 ### Highlights
 
@@ -78,6 +78,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lint-knowledge.py` and `lint-traceability.py` already bound the same call.
   The refusal is unchanged in every other respect — same exit code, no write
   performed, and the confinement decision itself is untouched.
+
+## [core][2.25.12] — 2026-09-10
+
+### Highlights
+
+- **Review feedback is guidance about the criterion, not an edit request for the
+  sentence.** `new-spec`'s authoring rubric now says how to repair from a
+  finding: name the property the clause establishes, ask whether that property
+  is right, and look for its siblings before rewriting. It also gives
+  you a way to notice when you have been patching text instead — and explains
+  why a check that reads a whole document can silently pass on a second copy of
+  the sentence it was looking for.
+
+### Changed
+
+- `new-spec`: the authoring rubric adds a repair method. A finding names a
+  symptom at a location; repairing that location without re-deciding the
+  property behind it is why a repair so often introduces the next defect. Three
+  steps precede any rewrite: name the property the clause establishes, ask
+  whether that property is right, and look for its siblings. The finding-origin
+  marks then give you a symptom to watch — once a round's sustained findings are
+  mostly repair-origin, the round is reviewing the repairs rather than the
+  draft, which is the cue to run those three steps rather than to cut.
+- `new-spec`: the rubric extends "a figure you have restated twice is the
+  defect" to clauses. A clause that has drawn a sustained finding under two
+  wordings is the defect and neither wording is, so the repair is a question
+  about the property rather than the text.
+- `new-spec`: the rubric requires a containment check to name the region it is
+  about. When a document restates its own claims, an artifact-wide containment
+  check passes on the restatement and never reads the region in question.
+- The seeded `AGENTS.md` rule lookup now sends an agent up the whole path to the
+  file it is changing, reading every scoped `AGENTS.md` from that file's own
+  directory to the repository root. It previously named one scoped file, which
+  read as discharging the obligation for that whole subtree and silently skipped
+  any scoped file nested deeper.
+
+### Fixed
+
+- `new-spec`: the over-specified-plan rule is stated once, inside the review
+  iteration step where it is actionable. It was stated twice in two wordings,
+  and the copy that survived sat under "after review rounds converge" while
+  instructing the reader to act before the three-pass escalation.
 
 ## [core][2.25.11] — 2026-09-10
 

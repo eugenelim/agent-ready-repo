@@ -189,6 +189,31 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "52b23d769bfc985485da1c255d30942a2115320d"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-CHANGE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T03:22:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section.json",
+      "scopes": [
+        "web",
+        "docs-site",
+        "tools"
+      ],
+      "title": "A document-wide href scan cannot prove a link sits in a section: the Starlight sidebar carries every href",
+      "topic_key": "a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "51cacbb9ad7b264a9d5df4bbf79e348a7d1b00b5"
       },
       "competency_facets": [
@@ -415,6 +440,54 @@
       ],
       "title": "A platform-skipped assertion inside a cross-platform parity suite reads as coverage and proves nothing",
       "topic_key": "a-platform-skipped-assertion-inside-a-cross-platform-parity-suite-reads-as-cover"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "8526552ba94f0260e65652d15010b4fd2dcee2f9"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-10T00:32:23Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-prose-containment-assertion-is-discharged-by-any-second-copy-in-the-document.json",
+      "scopes": [
+        "packs",
+        "docs/specs"
+      ],
+      "title": "A prose-containment assertion over a governed document is discharged by any second copy of the same sentence",
+      "topic_key": "a-prose-containment-assertion-is-discharged-by-any-second-copy-in-the-document"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "0cbfe19a1a25eb2948344043c70f7c9f68613ac2"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T03:20:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut.json",
+      "scopes": [
+        "docs/specs",
+        "packs/core"
+      ],
+      "title": "A review round whose findings are mostly prior-round repairs is the signal to cut the plan, not extend it",
+      "topic_key": "a-review-round-whose-findings-are-mostly-prior-round-repairs-is-a-signal-to-cut"
     },
     {
       "audience": "project",
@@ -900,6 +973,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "8deba976a1fc6a41a09a020b6060c62a6f3ee8d7"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-DIAGNOSE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T03:21:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/build-site-rewrites-an-unresolvable-in-tree-link-into-an-external-blob-404.json",
+      "scopes": [
+        "tools",
+        "guides"
+      ],
+      "title": "build-site.py rewrites an unresolvable in-tree link into an external blob URL, out of the link audit's scope",
+      "topic_key": "build-site-rewrites-an-unresolvable-in-tree-link-into-an-external-blob-404"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "bca6e04a6db0d5e62568ccde4d9801aca29af032"
       },
       "competency_facets": [
@@ -1007,6 +1104,29 @@
       ],
       "title": "Cross-surface parity (lint vs drift gate): `bytes.strip()` and `str.strip()` are not equivalent — Unicode whitespace creates a silent acceptance gap",
       "topic_key": "cross-surface-parity-lint-vs-drift-gate-bytes-strip-and-str-strip-are-not-equiva"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "b6420b5a22305670f291f0a035ef7afcf789e279"
+      },
+      "competency_facets": [
+        "CQ-REVIEW",
+        "CQ-CHANGE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T17:57:15Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/delete-a-clause-that-has-sustained-a-finding-twice-do-not-reword-it-a-third-time.json",
+      "scopes": [
+        "docs/specs"
+      ],
+      "title": "Delete a clause that has sustained a review finding twice; do not reword it a third time",
+      "topic_key": "delete-a-clause-that-has-sustained-a-finding-twice-do-not-reword-it-a-third-time"
     },
     {
       "audience": "project",
@@ -1510,6 +1630,31 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "2985cdaa7b6d99d9e8043f2e8f9a2ca8d585d63a"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-VERIFY",
+        "CQ-CHANGE"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-09T23:20:25Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/plan-a-corpus-change-against-the-projected-tree-not-the-authored-one.json",
+      "scopes": [
+        "packs",
+        "docs/specs"
+      ],
+      "title": "Plan a corpus change against the projected tree, not the authored one",
+      "topic_key": "plan-a-corpus-change-against-the-projected-tree-not-the-authored-one"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "9ccdb0cc42aa2afec43099b8eabed159d148e2cc"
       },
       "competency_facets": [
@@ -1750,6 +1895,30 @@
       ],
       "title": "Sanitise at every output chokepoint, not only at the shared result type",
       "topic_key": "sanitise-at-every-output-chokepoint-not-only-the-shared-result-type"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "0188f9b0686dac1a3e29e389c4aa4f75fea12fb3"
+      },
+      "competency_facets": [
+        "CQ-DIAGNOSE",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-04T17:07:52Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/semgrep-strict-fails-the-build-on-untouched-files-when-the-host-is-contended.json",
+      "scopes": [
+        "tools",
+        "Makefile"
+      ],
+      "title": "semgrep --strict fails the build on untouched files when the host is contended",
+      "topic_key": "semgrep-strict-fails-the-build-on-untouched-files-when-the-host-is-contended"
     },
     {
       "audience": "project",

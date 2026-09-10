@@ -1125,7 +1125,11 @@ def test_git_lookup_failure_refuses_boundedly_in_both_tools(tmp: Path) -> None:
     # Each input's OWN errno, so the two cases cannot silently collapse into one.
     # If a platform ever makes `unexecutable` behave like `absent`, this reddens
     # rather than quietly halving the coverage.
-    expected_cause = {"absent": "Errno 2", "unexecutable": "Errno 13"}
+    # Delimited, not a bare number: "Errno 2" is a prefix of "[Errno 20] Not a
+    # directory" and "[Errno 21] Is a directory", so an ENOTDIR/EISDIR variant of
+    # the absent case would satisfy the very assertion that exists to keep the
+    # two inputs distinct.
+    expected_cause = {"absent": "[Errno 2]", "unexecutable": "[Errno 13]"}
 
     for label, bin_dir in _unresolvable_git_paths(tmp).items():
         if shutil.which("git", path=str(bin_dir)) is not None:
