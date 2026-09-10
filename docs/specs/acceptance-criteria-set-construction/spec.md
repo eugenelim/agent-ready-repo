@@ -41,9 +41,14 @@ become criteria. Criterion count is a descriptive outcome that orders how hard
 the set-level pass looks; it never rejects a spec and never proves one is
 well-shaped, so a genuinely large irreducible set survives.
 
+Each criterion is then composed from the parts those steps already named — the
+obligation, the surface that observes its failure, and its disconfirming and
+positive cases — rather than written whole and tested afterwards. Composing
+from singular parts is what keeps one criterion to one predicate.
+
 Criterion *shape* — whether a given sentence is one criterion or two — stays
 owned by the skill's `assets/spec.md`. This spec owns which obligations reach
-that question at all.
+that question at all, and how the hand-off to that owner is made.
 
 ## Durable Outputs
 
@@ -95,33 +100,33 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Testing Strategy
 
 - **The shipped procedure, its stage order, its admission grounds, its routing
-  table, its set-level pass and the count policy (AC1, AC2, AC3, AC4, AC5, AC6,
-  AC7, AC8, AC9, AC10, AC13, AC14, AC15, AC17):** goal-based check over the authored
-  skill file. The observation is the presence, relative order and scope of that
+  table, its composition hand-off, its set-level pass and the count policy
+  (AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11, AC14, AC15, AC16,
+  AC18):** goal-based check over the authored skill file. The observation is the presence, relative order and scope of that
   prose; the verification surface is the pack-local suite.
-- **Single-homing (AC16):** goal-based check. The observation is that each rule
+- **Single-homing (AC17):** goal-based check. The observation is that each rule
   sentence the procedure introduces occurs in exactly one of the four authoring
   surfaces — which requires those sentences to be in the suite's pinned set, so
   the criterion cannot hold vacuously on an empty set. The verification surface
   is the existing single-homing suite.
-- **The guide publishes the procedure (AC11):** goal-based check over the guide's
+- **The guide publishes the procedure (AC12):** goal-based check over the guide's
   own content. The observation is that each of the five stage names appears on
   the page. The guide validators establish publication, not content, so they do
   not discharge this criterion; the verification surface is a content check over
   the page.
-- **The guide cites the shape owner (AC12):** goal-based check over the same
+- **The guide cites the shape owner (AC13):** goal-based check over the same
   page. The observation is that the criterion-shape owner is named and no rule
-  that owner holds is restated. Separate from AC11 because a page can carry the
+  that owner holds is restated. Separate from AC12 because a page can carry the
   stages while restating a shape rule, and can cite the owner while omitting a
   stage; the two fail on different inputs and need different repairs.
-- **The three frozen cases and their seeded integrity (AC18, AC19):** TDD. Each
+- **The three frozen cases and their seeded integrity (AC19, AC20):** TDD. Each
   case is data whose required shape and seeded material are compressible into
   assertions.
-- **The frozen scoring order (AC20):** goal-based check. The observation is that
+- **The frozen scoring order (AC21):** goal-based check. The observation is that
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The recorded run (AC21):** visual / manual QA. A model-in-the-loop
+- **The recorded run (AC22):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -134,6 +139,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The procedure's hand-off to the criterion-shape owner follows its
       admission step rather than opening the acceptance-criteria step, so no
       candidate is worded before the set is selected.
+- [ ] At that hand-off the procedure instructs composing each criterion from
+      the parts its earlier steps already named — the obligation, the surface
+      that observes its failure, and its disconfirming and positive cases —
+      rather than writing a sentence and testing it afterwards.
 - [ ] The procedure admits a candidate only on a named ship-blocking ground:
       an externally observable behaviour, a required refusal or recovery path,
       a compatibility or safety guardrail, or a measurable quality property

@@ -96,12 +96,12 @@ two recollections.
 - **Cite, never restate.** Every shape, diagnosis or repair question in the
   procedure resolves to `assets/spec.md` or the rubric by name. Rejected:
   summarising the conjunction test inline for the reader's convenience — a
-  shorter restatement is still a second home. Traces to: AC16.
+  shorter restatement is still a second home. Traces to: AC17.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
-  Traces to: AC19.
+  Traces to: AC20.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC20, AC21.
+  recorded exercise and the counts live in prose. Traces to: AC21, AC22.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -112,7 +112,7 @@ two recollections.
   side: the shaping failure classes are all per-criterion, and 29148's
   set-level *able to be validated* has no counterpart in the guidance. Rejected:
   leaving the observer to Testing Strategy and adding a reviewer check, which
-  finds the gap one stage after it is cheap to fix. Traces to: AC4, AC9.
+  finds the gap one stage after it is cheap to fix. Traces to: AC5, AC10.
 - **The count assertion is span-scoped, not a whole-file token deny-list.** A
   pre-review probe on 2026-09-10 ran a candidate deny-list against the shipped
   `SKILL.md` and found `at most` already present in the output-rendering block
@@ -122,7 +122,7 @@ two recollections.
   probe found **zero** 7-word runs shared between a naturally-worded draft of
   the procedure and any of the three owned surfaces, so the single-homing
   collision is smaller than assumed and the ordering and count assertions carry
-  more of the weight. Traces to: AC14, AC17.
+  more of the weight. Traces to: AC15, AC18.
 
 ### Component / module decomposition
 
@@ -149,48 +149,71 @@ offset comparison rather than a phrase-presence assertion. Traces to: AC2.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
-- Extend `RULES` in `test_acceptance_criteria_discipline.py` with **one pinned
-  rule sentence per prose criterion this task ships** — AC3, AC5, AC6, AC7, AC8,
-  AC10 and AC13 — owner `skill`. The existing parametrised owner test then
-  asserts each appears in `SKILL.md` and in none of `assets/spec.md`,
-  `assets/plan.md`, `references/spec-authoring-rubric.md`, which is also **AC16**
-  for that set. One sentence per criterion is the load-bearing part: a bullet
-  reading "the procedure's new rule sentences" names no criterion, so pinning
-  three of seven would satisfy it.
+- Extend `RULES` in `test_acceptance_criteria_discipline.py`, owner `skill`,
+  with **every rule sentence this task introduces into `SKILL.md`** — derived,
+  not hand-listed. Membership is decided by the sentence: one stating a rule an
+  author must follow goes in; a structural stage marker stating no rule does
+  not. The existing parametrised owner test then asserts each appears in
+  `SKILL.md` and in none of `assets/spec.md`, `assets/plan.md`,
+  `references/spec-authoring-rubric.md` — which is **AC17** discharged over its
+  whole set rather than a subset.
+
+  Two failure modes this wording closes, both already observed here. A bullet
+  reading "the procedure's new rule sentences" names nothing, so pinning three
+  of ten satisfies it. A bullet naming a list of criterion numbers goes stale
+  the next time a criterion is added — it did, one round after being written,
+  leaving six introduced sentences with a content assertion and no
+  absence-elsewhere assertion. Neither a bare plural nor a hand-kept list
+  survives; the derivation does.
+
+  **Which criteria this discharges, by reference rather than by copy.** The set
+  is the spec's Testing Strategy goal-based group over the skill file. That
+  group is the spec's own enumeration and it moves when a criterion is added, so
+  inheriting it keeps one list instead of two that can disagree. Every criterion
+  in that group whose content is a rule sentence is pinned here; the
+  criterion-specific bullets below add **content** assertions on top for the
+  ones needing more than presence. A dedicated bullet never replaces the pin.
 - Add two offset assertions in the same module. **AC1** — the five stage
   markers appear in the mandated order, asserted as one ascending comparison
   across all five offsets, not pairwise against neighbours. **AC2** — the
   admission marker precedes every wording marker, per *Behavior & rules*. A
   phrase-set assertion alone stays green through a reordering, and an
   admission-only assertion stays green through a stage swap elsewhere.
-- **AC4** — the admission step names the observing-surface requirement, *and*
+- **AC3** — the hand-off passage instructs composing from the named parts and
+  says plainly that a criterion is not written whole and then tested. Assert the
+  composition instruction and the enumeration of parts it composes from; a
+  passage naming the parts without the compose-not-check direction is the form
+  that leaves the old habit in place.
+- **AC5** — the admission step names the observing-surface requirement, *and*
   the span states that a candidate whose observer cannot be named stays a
   candidate. Assert both clauses: the requirement without the consequence reads
   as advice, which is the form that does not change what an author writes.
-- **AC9** — the set-level pass states both coverage directions. Assert the
+- **AC10** — the set-level pass states both coverage directions. Assert the
   every-criterion-has-exactly-one-observer direction specifically: the
   every-obligation-is-covered direction already shipped, so an assertion over
   the section as a whole stays green when only the new direction is missing.
 - Trace the count assertions to the criteria that now hold them, one each.
-  **AC14** — the procedure's count sentence records the count and its corpus
-  position. **AC17** — the same span carries no rejection, and states that a set
+  **AC15** — the procedure's count sentence records the count and its corpus
+  position. **AC18** — the same span carries no rejection, and states that a set
   above the corpus p75 passes on its obligations alone; assert that second
   sentence by phrase, since it is the only written form of the
   obligations-only pass condition.
-- **AC15, positively.** Assert the procedure's span carries the heightened-
+- **AC16, positively.** Assert the procedure's span carries the heightened-
   scrutiny action itself, not merely a permitted trigger: the corpus-percentile
   condition, the pairwise whole-set uniqueness re-run, and the instruction to
-  record its result. Assert too that the same span states the action is not
-  required below the median, since the criterion's content is the *difference*
-  between the two positions and an assertion on the high branch alone passes
-  when the branch is unconditional.
-- **AC15's trigger and AC17's prohibition must not collide.** Slice `SKILL.md`
+  record its result. Assert too that the same span states the per-criterion
+  check alone applies **below that same p75 position** — one threshold, both
+  branches. The criterion's content is the *difference* between the two
+  positions, so an assertion on the high branch alone passes when the branch is
+  unconditional; and asserting a second, lower threshold would reinstate the
+  undefined band the criterion was repaired to remove.
+- **AC16's trigger and AC18's prohibition must not collide.** Slice `SKILL.md`
   to the procedure's own span — first step marker to last — and assert the
   absence of a *fixed absolute* criterion count: a cap, a ceiling, a refusal, or
   a pass/fail bar on how many criteria a spec may carry. Do **not** assert the
   absence of a numeral, and do not treat a numeral-bearing construction as
-  disqualifying on its own: AC15 requires a derived corpus-percentile trigger in
-  that same span, and a bare numeral test would forbid what AC15 requires. The
+  disqualifying on its own: AC16 requires a derived corpus-percentile trigger in
+  that same span, and a bare numeral test would forbid what AC16 requires. The
   permitted shape is a percentile derived from the author's own corpus and used
   only to order scrutiny; the forbidden shape is an absolute count that decides
   whether a spec passes. A whole-file token deny-list is not available either;
@@ -214,7 +237,7 @@ missing one of them does not close this task.
 **Touches:** `guides/core/reference/acceptance-criteria-authoring.md`
 
 **Tests:**
-- **AC11 and AC12 — content check, in the pack-local suite.** The three guide validators are
+- **AC12 and AC13 — content check, in the pack-local suite.** The three guide validators are
   frontmatter and link gates and cannot observe content, so they do not verify
   this task's contract. Assert over the page body: each of the five procedure
   stage names is present, and the criterion-shape owner is cited by document
@@ -249,7 +272,7 @@ can be missing both guide outcomes.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
-- **AC18 and AC19** — one shape-and-seed test per case, following the precedent of
+- **AC19 and AC20** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
   the prompt, and each seeded item's survival. `stub: true` — the contract
@@ -274,11 +297,11 @@ can be missing both guide outcomes.
   the mutation — deleting any one seeded item from a case's prompt must red this
   module — which is why the pins are individual assertions rather than one
   aggregate membership check.
-- **AC20** — assert the whole scoring contract appears in each case's `expected_output`:
+- **AC21** — assert the whole scoring contract appears in each case's `expected_output`:
   recall first, non-criterion rejection second, count descriptive, **and** the
   rule that a smaller set obtained by losing a distinct obligation or guardrail
   is a failure. The ranks without that rule leave the failure condition
-  unstated, which is the half AC20 exists for.
+  unstated, which is the half AC21 exists for.
 
 **Approach:**
 - Author the three prompts as authoring frames, not review frames — the graded
@@ -296,7 +319,7 @@ and the full pack suite passes.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC21** — manual QA. One fresh subagent per case, given only the shipped
+- **AC22** — manual QA. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -378,7 +401,7 @@ drift.
   than to reword.
 - **The single-homing oracle cannot see a paraphrase — named, not closed.** The
   suite compares exact sentences over a hand-listed tuple, so a restatement in
-  different words is invisible to it. AC16 is deliberately scoped to the pinned
+  different words is invisible to it. AC17 is deliberately scoped to the pinned
   sentences so the criterion does not promise more than its oracle delivers.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on

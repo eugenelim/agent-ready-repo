@@ -310,3 +310,40 @@ because catching it at admission is the change this slice exists to make, and
 because its second clause — that a candidate without a namable observer stays a
 candidate — has its own red case. If a later reader wants to cut one criterion
 from this set, that is the one to argue about first.
+
+## Addendum 6 — the writing move the shipped skill never had
+
+Checked against the merged skill text: the acceptance-criteria step ships a
+motivation, a deferral for shape, an instruction to work the failure classes,
+and two pointers. Every rule it reaches is either a constraint a finished
+criterion must satisfy or a class to diagnose after the fact. **Nothing tells an
+author how to produce a criterion.** The shape owner's section opens the same
+way — it names what it owns, then lists constraints.
+
+That is the better explanation of this record than any individual defect. The
+21 criteria were written whole and then diagnosed over seven rounds; the rounds
+were the production process. Both grafts entered because a sentence was composed
+before its parts were settled, and no instruction existed to do it the other way
+round.
+
+The material for the fix was already present and unused. The procedure's own
+steps make an author name the obligation, the ground on which it blocks
+shipment, the surface that observes its failure, and a positive and
+disconfirming case — a subject, an outcome, an observer, a red case and a green
+case, all decided before any sentence exists. The added criterion puts
+composition at the hand-off to the shape owner: compose from those parts rather
+than write and then test. Parts that are singular before composition begins are
+hard to graft a second predicate onto.
+
+Two lines held while adding it. It is not a template or a syntax, which the
+EARS measurement settled as suggest-never-mandate. It is not a restatement of
+any shape rule, because composition order is not a shape constraint — the
+sentence still goes to the shape owner to be judged, one step later.
+
+**Necessity, checked before the round.** Its red input is a hand-off that lists
+the parts but omits the compose-rather-than-check direction. The neighbouring
+criterion reds only on the hand-off's *position*, so a correctly placed hand-off
+that says nothing about composing leaves that one green and this one red. The
+five stages are untouched: composition is the hand-off's content, not a sixth
+stage, so the stage-order criterion and the guide's five-stage criterion both
+stand unchanged.
