@@ -388,9 +388,11 @@ kind: explanation
 # Structural non-content allowlist (spec/guide-metadata-completion AC2-AC4)
 # ---------------------------------------------------------------------------
 
-# The five approved structural files, as guides-root-relative POSIX paths.
+# The approved structural files, as guides-root-relative POSIX paths. Five from
+# the spec, plus `CLAUDE.md` from its 2026-09-09 erratum.
 APPROVED_EXCEPTIONS = [
     "AGENTS.md",
+    "CLAUDE.md",
     "_shared/tutorials/README.md",
     "_shared/how-to/README.md",
     "_shared/reference/README.md",
@@ -400,7 +402,7 @@ APPROVED_EXCEPTIONS = [
 
 @pytest.mark.parametrize("rel", APPROVED_EXCEPTIONS)
 def test_approved_structural_file_is_silent(tmp_path, rel):
-    """AC3: neither an error nor a warning for the exact approved five."""
+    """AC3: neither an error nor a warning for the exact approved paths."""
     guides = tmp_path / "guides"
     _write_guide(guides, rel, "# Structural index\n\nNo frontmatter here.\n")
     code, errors, warnings = _run([guides], guides_root=guides)
@@ -414,6 +416,7 @@ def test_approved_structural_file_is_silent(tmp_path, rel):
     [
         # Same basename, different path — the allowlist is exact, not by basename.
         "core/AGENTS.md",
+        "core/CLAUDE.md",
         "_shared/AGENTS.md",
         "_shared/tutorials/nested/README.md",
         # A sixth attempted exception: the quadrant dirs are allowlisted at
@@ -458,8 +461,13 @@ def test_approved_file_with_frontmatter_is_still_silent(tmp_path):
     assert warnings == [], warnings
 
 
-def test_the_allowlist_holds_exactly_the_five_approved_paths(tmp_path):
-    """The set is a reviewable constant, and its size is part of the contract."""
+def test_the_allowlist_holds_exactly_the_approved_paths(tmp_path):
+    """The set is a reviewable constant, and its size is part of the contract.
+
+    Six paths: the spec's original five plus the `CLAUDE.md` import shim added by
+    its 2026-09-09 erratum. Growing the set is a spec-level decision, so this
+    assertion is meant to fail until the erratum names the new path.
+    """
     assert sorted(validate_guides.STRUCTURAL_NON_CONTENT) == sorted(APPROVED_EXCEPTIONS)
 
 
@@ -473,7 +481,7 @@ def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
     """
     guides = tmp_path / "guides"
     _write_guide(guides, "core/AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
-    # The honest root exempts nothing here, because core/AGENTS.md is not one of five.
+    # The honest root exempts nothing here, because core/AGENTS.md is not allowlisted.
     code, errors, warnings = _run([guides], guides_root=guides)
     assert any("has no frontmatter" in w for w in warnings), warnings
     # And a subdirectory root must not turn it into the approved `AGENTS.md` — driven

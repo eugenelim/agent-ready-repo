@@ -676,8 +676,10 @@ VALID_GUIDE_KINDS = frozenset({"tutorial", "how-to", "reference", "explanation"}
 _KIND_DIR_ALIASES = {"tutorials": "tutorial"}
 
 # Maintainer context. Still mirrored — so still reachable by URL — but never
-# surfaced in reader navigation.
-_NAV_INELIGIBLE_NAMES = frozenset({"AGENTS.md"})
+# surfaced in reader navigation. `CLAUDE.md` is the Claude Code import shim
+# beside `AGENTS.md`: one line reading `@AGENTS.md`, with no reader-facing
+# content to put in a sidebar.
+_NAV_INELIGIBLE_NAMES = frozenset({"AGENTS.md", "CLAUDE.md"})
 
 
 def guide_slug_for(rel_parts: list[str]) -> str:

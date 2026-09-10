@@ -188,3 +188,50 @@ existing public route; every other public route remains unchanged.
   2026-08-17).
 - Process: all other public routes and navigation contracts remain fixed
   (source: `docs/product/briefs/tech-site-completion.md`).
+
+## Errata
+
+- 2026-09-09 (eugenelim): **A sixth structural exemption, `guides/CLAUDE.md`.**
+  AC3 says the only exempt files are the five it names, AC4 says the validator
+  encodes those five paths, and AC2 records the blast radius as five emitted
+  pages carrying no `summary`. Two further statements carry the same number:
+  § Boundaries "Always do" — "Encode the five approved non-content exceptions
+  explicitly and silently" — and the § Assumptions product line, "exactly five
+  files are structural or non-content exceptions". All five statements now read
+  six, and the sixth path is `guides/CLAUDE.md`. `validate_guides.py` reports
+  the count on every run, so the current value is observable rather than
+  inferred: "203 checked, 6 exempt".
+
+  Mechanism: Claude Code loads `CLAUDE.md`, never `AGENTS.md`, and finds a
+  nested one only when it reads a file in that directory — so `guides/AGENTS.md`
+  reached no Claude Code session at all. The repository's fix everywhere else is
+  a one-line `CLAUDE.md` holding `@AGENTS.md`, which Claude Code expands
+  relative to the containing file. `guides/` was left out at the time because
+  `tools/validate_guides.py` warns on any `guides/` Markdown lacking `title`,
+  `summary`, `pack`, and `kind`, and the docs workflow fails on any warning
+  (commit `0218ab5ca`).
+
+  Why exemption rather than metadata: the file is eleven bytes of import
+  directive with no H1 and no user outcome to summarize. There is no honest
+  `summary` or `kind` to give it, and inventing one would assert it is content.
+  It is not, so the non-content allowlist is where it belongs — the same place
+  its `AGENTS.md` twin sits.
+
+  What this exemption does and does not control, because the two are easy to
+  conflate. Mirroring is unconditional: like `guides/AGENTS.md`, the shim is
+  mirrored and stays reachable by URL whether or not it is exempt. This
+  allowlist governs only whether the metadata schema is enforced against it.
+  Sidebar exposure is governed separately, by `_NAV_INELIGIBLE_NAMES` in
+  `tools/build-site.py` — see the 2026-09-09 erratum on
+  `docs/specs/guides-sidebar-generation/spec.md`, which adds the same filename
+  there. Both were needed: exempting the file here without that one would have
+  left it out of the metadata contract *and* in the reader-facing sidebar, with
+  no gate objecting.
+
+  Scope of the change: exactly one path added to `STRUCTURAL_NON_CONTENT`. The
+  allowlist stays an exact guides-root-relative match, so `guides/core/CLAUDE.md`
+  and any other same-basename file remain content and still warn —
+  `tools/test_validate_guides.py::test_same_basename_elsewhere_is_still_content`
+  covers the new path. The `Ask first` boundary "exempt any Markdown file beyond
+  the approved five-file set" was honoured: the exemption was put to the spec
+  owner and approved before the edit.

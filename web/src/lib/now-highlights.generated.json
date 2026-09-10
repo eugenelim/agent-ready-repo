@@ -38,6 +38,56 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.43.1"
+        }
+      ],
+      "date": "2026-09-09",
+      "heading": "[agentbundle][0.43.1] — 2026-09-09",
+      "changelogAnchor": "agentbundle0431--2026-09-09",
+      "highlights": [
+        {
+          "source": "**A new catalogue now gives Claude Code the same pack and profile guidance every other agent already got.** `agentbundle catalogue init` writes a `CLAUDE.md` beside each `AGENTS.md` it scaffolds, so a Claude session picks up your scoped instructions instead of missing them.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A new catalogue now gives Claude Code the same pack and profile guidance every other agent already got."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle catalogue init"
+            },
+            {
+              "type": "text",
+              "value": " writes a "
+            },
+            {
+              "type": "code",
+              "value": "CLAUDE.md"
+            },
+            {
+              "type": "text",
+              "value": " beside each "
+            },
+            {
+              "type": "code",
+              "value": "AGENTS.md"
+            },
+            {
+              "type": "text",
+              "value": " it scaffolds, so a Claude session picks up your scoped instructions instead of missing them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agent-skill-engineering",
           "version": "0.4.2"
         }

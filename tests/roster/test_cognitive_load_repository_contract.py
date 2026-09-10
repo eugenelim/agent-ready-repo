@@ -145,7 +145,63 @@ def test_rule_linter_rejects_nested_topic_path(tmp_path: Path) -> None:
     ]
 
 
+# Every directory holding a scoped `AGENTS.md` that an agent works in, and the
+# form its Claude Code sibling takes. Hardcoded rather than derived by walking
+# for `AGENTS.md`: a derived expectation moves with the tree, so deleting a
+# shim would delete the assertion about it too, and the walk would also have to
+# re-encode every exclusion below.
+#
+# Excluded, deliberately: `packs/*/seeds/**` and
+# `packs/monorepo-extras/seeds/**` project to an adopter's own repository, where
+# a shipped `CLAUDE.md` would collide with theirs; `**/tests/fixtures/**` are
+# inputs to tests rather than directories anyone works in; and
+# `_data/catalogue-scaffold/` is package data whose pair is asserted by
+# `tools/test_scaffold_projection.py` and the built-wheel check in
+# `tools/test_check_artifact_contents.py`.
+_SYMLINK_SHIMS = ("CLAUDE.md", "web/CLAUDE.md", "docs-site/CLAUDE.md")
+_IMPORT_SHIMS = (
+    "docs/CLAUDE.md",
+    "guides/CLAUDE.md",
+    "packages/CLAUDE.md",
+    "packages/_example/CLAUDE.md",
+    "packages/agentbundle/CLAUDE.md",
+    "packages/credbroker/CLAUDE.md",
+    "packs/CLAUDE.md",
+    "packs/core/CLAUDE.md",
+    "packs/frontend-engineering/CLAUDE.md",
+    "profiles/CLAUDE.md",
+    "tools/CLAUDE.md",
+)
+
+
+@pytest.mark.parametrize("rel", _IMPORT_SHIMS)
+def test_every_scoped_agents_md_has_a_claude_code_sibling(rel: str) -> None:
+    """Claude Code reads `CLAUDE.md` and never `AGENTS.md`.
+
+    Without the sibling, a scoped `AGENTS.md` reaches a Codex or Gemini session
+    and no Claude Code session at all — the failure this set exists to prevent,
+    and one that is invisible because nothing errors. Deleting any shim must
+    fail here; nothing else in the repository asserts the set.
+
+    The import form, not a symlink: the catalogue readers refuse link-like
+    entries under scanned pack directories (CAT-V-002), and Windows needs
+    Administrator privileges or Developer Mode to create one.
+    """
+    shim = ROOT / rel
+    assert shim.is_file() and not shim.is_symlink(), (
+        f"{rel} is missing or is not a regular file"
+    )
+    assert shim.read_bytes() == b"@AGENTS.md\n", (
+        f"{rel} must be exactly the `@AGENTS.md` import line"
+    )
+    assert (shim.parent / "AGENTS.md").is_file(), (
+        f"{rel} imports a sibling AGENTS.md that does not exist"
+    )
+
+
 def test_lookup_chain_is_shared_by_claude_codex_and_gemini() -> None:
+    for rel in _SYMLINK_SHIMS:
+        assert (ROOT / rel).is_symlink(), f"{rel} is no longer a symlink"
     assert (ROOT / "CLAUDE.md").is_symlink()
     assert (ROOT / "CLAUDE.md").resolve() == (ROOT / "AGENTS.md").resolve()
     root_context = (ROOT / "AGENTS.md").read_text(encoding="utf-8")

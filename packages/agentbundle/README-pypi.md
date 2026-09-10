@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.43.1
+
+`agentbundle catalogue init` now writes `packs/CLAUDE.md` and
+`profiles/CLAUDE.md` beside the `AGENTS.md` each already scaffolded. Both hold a
+single `@AGENTS.md` import line. Claude Code reads `CLAUDE.md` rather than
+`AGENTS.md`, and finds a nested one only when it reads a file in that directory,
+so without the pair a Claude session in a new catalogue received no scoped pack
+or profile guidance at all. Other agents are unaffected: `AGENTS.md` stays the
+canonical file and its content did not change.
+
+An existing `packs/CLAUDE.md` or `profiles/CLAUDE.md` is never overwritten;
+`init` reports the conflict and leaves the file alone.
+
 ## What's new in 0.43.0
 
 An installed direct skill can now move to a later repository revision with

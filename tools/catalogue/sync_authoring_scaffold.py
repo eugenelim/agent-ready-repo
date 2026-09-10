@@ -10,9 +10,9 @@ Usage:
 
 The canonical source is always the repo root.  The _data/ copy is a projection
 that must be kept byte-identical to the source.  Run --write after any change
-to packs/README.md, packs/AGENTS.md, packs/_example/**, profiles/README.md,
-profiles/AGENTS.md, profiles/_example/**, or
-guides/_shared/reference/catalogue-ci-contract.md.
+to packs/README.md, packs/AGENTS.md, packs/CLAUDE.md, packs/_example/**,
+profiles/README.md, profiles/AGENTS.md, profiles/CLAUDE.md, profiles/_example/**,
+or guides/_shared/reference/catalogue-ci-contract.md.
 
 `make build-self` and `make build-check` invoke this with --check to gate CI.
 """
@@ -40,6 +40,12 @@ _DATA_ROOT = (
 _SYNC_PAIRS: list[tuple[Path, str]] = [
     (_REPO_ROOT / "packs" / "README.md", "packs/README.md"),
     (_REPO_ROOT / "packs" / "AGENTS.md", "packs/AGENTS.md"),
+    # Claude Code reads CLAUDE.md, not AGENTS.md, and discovers a nested one only
+    # when it reads a file in that directory. Ship the import shim beside the
+    # scoped AGENTS.md so an adopter's Claude session loads the same content a
+    # Codex or Gemini session gets. A regular file, not a symlink: the catalogue
+    # readers refuse link-like pack-directory entries (CAT-V-002).
+    (_REPO_ROOT / "packs" / "CLAUDE.md", "packs/CLAUDE.md"),
     (_REPO_ROOT / "packs" / "_example" / "pack.toml", "packs/_example/pack.toml"),
     (
         _REPO_ROOT / "packs" / "_example" / ".claude-plugin" / "plugin.json",
@@ -57,6 +63,7 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
     (_REPO_ROOT / "packs" / "_example" / "README.md", "packs/_example/README.md"),
     (_REPO_ROOT / "profiles" / "README.md", "profiles/README.md"),
     (_REPO_ROOT / "profiles" / "AGENTS.md", "profiles/AGENTS.md"),
+    (_REPO_ROOT / "profiles" / "CLAUDE.md", "profiles/CLAUDE.md"),
     (_REPO_ROOT / "profiles" / "_example" / "profile.toml", "profiles/_example/profile.toml"),
     (_REPO_ROOT / "profiles" / "_example" / "README.md", "profiles/_example/README.md"),
     (
