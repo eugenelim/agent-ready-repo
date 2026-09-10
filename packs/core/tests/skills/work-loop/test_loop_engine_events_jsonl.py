@@ -149,6 +149,105 @@ class TestOutboxReset:
         assert not (repo / ".loop-run").exists()
 
 
+class TestLifecycleFields:
+    """The additive fields that make phase duration, waivers, and budgets readable.
+
+    Without these, a consumer reading only events.jsonl cannot answer how long a
+    phase took, whether a retry cap was waived, or how close a run is to its
+    caps — the counters live in the cohort state file and no transition moves
+    them.
+    """
+
+    def _events(self, repo: Path) -> list[dict]:
+        jsonl = repo / ".loop-run" / "events.jsonl"
+        return [json.loads(ln) for ln in jsonl.read_text().splitlines() if ln.strip()]
+
+    def test_first_phase_starts_at_the_run_start(self, tmp_path: pytest.TempDir) -> None:
+        """`cmd_init` writes no event line, so the run start comes from engine state."""
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        engine_state = json.loads((spec_dir / "engine-state.json").read_text())
+        run_started_at = engine_state["last_transition_at"]
+
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        event = self._events(repo)[0]
+        assert event["phase_started_at"] == run_started_at
+        assert isinstance(event["phase_s"], int)
+        assert event["phase_s"] >= 0
+
+    def test_phase_started_at_chains_from_the_previous_event(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        """Consecutive phases must abut, or summed time-in-phase silently loses gaps."""
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "reviewers-clean", cwd=repo)
+        first, second = self._events(repo)
+        assert second["phase_started_at"] == first["at"]
+
+    def test_budgets_carry_the_counters_and_their_caps(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        budgets = self._events(repo)[0]["budgets"]
+        cohort = json.loads((spec_dir / "state.json").read_text())
+        for field in (
+            "implementation_retry_count",
+            "max_implementation_retries",
+            "review_retry_count",
+            "max_review_retries",
+        ):
+            assert budgets[field] == cohort[field], field
+
+    def test_waived_is_false_without_the_flag(self, tmp_path: pytest.TempDir) -> None:
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "findings-remain", cwd=repo)
+        assert self._events(repo)[1]["waived"] is False
+
+    def test_waived_is_true_with_the_retry_cap_override(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        r = _run(
+            _LOOP_ENGINE, "transition", str(spec_dir), "findings-remain",
+            "--allow-retry-cap-override", cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        assert self._events(repo)[1]["waived"] is True
+
+    def test_a_missing_cohort_state_does_not_abort_the_transition(
+        self, tmp_path: pytest.TempDir
+    ) -> None:
+        """Reading budgets is best-effort: losing it must never cost a transition."""
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        # Make the cohort state unreadable, then keep transitioning. The engine's
+        # run_id preflight needs the file, so corrupt only the fields' source by
+        # emptying the JSON object rather than deleting the file.
+        cohort = json.loads((spec_dir / "state.json").read_text())
+        cohort.pop("review_retry_count", None)
+        (spec_dir / "state.json").write_text(json.dumps(cohort))
+        r = _run(_LOOP_ENGINE, "transition", str(spec_dir), "reviewers-clean", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        event = self._events(repo)[1]
+        assert event["to"] == "SPEC-HUMAN-GATE"
+        assert event["budgets"]["review_retry_count"] is None
+
+
 class TestOutboxRecovery:
     """Outbox recovery: replay/discard stale events.pending."""
 

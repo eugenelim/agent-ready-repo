@@ -54,6 +54,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.14] — 2026-09-10
+
+### Highlights
+
+- **You can now measure how long each work-loop phase took, straight from the
+  run log.** Every transition line in `.loop-run/events.jsonl` carries when its
+  phase began and how many seconds it lasted, so time-in-phase needs no
+  guesswork about what happened between two entries. The first line's start is
+  the run's own start, so the opening phase is a real measurement rather than a
+  lower bound.
+- **A waived retry cap and the current retry budget are both on the line.** A
+  transition that used `--allow-retry-cap-override` says so, and every line
+  carries the implementation and review retry counters beside their caps — so
+  you can see a run approaching a limit, and see when someone lifted one,
+  without opening the cohort state file.
+
+### Added
+
+- `loop-engine transition` writes four additive fields on each
+  `.loop-run/events.jsonl` line: `phase_started_at`, `phase_s`, `waived`, and
+  `budgets`. The first seven fields are unchanged in name, order, and value, so
+  an existing reader is unaffected.
+- `phase_s` is whole seconds and never negative, which keeps a backwards clock
+  step from presenting as a measurement. A field that cannot be determined is
+  written as `null` rather than omitted, because a key that disappears reads as
+  zero to anything summing durations or comparing a counter with its cap.
+- `budgets` copies the cohort retry counters and caps as they stood when the
+  line was written. It does not move them: counter authority stays with
+  `loop-cohort`, which remains their only writer.
+- The work-loop `state-schema.md` reference gains the full field table for the
+  event line, including the whole-second resolution limit.
+
 ## [core][2.25.13] — 2026-09-10
 
 ### Highlights
