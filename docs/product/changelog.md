@@ -60,8 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Review feedback is guidance about the criterion, not an edit request for the
   sentence.** `new-spec`'s authoring rubric now says how to repair from a
-  finding: name the property the clause was establishing, ask whether that
-  property is right, and look for its siblings before rewriting. It also gives
+  finding: name the property the clause establishes, ask whether that property
+  is right, and look for its siblings before rewriting. It also gives
   you a way to notice when you have been patching text instead — and explains
   why a check that reads a whole document can silently pass on a second copy of
   the sentence it was looking for.
