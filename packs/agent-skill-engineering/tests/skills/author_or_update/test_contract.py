@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -789,19 +788,9 @@ EXPECTED_PATTERNS = {
 # payload the case supplies. Its marker set is what they must equal.
 
 
-
-
-
-
-
-
-
-
 def _declared_cases() -> dict[str, dict]:
     payload = json.loads((AUTHOR_ROOT / "evals" / "evals.json").read_text(encoding="utf-8"))
     return {case["id"]: case for case in payload["evals"]}
-
-
 
 
 def test_composition_cases_declare_a_complete_field_set() -> None:
@@ -812,10 +801,6 @@ def test_composition_cases_declare_a_complete_field_set() -> None:
         for field in ("id", "prompt", "expected_output", "assertions", "files"):
             assert case.get(field), (case_id, field)
         assert case["expect"]["output_contains"], case_id
-
-
-
-
 
 
 @pytest.mark.parametrize("case_id", COMPOSITION_CASES)
@@ -834,8 +819,6 @@ def test_composition_case_declares_its_exact_pattern_list(case_id: str) -> None:
     assert set(declared) <= admitted, (case_id, sorted(set(declared) - admitted))
 
 
-
-
 def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> None:
     """AC6: the named text belongs to its own case, and the two differ."""
     cases = _declared_cases()
@@ -846,8 +829,6 @@ def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> Non
         assert text in case["assertions"], (case_id, text)
         named.append(text)
     assert len(set(named)) == len(named), named
-
-
 
 
 def _authoring_records() -> dict[str, dict]:
@@ -872,10 +853,6 @@ def _authoring_records() -> dict[str, dict]:
         i for i in set(ids) if ids.count(i) > 1
     )
     return {r["eval_id"]: r for r in rows}
-
-
-
-
 
 
 def test_every_authoring_record_belongs_to_one_round() -> None:

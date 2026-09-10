@@ -25,11 +25,9 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
-import subprocess
 import re
+import subprocess
 from pathlib import Path
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PACK_ROOT = ROOT / "packs" / "agent-skill-engineering"
@@ -118,7 +116,7 @@ def test_the_base_commit_matches_the_one_the_ledger_records() -> None:
     ledger = (SPEC_DIR / "notes" / "verification-ledger.md").read_text(encoding="utf-8")
     recorded = re.search(r"\*\*Base commit:\*\*\s*`([0-9a-f]{40})`", ledger)
     assert recorded, "the verification ledger records no base commit"
-    assert BASE_COMMIT == recorded.group(1), (
+    assert recorded.group(1) == BASE_COMMIT, (
         f"BASE_COMMIT is {BASE_COMMIT} but the ledger records "
         f"{recorded.group(1)}. Moving the base is a re-measurement, not a "
         "constant bump: change the ledger's recorded base and re-take the "
