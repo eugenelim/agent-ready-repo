@@ -102,13 +102,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **The shipped procedure, its stage order, its admission grounds, its routing
   table, its composition hand-off, its set-level pass and the count policy
   (AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11, AC14, AC15, AC16,
-  AC18):** goal-based check over the authored skill file. The observation is the presence, relative order and scope of that
+  AC19):** goal-based check over the authored skill file. The observation is the presence, relative order and scope of that
   prose; the verification surface is the pack-local suite.
-- **Single-homing (AC17):** goal-based check. The observation is that each rule
-  sentence the procedure introduces occurs in exactly one of the four authoring
-  surfaces — which requires those sentences to be in the suite's pinned set, so
-  the criterion cannot hold vacuously on an empty set. The verification surface
-  is the existing single-homing suite.
+- **Single-homing, and the floor under it (AC17, AC18):** goal-based check. For
+  AC17 the observation is that each pinned sentence occurs in exactly one of the
+  four authoring surfaces; for AC18, that the pinned set reaches every one of the
+  five stages. Both run on the existing single-homing suite. The pinned set is a
+  **proxy**: whether a sentence states a rule is a judgement, so no check can
+  enumerate every introduced rule sentence. The floor bounds the proxy's
+  incompleteness rather than removing it, and the residue — a stage with two
+  rules where only one is pinned — is caught at review or not at all.
 - **The guide publishes the procedure (AC12):** goal-based check over the guide's
   own content. The observation is that each of the five stage names appears on
   the page. The guide validators establish publication, not content, so they do
@@ -119,14 +122,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   that owner holds is restated. Separate from AC12 because a page can carry the
   stages while restating a shape rule, and can cite the owner while omitting a
   stage; the two fail on different inputs and need different repairs.
-- **The three frozen cases and their seeded integrity (AC19, AC20):** TDD. Each
+- **The three frozen cases and their seeded integrity (AC20, AC21):** TDD. Each
   case is data whose required shape and seeded material are compressible into
   assertions.
-- **The frozen scoring order (AC21):** goal-based check. The observation is that
+- **The frozen scoring order (AC22):** goal-based check. The observation is that
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The recorded run (AC22):** visual / manual QA. A model-in-the-loop
+- **The recorded run (AC23):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -185,8 +188,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       with its result recorded; below that one position it requires only the
       per-criterion check against neighbours. One threshold, both branches, no
       band left undefined.
-- [ ] Each rule sentence the procedure introduces appears in exactly one of the
-      four authoring surfaces.
+- [ ] Every sentence in the single-homing suite's pinned set appears in
+      exactly one of the four authoring surfaces.
+- [ ] That pinned set carries at least one rule sentence from each of the
+      procedure's five stages, so it cannot satisfy the rule above by being
+      empty or by covering only some stages.
 - [ ] No shipped surface makes a criterion count reject a spec or prove one
       well-shaped, and a set above the corpus p75 passes on its obligations
       alone.

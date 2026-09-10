@@ -99,9 +99,9 @@ two recollections.
   shorter restatement is still a second home. Traces to: AC17.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
-  Traces to: AC20.
+  Traces to: AC21.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC21, AC22.
+  recorded exercise and the counts live in prose. Traces to: AC22, AC23.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -122,7 +122,7 @@ two recollections.
   probe found **zero** 7-word runs shared between a naturally-worded draft of
   the procedure and any of the three owned surfaces, so the single-homing
   collision is smaller than assumed and the ordering and count assertions carry
-  more of the weight. Traces to: AC15, AC18.
+  more of the weight. Traces to: AC15, AC19.
 
 ### Component / module decomposition
 
@@ -132,6 +132,13 @@ pack-local suite (new pins plus an extended rule set), and the new guide page.
 Nothing new is a module, a dependency, or a directory.
 
 ### Behavior & rules
+
+**The procedure span, defined once.** Several assertions below slice the same
+region of `SKILL.md`, and naming its bound separately in each is how two of them
+came to disagree. The span runs from the **first stage marker** to the **end of
+the last stage's text** — not to the last marker, which would put the fifth
+stage's body outside the span and leave its interval empty. Every assertion that
+slices the procedure cites this definition instead of restating a bound.
 
 The procedure's admission test, routing destinations and set-level checks are
 the observable contract and live in `spec.md`. What the implementer cannot infer
@@ -149,30 +156,36 @@ offset comparison rather than a phrase-presence assertion. Traces to: AC2.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
-- Extend `RULES` in `test_acceptance_criteria_discipline.py`, owner `skill`,
-  with **every rule sentence this task introduces into `SKILL.md`** — derived,
-  not hand-listed. Membership is decided by the sentence: one stating a rule an
-  author must follow goes in; a structural stage marker stating no rule does
-  not. The existing parametrised owner test then asserts each appears in
-  `SKILL.md` and in none of `assets/spec.md`, `assets/plan.md`,
-  `references/spec-authoring-rubric.md` — which is **AC17** discharged over its
-  whole set rather than a subset.
+- **AC17 and AC18 — the pin, and the floor that makes it non-vacuous.** Extend
+  `RULES` in `test_acceptance_criteria_discipline.py`, owner `skill`. The
+  existing parametrised owner test gives **AC17** for every entry: present in
+  `SKILL.md`, absent from `assets/spec.md`, `assets/plan.md` and
+  `references/spec-authoring-rubric.md`. For **AC18** add one assertion that the
+  pinned set reaches each of the five stages — reuse the stage markers the AC1
+  assertion already locates, and require at least one pinned sentence in each of
+  the five intervals. The fifth interval closes at the end of the procedure span
+  as *Behavior & rules* defines it; without that bound the fifth stage has no
+  next marker and its interval cannot be observed at all.
 
-  Two failure modes this wording closes, both already observed here. A bullet
-  reading "the procedure's new rule sentences" names nothing, so pinning three
-  of ten satisfies it. A bullet naming a list of criterion numbers goes stale
-  the next time a criterion is added — it did, one round after being written,
-  leaving six introduced sentences with a content assertion and no
-  absence-elsewhere assertion. Neither a bare plural nor a hand-kept list
-  survives; the derivation does.
+  **Do not describe this as a derivation.** `RULES` is a hand-declared tuple and
+  the test iterates it, so nothing here can notice a rule sentence nobody
+  pinned. Whether a sentence states a rule is a judgement and therefore not
+  mechanizable: the pinned set is the proxy, and the per-stage floor bounds its
+  incompleteness. Three earlier drafts of this bullet failed in different
+  directions — one named no criterion, so pinning three of ten satisfied it; one
+  named a list of criterion numbers, which went stale a round later; one claimed
+  a derivation the tuple cannot perform. The floor is checkable and claims only
+  what it checks.
 
-  **Which criteria this discharges, by reference rather than by copy.** The set
-  is the spec's Testing Strategy goal-based group over the skill file. That
-  group is the spec's own enumeration and it moves when a criterion is added, so
-  inheriting it keeps one list instead of two that can disagree. Every criterion
-  in that group whose content is a rule sentence is pinned here; the
-  criterion-specific bullets below add **content** assertions on top for the
-  ones needing more than presence. A dedicated bullet never replaces the pin.
+  **Which criteria the pin covers, for traceability only.** One pinned entry per
+  criterion in the spec's Testing Strategy goal-based group over the skill file.
+  That is a pointer to the spec's list rather than a second copy, so the two
+  cannot disagree when a criterion is added. Read it as traceability and not as
+  a guarantee: nothing checks that the mapping is complete, which is exactly why
+  AC18's floor exists.
+
+  The criterion-specific bullets below add **content** assertions for the
+  criteria needing more than presence. None of them replaces the pin.
 - Add two offset assertions in the same module. **AC1** — the five stage
   markers appear in the mandated order, asserted as one ascending comparison
   across all five offsets, not pairwise against neighbours. **AC2** — the
@@ -194,7 +207,7 @@ offset comparison rather than a phrase-presence assertion. Traces to: AC2.
   the section as a whole stays green when only the new direction is missing.
 - Trace the count assertions to the criteria that now hold them, one each.
   **AC15** — the procedure's count sentence records the count and its corpus
-  position. **AC18** — the same span carries no rejection, and states that a set
+  position. **AC19** — the same span carries no rejection, and states that a set
   above the corpus p75 passes on its obligations alone; assert that second
   sentence by phrase, since it is the only written form of the
   obligations-only pass condition.
@@ -207,8 +220,8 @@ offset comparison rather than a phrase-presence assertion. Traces to: AC2.
   positions, so an assertion on the high branch alone passes when the branch is
   unconditional; and asserting a second, lower threshold would reinstate the
   undefined band the criterion was repaired to remove.
-- **AC16's trigger and AC18's prohibition must not collide.** Slice `SKILL.md`
-  to the procedure's own span — first step marker to last — and assert the
+- **AC16's trigger and AC19's prohibition must not collide.** Slice `SKILL.md`
+  to the procedure span as *Behavior & rules* defines it, and assert the
   absence of a *fixed absolute* criterion count: a cap, a ceiling, a refusal, or
   a pass/fail bar on how many criteria a spec may carry. Do **not** assert the
   absence of a numeral, and do not treat a numeral-bearing construction as
@@ -272,7 +285,7 @@ can be missing both guide outcomes.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
-- **AC19 and AC20** — one shape-and-seed test per case, following the precedent of
+- **AC20 and AC21** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
   the prompt, and each seeded item's survival. `stub: true` — the contract
@@ -297,11 +310,11 @@ can be missing both guide outcomes.
   the mutation — deleting any one seeded item from a case's prompt must red this
   module — which is why the pins are individual assertions rather than one
   aggregate membership check.
-- **AC21** — assert the whole scoring contract appears in each case's `expected_output`:
+- **AC22** — assert the whole scoring contract appears in each case's `expected_output`:
   recall first, non-criterion rejection second, count descriptive, **and** the
   rule that a smaller set obtained by losing a distinct obligation or guardrail
   is a failure. The ranks without that rule leave the failure condition
-  unstated, which is the half AC21 exists for.
+  unstated, which is the half AC22 exists for.
 
 **Approach:**
 - Author the three prompts as authoring frames, not review frames — the graded
@@ -319,7 +332,7 @@ and the full pack suite passes.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC22** — manual QA. One fresh subagent per case, given only the shipped
+- **AC23** — manual QA. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -401,8 +414,9 @@ drift.
   than to reword.
 - **The single-homing oracle cannot see a paraphrase — named, not closed.** The
   suite compares exact sentences over a hand-listed tuple, so a restatement in
-  different words is invisible to it. AC17 is deliberately scoped to the pinned
-  sentences so the criterion does not promise more than its oracle delivers.
+  different words is invisible to it. AC17 is therefore scoped to the pinned set
+  and AC18 puts a per-stage floor under it, so together they promise exactly
+  what the oracle delivers and no more.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.

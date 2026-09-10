@@ -347,3 +347,69 @@ that says nothing about composing leaves that one green and this one red. The
 five stages are untouched: composition is the hand-off's content, not a sixth
 stage, so the stage-order criterion and the guide's five-stage criterion both
 stand unchanged.
+
+## Addendum 7 — plan writing rules and plan set passes, from 12 measured findings
+
+Rounds 4 through 11 returned almost no criteria defects. They returned **plan**
+defects, twelve of them, and they fall into five causes. The acceptance-criteria
+side got writing rules and a set pass this slice; the plan side has neither, and
+that asymmetry is the better explanation of the late rounds than any single
+mistake.
+
+| Cause | Findings | What it looked like |
+| --- | --- | --- |
+| A `Done when` narrower than its own `Tests` | 3 | The task could close with a required observation unmade |
+| A condition restated in a second place, then going stale | 4 | A stale AC trace, a map repeating a task's condition, a threshold that no longer matched, a hand-listed set of criterion numbers |
+| An obligation left in `Approach` | 2 | No completion gate reads `Approach`, so the counts and the version parity were never observed |
+| A criterion with no construction evidence at all | 2 | A stage order and a scoring rule that nothing asserted |
+| A claim about a check the oracle cannot support | 1 | Prose said "derived"; the suite iterates a hand-declared tuple |
+
+### Writing rules, applied per task while drafting
+
+1. **A `Done when` points at its `Tests`; it never restates them.** A pointer
+   cannot be narrower than its target and cannot go stale when the target
+   changes. Three findings came from copies.
+2. **If a completion gate must read an obligation, it belongs in `Tests`.**
+   `Approach` is instruction and nothing observes it. Two obligations sat there
+   and were invisible.
+3. **A `Tests` bullet names the criterion it verifies.** Untraceable evidence
+   cannot be walked, and a bullet naming a bare plural is satisfied by any
+   subset.
+4. **A claim about what a check proves names the comparison the oracle actually
+   performs.** If the oracle cannot perform it, say so and state the proxy.
+   Calling a hand-declared tuple a derivation was itself the defect.
+5. **One home per condition; cite the owner elsewhere.** Every restatement in
+   this plan decayed, including three written specifically as repairs.
+
+### Set passes, run over the whole plan before review
+
+1. **Coverage both ways.** Every criterion has construction evidence, and every
+   `Tests` bullet traces to a criterion. One direction alone leaves orphans at
+   the other end.
+2. **Each `Done when` against its own `Tests`.** Walk all tasks, not the one a
+   reviewer named.
+3. **No condition with two homes**, across the spec and between tasks.
+4. **Every claim about an oracle is one the oracle can perform.**
+5. **Necessity.** A task whose outputs another task fully produces is merged.
+6. **Every shared bound is defined once.** Two assertions naming the same region
+   separately is how the span bound came to disagree with itself.
+
+### The audit, run on this plan
+
+Rules 1, 2, 3 and 5 pass. Rule 4 failed once and is repaired: the pin bullet
+claimed a derivation and now states the proxy and its floor. Set pass 6 was
+added *because* running it found a live contradiction — the floor assertion
+closed the fifth interval at "the end of the procedure span" while the count
+assertion sliced "first step marker to last", so the fifth interval was empty.
+The span is now defined once in the design section and cited by both.
+
+Set pass 1 holds by reference rather than by enumeration: sixteen criteria are
+named directly in a `Tests` bullet and the remaining seven are covered by the
+pin, which points at the spec's own criterion group rather than keeping a second
+list. That is traceability, not a mechanical guarantee, and the note says so.
+
+**Scope, stated rather than assumed.** These rules are about plan authoring, not
+about acceptance-criteria set construction, so they are not this spec's contract
+and no criterion here carries them. They are recorded as delivery learning. If
+they should ship as guidance, that is a slice of its own against the plan
+template, and the owner cuts it.
