@@ -460,6 +460,25 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      and assertion wording are expected to be incomplete at approval when code
      does not yet exist. Name paths and symbols where known; do not ask the
      approval gate to bless detail it cannot yet decide.
+   - **A fact belongs in `## Design (LLD)` unless a task must implement or
+     verify it.** Tasks are jobs to be done, not fact containers: a task says
+     what to do and what to observe, and cites the design for why it takes that
+     shape. Re-cut the task list to check — a fact still true afterwards was
+     never task information.
+   - **`Done when` points at the task's own `Tests` and never restates them.** A
+     copy is narrower than its target the moment either one moves.
+   - **An obligation a completion gate must read belongs in `Tests`.** Approach
+     is instruction, and no gate observes it.
+   - **A claim about what a check proves names the comparison its oracle
+     performs.** Where the oracle cannot perform it, name the proxy instead of
+     claiming the stronger property.
+   - **When `Tests:` outruns `Approach:`, read the excess before cutting it.**
+     Prose explaining why an assertion takes its shape is design: relocate it.
+     Reduce only genuine surplus. One ratio, two causes, opposite remedies.
+   - **Walk the whole plan once before review.** Every criterion has
+     construction evidence and every `Tests` bullet traces to a criterion; every
+     `Done when` observes what its own `Tests` require; no condition has two
+     homes; every shared bound is defined once.
    - **Restating an acceptance criterion.** The criteria are the checklist. A
      `Tests:` bullet names a mechanism the implementer cannot infer: the suite
      and its location, the fixture carrying a join key, or a shipped assertion
@@ -574,6 +593,13 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    it, whether it contradicts a stated non-goal, and whether it traces to a
    criterion at all. Take the cuts to the human with conformance fixes separated
    from scope calls.
+
+   Then give the owner the facts the decision needs rather than a verdict:
+   the finding trend by round, every residual concern that remains with its
+   consequence, and what that residue implies for the work. A round count is not
+   a fact anyone can act on; a named residue with a named consequence is. Where
+   a residue falls in a protected risk class, say so and do not seek acceptance
+   for it.
 
 8. Update `docs/specs/README.md` to add the feature to the active list. Do not
    index before both review gates are clean.
