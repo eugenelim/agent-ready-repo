@@ -142,9 +142,11 @@ slices the procedure cites this definition instead of restating a bound.
 
 The procedure's admission test, routing destinations and set-level checks are
 the observable contract and live in `spec.md`. What the implementer cannot infer
-is the *ordering constraint the suite must assert*: the admission step's offset
-in the file must precede every step that words a criterion, so the pin is an
-offset comparison rather than a phrase-presence assertion. Traces to: AC2.
+is the *ordering constraint the suite must assert*: the hand-off's offset must
+fall between the routing marker and the set-level pass marker, so the pin is a
+pair of offset comparisons rather than a phrase-presence assertion. Comparing
+against admission alone is too weak — routing and the pass both follow
+admission, so wording could land mid-procedure and still pass. Traces to: AC2.
 
 ## Tasks
 
@@ -189,9 +191,12 @@ offset comparison rather than a phrase-presence assertion. Traces to: AC2.
 - Add two offset assertions in the same module. **AC1** — the five stage
   markers appear in the mandated order, asserted as one ascending comparison
   across all five offsets, not pairwise against neighbours. **AC2** — the
-  admission marker precedes every wording marker, per *Behavior & rules*. A
-  phrase-set assertion alone stays green through a reordering, and an
-  admission-only assertion stays green through a stage swap elsewhere.
+  hand-off marker falls strictly between the routing marker and the set-level
+  pass marker, asserted as two offset comparisons against those stages rather
+  than against admission, per *Behavior & rules*. A phrase-set assertion alone
+  stays green through a reordering; an admission-only comparison stays green
+  when wording lands mid-procedure, since routing and the pass both follow
+  admission.
 - **AC3** — the hand-off passage instructs composing from the named parts and
   says plainly that a criterion is not written whole and then tested. Assert the
   composition instruction and the enumeration of parts it composes from; a
@@ -368,6 +373,21 @@ close this task, and the count closes nothing.
   --root .` resolves this spec under its brief.
 - `python3 .agents/skills/work-loop/scripts/lint-traceability.py --root .` exits
   0. The 433 informational orphans are pre-existing.
+- **AC19 across every shipped surface, not just the procedure span.** T1's
+  check slices `SKILL.md` because that is where the percentile trigger and the
+  prohibition must coexist. AC19 is wider: no shipped surface may make a
+  criterion count reject a spec or prove one well-shaped, and the Boundary
+  forbids a fixed absolute count anywhere. Assert the prohibition over all three
+  surfaces this slice ships — the procedure span, the new guide page, and the
+  frozen eval entries — in one check that runs here, after the guide and the
+  cases exist.
+
+  **Mutation proof required.** Invariant: no shipped surface carries a fixed
+  absolute criterion count. Mutation: add `keep specs under 20 criteria` to the
+  guide page, outside `SKILL.md`. Expected failure: this check reds naming the
+  guide. A check that stays green under that mutation is scoped to the wrong
+  surfaces and is not the guard AC19 needs. Restore by editing the sentence out,
+  never by `git checkout`.
 - `python3 -m pytest tests/roster/test_security_checklists_okf_projection.py -q`
   — reuse, do not rebuild. Its
   `test_core_version_and_okf_declaration_are_synchronized` already asserts

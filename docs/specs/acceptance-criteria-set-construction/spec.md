@@ -48,7 +48,9 @@ from singular parts is what keeps one criterion to one predicate.
 
 Criterion *shape* — whether a given sentence is one criterion or two — stays
 owned by the skill's `assets/spec.md`. This spec owns which obligations reach
-that question at all, and how the hand-off to that owner is made.
+that question at all, and where the hand-off to that owner sits: after routing,
+before the set-level pass. Selection finishes first, and the pass then reads a
+worded set — which is what its uniqueness and necessity checks compare.
 
 ## Durable Outputs
 
@@ -139,9 +141,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The skill's acceptance-criteria step carries a numbered selection
       procedure whose steps run in the order name-obligations, admit,
       attach-scenarios, route, set-level pass.
-- [ ] The procedure's hand-off to the criterion-shape owner follows its
-      admission step rather than opening the acceptance-criteria step, so no
-      candidate is worded before the set is selected.
+- [ ] The procedure's hand-off to the criterion-shape owner sits after the
+      routing step and before the set-level pass, so selection is complete
+      before any candidate is worded and the pass reads a worded set.
 - [ ] At that hand-off the procedure instructs composing each criterion from
       the parts its earlier steps already named — the obligation, the surface
       that observes its failure, and its disconfirming and positive cases —
