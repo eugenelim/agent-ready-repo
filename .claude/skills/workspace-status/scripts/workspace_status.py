@@ -195,8 +195,17 @@ def _shaping_entry_dict(e) -> dict:
 
 
 def _repo_backlog_entry_dict(entry) -> dict:
+    """Project one backlog entry to the fields a consumer renders.
+
+    `room`, `slug`-or-`path`, and `summary` are what `SKILL.md` renders;
+    `needs` is load-bearing because `SKILL.md` forbids rereading raw TOML to
+    determine dependencies. `kind`, `entry_type`, and `source` have no reader
+    and were 9.1% of the emitted payload across a 143-entry backlog, so they
+    are deliberately not projected. Narrowing applies to every mode, keeping
+    `reconcile` and `status` byte-identical here.
+    """
     result = {"room": entry.room, "needs": entry.needs}
-    for key in ("slug", "path", "kind", "entry_type", "source", "summary"):
+    for key in ("slug", "path", "summary"):
         value = getattr(entry, key)
         if value is not None:
             result[key] = value
@@ -2313,6 +2322,15 @@ def main(argv: list[str] | None = None) -> int:
             required=True,
             help="Selector for the item to explain (slug or spec/ path)",
         )
+    if subcommand == "status":
+        parser.add_argument(
+            "--include-evaluations",
+            action="store_true",
+            default=False,
+            help="Restore canonical.evaluations, the full per-entry evaluation "
+                 "list. Roughly doubles the payload; the dispatch decisions it "
+                 "carries are already in canonical.ready/active/blocked/findings.",
+        )
     migration_subcommand = subcommand in {
         "repair-plan", "repair-apply", "repair-rollback"
     }
@@ -3016,6 +3034,11 @@ def main(argv: list[str] | None = None) -> int:
         elif subcommand == "status":
             result = analyze_bounded(root)
             data = _build_json(root, result, "status")
+            if not args.include_evaluations:
+                # Orientation payload. Dropped here, after _build_json's closeout
+                # projection has consumed canonical["evaluations"] internally, so
+                # narrowing the emitted surface cannot change any decision.
+                data["canonical"].pop("evaluations", None)
         else:
             result = analyze(root)
             data = _build_json(root, result, "reconcile")
