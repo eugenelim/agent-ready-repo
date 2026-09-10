@@ -455,3 +455,42 @@ template rather than to this slice.
 **What acceptance does not cover.** No `Clean` verdict exists, so the spec stays
 `Draft` and unindexed until the owner approves it on this record. Acceptance of
 these five concerns is not approval of the contract.
+
+## Addendum 9 — T1 was a design outline, not an over-specified task
+
+Owner observation, 2026-09-10: T1 is not merely a large task. It is a detailed
+design outline written as a set of TDD assertions — a mini-module whose content
+maps to the low-level design — and in some practices each test *is* an
+acceptance criterion in itself.
+
+That reframing is correct and it corrects an earlier entry in this record. The
+`Tests:Approach` smell fired accurately; what was wrong was the remedy. Two
+passes measured:
+
+| Pass | T1 `Tests` | Ratio | What changed |
+| --- | --- | --- | --- |
+| as authored | 851w | 19.8× | — |
+| reduction | 548w | 12.7× | compressed prose, routed exact wording to build-discovery |
+| relocation | **242w** | **5.6×** | moved the design facts to `### Behavior & rules` |
+
+The plan's total barely moved (≈3,700 words both sides of the relocation) while
+`## Design (LLD)` grew to 1,042 words. **The content was never surplus — it was
+in the wrong section.** Roughly three-quarters of the excess was misplaced
+design; the remaining ~5.6× is where the earlier "instrument artifact" claim has
+some force, since a task whose deliverable is prose has a legitimately one-line
+`Approach`. That claim was mostly wrong and is corrected here rather than left
+standing.
+
+**On each test being a criterion.** That is a real tradition — specification by
+example, ATDD, executable specifications — and it is coherent. This repository
+has already chosen against it at a level neither this slice nor its brief can
+move: `docs/CONVENTIONS.md` § *Contract vs. construction tests* puts the contract
+in `spec.md` and construction tests in `plan.md`, and the brief's own rabbit
+holes say not to count scenarios as requirements. The brief's phrasing carries an
+escape clause worth preserving — the testing strategy owns concrete cases
+*unless a case changes the obligation itself* — so the position is a considered
+separation with an admitted exception, not a flat rejection.
+
+Recorded because the option should not be lost silently. Adopting
+test-as-criterion would be a change to the document hierarchy, which routes
+through the repository decision process, not through this slice.

@@ -363,6 +363,32 @@ set-level characteristics have no counterpart in our authoring guidance. EARS
 carries no controlled defect-reduction evidence in sixteen years, so it ships
 as an optional aid and never as a gate.
 
+### Where the review-loop findings went, and what this brief declined
+
+Recorded here because a 15-round shaping loop on A6's own contract produced
+material this brief must **not** absorb. Its non-goals exclude changing the
+review lens or how findings are adjudicated, so the value of this entry is the
+routing, not the content. Dispositions owner-agreed 2026-09-10.
+
+| Finding | Disposition |
+| --- | --- |
+| Replace reviewer-assigned severity with evidence tiers, so a finding's force comes from the evidence it cites | **Dropped.** This is consequence-bound blocking, which a paired six-case spike ran and killed on 2026-09-09: it missed three sustained findings carrying protected consequences. The owner's recut disposition says it does not carry forward, and the surviving sibling names it unsafe. |
+| Repair-origin rate as a live signal that another round will subtract, plus an ablation on whether supplying a finding's exact location worsens the repair | **Routed** to the repair-correctness branch, which the killed spike itself created for better repair inputs, smaller repair scope and targeted verification. |
+| A stop rule keyed on two consecutive rounds of findings in one family | **Routed** as a candidate to the focused-re-review branch. It scopes re-review rather than changing what blocks, so it sits outside the killed clause, and it needs its own predeclared kill condition. |
+| External prior art on how other frameworks terminate a review loop | **Retained** as commissioned research; see § "Provenance". No framework surveyed ships an iteration cap, an escalation route, or a deferral-with-record. |
+
+**What this brief keeps** is the half the parent intent already assigns it:
+upstream contract quality. Two moves came out of the loop and belong to A6's own
+slice rather than to any review branch — naming the surface that observes a
+criterion's failure as a condition of admitting it, and routing an obligation
+whose content only the build can settle to a discovery predicate instead of an
+answer invented at approval time.
+
+**One finding is measured and unowned.** A third of the killed spike's sustained
+findings were unmet repository conventions, split evenly across both arms, so no
+amount of review scheduling reaches them. That is upstream quality by
+elimination, and this brief is the named owner.
+
 ### A criterion syntax was tested by rewriting, and rejected
 
 **Measured 2026-09-10 by attempting the rewrite rather than reasoning about

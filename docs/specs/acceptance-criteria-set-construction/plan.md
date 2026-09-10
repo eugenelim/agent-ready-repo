@@ -153,12 +153,44 @@ stage's body outside the span and leave its interval empty. Every assertion that
 slices the procedure cites this definition instead of restating a bound.
 
 The procedure's admission test, routing destinations and set-level checks are
-the observable contract and live in `spec.md`. What the implementer cannot infer
-is the *ordering constraint the suite must assert*: the hand-off's offset must
-fall between the routing marker and the set-level pass marker, so the pin is a
-pair of offset comparisons rather than a phrase-presence assertion. Comparing
-against admission alone is too weak — routing and the pass both follow
-admission, so wording could land mid-procedure and still pass. Traces to: AC2.
+the observable contract and live in `spec.md`. What follows is what the
+implementer cannot infer about the assertions that verify them. Each rule is
+stated once here; T1's `Tests` cite it rather than repeating it.
+
+**Ordering is two comparisons, not one.** The hand-off's offset must fall
+between the routing marker and the set-level pass marker. Comparing against
+admission alone is too weak: routing and the pass both follow admission, so
+wording could land mid-procedure and still pass. Stage order is one ascending
+comparison across all five offsets, not pairwise against neighbours, because a
+pairwise walk stays green under a swap of two non-adjacent stages.
+Traces to: AC1, AC2.
+
+**The pinned set is a proxy, and must not be described as a derivation.**
+`RULES` is a hand-declared tuple that the suite iterates, so no assertion can
+notice a rule sentence nobody pinned. Whether a sentence states a rule is a
+judgement and therefore not mechanizable. The per-stage floor bounds the
+proxy's incompleteness; it does not close it. Traces to: AC17, AC18.
+
+**A requirement without its consequence reads as advice.** Three criteria pair a
+requirement with what happens when it is unmet — composition with
+compose-rather-than-check, the observing surface with stays-a-candidate,
+bidirectional coverage with the pass failing. Assert both clauses per criterion:
+the requirement alone is the form that leaves the existing habit in place.
+Traces to: AC3, AC5, AC10.
+
+**A two-branch criterion's content is the difference between its branches.** For
+the percentile criterion, an assertion on the high branch alone passes when the
+branch is unconditional, and naming a second lower threshold reinstates the
+undefined band the criterion was repaired to remove. One threshold, both
+branches. Traces to: AC16.
+
+**The count prohibition must not key on a numeral.** The forbidden shape is a
+fixed absolute criterion count — a cap, ceiling, refusal or pass/fail bar. The
+permitted shape is a percentile derived from the author's own corpus, used only
+to order scrutiny, and the percentile criterion requires one in the same span. A
+bare-numeral test therefore forbids what another criterion requires. A
+whole-file token deny-list is unavailable either way; see the probe under
+*Design decisions*. Traces to: AC16, AC19.
 
 ## Tasks
 
@@ -171,59 +203,30 @@ admission, so wording could land mid-procedure and still pass. Traces to: AC2.
 
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
-  every assertion below.
-- **AC17, AC18 — the pin and its floor.** Extend `RULES` in
-  `test_acceptance_criteria_discipline.py`, owner `skill`; the existing
-  parametrised owner test then gives AC17 per entry. Add one assertion for AC18
-  that the pinned set reaches each of the five stage intervals, the fifth
-  closing at the end of the procedure span per *Behavior & rules*. The set is
-  the spec's Testing Strategy goal-based group, inherited by reference.
-  **Non-inferable constraint:** `RULES` is a hand-declared tuple, so no
-  assertion here can notice an unpinned sentence. The pin is a proxy and the
-  floor bounds its incompleteness; do not describe it as a derivation.
-- **AC1, AC2 — ordering.** Two offset comparisons. AC1: the five stage markers
-  ascend as one comparison across all five, not pairwise. AC2: the hand-off
-  marker falls strictly between the routing and set-level-pass markers.
-  **Non-inferable constraint:** comparing against admission alone passes when
-  wording lands mid-procedure, because routing and the pass both follow
-  admission.
-- **AC3, AC5, AC10 — two-clause content assertions.** Each of these criteria
-  carries a requirement *and* its consequence, and the requirement alone reads
-  as advice. Assert both clauses per criterion: AC3's composition instruction
-  and its compose-rather-than-check direction; AC5's observing-surface
-  requirement and the stays-a-candidate consequence; AC10's
-  one-observer-per-criterion direction specifically, since the forward coverage
-  direction already shipped and a section-level assertion stays green without
-  the new one.
-- **AC15, AC19 — count traces, one each.** AC15: the count sentence records the
-  count and its corpus position. AC19: the same span carries no rejection and
-  states that a set above the p75 passes on its obligations alone.
-- **AC16 — the heightened-scrutiny action, positively.** Assert the percentile
-  condition, the pairwise whole-set uniqueness re-run, and the record-the-result
-  instruction; and that the per-criterion check alone applies below that same
-  p75 position. **Non-inferable constraint:** the content is the *difference*
-  between the two positions, so a high-branch assertion alone passes when the
-  branch is unconditional, and naming a second lower threshold reinstates the
-  undefined band AC16 was repaired to remove.
-- **AC16 and AC19 must not collide.** Slice `SKILL.md` to the procedure span per
-  *Behavior & rules* and assert the absence of a *fixed absolute* criterion
-  count — a cap, ceiling, refusal or pass/fail bar on how many criteria a spec
-  may carry. **Non-inferable constraint:** do not key on a numeral. AC16
-  requires a derived corpus-percentile trigger in that same span, so a
-  bare-numeral test forbids what another criterion requires. Permitted shape: a
-  percentile derived from the author's own corpus, used only to order scrutiny.
-  A whole-file token deny-list is unavailable either way; see the probe under
-  *Design decisions*.
-- **Exact assertion wording is build-discovered.** Every bullet above names the
-  criterion, the altitude of the assertion and any constraint the implementer
-  cannot infer. The phrases, markers and offsets themselves are
-  `implementation-discovered`: they cannot be settled until the procedure prose
-  exists. **Discovery predicate:** each assertion is written against the shipped
-  sentence once `SKILL.md` is authored. **Constraint:** no assertion may key on
-  a bare numeral, and each must fail under deletion of the clause it pins.
-  **Required outcome:** the suite is red before the prose lands and green after.
-  **Verification mode:** goal-based, in the pack-local suite. Do not ask the
-  approval gate to bless wording that does not exist yet.
+  every assertion below. Each bullet names its criteria and the observation; the
+  rules governing assertion shape are in *Behavior & rules*, cited not repeated.
+- **AC17, AC18.** Extend `RULES`, owner `skill`; the parametrised owner test
+  then gives AC17 per entry. Add one assertion that the pinned set reaches each
+  of the five stage intervals, the fifth closing at the end of the procedure
+  span. The set is the spec's Testing Strategy goal-based group, inherited by
+  reference.
+- **AC1, AC2.** Two offset comparisons over the stage markers.
+- **AC3, AC5, AC10.** Both clauses of each criterion — requirement and
+  consequence.
+- **AC15, AC19.** The count sentence records count and corpus position; the same
+  span carries no rejection and states that a set above the p75 passes on its
+  obligations alone.
+- **AC16.** The percentile condition, the pairwise whole-set uniqueness re-run,
+  the record-the-result instruction, and the below-p75 branch.
+- **AC16, AC19 together.** Slice the procedure span and assert the absence of a
+  fixed absolute criterion count.
+- **Exact assertion wording is build-discovered.** The phrases, markers and
+  offsets cannot be settled until the procedure prose exists.
+  **Discovery predicate:** each assertion is written against the shipped
+  sentence once `SKILL.md` is authored. **Constraint:** no assertion keys on a
+  bare numeral, and each fails under deletion of the clause it pins.
+  **Required outcome:** the suite is red before the prose lands, green after.
+  **Verification mode:** goal-based, pack-local suite.
 
 **Approach:**
 - Rewrite the AC step's `No Acceptance Criteria` bullet into the numbered
