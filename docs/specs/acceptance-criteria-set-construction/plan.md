@@ -158,6 +158,8 @@ admission, so wording could land mid-procedure and still pass. Traces to: AC2.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
+  every assertion below.
 - **AC17 and AC18 — the pin, and the floor that makes it non-vacuous.** Extend
   `RULES` in `test_acceptance_criteria_discipline.py`, owner `skill`. The
   existing parametrised owner test gives **AC17** for every entry: present in
@@ -252,9 +254,12 @@ missing one of them does not close this task.
 
 **Depends on:** T1
 
-**Touches:** `guides/core/reference/acceptance-criteria-authoring.md`
+**Touches:** `guides/core/reference/acceptance-criteria-authoring.md`,
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
+  the content check below. Without it the check is authored and never executed.
 - **AC12 and AC13 — content check, in the pack-local suite.** The three guide validators are
   frontmatter and link gates and cannot observe content, so they do not verify
   this task's contract. Assert over the page body: each of the five procedure
@@ -290,6 +295,8 @@ can be missing both guide outcomes.
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
 
 **Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
+  the per-case assertions below.
 - **AC20 and AC21** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
