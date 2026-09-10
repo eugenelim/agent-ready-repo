@@ -201,7 +201,13 @@ response that does not meet the underlying requirement.
 | Dependency disclosure before install | "Dependency disclosure: what does it pull in, and is that visible before install?" |
 | Shared prefix is a namespace collision | "Namespace collision: what happens when two packages claim the same name?"; failure mode "Silent namespace collision shadows a user's own component" |
 
-### Per-verdict transcript readings (AC10)
+### Per-verdict transcript readings for `r1` — superseded history (AC10)
+
+**These readings are not the current record.** They were taken against the
+`r1` transcripts, which `r2` replaced in full, and three rows below state
+the opposite verdict to what ships. The current record is "Per-verdict
+readings for `r2`" further down this file; this table is retained so the
+superseded round stays auditable.
 
 One reading per recorded verdict, produced by a grading context reading each
 transcript fresh and without sight of the earlier round's verdicts. Forty-two
@@ -394,6 +400,7 @@ confirmed byte-identical afterwards.
 | The pattern set cannot be emptied at its source (AC17) | Empty `HOST_IDENTIFYING_PATTERN_STRINGS` in the pack suite | `test_retained_transcripts_carry_no_host_identifying_data` | `AssertionError: the pack suite declares no host-identifying patterns` |
 | A declared write status is one the skill can emit (AC4) | Declare `Write status: pending owner sign-off` | `test_every_declared_write_status_is_one_the_skill_can_emit` | value not in the receipt vocabulary |
 | The vocabulary is read, not guessed (AC4) | Collapse `SKILL.md`'s receipt line to a single value | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: the receipt line parsed to {'not authorized'}` |
+| The receipt vocabulary has exactly one home (AC4) | Add a second `Write status: ` line above the receipt offering a wider list, and declare its extra value | `test_every_declared_write_status_is_one_the_skill_can_emit` | `AssertionError: SKILL.md carries 2 lines beginning 'Write status: '` |
 | The round identifier is not blank (AC11, AC12) | Set `graded_run.observation_id` and all ten record identifiers to `""` | `test_every_authoring_record_belongs_to_one_round` | `AssertionError: graded_run carries observation_id ''` |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -445,7 +452,11 @@ case actually declares.
 
 ## T3 — publish and close
 
-Completed 2026-09-09.
+Completed 2026-09-09. **This section records the pre-rebase close.** The
+figures below — the manifest version, the base-commit comparison, the gate
+counts — were true when T3 ran and the rebase moved all three. They are kept
+as the record of that close; the current state is in "Post-rebase close"
+at the end of this file.
 
 ### Published surfaces
 
@@ -686,6 +697,115 @@ missed capability, and repairing it means either shipping the topic or
 rewriting the assertion, neither of which belongs in a review round on a frozen
 spec.
 
+### Per-verdict readings for `r2` (AC10)
+
+One reading per recorded verdict, taken by the grading context against the
+retained `r2` transcript that verdict rests on. The grading context received
+the transcripts and the assertion lists and authored neither.
+
+The `r1` reading table further up this file is retained as history and is not
+the current record: three of its rows state the opposite verdict, because `r2`
+moved them. Read this table for what ships.
+
+| Case | # | Verdict | Reading against the retained `r2` transcript |
+| --- | --- | --- | --- |
+| `frame-new-skill` | 0 | true | declares "Mode: frame", write not authorized, no files |
+| `frame-new-skill` | 1 | true | six should-activate and six should-not-activate concrete prompts given |
+| `frame-new-skill` | 2 | true | separate "Non-goals" and "Authority and boundaries" sections apart from activation |
+| `frame-new-skill` | 3 | true | proposed file tree shown; explicitly states creation needs separate authorization |
+| `update-existing-skill` | 0 | true | full contract inventory precedes candidate change list |
+| `update-existing-skill` | 1 | true | boundary stays filesystem_read_untrusted; activation only narrowed, never widened |
+| `update-existing-skill` | 2 | true | candidates A-G each labelled with authority required, none chosen |
+| `update-existing-skill` | 3 | true | verification section listed; agreement explicitly does not authorize write |
+| `cold-start-orientation` | 0 | true | "Mode: frame", read-only end to end, no write boundary |
+| `cold-start-orientation` | 1 | true | names AGENTS.md/CLAUDE.md chain, standards, structure, change surface, verification commands |
+| `cold-start-orientation` | 2 | true | non-goals exclude proposing change; orientation not forwarded as edit authorization |
+| `cold-start-orientation` | 3 | true | write authority none; report only, no caching or persistence |
+| `cross-session-resumption` | 0 | **false** | never names update mode; stays in frame throughout |
+| `cross-session-resumption` | 1 | **false** | only enumerates candidate mechanisms; adds no record, nothing durable |
+| `cross-session-resumption` | 2 | true | activation unchanged, never executes migration, findings quality preserved |
+| `cross-session-resumption` | 3 | true | asks for mechanism and confirmed root before requesting write authority |
+| `progressive-result-presentation` | 0 | true | "Mode: frame", write not authorized, no file resolved |
+| `progressive-result-presentation` | 1 | true | closed stop-reason vocabulary plus partial distinguished from success and failure |
+| `progressive-result-presentation` | 2 | true | receipt requires next_action, next_action_needs, resume_from per stop |
+| `progressive-result-presentation` | 3 | true | partial never reported as success; status field prevents collapsing readings |
+| `knowledge-provider-read-only-entry` | 0 | true | receipt states "Mode: knowledge-provider" explicitly |
+| `knowledge-provider-read-only-entry` | 1 | true | root index, child indexes, leaves, routing signals planned; no files created |
+| `knowledge-provider-read-only-entry` | 2 | true | "entered read-only and carries no write authority" |
+| `knowledge-provider-read-only-entry` | 3 | true | five items required in one explicit authorization before any write |
+| `pytest-suite` | 0 | true | guarantee 1 makes collection identity a decision, not style |
+| `pytest-suite` | 1 | true | guarantee 3 sets per-test lifetime, temporaries sited outside confined root |
+| `pytest-suite` | 2 | true | guarantee 4 rejects one shared fixture directory under parallel runs |
+| `pytest-suite` | 3 | true | boundary resolutions priced cheaper/dearer; fixture scope widest assertions still allow |
+| `node-browser-suite` | 0 | **false** | argues pinned declared count only; memory and browser cost unmentioned |
+| `node-browser-suite` | 1 | true | guarantee 2 requires locked pinned manifest, no test-time install |
+| `node-browser-suite` | 2 | true | per-worker, per-run profile directories; shared profile races named unsafe |
+| `node-browser-suite` | 3 | **false** | deliberately stated at portable floor, all ecosystem mechanism withheld |
+| `subagent-composition` | 0 | true | 200 concurrent write authorities and shared summary race named unsafe |
+| `subagent-composition` | 1 | true | fixed minimal brief decided instead of inheriting the conversation |
+| `subagent-composition` | 2 | true | parent sets concurrency cap and timeout against unbounded all-200 fan-out |
+| `subagent-composition` | 3 | true | parent aggregates; last-worker-summary rejected as skill-voiding defect |
+| `subagent-composition` | 4 | true | machine-checkable return schema plus unaudited accounting for failures |
+| `hook-plugin-design` | 0 | true | post-publication hook detects only; block requires pre-publication gate |
+| `hook-plugin-design` | 1 | true | policy file is data, fixed schema parsed, prose discarded |
+| `hook-plugin-design` | 2 | true | challenges chatroom rationale, urges splitting by authority and cadence |
+| `hook-plugin-design` | 3 | **false** | states transitive cost and prescribes splitting; never requires pre-install disclosure |
+| `hook-plugin-design` | 4 | true | release prefix framed as collision with team's existing local commands |
+
+Five of the forty-two are false, and each is exempted with its authority in
+the AC15 record below.
+
+### Exemptions admitted in `r2` — owner authority (AC15, Never do)
+
+Two entries in the exemption set date from `r2` and carry their authority
+here. A basis living only in a commit message does not satisfy the rule, which
+is why both are recorded with the same six fields the pre-`r2` entries carry.
+
+**1. `hook-plugin-design`, index 3 — restored after a wrong flip.**
+
+- **Case:** `hook-plugin-design`
+- **Assertion:** "Names the undisclosed shared dependency as something a
+  consumer must see before install"
+- **Prior verdict:** false in `r1`, exempted
+- **Measured in `r2`:** false
+- **Ground:** the retained transcript's only passage on that dependency states
+  its transitive cost and prescribes splitting the package by authority. It
+  never says a consumer must be shown the dependency before installing. The
+  `r2` grading initially read this as true and the exemption was deleted; two
+  independent review lenses and the adjudication all found the transcript does
+  not carry it, and the justification offered for the flip was verbatim the
+  content the `r1` reading had already graded insufficient. The flip rested on
+  no new supporting text and is reversed. The declared assertion text is
+  unchanged — rewording it to match a measurement is the failure this rule
+  exists to prevent.
+- **Authority:** repository owner, 2026-09-09, after being shown the
+  adjudication, the transcript passage, and both readings.
+
+**2. `node-browser-suite`, index 3 — newly measured false.**
+
+- **Case:** `node-browser-suite`
+- **Assertion:** "Bounds at least one guarantee to its ecosystem rather than
+  stating it portably"
+- **Prior verdict:** true in `r1`
+- **Measured in `r2`:** false
+- **Ground:** the `typescript-node` topic lives in a separate skill reached
+  only through capability metadata and is not present, so the response
+  withheld every ecosystem-specific mechanism and said so. This is the same
+  cause already exempted at index 0 of this case, and it is the contract's
+  normal degraded path. The assertion is unsatisfiable in that path: the
+  contract forbids naming ecosystem mechanism without the topic and the
+  assertion requires naming it, so no response can satisfy both while the
+  topic is absent. `r1` scored it true, which on this reading was the weaker
+  behaviour — a response naming mechanism it had no evidence for. The
+  exemption records a contradiction between a declared assertion and the
+  shipped contract, not a missed capability. Repairing it means shipping the
+  topic or rewriting the assertion; both are owner decisions outside a review
+  round on a frozen spec, and the `references/` Follow-on is where the first
+  belongs.
+- **Authority:** repository owner, 2026-09-09, after being shown the
+  contradiction, the `r1` verdict, and the alternative of reporting an
+  unexcused miss.
+
 ### Corrected predeclaration, second instance (Never do)
 
 - **Case:** `knowledge-provider-read-only-entry`
@@ -794,6 +914,43 @@ changes the `source_files` contract AC9 and AC12 pin and that the sibling
 review-skill records inherit unchanged; at a Shipped spec that is the amendment
 path, not a closeout edit. Routed to whoever owns the next slice that touches
 this evidence, and named in this slice's pull request.
+
+## Post-rebase close
+
+The T3 record above is the pre-rebase close and its figures no longer describe
+the tree. This is the current one. It exists because the spec's verification
+record closes only when no required observation lives outside this ledger, and
+after the rebase the only current statement of the shipped version sat in the
+architecture document, which is an approved artifact.
+
+- **Manifests (AC25).** `packs/agent-skill-engineering/pack.toml` and
+  `.claude-plugin/plugin.json` both at `0.4.3`, one patch above the `0.4.2`
+  they carry at the current base commit `18ea69ba9`. The bump is a patch
+  because the slice changes evaluation evidence and adds no primitive and
+  removes none. `0.4.2` was this slice's version before the rebase; the peer
+  concepts slice published `0.4.2` on `main` while this branch was open, so
+  the two would have been one version string naming two code states.
+- **Aggregate.** `.claude-plugin/marketplace.json` regenerated by
+  `agentbundle catalogue self-host --write` on a clean tree, which is the only
+  way it will run — it refuses a dirty one.
+- **Web projection.** `web/src/lib/now-highlights.generated.json` regenerated
+  by `tools/build-site.py --journeys-only`. It went stale on the rebase, which
+  brought in the peer slice's `Highlights`; this slice contributes none, having
+  no `Highlights` section.
+- **Changelog.** `0.4.3` entry topmost for the pack, above the peer slice's
+  `0.4.2`.
+
+**Gates at close, all exit 0:** pack suite 267; roster suite 1385 passed, 6
+skipped, 46 subtests; ruff; mypy; spec-status; brief-coverage; ci-parity;
+pack-test-boundary; `catalogue lint --deep`; `catalogue verify`;
+`diff --check`. Remote CI on the rebased head: `build-check`, `test-roster`,
+`test-corpus` and `pages` all green.
+
+Three of those gates were not in the local set this slice used for its first
+eight rounds and were reached only by pushing: the pack-test boundary lint
+inside `make build-check`, the repo-wide ruff run, and the generated web
+projection inside `make test`. Each found a real defect. An inherited gate
+list is not the gate set.
 
 ## Observed gate failures
 

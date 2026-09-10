@@ -294,8 +294,13 @@ version 0.4.3. **Implemented names and their paths:** `subagent-composition` and
 with payloads at `evals/files/subagent-composition-SKILL.md` and
 `evals/files/hook-plugin-design-SKILL.md`; their graded records in
 `packs/agent-skill-engineering/tests/fixtures/behavior-results.json`; their
-guards in `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`;
-their retained transcripts under
+guards in
+`packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
+for everything answerable from pack-local literals, and in
+`tests/roster/test_ase_composition_fixture_evidence.py` for the guards that
+read the frozen spec, its ledger, the retained transcripts, or the
+declarations at the base commit, because a pack test may not reach above its
+own pack; their retained transcripts under
 `docs/specs/agent-skill-engineering-composition-fixtures/notes/transcripts/`.
 **Dependency edge:** the composition-floors slice, whose portable
 skills-and-subagents, hooks and plugin-package floors are the corpus each

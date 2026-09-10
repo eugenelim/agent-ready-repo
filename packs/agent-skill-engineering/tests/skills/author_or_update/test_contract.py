@@ -234,6 +234,11 @@ KNOWN_MISSES = frozenset(
             "skill root, without entering it before authorization",
         ),
         (
+            "hook-plugin-design",
+            "Names the undisclosed shared dependency as something a consumer must see "
+            "before install",
+        ),
+        (
             "node-browser-suite",
             "Frames worker sizing against memory and browser cost, not CPU count alone",
         ),
@@ -926,15 +931,21 @@ def test_every_declared_write_status_is_one_the_skill_can_emit() -> None:
     identically whether the skill is right or wrong.
     """
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    line = next(
-        (
-            candidate
-            for candidate in body.splitlines()
-            if candidate.startswith("Write status: ")
-        ),
-        None,
+    # Every such line, not the first. Taking the first match makes any earlier
+    # prose line the vocabulary -- an example offering a wider pipe-separated
+    # list would silently admit a value the receipt cannot carry, which is the
+    # thing this guard exists to stop.
+    lines = [
+        candidate
+        for candidate in body.splitlines()
+        if candidate.startswith("Write status: ")
+    ]
+    assert len(lines) == 1, (
+        f"SKILL.md carries {len(lines)} lines beginning 'Write status: '; the "
+        "receipt vocabulary must have exactly one home, or this guard cannot "
+        "know which line is the contract"
     )
-    assert line, "SKILL.md declares no write-status receipt line"
+    line = lines[0]
     vocabulary = {value.strip() for value in line[len("Write status: "):].split("|")}
     assert len(vocabulary) >= 2, (
         f"the receipt line parsed to {vocabulary}; a single-value read means "

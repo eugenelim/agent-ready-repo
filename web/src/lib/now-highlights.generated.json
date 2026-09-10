@@ -38,6 +38,28 @@
     {
       "packages": [
         {
+          "name": "agent-skill-engineering",
+          "version": "0.4.2"
+        }
+      ],
+      "date": "2026-09-09",
+      "heading": "[agent-skill-engineering][0.4.2] — 2026-09-09",
+      "changelogAnchor": "agent-skill-engineering042--2026-09-09",
+      "highlights": [
+        {
+          "source": "A skill author deciding whether to hand work to an isolated worker, or whether to ship a set of components as one package, now gets those concepts from the corpus instead of being routed to a runtime profile that does not exist.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "A skill author deciding whether to hand work to an isolated worker, or whether to ship a set of components as one package, now gets those concepts from the corpus instead of being routed to a runtime profile that does not exist."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.25.8"
         }
