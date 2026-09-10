@@ -335,13 +335,16 @@ measure names, completing the eleven representative task fixtures it lists.
   it exercises alongside the assertion that reports its seeded defect.
 - Every authoring case was re-measured in one blind round rather than
   re-stamped: adding two cases moves the declaration digest every recorded
-  result pins. Six of eight inherited verdicts match the prior baseline.
+  result pins. Most inherited verdicts match the prior baseline; the ones that
+  moved are recorded with both values and a reading.
 - Graded verdicts are now bound to retained response transcripts rather than to
   the record's own account of itself, so a recorded result can be read back
   against the bytes it came from.
-- One inherited declaration was corrected under owner authority after the
-  measurement showed the workflow no longer emits the write-status marker it
-  declared.
+- Two declarations were corrected under owner authority after measurement, each
+  because it pinned one value from the receipt's three-value write-status
+  vocabulary. A new check binds every declared marker to the vocabulary the
+  skill actually declares, so a case can no longer pin a value the workflow has
+  no way to emit.
 
 No `### Highlights` section: this release changes the pack's evaluation
 evidence, not what a consumer of the pack can do. No skill body, reference,
