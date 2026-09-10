@@ -135,6 +135,33 @@ installed state, source content, drift, orphaned configuration, and conformance.
 Build output, self-host projections, manifests, and install-state files provide
 the durable evidence record.
 
+### 7.1 Known drift — the install-time layout default writes nothing
+
+`_append_layout_section` maintains an adopter-owned `agentbundle-layout.toml`
+so a pack can ship a default output location at install
+(append-if-exists / never-create / never-overwrite). Traced 2026-09-10, the
+writer and the readers do not agree on any of three things, so the path is
+inert for every pack in the catalogue:
+
+| | Writer (`install.py`) | Readers (`workspace_mcp.py`, skills) | Packs declare |
+| --- | --- | --- | --- |
+| Section | `[<pack-name>]` | closed set: `research`, `product`, `design` | — |
+| Key | `parent` | `output_dir` | `output_dir` |
+
+Because all five consumers (`architect`, `desk-research`, `experience-design`,
+`product-engineering`, `product-strategy`) declare `[pack.layout.repo].output_dir`
+and the writer reads `parent`, it returns before writing. Verified by executing
+the real function against the real `desk-research` manifest: the layout file is
+unchanged. Even with the key corrected, the writer would emit
+`[desk-research]` where readers look in `[research]`.
+
+`tests/unit/test_append_layout_section.py` passes `pack_name="research"` and
+`{"repo": {"parent": …}}` — a shape no pack produces — so it proves the
+function against inputs production never supplies and cannot catch this.
+
+Adopter-authored layout files work correctly; only the shipped-default path is
+affected. Tracked in `[backlog].open`.
+
 ## 8. Mechanical invariants
 
 - `agentbundle catalogue verify` verifies projected agent artifacts and
@@ -168,4 +195,4 @@ the durable evidence record.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`29bad7200`

@@ -158,11 +158,13 @@ is an inherited default rather than an operator's own statement.
 Reading configuration is prompt-only where a skill does it: a file is read and
 a path reasoned about. Only the install-time append ever writes a layout file.
 
-> **Drift to check before building on this.** `_append_layout_section` sources
-> its default from `[pack.layout.<scope>].parent`, but all five current
-> consumers declare `output_dir` instead, and `desk-research`'s skill reads a
-> `[research]` section while the appender writes `[<pack-name>]`. Verify which
-> key and section name are authoritative before relying on the append path.
+> **The shipped-default half does not work today.** Traced and confirmed by
+> execution: `_append_layout_section` writes nothing for any pack in the
+> catalogue, because the writer and readers disagree on section, key, and value
+> name. See [agentbundle § 7.1](agentbundle.md#71-known-drift--the-install-time-layout-default-writes-nothing).
+> Adopter-authored layout files and an environment variable both work, so an
+> exporter can be configured today — but a catalogue-level default cannot be
+> shipped until that drift is settled.
 
 ## 8. Mechanical invariants
 

@@ -429,6 +429,24 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The install-time layout default is inert for every pack in the catalogue.
+  # `install.py::_append_layout_section` reads `[pack.layout.<scope>].parent`
+  # and writes a `[<pack-name>]` section; all five consumers declare
+  # `output_dir`, and the readers (`workspace_mcp.py::_read_layout_bases` and
+  # the desk-research skill) look in a closed set of semantic sections —
+  # `research`, `product`, `design`. Three mismatches: key, section, and the
+  # value's name. Proven by executing the real function against the real
+  # desk-research manifest: the layout file is unchanged. Not caught because
+  # `tests/unit/test_append_layout_section.py` passes `pack_name="research"`
+  # with `{"repo": {"parent": ...}}`, a shape no pack produces. Adopter-authored
+  # layout files work; only the shipped default does not, so an adopter who
+  # never edits the file silently gets no pack default at all. Fix is a
+  # decision, not a repair: either the writer adopts the readers' semantic
+  # section plus `output_dir`, or the readers open up to pack-name sections —
+  # and the test needs a fixture derived from real manifests either way.
+  # Evidence and the comparison table: docs/architecture/agentbundle.md 7.1.
+  # Unblocks when: an owner picks which side is authoritative.
+  {path = "docs/architecture/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "packages/agentbundle/agentbundle/commands/install.py"}, summary = "The install-time `agentbundle-layout.toml` default never writes: the appender reads `parent` and emits a pack-name section while every pack declares `output_dir` and every reader looks in the semantic `research`/`product`/`design` sections, and the unit test uses a fixture shape no pack produces", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine
