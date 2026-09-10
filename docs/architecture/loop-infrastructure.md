@@ -72,6 +72,98 @@ Both tools expose `status --json`. `engine-state.json`, `state.json`, and
 `.loop-run/events.jsonl` record phase, cohort, and transition evidence.
 Workspace MCP reads the event stream.
 
+### 7.1 The transition envelope
+
+`loop-engine transition` appends one JSON line per FSM transition to
+`.loop-run/events.jsonl` — repo-root-relative, gitignored, ephemeral. The line
+carries fourteen fields: the seven that identify the transition (`seq`,
+`run_id`, `spec`, `from`, `event`, `to`, `at`) and seven that describe it
+(`phase_started_at`, `phase_s`, `result`, `retry_state`, `awaiting_input`,
+`waived`, `budgets`).
+
+Three rules govern the shape.
+
+- **Absent means null, never missing.** A field the engine cannot determine is
+  written as `null` and still present, because a key that disappears reads as
+  zero to anything summing durations or comparing a counter with a cap.
+- **Outcome and reason are separate axes.** `result` records what a gate
+  decided; `retry_state` records why a failure sits where it does. One field
+  cannot carry both without giving a single value to "retrying" and to "out of
+  attempts".
+- **`budgets` is a copy, not an authority.** `loop-cohort` owns the retry
+  counters and moves them in a separate step, so the line reports a snapshot
+  that lags by one round. The pack's `state-schema.md` states the reachability
+  limits this produces; treat them as load-bearing, not as caveats.
+
+Writing the line is **unconditional**. There is no switch, because the target
+is a gitignored local file and no data leaves the machine.
+
+### 7.2 Export is a separate concern, and it is off
+
+Turning transition evidence into telemetry — an OTLP exporter, a collector
+endpoint, a dashboard — is deliberately **not** part of the engine. The engine
+records; anything that transmits is a distinct component with its own consent
+posture.
+
+No such component ships today. When one does, three properties are settled in
+advance by [the envelope survey](../product/research/agent-loop-otel-envelope-survey.md)
+and its [vocabulary bake-off](../product/research/workflow-lifecycle-vocabulary-comparison-matrix.md):
+
+- **OTLP is the transport**, and the domain vocabulary stays in an application
+  namespace. No lifecycle vocabulary exists at any standards body for phases,
+  gates, budgets or stalls, and the nearest standard deliberately dropped the
+  human-gate terms this loop needs.
+- **Disabled unless configured.** Not merely "no endpoint set by default" — an
+  explicit enablement decision, with a malformed value failing closed rather
+  than defaulting on.
+- **Content capture is a second, separate flag**, also defaulting off, so
+  enabling transport never implies consenting to payloads.
+
+### 7.3 How an exporter would be configured
+
+Configuration uses the mechanism this repository already has for adopter-owned
+pack settings; it does not need a new one.
+
+**Catalogue-level default.** A pack declares a scope-keyed
+`[pack.layout.repo]` / `[pack.layout.user]` table in its `pack.toml`. At
+install, `_append_layout_section` appends a `[<pack-name>]` section into an
+adopter-owned `agentbundle-layout.toml` — repo scope at
+`<repo>/agentbundle-layout.toml`, user scope at
+`<user-root>/.agentbundle/agentbundle-layout.toml`.
+
+Its three properties are the reason this is the right home for a consent-
+bearing default:
+
+| Property | Consequence |
+| --- | --- |
+| append-if-exists | An adopter with no layout file gets nothing written |
+| never-create | Installing a pack cannot bring the file into being |
+| never-overwrite | A section the adopter already authored is left alone |
+
+So a shipped default can only ever land in a file the adopter already chose to
+keep, and can never replace a decision they have already made.
+
+**Two scopes, with the personal one winning.** `desk-research` establishes the
+precedent: read user scope first so a personal vault applies regardless of
+which repository is active, then repo scope as the team-visible fallback, then
+elicit — never a silent default. Both files are adopter-owned and are never
+written into a projected path.
+
+**Environment override.** An environment variable takes precedence over both
+files, so an operator can disable one run without editing an installed
+artifact. This inverts OpenTelemetry's own rule, where a declarative config
+file makes `OTEL_*` inert; the inversion is deliberate, because the file here
+is an inherited default rather than an operator's own statement.
+
+Reading configuration is prompt-only where a skill does it: a file is read and
+a path reasoned about. Only the install-time append ever writes a layout file.
+
+> **Drift to check before building on this.** `_append_layout_section` sources
+> its default from `[pack.layout.<scope>].parent`, but all five current
+> consumers declare `output_dir` instead, and `desk-research`'s skill reads a
+> `[research]` section while the appender writes `[<pack-name>]`. Verify which
+> key and section name are authoritative before relying on the append path.
+
 ## 8. Mechanical invariants
 
 - `check-spec-status.py` blocks guarded transitions unless the requested
@@ -89,4 +181,4 @@ Workspace MCP reads the event stream.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`6f030f151`
