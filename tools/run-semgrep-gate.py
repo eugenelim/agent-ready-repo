@@ -31,6 +31,7 @@ Proven by tools/test-semgrep-strict-gate.py.
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is the literal "semgrep"
 import sys
@@ -57,6 +58,14 @@ STRICT_HINT = (
     "run-semgrep-gate: SEMGREP_EXCLUDE. A new exclusion needs ADR-0102's shape:\n"
     "run-semgrep-gate: a stated residual AND a retirement trigger."
 )
+TIMEOUT_HINT = (
+    "run-semgrep-gate: a timeout is load-sensitive. Before treating it as a\n"
+    "run-semgrep-gate: defect, check whether the named file is in your diff at\n"
+    "run-semgrep-gate: all, and run this exact invocation against that file\n"
+    "run-semgrep-gate: alone — a budget breach exits 0 there. If it was load,\n"
+    "run-semgrep-gate: re-run on a quiet machine and report the count, the load\n"
+    "run-semgrep-gate: and the file set, not just that a later run passed."
+)
 OTHER_HINT = (
     "run-semgrep-gate: semgrep failed for a reason --strict did not promote — see\n"
     "run-semgrep-gate: the diagnostics above. This is not a finding in your code,\n"
@@ -64,6 +73,8 @@ OTHER_HINT = (
 )
 # The `type` values --strict promotes, lowercased for comparison.
 STRICT_TYPES = ("partialparsing", "timeout", "ruletimeout", "timeouterror")
+# The subset of those that a contended host can cause on code nobody touched.
+TIMEOUT_TYPES = ("timeout", "ruletimeout", "timeouterror")
 
 
 def _safe(text: object) -> str:
@@ -103,6 +114,31 @@ def _format(error: dict) -> list[str]:
     lines = (error.get("message") or "").strip().splitlines() or ["(no message)"]
     head = f"{path}: {level} {_safe(_kind(error))} — {_safe(lines[0])}"
     return [head] + [f"    {_safe(line)}" for line in lines[1:]]
+
+
+def _timeout_census(errors: list[dict]) -> str | None:
+    """One line summarising the timeout diagnostics, or None if there are none.
+
+    A per-file time-budget breach and a real defect print the same way, so the
+    reader has to tell them apart from *outside* a single run: a defect names the
+    same file every time, a budget breach names a set that reshuffles between
+    runs and grows with machine load. Both discriminating numbers — how many
+    distinct files, and what the load was — are knowable here and nowhere later,
+    so emit them rather than leaving them to be reconstructed from memory.
+    """
+    timeouts = [e for e in errors if _kind(e).lower() in TIMEOUT_TYPES]
+    if not timeouts:
+        return None
+    files = {str(e.get("path") or "<no path>") for e in timeouts}
+    try:
+        load = f"{os.getloadavg()[0]:.1f}"
+    except (OSError, AttributeError):  # not available on Windows
+        load = "unavailable"
+    cpus = os.cpu_count() or "?"
+    return (
+        f"{len(timeouts)} timeout diagnostic(s) across {len(files)} file(s); "
+        f"1-minute load average {load} on {cpus} CPUs."
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -165,6 +201,10 @@ def main(argv: list[str]) -> int:
         for error in errors:
             for line in _format(error):
                 print(f"run-semgrep-gate: {line}", file=sys.stderr)
+        census = _timeout_census(errors)
+        if census is not None:
+            print(f"run-semgrep-gate: {census}", file=sys.stderr)
+            print(TIMEOUT_HINT, file=sys.stderr)
         strict_class = any(_kind(e).lower() in STRICT_TYPES for e in errors)
         print(STRICT_HINT if strict_class else OTHER_HINT, file=sys.stderr)
         return proc.returncode

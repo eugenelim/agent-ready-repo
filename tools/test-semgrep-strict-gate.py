@@ -31,6 +31,12 @@ Asserts:
      this the wrapper could capture and swallow every finding, silently.
  10. semgrep's own stderr reaches the caller too. Both streams are inherited, and
      a mutation discarding only stderr passed every one of cases 1-9.
+ 11. A timeout run reports its census — count, distinct-file count, load — in the
+     pinned line shape, a parse-only run reports none, and both keep semgrep's
+     own exit code. Six mutations were checked against this case and all six red
+     it: a census that never fires, one that fires on every diagnostic, a
+     `TIMEOUT_TYPES` narrowed to one name, files counted as diagnostics, a blank
+     load value, and a return 0 that swallows the timeout exit.
 
 Run: python3 tools/test-semgrep-strict-gate.py
 Exit 0 = all pass; non-zero = at least one failure.
@@ -40,6 +46,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is sys.executable
 import sys
 import tempfile
@@ -98,6 +105,43 @@ PARTIAL_PARSE = json.dumps(
     }
 )
 NO_ERRORS = json.dumps({"results": [], "errors": []})
+# Three timeout diagnostics over two distinct files. Two properties are built in
+# deliberately. The counts differ (3 vs 2), so a census that counted files as
+# diagnostics or diagnostics as files cannot read as correct. And all three
+# timeout type names appear once each, in both shapes semgrep emits, so a census
+# narrowed to only `Timeout` loses a name the strict set covers.
+TIMEOUTS = json.dumps(
+    {
+        "results": [],
+        "errors": [
+            {
+                "type": ["Timeout", []],
+                "level": "warn",
+                "path": "packages/agentbundle/agentbundle/cli.py",
+                "message": "Timeout when running p/security-audit rule on this file",
+            },
+            {
+                "type": "RuleTimeout",
+                "level": "warn",
+                "path": "packages/agentbundle/agentbundle/cli.py",
+                "message": "Timeout when running a second p/python rule on this file",
+            },
+            {
+                "type": ["TimeoutError", []],
+                "level": "warn",
+                "path": "tools/build-site.py",
+                "message": "Timeout when running p/python rule on this file",
+            },
+        ],
+    }
+)
+# The census line, exactly. Pinned as a shape rather than a substring so an
+# implementation that prints the labels with nothing measured behind them — an
+# empty load, a missing count — fails instead of matching a fragment.
+CENSUS_LINE = re.compile(
+    r"run-semgrep-gate: (\d+) timeout diagnostic\(s\) across (\d+) file\(s\); "
+    r"1-minute load average (\d+\.\d+|unavailable) on (\d+|\?) CPUs\."
+)
 # A path and message carrying control characters, as a file in a fork PR could.
 # The gate log is the one output this wrapper exists to make trustworthy, so an
 # embedded newline or escape sequence must not rewrite the lines around it.
@@ -195,6 +239,37 @@ CASES = [
 ]
 
 
+def _check_timeout_census() -> list[str]:
+    """A timeout run reports how many, over how many files, and at what load.
+
+    Both directions, because they are one defect seen from either side. A census
+    that never fires loses the discriminator the reader needs; a census that
+    fires on every diagnostic tells a parse error it was probably machine load,
+    which is worse than saying nothing. The exit code is asserted here too: the
+    census is a reporting addition, and a reporting addition that swallowed the
+    gate's own failure would satisfy every string assertion below.
+    """
+    problems = []
+    code, stderr, _stdout, _seen = _run_gate(TIMEOUTS, 2, ARGS)
+    if code != 2:
+        problems.append(f"timeout run returned {code}, not semgrep's own 2")
+    match = CENSUS_LINE.search(stderr)
+    if match is None:
+        problems.append(f"no well-formed timeout census on a timeout run: {stderr.strip()!r}")
+    elif (match.group(1), match.group(2)) != ("3", "2"):
+        problems.append(
+            f"census counted {match.group(1)} diagnostic(s) over {match.group(2)} file(s); "
+            "the payload holds 3 over 2"
+        )
+
+    code, stderr, _stdout, _seen = _run_gate(PARTIAL_PARSE, 3, ARGS)
+    if CENSUS_LINE.search(stderr) is not None:
+        problems.append("a parse-only diagnostic was reported as a timeout")
+    if code != 3:
+        problems.append(f"parse-only run returned {code}, not semgrep's own 3")
+    return problems
+
+
 def _check_passthrough() -> list[str]:
     """The wrapper forwards every argument and adds exactly one `--json-output`.
 
@@ -267,6 +342,7 @@ def main() -> int:
         ("every argument is forwarded, plus exactly one --json-output", _check_passthrough),
         ("semgrep's own stdout still reaches the caller", _check_stdout_reaches_caller),
         ("semgrep's own stderr still reaches the caller", _check_stderr_reaches_caller),
+        ("a timeout run reports its count, file set size and load", _check_timeout_census),
     ):
         problems = check()
         if problems:
@@ -278,7 +354,7 @@ def main() -> int:
     if failures:
         print(f"\ntest-semgrep-strict-gate: {failures} failure(s).", file=sys.stderr)
         return 1
-    print(f"\ntest-semgrep-strict-gate: all {len(CASES) + 3} cases passed.")
+    print(f"\ntest-semgrep-strict-gate: all {len(CASES) + 4} cases passed.")
     return 0
 
 
