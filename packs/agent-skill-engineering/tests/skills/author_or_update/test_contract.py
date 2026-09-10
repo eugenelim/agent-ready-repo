@@ -45,6 +45,8 @@ AUTHORING_EVAL_IDS = frozenset(
         "knowledge-provider-read-only-entry",
         "pytest-suite",
         "node-browser-suite",
+        "subagent-composition",
+        "hook-plugin-design",
     }
 )
 AUTHOR_EVIDENCE_SOURCES = (
@@ -58,6 +60,8 @@ AUTHOR_EVIDENCE_SOURCES = (
     "evals/files/update-existing-SKILL.md",
     "evals/files/pytest-suite-SKILL.md",
     "evals/files/node-browser-suite-SKILL.md",
+    "evals/files/subagent-composition-SKILL.md",
+    "evals/files/hook-plugin-design-SKILL.md",
 )
 
 
@@ -187,6 +191,8 @@ def test_authoring_behavior_evals_cover_frame_and_existing_update() -> None:
         "knowledge-provider-read-only-entry",
         "pytest-suite",
         "node-browser-suite",
+        "subagent-composition",
+        "hook-plugin-design",
     }
     assert cases["frame-new-skill"].get("files") is None
     update_files = cases["update-existing-skill"]["files"]
@@ -206,11 +212,64 @@ def test_authoring_behavior_evals_cover_frame_and_existing_update() -> None:
     )
 
 
+# Known misses, module scope so every consumer reads one object.
+#
+# Two inherited; three added at the composition-fixtures slice, each measured
+# false in the 2026-09-09 round and each authorised by the owner that day. The
+# slice's verification ledger carries case, assertion text, prior verdict,
+# measured verdict and authority for every entry; this tuple is the
+# machine-readable half and the ledger is the record.
+#
+# This was briefly reconstructed by parsing this file's own source. That parse
+# kept the delimiting quote characters, so no pair could ever match an assertion
+# string read from JSON and the exemption branch was dead — while the
+# non-emptiness check written to catch exactly that class passed, because the
+# set parsed non-empty and merely held the wrong strings.
+KNOWN_MISSES = frozenset(
+    {
+        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
+        (
+            "cross-session-resumption",
+            "Names update as the mode the work will need, against the named existing "
+            "skill root, without entering it before authorization",
+        ),
+        (
+            "hook-plugin-design",
+            "Names the undisclosed shared dependency as something a consumer must see "
+            "before install",
+        ),
+        (
+            "node-browser-suite",
+            "Frames worker sizing against memory and browser cost, not CPU count alone",
+        ),
+        # Same cause as the row above, reached by a second assertion in r2. The
+        # response withheld every ecosystem-specific mechanism because the
+        # `typescript-node` topic is not present, which is the contract's
+        # normal degraded path -- the topic lives in a separate skill reached
+        # only through capability metadata. This assertion asks the response to
+        # bound a guarantee to its ecosystem, so in the degraded path the
+        # contract forbids exactly what the assertion requires and no response
+        # can satisfy both.
+        (
+            "node-browser-suite",
+            "Bounds at least one guarantee to its ecosystem rather than stating it "
+            "portably",
+        ),
+    }
+)
+
+
 def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     evidence = json.loads(
         (
             PACK_ROOT / "tests" / "fixtures" / "behavior-results.json"
         ).read_text(encoding="utf-8")
+    )
+    # Same last-wins hazard as `_authoring_records`: refuse a repeated id
+    # before collapsing, or a shadowed record escapes every check below.
+    raw_ids = [r["eval_id"] for r in evidence["results"]]
+    assert len(raw_ids) == len(set(raw_ids)), sorted(
+        i for i in set(raw_ids) if raw_ids.count(i) > 1
     )
     results = {result["eval_id"]: result for result in evidence["results"]}
     cases = {
@@ -229,6 +288,8 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         "knowledge-provider-read-only-entry",
         "pytest-suite",
         "node-browser-suite",
+        "subagent-composition",
+        "hook-plugin-design",
         "detect-activation-failure",
         "detect-script-contract-failure",
     }
@@ -255,13 +316,8 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     # the count. Text keying does not by itself stop an exemption outliving its
     # miss -- the liveness check asserts the assertion is still declared, not that
     # it is still failing -- so the exemptions are also asserted to be used.
-    known_misses = {
-        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
-        (
-            "progressive-result-presentation",
-            "Pairs each incomplete state with the next action it hands the user",
-        ),
-    }
+    known_misses = KNOWN_MISSES
+
     # Every exemption still describes a declared assertion. Without this, a
     # reworded assertion silently drops its exemption's subject and the exemption
     # goes on excusing whatever now sits at that position.
@@ -278,6 +334,13 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
             if (eval_id, text) in known_misses
         }
         for index, verdict in enumerate(result["assertions"]):
+            # Type before value. `bool("false")` is True, so a JSON string
+            # verdict satisfies this assertion, is skipped by the failing-index
+            # set below, and passes both subset checks — a false verdict
+            # recorded as a pass with the suite green. These records are
+            # re-authored by hand every round, so a type slip is ordinary
+            # maintenance rather than an attack.
+            assert isinstance(verdict, bool), (eval_id, index, type(verdict).__name__)
             assert verdict or index in exempt, (eval_id, index, case["assertions"][index])
         failing = {
             index
@@ -334,7 +397,14 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
         if result["eval_id"] in AUTHORING_EVAL_IDS
         and relative_path in result.get("source_files", {})
     }
-    assert recorded == {digest}
+    assert recorded == {digest}, (
+        f"{relative_path} moved since these results were graded. The recorded "
+        "evidence must be re-measured, not re-stamped: run the round again and "
+        "replace the verdicts, transcripts and observation identifier together. "
+        "Refreshing this digest alone leaves verdicts attributed to a version "
+        "that no longer exists. See the slice verification ledger under "
+        "docs/specs/agent-skill-engineering-composition-fixtures/notes/."
+    )
 
 
 # Each clause a graded run forced into the shipped body.
@@ -496,7 +566,7 @@ def test_the_authoring_eval_id_set_covers_every_declared_case() -> None:
         f"{sorted(declared)}. Narrowing this set removes a graded result from "
         "the digest sweep without failing anything else."
     )
-    assert len(AUTHORING_EVAL_IDS) == 8
+    assert len(AUTHORING_EVAL_IDS) == 10
 
 
 def test_the_pinned_clause_set_is_exactly_the_two_measured_clauses() -> None:
@@ -697,3 +767,206 @@ def test_mode_specific_modules_are_exactly_four() -> None:
     # The common contract's safety module still governs every mode, so it is
     # not a knowledge-provider-specific module.
     assert "safety-and-authority.md" not in _modules_for("knowledge-provider")
+
+
+# ---------------------------------------------------------------------------
+# Composition-fixture guards.
+#
+# The two cases this slice adds carry two fields the inherited cases do not: the
+# pattern identifiers they exercise, and the text of the assertion that reports
+# the defect their payload seeds. Both are required of these two cases only —
+# a guard requiring them everywhere would redden on cases this slice does not
+# own.
+#
+# Every "before this slice" comparison reads the base commit rather than the
+# working tree. A baseline read from the tree is one the change under test can
+# edit first, which is how a marker this slice invented becomes "inherited".
+# ---------------------------------------------------------------------------
+
+# The record's `transcript` value is relative to the spec directory, so this
+# anchor is the spec directory itself.
+COMPOSITION_CASES = ("subagent-composition", "hook-plugin-design")
+# Per-case pattern lists are fixed by the contract, not derived from the
+# declarations they check: membership in the admitted set is the weaker test
+# that an unrelated admitted topic passes.
+EXPECTED_PATTERNS = {
+    "subagent-composition": ["skills-and-subagents-common-floor"],
+    "hook-plugin-design": ["hooks-common-floor", "plugin-package-common-floor"],
+}
+# The inherited case whose shape these two share: read-only framing over a
+# payload the case supplies. Its marker set is what they must equal.
+
+
+def _declared_cases() -> dict[str, dict]:
+    payload = json.loads((AUTHOR_ROOT / "evals" / "evals.json").read_text(encoding="utf-8"))
+    return {case["id"]: case for case in payload["evals"]}
+
+
+def test_composition_cases_declare_a_complete_field_set() -> None:
+    """AC1: no required field on either new case is empty."""
+    cases = _declared_cases()
+    for case_id in COMPOSITION_CASES:
+        case = cases[case_id]
+        for field in ("id", "prompt", "expected_output", "assertions", "files"):
+            assert case.get(field), (case_id, field)
+        assert case["expect"]["output_contains"], case_id
+
+
+@pytest.mark.parametrize("case_id", COMPOSITION_CASES)
+def test_composition_case_declares_its_exact_pattern_list(case_id: str) -> None:
+    """AC4: equality per case, and every identifier is an admitted topic."""
+    declared = _declared_cases()[case_id]["patterns"]
+    assert declared == EXPECTED_PATTERNS[case_id]
+    admitted = {
+        topic["topic"]
+        for topic in json.loads(
+            (PACK_ROOT / "tests" / "fixtures" / "topic-admission.json").read_text(
+                encoding="utf-8"
+            )
+        )["topics"]
+    }
+    assert set(declared) <= admitted, (case_id, sorted(set(declared) - admitted))
+
+
+def test_each_composition_case_names_a_distinct_seeded_defect_assertion() -> None:
+    """AC6: the named text belongs to its own case, and the two differ."""
+    cases = _declared_cases()
+    named = []
+    for case_id in COMPOSITION_CASES:
+        case = cases[case_id]
+        text = case["seeded_defect_assertion"]
+        assert text in case["assertions"], (case_id, text)
+        named.append(text)
+    assert len(set(named)) == len(named), named
+
+
+def _authoring_records() -> dict[str, dict]:
+    """Authoring records by id, with duplicate ids refused before collapsing.
+
+    Indexing by `eval_id` is last-wins, so without this a repeated id hides the
+    shadowed record from every per-record guard here — transcript digest and
+    markers, transcript distinctness, round identity, verdict length,
+    `source_files` equality — while the id-set equality stays green because it
+    compares keys. The reachable path is a re-measured round appended rather
+    than replacing its predecessor, which leaves a stale observation identifier
+    and stale verdicts in the shipped evidence.
+    """
+    evidence = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "behavior-results.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    rows = [r for r in evidence["results"] if r["eval_id"] in AUTHORING_EVAL_IDS]
+    ids = [r["eval_id"] for r in rows]
+    assert len(ids) == len(set(ids)), sorted(
+        i for i in set(ids) if ids.count(i) > 1
+    )
+    return {r["eval_id"]: r for r in rows}
+
+
+def test_every_authoring_record_belongs_to_one_round() -> None:
+    """AC11: one observation identifier across the round, verdicts per assertion."""
+    cases = _declared_cases()
+    records = _authoring_records()
+    evidence = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "behavior-results.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    declared_round = evidence["graded_run"]["observation_id"]
+    identifiers = {r["observation_id"] for r in records.values()}
+    # The identifier has to be one, and it has to be something. Equality holds
+    # just as well when both sides are blank, and a blank round identifier
+    # satisfies AC11 and AC12 while destroying the correlation they exist to
+    # keep: nothing then ties a transcript or a verdict to a measurement round.
+    for label, value in [("graded_run", declared_round)] + sorted(
+        (eval_id, r["observation_id"]) for eval_id, r in records.items()
+    ):
+        assert isinstance(value, str) and value.strip(), (
+            f"{label} carries observation_id {value!r}; a round identifier must "
+            "be a non-empty string, or the records name no round at all"
+        )
+    # Equality with the declared round, not merely mutual agreement: rewriting
+    # every record to one arbitrary value satisfies agreement and says nothing.
+    assert identifiers == {declared_round}, (sorted(identifiers), declared_round)
+    for eval_id, record in records.items():
+        assert len(record["assertions"]) == len(cases[eval_id]["assertions"]), eval_id
+
+
+@pytest.mark.parametrize("case_id", COMPOSITION_CASES)
+def test_the_seeded_defect_assertion_is_true_or_exempted(case_id: str) -> None:
+    """AC13: the defect a payload seeds is reported, or its miss is on the record."""
+    case = _declared_cases()[case_id]
+    named = case["seeded_defect_assertion"]
+    index = case["assertions"].index(named)
+    verdict = _authoring_records()[case_id]["assertions"][index]
+    # Same type-before-value rule as the per-record loop: a string verdict here
+    # would satisfy the true-or-exempted branch without ever being a `true`.
+    assert isinstance(verdict, bool), (case_id, type(verdict).__name__)
+    # Anti-vacuity on the exemption side: the set must be non-empty AND every
+    # entry must name an assertion some case actually declares, so a set of
+    # well-formed strings that match nothing cannot stand in for a real one.
+    declared = {a for c in _declared_cases().values() for a in c["assertions"]}
+    assert KNOWN_MISSES, "exemption set is empty"
+    assert all(t in declared for _, t in KNOWN_MISSES), sorted(
+        t for _, t in KNOWN_MISSES if t not in declared
+    )
+    assert verdict or (case_id, named) in KNOWN_MISSES, (case_id, named)
+
+
+def test_every_declared_write_status_is_one_the_skill_can_emit() -> None:
+    """Declared markers come from the receipt vocabulary SKILL.md fixes.
+
+    The receipt line offers three values, so pinning one is a choice among
+    legal answers rather than a statement of the contract. Twice now a case
+    has declared a value the skill could legitimately not produce for that
+    prompt -- `cross-session-resumption`, then
+    `knowledge-provider-read-only-entry` in the opposite direction -- and both
+    times the declaration was corrected after a measurement, not before.
+
+    This cannot decide which of the three a given prompt should produce; that
+    is a judgement about the response. What it does stop is the cheaper error
+    underneath both corrections: a declaration pinning a string the skill has
+    no way to emit, which is unfalsifiable by measurement because it fails
+    identically whether the skill is right or wrong.
+    """
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    # Scoped to the receipt section, not the whole body. A line read from
+    # anywhere in `SKILL.md` is not "the vocabulary the receipt declares": move
+    # the real line into a non-normative example and rename the receipt's own
+    # field, and a whole-body search still finds exactly one line with several
+    # values and stays green while the contract underneath it has changed.
+    receipt = re.search(
+        r"^## Completion receipt$(.*?)(?=^## |\Z)", body, re.M | re.S
+    )
+    assert receipt, "SKILL.md has no '## Completion receipt' section"
+    lines = [
+        candidate
+        for candidate in receipt.group(1).splitlines()
+        if candidate.startswith("Write status: ")
+    ]
+    assert len(lines) == 1, (
+        f"the Completion receipt section carries {len(lines)} lines beginning "
+        "'Write status: '; the vocabulary must have exactly one home inside "
+        "the section that owns the contract, or this guard cannot know which "
+        "line is the contract"
+    )
+    line = lines[0]
+    vocabulary = {value.strip() for value in line[len("Write status: "):].split("|")}
+    assert len(vocabulary) >= 2, (
+        f"the receipt line parsed to {vocabulary}; a single-value read means "
+        "the separator changed and this guard is comparing against noise"
+    )
+    for case_id, case in sorted(_declared_cases().items()):
+        declared = [
+            marker
+            for marker in case["expect"]["output_contains"]
+            if marker.startswith("Write status: ")
+        ]
+        assert len(declared) == 1, (case_id, declared)
+        value = declared[0][len("Write status: "):]
+        assert value in vocabulary, (
+            f"{case_id} declares write status {value!r}, which is not one of "
+            f"{sorted(vocabulary)} — the skill cannot emit it, so the case can "
+            "never pass no matter how the skill behaves"
+        )

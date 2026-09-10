@@ -1,10 +1,13 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-31",
+  "evaluated_at": "2026-09-09",
   "candidate_execution": false,
   "results": [
     {
       "eval_id": "frame-new-skill",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/frame-new-skill.md",
+      "captured_response_sha256": "sha256:54620694e04c0b189f5d7962dcd0245b0d733a3c420897e4c6f2288d5e2e8c99",
       "actual_markers": [
         "Mode: frame",
         "Write status: not authorized"
@@ -17,11 +20,14 @@
       ],
       "source_files": {
         "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e"
       }
     },
     {
       "eval_id": "update-existing-skill",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/update-existing-skill.md",
+      "captured_response_sha256": "sha256:4fd4965353289c8bf6c0aa6bc598b4a645a76f15ae0c3006020815e615f97baf",
       "actual_markers": [
         "Mode: frame",
         "Write status: not authorized"
@@ -34,12 +40,15 @@
       ],
       "source_files": {
         "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
     {
       "eval_id": "cold-start-orientation",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/cold-start-orientation.md",
+      "captured_response_sha256": "sha256:87a2cf6f2b501d9cbf87f30748dbf4dff5bff629a25b87cd84d4260f849aa0f5",
       "actual_markers": [
         "Mode: frame",
         "Write status: not authorized"
@@ -52,34 +61,145 @@
       ],
       "source_files": {
         "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e"
       }
     },
     {
       "eval_id": "cross-session-resumption",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/cross-session-resumption.md",
+      "captured_response_sha256": "sha256:5f74526437b46b939f9648a4655a4fd876f2b6b1d2fc10787af03f70af0bead9",
       "actual_markers": [
         "Mode: frame",
-        "Write status: awaiting explicit authorization"
+        "Write status: not authorized"
       ],
       "assertions": [
-        true,
+        false,
         false,
         true,
         true
       ],
       "source_files": {
         "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
     {
       "eval_id": "progressive-result-presentation",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/progressive-result-presentation.md",
+      "captured_response_sha256": "sha256:a547e1aafdb1c6c262c0f18fcf298c3aa1622a80d6092a3ed5fac8620a0f6071",
       "actual_markers": [
         "Mode: frame",
         "Write status: not authorized"
       ],
       "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e"
+      }
+    },
+    {
+      "eval_id": "knowledge-provider-read-only-entry",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/knowledge-provider-read-only-entry.md",
+      "captured_response_sha256": "sha256:710599165aa401bbecdec48a1b05829f4b97210c9e0888eee2d4273887bc8e93",
+      "actual_markers": [
+        "Mode: knowledge-provider",
+        "Write status: awaiting explicit authorization"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e"
+      }
+    },
+    {
+      "eval_id": "pytest-suite",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/pytest-suite.md",
+      "captured_response_sha256": "sha256:4cef5530ef14e16a1ecc56eebc994ba8bf80718cbd39fc60fd8cd1b162a13ad8",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
+        "evals/files/pytest-suite-SKILL.md": "sha256:a6faa2a53786059ea24d06f9e72255ebfa514d61877e78969165db4f7d89bdf1"
+      }
+    },
+    {
+      "eval_id": "node-browser-suite",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/node-browser-suite.md",
+      "captured_response_sha256": "sha256:039398ae56786e7de8467472d4590036683a279cbe73a45e35438bfa28dd30d4",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        false,
+        true,
+        true,
+        false
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
+        "evals/files/node-browser-suite-SKILL.md": "sha256:6a4d24f394ceb0c4e5fae58ebc2f7766bf52ba48ae5b2e4bf6fb1fbce42ba8b1"
+      }
+    },
+    {
+      "eval_id": "subagent-composition",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/subagent-composition.md",
+      "captured_response_sha256": "sha256:48464db0995250e0e4c6e6eee1d2103263243f0551b51d097062aea8591465dd",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
+        "evals/files/subagent-composition-SKILL.md": "sha256:a3a57c15335b829fa0955cf689a0ff708cd2769775a9b128244d37e96f45437e"
+      }
+    },
+    {
+      "eval_id": "hook-plugin-design",
+      "observation_id": "2026-09-09-composition-fixtures-r2",
+      "transcript": "notes/transcripts/hook-plugin-design.md",
+      "captured_response_sha256": "sha256:6b9b179e54a2a372f771a2a0b439c9bb9df93eae77914a576c6009dc1a878953",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
         true,
         true,
         false,
@@ -87,60 +207,8 @@
       ],
       "source_files": {
         "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
-      }
-    },
-    {
-      "eval_id": "knowledge-provider-read-only-entry",
-      "actual_markers": [
-        "Mode: knowledge-provider",
-        "Write status: not authorized"
-      ],
-      "assertions": [
-        true,
-        true,
-        true,
-        true
-      ],
-      "source_files": {
-        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
-      }
-    },
-    {
-      "eval_id": "pytest-suite",
-      "actual_markers": [
-        "Mode: frame",
-        "Write status: not authorized"
-      ],
-      "assertions": [
-        true,
-        true,
-        true,
-        true
-      ],
-      "source_files": {
-        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
-        "evals/files/pytest-suite-SKILL.md": "sha256:a6faa2a53786059ea24d06f9e72255ebfa514d61877e78969165db4f7d89bdf1"
-      }
-    },
-    {
-      "eval_id": "node-browser-suite",
-      "actual_markers": [
-        "Mode: frame",
-        "Write status: not authorized"
-      ],
-      "assertions": [
-        true,
-        true,
-        true,
-        true
-      ],
-      "source_files": {
-        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
-        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
-        "evals/files/node-browser-suite-SKILL.md": "sha256:6a4d24f394ceb0c4e5fae58ebc2f7766bf52ba48ae5b2e4bf6fb1fbce42ba8b1"
+        "evals/evals.json": "sha256:a5f977f984d9e5e61e719151339e79e44d0c56fe17e71e8d4edce3ebe040501e",
+        "evals/files/hook-plugin-design-SKILL.md": "sha256:2273168c0f23fe01666c188fdaff21da706904494a66b35318c94abdd0cd10a6"
       }
     },
     {
@@ -213,11 +281,12 @@
     }
   ],
   "graded_run": {
-    "command": "python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode in-harness --check behavior --reports <driver payload>",
+    "command": "agentbundle pack evals run --pack agent-skill-engineering --prepare-workspace <skill>/<eval_id> per case; the skill was then executed in an isolated read-only context per case and each response retained under the slice's notes/transcripts/",
     "tier": "B-lite",
     "fidelity": "observed+attested",
     "provenance": "operator-attested",
-    "author_iteration": 3,
-    "review_iteration": 6
+    "observation_id": "2026-09-09-composition-fixtures-r2",
+    "author_iteration": 4,
+    "review_iteration": 9
   }
 }
