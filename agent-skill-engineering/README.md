@@ -93,9 +93,11 @@ deterministic resource and script contracts, depth libraries and knowledge
 providers, activation discoverability and mode wayfinding, progressive result
 presentation, trust boundaries and instruction provenance, Python and pytest,
 TypeScript and Node test runners, process and filesystem cost, pack and CI
-critical paths, worktrees with state locks and shared-host admission, the
-portable skills-and-subagents, hooks, and plugin-package composition floors, and
-a Claude Code runtime profile. Each declares the
+critical paths, worktrees with state locks and shared-host admission, portable
+skills-and-subagents and hooks floors, and the portable plugin core: a root
+`plugin.json` manifest, confined package paths, advisory semantic versioning,
+and component-level failure isolation. A Claude Code runtime profile completes
+the floor coverage. Each declares the
 basis its claims rest on; an observed practice also names the population it was
 drawn from and states that it is not established beyond it. Taxonomy leaves the
 evidence could not support are recorded as absent with the reason, so a reader
@@ -118,6 +120,4 @@ own ecosystem and version range and not generalized to the portable floor. It
 ships portable composition floors for skills-and-subagents, hooks, and plugin
 packages, and one runtime profile — Claude Code — whose every capability claim
 carries a source, a retrieval date, and a lifecycle state. Seven further runtime
-profiles, the router's per-claim state reporting, provider authoring, runtime
-packaging, installation, projection, publication, and catalogue governance
-belong to later slices or external delivery tooling.
+profiles are open extensions rather than pack delivery obligations.
