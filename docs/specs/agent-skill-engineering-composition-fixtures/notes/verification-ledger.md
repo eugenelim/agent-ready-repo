@@ -368,6 +368,7 @@ confirmed byte-identical afterwards.
 | Declared-case set equals base plus two (AC3) | Drop an inherited case from the declarations | `test_the_declared_case_set_gains_exactly_the_two_new_ids` | set-equality mismatch against the base-derived set |
 | Transcripts stay inside the scrub root (AC9, AC17) | Copy a transcript beside `spec.md` and repoint its record | `test_every_verdict_is_readable_against_its_own_transcript` | `AssertionError: ('pytest-suite', 'escaped-transcript.md', 'transcripts must live under notes/transcripts/')` |
 | The scan root is the real transcript directory (AC17) | Repoint the root at a sibling directory that also holds ten Markdown files | `test_recorded_evidence_fields_carry_no_host_identifying_data` | root does not equal its independently written expected location |
+| Verdicts are booleans, not truthy values (AC11, AC13, AC14) | Replace a `true` verdict with the JSON string `"false"` | `test_independent_behavior_results_cover_both_authoring_cases` and `test_the_seeded_defect_assertion_is_true_or_exempted` | `AssertionError: ('subagent-composition', 0, 'str')` |
 | Seeded-defect verdict is true or exempted (AC13) | Flip `subagent-composition`'s seeded-defect verdict to false | `test_the_seeded_defect_assertion_is_true_or_exempted` and the exemption guard | unexempted false verdict |
 
 **Two mutations that first appeared to prove the guard sound, and did not.**
@@ -516,6 +517,46 @@ longer advertises 3e as in flight.
 | `agentbundle catalogue lint --root . --deep` | exit 0 |
 | `agentbundle catalogue verify --root .` | exit 0 |
 | Workspace projection | no finding for this spec; no `impossible_transition`, no `duplicate_membership` |
+
+## Recorded divergence — the transcript boundary
+
+AC9 admits any transcript path under this spec's `notes/` directory; the shipped
+guard and the host-identity scrub root both enforce the narrower
+`notes/transcripts/`. A transcript at `notes/escaped.md` would satisfy the
+criterion and redden the guard.
+
+The narrowing is fail-closed — it can reject a conforming transcript, never
+admit a non-conforming one — and it is what keeps every cited transcript inside
+the only root that scrubs it. It stands as shipped, recorded here rather than
+resolved in code:
+
+- rewriting AC9's text is the owner amendment path on a Shipped spec, not a
+  closeout edit; and
+- widening the guard and the scan back to all of `notes/` reddens today,
+  because the mutation row below documents the literal string
+  `/Users/someone/checkout/notes.md` as a test input, and a structural scanner
+  cannot tell a documented example from real host data. Widening would cost
+  either obfuscating that record or carving an exclusion into the scan.
+
+**Withdrawn claim.** The round-4 commit message and an earlier line here said
+the criterion, the guard and the scrub root "name one place". They do not. The
+guard and the scrub root name one place; the criterion names its parent.
+
+## Audit gap — four review rounds are absent from the cohort record
+
+Post-implementation review ran five rounds. Rounds 1 to 4 fired
+`findings-remain` but the controller never ran `review record --fingerprint`
+after them, so `review_round_count` and `review_retry_count` stayed at zero and
+the review retry cap of 5 never engaged across four findings-bearing rounds.
+Round 5 is recorded correctly and reads `round=1 retry=1`.
+
+The raw reports and adjudications for all five rounds are retained under
+`.context/reviews/<run-id>/` and are validated and classified, so the evidence
+exists; what is missing is the cohort's own count of it. The cap that exists to
+force a convergence decision was therefore inert, and that decision was made by
+the owner manually each round instead. Retroactive recording was not attempted:
+the operation ids derive from transition sequences that have already passed, and
+fabricating them would put false provenance in the state file.
 
 ## Open, routed onward
 

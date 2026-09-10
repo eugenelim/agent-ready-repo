@@ -326,6 +326,13 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
             if (eval_id, text) in known_misses
         }
         for index, verdict in enumerate(result["assertions"]):
+            # Type before value. `bool("false")` is True, so a JSON string
+            # verdict satisfies this assertion, is skipped by the failing-index
+            # set below, and passes both subset checks — a false verdict
+            # recorded as a pass with the suite green. These records are
+            # re-authored by hand every round, so a type slip is ordinary
+            # maintenance rather than an attack.
+            assert isinstance(verdict, bool), (eval_id, index, type(verdict).__name__)
             assert verdict or index in exempt, (eval_id, index, case["assertions"][index])
         failing = {
             index
@@ -1060,6 +1067,9 @@ def test_the_seeded_defect_assertion_is_true_or_exempted(case_id: str) -> None:
     named = case["seeded_defect_assertion"]
     index = case["assertions"].index(named)
     verdict = _authoring_records()[case_id]["assertions"][index]
+    # Same type-before-value rule as the per-record loop: a string verdict here
+    # would satisfy the true-or-exempted branch without ever being a `true`.
+    assert isinstance(verdict, bool), (case_id, type(verdict).__name__)
     # Anti-vacuity on the exemption side: the set must be non-empty AND every
     # entry must name an assertion some case actually declares, so a set of
     # well-formed strings that match nothing cannot stand in for a real one.
