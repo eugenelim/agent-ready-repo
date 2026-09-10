@@ -81,9 +81,18 @@ CORE_COLLECTIONS = {
     # each of the seven asserts a distinct way scoped selection could silently check
     # nothing, which is the failure the two commits set out to prevent, and the other
     # two entries below still reproduce.
+    # Re-pinned 2026-09-10: 85 -> 87. The core lints now default to reporting
+    # warn-only findings rather than listing them, and two additions cover that
+    # default — test_warn_only_findings_are_hidden_without_verbose and
+    # test_a_failing_run_still_lists_warnings_without_verbose, the second
+    # asserting that a HARD violation still prints warnings so a failure is
+    # never truncated. Dispositioned as the note above requires: an AST diff of
+    # the test-name set against origin/main shows two additions, no removal and
+    # no rename, and the `lint-brief-coverage` entry below still reproduces,
+    # which confirms the recomputation method rather than assuming it.
     SHARED_TESTS[0]: (
-        85,
-        "72b3433894c9eb06912b0c98f437490aed4cb8cf6c111af6ee92ae9224f64675",
+        87,
+        "ba7a01f5b92da41e2f6ba0b2a51c2d57d7edef9b3630f9e88d4418969b3546e1",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without
@@ -107,9 +116,17 @@ CORE_COLLECTIONS = {
         27,
         "fccaac7b6628f5848f29f22c64bd613f7bfcb688433aadee39fbcd90d1448821",
     ),
+    # Re-pinned 2026-09-10: 45 -> 48, same change as SHARED_TESTS[0]. A passing
+    # traceability run now withholds its per-item detail lines, and three
+    # additions cover it — test_detail_lines_are_hidden_on_a_passing_run,
+    # test_a_failing_run_prints_every_line_without_verbose (a non-zero exit is
+    # never truncated), and test_every_detail_line_carries_the_detail_prefix,
+    # which fails if a new `out.append` uses a different indent and so would
+    # otherwise be unsuppressible. Dispositioned by the same AST diff: three
+    # additions, no removal, no rename.
     SHARED_TESTS[2]: (
-        45,
-        "ea3e0a39355fe8ae06f3bf3cba73bacdc6793a9c64f7254c28647a46f695056b",
+        48,
+        "1f360511421f260d9d25850f8c889a59007f5c66ceeb40e6dee12fcb86416010",
     ),
 }
 
@@ -1090,7 +1107,7 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
         direct_skip_reasons[nodeid] = str(
             getattr(method, "__unittest_skip_why__", "")
         )
-    assert len(cli_contract) == len(direct_cli_nodes) == 158
+    assert len(cli_contract) == len(direct_cli_nodes) == 162
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1311,7 +1328,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
         for method in unittest.defaultTestLoader.getTestCaseNames(test_case)
     }
 
-    assert len(direct_ids) == 158
+    assert len(direct_ids) == 162
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 
