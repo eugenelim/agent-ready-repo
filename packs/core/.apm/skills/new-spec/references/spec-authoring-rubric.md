@@ -50,6 +50,38 @@ criterion, run two checks on the part you did *not* touch:
   artifact's state, so it decays under class 4 — cite the new owner rather than
   summarising it.
 
+**A finding is a signal about the criterion, not a work order against the
+sentence.** This is why a repair introduces the next defect so reliably: a
+reviewer names a symptom at a location, and the reactive repair edits that
+location — changing the text without re-deciding what the text is meant to say.
+Before rewriting, step back from the sentence three times.
+
+- **Name the property the clause establishes**, independently of its wording.
+  If you cannot name it, that is the finding: the clause carries an intention
+  rather than a property, and no rewording fixes that.
+- **Ask whether the property is right.** A finding that a clause is wrong is
+  equally evidence that it is asking for the wrong thing. A reviewer is far more
+  reliable about the defect than about the remedy, so treat a prescribed fix as
+  a hypothesis and probe it against the artifact before adopting it.
+- **Find the property's siblings.** The same defect usually has them — a
+  criterion whose selector moved while a task still selects by the old
+  predicate, a task whose approach changed without its tests, an accounting row
+  that has to list a newly added producer. Repairing the instance and leaving
+  the class is what produces the next round.
+
+Then rewrite so the class is closed. A repair that only satisfies the
+reviewer's sentence has been reacted to, not reasoned about.
+
+`SKILL.md` owns the finding-origin marks and when they are recorded; read the
+marks it gives you as a ratio rather than one at a time. **Once a round's
+sustained findings are mostly repair-origin rather than draft-origin, the round
+is reviewing your repairs rather than the draft.** That is a symptom, not a
+diagnosis: it says where the defects are now coming from, and nothing about
+why. It is consistent with reactive repair, and equally with careful repairs
+against a property that was wrong to begin with. So read it as the cue to stop
+and run the three steps above on whatever the round keeps returning to, rather
+than as an instruction to cut, to extend, or to re-open a decision.
+
 ## 1. The design should have delegated
 
 An obligation is authored where an owner already exists, or is restated once
@@ -109,6 +141,17 @@ reads as confirmation: overlap is not containment, a mean is not a percentile,
 and a count under one boundary rule is not a count under another. When the
 evidence and the criterion disagree, suspect the instrument before the artifact.
 
+**Scope the read to the region the property is about.** A criterion that asks
+whether a document *contains* a sentence is discharged by any second copy of
+that sentence anywhere in the document. So when the document restates its own
+claims — a provenance block, a summary, a quoted excerpt — an artifact-wide
+containment check passes on the restatement and never reads the region the
+property is about. Ask which regions could hold a second copy before writing
+the check, and name the region in it. Then prove the repair by measuring the
+old and the new predicate against the *same* mutated state, rather than by
+asserting that the scoping fixed it; a repair that only moves the match to a
+different copy looks identical from the outside.
+
 `../assets/spec.md` § Acceptance Criteria owns the detectability test and the
 observable-outcome boundary; this class is the question that precedes them.
 
@@ -162,6 +205,14 @@ an illustration.
 signal: the cost is not in getting the number right, it is in storing a number
 at all. Convert it to a derivation or delete it, and do not spend a third
 attempt on the value.
+
+**The same holds for a clause, not just a figure.** When one clause has drawn a
+sustained finding under two successive wordings, the clause is the defect and
+neither wording is — so a third attempt at the sentence is the one move that
+cannot help. What to do instead is a question about the property, not about the
+text: `## How to use it` owns the three steps that answer it. One answer it
+often reaches is class 1 — another surface already owns the fact, and the cut
+costs nothing once you have found that surface and confirmed it carries it.
 
 **A sentence describing another artifact is a stored value.** "That section
 publishes A and B", "the only file there is X", "the owner states the pair

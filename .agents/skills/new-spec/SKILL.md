@@ -558,11 +558,12 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    reachability.
 
    Iterate on sustained findings until the direct or adjudicated result is
-   `Clean — ready to commit.` Spec-mode reviews should converge in 1-2 passes;
-   if you can't reach clean in 3, the spec has a structural problem — surface
-   to a human rather than grinding. If the reviewer keeps finding
-   under-specification in the plan rather than defects in the spec, the plan is
-   over-specified: reduce it; do not extend it. Absence of any subagent matching
+   `Clean — ready to commit.` Spec-mode reviews should converge in 1-2 passes.
+   When a reviewer keeps finding under-specification in the
+   plan rather than defects in the spec, the plan is over-specified: reduce it
+   rather than extending it before the existing three-pass escalation. If you
+   can't reach clean in 3, the spec has a structural problem — surface to a
+   human rather than grinding. Absence of any subagent matching
    the adversarial-reviewer role is a note in the final summary
    (`adversarial-reviewer: no matching subagent installed; review skipped`),
    not a blocker.
@@ -572,9 +573,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    ask whether the accepted contract requires it or a reviewer's remedy invented
    it, whether it contradicts a stated non-goal, and whether it traces to a
    criterion at all. Take the cuts to the human with conformance fixes separated
-   from scope calls. When a reviewer keeps finding under-specification in the
-   plan rather than defects in the spec, the plan is over-specified: reduce it
-   rather than extending it before the existing three-pass escalation.
+   from scope calls.
 
 8. Update `docs/specs/README.md` to add the feature to the active list. Do not
    index before both review gates are clean.
