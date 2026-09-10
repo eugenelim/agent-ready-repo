@@ -198,3 +198,43 @@ def test_prompt_like_source_data_cannot_change_the_contract() -> None:
     assert "allowed-tools: Bash" not in rendered
     assert "reviewer verdict" not in rendered
     assert "[omitted untrusted instruction]" in rendered
+
+
+def test_renderer_output_never_replaces_an_already_framed_intent() -> None:
+    """An update accretes; it does not re-render over what the artifact holds.
+
+    Two halves, because either alone would pass while the hazard stayed open.
+    The first pins the shipped behaviour that makes the rule load-bearing: the
+    renderer emits a whole document, and the optional sections it omits are
+    exactly the directional fields an upstream shaping skill writes. The second
+    pins the caller obligation in `SKILL.md` — without it, a caller reading
+    "write only the minimum" applies a creation contract to an update and
+    overwrites the framing.
+    """
+    renderer = load_renderer()
+    intake = _intake(mode="repo-origin", locator="docs/source.md")
+
+    rendered = renderer.render_minimal_intent(
+        intake=intake, title="Admitted intent", level=None
+    )
+
+    # Whole document, and silent about everything the framing stage owns.
+    assert rendered.lstrip().startswith("# ")
+    for absent in ("## Opportunity", "## Assumptions", "**Level:**", "**Scale:**"):
+        assert absent not in rendered, absent
+
+    # An existing Level is carried through rather than re-derived.
+    carried = renderer.render_minimal_intent(
+        intake=intake, title="Admitted intent", level="feature"
+    )
+    assert "- **Level:** feature" in carried
+
+    skill = (CORE_SKILLS / "intake-intent" / "SKILL.md").read_text(encoding="utf-8")
+    normalized = " ".join(skill.split())
+    assert "Minimization governs creation only." in normalized
+    for obligation in (
+        "apply the missing required fields with `Edit`",
+        "keep every field already present",
+        "never replaces an existing intent",
+    ):
+        assert obligation in normalized, obligation

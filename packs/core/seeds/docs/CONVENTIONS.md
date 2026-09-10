@@ -720,6 +720,20 @@ right now?"
   nested inside it. A published package also keeps its own `CHANGELOG.md`
   beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
   readers who get the package and not the repository.
+- `intents/<slug>.md` (optional) — one admitted outcome, recorded before a
+  solution artifact is chosen. Two axes. **Altitude** is `Level:`, an open set
+  running `product-vision › product-strategy › capability › feature`: only a
+  feature intent becomes a spec directly (recorded in that spec's `Discovery:`
+  header), a higher one decomposes into child intents first, and `Level` is
+  absent until the altitude is settled. **Stage** is which fields it carries —
+  *framed* states the bet (outcome, opportunity, assumptions); *admitted* adds
+  what routing needs (status, boundary, owner, unresolved questions,
+  projection, source); *ratified* reaches `Status: Accepted` after independent
+  shaping review and human confirmation. Admission adds fields: it never
+  re-levels the intent or rewrites its framing. Distinct from work-loop's
+  *accepted intent*, the agreed scope of a change
+  ([§ Intent-scoped completion](#intent-scoped-completion)). Authored by
+  `intake-intent`, or by `frame-intent` from the product-engineering pack.
 - `briefs/<slug>.md` (optional) — a multi-feature delivery brief and its
   auto-rolled-up coverage map. Created or continued by the
   `author-delivery-brief` skill; one file per brief. See the delivery-brief altitude under
@@ -1042,10 +1056,10 @@ kind of learning belongs.
 
 ### Intent-scoped completion
 
-Completion answers to the original accepted intent, not to the current pull
-request. A pull request is a review unit: one accepted intent may need more
-than one independently reviewed unit in the same session. Only the owner may
-narrow or waive that intent.
+Completion answers to the original accepted intent — the agreed scope of this
+change — not to the current pull request. A pull request is a review unit: one
+accepted intent may need more than one independently reviewed unit in the same
+session. Only the owner may narrow or waive that intent.
 
 For every implementation or review discovery, determine intent fit before the
 session decision:

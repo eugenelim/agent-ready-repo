@@ -379,14 +379,19 @@ finding identifier as a path only after confirming it is one.
 
 ## Minimal Intent
 
-The shared intent artifact contains:
+The repository intent artifact requires:
 
 - `Status`
-- `Level`
 - `Outcome`
-- `Opportunity`
-- `Assumptions`
-- `Source`
+- `Boundary`
+- `Owner`
+- `Unresolved questions`
+- `Projection`
+- `Source` — the source data the authority mode requires
+
+`Level`, `Opportunity`, `Assumptions`, `Scale`, and job-to-be-done context are
+optional enrichment. An upstream shaping pass supplies them; admission
+preserves what is already there rather than re-deriving it.
 
 The default path is `docs/product/intents/<slug>.md`. A repository may relocate
 the parent through its configured core layout, but the resolved output must stay

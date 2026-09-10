@@ -66,8 +66,8 @@ The agent creates a Draft artifact, registers non-dispatchable membership, and
 stops. A future `workspace-status` call can surface it, but `work-loop` cannot
 execute it until the required artifact and approvals exist.
 
-For intent-only capture, `intake-intent` records the outcome, boundary, owner,
-unresolved questions, projection, and source. Product altitude, opportunity,
+For intent-only capture, `intake-intent` records the status, outcome, boundary,
+owner, unresolved questions, projection, and source. Product altitude, opportunity,
 assumptions, scale, and JTBD context are optional. Before it can become
 `Accepted`, the owner sends the intent and one attributed evidence packet to an
 independent cold shaping review. Findings return to the owner for revision; a
