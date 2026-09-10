@@ -5,7 +5,7 @@
 - **Level:** feature
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)
+- **Parent intent:** work-loop-delivery-efficiency — [Work-loop delivery efficiency](work-loop-delivery-efficiency.md)
 
 ## Outcome
 
