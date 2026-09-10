@@ -54,6 +54,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.11] — 2026-09-10
+
+### Highlights
+
+- **Checking where the work stands costs a fraction of what it did.** The
+  orientation payload drops from about 220,000 characters to 87,000, because it
+  now carries the decisions you act on rather than the full working set behind
+  them. Ask for the long form when you want it.
+- **The spec and traceability checks report what they found instead of listing
+  it.** On a repository where both pass they print three lines between them
+  instead of 646, and each names how many items it withheld, so nothing goes
+  quietly missing. Anything that fails still prints in full.
+
+### Changed
+
+- `workspace-status`: the `status` subcommand no longer emits
+  `canonical.evaluations`. Every dispatch decision it carried is already in
+  `canonical.ready`, `.active`, `.blocked`, and `.findings`, and the list was
+  roughly half the payload. Pass `--include-evaluations` to restore it;
+  `reconcile` and `explain` are unchanged and still carry it.
+- `workspace-status`: `repo_backlog.open` entries now carry only `room`,
+  `slug`-or-`path`, `summary`, and `needs` — the fields a consumer renders plus
+  the dependency list. The unread `kind`, `entry_type`, and `source` keys were
+  9.1% of the payload across a 143-entry backlog. This applies to every mode,
+  so `reconcile` and `status` stay in agreement.
+- `work-loop`: `lint-spec-status.py` counts warn-only findings instead of
+  listing them, and names the count in its clean summary. `--verbose` restores
+  the full listing. A run with a hard violation still lists everything,
+  warnings included.
+- `work-loop`: `lint-traceability.py` withholds its per-item detail lines on a
+  passing run, printing its summary lines plus a count of what it withheld.
+  `--verbose` restores them, and any non-zero exit prints in full.
+
 ## [core][2.25.10] — 2026-09-10
 
 ### Highlights
