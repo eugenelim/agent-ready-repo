@@ -199,6 +199,33 @@ _BUDGET_FIELDS = (
     "max_review_retries",
 )
 
+# Outcome and reason are separate axes. `result` says what the gate decided;
+# `retry_state` says why a failure is where it is. Collapsing them into one
+# field is what makes "failed once, retrying" indistinguishable from "out of
+# attempts" — the same value would have to mean both.
+#
+# `result` values are drawn from the OpenTelemetry CI/CD convention's result
+# vocabulary rather than invented, so a consumer that already reads pipeline
+# telemetry needs no translation for this field.
+_GATE_RESULTS = {
+    "reviewers-clean": "success",
+    "spec-approved": "success",
+    "plan-approved": "success",
+    "gates-clean": "success",
+    "done": "success",
+    "findings-remain": "failure",
+    "spec-rejected": "failure",
+    "plan-rejected": "failure",
+    "gates-failed": "failure",
+    "blocker-applied": "failure",
+}
+
+# Which retry budget an event draws down, when it draws down one at all.
+_RETRY_BUDGET_FOR_EVENT = {
+    "gates-failed": ("implementation_retry_count", "max_implementation_retries"),
+    "findings-remain": ("review_retry_count", "max_review_retries"),
+}
+
 
 def _phase_duration_s(phase_started_at: str | None, now: str) -> int | None:
     """Whole seconds between two engine timestamps, or None if either is unusable.
@@ -235,17 +262,37 @@ def _budget_snapshot(spec_dir: Path) -> dict:
     return snapshot
 
 
+def _retry_state(event: str, budgets: dict) -> str | None:
+    """Why a retry-bearing failure is where it is, or None if the event is not one.
+
+    Read as a snapshot, like `budgets` itself: the counters are owned and moved
+    by the cohort tooling in a separate step, so this reports the budget as it
+    stood when the line was written, not a prediction about the next attempt.
+    """
+    pair = _RETRY_BUDGET_FOR_EVENT.get(event)
+    if pair is None:
+        return None
+    count, cap = budgets.get(pair[0]), budgets.get(pair[1])
+    if not isinstance(count, int) or not isinstance(cap, int):
+        return None
+    return "max_attempts_reached" if count >= cap else "in_progress"
+
+
 def _lifecycle_fields(
-    spec_dir: Path, state: dict, now: str, *, waived: bool
+    spec_dir: Path, state: dict, now: str, *, event: str, next_state: str, waived: bool
 ) -> dict:
     """Build the additive lifecycle fields for one event line. Never raises."""
     try:
         phase_started_at = state.get("last_transition_at")
+        budgets = _budget_snapshot(spec_dir)
         return {
             "phase_started_at": phase_started_at,
             "phase_s": _phase_duration_s(phase_started_at, now),
+            "result": _GATE_RESULTS.get(event),
+            "retry_state": _retry_state(event, budgets),
+            "awaiting_input": next_state in _HUMAN_WAIT_STATES,
             "waived": bool(waived),
-            "budgets": _budget_snapshot(spec_dir),
+            "budgets": budgets,
         }
     except Exception:
         # A partial line is worse than an explicitly empty one: a consumer
@@ -253,6 +300,9 @@ def _lifecycle_fields(
         return {
             "phase_started_at": None,
             "phase_s": None,
+            "result": _GATE_RESULTS.get(event),
+            "retry_state": None,
+            "awaiting_input": next_state in _HUMAN_WAIT_STATES,
             "waived": bool(waived),
             "budgets": dict.fromkeys(_BUDGET_FIELDS),
         }
@@ -1592,7 +1642,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
         # `last_transition_at` is when the phase being left began. At the first
         # transition that value is what `init` wrote, which is the run's start.
         **_lifecycle_fields(
-            spec_dir, state, now, waived=allow_retry_cap_override
+            spec_dir, state, now,
+            event=event, next_state=next_state, waived=allow_retry_cap_override,
         ),
     }
 

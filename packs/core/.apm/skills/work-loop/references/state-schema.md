@@ -125,8 +125,23 @@ cannot.
 | `at` | When the transition happened, `%Y-%m-%dT%H:%M:%SZ`. |
 | `phase_started_at` | When the `from` state was entered, so consecutive phases abut. On the first line this is what `init` wrote, which is the run's start. |
 | `phase_s` | Whole seconds spent in `from`. Never negative. `null` when either timestamp is unusable. |
+| `result` | What the gate decided: `success` or `failure`. `null` when the transition is a handoff or wave boundary rather than a decision. |
+| `retry_state` | Why a retry-bearing failure is where it is: `in_progress` or `max_attempts_reached`. `null` for every event that draws down no retry budget. |
+| `awaiting_input` | `true` when `to` is a state that waits on a human decision. |
 | `waived` | `true` when this transition carried `--allow-retry-cap-override`. |
 | `budgets` | The cohort retry counters and their caps at transition time: `implementation_retry_count`, `max_implementation_retries`, `review_retry_count`, `max_review_retries`. |
+
+`result` and `retry_state` are deliberately separate. One field cannot carry
+both, because the same value would have to mean "failed once, retrying" and
+"failed and out of attempts". Read together with `waived`, the three describe
+a budget-exhausted continuation exactly: `failure` + `max_attempts_reached` +
+`waived: true`.
+
+**A cap reached without a waiver writes no line.** The retry cap is enforced by
+a guard that refuses the transition, and a refused transition records nothing.
+A run that exhausts its budget therefore goes quiet rather than saying why it
+stopped, so to a reader of this log alone that case is indistinguishable from a
+stall. Check the cohort state when a run ends without a terminal transition.
 
 Two properties consumers depend on. A field that cannot be determined is
 `null` and is still present, because a key that disappears reads as zero to

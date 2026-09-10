@@ -69,6 +69,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries the implementation and review retry counters beside their caps — so
   you can see a run approaching a limit, and see when someone lifted one,
   without opening the cohort state file.
+- **A repair cycle no longer looks like a give-up.** Each line now says what
+  the gate decided and, separately, whether the retry budget behind it still
+  had room. Read with the waiver flag, the three tell you the difference
+  between a routine repair round and someone deliberately continuing past a
+  spent budget — a distinction the log previously could not express.
 
 ### Added
 
@@ -83,8 +88,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `budgets` copies the cohort retry counters and caps as they stood when the
   line was written. It does not move them: counter authority stays with
   `loop-cohort`, which remains their only writer.
+- `result`, `retry_state`, and `awaiting_input` join them. `result` reports the
+  gate decision as `success` or `failure`, using the OpenTelemetry CI/CD
+  convention's result vocabulary rather than an invented one; `retry_state`
+  reports `in_progress` or `max_attempts_reached` for the events that draw down
+  a retry budget; `awaiting_input` marks arrival at a state waiting on a human.
+  Each is `null` where it does not apply, so a handoff never claims a decision
+  it did not make.
+- Outcome and reason are separate fields on purpose. A single field would have
+  to give one value to both "failed once, retrying" and "failed and out of
+  attempts". Together with `waived`, a budget-exhausted continuation now reads
+  exactly: `failure` + `max_attempts_reached` + `waived: true`.
 - The work-loop `state-schema.md` reference gains the full field table for the
-  event line, including the whole-second resolution limit.
+  event line, the whole-second resolution limit, and a documented blind spot: a
+  retry cap reached *without* a waiver is refused by a guard, and a refused
+  transition writes no line — so that case is indistinguishable from a stall in
+  this log alone.
 
 ## [core][2.25.13] — 2026-09-10
 
