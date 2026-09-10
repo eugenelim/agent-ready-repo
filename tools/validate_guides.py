@@ -40,7 +40,7 @@ VALID_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 # ---------------------------------------------------------------------------
 
 # Structural, non-content files under the guides root: navigation indexes and the
-# agent-context file. Guides-root-relative POSIX paths, matched EXACTLY.
+# agent-context files. Guides-root-relative POSIX paths, matched EXACTLY.
 #
 # Exact paths rather than a basename or folder rule, because either would hide future
 # public content: `core/AGENTS.md` and `core/how-to/README.md` are content and must
@@ -48,10 +48,21 @@ VALID_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 # tools/test_validate_guides.py asserts both its contents and that same-basename
 # files elsewhere still warn.
 #
-# Traces to: spec/guide-metadata-completion AC2, AC3.
+# `CLAUDE.md` is the Claude Code import shim beside `AGENTS.md` — one line,
+# `@AGENTS.md`, with no title or user outcome to describe. It is a sixth
+# exemption, so it is recorded as an erratum on the spec that fixed the set at
+# five rather than folded in silently.
+#
+# This allowlist only decides whether the metadata schema is enforced. Mirroring
+# is unconditional, so the file stays reachable by URL either way, and keeping it
+# out of the reader-facing sidebar is a separate rule — `_NAV_INELIGIBLE_NAMES`
+# in `tools/build-site.py`, which names it too.
+#
+# Traces to: spec/guide-metadata-completion AC2, AC3 and its 2026-09-09 erratum.
 STRUCTURAL_NON_CONTENT = frozenset(
     {
         "AGENTS.md",
+        "CLAUDE.md",
         "_shared/tutorials/README.md",
         "_shared/how-to/README.md",
         "_shared/reference/README.md",
@@ -61,7 +72,7 @@ STRUCTURAL_NON_CONTENT = frozenset(
 
 
 def is_structural_non_content(path: Path, guides_root: Path) -> bool:
-    """True when `path` is one of the five approved structural files.
+    """True when `path` is one of the approved structural files.
 
     `guides_root` must be the DECLARED root, not a per-file fallback: the match is on
     the full guides-root-relative path, so passing a file's own parent would reduce
@@ -75,10 +86,10 @@ def is_structural_non_content(path: Path, guides_root: Path) -> bool:
     # root to be named `guides` closes that without constraining where the tree lives.
     # Trade-off, stated because a test pins the behaviour: callers skip allowlisted
     # files BEFORE _validate_file, which is where canonical slugs and aliases are
-    # registered. Today none of the five carries frontmatter so nothing is lost, and
+    # registered. Today none of them carries frontmatter so nothing is lost, and
     # on the pre-allowlist validator they returned early at the `fm is None` branch
     # without registering either — so this is not a regression. But the day one of the
-    # five gains a `slug:` or `aliases:`, the duplicate-slug and alias-collision
+    # allowlisted paths gains a `slug:` or `aliases:`, the duplicate-slug and alias-collision
     # guards go blind for it while
     # test_approved_file_with_frontmatter_is_still_silent keeps passing.
     if root.name != "guides" or any(p.name == "guides" for p in root.parents):
@@ -327,7 +338,7 @@ def validate_paths(
         # fallback below. Matching on the fallback would compare only the basename,
         # so `core/AGENTS.md` would read as the approved `AGENTS.md` — the exact
         # fail-open the exception set exists to prevent. A file outside the declared
-        # root cannot be one of the five, so it stays content.
+        # root cannot be an allowlisted path, so it stays content.
         #
         # Checked before the file is read: an allowlisted path is non-content whether
         # or not it happens to carry frontmatter, so it is never schema-validated

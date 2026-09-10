@@ -105,6 +105,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cannot, so a dated past measurement can stay as illustration instead of
   being both permitted and forbidden.
 
+## [agentbundle][0.43.1] — 2026-09-09
+
+### Highlights
+
+- **A new catalogue now gives Claude Code the same pack and profile guidance
+  every other agent already got.** `agentbundle catalogue init` writes a
+  `CLAUDE.md` beside each `AGENTS.md` it scaffolds, so a Claude session picks up
+  your scoped instructions instead of missing them.
+
+### Added
+
+- `catalogue init` writes `packs/CLAUDE.md` and `profiles/CLAUDE.md`, each
+  holding a single `@AGENTS.md` import line. Claude Code reads `CLAUDE.md`
+  rather than `AGENTS.md`, and finds a nested one only when it reads a file in
+  that directory, so a scaffolded catalogue previously left both scoped
+  `AGENTS.md` files unread by Claude Code. `AGENTS.md` stays canonical for every
+  agent and its content is unchanged. An existing file at either path is
+  reported as a conflict and left alone.
+
 ## [core][2.25.8] — 2026-09-08
 
 ### Highlights

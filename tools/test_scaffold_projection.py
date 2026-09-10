@@ -48,6 +48,33 @@ def test_manifest_records_every_projected_file_digest() -> None:
     assert not wrong, f"manifest.json digest does not match the projected file: {wrong}"
 
 
+def test_claude_import_shims_are_projected_to_adopters() -> None:
+    """`packs/CLAUDE.md` and `profiles/CLAUDE.md` reach an adopter catalogue.
+
+    Deliberately hardcoded rather than derived from `_SYNC_PAIRS`. Every other
+    assertion in this file reads that list, so deleting both pairs and
+    regenerating the projection would leave the whole suite green while adopters
+    silently stopped receiving the shims. These two paths are the outcome, so
+    they are named here directly.
+
+    Claude Code reads `CLAUDE.md`, never `AGENTS.md`, so without the shim an
+    adopter's Claude session gets no scoped pack or profile instructions at all.
+    The body must stay exactly the import directive: prose here would be a second
+    copy of guidance `AGENTS.md` owns.
+    """
+    manifest = json.loads((DATA_SCAFFOLD / "manifest.json").read_text(encoding="utf-8"))
+    for rel in ("packs/CLAUDE.md", "profiles/CLAUDE.md"):
+        projected = DATA_SCAFFOLD / rel
+        assert projected.is_file(), f"{rel} is not projected into the scaffold"
+        assert projected.read_bytes() == b"@AGENTS.md\n", (
+            f"{rel} must be exactly the `@AGENTS.md` import line"
+        )
+        assert rel in manifest.get("files", {}), (
+            f"{rel} is on disk but absent from manifest.json, so `catalogue init` "
+            "will not write it and `find_unexpected_files` will report it"
+        )
+
+
 def test_projection_byte_identical_to_repo_root() -> None:
     drifts = [
         scaffold_rel

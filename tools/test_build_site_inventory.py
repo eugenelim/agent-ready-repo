@@ -112,6 +112,19 @@ def test_agents_md_not_nav_eligible(tmp_path):
     assert _by_path(records, "core/how-to/x.md")["nav_eligible"] is True
 
 
+def test_claude_md_not_nav_eligible(tmp_path):
+    """guides/CLAUDE.md is the `@AGENTS.md` import shim Claude Code reads.
+
+    It carries no H1 and no reader-facing prose, so a sidebar entry for it would
+    publish an empty page. It is exempted from the guide metadata contract for
+    the same reason, so nothing else would have caught it reaching navigation.
+    """
+    root = _tree(tmp_path, {"CLAUDE.md": "@AGENTS.md\n", "core/how-to/x.md": "# X\n"})
+    records = build_site.build_guide_inventory(root)
+    assert _by_path(records, "CLAUDE.md")["nav_eligible"] is False
+    assert _by_path(records, "core/how-to/x.md")["nav_eligible"] is True
+
+
 def test_is_index_for_readme_at_any_depth(tmp_path):
     root = _tree(tmp_path, {
         "README.md": "# Guides\n",

@@ -465,6 +465,44 @@ def test_real_wheel_carries_no_engine_tests(tmp_path):
     not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
     reason="engine package not present",
 )
+def test_real_wheel_ships_the_scaffold_claude_shims(tmp_path):
+    """The two `CLAUDE.md` import shims reach an adopter through the wheel.
+
+    Every other assertion about them reads the source checkout, where package
+    data is simply a file on disk. What an adopter runs is the wheel, and
+    whether a file crosses that boundary is decided by packaging configuration
+    — `MANIFEST.in`, `package-data` globs, the build backend. A rule that
+    stopped matching `*.md` under `_data/` would leave the source tree, the
+    projection suites and `sync --check` all green while `catalogue init`
+    silently wrote `AGENTS.md` without its Claude-readable sibling, which is
+    exactly the gap this pair exists to close.
+    """
+    pytest.importorskip("build", reason="`build` not installed")
+    pytest.importorskip("setuptools", reason="build backend not installed")
+    subprocess.run(
+        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
+         "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
+        check=True, capture_output=True,
+    )
+    wheels = list(tmp_path.glob("*.whl"))
+    assert wheels, "no wheel was produced"
+    with zipfile.ZipFile(wheels[0]) as zf:
+        names = set(zf.namelist())
+        for rel in ("packs/CLAUDE.md", "profiles/CLAUDE.md"):
+            member = f"agentbundle/_data/catalogue-scaffold/{rel}"
+            assert member in names, (
+                f"{rel} is absent from the built wheel; adopters would receive "
+                "the scaffold without it"
+            )
+            assert zf.read(member) == b"@AGENTS.md\n", (
+                f"{rel} reached the wheel with unexpected bytes"
+            )
+
+
+@pytest.mark.skipif(
+    not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
+    reason="engine package not present",
+)
 def test_real_sdist_carries_and_executes_complete_engine_suite(tmp_path):
     """AC9 — build the actual setuptools sdist and drive the release gate."""
     assert importlib.util.find_spec("build") is not None, "`build` not installed"

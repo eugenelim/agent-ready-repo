@@ -157,6 +157,9 @@ def test_nav_ineligible_set_is_exactly_the_declared_exceptions():
     }
     assert ineligible == {
         "AGENTS.md",
+        # The `@AGENTS.md` import shim Claude Code reads. Added by the
+        # 2026-09-09 erratum on this spec; it carries no reader-facing prose.
+        "CLAUDE.md",
         "_shared/explanation/README.md",
         "_shared/how-to/README.md",
         "_shared/reference/README.md",

@@ -343,3 +343,45 @@ The `atlassian` pages are the witness that cross-kind ordering works.
   2026-08-06. Two register entries already cover the area —
   `web-docs-link-check-gate` and `phase4b-docsurl-instruction-stale`. Do not
   re-open; the same fix has landed and reverted twice (#852 → #854).
+
+## Errata
+
+- 2026-09-09 (eugenelim): **A second maintainer-context file,
+  `guides/CLAUDE.md`.** § Intent says "Reader-facing" excludes two kinds of
+  page and names `guides/AGENTS.md` as the maintainer-context one; the Layer 1
+  table says `nav_eligible` is "false for `AGENTS.md`"; AC2 names
+  `guides/AGENTS.md` as appearing in neither set. All three now also cover
+  `guides/CLAUDE.md`.
+
+  § Pre-change-sidebar measurements is **not** amended. Its 182 files / 5
+  nav-ineligible / 177 eligible tuple was measured at the synthetic basis that
+  section declares — the tree at `61ef7831` *plus* `guides/AGENTS.md`, which
+  that commit does not itself contain (it holds 181 guide `.md` files, and
+  `guides/AGENTS.md` is not among them). The section states that basis rather
+  than an invariant, and the tuple still holds there. For the current tree the
+  figures are 209 files, 6 nav-ineligible, 203 eligible — the difference from
+  182 is ordinary page growth since that basis, not this change, which moved
+  the ineligible count by exactly one.
+
+  Mechanism: Claude Code reads `CLAUDE.md`, never `AGENTS.md`, and finds a
+  nested one only when it reads a file in that directory. `guides/CLAUDE.md`
+  is eleven bytes — the single line `@AGENTS.md` — which Claude Code expands
+  relative to the containing file. It is the same maintainer context as its
+  twin, reached by the one filename Claude Code looks for.
+
+  Why it needs saying rather than following automatically: nav eligibility is a
+  literal filename set in `tools/build-site.py`, not a property of the content.
+  Left alone, the shim would have been mirrored *and* published as a sidebar
+  entry titled "Claude" whose page body is one import directive — and the
+  guide-metadata exemption it also needs means `validate_guides.py` would not
+  have warned about it either. Both carve-outs had to move together.
+
+  Scope: one filename added to `_NAV_INELIGIBLE_NAMES`. The file stays mirrored
+  and reachable by URL, exactly as `AGENTS.md` is, so § Intent's "no
+  reader-facing page is unreachable" is untouched.
+  `tools/test_build_site_sidebar.py::test_nav_ineligible_set_is_exactly_the_declared_exceptions`
+  pins the real tree's ineligible set at six, and
+  `tools/test_build_site_inventory.py::test_claude_md_not_nav_eligible` covers
+  the rule directly. The `/now/` projection at
+  `web/src/lib/now-highlights.generated.json` is regenerated in the same change,
+  because `tools/build-site.py` owns both it and the nav carve-out.

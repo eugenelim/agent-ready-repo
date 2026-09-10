@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.43.1] — 2026-09-09
+
+### Added
+
+- `catalogue init` writes `packs/CLAUDE.md` and `profiles/CLAUDE.md`, each a
+  single `@AGENTS.md` import line, beside the `AGENTS.md` it already scaffolded.
+  Claude Code reads `CLAUDE.md` rather than `AGENTS.md` and discovers a nested
+  one only on reading a file in that directory, so a new catalogue previously
+  gave a Claude session no scoped pack or profile guidance. `AGENTS.md` remains
+  the canonical file for every agent and its content is unchanged. An existing
+  file at either path is reported as a conflict and left alone.
+
 ## [0.43.0] — 2026-09-08
 
 ### Added
