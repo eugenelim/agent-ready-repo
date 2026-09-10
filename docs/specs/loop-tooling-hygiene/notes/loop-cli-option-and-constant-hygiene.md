@@ -58,9 +58,8 @@ when the fix is scoped.
 
 ## Not part of this record
 
-The output-cost measurement that surfaced both items concluded that these two
-scripts' output should **not** shrink: a full-mode `code`-mode run emits 62
-lines and 4,933 characters across 27 commands, and the parsed-contract
-inventory plus the 39 byte-pinned rows in
-`packs/core/tests/skills/work-loop/fixtures/golden_cli_streams.json` account
-for the large majority of it. That verdict needs no follow-on work.
+Both items were found while measuring these scripts' output cost. That
+measurement and its do-not-shrink verdict live in
+[`docs/product/research/loop-cli-output-cost-measurement.md`](../../../product/research/loop-cli-output-cost-measurement.md),
+which outlives this record — closing the two fixes above does not retire the
+measurement. No follow-on work is owed for the verdict itself.

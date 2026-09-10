@@ -1035,30 +1035,52 @@ def test_engine_state_reader_rejects_non_regular_path(tmp: Path) -> None:
         ok(name)
 
 
-def test_missing_git_binary_refuses_without_a_traceback(tmp: Path) -> None:
-    """No `git` on PATH is a bounded refusal, identically in both loop tools.
+# The published contract is line-boundedness ("one line of explanation instead
+# of a stack trace"), so that is what this asserts. Checking only for the
+# absence of the word `Traceback` would pass a refusal that regrew to 30 lines,
+# and a traceback also prints absolute internal script paths.
+_MAX_REFUSAL_LINES = 2
 
-    `_resolve_spec_dir` is the confinement check every engine verb passes
-    through, and it catches only ValueError. While `_get_repo_root` let a
-    FileNotFoundError through, a host without git got a 33-line traceback —
-    more output than an entire successful run — where `loop-cohort.py`'s
-    duplicate helper returned one line for the same input. Both copies are
-    asserted here on purpose: the defect was drift between them, so a future
-    divergence in EITHER direction has to redden.
+
+def _refusal_body(stream: str) -> str:
+    """The refusal minus each tool's own `loop-<tool>: stop — ` prefix."""
+    return stream.split("stop —", 1)[-1].strip()
+
+
+def _unresolvable_git_paths(tmp: Path) -> dict[str, Path]:
+    """Two PATH values that each break the `git` lookup a different way.
+
+    Both are an existing directory, never PATH="": an absent or empty PATH sends
+    subprocess to `os.defpath`, where a real /usr/bin/git satisfies the lookup
+    and every case below would pass without reaching the branch at all.
+    """
+    absent = tmp / "path-with-no-git"
+    absent.mkdir()
+    # A *directory* named `git` resolves on PATH and then fails to execute:
+    # PermissionError, not FileNotFoundError. Listing only the latter left this
+    # input reproducing the original 2,221-char traceback.
+    unexecutable = tmp / "path-with-unexecutable-git"
+    (unexecutable / "git").mkdir(parents=True)
+    return {"absent": absent, "unexecutable": unexecutable}
+
+
+def test_missing_git_binary_refuses_without_a_traceback(tmp: Path) -> None:
+    """A `git` lookup failure is a bounded refusal, identically in both tools.
+
+    `_resolve_spec_dir` is the confinement check every verb passes through, and
+    it catches only ValueError; `main()` catches only GuardsUnavailable and
+    KeyboardInterrupt. So any other exception from `_get_repo_root` is a 33-line
+    traceback — more output than an entire successful run of the loop.
+
+    Two inputs, because the first fix closed one member of the exception class
+    and left the other reproducing the defect. Both tools are asserted, and
+    their refusal TEXT is compared rather than just their exit codes: the
+    original defect was drift between two duplicated copies of this helper, so a
+    wording divergence in either direction has to redden here.
     """
     name = "missing-git-binary-refuses-without-a-traceback"
     spec_dir = make_spec_dir(tmp, name)
     run_engine("init", str(spec_dir), "--mode", "code")
-
-    # An existing but EMPTY directory, never PATH="": an absent or empty PATH
-    # sends subprocess to `os.defpath`, where a real /usr/bin/git satisfies the
-    # lookup and this case would pass without reaching the branch at all.
-    empty_bin = tmp / "no-git-here"
-    empty_bin.mkdir()
-    nogit_env = {**os.environ, "PATH": str(empty_bin)}
-    if shutil.which("git", path=str(empty_bin)) is not None:
-        fail(name, "fixture PATH still resolves git, so the case proves nothing")
-        return
 
     # Positive control. Without it every assertion below is also satisfied by a
     # `status` that is broken for some unrelated reason, on empty state or not.
@@ -1067,21 +1089,43 @@ def test_missing_git_binary_refuses_without_a_traceback(tmp: Path) -> None:
         fail(name, f"positive control failed — status is broken on its own: {err_ok}")
         return
 
-    rc, out, err = run_engine("status", str(spec_dir), "--json", env=nogit_env)
-    stream = out + err
-    if rc == 0:
-        fail(name, "engine accepted a spec-dir whose confinement it could not check")
-    elif "Traceback" in stream:
-        fail(name, f"missing git escaped the diagnostic boundary: {stream}")
-    elif "could not determine repo root" not in stream:
-        fail(name, f"refusal did not name the repo-root failure: {stream!r}")
-    else:
-        c_rc, c_out, c_err = run_cohort("status", str(spec_dir), env=nogit_env)
-        c_stream = c_out + c_err
-        if c_rc == 0 or "Traceback" in c_stream:
-            fail(name, f"cohort no longer bounds the same input: {c_stream}")
-        else:
-            ok(name)
+    for label, bin_dir in _unresolvable_git_paths(tmp).items():
+        if shutil.which("git", path=str(bin_dir)) is not None:
+            fail(name, f"{label}: PATH still resolves an executable git")
+            return
+        env = {**os.environ, "PATH": str(bin_dir)}
+
+        streams = {}
+        for tool, runner in (("engine", run_engine), ("cohort", run_cohort)):
+            args = ["status", str(spec_dir)]
+            rc, out, err = runner(*args, env=env)
+            stream = out + err
+            streams[tool] = stream
+            if rc == 0:
+                fail(name, f"{label}/{tool}: accepted a spec-dir it could not confine")
+                return
+            lines = [ln for ln in stream.splitlines() if ln.strip()]
+            if len(lines) > _MAX_REFUSAL_LINES:
+                fail(name, f"{label}/{tool}: refusal grew to {len(lines)} lines: {stream}")
+                return
+            if "could not determine repo root" not in stream:
+                fail(name, f"{label}/{tool}: refusal did not name the failure: {stream!r}")
+                return
+
+        # The convergence claim, asserted rather than described. Compared after
+        # stripping each tool's own `loop-<tool>: stop — ` prefix, which is the
+        # one part that legitimately differs.
+        engine_body = _refusal_body(streams["engine"])
+        cohort_body = _refusal_body(streams["cohort"])
+        if engine_body != cohort_body:
+            fail(
+                name,
+                f"{label}: the two copies no longer refuse identically — "
+                f"engine={engine_body!r} cohort={cohort_body!r}",
+            )
+            return
+
+    ok(name)
 
 
 def test_status_json_after_init(tmp: Path) -> None:

@@ -13,11 +13,11 @@
       "changelogAnchor": "core22512--2026-09-10",
       "highlights": [
         {
-          "source": "**A machine without `git` installed now gets one line of explanation instead of a stack trace.** Every `loop-engine` command needs `git` to confirm the spec directory sits inside your repository. When the command could not find `git` at all, it ended in a 33-line Python trace — more output than a whole successful run of the loop — while its sibling tool answered the same situation in a single line. Both now say the same thing the same way.",
+          "source": "**A machine that cannot run `git` now gets one line of explanation instead of a stack trace.** Every `loop-engine` and `loop-cohort` command needs `git` to confirm the spec directory sits inside your repository. When `git` could not be run at all — not installed, or a `PATH` entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line.",
           "segments": [
             {
               "type": "strong",
-              "value": "A machine without `git` installed now gets one line of explanation instead of a stack trace."
+              "value": "A machine that cannot run `git` now gets one line of explanation instead of a stack trace."
             },
             {
               "type": "text",
@@ -29,6 +29,14 @@
             },
             {
               "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "loop-cohort"
+            },
+            {
+              "type": "text",
               "value": " command needs "
             },
             {
@@ -37,7 +45,7 @@
             },
             {
               "type": "text",
-              "value": " to confirm the spec directory sits inside your repository. When the command could not find "
+              "value": " to confirm the spec directory sits inside your repository. When "
             },
             {
               "type": "code",
@@ -45,7 +53,15 @@
             },
             {
               "type": "text",
-              "value": " at all, it ended in a 33-line Python trace — more output than a whole successful run of the loop — while its sibling tool answered the same situation in a single line. Both now say the same thing the same way."
+              "value": " could not be run at all — not installed, or a "
+            },
+            {
+              "type": "code",
+              "value": "PATH"
+            },
+            {
+              "type": "text",
+              "value": " entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line."
             }
           ]
         }
