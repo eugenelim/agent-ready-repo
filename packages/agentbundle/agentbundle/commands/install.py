@@ -3282,7 +3282,7 @@ def _append_layout_section(
     scope_table = pack_layout.get(scope) if isinstance(pack_layout, dict) else None
     section = scope_table.get("section") if isinstance(scope_table, dict) else None
     output_dir = scope_table.get("output_dir") if isinstance(scope_table, dict) else None
-    if not isinstance(section, str) or not section:
+    if not isinstance(section, str):
         return
     if not isinstance(output_dir, str) or not output_dir:
         return
@@ -3353,6 +3353,26 @@ def _append_layout_section(
                 f"{layout_path} untouched"
             )
             return
+        # At user scope the root is the adopter's whole home, which is far
+        # wider than anything the installer may write. Narrow it to the
+        # adapter's declared prefixes — the same surface `write_jailed`
+        # enforces — so a catalogue-sourced manifest cannot name `~/.aws` or
+        # `~/.claude`, where a later-written document would carry instruction
+        # authority into every session.
+        if scope == "user" and allowed_prefixes is not None:
+            relative = resolved.relative_to(confine_root).as_posix()
+            if resolved == confine_root or not any(
+                relative == prefix.rstrip("/")
+                or relative.startswith(prefix)
+                for prefix in allowed_prefixes
+            ):
+                _report(
+                    f"pack {pack_name} declares user-scope output_dir "
+                    f"{output_dir!r}, which resolves outside the prefixes this "
+                    f"install may write ({', '.join(allowed_prefixes)}); "
+                    f"leaving {layout_path} untouched"
+                )
+                return
 
         # ── 7. Read as bytes ⇒ report on failure ────────────────────────────
         # Bytes, not text: `read_text` folds CRLF and lone CR to LF, so a
@@ -3468,7 +3488,9 @@ def _append_layout_section(
     except Exception as exc:  # noqa: BLE001 - deliberate catch-all; see above
         _report(
             f"layout maintenance failed for pack {pack_name} at {scope} scope "
-            f"({type(exc).__name__}: {exc}); install is unaffected"
+            f"({type(exc).__name__}: {exc}); no [{section}] appended to "
+            f"{locals().get('layout_path', 'the layout file')}; install is "
+            "unaffected"
         )
         return
 

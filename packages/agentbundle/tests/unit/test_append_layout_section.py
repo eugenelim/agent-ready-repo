@@ -408,3 +408,69 @@ def test_a_hostile_output_dir_lands_one_string_in_one_table(
     parsed = tomllib.loads(path.read_text(encoding="utf-8"))
     assert list(parsed) == ["research", "design"]
     assert parsed["design"] == {"output_dir": payload}
+
+
+# ---------------------------------------------------------------------------
+# AC14 — user-scope confinement is the prefix surface, not the whole home
+# ---------------------------------------------------------------------------
+
+
+def _user_scope_append(home: Path, output_dir: str) -> Path:
+    state = home / ".agentbundle"
+    state.mkdir(mode=0o700, exist_ok=True)
+    path = state / "agentbundle-layout.toml"
+    path.write_bytes(b'[research]\noutput_dir = "/already/set"\n')
+    _append_layout_section(
+        home,
+        "user",
+        pack_name="third-party",
+        pack_layout={"user": {"section": _SECTION, "output_dir": output_dir}},
+        allowed_prefixes=[".claude/", ".agentbundle/"],
+    )
+    return path
+
+
+def test_a_user_scope_base_outside_the_write_prefixes_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """The user root is the adopter's whole home — far wider than what the
+    installer may write.
+
+    `output_dir` is manifest-supplied and an external catalogue is reachable,
+    so a home-wide check would let a pack name any dot-directory under the
+    home: an agent-configuration directory, a credential store. A document
+    later written to the first of those carries instruction authority into
+    every session. The confinement is therefore the adapter's declared prefix
+    surface, the same one `write_jailed` enforces.
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(tmp_path))
+    # A dot-directory under the home that is not a declared write prefix. The
+    # name is deliberately neutral; the property under test is "not in the
+    # prefix list", not this directory in particular.
+    path = _user_scope_append(tmp_path, str(tmp_path / ".unlisted-config"))
+
+    assert path.read_bytes() == b'[research]\noutput_dir = "/already/set"\n'
+    _assert_reported(capsys, "outside the prefixes")
+
+
+def test_a_user_scope_base_inside_a_write_prefix_is_admitted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The refusal must be the prefix surface, not a blanket user-scope ban."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(tmp_path))
+    path = _user_scope_append(tmp_path, str(tmp_path / ".agentbundle" / "design"))
+
+    assert _SECTION.encode() in path.read_bytes()
+
+
+def test_the_home_root_itself_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(tmp_path))
+    path = _user_scope_append(tmp_path, str(tmp_path))
+
+    assert path.read_bytes() == b'[research]\noutput_dir = "/already/set"\n'
+    _assert_reported(capsys, "outside the prefixes")

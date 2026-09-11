@@ -66,11 +66,32 @@ def _declaring_packs() -> list[tuple[str, str, str]]:
     return found
 
 
-def _documented_pairs(pack: str) -> set[tuple[str, str]]:
-    """Every (section, base) pair this pack's own reference docs state."""
+def _is_repo_scope_base(base: str) -> bool:
+    """A repo-scope base is relative; a user-scope base is absolute.
+
+    This is the anchoring rule the layout contract already states — a
+    repo-root file's value is repo-root-relative, a user-profile file's must
+    be an explicit absolute path. Reading scope off the value keeps the check
+    from depending on how a fenced example is commented.
+    """
+    return not base.startswith(("/", "~"))
+
+
+def _documented_pairs(pack: str, *, repo_scope: bool = True) -> set[tuple[str, str]]:
+    """Every (section, base) pair this pack's docs state for one scope.
+
+    Scope matters: a pack's reference docs carry both a repo-scope and a
+    user-scope example for the same section, so unioning them would let a
+    repo-scope declaration be validated by the user-scope base — a pair no
+    reader of the repo file would ever resolve.
+    """
     pairs: set[tuple[str, str]] = set()
     for doc in (PACKS_DIR / pack).rglob("references/agentbundle-layout.md"):
-        pairs |= set(_PAIR.findall(doc.read_text(encoding="utf-8")))
+        pairs |= {
+            (section, base)
+            for section, base in _PAIR.findall(doc.read_text(encoding="utf-8"))
+            if _is_repo_scope_base(base) is repo_scope
+        }
     return pairs
 
 
@@ -134,6 +155,29 @@ def test_the_rule_rejects_a_crossed_pair() -> None:
 
     assert crossed == {("alpha", "two/beta"), ("beta", "one/alpha")}
     assert not (crossed & documented), "a crossed pair must never be documented"
+
+
+def test_a_repo_declaration_is_not_validated_by_a_user_scope_example() -> None:
+    """The scope split must discriminate, not merely pass on today's tree.
+
+    A pack documenting the same section at both scopes offers two bases. If
+    the check unioned them, a repo-scope manifest carrying the user-scope base
+    would pass while naming a path no reader of the repo file resolves.
+    """
+    checked = 0
+    for pack, _section, _base in _declaring_packs():
+        repo_pairs = _documented_pairs(pack, repo_scope=True)
+        user_pairs = _documented_pairs(pack, repo_scope=False)
+        for section, user_base in user_pairs:
+            if any(s == section for s, _ in repo_pairs):
+                assert (section, user_base) not in repo_pairs
+                checked += 1
+    if not _catalogue_has_packs():
+        pytest.skip("no packs in this catalogue")
+    assert checked, (
+        "no pack documents one section at both scopes, so the scope split is "
+        "untested against the tree"
+    )
 
 
 def test_no_pack_documents_a_crossing_of_its_own_pairs() -> None:
