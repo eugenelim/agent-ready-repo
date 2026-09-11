@@ -135,7 +135,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC25):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
+- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC24, AC25):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
 - **The recorded run, both graded ranks (AC26, AC27):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy

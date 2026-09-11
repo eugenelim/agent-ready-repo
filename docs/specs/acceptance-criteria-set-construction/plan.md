@@ -462,6 +462,11 @@ what went stale when one was added.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
+- **AC24.** The review step states both answers to a claim-reaches-further
+  finding and the rule for choosing between them. **Constraint:** assert the
+  choosing rule, not just the pair. A pair of options with no basis for choosing
+  leaves the author picking by mood, which is the behaviour this criterion
+  replaces.
 - **AC25.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
