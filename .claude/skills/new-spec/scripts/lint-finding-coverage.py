@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """Check that every finding a checker can emit is exercised by some test.
 
-**The defect this detects.** A rule-based checker emits one distinct message per
+The defect this detects. A rule-based checker emits one distinct message per
 rule. A rule whose message no test ever observes has no red case: its suite is
 green for a reason unrelated to whether the rule works. That is a control that
 cannot fail, one level up -- in the tests rather than in the guard.
 
-**How a script opts in.** Declare a module-level `FINDING_KINDS` mapping of rule
+How a script opts in. Declare a module-level `FINDING_KINDS` mapping of rule
 name to the message fragment that rule emits, and format the messages from it so
 the two cannot drift. Scripts declaring none are skipped and counted, so adding
 this check to a repository fails nothing that has not opted in.
 
-**Nothing about any repository's layout is assumed.** Subjects and test
+Nothing about any repository's layout is assumed. Subjects and test
 directories are given as arguments. When `--tests` is omitted the script looks
 for a `tests/` directory beside the subject's skill and at the invocation root,
 and the report names what it considered -- silence about the candidate set is
 what turns a heuristic into a false clean.
 
-**What this is not.** It is a floor. A test source containing a fragment is not
+What this is not. It is a floor. A test source containing a fragment is not
 proof that an assertion fires, and only executing the case proves the branch is
 reachable. It catches the absent red case, which is cheap; branch coverage
 catches the unreachable one, which is not.
@@ -183,7 +183,8 @@ def check(subjects: list[Path], given: list[Path],
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("subject", nargs="*", type=Path)
     parser.add_argument("--tests", action="append", type=Path, default=[])
     parser.add_argument("--discover", type=Path, default=None,
