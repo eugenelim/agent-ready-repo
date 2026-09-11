@@ -174,6 +174,12 @@ cost is not a gap in this envelope — it is a signal that belongs to a layer
 above it, and a proxy or gateway that intercepts the model call is the other
 honest place to capture it.
 
+**Token visibility from a pack is therefore ruled out, not deferred.** No
+field, flag, or later revision of this envelope can supply it, because the
+number is not observable from where this code runs. A proposal to add one is
+answered by this paragraph rather than by a design round. What remains open is
+only whether to correlate against the host's own export.
+
 The consequence for design is **correlate, never duplicate**. Point both
 emitters at one collector and join in the backend rather than teaching this
 engine to guess at a number it cannot observe. Note the two carry different
@@ -246,4 +252,4 @@ a path reasoned about. Only the install-time append ever writes a layout file.
 
 ## 10. Last verified against commit
 
-`f583eaad5`
+`fd97e58c0`
