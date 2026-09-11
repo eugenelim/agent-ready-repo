@@ -1581,7 +1581,7 @@ class _GitTools:
         """
         import tomllib
 
-        def _read_scope(path: Path) -> dict[str, str]:
+        def _read_scope(path: Path, *, scope: str) -> dict[str, str]:
             if not path.exists() or path.is_symlink():
                 return {}
             out: dict[str, str] = {}
@@ -1589,14 +1589,42 @@ class _GitTools:
                 with path.open("rb") as fh:
                     data = tomllib.load(fh)
                 for key in ("research", "product", "design"):
-                    if isinstance(data.get(key), dict):
-                        raw = data[key].get("output_dir", "")
-                        if raw:
-                            out[key] = str(Path(raw).expanduser().resolve())
+                    if not isinstance(data.get(key), dict):
+                        continue
+                    raw = data[key].get("output_dir", "")
+                    if not raw:
+                        continue
+                    candidate = Path(raw).expanduser()
+                    if not candidate.is_absolute():
+                        # A relative value is anchored by the layout file's own
+                        # location, never by the ambient working directory
+                        # (RFC-0040 Decision 9). At repo scope that anchor is
+                        # the repository root. At user scope there is no stable
+                        # base — the same process serves many repositories — so
+                        # the value is surfaced rather than guessed at. stdout
+                        # is the MCP protocol channel, so the report goes to
+                        # stderr; returning silently here is indistinguishable
+                        # from an unconfigured file and hides the adopter's
+                        # configured path from them.
+                        if scope == "user":
+                            print(
+                                f"workspace-mcp: warning: [{key}] output_dir "
+                                f"{raw!r} in {path} is relative; a user-scope "
+                                "value must be absolute (~-anchored is fine). "
+                                "Ignoring it.",
+                                file=sys.stderr,
+                            )
+                            continue
+                        candidate = self._repo_root / candidate
+                    out[key] = str(candidate.resolve())
             return out
 
-        repo = _read_scope(self._repo_root / "agentbundle-layout.toml")
-        user = _read_scope(Path.home() / ".agentbundle" / "agentbundle-layout.toml")
+        repo = _read_scope(
+            self._repo_root / "agentbundle-layout.toml", scope="repo"
+        )
+        user = _read_scope(
+            Path.home() / ".agentbundle" / "agentbundle-layout.toml", scope="user"
+        )
         result: dict[str, str] = {}
         # research: user-scope wins
         result["research"] = user.get("research") or repo.get("research", "")
