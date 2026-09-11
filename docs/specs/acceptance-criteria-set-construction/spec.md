@@ -37,8 +37,9 @@ consistency, joint-feasibility and coverage pass.
 The procedure is a **self-check the author runs while authoring**, not a gate
 another party applies afterwards. Its load-bearing move is that a criterion is
 admissible only once something is named that would show its failure: an
-obligation whose observer cannot be named stays a candidate. The set-level pass
-then reads coverage in both directions — every obligation reaches a criterion or
+obligation whose observer cannot be named stays a candidate. The set-level pass, whose members
+AC-0009 enumerates once and nothing else restates, reads coverage in both
+directions — every obligation reaches a criterion or
 a routed owner, and every criterion has exactly one observer. Necessity is
 operational rather than a word in a list: each criterion names the input that
 makes it red, and a criterion whose red input a sibling already covers is
@@ -111,7 +112,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   already exist. The one admitted addition is the alignment checker in
   AC-0032, owner-approved 2026-09-10: it takes a `scripts/` directory inside
   this skill, which is the catalogue's standard skill layout and is already how
-  six sibling skills ship their own tooling.
+  seven sibling skills ship their own tooling.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
   count orders how hard the set-level pass looks and settles nothing on its own;
   no check reaches this claim, so it is held here and read at review.
@@ -154,9 +155,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
 - **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
-- **The disposition record (AC-0033):** goal-based check over the authored skill
+- **The disposition record (AC-0034):** goal-based check over the authored skill
   file, on the pack-local suite. Grouped with the procedure, which is its surface.
-- **The alignment checker (AC-0032):** TDD. The check is a pure function over a
+- **ADR-0107's confirmation state (AC-0032):** goal-based check over the ADR,
+  at repository level. The ADR is not pack content, so the pack-local suite
+  cannot read it.
+- **The alignment checker (AC-0033):** TDD. The check is a pure function over a
   spec directory's two texts and its retired list, so its cases compress into
   assertions. Its scope is deliberately distinct from the repository's
   spec-status lint, which decides spec *state* — status vocabulary, criteria
@@ -258,7 +262,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       rather than a compound criterion.
 - [ ] **AC-0017.** The procedure cites the rubric's threshold section as the owner of how a
       count threshold is derived and what an above-threshold count means, and
-      derives none of it itself. While the set is at or above the author's corpus p75, the procedure
+      states the threshold it branches on rather than deriving one: the rubric owns
+      how an author measures a corpus and arrives at a percentile, this procedure
+      owns only what happens on each side of whatever threshold that produced.
+      While the set is at or above the author's stated threshold, the procedure
       requires the uniqueness check to be re-run pairwise across the whole set
       with its result recorded; below that one position it requires only the
       per-criterion check against neighbours. One threshold, both branches, no
@@ -266,7 +273,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] **AC-0018.** No surface this slice ships — the procedure span, the guide page, or the
       frozen eval entries — states a fixed absolute criterion count, meaning a
       cap, ceiling, budget, refusal or pass/fail bar on how many criteria a spec
-      may carry, and a set above the corpus p75 passes on its obligations alone.
+      may carry, and a set above the author's stated threshold passes on its
+      obligations alone.
       The surface set is the three this slice ships because that is what the
       check reads; pre-existing shipped surfaces are a recorded residual, not
       this criterion. The wider claim that count never proves quality is a
@@ -326,13 +334,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       identifier convention, stated directly rather than cited because shipped
       pack content carries no internal-record citation: every acceptance
       criterion and every verification item takes an opaque, append-only
-      identifier scoped to its own spec directory — assigned once, never
+      identifier scoped to its own spec directory, drawn from a class-marked
+      form — `AC-` for an acceptance criterion, `VI-` for a verification item —
+      so a reference names which class it resolves against and a derived
+      identifier is detectable rather than a matter of opinion. Each is assigned
+      once, never
       renumbered on insertion or reorder, never reused after removal, and each
       removal recorded under a `## Retired identifiers` heading in the same
       artifact, one bare identifier per list item, the heading omitted while
       nothing has been retired — and the template's own
       criteria list shows the labelled form, so a criterion is cited without
-      being counted.
+      being counted. The template also fixes the verification group's shape: a
+      Testing Strategy group is a list item whose leading bold segment names, in
+      parentheses, every criterion it covers. Without a stated shape the
+      one-group-per-criterion rule has nothing to read.
 - [ ] **AC-0031.** The plan step requires each task to be grounded against the same
       governing set AC-0006 defines, resolved for the surfaces that task's own
       work touches rather than for the plan as a whole, and to record what it
@@ -351,18 +366,27 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       — a gate matching by glob or directory walk, and a rule that applies by
       content rather than by path — is the stated residue that review still
       owns.
-- [ ] **AC-0032.** The skill ships its own alignment checker, invoked from its own
+- [ ] **AC-0032.** ADR-0107's `Revisit if` names a tool that enforces no-reuse for
+      inline-Markdown items, and the checker below is that tool, so the trigger
+      fires on delivery. The ADR's `Confirmation` moves from reviewer-checked to
+      the shipped check and its `Revisit if` records that the trigger fired and
+      the decision stands unchanged. A shipped decision record stating that no
+      lint enforces it, on the commit that ships the lint, is the conflict the
+      repository's own guidance forbids resolving silently.
+- [ ] **AC-0033.** The skill ships its own alignment checker, invoked from its own
       `scripts/` directory and depending on no other skill. It decides the
       mechanical alignment of a loop contract's items: every acceptance criterion
       carries a well-formed identifier, identifiers are unique within the spec
       directory, none appears in the retired list, every identifier reference in
-      `spec.md` and `plan.md` resolves to a criterion that exists, every
+      `spec.md` and `plan.md` carrying the criterion class marker resolves to a
+      criterion that exists — an item-class identifier is resolved against the
+      items, not the criteria — every
       criterion is named by at least one plan entry and appears in exactly one
       verification group, and a verification item's identifier is its own rather
       than derived from the criterion or task it serves. A spec whose criteria
       carry no identifiers is skipped rather than failed, so the checker is
       adoptable against the existing corpus on the commit that introduces it.
-- [ ] **AC-0033.** The procedure requires each candidate's disposition to be recorded,
+- [ ] **AC-0034.** The procedure requires each candidate's disposition to be recorded,
       and the candidate and final counts that follow from those dispositions. The
       rubric owns deriving a count threshold from the author's shipped corpus and
       what an above-threshold count means; it owns no record of what this

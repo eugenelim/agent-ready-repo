@@ -253,7 +253,7 @@ in the same commit
   the root `AGENTS.md` says stopping at the first hit skips the rest silently.
   The mutation that must fail is rewriting the walk as a nearest-file lookup
   while leaving the consequence clause intact.
-- **AC-0033.** Assert the procedure requires each candidate's disposition to be
+- **AC-0034.** Assert the procedure requires each candidate's disposition to be
   recorded and the two counts that follow from it. **Constraint:** assert the
   disposition record and the counts separately, and assert that the counts are
   stated as following from the dispositions. A count obligation standing alone
@@ -328,7 +328,7 @@ in the same commit
   exhaustive over references-by-path; the semantic sweep that preceded it was
   not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
-  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
+  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins six
   exact phrases inside step 4 — the step this slice rewrites — and applies a
   seven-phrase deny-list across the whole file;
   `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
@@ -386,7 +386,11 @@ missing one of them does not close this task.
   stage names is present, the criterion-shape owner is cited by document name,
   and no sentence from that owner's pinned rule collection appears in the guide
   body — an exact absence comparison against the named set, not a judgement
-  about restatement. Paraphrase is outside this assertion and is a review
+  about restatement. **The set is obtained by importing the `spec`-owned entries
+  of `RULES` from the pack suite, never by re-declaring the phrases.** A
+  re-declared copy in `tests/roster/` is protected by no test, drifts silently,
+  and is exactly the second home this plan exists to avoid; `SOURCES` in that
+  module covers the four pack files only, so nothing would catch the drift. Paraphrase is outside this assertion and is a review
   obligation; the criterion was narrowed to match, so test and criterion now
   claim the same thing. The suite reads the guide by
   repository-relative path, the way
@@ -538,7 +542,13 @@ entries landed and green after, and the full pack suite is green.
 
 **Approach:**
 - Record per case: candidate count, final count, and each candidate's
-  `admit` / `merge` / `relocate` / `remove` disposition.
+  disposition **in AC-0008's vocabulary** — admitted, or routed to the plan, to
+  Testing Strategy, to an existing owner named, to the body, out of the
+  contract, or to the plan as a discovery predicate. A collapsed `relocate`
+  loses which named owner a rejected candidate reached, and AC-0010 counts a
+  disposition as coverage only when it names that owner. This ledger is the sole
+  closeout evidence for the reusable-learning output and cannot be corrected back
+  into the pinned contract afterwards.
 - A smaller set obtained by losing a distinct obligation or guardrail is a
   failure, not a pass — record it as one and stop rather than re-running.
 
@@ -739,7 +749,7 @@ in the same commit
   exhaustive over references-by-path; the semantic sweep that preceded it was
   not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
-  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
+  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins six
   exact phrases inside step 4 — the step this slice rewrites — and applies a
   seven-phrase deny-list across the whole file;
   `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
@@ -794,9 +804,16 @@ in the same commit
   per-task `Tests:` subsection, not in the spec template. Assert `assets/plan.md`
   carries the same convention for verification items, including that an item's
   identifier is its own and never derived from the criterion or task it serves.
-  **Constraint:** this is a second file, not a second home — the spec asset owns
-  the convention for criteria, the plan asset for verification items, and
-  neither restates the other's half. Without it AC-0032's checker has a rule to
+  **Constraint:** this is a second file, not a second home, and the split is
+  stated per clause rather than asserted. `assets/spec.md` owns every shared
+  property — assigned once, never renumbered, never reused, removals recorded —
+  and `assets/plan.md` carries a cross-reference to it plus only what is its
+  own: the `VI-` class marker and the independence rule. Identical property
+  clauses in both would red `test_acceptance_criterion_rule_has_one_owner`,
+  which asserts each pinned phrase is absent from the other three sources.
+  **State whether these assertions join `RULES`:** they do, under owner `spec`
+  for the properties and owner `plan` for the item-class clauses, the way T6
+  declares its own pin interaction. Without it AC-0032's checker has a rule to
   enforce over items no template ever labels.
 - **AC-0030, the emitted form.** Assert the template's own criteria list carries
   labelled items, so an author copying it inherits the form rather than reading
@@ -850,7 +867,8 @@ drift.
 
 **Depends on:** T7
 
-**Touches:** `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (new),
+**Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
+`packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (new),
 `packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (new),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
@@ -860,7 +878,7 @@ in the same commit
   `packs/AGENTS.md` states skills are independent. The precedent is
   `author-delivery-brief/scripts/lint-brief-coverage.py` with its test at
   `packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py`:
-  an authoring skill shipping a lint over the artifacts it authors. Six sibling
+  an authoring skill shipping a lint over the artifacts it authors. Seven sibling
   core skills carry a `scripts/` directory, so the layout is standard and
   `CAT-S004` treats layout findings as warnings rather than errors.
 - **Its scope is not the spec-status lint's.** That lint decides spec *state* —
@@ -881,6 +899,17 @@ in the same commit
   body-line budget first; T1 and T6 are already spending from it.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
+- **AC-0032, the ADR.** Assert `docs/adr/0107-...md` no longer states that no lint
+  enforces the convention, that its `Confirmation` names the shipped check, and
+  that its `Revisit if` records the trigger as fired with the decision unchanged.
+  **Constraint:** this is a lifecycle edit to an accepted record, not a reversal
+  — the decision stands, and only the confirmation state moves. Assert the
+  decision text is unchanged in the same check, so a future edit cannot use this
+  precedent to reopen the decision itself.
+- **AC-0033, the invariants.** One case per rule, each named below. Every bullet
+  in this task traces to AC-0033; the criterion's own checker asserts that every
+  criterion is named by at least one plan entry, so a task leaving its criterion
+  unnamed would red the check it ships.
 - Unlabelled spec → skipped, zero findings. The adoption case; without it the
   commit that introduces the checker fails 442 existing specs.
 - Spec with no `## Retired identifiers` heading → treated as an empty retired
@@ -905,8 +934,9 @@ in the same commit
   duplicating them here would put two homes on one obligation.
 - Skip-when-unlabelled is the first condition, not a late guard.
 
-**Done when:** every Tests bullet above passes, the mutation proof is recorded and
-restored, and `make build-self` leaves no drift.
+**Done when:** every Tests bullet above passes for AC-0033, the AC-0032 ADR edit
+is landed and asserted, the mutation proof is recorded and restored, and
+`make build-self` leaves no drift.
 
 ## Rollout
 
@@ -978,6 +1008,9 @@ restored, and `make build-self` leaves no drift.
   recorded under `**Grounding:**`, per AC-0031. The plan-level
   `Repository anchors:` field above was filled in and still missed all three
   pre-EXECUTE blockers, which is the evidence for making grounding per-task.
+- 2026-09-10: pre-EXECUTE round 3 sustained eleven of fourteen findings; four
+  were refuted. AC-0032 was added for ADR-0107's confirmation state, which the
+  shipped checker falsifies on the commit that lands it.
 - 2026-09-10: pre-EXECUTE round 2 sustained eight of eleven findings; three were
   refuted, one of them because the reviewer's proposed fix contradicted T6.
 - 2026-09-10: owner-approved — the skill ships its own alignment checker (T8,
