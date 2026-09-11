@@ -195,6 +195,68 @@ def test_phase_selects_the_probe_set(root):
     assert "scoped rules" not in review, "review does not re-ask what governs the surface"
 
 
+def test_a_near_miss_path_is_not_a_reference_and_the_seed_is_not_its_own(root):
+    """Two negatives the probe must hold: a similar path, and the seed itself."""
+    seed = _seeded(root)
+    (root / "near.md").write_text("we use lib/seed.markdown, a different file\n", encoding="utf-8")
+    out = _run(root, seed)
+    refs = out.split("path refs", 1)[1].split("phrase pins", 1)[0]
+    assert "near.md" not in refs, "a near-miss path must not count as a reference"
+    assert "lib/seed.md\n" not in refs, "the seed must be excluded from its own references"
+
+
+def test_calibration_differs_by_repository_and_names_its_basis(root):
+    """The live-calibration claim, tested by making two repositories disagree."""
+    seed = _seeded(root)
+    thin = _run(root, seed)
+    assert "sweep-commit threshold" in thin and "default (no history)" in thin, thin
+
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "t@example.invalid")
+    _git(root, "config", "user.name", "t")
+    for index in range(24):
+        (root / f"f{index}.md").write_text(f"body {index}\n", encoding="utf-8")
+        _git(root, "add", "-A")
+        _git(root, "commit", "-q", "-m", f"c{index}")
+    rich = _run(root, seed)
+    assert "p90 of" in rich, "with history the threshold must derive from this repository"
+    assert "default (no history)" not in rich
+
+
+def test_an_ambiguous_reference_is_named_with_its_candidate(root):
+    """A path resolving under another root is a scope question, not a dead link."""
+    seed = _seeded(root)
+    # Ambiguity is decided against the tracked set, so the fixture needs history:
+    # `vendor/thing.md` must be absent at the root and present under another one.
+    (root / "vendor").mkdir()
+    (root / "vendor" / "other.md").write_text("x\n", encoding="utf-8")
+    (root / "lib" / "vendor").mkdir()
+    (root / "lib" / "vendor" / "thing.md").write_text("x\n", encoding="utf-8")
+    (root / seed).write_text(
+        f"# Seed\n\n{LONG}\n\nSee vendor/thing.md for detail.\n", encoding="utf-8")
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "t@example.invalid")
+    _git(root, "config", "user.name", "t")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "seed")
+    out = _run(root, seed, extra=["--phase", "review"])
+    assert "ambiguous refs" in out and "resolves at" in out, out
+    assert "lib/vendor/thing.md" in out, "the candidate resolution must be named"
+
+
+def test_a_symlink_escaping_the_root_is_not_followed(root):
+    """Confinement of the walk, distinct from refusing an out-of-root seed."""
+    seed = _seeded(root)
+    outside = root.parent / "outside-secret.md"
+    outside.write_text(f"quoting: {LONG}\n", encoding="utf-8")
+    try:
+        (root / "escape").symlink_to(outside.parent, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    out = _run(root, seed)
+    assert "outside-secret" not in out, "the walk must not follow a link out of the root"
+
+
 def test_seed_outside_the_root_is_refused(root):
     result = subprocess.run(
         [sys.executable, str(EXPLORER), "--root", str(root), "../escape.md"],

@@ -139,6 +139,32 @@ def test_task_entry_rule_is_stronger_than_a_mention(root):
     assert "mentioned in plan, but not in a task entry" in result.stdout
 
 
+def test_partially_labelled_spec_names_the_unlabelled_criterion(root):
+    """Rule 1's red case, and the branch `test_unlabelled_spec_is_skipped` inverts.
+
+    Stripping *both* labels exercises the skip path. Stripping one exercises the
+    finding, and only this case proves the checker looks at the criteria at all
+    rather than keying on the reference side.
+    """
+    spec = SPEC.replace("**AC-0002.** ", "")
+    result = _run(_tree(root, spec=spec))
+    assert result.returncode == 1, result.stdout
+    assert "criterion carries no identifier" in result.stdout
+
+
+def test_a_checkbox_outside_the_criteria_section_is_not_a_criterion(root):
+    """A spec legitimately carries checkboxes elsewhere.
+
+    Scanning the whole document reported a rollout step as an unlabelled
+    criterion and failed a valid spec, which is the inverse of the forward-only
+    property the adoption case proves.
+    """
+    spec = SPEC + "\n## Rollout\n\n- [ ] Announce the change\n"
+    result = _run(_tree(root, spec=spec))
+    assert result.returncode == 0, result.stdout
+    assert "carries no identifier" not in result.stdout
+
+
 def test_duplicate_identifier_is_a_finding(root):
     spec = SPEC.replace("**AC-0002.** The second", "**AC-0001.** The second")
     result = _run(_tree(root, spec=spec))

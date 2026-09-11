@@ -286,14 +286,20 @@ in the same commit
   and consequence. For AC-0012 and AC-0013 the two clauses are in separate sentences,
   so each takes two assertions rather than one spanning pin.
 - **AC-0018.** The procedure span carries no rejection and states that a set above
-  the p75 passes on its obligations alone. The count-recording obligation is the
+  the author's stated threshold passes on its obligations alone. **Constraint:**
+  assert against whatever threshold the procedure records, never a percentile
+  literal — the rubric that owns derivation says "derive the threshold rather
+  than inheriting a number", so pinning one here makes the shipped prose breach
+  its own owner. The count-recording obligation is the
   rubric's, not this spec's — see the ownership note in *Design decisions*.
 - **AC-0017.** **Constraint, local to this assertion:** the criterion's content is
   the *difference* between its branches, so a high-branch assertion alone passes
   when the branch is unconditional, and naming a second lower threshold
   reinstates the undefined band the criterion was repaired to remove. One
-  threshold, both branches. Assert the percentile condition, the pairwise whole-set uniqueness re-run,
-  the record-the-result instruction, and the below-p75 branch.
+  threshold, both branches. Assert the at-or-above condition against the
+  procedure's recorded threshold, the pairwise whole-set uniqueness re-run, the
+  record-the-result instruction, and the below-threshold branch — no percentile
+  literal in any of the four.
 - **AC-0017, AC-0018 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
 - **AC-0009.** Assert the pass states its subject as the spec-and-plan pair, assert
@@ -895,6 +901,7 @@ drift.
 **Depends on:** T7
 
 **Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
+`tests/roster/test_acceptance_criteria_guide_boundary.py`,
 `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (new),
 `packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (new),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
@@ -922,11 +929,19 @@ in the same commit
   both streams to UTF-8 before its first print.
 - Repository security rule: every read is confined and rejects links, reparse
   points and non-regular files before opening.
-- **Do not add the invocation to `SKILL.md`'s gate list** without checking the
-  body-line budget first; T1 and T6 are already spending from it.
+- **The invocation is wired, and this task owns it.** A shipped script no
+  surface names is a control nobody runs: the sibling precedent,
+  `author-delivery-brief/SKILL.md`, references its own lint. Add the reference to
+  the skill's own procedure rather than to a gate list — two lines against a
+  budget with roughly 350 spare, and T1 and T6 spend from the same budget, so the
+  three are counted together before any of them lands.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
-- **AC-0032, the ADR.** Assert `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
+- **AC-0032, the ADR — at repository level, not pack-local.** `docs/adr/` climbs
+  above `packs/core`, which `pack-tests-stay-in-pack` rejects, so this assertion
+  joins the roster module T2 and T5 already use and runs under
+  `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`.
+  The AC-0033 cases stay pack-local. Assert `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
   enforces the convention, that its `Confirmation` names the shipped check, and
   that its `Revisit if` records the trigger as fired with the decision unchanged.
   **Constraint:** this is a lifecycle edit to an accepted record, not a reversal
@@ -962,7 +977,8 @@ in the same commit
 - Skip-when-unlabelled is the first condition, not a late guard.
 
 **Done when:** every Tests bullet above passes for AC-0033, the AC-0032 ADR edit
-is landed and asserted, the mutation proof is recorded and restored, and
+is landed and asserted at repository level, the invocation is referenced from the
+skill, the mutation proof is recorded and restored, and
 `make build-self` leaves no drift.
 
 ### T9: The skill ships its grounding explorer

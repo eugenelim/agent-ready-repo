@@ -10,8 +10,8 @@
 - **Decision:** an acceptance criterion and a verification item each carry an opaque, append-only identifier scoped to its own spec directory — assigned once, never renumbered on insertion or reorder, never reused after removal, with removals recorded in the artifact's retired list. A verification item's identifier is independent of the criterion and the task it serves. Cross-spec citation uses the existing `spec:<slug>/` marker.
 - **Because:** a positional number makes identity a function of position, so an insertion silently invalidates every reference to everything after it.
 - **Applies to:** loop-contract artifacts authored from this decision onward. Forward-only; the existing corpus is not renumbered, on the same basis ADR numbering itself was introduced.
-- **Tradeoff accepted:** permanent gaps in the sequence, a retired list this repository maintains itself because nothing off-the-shelf enforces no-reuse for inline Markdown, and a convention with no lint behind it today.
-- **Revisit if:** a tool emerges that enforces no-reuse for inline-Markdown items, or worktree coordination becomes reliable enough that a repository-global registry is safe.
+- **Tradeoff accepted:** permanent gaps in the sequence, and a retired list this repository maintains itself because nothing off-the-shelf enforces no-reuse for inline Markdown.
+- **Revisit if:** worktree coordination becomes reliable enough that a repository-global registry is safe. The other trigger — a tool that enforces no-reuse for inline-Markdown items — fired on 2026-09-10 and was answered by building one here rather than adopting one; the decision was re-read against it and stands unchanged.
 
 ## Decision drivers
 
@@ -69,9 +69,11 @@ traceability was found in the open literature. This decision rests on convergent
 practice across independent vendors and standards, plus one measured failure in
 this repository — good ground, not measured ground.
 
-**Revisit if:** a tool emerges that enforces no-reuse for inline-Markdown items,
-or worktree coordination becomes reliable enough that a repository-global
-registry is safe.
+**Revisit if:** worktree coordination becomes reliable enough that a
+repository-global registry is safe. The other trigger — a tool that enforces
+no-reuse for inline-Markdown items — fired on 2026-09-10 and was answered by
+building one here rather than adopting one; the decision was re-read against it
+and stands unchanged.
 
 ## Alternatives considered
 
@@ -93,15 +95,24 @@ registry is safe.
 
 ## Confirmation
 
-- **Mode:** reviewer-checked.
-- **Signal:** a stale cross-reference, or a reused identifier, raised in review.
-- **Owner:** the spec author, and the reviewer at the shaping gate.
+- **Mode:** lint/CI.
+- **Signal:** the contract-item alignment check in the `new-spec` skill's own
+  `scripts/`, which decides every item identified, identifiers unique, none
+  reused against the artifact's retired list, and every criterion-class reference
+  resolving.
+- **Owner:** the spec author, with the reviewer at the shaping gate covering what
+  the check cannot reach.
 
-**No lint enforces this today.** Stated rather than omitted: the properties a
-check would need — every item identified, identifiers unique, none reused after
-removal, every reference resolving — are only partly covered by anything
-available, and the no-reuse property in particular has no off-the-shelf
-implementation for inline Markdown.
+**Amended 2026-09-10, before this record was ever released.** It previously said
+no lint enforced the decision, which was true when written and false by the time
+it shipped: the check and this record land in the same change. The decision text
+above is unchanged — only the confirmation state moved, which is what this
+section is for.
+
+**What the check still does not reach.** It decides identity and resolution, not
+meaning: a criterion labelled correctly and worded wrongly passes, and a
+reference that resolves to the wrong criterion passes. Those remain
+reviewer-checked.
 
 ## References
 

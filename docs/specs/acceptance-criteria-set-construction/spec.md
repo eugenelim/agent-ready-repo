@@ -110,7 +110,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Introduce a new top-level directory or a new dependency. The selection
   procedure, the plan rules and the response protocol are prose in files that
   already exist. The one admitted addition is the alignment checker in
-  AC-0032, owner-approved 2026-09-10: it takes a `scripts/` directory inside
+  AC-0033, owner-approved 2026-09-10: it takes a `scripts/` directory inside
   this skill, which is the catalogue's standard skill layout and is already how
   seven sibling skills ship their own tooling.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
@@ -403,23 +403,25 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       of touched paths: which files name a seed, which historically change with
       one, which gates would run one, which quote a distinctive line from one,
       and which scoped guidance governs each. Every probe reports and none
-      decides; every threshold is derived from the adopter repository's own
-      distribution rather than fixed, with the report naming the value used and
-      what it was derived from, so a mis-calibration is visible instead of
-      silently narrowing the result; every probe carries a bounded result; and
+      decides; the two thresholds whose right value is repository-shaped — the
+      sweep-commit size and the phrase cutoff — derive from the adopter
+      repository's own distribution rather than being fixed, and the report names
+      each value with what it was derived from, so a mis-calibration is visible
+      instead of silently narrowing the result; the remaining bounds are
+      presentation limits with documented defaults and flags; every probe carries
+      a bounded result; and
       every probe distinguishes three outcomes — found, none found, and input
       unavailable — because a probe that returns empty when its input is missing
       is indistinguishable from a clean result. Whatever the explorer cannot
       settle mechanically it emits as a named ambiguity with its candidate
-      resolutions, for the author to decide once and record. What it cannot
-      derive at run time it reads from surfaces the adopter already owns, if
-      present, and never from a configuration file of its own. A recorded value
-      seeds the derivation and never replaces it, so a record contradicting what
-      the repository currently shows is reported as drift rather than believed.
-      An absent or thin surface lowers the starting information and never fails
-      the run. The report carries a surface inventory saying which known
-      grounding surfaces are present, which carry content, and what a thin one
-      cost this run, so a degraded grounding is legible rather than silent.
+      resolutions, for the author to decide once and record. It reads no
+      configuration file of its own, and an absent or thin grounding surface
+      lowers the starting information and never fails the run. The report carries
+      a surface inventory saying which known grounding surfaces are present and
+      which carry content, so a degraded grounding is legible rather than silent.
+      Consuming those surfaces as probe input — a recorded value seeding a
+      derivation, and a record the repository contradicts reported as drift — is
+      named in the follow-on that owns it, not claimed here.
 - [ ] **AC-0036.** Once durable outputs are planned and their destinations resolved,
       and before the spec body is written, the procedure runs a grounding pass
       over those destinations and records what it returned. This is discovery,
