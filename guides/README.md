@@ -7,7 +7,9 @@ kind: explanation
 
 # Guides
 
-Use this catalogue to add repeatable, supervised ways of working to your agent. Start with the outcome you need; the linked pack guides explain what to install, what to ask for, what the agent produces, and where a human decides.
+**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — five steps, about ten hours, from installing the catalogue to a merged change a human approved.
+
+Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way. Each pack guide explains what to install, what to ask for, what the agent produces, and where a human decides.
 
 ## The install-to-ship walkthrough
 
@@ -137,7 +139,7 @@ This release and reporting stage takes the build through its human ship gate.
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.
 
-## A branch after the walkthrough: extend the catalogue
+## Extend the catalogue
 
 ### P6 · Extend the catalogue — ~3 hours
 
@@ -151,7 +153,7 @@ This release and reporting stage takes the build through its human ship gate.
 **First value:** one skill of your own that your agent can run.
 **Ends at:** a catalogue your organisation owns.
 
-## Choose what you want to achieve
+## Choose by outcome
 
 | I need to… | Start with | Continue with |
 | --- | --- | --- |
@@ -174,7 +176,7 @@ The [`core`](core/) build loop is the catalogue's flagship and its strongest sta
 - **Researcher or analyst:** start with [`desk-research`](desk-research/) and add the relevant team-system or conversion pack.
 - **AI enablement or catalogue owner:** start with [the pack catalogue](_shared/explanation/pack-catalogue.md), then use [`catalogue-curation`](catalogue-curation/) to evolve your organization-owned collection.
 
-## Shared and pack-specific guidance
+## Guidance for every pack
 
 Pack directories contain task guidance for that pack. [`_shared/`](_shared/) contains cross-catalogue guidance that applies regardless of which packs you install:
 

@@ -67,7 +67,7 @@ the ordered paths; a continuous install-to-ship walkthrough; the
 tutorials missing complete worked input-and-output examples; the sample-output
 gap for invocable-skill how-tos; and any path metadata or navigation needed to
 keep the route visible after generation. The delivered and open tables below
-are the current status: S3-S5 and S7 remain open. S6 shipped 2026-09-11 and was **reopened the same day** to govern the website work its design pass produced; it is Implementing with one criterion awaiting an independent read.
+are the current status: S3-S5 and S7 remain open. S6 shipped 2026-09-11. The design work that followed it is **S8**, a separate slice, because S6 was already frozen -- an independent review sustained reopening it as blocking.
 
 **Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
 S6.** Presenting `desk-research → product-strategy → experience-design →
@@ -210,6 +210,7 @@ registered below as Draft specs pending human approval. S7 has no spec yet.
 | `tutorial-worked-examples` | Draft |
 | `how-to-sample-output-coverage` | Draft |
 | `four-discipline-sequence` | `<auto>` |
+| `sequence-surface-design-contract` | `<auto>` |
 
 ## Open delivery slices
 

@@ -130,43 +130,53 @@ describe.skipIf(!built)('four-discipline sequence on the journeys index', () => 
     expect(hands.every((h) => h.length > 20)).toBe(true);
   });
 
-  it('AC-0023: each group carries its own card modifier, and each modifier has a rule', () => {
+  it('AC-0023: each group carries its own signature, and the three differ', () => {
     const doc = dom();
     const html = readFileSync(JOURNEYS_INDEX, 'utf8');
-    const groups: Record<string, string> = {
-      sequence: 'journey-card--step',
-      loops: 'journey-card--loop',
-      optional: 'journey-card--optional',
+    // Scoped to the group, not to the page. A page-wide check passes when two
+    // groups swap modifiers, which is the relationship collapsing.
+    const expected: [string, string][] = [
+      ['ol.journeys-grid--ordered', 'journey-card--step'],
+      ['#journeys-loops-heading', 'journey-card--loop'],
+      ['#journeys-rest-heading', 'journey-card--optional'],
+    ];
+    const others = expected.map(([, m]) => m);
+
+    for (const [selector, modifier] of expected) {
+      const root = selector.startsWith('#')
+        ? doc.querySelector(selector)!.closest('section, div')!
+        : doc.querySelector(selector)!;
+      const cards = [...root.querySelectorAll('li.journey-card')];
+      expect(cards.length, `${selector} has no cards`).toBeGreaterThan(0);
+      for (const card of cards) {
+        expect(card.classList.contains(modifier), `card in ${selector} lacks ${modifier}`).toBe(true);
+        for (const other of others.filter((m) => m !== modifier)) {
+          expect(card.classList.contains(other), `card in ${selector} also carries ${other}`).toBe(false);
+        }
+      }
+    }
+
+    // Each signature needs an at-rest rule — a `:hover`-only rule leaves the
+    // card identical when nobody is pointing at it — and the three rules must
+    // not be the same, or the groups are distinguishable only by their headings.
+    const baseRule = (modifier: string): string => {
+      const m = [...html.matchAll(new RegExp(`\\.${modifier}([^{,]*)\\{([^}]*)\\}`, 'g'))]
+        .find((x) => !x[1].includes(':'));
+      expect(m, `${modifier} has no at-rest style rule`).toBeTruthy();
+      return m![2].trim();
     };
-    // The modifiers must partition the cards: no card carries two, and every
-    // card carries one.
-    const cards = [...doc.querySelectorAll('li.journey-card')];
-    expect(cards.length).toBeGreaterThan(0);
-    for (const card of cards) {
-      const applied = Object.values(groups).filter((m) => card.classList.contains(m));
-      expect(applied, `card classes: ${card.className}`).toHaveLength(1);
-    }
-    // All three must actually be in use, or the partition is vacuous.
-    for (const modifier of Object.values(groups)) {
-      expect(doc.querySelector(`.${modifier}`), `${modifier} is applied nowhere`).not.toBeNull();
-      // And each must carry an emitted **base** rule — a selector with no
-      // pseudo-class. Matching any rule is not enough: a `:hover` rule alone
-      // leaves the card looking identical at rest, which is precisely when the
-      // groups have to be distinguishable. A first version of this assertion
-      // matched `:hover` and survived deleting the base rule.
-      const rules = [...html.matchAll(new RegExp(`\\.${modifier}([^{,]*)\\{`, 'g'))];
-      const hasBaseRule = rules.some((m) => !m[1].includes(':'));
-      expect(hasBaseRule, `${modifier} has no at-rest style rule, only pseudo-class rules`).toBe(true);
-    }
+    const rules = others.map(baseRule);
+    expect(new Set(rules).size, `the three signatures are not distinct: ${rules.join(' | ')}`).toBe(3);
   });
 
   it('AC-0024: routes onward from the sequence to the guides path that walks it', () => {
-    const doc = dom();
-    const onward = doc.querySelector('.journeys-group__onward a');
+    const onward = dom().querySelector('.journeys-group__onward a');
     expect(onward, 'the sequence group emits no onward route').not.toBeNull();
-    const href = onward!.getAttribute('href') ?? '';
-    expect(href).toContain('/docs/guides/');
-    expect(href, 'the onward route must target the path, not the hub generally').toContain('#p2b');
+    // Exact target, not substrings: a different path or fragment sharing
+    // "/docs/guides/" and "#p2b" would otherwise pass.
+    expect(onward!.getAttribute('href')).toBe(
+      '/agent-ready-repo/docs/guides/#p2b--take-the-wider-route-through-the-four-disciplines--4-hours'
+    );
   });
 
   it('AC-0020: links each discipline card to its own journey page', () => {

@@ -1,6 +1,6 @@
 # Spec: the four disciplines are discoverable as one ordered sequence
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -144,14 +144,6 @@ not contradict each other.
   today and can only go green by reconciling them.
 - **Required links (AC-0020, AC-0021):** goal-based checks — AC-0020 on the
   built page over the `web/` vitest suite, AC-0021 over `guides/README.md`.
-- **Group signatures and the onward route (AC-0023, AC-0024):** construction
-  tests on the `web/` vitest suite over the built page. AC-0023 asserts the
-  modifier class **and** an at-rest style rule for it: matching any rule is not
-  enough, because a `:hover`-only rule leaves the card identical at rest, which
-  is exactly when the groups must be distinguishable.
-- **Adjacency and the selection axis (AC-0025, AC-0026):** goal-based checks over
-  `guides/README.md`. AC-0026's observer is a reader, for the reason recorded
-  under Accepted residuals.
 - **Link integrity (AC-0019):** `make site-link-check`. It verifies resolution,
   not existence; AC-0020 and AC-0021 own existence, which is why AC-0019 is not
   load-bearing on its own.
@@ -214,15 +206,6 @@ prose would assert its own fixture.
       guide directory.
 - [x] **AC-0022.** No other row on `guides/README.md` states an order for these
       four disciplines that conflicts with AC-0008's.
-- [x] **AC-0023.** Each of the three groups applies its own card modifier, and
-      the built page emits a style rule for each, so the relationship between
-      groups survives with the headings suppressed.
-- [x] **AC-0024.** The sequence group links onward to the guides path that walks
-      the same four disciplines.
-- [x] **AC-0025.** In `guides/README.md` the alternative path is adjacent to the
-      step it is an alternative to, with no other stage between them.
-- [ ] **AC-0026.** The alternative path and the step it replaces do not both
-      claim the same selection condition.
 
 ## Acceptance-set construction record
 
@@ -231,9 +214,9 @@ were enumerated from the Objective's three outcomes, the five non-waivable `Neve
 rails, and the applicable Durable Outputs; each was admitted only once a single
 observing surface could be named.
 
-- **Candidate obligations:** 41
-- **Admitted as criteria:** 26
-- **Routed:** 14
+- **Candidate obligations:** 34
+- **Admitted as criteria:** 22
+- **Routed:** 11
 - **Cut:** 1
 
 | Candidate obligation | Disposition | Criterion / owner | Red input | Observer |
@@ -248,10 +231,6 @@ observing surface could be named.
 | The guides carry the same sequence | admitted | AC-0008 | path absent, or the four in any other order | `guides/README.md` |
 | The path matches the P-path shape | admitted | AC-0009 | any of prerequisite, first value, ends-at missing | `guides/README.md` |
 | The P2 conflict is disclosed | **cut** | — | — | the P2 conflict no longer exists: with desk-research first, this path and P2 agree that evidence precedes shaping. A criterion disclosing a difference that is not there could not fail |
-| The groups survive without their headings | admitted | AC-0023 | two groups sharing one modifier, or a modifier applied with no emitted rule | built page markup and its inlined style |
-| The sequence routes the reader onward | admitted | AC-0024 | the sequence group emitting no link to the guides path | built page |
-| The alternative sits beside the step it replaces | admitted | AC-0025 | another stage heading between them | `guides/README.md` |
-| The two routes state different selection conditions | admitted | AC-0026 | both passages naming the same trigger | a reviewer reading the two passages |
 | The guide surface does not contradict its own order | admitted | AC-0022 | a chooser row ordering these four differently from the path | `guides/README.md` |
 | The path names each handoff | admitted | AC-0010 | in the guides path, any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
 | A cold reader can restate the sequence | admitted | AC-0011 | order or any handoff unstatable | the reader |
@@ -274,9 +253,6 @@ observing surface could be named.
 | The `digital-product` profile | **routed** | `digital-product-maker-profile` | — | CLI-only artifact; cannot serve a no-terminal reader |
 | The integrative cross-pack tutorial | **routed** | `digital-product-guides-update` (RFC-0071 M6) | — | blocked behind unstarted M5 |
 | No new top-level directory or dependency | **routed** | the repository decision process (root `AGENTS.md`: "Propose a new top-level directory through the repository decision process"); a dependency needs its owning manifest or an ADR | — | pre-existing repository control; this slice adds neither |
-| The catch-all group names a relationship, not leftovers | **routed** | `docs/design/content/journeys-index.md` | — | a copy decision recorded in the brief; no criterion could fail on it without asserting its own wording |
-| Card content agrees with its position in the sequence | **routed** | S7, and the owning packs | — | `product-engineering`'s tagline contradicts its position, but taglines are generated from `packs/*/JOURNEY.md` and AC-0018 forbids touching them |
-| The surface has a content brief to anchor on | **routed** | `docs/design/content/journeys-index.md`, authored 2026-09-11 | — | a design artifact, not a shippable criterion; its absence is why this slice had nothing to anchor on |
 | The 19-vs-20 collection count | **routed** | `plan.md` § D1, as a discovery predicate | — | only the build can settle it |
 | Step-number styling and the dropped `list-style` rule | **routed** | `plan.md` § D2, as a discovery predicate | — | an implementation choice, not a contract obligation |
 
@@ -304,11 +280,8 @@ standing alone: on its own it passes on the empty set, because a path emitting
 no links has no unresolved link. AC-0020 and AC-0021 supply the links whose
 existence it then verifies, so the pair cannot both be satisfied vacuously.
 *Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0020;
-outcome 2 reaches AC-0008, AC-0009, AC-0021, AC-0022 and AC-0025; outcome 3
-reaches AC-0007, AC-0010, AC-0011 and AC-0024. AC-0023 and AC-0026 reach the
-User-facing promise Durable Output: a page whose groups collapse without their
-headings, or a pair of routes that claim the same trigger, has not carried the
-sequence to a reader. AC-0019 reaches the User-facing promise Durable Output: a
+outcome 2 reaches AC-0008, AC-0009, AC-0021 and AC-0022; outcome 3 reaches AC-0007,
+AC-0010 and AC-0011. AC-0019 reaches the User-facing promise Durable Output: a
 surface whose emitted links do not resolve has not carried the sequence to a
 reader, whatever else holds.
 The five `Never do` rails reach AC-0017, AC-0015, AC-0016, AC-0018 and the
@@ -440,21 +413,6 @@ against intent; every observation is recorded in
 [`notes/verification-ledger.md`](notes/verification-ledger.md), including the
 three mutation proofs, the resolved D1 count and D3 seam, the cold read, and the
 gate results.
-
-**AC-0026 is deliberately unticked, and the spec stays `Implementing`.** Its
-observer is "a reviewer reading the two passages", and the author cannot be that
-reviewer. The overlap it guards was found by the design review and repaired by
-me; the repair is unreviewed. One independent read discharges it. Ticking it on
-my own reading would be the exact failure this session has hit repeatedly —
-verification that ratifies intent.
-
-**Reopened 2026-09-11 after the design pass.** The craft sequence that should
-have preceded this slice ran after it, and produced obligations no criterion
-covered: the three groups collapsed without their headings, the page routed the
-reader nowhere, the guides path's placement and its selection axis were both
-undecided contracts. Shipping code governed by no criterion is the defect this
-reopening closes. Four criteria were admitted, three obligations routed, and the
-implementation verified against them rather than re-asserted.
 
 **Shipped 2026-09-11 by owner decision**, with the narrowed Objective above. The
 brief's Spec-map cell stays `<auto>`: the coverage roll-up derives that value
