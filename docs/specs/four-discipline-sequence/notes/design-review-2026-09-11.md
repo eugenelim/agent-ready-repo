@@ -58,7 +58,7 @@ the briefs that govern the surfaces ("Does not exist today").
 | Finding | Severity | Owner |
 | --- | --- | --- |
 | "Start in one command" offers only a terminal route, against the brief's "two equal doors" | **BLOCKING** | `claude-apps-first-value-entry` — and `claude-apps-route-docs` is the Draft, unimplemented spec for it |
-| Guides hub has no above-fold "start here" promise; opens taxonomy-first | MAJOR | `cohort-orientation-surfaces`; the guides brief already records it as absent |
+| Guides hub has no above-fold "start here" promise; opens taxonomy-first | MAJOR | **Routing withdrawn 2026-09-11 — implemented instead.** A sentence and a link are content, which the guides content brief governs; `cohort-orientation-surfaces` owns the navigation model, untouched. Routing it away was avoidance dressed as ownership discipline |
 | Guides hub search is a generic header widget on a 229-page search-first site | MAJOR | `cohort-orientation-surfaces`; the brief already records it as absent |
 | Marketing home has no intentional entry to the journeys index | MAJOR | `cohort-orientation-surfaces`. **Decided 2026-09-11** in the marketing brief — header destination plus a zone 7 entry — and deliberately not implemented, because the header is the navigation model and `site.toml` drives both sites' chrome. The review independently endorsed that two-placement answer and warned against folding the disciplines into `ThreeLoops`, which "would blur two distinct models" |
 | Marketing home leads with a mechanism and a self-reported number strip rather than checkable proof | MAJOR | `cohort-orientation-surfaces`; the brief already specifies the replacement |

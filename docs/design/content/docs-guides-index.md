@@ -199,3 +199,40 @@ recovery, and the partial-path marker.
 first-value target per content type, and the on-ramp split.
 `information-architecture` has already fixed the navigation model and the job
 grouping.
+
+## Amendment 2026-09-11 (second) — the heading pass this brief had not had
+
+The placement fix moved a path; it did not look at the page's own words. Asked
+whether content design had actually been done here, the answer was no — a brief
+was authored for the *journeys index*, and a section was moved on this one.
+
+**Must-say #1 is now met.** This brief has required "one 'start here' promise —
+a single link and a single stated outcome" above the fold since 2026-09-04, and
+the page instead opened with "Use this catalogue… Start with the outcome you
+need" — the nav instruction the selected Pyramid arc exists to invert. It now
+opens with the answer: a link to the install-to-ship walkthrough, with its five
+steps and its ten-hour total stated, and one sentence placing everything else
+relative to it.
+
+An earlier design-review note routed this item to `cohort-orientation-surfaces`
+as unowned. **That routing was wrong and is withdrawn.** A single sentence and a
+link are content, and content on this surface is what this brief governs;
+`cohort-orientation-surfaces` owns the *navigation model*, which is untouched.
+Routing it away was avoidance dressed as ownership discipline.
+
+**Three headings now name their own content.**
+
+| Was | Is | Why |
+| --- | --- | --- |
+| A branch after the walkthrough: extend the catalogue | Extend the catalogue | Seven words positioning the section against another one before saying what it is. P6's own `Prerequisite: P1 and P3` already carries the sequencing |
+| Choose what you want to achieve | Choose by outcome | Now parallel with "Choose by role" — two ways in, named the same way. The table's own first column already says "I need to…" |
+| Shared and pack-specific guidance | Guidance for every pack | Named the repository's file taxonomy — `_shared/` versus pack directories — rather than the reader's need, which is guidance that holds regardless of which packs they installed |
+
+`## The install-to-ship walkthrough` is deliberately unchanged:
+`web/src/components/marketing/InstallTerminal.astro` links to its anchor, so its
+heading is a published destination, not free copy.
+
+**Still not done on this surface.** The prominent search with a real example
+query, and the route back to the internal-case material, are both must-say in the
+hierarchy above and both still absent. They are structure and navigation, not
+copy, and they stay with `cohort-orientation-surfaces`.
