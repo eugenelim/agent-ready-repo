@@ -271,15 +271,18 @@ produces different answers over one corpus.
 
 **Tests:** none of its own; it produces a measurement, not behaviour.
 
-**Approach:** for each of the 74 skills, record whether it ships a template
-asset, states its output's shape, and names an artifact path — with the
-predicate for each stated in the ledger, because the same question has already
-returned 33 and 38 under two different predicates. Write it to
-`notes/deliverable-form-ledger.md`.
+**Approach:** for each of the 74 skills, record whether it names an artifact
+path and how — if at all — it declares its output's form, with every predicate
+stated in the ledger. Form uses a **cascade**, first match wins, because the
+earlier 33-versus-38 spread came from counting overlapping predicates
+independently: a skill declaring form two ways was counted twice. Written to
+[`notes/deliverable-form-ledger.md`](notes/deliverable-form-ledger.md).
 
 **Done when:** every skill has a row, each column's predicate is stated, and no
 wave ordering anywhere in this plan rests on a figure the ledger does not
-carry.
+carry. **Completed 2026-09-11**: 74 rows; 63 skills name a path, 41 declare
+form, 33 declare none; the ledger corrected this plan's cost claim, which had
+named the wrong pack.
 
 ## Wave 1 — prove it on the worst pack
 
@@ -382,14 +385,16 @@ packs, red first.
 **Approach:** 3 steps for `desk-research`, 4 for `product-strategy`. Both
 journeys already name every published skill, so AC-0008 is satisfied on arrival.
 
-**These two are not obviously the cheap wave, and the cost is not yet
-measured.** Their journeys already name every published skill, but deliverable
-form is a different axis, and the count of skills declaring a shape moves
-between predicates — the figure this plan once quoted for `product-strategy` was
-a predicate artifact and is withdrawn. **No wave is ordered on deliverable-form
-cost until the wave-0 measurement ledger exists** (T1a); these two are sequenced
-after wave 1 only because wave 1 proves the contract, which is a dependency and
-not a cost claim.
+**Their journeys already name every published skill, so the work here is
+deliverable form.** Measured in
+[`notes/deliverable-form-ledger.md`](notes/deliverable-form-ledger.md):
+`product-strategy` declares no form for 8 of 9 skills, `desk-research` for 2 of
+12. So `desk-research` is largely projection and `product-strategy` is largely
+authoring, and they are in one wave because they share a journey property, not
+a cost.
+
+These two follow wave 1 because wave 1 proves the contract — a dependency, not
+a cost claim. **No wave is ordered on deliverable-form cost.**
 
 **Done when:** every case this task's `Tests` names passes, the lint exits 0
 over both guidebooks, and each pack has its eight-question cold read recorded
@@ -411,7 +416,10 @@ packs, red first.
 
 **Approach:** 6 steps and 7 steps. These carry the largest orphan sets — 9 of 15
 and 10 of 18 skills unnamed in their journeys — so AC-0008 does the most work
-here. `core` is last because its journey is the longest and it is the pack a
+here. `core` is also the most expensive pack for the outline obligation, with 13
+of 18 skills declaring no form per
+[`notes/deliverable-form-ledger.md`](notes/deliverable-form-ledger.md) — which
+corrects an earlier claim in this plan that named `product-strategy`. `core` is last because its journey is the longest and it is the pack a
 reader reaches after the other four, so its row 10 terminates the walk rather
 than continuing it.
 
