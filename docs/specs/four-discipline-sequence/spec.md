@@ -108,7 +108,7 @@ the obligation to state that difference rather than publish the two as agreeing.
 
 ## Testing Strategy
 
-- **Grouping, order, ordered markup and accessible step position (AC-0001 to
+- **Grouping, order, ordered markup and step-number announcement (AC-0001 to
   AC-0004):** goal-based check over the built page on the `web/` vitest suite,
   `npm run test --prefix web`. The observation is the rendered HTML, because the
   criteria are about what a reader receives, not what the source says.
@@ -154,8 +154,9 @@ prose would assert its own fixture.
       product-strategy, desk-research, experience-design, product-engineering.
 - [ ] **AC-0003.** The group is an ordered list element, so the order is carried
       by the markup and not only by visual arrangement.
-- [ ] **AC-0004.** Each of the four cards exposes its step position to assistive
-      technology, so the position is not conveyed by a decorative number alone.
+- [ ] **AC-0004.** The visible step number is hidden from assistive technology,
+      so a reader hears the position once from the ordered list rather than
+      twice.
 - [ ] **AC-0005.** The multiset of journey slugs rendered on the page equals the
       multiset of slugs in the `journeys` collection.
 - [ ] **AC-0006.** A journey present in the collection but named in no group
@@ -205,7 +206,7 @@ observing surface could be named.
 | The four render as a distinct group | admitted | AC-0001 | four still in one flat grid, or no group heading | built page |
 | The group carries the decided order | admitted | AC-0002 | any adjacent pair transposed | built page |
 | Order is in the markup, not only visual | admitted | AC-0003 | `<ul>`, or CSS-only ordering | built page markup |
-| Step position reaches assistive tech | admitted | AC-0004 | number present but `aria-hidden` with no text equivalent | accessible name of each card heading |
+| The step number is not announced twice | admitted | AC-0004 | the visible number rendered without `aria-hidden`, so the list position and the numeral are both announced | accessible name of each card |
 | No journey dropped or duplicated | admitted | AC-0005 | one slug omitted, or one rendered twice | slug multiset comparison |
 | An ungrouped journey still renders | admitted | AC-0006 | catch-all replaced by a hardcoded list | the rendered page under a fixture journey |
 | The index names each handoff | admitted | AC-0007 | on the index, any of the first three not naming what it passes on, or the fourth not naming its end state | the index page copy |
@@ -282,15 +283,17 @@ criterion traces back to one of those.
   work rather than add a slice. Bounding it out and disclosing it is the honest
   move for this scope; recorded here so a later round does not re-raise it.
 
-- **The brief's Spec map carries a hand-written status for this slice.**
-  `docs/CONVENTIONS.md:515` says the coverage map "rolls up from these
-  back-links automatically; never hand-write a spec's status into the brief."
-  The brief's Spec map already hand-writes five statuses, for S1 through S5,
-  and this slice adds a sixth row in the same shape. Bounded out and recorded
-  rather than repaired: removing one row's status would leave a table that is
-  inconsistent with itself, and correcting all six is the brief's own
-  remediation, not this slice's. **Owner: the brief.** This slice supplies the
-  `Brief:` back-link the roll-up reads, which is the part it can discharge.
+- **The brief's five sibling Spec-map statuses stay hand-written.**
+  `docs/CONVENTIONS.md:515` and `lint-brief-coverage.py`'s own contract agree
+  that the Status column "is auto-derived and must not be hand-maintained".
+  **This slice's own row is repaired**, not accepted: it carries the unset
+  marker `<auto>`, which that linter explicitly reports rather than fails.
+  Deleting the row instead would have been wrong — the same linter reports a
+  back-linking spec absent from the Spec map as *untracked*. The five older rows
+  for S1–S5 keep hand-written values. They are not drift today, because each
+  still matches its spec, and they become drift the moment one status moves.
+  Bounded out with its owner named: correcting them is the brief's remediation,
+  not this slice's. **Owner: the brief.**
 
 None is a defect found late; all three are judgements recorded when made.
 
@@ -302,6 +305,39 @@ None is a defect found late; all three are judgements recorded when made.
   the guides surface rather than to edit generated journey content.
 - `guides/README.md` can carry a seventh path without a schema change, because
   P1–P6 are prose under headings and add no frontmatter key.
+- **OPEN BLOCKING, round 3 — the published order contradicts the packs' own
+  dependency contracts.** The order was decided by the owner on 2026-09-11 on
+  evidence that did not include the packs' `DESIGN.md` files. Those files say
+  the opposite for one adjacent pair:
+  - `packs/desk-research/DESIGN.md` § "Cross-pack dependencies" declares
+    **"Upstream (none)"** — "it is the evidence layer" — and names
+    `product-strategy` as its **downstream**, because
+    `synthesize-stakeholder-research` "consumes `desk-research` survey
+    artifacts as a primary evidence source".
+  - `packs/product-strategy/DESIGN.md` states that
+    `synthesize-stakeholder-research` "runs **at the start** when prior
+    desk-research outputs exist".
+  - The same file calls strategy's position upstream of `product-engineering`
+    and `experience-design` **"the architectural invariant"** and "a one-way
+    dependency".
+
+  So the packs contract for **desk-research → product-strategy →
+  {product-engineering, experience-design}**. The decided order places research
+  *after* strategy, which inverts the one pair the packs state explicitly. The
+  strategy-before-PE-and-XD half is consistent with the invariant; the packs do
+  not order XD against PE, so that half is unconstrained rather than
+  contradicted.
+
+  **AC-0010 does not cover this.** It discloses a difference from the guides'
+  P2 order only. It says nothing about the pack contracts, and disclosure would
+  in any case leave a reader with two reachable routes and no rule for which
+  applies. **Correcting the packs is out of scope** — the brief excludes any
+  change to skill behaviour — so this cannot be resolved inside this slice by
+  changing the packs.
+
+  This is an owner decision, not an authoring repair, and the spec is not
+  approvable until it is taken.
+
 - **Not discharged — whether the two lifecycles are orthogonal.**
   `docs/design/discovery/team-orientation-decision-log.md:52` flags that
   orthogonality as "our assertion", not a finding. This slice adds a second
@@ -317,11 +353,20 @@ None is a defect found late; all three are judgements recorded when made.
 
 ## Review status
 
-**One Sol round ran against an earlier, differently-scoped draft** of this spec,
-when it was a standalone intent rather than slice S6. It returned three blocking
-and nine major findings. The rescope answers the blocking ownership finding at
-its root; the remaining sustained findings are applied in this text.
+**Three Sol rounds have run.** Round 1 read an earlier, differently-scoped draft
+authored as a standalone intent, and returned 3 blocking and 9 major; its
+blocking ownership finding is what routed this outcome into the brief as S6.
+Rescoping restarted the rounds. Round 2 read the rescoped text: 1 blocking,
+4 major. A mechanical set-level sweep then ran as a script and closed four
+drifts. Round 3 read the swept text: 2 blocking, 3 major, 1 minor.
 
-**Rescoping restarts the rounds.** This text is therefore **unreviewed**, and
-the count above is prior-round history, not a clean verdict on what is written
-here.
+**No round has returned a clean verdict, and round 3 ended `WORKER_BLOCKED`.**
+Blocking counts across rounds ran 3, 1, 2 — not converging — and **four of round
+3's six findings originated in a prior round's repair**. That is the pattern a
+repair-first habit produces, and it is the reason the open item below is being
+put to the owner rather than repaired again.
+
+**One blocking finding is open and is not the author's to close.** Round 3 found
+that the published order contradicts the packs' own dependency contracts. It is
+recorded in § "Assumptions and undischarged risks" and awaits an owner decision;
+every other round-3 finding is applied.

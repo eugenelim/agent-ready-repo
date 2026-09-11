@@ -1,7 +1,7 @@
 # Plan: the four disciplines read as one sequence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Draft
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 
 ## Discovery predicates
 
@@ -33,6 +33,30 @@ themes.
 **Verification.** Built-page inspection at two themes, plus the existing
 accessibility fixture suite.
 
+### D3 — the observing seam for the membership tests
+
+**Constraint.** AC-0005 and AC-0006 are specified against the *built page*, and
+the existing suite that reads built output, `web/src/test/rendered-output.test.ts`,
+describes itself as reading a previously completed full build. There is
+therefore no seam today through which a fixture journey reaches a rendered page
+without running `make site-build`, and the plan must not pretend otherwise.
+**Required outcome.** One seam is chosen and named before T4 is written, and the
+choice is recorded with what it costs. Two are viable and neither is free:
+
+- *Rebuild with a real fixture journey.* Add a journey file, run
+  `make site-build`, assert on the built page, remove it. Keeps the built-page
+  observer AC-0006 promises; costs a full site build inside the suite.
+- *Exercise the grouping function directly.* Export the grouping logic from
+  `index.astro` and test it as a unit. Cheap and fast; **weakens the observer**
+  from "what a reader receives" to "what the function returns", which is a
+  smaller claim than AC-0005 and AC-0006 currently make.
+
+If the second is chosen, AC-0005 and AC-0006 must be reworded to name the
+function as their observer. A criterion may not keep claiming the built page
+while being verified against a unit.
+**Verification.** The chosen seam is recorded in the verification ledger with
+the run that exercised it.
+
 ## Tasks
 
 | # | Task | Criteria | Notes |
@@ -40,7 +64,7 @@ accessibility fixture suite.
 | ~~T1~~ | ~~Diagnose the `bootstrap-sites` failure~~ — **closed 2026-09-11, no defect** | — | The premise was wrong. `make bootstrap-sites` installs npm dependencies only, as its help text states; it never emitted `build/docs/`. `make site-build` does. Against a real build the `web/` suite is green: 18 files, 148 tests. No task remains |
 | T2 | Regroup `web/src/pages/journeys/index.astro` into three collection-derived groups | AC-0001, AC-0002, AC-0003, AC-0005, AC-0006 | Start from the reconstructed sketch; keep its collection derivation, discard its CSS gaps. Resolve D1 and D2 here |
 | T3 | Write the sequence and handoff copy on the index | AC-0004, AC-0007, AC-0016, AC-0017, AC-0019 | Hand-authored page copy only. AC-0018 forbids reaching into generated journey content |
-| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0021 | `npm run test --prefix web`. AC-0005 compares slug multisets per D1; AC-0006 needs a fixture journey named in no group |
+| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0021 | `npm run test --prefix web`. **Resolve D3 first** — the seam decides whether AC-0005 and AC-0006 keep the built page as their observer. AC-0005 compares slug multisets per D1 |
 | T5 | Add the ordered path to `guides/README.md` | AC-0008, AC-0009, AC-0010, AC-0011, AC-0022 | Match the P1–P6 shape. AC-0010's disclosure of the P2 order difference is required, not optional. Add a path within the existing hub structure; do not restructure the navigation model |
 | T6 | Run the guide gates and the link check | AC-0013, AC-0014, AC-0015, AC-0020 | `validate_guides.py`, `lint-guide-titles.py`, `check-guide-index.py`, `make site-link-check` — each run separately, even after one fails |
 | T7 | Whole-diff prohibition reads and the path-scoped diff | AC-0016, AC-0017, AC-0018, AC-0019 | AC-0018 is `git diff -- web/src/content/journeys/`, which must be empty |
@@ -50,8 +74,11 @@ accessibility fixture suite.
 ## Task tests
 
 `docs/CONVENTIONS.md` places construction tests in `plan.md`, attached to each
-task's `Tests:` subsection, before Approach. Only T2, T4 and T5 carry
-construction tests; T6–T9 are execution and recording tasks whose
+task's `Tests:` subsection, before Approach. These are named behaviours with
+their criterion and red state, not compilable stubs: the stubs cannot be written
+until D3 fixes the observing seam, because the seam decides both the imports and
+the assertion surface. **Writing them before D3 would pin a test architecture
+this plan has not chosen.** Only T2, T4 and T5 carry construction tests; T6–T9 are execution and recording tasks whose
 evidence is the command output named in their row.
 
 ### T2 — Tests

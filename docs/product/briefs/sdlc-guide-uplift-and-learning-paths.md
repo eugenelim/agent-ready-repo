@@ -207,7 +207,7 @@ registered below as Draft specs pending human approval.
 | `guide-invocation-outcome-coverage` | Draft |
 | `tutorial-worked-examples` | Draft |
 | `how-to-sample-output-coverage` | Draft |
-| `four-discipline-sequence` | Draft |
+| `four-discipline-sequence` | `<auto>` |
 
 ## Open delivery slices
 
