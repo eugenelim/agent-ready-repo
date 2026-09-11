@@ -70,7 +70,7 @@ keep the route visible after generation. The delivered and open tables below
 are the current status: S3-S6 remain open.
 
 **Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
-S6.** Presenting `product-strategy → desk-research → experience-design →
+S6.** Presenting `desk-research → product-strategy → experience-design →
 product-engineering` as one ordered sequence, on the journeys index and in
 `guides/README.md`, is delivered here rather than under a separate intent.
 
@@ -196,8 +196,9 @@ fourth adversarial round after repairing the third-round construction-gate
 finding. S4 passed a clean-room review after its earlier indeterminate review
 unit was closed and its gate and scope findings were repaired. S5 passed its
 shaping gate and three adversarial rounds. S6 was added by owner decision on
-2026-09-11 and has had one Sol review round; its rounds restarted when the
-owner routed it into this brief, so it is not yet review-clean. S3-S6 are
+2026-09-11 and has had three Sol review rounds plus a mechanical set-level
+sweep; its rounds restarted once when the owner routed it into this brief. No
+round has returned a clean verdict, so it is not review-clean. S3-S6 are
 registered below as Draft specs pending human approval.
 
 | Spec | Status |

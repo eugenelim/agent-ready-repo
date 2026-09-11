@@ -63,12 +63,12 @@ the run that exercised it.
 | --- | --- | --- | --- |
 | ~~T1~~ | ~~Diagnose the `bootstrap-sites` failure~~ — **closed 2026-09-11, no defect** | — | The premise was wrong. `make bootstrap-sites` installs npm dependencies only, as its help text states; it never emitted `build/docs/`. `make site-build` does. Against a real build the `web/` suite is green: 18 files, 148 tests. No task remains |
 | T2 | Regroup `web/src/pages/journeys/index.astro` into three collection-derived groups | AC-0001, AC-0002, AC-0003, AC-0005, AC-0006 | Start from the reconstructed sketch; keep its collection derivation, discard its CSS gaps. Resolve D1 and D2 here |
-| T3 | Write the sequence and handoff copy on the index | AC-0004, AC-0007, AC-0016, AC-0017, AC-0019 | Hand-authored page copy only. AC-0018 forbids reaching into generated journey content |
-| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0021 | `npm run test --prefix web`. **Resolve D3 first** — the seam decides whether AC-0005 and AC-0006 keep the built page as their observer. AC-0005 compares slug multisets per D1 |
-| T5 | Add the ordered path to `guides/README.md` | AC-0008, AC-0009, AC-0010, AC-0011, AC-0022 | Match the P1–P6 shape. AC-0010's disclosure of the P2 order difference is required, not optional. Add a path within the existing hub structure; do not restructure the navigation model |
-| T6 | Run the guide gates and the link check | AC-0013, AC-0014, AC-0015, AC-0020 | `validate_guides.py`, `lint-guide-titles.py`, `check-guide-index.py`, `make site-link-check` — each run separately, even after one fails |
-| T7 | Whole-diff prohibition reads and the path-scoped diff | AC-0016, AC-0017, AC-0018, AC-0019 | AC-0018 is `git diff -- web/src/content/journeys/`, which must be empty |
-| T8 | Cold read | AC-0012 | A reader who has seen only the two surfaces names the order and one handoff |
+| T3 | Write the sequence and handoff copy on the index | AC-0004, AC-0007, AC-0015, AC-0016, AC-0018 | Hand-authored page copy only. AC-0017 forbids reaching into generated journey content |
+| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0020 | `npm run test --prefix web`. **Resolve D3 first** — the seam decides whether AC-0005 and AC-0006 keep the built page as their observer. AC-0005 compares slug multisets per D1 |
+| T5 | Add the ordered path to `guides/README.md` | AC-0008, AC-0009, AC-0010, AC-0010, AC-0021 | Match the P1–P6 shape. AC-0010's disclosure of the P2 order difference is required, not optional. Add a path within the existing hub structure; do not restructure the navigation model |
+| T6 | Run the guide gates and the link check | AC-0012, AC-0013, AC-0014, AC-0019 | `validate_guides.py`, `lint-guide-titles.py`, `check-guide-index.py`, `make site-link-check` — each run separately, even after one fails |
+| T7 | Whole-diff prohibition reads and the path-scoped diff | AC-0015, AC-0016, AC-0017, AC-0018 | AC-0017 is `git diff -- web/src/content/journeys/`, which must be empty |
+| T8 | Cold read | AC-0011 | A reader who has seen only the two surfaces names the order and one handoff |
 | T9 | Record the verification ledger | Durable Output — "Reusable learning" | `notes/verification-ledger.md`: the collection multiset, the rendered multiset, and the D1 explanation. A Durable Output is an admissible task target under the authoring contract; this task deliberately traces to one rather than to a criterion |
 
 ## Task tests
@@ -85,7 +85,7 @@ evidence is the command output named in their row.
 
 1. `sequence group renders the four in the decided order` — assert the text
    content of the sequence group's card headings equals
-   `['Product Strategy','Desk Research','Experience Design','Product Engineering']`
+   `['Desk Research','Product Strategy','Experience Design','Product Engineering']`
    in that order. Red before T2: the page has no sequence group. (AC-0001,
    AC-0002)
 2. `sequence group is an ordered list` — assert the sequence group's list
@@ -102,7 +102,7 @@ evidence is the command output named in their row.
    appears in no production group and in no hardcoded fallback; assert it
    renders in the catch-all group. (AC-0006)
 5. `each discipline card links to its journey` — assert each of the four cards
-   has an `href` resolving to `/journeys/<slug>/` for its own slug. (AC-0021)
+   has an `href` resolving to `/journeys/<slug>/` for its own slug. (AC-0020)
 6. `step position is exposed to assistive technology` — assert each card
    heading's accessible name begins with its step number, and that the visible
    number carries `aria-hidden`. Red before T3: the number is decorative only.
@@ -113,7 +113,7 @@ evidence is the command output named in their row.
 7. `the path names the four in the decided order and links each to its guide` —
    a content check over `guides/README.md` asserting the four appear in order
    within the new path and each carries a link to its guide directory.
-   (AC-0008, AC-0022)
+   (AC-0008, AC-0021)
 
 ## Mutation proofs
 

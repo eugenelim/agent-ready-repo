@@ -37,7 +37,7 @@ its own link into the same file.
 ## Objective
 
 A first-time Claude Desktop user who has installed nothing can see, from the
-published surfaces alone, that **product strategy → desk research → experience
+published surfaces alone, that **desk research → product strategy → experience
 design → product engineering** is one ordered sequence, and can walk it.
 
 Three outcomes:
@@ -52,9 +52,13 @@ Three outcomes:
 3. **Each step names what it hands on**, so a reader can stop after any one of
    them and know what they hold.
 
-The order is the owner's decision, not a derivation. It conflicts with the
-shipped P2 step order, which gathers evidence before shaping; outcome 2 carries
-the obligation to state that difference rather than publish the two as agreeing.
+The order is the owner's decision, taken 2026-09-11 against the packs' own
+dependency contracts: `desk-research/DESIGN.md` declares "Upstream (none)" and
+names `product-strategy` its downstream, and `product-strategy/DESIGN.md` calls
+its own position upstream of `product-engineering` and `experience-design` "the
+architectural invariant". The order agrees with the shipped P2 step order, which
+also gathers evidence before shaping, so the two routes a reader can reach do
+not contradict each other.
 
 ## Durable Outputs
 
@@ -103,7 +107,6 @@ the obligation to state that difference rather than publish the two as agreeing.
 - **Describe the two plugin routes as equivalent.** `product-engineering` (3),
   `desk-research` (2) and `experience-design` (1) ship agents; Agent Plugins
   1.0.0 defines no agent component type, so three of the four are refused there.
-- **Publish the new path and P2 as if their orders agreed.**
 - **Introduce a new top-level directory or dependency.** Both surfaces exist.
 
 ## Testing Strategy
@@ -116,23 +119,23 @@ the obligation to state that difference rather than publish the two as agreeing.
   AC-0005 compares the multiset of collection slugs against the multiset of
   rendered card slugs — identity and multiplicity, not totals, because a count
   comparison passes when one journey is omitted and another duplicated.
-- **Index and guide prose (AC-0007 to AC-0011):** goal-based checks over the two
+- **Index and guide prose (AC-0007 to AC-0010):** goal-based checks over the two
   files. Presence and placement are mechanically checkable; whether the sequence
-  is *followable* is a comprehension property and is AC-0012's.
-- **Guide validity (AC-0013 to AC-0015):** the three existing guide gates, each
+  is *followable* is a comprehension property and is AC-0011's.
+- **Guide validity (AC-0012 to AC-0014):** the three existing guide gates, each
   named separately because they inspect different contracts, fail differently,
   and are fixed differently.
-- **The prohibitions (AC-0016 to AC-0019):** four observations, not three — an
-  image-syntax scan over the edited files (AC-0016), two whole-diff reads
-  (AC-0017, AC-0019), and one path-scoped `git diff` (AC-0018).
-- **Required links (AC-0021, AC-0022):** goal-based checks — AC-0021 on the
-  built page over the `web/` vitest suite, AC-0022 over `guides/README.md`.
-- **Link integrity (AC-0020):** `make site-link-check`. It verifies resolution,
-  not existence; AC-0021 and AC-0022 own existence, which is why AC-0020 is not
+- **The prohibitions (AC-0015 to AC-0018):** four observations, not three — an
+  image-syntax scan over the edited files (AC-0015), two whole-diff reads
+  (AC-0016, AC-0018), and one path-scoped `git diff` (AC-0017).
+- **Required links (AC-0020, AC-0021):** goal-based checks — AC-0020 on the
+  built page over the `web/` vitest suite, AC-0021 over `guides/README.md`.
+- **Link integrity (AC-0019):** `make site-link-check`. It verifies resolution,
+  not existence; AC-0020 and AC-0021 own existence, which is why AC-0019 is not
   load-bearing on its own.
 
 **Verification surface, checked 2026-09-11.** Every built-HTML criterion
-(AC-0001 to AC-0006, AC-0021) observes through the built site. The build command
+(AC-0001 to AC-0006, AC-0020) observes through the built site. The build command
 is `make site-build`, which writes `build/` then `build/docs/`; build order is
 load-bearing because the `web/` build cleans repository `build/`.
 
@@ -151,7 +154,7 @@ prose would assert its own fixture.
 - [ ] **AC-0001.** The journeys index renders the four disciplines in a group
       distinct from all other journeys, under a heading naming it as a sequence.
 - [ ] **AC-0002.** Within that group the four appear in the order
-      product-strategy, desk-research, experience-design, product-engineering.
+      desk-research, product-strategy, experience-design, product-engineering.
 - [ ] **AC-0003.** The group is an ordered list element, so the order is carried
       by the markup and not only by visual arrangement.
 - [ ] **AC-0004.** The visible step number is hidden from assistive technology,
@@ -164,42 +167,41 @@ prose would assert its own fixture.
 - [ ] **AC-0007.** On the index, each of the first three disciplines names what
       it hands the next, and the fourth names what the reader ends with.
 - [ ] **AC-0008.** `guides/README.md` carries an ordered path covering the four
-      disciplines in the order product-strategy, desk-research,
+      disciplines in the order desk-research, product-strategy,
       experience-design, product-engineering.
 - [ ] **AC-0009.** That path states a prerequisite, a `**First value:**` moment
       and an "ends at", matching the shape P1–P6 already use.
-- [ ] **AC-0010.** The path states, where a reader can see it, that its order
-      differs from P2's, which gathers evidence before shaping.
-- [ ] **AC-0011.** In the path, each of the first three disciplines names what it
+- [ ] **AC-0010.** In the path, each of the first three disciplines names what it
       hands the next, and the fourth names what the reader ends with.
-- [ ] **AC-0012.** A cold reader who has seen only these two surfaces can name
+- [ ] **AC-0011.** A cold reader who has seen only these two surfaces can name
       the four disciplines in order and state what one hands the next.
-- [ ] **AC-0013.** `guides/README.md` frontmatter remains valid.
-- [ ] **AC-0014.** `guides/README.md`'s `title` matches its leading H1.
-- [ ] **AC-0015.** The guide index remains complete.
-- [ ] **AC-0016.** Neither edited surface contains image syntax.
-- [ ] **AC-0017.** No text in the change claims that a reader has reached first
+- [ ] **AC-0012.** `guides/README.md` frontmatter remains valid.
+- [ ] **AC-0013.** `guides/README.md`'s `title` matches its leading H1.
+- [ ] **AC-0014.** The guide index remains complete.
+- [ ] **AC-0015.** Neither edited surface contains image syntax.
+- [ ] **AC-0016.** No text in the change claims that a reader has reached first
       value, completed a method, or installed successfully. The structural
       `**First value:**` path label required by AC-0009 is not such a claim.
-- [ ] **AC-0018.** No file under `web/src/content/journeys/` is modified.
-- [ ] **AC-0019.** No text in the change describes the Claude-plugins route and
+- [ ] **AC-0017.** No file under `web/src/content/journeys/` is modified.
+- [ ] **AC-0018.** No text in the change describes the Claude-plugins route and
       the Agent Plugins route as carrying the same packs.
-- [ ] **AC-0020.** Every internal link emitted by the change resolves.
-- [ ] **AC-0021.** On the index, each of the four discipline cards links to that
+- [ ] **AC-0019.** Every internal link emitted by the change resolves.
+- [ ] **AC-0020.** On the index, each of the four discipline cards links to that
       discipline's journey page.
-- [ ] **AC-0022.** In the path, each of the four steps links to that discipline's
+- [ ] **AC-0021.** In the path, each of the four steps links to that discipline's
       guide directory.
 
 ## Acceptance-set construction record
 
 Run 2026-09-11, after the owner routed this outcome into the brief. Obligations
-were enumerated from the Objective's three outcomes, the non-waivable `Never do`
+were enumerated from the Objective's three outcomes, the five non-waivable `Never do`
 rails, and the applicable Durable Outputs; each was admitted only once a single
 observing surface could be named.
 
 - **Candidate obligations:** 33
-- **Admitted as criteria:** 22
+- **Admitted as criteria:** 21
 - **Routed:** 11
+- **Cut:** 1
 
 | Candidate obligation | Disposition | Criterion / owner | Red input | Observer |
 | --- | --- | --- | --- | --- |
@@ -212,24 +214,24 @@ observing surface could be named.
 | The index names each handoff | admitted | AC-0007 | on the index, any of the first three not naming what it passes on, or the fourth not naming its end state | the index page copy |
 | The guides carry the same sequence | admitted | AC-0008 | path absent, or the four in any other order | `guides/README.md` |
 | The path matches the P-path shape | admitted | AC-0009 | any of prerequisite, first value, ends-at missing | `guides/README.md` |
-| The P2 conflict is disclosed | admitted | AC-0010 | difference unstated where both paths are reachable | `guides/README.md` |
-| The path names each handoff | admitted | AC-0011 | in the guides path, any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
-| A cold reader can restate the sequence | admitted | AC-0012 | order or any handoff unstatable | the reader |
-| Guide frontmatter stays valid | admitted | AC-0013 | invalid or missing frontmatter | `validate_guides.py` |
-| `title` matches the H1 | admitted | AC-0014 | the two diverge | `lint-guide-titles.py` |
-| Guide index stays complete | admitted | AC-0015 | page missing from the index | `check-guide-index.py` |
-| No image on either surface | admitted | AC-0016 | any image syntax in the two edited files | image-syntax scan over the change |
-| No adopter-outcome claim | admitted | AC-0017 | any first-value, completed-method or install-success assertion | whole-diff read |
-| Generated journey content untouched | admitted | AC-0018 | any modification under that path | `git diff -- web/src/content/journeys/` |
-| The two routes are not equated | admitted | AC-0019 | text implying both carry all four | whole-diff read |
-| The index links each discipline to its journey | admitted | AC-0021 | any of the four cards rendering without a link to its journey page | built page |
-| The path links each step to its guide | admitted | AC-0022 | any of the four steps stated without a link to its guide directory | `guides/README.md` |
-| Emitted links resolve | admitted | AC-0020 | any unresolved emitted link | `make site-link-check` |
+| The P2 conflict is disclosed | **cut** | — | — | the conflict no longer exists: with desk-research first, this path and P2 agree that evidence precedes shaping. A criterion disclosing a difference that is not there could not fail |
+| The path names each handoff | admitted | AC-0010 | in the guides path, any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
+| A cold reader can restate the sequence | admitted | AC-0011 | order or any handoff unstatable | the reader |
+| Guide frontmatter stays valid | admitted | AC-0012 | invalid or missing frontmatter | `validate_guides.py` |
+| `title` matches the H1 | admitted | AC-0013 | the two diverge | `lint-guide-titles.py` |
+| Guide index stays complete | admitted | AC-0014 | page missing from the index | `check-guide-index.py` |
+| No image on either surface | admitted | AC-0015 | any image syntax in the two edited files | image-syntax scan over the change |
+| No adopter-outcome claim | admitted | AC-0016 | any first-value, completed-method or install-success assertion | whole-diff read |
+| Generated journey content untouched | admitted | AC-0017 | any modification under that path | `git diff -- web/src/content/journeys/` |
+| The two routes are not equated | admitted | AC-0018 | text implying both carry all four | whole-diff read |
+| The index links each discipline to its journey | admitted | AC-0020 | any of the four cards rendering without a link to its journey page | built page |
+| The path links each step to its guide | admitted | AC-0021 | any of the four steps stated without a link to its guide directory | `guides/README.md` |
+| Emitted links resolve | admitted | AC-0019 | any unresolved emitted link | `make site-link-check` |
 | The brief's coverage roll-up resolves this spec | **routed** | `lint-brief-coverage`, via the `Brief:` back-link | — | a pre-existing repository control; this slice supplies the back-link it reads |
-| A diagram of the sequence | **routed** | `docs-site-build-contract-hardening/notes/guide-image-projection.md` | — | not this slice's; AC-0016 avoids the defect |
-| Handoff copy inside journey content | **routed** | `packs/*/JOURNEY.md` + the pack release pipeline | — | a four-pack released change, fenced by AC-0018 |
-| Sub-agent degradation on the chat surface | **routed** | `claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md` | — | AC-0019 discloses; it does not repair |
-| A pack delivering first value | **routed** | `claude-apps-first-value-entry` | — | needs the unrun probe; AC-0017 fences it |
+| A diagram of the sequence | **routed** | `docs-site-build-contract-hardening/notes/guide-image-projection.md` | — | not this slice's; AC-0015 avoids the defect |
+| Handoff copy inside journey content | **routed** | `packs/*/JOURNEY.md` + the pack release pipeline | — | a four-pack released change, fenced by AC-0017 |
+| Sub-agent degradation on the chat surface | **routed** | `claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md` | — | AC-0018 discloses; it does not repair |
+| A pack delivering first value | **routed** | `claude-apps-first-value-entry` | — | needs the unrun probe; AC-0016 fences it |
 | Affordance uplift in the four packs' guides | **routed** | sibling slices S3–S5 of this brief | — | this slice adds a path over existing guides |
 | The `digital-product` profile | **routed** | `digital-product-maker-profile` | — | CLI-only artifact; cannot serve a no-terminal reader |
 | The integrative cross-pack tutorial | **routed** | `digital-product-guides-update` (RFC-0071 M6) | — | blocked behind unstarted M5 |
@@ -241,48 +243,42 @@ observing surface could be named.
 predicate above — input, expected outcome, observing surface — and no sibling
 enforces the same predicate. AC-0005 and AC-0006 can both red on a missing
 journey, which the contract permits: two controls may share an input while
-asserting different outcomes. AC-0007 and AC-0011 are the other such pair —
+asserting different outcomes. AC-0007 and AC-0010 are the other such pair —
 the same obligation on two surfaces — so their red inputs are stated
 surface-first to keep them distinguishable at a glance. AC-0005 asserts exhaustiveness over the current
 collection; AC-0006 asserts that the catch-all mechanism exists, and its red
 input is the hardcoded-list mutation, not an omission. *Uniqueness:* every
 criterion names exactly one observing surface. AC-0003 and AC-0004 are adjacent
 but distinct — markup order is not an accessible name, and a page can pass
-either while failing the other. AC-0007 and AC-0011 state the same obligation on
+either while failing the other. AC-0007 and AC-0010 state the same obligation on
 two surfaces and are therefore two criteria with one observer each, not one
 criterion with two. *Consistency:* AC-0009 requires a `**First value:**` label
-while AC-0017 forbids first-value claims; the Boundary rail states the
-distinction explicitly, so the two coexist. AC-0007 and AC-0011 require handoff
-copy while AC-0018 forbids touching journey content; they coexist because the
+while AC-0016 forbids first-value claims; the Boundary rail states the
+distinction explicitly, so the two coexist. AC-0007 and AC-0010 require handoff
+copy while AC-0017 forbids touching journey content; they coexist because the
 copy is hand-authored on the index page and in the path. *Joint feasibility:*
-AC-0016 forbids images and AC-0001 needs a legible group, which a heading and an
-ordered list satisfy without one. AC-0020 is deliberately paired rather than
+AC-0015 forbids images and AC-0001 needs a legible group, which a heading and an
+ordered list satisfy without one. AC-0019 is deliberately paired rather than
 standing alone: on its own it passes on the empty set, because a path emitting
-no links has no unresolved link. AC-0021 and AC-0022 supply the links whose
+no links has no unresolved link. AC-0020 and AC-0021 supply the links whose
 existence it then verifies, so the pair cannot both be satisfied vacuously.
-*Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0021;
-outcome 2 reaches AC-0008 to AC-0010 and AC-0022; outcome 3 reaches AC-0007,
-AC-0011 and AC-0012. The Objective's "and can walk it" reaches AC-0020, whose
+*Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0020;
+outcome 2 reaches AC-0008, AC-0009 and AC-0021; outcome 3 reaches AC-0007,
+AC-0010 and AC-0011. The Objective's "and can walk it" reaches AC-0019, whose
 failure leaves a stated route unreachable even when every other criterion holds.
-The six `Never do` rails reach AC-0018, AC-0016, AC-0017, AC-0019, AC-0010 and
-the routed repository-decision row respectively. The three applicable Durable
-Outputs reach AC-0008 and AC-0022, AC-0013 to AC-0015, and the ledger row, with
+The five `Never do` rails reach AC-0017, AC-0015, AC-0016, AC-0018 and the
+routed repository-decision row respectively. The three applicable Durable
+Outputs reach AC-0008 and AC-0021, AC-0012 to AC-0014, and the ledger row, with
 the brief roll-up carried by the routed `lint-brief-coverage` row. Every
 criterion traces back to one of those.
 
 ## Accepted residuals
 
-- **AC-0012's observer is a person.** No mechanical oracle exists for whether a
+- **AC-0011's observer is a person.** No mechanical oracle exists for whether a
   reader can restate a sequence, and inventing one would compare the page to
   itself. Accepted as proportionate: the criterion can still fail, the two
   surfaces are named, and it adds no new class of verification burden beyond the
   cold read the repository already runs.
-- **AC-0010 discloses a conflict rather than resolving it.** The right fix is one
-  reconciled order across P2 and the new path. That changes a shipped path, and
-  although P2 is now under the same brief, reconciling it would reopen delivered
-  work rather than add a slice. Bounding it out and disclosing it is the honest
-  move for this scope; recorded here so a later round does not re-raise it.
-
 - **The brief's five sibling Spec-map statuses stay hand-written.**
   `docs/CONVENTIONS.md:515` and `lint-brief-coverage.py`'s own contract agree
   that the Status column "is auto-derived and must not be hand-maintained".
@@ -300,43 +296,31 @@ None is a defect found late; all three are judgements recorded when made.
 ## Assumptions and undischarged risks
 
 - The four journeys already say enough about their inputs and outputs that
-  AC-0007 and AC-0011's handoff copy can be written from existing material. If
+  AC-0007 and AC-0010's handoff copy can be written from existing material. If
   false, those are the criteria that fail, and the response is to narrow them to
   the guides surface rather than to edit generated journey content.
 - `guides/README.md` can carry a seventh path without a schema change, because
   P1–P6 are prose under headings and add no frontmatter key.
-- **OPEN BLOCKING, round 3 — the published order contradicts the packs' own
-  dependency contracts.** The order was decided by the owner on 2026-09-11 on
-  evidence that did not include the packs' `DESIGN.md` files. Those files say
-  the opposite for one adjacent pair:
-  - `packs/desk-research/DESIGN.md` § "Cross-pack dependencies" declares
-    **"Upstream (none)"** — "it is the evidence layer" — and names
-    `product-strategy` as its **downstream**, because
-    `synthesize-stakeholder-research` "consumes `desk-research` survey
-    artifacts as a primary evidence source".
-  - `packs/product-strategy/DESIGN.md` states that
-    `synthesize-stakeholder-research` "runs **at the start** when prior
-    desk-research outputs exist".
-  - The same file calls strategy's position upstream of `product-engineering`
-    and `experience-design` **"the architectural invariant"** and "a one-way
-    dependency".
+- **Closed 2026-09-11 — the order now matches the packs' contracts.** Round 3
+  found that the previously decided order (`product-strategy` first) inverted
+  the one adjacent pair the packs state explicitly:
+  `packs/desk-research/DESIGN.md` declares **"Upstream (none)"** — "it is the
+  evidence layer" — and names `product-strategy` as its **downstream**, because
+  `synthesize-stakeholder-research` "consumes `desk-research` survey artifacts
+  as a primary evidence source"; `packs/product-strategy/DESIGN.md` adds that
+  that skill "runs **at the start** when prior desk-research outputs exist".
+  The owner reordered to `desk-research → product-strategy → experience-design
+  → product-engineering`, which satisfies both that pair and the separate
+  invariant that strategy precedes `product-engineering` and
+  `experience-design`. The packs do not order experience-design against
+  product-engineering, so that pair is unconstrained rather than contradicted.
 
-  So the packs contract for **desk-research → product-strategy →
-  {product-engineering, experience-design}**. The decided order places research
-  *after* strategy, which inverts the one pair the packs state explicitly. The
-  strategy-before-PE-and-XD half is consistent with the invariant; the packs do
-  not order XD against PE, so that half is unconstrained rather than
-  contradicted.
-
-  **AC-0010 does not cover this.** It discloses a difference from the guides'
-  P2 order only. It says nothing about the pack contracts, and disclosure would
-  in any case leave a reader with two reachable routes and no rule for which
-  applies. **Correcting the packs is out of scope** — the brief excludes any
-  change to skill behaviour — so this cannot be resolved inside this slice by
-  changing the packs.
-
-  This is an owner decision, not an authoring repair, and the spec is not
-  approvable until it is taken.
+  **This also closed a criterion.** The former AC-0010 required disclosing that
+  this path's order differs from the guides' P2. With desk-research first the
+  two agree that evidence precedes shaping, so the difference it disclosed no
+  longer exists and the criterion could not fail. It is recorded as **cut** in
+  the construction record, and the `Never do` rail that forbade publishing the
+  two as agreeing is withdrawn with it.
 
 - **Not discharged — whether the two lifecycles are orthogonal.**
   `docs/design/discovery/team-orientation-decision-log.md:52` flags that
@@ -366,7 +350,8 @@ Blocking counts across rounds ran 3, 1, 2 — not converging — and **four of r
 repair-first habit produces, and it is the reason the open item below is being
 put to the owner rather than repaired again.
 
-**One blocking finding is open and is not the author's to close.** Round 3 found
-that the published order contradicts the packs' own dependency contracts. It is
-recorded in § "Assumptions and undischarged risks" and awaits an owner decision;
-every other round-3 finding is applied.
+**Every round-3 finding is now closed.** Its blocking order finding went to the
+owner rather than being repaired by the author, because the order is the owner's
+decision and the round showed it had been taken on evidence that omitted the
+packs' `DESIGN.md` files. The owner reordered on 2026-09-11; see § "Assumptions
+and undischarged risks". A fourth round has not run against the reordered text.
