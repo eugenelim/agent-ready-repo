@@ -87,47 +87,84 @@ declares, so the install and the skill agree on the first try.
   complete result, so a no-op cannot satisfy it. The comparison is on bytes: a
   parsed comparison sees neither a lost comment nor a folded CRLF.
 
-- [ ] **AC3 — The separator is the only added byte.** A file already ending in
-  a newline gains none. A file ending without one gains exactly one, in the
-  line-ending style the file already uses, or `\n` when it carries none.
+- [ ] **AC3 — The separator is the only addition.** A file already ending in a
+  line terminator gains none. A file ending without one gains exactly one
+  terminator, matching the style the file already uses, or `\n` when it carries
+  none. The admitted styles are LF and CRLF; a lone-CR file is refused under
+  AC4 rather than appended to.
 
-- [ ] **AC4 — Three states refuse and report.** A file that cannot be decoded
-  as UTF-8, a file that cannot be parsed, and a top-level name already taken by
-  the declared section — whatever its type — each leave the file byte-identical
-  and write the reason to stderr.
+- [ ] **AC4 — Three error states refuse and report.** A file that cannot be
+  decoded as UTF-8, a file that cannot be parsed, and a top-level name already
+  taken by a scalar or an array of tables each leave the file byte-identical
+  and write a reason to stderr naming the layout file's path and the section
+  that was not written.
 
-- [ ] **AC5 — An absent file stays absent, silently.** Installing into a scope
-  with no `agentbundle-layout.toml` creates nothing and emits no diagnostic.
-  This is the designed no-op on the majority of installs, not a refusal.
+- [ ] **AC5 — Every designed no-op is silent.** Three states write nothing and
+  emit no diagnostic: no `agentbundle-layout.toml` at the scope; the declared
+  section already present as a table; a pack declaring neither or only one of
+  `section` and `output_dir` for that scope. Each is the contract working — the
+  first and third on the majority of installs, the second on every re-install
+  of an already-configured pack — so a diagnostic there is noise, not
+  reporting.
 
-- [ ] **AC6 — Each pack declares the section its own skills read.** For every
-  pack declaring `[pack.layout.<scope>]`, the declared `section` equals the
-  section name that pack's shipped skill bodies and `references/agentbundle-layout.md`
-  instruct a reader to look in. Both sides are derived from the repository.
+- [ ] **AC6 — Each declared section is one the pack itself documents.** For
+  every pack declaring `[pack.layout.<scope>]`, the declared `section` appears
+  as a documented section in at least one `references/agentbundle-layout.md`
+  under that pack. Both sides derive from the repository, and the check asserts
+  the size of the set it walked, so an enumeration that finds nothing fails
+  rather than passes.
 
-- [ ] **AC7 — A repo-scope relative value resolves against the repository
-  root.** `workspace_mcp.py` anchors a relative `output_dir` from the repo-scope
-  file to the repository root, not to the process working directory. The test
-  runs from a working directory other than the repository root, so an
-  implementation that resolves against the process CWD fails.
+  The predicate is one-way on purpose. A pack may name other sections — one it
+  reads from a different pack, or a second output section it does not install a
+  default for — and neither makes the declared section wrong. Requiring
+  equality against every section a pack mentions makes this criterion red on a
+  correct implementation.
+
+- [ ] **AC7 — A relative value is anchored, or refused, per scope.** A relative
+  `output_dir` in the repo-scope file resolves against the repository root, not
+  the process working directory; the test asserts this from a working directory
+  that is not the repository root, so a CWD-anchored implementation fails. A
+  relative value in the user-scope file is not silently resolved against
+  anything — it is surfaced, per the Ask-first rule the shipped reference docs
+  already state. One fix that anchors both scopes to the repository root
+  satisfies the first half and fails the second.
 
 - [ ] **AC8 — `architect` declares `docs/architecture`, and says so.** Its
   manifest names that base, and both of its `references/agentbundle-layout.md`
   files document the same value rather than `docs/design`.
 
-- [ ] **AC9 — No shipped document claims the append drops content.** No
-  `references/agentbundle-layout.md` states that the installer re-emits the file
-  without preserving comments or off-schema keys. The file set is derived from
-  the repository.
+- [ ] **AC9 — No shipped document claims the append drops content.** Every
+  `references/agentbundle-layout.md` that describes what an append does to the
+  rest of the file describes preservation. The file set derives from the
+  repository.
 
 - [ ] **AC10 — The manifest schema admits `section` and still refuses an
   unknown key.** `pack.schema.json` accepts `section` inside
-  `[pack.layout.repo]` and `[pack.layout.user]`, refuses a key it does not name,
-  and its two copies are byte-equal.
+  `[pack.layout.repo]` and `[pack.layout.user]` and refuses a key it does not
+  name. Byte-equality of the two copies is not restated here; the shipped
+  contract-parity gate owns it.
 
 - [ ] **AC11 — The emitted table is injection-safe.** A declared `section` or
   `output_dir` containing `"`, `]`, a newline, or `../` round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
+
+- [ ] **AC12 — A layout failure never fails the install.** When the append
+  cannot write — the file is read-only, its directory is not writable, or the
+  path resolves outside the write jail — `agentbundle install` completes with
+  its normal exit status and its projected files intact, and the reason is
+  reported. Layout maintenance is optional; it does not get a veto over an
+  install whose files are already on disk.
+
+- [ ] **AC13 — The adopter's file keeps its permissions.** A layout file
+  readable by the adopter's group or others has the same mode after an append
+  as before it. The atomic replace must not hand the file the temporary file's
+  private mode.
+
+- [ ] **AC14 — A symlinked layout file is refused, not replaced.** When
+  `agentbundle-layout.toml` is a symbolic link, the append writes nothing,
+  reports why, and leaves the link itself intact — matching `workspace_mcp.py`,
+  which already refuses to read one. Replacing the link with a regular file
+  would silently strand whatever the adopter pointed it at.
 
 ## Testing Strategy
 
@@ -136,23 +173,30 @@ declares, so the install and the skill agree on the first try.
   line ending, a file created that should not be, a diagnostic on a designed
   no-op.
 
-- **The round trip (AC6):** goal-based check. Writer and readers disagreed on
-  both the key and the section name for two releases with tests green on each
-  side, because each was exercised against its own idea of the shape. The
-  observation is that the manifest's declared section and the section the
-  shipped skill reads are the same string, derived from both.
+- **The filesystem outcomes (AC12, AC13, AC14):** TDD. These are the states the
+  change reaches for the first time, because the write has never executed. Each
+  needs an observation the byte comparison cannot make — an exit status and a
+  projected-file listing, a stat mode, and whether the path is still a link —
+  so none of them can ride on AC2's assertion.
 
-- **Path anchoring (AC7):** TDD. The failing input is a test run from a
-  directory other than the repository root, which is what makes a CWD-anchored
-  implementation red.
+- **The declared section (AC6):** goal-based check. Writer and readers
+  disagreed on both the key and the section name for two releases with tests
+  green on each side, each exercised against its own idea of the shape. The
+  observation is that a pack's declared section is one that pack's own
+  documentation describes, with the walked set's size asserted so an empty
+  enumeration fails.
+
+- **Path anchoring (AC7):** TDD. Two failing inputs, not one: a repo-scope
+  relative value observed from a working directory that is not the repository
+  root, and a user-scope relative value that must not resolve silently. A fix
+  that anchors both scopes alike passes the first and fails the second.
 
 - **The documents (AC8, AC9):** goal-based checks over the repository-derived
-  file set. They fail on different inputs — a wrong value in two files, a stale
-  behavioural claim in six — so they need separate repairs.
+  file set. They fail on different inputs — a wrong documented value, and a
+  stale behavioural claim — so they need separate repairs.
 
 - **The schema (AC10):** goal-based check. A manifest carrying `section`
-  validates, one carrying an unknown sibling does not, and the copies compare
-  equal; the shipped parity gate owns the last half.
+  validates and one carrying an unknown sibling does not.
 
 - **Injection safety (AC11):** TDD, mutation-checked by removing the emitter
   call to confirm the control can still fail.
@@ -209,9 +253,10 @@ declares, so the install and the skill agree on the first try.
 - Technical: two shipped assertions pin the data loss as correct (source:
   `packages/agentbundle/tests/unit/test_append_layout_section.py`,
   `test_reemit_drops_tampered_existing_parent`, read 2026-09-10)
-- Technical: six `references/agentbundle-layout.md` files state the installer
-  "does not preserve freeform comments or off-schema keys", which this change
-  makes false (source: repository grep, 2026-09-11)
+- Technical: a set of `references/agentbundle-layout.md` files state the
+  installer "does not preserve freeform comments or off-schema keys", which
+  this change makes false. The set is derived at execution, not counted here
+  (source: repository grep, 2026-09-11)
 - Technical: both `architect` reference docs document `output_dir = "docs/design"`
   (source: `packs/architect/.apm/skills/architect-design/references/agentbundle-layout.md`,
   read 2026-09-11)
@@ -241,10 +286,11 @@ decision record is owed, and no criterion here claims one.
 ## Follow-ons
 
 - **Move the section vocabulary onto pack names.** Logged as a backlog entry.
-  It reaches 23 `SKILL.md` bodies, the `references/agentbundle-layout.md` set,
-  five `pack.toml` comment blocks, four `DESIGN.md`, `docs/CONVENTIONS.md` and
-  its byte-parity twin, the guide corpus, the work-loop corpus fixtures, and
-  `tools/test_live_demo_guide.py`, which asserts a literal section name. It must
+  It reaches the skill bodies, the `references/agentbundle-layout.md` set, the
+  `pack.toml` comment blocks, the `DESIGN.md` set, `docs/CONVENTIONS.md` and its
+  byte-parity twin, the guide corpus, the work-loop corpus fixtures, and
+  `tools/test_live_demo_guide.py`, which asserts a literal section name. The
+  backlog entry carries the measured surface. It must
   also settle `[product]`, which two item types share in `workspace_mcp.py`, and
   `[discovery]`, whose base is not `product-engineering`'s. Owner: eugenelim.
 - **`workspace_mcp.py` resolves three of the five declaring packs.**

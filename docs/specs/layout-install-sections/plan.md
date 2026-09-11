@@ -70,7 +70,10 @@ only by hand-authored config into the common one.
 `packages/agentbundle/tests/unit/test_append_layout_section.py` holds the
 installer cases; it is also the file whose fixture shape let this through,
 passing `pack_name="research"` with a `parent` key — a combination no pack
-produces. Its fixtures are re-pointed at the real manifests.
+produces. Its fixtures become literal manifests of the shape production now
+supplies. They are not read from `packs/`: this tree ships to adopters, where
+no catalogue exists. AC6 is what binds the literals to the shipped manifests,
+and it runs repository-only.
 
 `test_reemit_drops_tampered_existing_parent`'s two assertions are **deleted**,
 not amended: they state the data loss as the contract.
@@ -133,9 +136,27 @@ of the new design rather than a repair of the old. It costs the pack's default
 on a file whose name is already taken, which is the lesser harm against
 destroying what the adopter put there.
 
-**Why the absent-file case stays silent.** It is the designed no-op and the
-common case. Obliging a diagnostic there would emit one line per declaring pack
-per scope on every install into a repository with no layout file.
+**Why the designed no-ops stay silent.** Three states write nothing by
+contract: no layout file, the section already present as a table, and a pack
+declaring only one of the two keys. Each is the common case on some install —
+the first on any repository without a layout file, the second on every
+re-install of a configured pack, the third on every pack in the catalogue that
+declares no layout at all. A diagnostic on any of them prints once per pack per
+scope for a path that is working correctly. Only the three error states report.
+
+**Why a layout failure must not fail the install.** The call site treats an
+`OSError` or a jail refusal as fatal and returns 1. That has never fired,
+because the write has never executed. Once it does, a read-only layout file
+would abort an install whose files are already projected — a total failure over
+an optional maintenance step. The append reports and yields instead.
+
+**Why mode and symlinks need their own observations.** `write_jailed` creates
+its temp file privately and the atomic replace carries that mode onto the
+target, so an adopter's group-readable file silently becomes owner-only; and a
+symlinked target is replaced by a regular file, stranding whatever it pointed
+at. Both are invisible to a byte comparison, which is why AC13 and AC14 observe
+the stat mode and the link rather than the contents. The reader already refuses
+a symlinked layout file, so refusing to write one makes the two agree.
 
 **Why bytes, not text.** `read_text` folds CRLF and lone CR to LF, so a
 text-mode read rewrites every Windows adopter's file. The decode stays inside
@@ -190,7 +211,7 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 
 ### T2: Read `section` and `output_dir`, and append instead of re-emitting
 
-**Depends on:** T1
+**Depends on:** T1, T3
 
 **Tests:**
 - A declaring pack appends `[<section>] output_dir = <output_dir>`; the result
@@ -202,33 +223,47 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - A CRLF file stays CRLF; a file without a trailing newline gains exactly one
   in its own style; one with a trailing newline gains none; a file with no line
   ending gains `\n`. (AC3)
-- Undecodable, unparseable, and occupied-name-as-table/scalar/array each leave
-  the file byte-identical and write the reason to stderr. (AC4)
-- An absent file is not created and nothing is printed. (AC5)
+- Undecodable, unparseable, and occupied-by-scalar/array each leave the file
+  byte-identical and report a reason naming the layout path and the section not
+  written. (AC4)
+- Three designed no-ops write nothing and print nothing: absent file, section
+  already present as a table, pack declaring only one of the two keys. (AC5)
+- A read-only layout file and a jail-refused path each leave `install`'s exit
+  status and projected files unaffected, and report. (AC12)
+- A group-readable layout file has the same stat mode after the append. (AC13)
+- A symlinked layout file is refused, still a symlink afterwards. (AC14)
 - The injection round-trip stays green and is mutation-checked by removing the
   emitter call. (AC11)
 
 **Approach:**
 - Read with `read_bytes`; decode a throwaway copy inside the existing `try`.
-- Widen the already-present check from "is a table" to "is present".
+- Widen the already-present check from "is a table" to "is present", and route
+  the table case to the silent return while scalar and array report.
+- Refuse a symlinked target before writing, matching the resolver.
+- Carry the target's existing mode across the atomic replace.
+- Catch the write failure at the call site so a layout problem reports and the
+  install continues.
 - Delete the section-rebuild loop and both drop-and-warn branches.
 - Source the table name from `section` and the value from `output_dir`,
   returning early when either is not a string.
 - Emit both through `_emit_basic_string`; write original bytes plus separator
   plus table through `safety.write_jailed`.
-- Delete `test_reemit_drops_tampered_existing_parent`'s two assertions and
-  re-point the suite's fixtures at the real manifests.
+- Delete `test_reemit_drops_tampered_existing_parent`'s two assertions.
+- Build the unit fixtures as literal manifests in the test tree, not by reading
+  `packs/`. That tree ships to adopters, where no catalogue exists; AC6 is what
+  binds the literals to the shipped manifests, and it runs repository-only.
 
 **Done when:** those cases pass and the mutation check confirms AC11 can fail.
 
 ### T3: Declare a section in each consuming pack
 
-**Depends on:** T1
+**Depends on:** T1, T5
 
 **Tests:**
-- Every pack declaring `[pack.layout.<scope>]` declares a `section` equal to
-  the section its own shipped skill bodies and reference docs instruct a reader
-  to look in. Both sides derived from the repository. (AC6)
+- Every pack declaring `[pack.layout.<scope>]` declares a `section` documented
+  by at least one `references/agentbundle-layout.md` under that pack, with the
+  walked set's size asserted. Derived from the repository, so it runs in
+  `tests/conformance/` where the catalogue is present. (AC6)
 
 **Approach:**
 - Add `section` to the five manifests: `architect` → `architecture`,
@@ -243,8 +278,10 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 **Depends on:** none
 
 **Tests:**
-- `architect`'s manifest and both of its reference docs name
-  `docs/architecture`; no `architect` surface names `docs/design`. (AC8)
+- `architect`'s manifest and both of its `references/agentbundle-layout.md`
+  files name `docs/architecture`. Scoped to those three files: two
+  `evals.json` assertions name `docs/design` deliberately, as negatives, and
+  must survive. (AC8)
 - No `references/agentbundle-layout.md` claims the append fails to preserve
   comments or off-schema keys. The file set is derived. (AC9)
 
@@ -257,7 +294,7 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 
 **Done when:** both checks pass.
 
-### T5: Anchor a repo-scope relative value to the repository root
+### T5: Anchor a repo-scope relative value, and refuse a relative user-scope one
 
 **Depends on:** none
 
@@ -265,11 +302,17 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - A relative `output_dir` in the repo-scope file resolves against the
   repository root, asserted from a working directory that is not the repository
   root. (AC7)
+- A relative `output_dir` in the user-scope file is not silently resolved. A fix
+  anchoring both scopes to the repository root passes the case above and fails
+  this one. (AC7)
 
 **Approach:**
-- Resolve a repo-scope relative value against the resolver's own repository
-  root instead of the ambient working directory. User-scope values stay
-  absolute per RFC-0040.
+- Make `_read_scope` scope-aware: anchor a repo-scope relative value to the
+  resolver's own repository root, and surface a relative user-scope value rather
+  than resolving it, per RFC-0040's Ask-first rule.
+- T5 precedes T3, because declaring a section is what makes the installer write
+  repo-relative defaults, and those are what carry a relative value into this
+  path for the first time.
 
 **Done when:** that case passes and the resolver's existing tests stay green.
 
