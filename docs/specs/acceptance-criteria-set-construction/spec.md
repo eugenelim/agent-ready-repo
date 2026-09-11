@@ -343,7 +343,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       instructs the author to pick the most token-efficient bounded exploration
       the session actually offers — a subagent, a worker, or a direct search —
       because a named tool makes the rule unrunnable wherever that tool is
-      absent, and the obligation is the grounding, never the mechanism.
+      absent, and the obligation is the grounding, never the mechanism. The
+      resolving runs mechanically first and semantically second: every file that
+      names a touched path is enumerated by search before any model is asked
+      which rules apply, because the search is exhaustive over
+      references-by-path while the question is not. What the search cannot reach
+      — a gate matching by glob or directory walk, and a rule that applies by
+      content rather than by path — is the stated residue that review still
+      owns.
 - [ ] **AC-0032.** The skill ships its own alignment checker, invoked from its own
       `scripts/` directory and depending on no other skill. It decides the
       mechanical alignment of a loop contract's items: every acceptance criterion

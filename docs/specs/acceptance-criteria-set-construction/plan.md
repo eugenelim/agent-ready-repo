@@ -320,6 +320,13 @@ in the same commit
 
 
 **Grounding:**
+- **Three further roster modules name this skill's paths** and were found by
+  searching for the touched paths rather than by asking which rules apply:
+  `test_spec_review_adjudication_documentation.py` (the review step T6 edits),
+  `test_verification_ledger_contract.py` (the assets T7 edits), and
+  `test_spec_authoring_rubric_brief_boundary.py`. The mechanical search is
+  exhaustive over references-by-path; the semantic sweep that preceded it was
+  not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
   reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
   exact phrases inside step 4 — the step this slice rewrites — and applies a
@@ -557,6 +564,10 @@ close this task, and the count closes nothing.
   --root .` resolves this spec under its brief.
 - `python3 .agents/skills/work-loop/scripts/lint-traceability.py --root .` exits
   0. The 433 informational orphans are pre-existing.
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — every assertion the
+  five skill-editing tasks landed. Re-run here because no required remote gate
+  reaches this suite, so T5 is the last point at which a red is visible before
+  release.
 - `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
   — the module that carries the sweep below. Without this command the sweep has
   no closing oracle: it would be authored, never executed, and the task would
@@ -720,6 +731,13 @@ in the same commit
 
 
 **Grounding:**
+- **Three further roster modules name this skill's paths** and were found by
+  searching for the touched paths rather than by asking which rules apply:
+  `test_spec_review_adjudication_documentation.py` (the review step T6 edits),
+  `test_verification_ledger_contract.py` (the assets T7 edits), and
+  `test_spec_authoring_rubric_brief_boundary.py`. The mechanical search is
+  exhaustive over references-by-path; the semantic sweep that preceded it was
+  not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
   reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
   exact phrases inside step 4 — the step this slice rewrites — and applies a
@@ -906,6 +924,19 @@ restored, and `make build-self` leaves no drift.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.
+- **No required remote gate runs the suite five tasks close on.**
+  `.github/workflows/catalogue-tooling-ci-gates.yml` runs a curated list of pack
+  suites and omits `packs/core/tests/skills/new-spec/`; `make test` walks the
+  whole tree but reaches CI only through a manually dispatched workflow that the
+  repository's own guidance calls partial evidence, never required. So T1, T3,
+  T6, T7 and T8 all close on a suite a merge can go green without. Mitigation:
+  run it locally at every task boundary and again in T5, and read a green remote
+  run as saying nothing about it. Widening the curated list is a separate change
+  with its own owner and is not smuggled in here. An open backlog intent,
+  `docs/product/intents/new-spec-review-phrase-contract.md`, already records this
+  omission alongside a review-phrase defect in the same file T6 edits; its
+  phrase claim no longer reproduces — the test passes today — but the gate
+  omission does.
 - **AC-0018's check reads three surfaces; older shipped surfaces go unread.**
   `assets/spec.md`, the rubric, and `SKILL.md` outside the procedure span carry
   no check for a fixed absolute criterion count. The criterion was narrowed to
