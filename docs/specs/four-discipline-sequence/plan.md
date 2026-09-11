@@ -69,6 +69,28 @@ inside the suite.
 | T8 | Cold read | AC-0011 | A reader who has seen only the two surfaces names the order and one handoff |
 | T9 | Record the verification ledger | Durable Output — "Reusable learning" | `notes/verification-ledger.md`: the collection multiset, the rendered multiset, and the D1 explanation. A Durable Output is an admissible task target under the authoring contract; this task deliberately traces to one rather than to a criterion |
 
+## Tasks added 2026-09-11, after the design pass
+
+| # | Task | Criteria | Notes |
+| --- | --- | --- | --- |
+| T10 | Give each group its own card modifier and emit a rule for each | AC-0023 | Left edge carries the relationship: accent bar plus numeral for the sequence, muted bar for the loops, no bar for optional additions |
+| T11 | Route the sequence group onward to the guides path | AC-0024 | `withBase('/docs/guides/#...')`; the cross-site convention this repo already uses |
+| T12 | Place the alternative path beside the step it replaces, and give it a non-overlapping selection axis | AC-0025, AC-0026 | Required amending `install-to-ship-walkthrough`, which defined a stage as every `h3` in the section. The contract was amended, not the content |
+| T13 | Extend the construction tests to the new criteria | AC-0023, AC-0024 | `npm run test --prefix web` |
+
+### T10 — Tests
+
+8. `each group carries its own card modifier, and each modifier has a rule` —
+   assert the three modifier class sets are disjoint across the groups, **and**
+   that the built page's inlined style emits a rule for each. Asserting the
+   class alone would pass for a class with no rule, which carries no signal.
+   (AC-0023)
+
+### T11 — Tests
+
+9. `the sequence routes onward to the guides path` — assert the sequence group
+   emits an anchor whose target is the guides path's own anchor. (AC-0024)
+
 ## Task tests
 
 `docs/CONVENTIONS.md` places construction tests in `plan.md`, attached to each
@@ -123,6 +145,8 @@ Three criteria install a guard whose removal must be caught.
 | --- | --- | --- | --- |
 | AC-0005 — no journey dropped or duplicated | the membership construction test | **exclude** one slug from the rendered output entirely — filter it out of the catch-all as well as its group, so it does not fall through — **and** duplicate a different slug into two groups | the multiset comparison reports one slug missing and one slug present twice. A length-only comparison passes, because the omission and the duplication cancel: 20 slugs in, 20 cards out. That cancellation is the whole reason the criterion is specified on multisets rather than counts |
 | AC-0006 — ungrouped journeys still render | the catch-all test, whose fixture injects a **novel** slug that appears in no production group and in no hardcoded fallback | replace the collection-derived catch-all with a hardcoded list of the production slugs | the novel fixture slug is absent from the rendered page. The novelty is load-bearing: a fixture reusing an existing slug would be present in the hardcoded list and the mutated code would pass |
+| AC-0023 — the groups survive without headings | the group-modifier construction test | keep the `--loop` class, delete its **base** rule, leaving only its `:hover` rule | the at-rest rule assertion fails. **The first version of this assertion did not kill this mutation** — it matched any rule containing the modifier, and the surviving `:hover` rule satisfied it, so a card that looked identical at rest passed. Tightened to require a selector with no pseudo-class, then re-run: it fails as it should |
+| AC-0024 — the sequence routes onward | the onward-route test | delete the onward paragraph from the sequence group | no anchor is found in `.journeys-group__onward` |
 | AC-0003 — order lives in the markup | the markup assertion | change the `<ol>` to a `<ul>` while leaving the visual order intact | the assertion on the ordered-list element fails even though the page looks unchanged |
 
 A test that still passes under its mutation is not proof. AC-0006's mutation is

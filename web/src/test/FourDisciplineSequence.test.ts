@@ -130,6 +130,45 @@ describe.skipIf(!built)('four-discipline sequence on the journeys index', () => 
     expect(hands.every((h) => h.length > 20)).toBe(true);
   });
 
+  it('AC-0023: each group carries its own card modifier, and each modifier has a rule', () => {
+    const doc = dom();
+    const html = readFileSync(JOURNEYS_INDEX, 'utf8');
+    const groups: Record<string, string> = {
+      sequence: 'journey-card--step',
+      loops: 'journey-card--loop',
+      optional: 'journey-card--optional',
+    };
+    // The modifiers must partition the cards: no card carries two, and every
+    // card carries one.
+    const cards = [...doc.querySelectorAll('li.journey-card')];
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) {
+      const applied = Object.values(groups).filter((m) => card.classList.contains(m));
+      expect(applied, `card classes: ${card.className}`).toHaveLength(1);
+    }
+    // All three must actually be in use, or the partition is vacuous.
+    for (const modifier of Object.values(groups)) {
+      expect(doc.querySelector(`.${modifier}`), `${modifier} is applied nowhere`).not.toBeNull();
+      // And each must carry an emitted **base** rule — a selector with no
+      // pseudo-class. Matching any rule is not enough: a `:hover` rule alone
+      // leaves the card looking identical at rest, which is precisely when the
+      // groups have to be distinguishable. A first version of this assertion
+      // matched `:hover` and survived deleting the base rule.
+      const rules = [...html.matchAll(new RegExp(`\\.${modifier}([^{,]*)\\{`, 'g'))];
+      const hasBaseRule = rules.some((m) => !m[1].includes(':'));
+      expect(hasBaseRule, `${modifier} has no at-rest style rule, only pseudo-class rules`).toBe(true);
+    }
+  });
+
+  it('AC-0024: routes onward from the sequence to the guides path that walks it', () => {
+    const doc = dom();
+    const onward = doc.querySelector('.journeys-group__onward a');
+    expect(onward, 'the sequence group emits no onward route').not.toBeNull();
+    const href = onward!.getAttribute('href') ?? '';
+    expect(href).toContain('/docs/guides/');
+    expect(href, 'the onward route must target the path, not the hub generally').toContain('#p2b');
+  });
+
   it('AC-0020: links each discipline card to its own journey page', () => {
     const ol = dom().querySelector('ol.journeys-grid--ordered')!;
     const hrefs = [...ol.querySelectorAll('a.journey-card__link')].map((a) =>
