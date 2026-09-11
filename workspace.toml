@@ -231,6 +231,14 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  # S7 of the same brief, authored 2026-09-11. It fixes a guidebook step contract
+  # and makes each of the five SOP packs' journeys walkable against it, and
+  # carries the correction to the three-whole-pack-handoff premise S6 shipped,
+  # which is false against the packs' own Shipped contracts. It supersedes S3-S5
+  # inside those five packs; the ledger is in the spec's notes. Re-cut from an
+  # earlier, narrower draft registered as `four-discipline-walk-execution`, which
+  # never reached main. It remains Draft and requires human approval.
+  {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
 ]
 shipped = [
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
@@ -378,14 +386,6 @@ queue   = [
   # 2026-09-09 and registered after a clean shaping review and three adversarial
   # rounds. It remains Draft and requires human approval before dispatch.
   {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
-  # S7 of the same brief, authored 2026-09-11. It fixes a guidebook step contract
-  # and makes each of the five SOP packs' journeys walkable against it, and
-  # carries the correction to the three-whole-pack-handoff premise S6 shipped,
-  # which is false against the packs' own Shipped contracts. It supersedes S3-S5
-  # inside those five packs; the ledger is in the spec's notes. Re-cut from an
-  # earlier, narrower draft registered as `four-discipline-walk-execution`, which
-  # never reached main. It remains Draft and requires human approval.
-  {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix a ten-obligation guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
