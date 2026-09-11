@@ -228,8 +228,12 @@ whole-file token deny-list is unavailable either way; see the probe under
   the record-the-result instruction, and the below-p75 branch.
 - **AC17, AC18 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
-- **AC8.** Assert all seven sweep members are named in the set-level pass, then
-  assert the two that carry a contract beyond their name. **Propagation:** the
+- **AC8.** Assert the pass states its subject as the spec-and-plan pair, assert
+  all seven sweep members are named, then assert the two that carry a contract
+  beyond their name. **Constraint on the subject clause:** assert that both
+  artifacts are named, not that the word "set" appears; a pass whose subject
+  reads as the criteria alone is the one that shipped through round 5.
+  **Propagation:** the
   sentence names the rubric's sibling check as its owner and adds only scope and
   timing — a re-read of each touched criterion's construction test and
   verification entry against that criterion's current wording, completing "in the

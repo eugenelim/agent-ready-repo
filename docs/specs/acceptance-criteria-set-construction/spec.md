@@ -61,7 +61,8 @@ Criterion *shape* — whether a given sentence is one criterion or two — stays
 owned by the skill's `assets/spec.md`. This spec owns which obligations reach
 that question at all, and where the hand-off to that owner sits: after routing,
 before the set-level pass. Selection finishes first, and the pass then reads a
-worded set — which is what its uniqueness and necessity checks compare.
+worded set together with the plan entries tracing to it — which is what its
+uniqueness and necessity checks compare.
 
 ## Durable Outputs
 
@@ -174,15 +175,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       contract, and an obligation whose content only the build can settle to the
       plan as a discovery predicate carrying its constraint, required outcome
       and verification mode.
-- [ ] The set-level pass tests necessity, uniqueness, consistency, joint
-      feasibility, coverage, propagation, and residual freshness. Propagation
-      cites the rubric's sibling check as its owner rather than restating it,
-      adding only its scope and its timing: it re-reads each touched criterion's
-      construction test and verification entry against that criterion's current
-      wording, because a text search cannot see a test that still describes the
-      pre-repair claim, and it completes in the same round before the round is
-      reported. Residual freshness re-tests each recorded residual against
-      current state rather than carrying it forward on its last wording.
+- [ ] The set-level pass runs over the loop contract as one set — the spec's
+      criteria together with the plan entries that trace to them — rather than
+      over the criteria alone, and tests necessity, uniqueness, consistency,
+      joint feasibility, coverage, propagation, and residual freshness. Each
+      member reads both artifacts: a criterion and a construction test can fail
+      uniqueness, consistency or coverage against each other, and a pass that
+      reads only the spec cannot see it. Propagation cites the rubric's sibling
+      check as its owner rather than restating it, adding only its scope and its
+      timing: it re-reads each touched criterion's construction test and
+      verification entry against that criterion's current wording, because a
+      text search cannot see a test that still describes the pre-repair claim,
+      and it completes in the same round before the round is reported. Residual
+      freshness re-tests each recorded residual against current state rather
+      than carrying it forward on its last wording.
 - [ ] The procedure defines coverage as satisfied for an Objective outcome or a
       non-waivable Boundary when it is either an admitted criterion or a routed
       disposition naming its owner, so no item can be both uncovered and
