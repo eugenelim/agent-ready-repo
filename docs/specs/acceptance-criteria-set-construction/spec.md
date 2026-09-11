@@ -135,8 +135,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC24, AC25, AC26, AC27):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
-- **The recorded run, both graded ranks (AC28, AC29):** visual / manual QA. A model-in-the-loop
+- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC24, AC25, AC26):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The recorded run, both graded ranks (AC27, AC28):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -171,7 +171,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       plan as a discovery predicate carrying its constraint, required outcome
       and verification mode.
 - [ ] The set-level pass tests necessity, uniqueness, consistency, joint
-      feasibility, and coverage.
+      feasibility, coverage, and propagation — the last citing the rubric's
+      sibling check as its owner rather than restating it, and adding only that
+      it completes in the same round, before the round is reported.
 - [ ] The procedure defines coverage as satisfied for an Objective outcome or a
       non-waivable Boundary when it is either an admitted criterion or a routed
       disposition naming its owner, so no item can be both uncovered and
@@ -234,15 +236,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] Where a finding is that a claim reaches further than its check, the
       procedure states both answers and how to choose: strengthen the check when
       one can reach the stated obligation, narrow the claim when none can.
-- [ ] The report the skill gives an owner when asking whether to stop carries
-      the finding trend by round, and for each remaining residual its
-      consequence, the responses available to it, what each response would
-      cost, and whether it falls in a protected risk class — so the owner
-      chooses between stated options rather than reading a list of problems.
-- [ ] When a criterion's text changes, the procedure requires every artifact
-      that references or verifies it — its verification mode, its construction
-      tests, its tasks and its design traces — to be re-read and reconciled in
-      the same round, before the round is reported.
+- [ ] The skill's review step instructs the stop-decision report to carry the
+      finding trend by round, and for each remaining residual its consequence,
+      the responses available to it, and what each would cost — so the owner
+      chooses between stated options rather than reading a list of problems. It
+      cites the owner of the protected-risk-class set rather than enumerating
+      one here.
 - [ ] The earn-its-keep test applies to every criterion in the set rather than
       only to those added during review, and runs while rounds are still
       running rather than only after they converge.
