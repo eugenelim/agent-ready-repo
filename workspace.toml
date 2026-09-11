@@ -446,7 +446,7 @@ open = [
   # reads as an instruction to edit. Carries a second, reviewer-side obligation
   # A6 does not own: a reviewer must not relitigate a decision the brief records
   # as settled, which is distinct from raising a real pre-existing defect late.
-  {path = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Carry the eight-response review protocol out to shaping-reviewer and the pack reviewer surfaces, and rule out relitigating a settled decision", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
+  {path = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Carry the eight-response review protocol and the grounding probes out to shaping-reviewer, the pack reviewer surfaces, and the upstream brief and intent stages", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
   # The Makefile's own `Revisit if` note beside --strict has now fired with
   # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
   # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.

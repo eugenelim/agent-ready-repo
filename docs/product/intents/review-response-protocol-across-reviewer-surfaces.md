@@ -45,6 +45,34 @@ settled.** A late finding against a real pre-existing defect is legitimate and
 useful; re-opening an owner decision is neither, and the two must be separated
 so the author can refuse one without dismissing the other.
 
+## Second carve-out, 2026-09-10 — grounding probes on the upstream shaping surfaces
+
+The same shape, one stage earlier. `new-spec` runs a discovery grounding pass
+over its resolved destinations before it writes a spec body, seeded by the
+surfaces the work will touch. The surfaces *upstream* of a spec — an intent, a
+delivery brief, a discovery decision record — have no such pass, and they are
+where a direction is chosen rather than validated.
+
+The evidence is the same two finds that motivated the `new-spec` pass. An
+accepted decision record already named `grounding.toml` as a file not to create,
+and a Shipped spec already owned how an adopter's guidance is identified. Both
+were reachable from a path search on day one. Both surfaced only after a spec had
+been authored, approved and reviewed three times against a design they
+contradicted. A brief that had been grounded would have arrived carrying them.
+
+- **Includes** firing the probes at brief and intent authoring, seeded by
+  whatever destinations that stage can resolve, and reporting rather than
+  gating.
+- **Excludes** re-deriving the probes. `new-spec` owns the explorer and its
+  calibration; this carries it and never restates it.
+- **Excludes** `new-spec` itself, which delivers its own pass.
+- **Open question, and the reason this is not obvious:** an intent may resolve no
+  destinations at all, which is the difference between this and the `new-spec`
+  case. If the seed set is empty the probes have nothing to run on, and the
+  honest answer may be that the upstream stage grounds against a *topic* rather
+  than a path — a different mechanism, not this one carried further. Settle that
+  before building.
+
 ## Boundary
 
 - Includes `shaping-reviewer` first, then a survey of the reviewer and

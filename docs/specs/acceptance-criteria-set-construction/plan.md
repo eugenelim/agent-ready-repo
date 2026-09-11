@@ -239,6 +239,17 @@ in the same commit
   against this task's own constraint that every assertion fails under deletion
   of the clause it pins. They take both-clause assertions below. AC-0008 and AC-0016
   stay, each being one contiguous sentence a whole-sentence pin does reach.
+- **AC-0036.** Assert the discovery pass sits after the durable-outputs step and
+  before the spec body, that it is seeded by the resolved destinations, and that
+  it instructs the result to be recorded. **Constraint on the span:** this
+  assertion is scoped to the durable-outputs-to-body boundary, **not** to the
+  procedure span every other T1 assertion slices — the pass runs before the
+  acceptance-criteria step, so slicing the procedure span would look for it where
+  it is not. Assert its offset falls between the two step markers.
+  **Constraint on the framing:** assert the prose reads as discovery — what
+  already owns and governs these surfaces — and not as a check on a criterion.
+  A pass worded as validation reads as something to run after authoring, which
+  is the placement this criterion exists to move.
 - **AC-0006.** Assert the admission step names all four members of the governing
   set — scoped `AGENTS.md`, gates and linters, existing owner documents,
   repository conventions — one assertion per member, then assert the
@@ -1130,6 +1141,13 @@ leaves no drift.
   recorded under `**Grounding:**`, per AC-0031. The plan-level
   `Repository anchors:` field above was filled in and still missed all three
   pre-EXECUTE blockers, which is the evidence for making grounding per-task.
+- 2026-09-10: owner-approved — AC-0036 places a discovery grounding pass between
+  the durable-outputs step and the spec body. The existing anchor resolution runs
+  a step earlier, before destinations are resolved, so it grounds a feature area
+  rather than a surface list. Both of this session's design-changing finds —
+  ADR-0037 D2 naming `grounding.toml`, and repository-context-anchoring already
+  owning guidance discovery — came from seeding by surfaces, and both changed
+  criteria.
 - 2026-09-10: pre-EXECUTE round 3 sustained eleven of fourteen findings; four
   were refuted. AC-0032 was added for ADR-0107's confirmation state, which the
   shipped checker falsifies on the commit that lands it.

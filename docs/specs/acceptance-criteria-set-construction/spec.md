@@ -155,6 +155,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
 - **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The discovery pass (AC-0036):** goal-based check over the authored skill
+  file, on the pack-local suite. Its surface is the boundary between the
+  durable-outputs step and the spec body, not the acceptance-criteria step.
 - **The grounding explorer (AC-0035):** TDD. Each probe is a function over a
   fixture tree, and its cases compress into assertions.
 - **The disposition record (AC-0034):** goal-based check over the authored skill
@@ -414,6 +417,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the run. The report carries a surface inventory saying which known
       grounding surfaces are present, which carry content, and what a thin one
       cost this run, so a degraded grounding is legible rather than silent.
+- [ ] **AC-0036.** Once durable outputs are planned and their destinations resolved,
+      and before the spec body is written, the procedure runs a grounding pass
+      over those destinations and records what it returned. This is discovery,
+      not validation: no criterion exists yet, and the output is design input —
+      what already owns these surfaces, what already governs them, what already
+      runs them, and what an accepted decision has already settled about them.
+      The procedure says why the placement is load-bearing: before durable
+      outputs there are no destinations to ground, and after the body is written
+      the same facts arrive one criterion at a time, against a design they would
+      have changed.
 
 ## Follow-ons
 
