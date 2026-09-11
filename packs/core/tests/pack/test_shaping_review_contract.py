@@ -86,6 +86,28 @@ def _mode_bodies() -> dict[str, str]:
     }
 
 
+def _heading_bound(text: str, start: int, level: int) -> int:
+    """Index of the next heading at or above `level`, ignoring fenced blocks.
+
+    These agent files document their own output format in fenced examples, and
+    those fences contain lines like `## Blockers`. A boundary search that does
+    not track fences stops inside the example, truncating the slice and making
+    an assertion fail for a reason that has nothing to do with the contract.
+    """
+    fenced = False
+    offset = start
+    for line in text[start:].splitlines(keepends=True):
+        stripped = line.lstrip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+        elif not fenced:
+            hashes = len(line) - len(line.lstrip("#"))
+            if 0 < hashes <= level and line[hashes : hashes + 1] == " ":
+                return offset
+        offset += len(line)
+    return len(text)
+
+
 def _section(title: str, level: int) -> str:
     """Return one section's body, bounded by the next heading at or above `level`.
 
@@ -102,11 +124,7 @@ def _section(title: str, level: int) -> str:
         rf"^{'#' * level} {re.escape(title)}$", body, flags=re.MULTILINE
     )
     assert opening is not None, f"{title}: no level-{level} heading"
-    following = re.search(
-        rf"^#{{1,{level}}} ", body[opening.end() :], flags=re.MULTILINE
-    )
-    end = opening.end() + following.start() if following else len(body)
-    return body[opening.end() : end]
+    return body[opening.end() : _heading_bound(body, opening.end(), level)]
 
 
 INTENT_TOKENS = (
@@ -304,3 +322,83 @@ def test_the_output_contract_splits_by_vocabulary() -> None:
         "material edit",
     ):
         assert scoped in contract, scoped
+
+
+def _adversarial_section(title: str) -> str:
+    """One `##` section of the adversarial reviewer, bounded by the next `##`."""
+    text = ADVERSARIAL_REVIEWER.read_text(encoding="utf-8")
+    start = text.index(f"## {title}")
+    after_heading = start + len(title) + 3
+    return text[start : _heading_bound(text, after_heading, 2)]
+
+
+def test_adversarial_intent_mode_attacks_the_bet_and_nothing_else() -> None:
+    """The mandate narrows from finding problems to the riskiest assumption."""
+    branch = re.sub(r"\s+", " ", _adversarial_section("Intent review mode")).strip()
+
+    assert "riskiest assumption" in branch
+    assert "non-goals" in branch
+    assert "open question" in branch and "named decider" in branch
+    assert "validation hook" in branch
+    assert "kill condition" in branch
+    assert "real-world activity" in branch
+    assert "empty" in branch
+
+    # A prohibition names what it forbids, so the check is for the output
+    # machinery itself, not for the words the prohibition quotes.
+    for absent in ("## Blockers", "## Concerns", "## Nits", "Group by severity"):
+        assert absent not in branch, absent
+    assert "no severity buckets" in branch
+
+
+def test_adversarial_intent_mode_carries_its_own_trust_boundary() -> None:
+    """This agent states its untrusted-data rules per branch, so a new branch
+    that omitted them would ship with none."""
+    branch = re.sub(r"\s+", " ", _adversarial_section("Intent review mode")).strip()
+
+    assert "attributed, untrusted" in branch
+    assert "no independent retrieval" in branch or "not retrieve" in branch
+    assert "no lifecycle authority" in branch or "holds no lifecycle" in branch
+    assert "read and search the supplied target" in branch
+
+
+def test_the_global_output_mandates_are_scoped_away_from_intent_mode() -> None:
+    """Left global, these instruct intent mode to do what its own rules forbid."""
+    report = re.sub(
+        r"\s+", " ", _adversarial_section("Report numbered findings")
+    ).strip()
+    referral = re.sub(
+        r"\s+", " ", _adversarial_section("Cross-lens referrals")
+    ).strip()
+    vague = re.sub(
+        r"\s+", " ", _adversarial_section("Vague feedback is unhelpful feedback")
+    ).strip()
+
+    for section in (report, referral, vague):
+        assert "intent" in section.lower(), section[:80]
+
+    assert "Group by severity" in report
+    assert "Clean — ready to commit." in report
+
+
+def test_the_load_context_and_gate_mandates_are_scoped() -> None:
+    """An intent dispatch has no diff to read and no sentinel to emit."""
+    load = re.sub(r"\s+", " ", _adversarial_section("Load context first")).strip()
+    assert "intent" in load.lower()
+
+    text = ADVERSARIAL_REVIEWER.read_text(encoding="utf-8")
+    gate = re.sub(r"\s+", " ", text[text.index("adversarial-review-complete") - 400 :])
+    assert "adversarial-review-complete" in gate
+
+
+def test_the_adversarial_description_names_every_mode_it_routes() -> None:
+    """A caller routing on the frontmatter must not loop forever on intent."""
+    text = ADVERSARIAL_REVIEWER.read_text(encoding="utf-8")
+    frontmatter = re.match(r"---\n(.*?)\n---\n", text, flags=re.DOTALL)
+    assert frontmatter is not None
+    description = re.search(
+        r"^description: (.+)$", frontmatter.group(1), flags=re.MULTILINE
+    )
+    assert description is not None
+    assert "intent" in description.group(1)
+    assert "modes that emit" in description.group(1)
