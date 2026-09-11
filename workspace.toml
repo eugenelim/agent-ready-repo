@@ -374,17 +374,6 @@ shipped = [
   {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:0b25a9bb5aa42cb0c04fb87769b7c6590daaef5371d46dcd0768df47906bc1de", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Make the four disciplines discoverable as one ordered sequence on the journeys index and in guides/README.md P7, ordered desk-research first to match the packs' dependency contracts; Shipped 2026-09-11 with its Objective narrowed to drop walkability, which is slice S7", needs = []},
 ]
 queue   = [
-  # Slice S8 of sdlc-guide-uplift-and-learning-paths, added 2026-09-11. Governs
-  # the design work that followed S6: group signatures, the onward route, the
-  # alternative path's placement and selection axis, and the walkthrough test's
-  # definition of a stage. It exists as a slice rather than an amendment because
-  # S6 and install-to-ship-walkthrough are both Shipped and therefore frozen --
-  # CONVENTIONS says shipped spec bodies cannot change. An earlier attempt
-  # reopened S6 and amended install-to-ship in place; an independent review
-  # sustained both as blocking, and both bodies are restored. The implementation
-  # already exists; this records the contract it was meeting. Draft, requires
-  # human approval.
-  {path = "docs/specs/sequence-surface-design-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:6ebcc11cee444c2f3d24b02326d92ce737b184c3f16e3607360b117e7080a87f", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "The journeys index and guides hub carry their design contract: distinct group signatures, an onward route, and an alternative path beside the step it replaces", needs = []},
   # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and the
   # owner-authorized fourth adversarial round. It remains Draft and requires
