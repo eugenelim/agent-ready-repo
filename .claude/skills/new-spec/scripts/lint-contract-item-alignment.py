@@ -105,6 +105,10 @@ ENTRY = re.compile(r"\*\*(?:Tests|Done when):\*\*(.*?)(?=\n\*\*[A-Z][A-Za-z ]*:\
 # Fenced blocks carry backticks whose count says nothing about the prose around
 # them, so they come out before a span is matched.
 FENCE = re.compile(r"^```.*?^```", re.M | re.S)
+# What a revision may look like. Deliberately narrower than git's own grammar:
+# this is a rejection filter on caller input, not a parser, so anything it does
+# not recognise is refused rather than guessed at.
+_REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/@^~-]{0,200}")
 # A run of three or more written inline is a fence *token* quoted in prose, not a
 # span delimiter: markup with no matching run of equal length renders it
 # literally. Removing it before matching is what separates "this entry is
@@ -187,6 +191,39 @@ def _spans_open(text: str) -> bool:
     return open_len is not None
 
 
+def _rel(path: Path, root: Path | None) -> str:
+    """A path as the caller's repository sees it, never as this host does."""
+    try:
+        return path.relative_to(root).as_posix() if root else path.as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _read_confined(path: Path, root: Path | None) -> str | None:
+    """Read a regular file proven to sit inside the invocation root, or None.
+
+    Canonicalise first and re-check containment on the resolved path: `..`
+    rejection and `~` expansion do not stop an in-boundary symlink pointing out,
+    which is the escape the repository's own security rule names. A link, a
+    reparse point or anything that is not a regular file is refused rather than
+    followed, because this tool is handed paths by a caller.
+    """
+    try:
+        real = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if root is not None:
+        base = root.resolve()
+        if real != base and base not in real.parents:
+            return None
+    if path.is_symlink() or not real.is_file():
+        return None
+    try:
+        return real.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def _changed_lines(root: Path, ref: str, path: Path) -> set[int] | None:
     """New-file line numbers touched since ``ref``, or None when git cannot say.
 
@@ -194,9 +231,16 @@ def _changed_lines(root: Path, ref: str, path: Path) -> set[int] | None:
     missing git binary all mean "unknown", and reporting them as "nothing
     changed" would turn every one of them into a silent clean pass.
     """
+    # A caller-supplied revision is data, never an option. `--` separates the
+    # pathspec from revisions but not revisions from flags, so a ref beginning
+    # with a dash would be read by git as one; `--end-of-options` is the only
+    # separator that closes the option list itself.
+    if not _REF.fullmatch(ref):
+        return None
     try:
         done = subprocess.run(
-            ["git", "-C", str(root), "diff", "-U0", ref, "--", str(path)],
+            ["git", "-C", str(root), "diff", "-U0", "--end-of-options",
+             ref, "--", str(path)],
             capture_output=True, text=True, check=False, timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
@@ -311,8 +355,10 @@ def check(spec_dir: Path, root: Path | None = None,
         except ValueError:
             where = spec_dir.as_posix()
         return [f"{where}: {FINDING_KINDS['no-spec']}"], False, [], []
-    spec = spec_path.read_text(encoding="utf-8")
-    plan = plan_path.read_text(encoding="utf-8") if plan_path.is_file() else ""
+    spec = _read_confined(spec_path, root)
+    plan = _read_confined(plan_path, root) if plan_path.is_file() else ""
+    if spec is None:
+        return [f"{_rel(spec_dir, root)}: {FINDING_KINDS['unconfined']}"], False, [], []
 
     criteria = CRITERION.findall(spec)
     if not criteria:
