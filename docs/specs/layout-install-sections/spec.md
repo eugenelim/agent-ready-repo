@@ -72,6 +72,23 @@ declares, so the install and the skill agree on the first try.
   page. Moving the vocabulary onto pack names is separate, logged work.
 - Never create a layout file that did not already exist, on any scope.
 
+## The append is best-effort maintenance
+
+One property governs every state below, and the criteria derive from it rather
+than each deciding it again.
+
+The append is optional maintenance on a file the adopter owns. It therefore
+**never raises and never fails the install**: it returns, having either written
+one table or written nothing, and the install's exit status and projected files
+are the same either way. When it declines, it says so on stderr — except for
+the three states that are the contract working, where a message would be noise
+on the majority of installs.
+
+This is scoped to the layout append alone. `_append_install_marker` shares its
+call site and its `try`, and stays fatal: the marker is what uninstall and
+`adapt` read, so a swallowed marker failure reports success while leaving no
+record of the install.
+
 ## Acceptance Criteria
 
 - [ ] **AC1 — A declaring pack's default reaches an existing adopter file.**
@@ -90,8 +107,9 @@ declares, so the install and the skill agree on the first try.
 - [ ] **AC3 — The separator is the only addition.** A file already ending in a
   line terminator gains none. A file ending without one gains exactly one
   terminator, matching the style the file already uses, or `\n` when it carries
-  none. The admitted styles are LF and CRLF; a lone-CR file is refused under
-  AC4 rather than appended to.
+  none. The appended table's own line terminators match that same style, so a
+  CRLF file does not end in mixed endings. The admitted styles are LF and CRLF;
+  a lone-CR file is refused under AC4 rather than appended to.
 
 - [ ] **AC4 — Three error states refuse and report.** A file that cannot be
   decoded as UTF-8, a file that cannot be parsed, and a top-level name already
@@ -114,20 +132,28 @@ declares, so the install and the skill agree on the first try.
   the size of the set it walked, so an enumeration that finds nothing fails
   rather than passes.
 
-  The predicate is one-way on purpose. A pack may name other sections — one it
-  reads from a different pack, or a second output section it does not install a
-  default for — and neither makes the declared section wrong. Requiring
-  equality against every section a pack mentions makes this criterion red on a
-  correct implementation.
+  The right-hand side is the sections documented by the skills that write *this
+  pack's own output*, which excludes a section the pack only reads from another
+  pack. Equality against every section a pack mentions is red on a correct
+  implementation — `product-engineering` names three — but the unrestricted
+  one-way form is too loose in the other direction: it would admit
+  `section = "discovery"` alongside `output_dir = "docs/product"`, installing a
+  default under a section whose consumers expect a different base.
 
 - [ ] **AC7 — A relative value is anchored, or refused, per scope.** A relative
   `output_dir` in the repo-scope file resolves against the repository root, not
   the process working directory; the test asserts this from a working directory
-  that is not the repository root, so a CWD-anchored implementation fails. A
-  relative value in the user-scope file is not silently resolved against
-  anything — it is surfaced, per the Ask-first rule the shipped reference docs
-  already state. One fix that anchors both scopes to the repository root
-  satisfies the first half and fails the second.
+  that is not the repository root, so a CWD-anchored implementation fails.
+
+  A relative value in the user-scope file is not resolved, and the resolver
+  reports it on stderr naming the file and the key — stdout being the MCP
+  protocol channel. The criterion asserts that message, not the absence of a
+  resolved path: `_read_scope` runs inside `contextlib.suppress(Exception)` and
+  its caller catches broadly, so an implementation that raises produces exactly
+  the byte-for-byte outcome of an unconfigured file, and a test asserting "the
+  pattern is unchanged" passes while the adopter's configured vault is silently
+  ignored. One fix that anchors both scopes to the repository root satisfies
+  the first half and fails the second.
 
 - [ ] **AC8 — `architect` declares `docs/architecture`, and says so.** Its
   manifest names that base, and both of its `references/agentbundle-layout.md`
@@ -148,12 +174,14 @@ declares, so the install and the skill agree on the first try.
   `output_dir` containing `"`, `]`, a newline, or `../` round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
 
-- [ ] **AC12 — A layout failure never fails the install.** When the append
-  cannot write — the file is read-only, its directory is not writable, or the
-  path resolves outside the write jail — `agentbundle install` completes with
-  its normal exit status and its projected files intact, and the reason is
-  reported. Layout maintenance is optional; it does not get a veto over an
-  install whose files are already on disk.
+- [ ] **AC12 — A layout failure never fails the install; a marker failure still
+  does.** When the layout append cannot write — read-only file, unwritable
+  directory, or a path the write jail refuses — `agentbundle install` completes
+  with its normal exit status and its projected files intact, and the reason is
+  reported. A failure from `_append_install_marker`, which shares the same
+  `try`, still exits non-zero. The two share one `except` today, so an
+  implementation that relaxes it wholesale satisfies the first half and fails
+  the second.
 
 - [ ] **AC13 — The adopter's file keeps its permissions.** A layout file
   readable by the adopter's group or others has the same mode after an append
@@ -163,8 +191,28 @@ declares, so the install and the skill agree on the first try.
 - [ ] **AC14 — A symlinked layout file is refused, not replaced.** When
   `agentbundle-layout.toml` is a symbolic link, the append writes nothing,
   reports why, and leaves the link itself intact — matching `workspace_mcp.py`,
-  which already refuses to read one. Replacing the link with a regular file
-  would silently strand whatever the adopter pointed it at.
+  which already refuses to read one. It reports rather than raising, per the
+  refusal contract above. An in-tree link is today replaced by a regular file,
+  stranding what the adopter pointed it at; an out-of-tree link is already
+  refused by the write jail, and that refusal becomes a report too.
+
+- [ ] **AC15 — A declared `output_dir` is confined to its scope's root.** A
+  value that resolves — after `~` expansion and symlink resolution — outside
+  the repository at repo scope, or outside the user state root at user scope,
+  is refused: nothing is written and the reason is reported. The criterion is
+  on the resolved path, not on the absence of `..`, so an absolute path and a
+  `~`-anchored path are both covered. This is RFC-0040's security contract for
+  a catalogue-sourced value, and this change is what first carries one to a
+  filesystem root.
+
+- [ ] **AC16 — A declared `section` matches a bounded character class.** A
+  `section` that is not `^[a-z0-9][a-z0-9-]*$` is refused at schema validation
+  and again at the install site, which reports and writes nothing. `pack_name`
+  already carries this check because it becomes a TOML key; `section` becomes a
+  table header and a lookup key that every reader trusts, so it earns the same
+  guard. Structural injection is closed by the emitter — this is the
+  bell-rings-loud companion, and it also refuses a well-formed name carrying
+  `/`, `.`, or a control character that no reader could match.
 
 ## Testing Strategy
 

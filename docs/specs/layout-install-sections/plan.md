@@ -136,6 +136,15 @@ of the new design rather than a repair of the old. It costs the pack's default
 on a file whose name is already taken, which is the lesser harm against
 destroying what the adopter put there.
 
+**One refusal contract, not eight.** The spec's "best-effort maintenance"
+section owns this; the tasks derive from it rather than re-deciding per state.
+Operationally it means `_append_layout_section` never propagates an exception:
+the jail refusal that currently raises `PathJailError` out of the function
+becomes a report-and-return, and the call site's `except` narrows to the marker
+call so a marker failure keeps its fatal exit. Round 2 answered this question
+five times in five places and got five answers; this is the property those
+states are supposed to share.
+
 **Why the designed no-ops stay silent.** Three states write nothing by
 contract: no layout file, the section already present as a table, and a pack
 declaring only one of the two keys. Each is the common case on some install —
@@ -204,7 +213,8 @@ sub-table takes today, so a pack that has not opted in is unaffected.
   green. (AC10)
 
 **Approach:**
-- Add the key to `contracts/pack.schema.json` under both scope sub-tables and
+- Add the key to `contracts/pack.schema.json` under both scope sub-tables,
+  with the `^[a-z0-9][a-z0-9-]*$` pattern rather than a bare string type, and
   copy to `packages/agentbundle/agentbundle/_data/pack.schema.json`.
 
 **Done when:** those checks pass.
@@ -231,7 +241,12 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - A read-only layout file and a jail-refused path each leave `install`'s exit
   status and projected files unaffected, and report. (AC12)
 - A group-readable layout file has the same stat mode after the append. (AC13)
-- A symlinked layout file is refused, still a symlink afterwards. (AC14)
+- A symlinked layout file is refused, still a symlink afterwards, with no
+  exception escaping the function. (AC14)
+- An `output_dir` resolving outside the scope's root — absolute, `~`-anchored,
+  or via `..` — is refused and reported. (AC15)
+- A `section` outside the character class is refused at the schema and at the
+  install site. (AC16)
 - The injection round-trip stays green and is mutation-checked by removing the
   emitter call. (AC11)
 
@@ -239,7 +254,10 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Read with `read_bytes`; decode a throwaway copy inside the existing `try`.
 - Widen the already-present check from "is a table" to "is present", and route
   the table case to the silent return while scalar and array report.
-- Refuse a symlinked target before writing, matching the resolver.
+- Refuse a symlinked target before writing, matching the resolver, reporting
+  rather than raising.
+- Confine the resolved `output_dir` to the scope's root before writing, and
+  refuse a `section` outside `^[a-z0-9][a-z0-9-]*$`.
 - Carry the target's existing mode across the atomic replace.
 - Catch the write failure at the call site so a layout problem reports and the
   install continues.
@@ -249,6 +267,11 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Emit both through `_emit_basic_string`; write original bytes plus separator
   plus table through `safety.write_jailed`.
 - Delete `test_reemit_drops_tampered_existing_parent`'s two assertions.
+- Rewrite `test_symlink_layout_file_fails_closed`: it asserts
+  `pytest.raises(PathJailError)` out of the function, which the refusal
+  contract replaces with report-and-return. It also covers only an out-of-tree
+  link, which `assert_under` already refuses; the in-tree case AC14 is about is
+  untested today and is added.
 - Build the unit fixtures as literal manifests in the test tree, not by reading
   `packs/`. That tree ships to adopters, where no catalogue exists; AC6 is what
   binds the literals to the shipped manifests, and it runs repository-only.
@@ -302,9 +325,11 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - A relative `output_dir` in the repo-scope file resolves against the
   repository root, asserted from a working directory that is not the repository
   root. (AC7)
-- A relative `output_dir` in the user-scope file is not silently resolved. A fix
-  anchoring both scopes to the repository root passes the case above and fails
-  this one. (AC7)
+- A relative `output_dir` in the user-scope file is not resolved, and the
+  reason reaches stderr naming the file and the key. The assertion is on that
+  message: `_read_scope` sits inside `contextlib.suppress(Exception)`, so an
+  implementation that raises is indistinguishable from an unconfigured file and
+  would pass an absence-based assertion. (AC7)
 
 **Approach:**
 - Make `_read_scope` scope-aware: anchor a repo-scope relative value to the
@@ -362,8 +387,10 @@ unparseable afterwards. It is reported, not silent.
   test passes on an untouched file. Every case asserts the exact complete result
   and sources its manifest from the catalogue.
 - **A declared section drifts from what the skills read.** That is the defect
-  this repairs, reintroduced. AC6 derives both sides rather than comparing
-  against a list, so a skill body edited later fails the check.
+  this repairs, reintroduced. AC6 derives both sides from the repository, scoped
+  to the skills that write the pack's own output — wide enough not to go red on
+  `product-engineering`'s three named sections, narrow enough that declaring
+  `discovery` with `product`'s base still fails.
 - **A bump collides.** Peer sessions claim versions concurrently; this
   repository collided twice in one day. Resolve every version against
   `origin/main` when T6 runs.
