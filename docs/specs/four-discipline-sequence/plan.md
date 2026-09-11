@@ -33,39 +33,37 @@ themes.
 **Verification.** Built-page inspection at two themes, plus the existing
 accessibility fixture suite.
 
-### D3 — the observing seam for the membership tests
+### D3 — the observing seam for the membership tests — **RESOLVED 2026-09-11**
 
-**Constraint.** AC-0005 and AC-0006 are specified against the *built page*, and
-the existing suite that reads built output, `web/src/test/rendered-output.test.ts`,
-describes itself as reading a previously completed full build. There is
-therefore no seam today through which a fixture journey reaches a rendered page
-without running `make site-build`, and the plan must not pretend otherwise.
-**Required outcome.** One seam is chosen and named before T4 is written, and the
-choice is recorded with what it costs. Two are viable and neither is free:
+**Why it had to be resolved now.** D3 previously left two seams open, and one of
+them required rewording AC-0005 and AC-0006. A predicate that can amend the
+acceptance set cannot survive into execution, because the spec and plan pin at
+approval.
 
-- *Rebuild with a real fixture journey.* Add a journey file, run
-  `make site-build`, assert on the built page, remove it. Keeps the built-page
-  observer AC-0006 promises; costs a full site build inside the suite.
-- *Exercise the grouping function directly.* Export the grouping logic from
-  `index.astro` and test it as a unit. Cheap and fast; **weakens the observer**
-  from "what a reader receives" to "what the function returns", which is a
-  smaller claim than AC-0005 and AC-0006 currently make.
+**Resolved: both criteria keep the built page as their observer, and neither is
+reworded.** No fixture is needed for either criterion. The collection holds 20
+journeys; the sequence names four and the supervised loops three, so **13 real
+journeys already reach the page through the catch-all**. AC-0005 compares slug
+multisets against that real collection, and AC-0006 asserts that those 13
+render. Both are observable on the output of `make site-build` with no test
+seam invented.
 
-If the second is chosen, AC-0005 and AC-0006 must be reworded to name the
-function as their observer. A criterion may not keep claiming the built page
-while being verified against a unit.
-**Verification.** The chosen seam is recorded in the verification ledger with
-the run that exercised it.
+**The fixture is needed only for AC-0006's mutation proof, not for the
+criterion.** That proof is a one-time verification activity, not a CI test: add
+a temporary journey file whose slug appears in no group, run `make site-build`,
+apply the hardcoded-list mutation, and observe the absence. Remove the file
+afterwards. This keeps the strong observer without putting a full site build
+inside the suite.
 
 ## Tasks
 
 | # | Task | Criteria | Notes |
 | --- | --- | --- | --- |
 | ~~T1~~ | ~~Diagnose the `bootstrap-sites` failure~~ — **closed 2026-09-11, no defect** | — | The premise was wrong. `make bootstrap-sites` installs npm dependencies only, as its help text states; it never emitted `build/docs/`. `make site-build` does. Against a real build the `web/` suite is green: 18 files, 148 tests. No task remains |
-| T2 | Regroup `web/src/pages/journeys/index.astro` into three collection-derived groups | AC-0001, AC-0002, AC-0003, AC-0005, AC-0006 | Start from the reconstructed sketch; keep its collection derivation, discard its CSS gaps. Resolve D1 and D2 here |
+| T2 | Regroup `web/src/pages/journeys/index.astro` into the three groups below | AC-0001, AC-0002, AC-0003, AC-0005, AC-0006 | **Group 1, the sequence (ordered):** `desk-research`, `product-strategy`, `experience-design`, `product-engineering`. **Group 2, the supervised loops:** `core`, `release-engineering`, `architect`. **Group 3, everything else:** every remaining journey in the collection, alphabetically by slug, derived rather than listed. Resolve D1 and D2 here |
 | T3 | Write the sequence and handoff copy on the index | AC-0004, AC-0007, AC-0015, AC-0016, AC-0018 | Hand-authored page copy only. AC-0017 forbids reaching into generated journey content |
-| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0020 | `npm run test --prefix web`. **Resolve D3 first** — the seam decides whether AC-0005 and AC-0006 keep the built page as their observer. AC-0005 compares slug multisets per D1 |
-| T5 | Add the ordered path to `guides/README.md` | AC-0008, AC-0009, AC-0010, AC-0010, AC-0021 | Match the P1–P6 shape. AC-0010's disclosure of the P2 order difference is required, not optional. Add a path within the existing hub structure; do not restructure the navigation model |
+| T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0020 | `npm run test --prefix web`. Observes the output of `make site-build`, per D3. AC-0005 compares slug multisets against the real collection per D1; AC-0006 asserts the 13 journeys that already reach the catch-all |
+| T5 | Add the ordered path to `guides/README.md`, and reconcile the two chooser rows that contradict it | AC-0008, AC-0009, AC-0010, AC-0021, AC-0022 | Match the P1–P6 shape. AC-0022 is why the chooser rows are in this task: "Decide what to build" and the "Product manager or strategist" role row both order strategy before research and must be brought into line. Add a path within the existing hub structure; do not restructure the navigation model |
 | T6 | Run the guide gates and the link check | AC-0012, AC-0013, AC-0014, AC-0019 | `validate_guides.py`, `lint-guide-titles.py`, `check-guide-index.py`, `make site-link-check` — each run separately, even after one fails |
 | T7 | Whole-diff prohibition reads and the path-scoped diff | AC-0015, AC-0016, AC-0017, AC-0018 | AC-0017 is `git diff -- web/src/content/journeys/`, which must be empty |
 | T8 | Cold read | AC-0011 | A reader who has seen only the two surfaces names the order and one handoff |
@@ -75,10 +73,12 @@ the run that exercised it.
 
 `docs/CONVENTIONS.md` places construction tests in `plan.md`, attached to each
 task's `Tests:` subsection, before Approach. These are named behaviours with
-their criterion and red state, not compilable stubs: the stubs cannot be written
-until D3 fixes the observing seam, because the seam decides both the imports and
-the assertion surface. **Writing them before D3 would pin a test architecture
-this plan has not chosen.** Only T2, T4 and T5 carry construction tests; T6–T9 are execution and recording tasks whose
+their criterion, assertion and red state. They are not compilable stubs: D3
+fixes the observing surface as the output of `make site-build`, which the
+existing `web/src/test/rendered-output.test.ts` already reads, so the
+architecture is settled and the remaining detail is the selector each assertion
+uses — an implementation choice, not a contract one. Only T2, T4 and T5 carry
+construction tests; T6–T9 are execution and recording tasks whose
 evidence is the command output named in their row.
 
 ### T2 — Tests
@@ -134,6 +134,8 @@ would be a control that cannot fail.
 
 ## Sequencing
 
-T1 is closed as a non-defect, so T2 and T5 lead and are independent of each other.
-T3 depends on T2. T4 depends on T2 and T1. T6–T8 run after both surfaces exist.
-T9 last.
+T1 is closed as a non-defect, so T2 and T5 lead and are independent of each
+other. T3 depends on T2. **T4 depends on T2 and T3**, not on T2 alone: its
+test 6 asserts the `aria-hidden` treatment that T3 writes, so a schedule that
+ran T4 before T3 would leave T4's own gate red through no fault of the
+implementation. T6–T8 run after both surfaces exist. T9 last.

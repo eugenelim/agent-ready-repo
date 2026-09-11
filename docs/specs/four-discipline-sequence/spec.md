@@ -128,6 +128,11 @@ not contradict each other.
 - **The prohibitions (AC-0015 to AC-0018):** four observations, not three — an
   image-syntax scan over the edited files (AC-0015), two whole-diff reads
   (AC-0016, AC-0018), and one path-scoped `git diff` (AC-0017).
+- **Guide-surface self-consistency (AC-0022):** goal-based check over
+  `guides/README.md`. Two chooser rows currently order these four as strategy
+  before research — "Decide what to build" and the "Product manager or
+  strategist" role row — so this criterion is red against the file as it stands
+  today and can only go green by reconciling them.
 - **Required links (AC-0020, AC-0021):** goal-based checks — AC-0020 on the
   built page over the `web/` vitest suite, AC-0021 over `guides/README.md`.
 - **Link integrity (AC-0019):** `make site-link-check`. It verifies resolution,
@@ -190,6 +195,8 @@ prose would assert its own fixture.
       discipline's journey page.
 - [ ] **AC-0021.** In the path, each of the four steps links to that discipline's
       guide directory.
+- [ ] **AC-0022.** No other row on `guides/README.md` states an order for these
+      four disciplines that conflicts with AC-0008's.
 
 ## Acceptance-set construction record
 
@@ -198,8 +205,8 @@ were enumerated from the Objective's three outcomes, the five non-waivable `Neve
 rails, and the applicable Durable Outputs; each was admitted only once a single
 observing surface could be named.
 
-- **Candidate obligations:** 33
-- **Admitted as criteria:** 21
+- **Candidate obligations:** 34
+- **Admitted as criteria:** 22
 - **Routed:** 11
 - **Cut:** 1
 
@@ -214,7 +221,8 @@ observing surface could be named.
 | The index names each handoff | admitted | AC-0007 | on the index, any of the first three not naming what it passes on, or the fourth not naming its end state | the index page copy |
 | The guides carry the same sequence | admitted | AC-0008 | path absent, or the four in any other order | `guides/README.md` |
 | The path matches the P-path shape | admitted | AC-0009 | any of prerequisite, first value, ends-at missing | `guides/README.md` |
-| The P2 conflict is disclosed | **cut** | — | — | the conflict no longer exists: with desk-research first, this path and P2 agree that evidence precedes shaping. A criterion disclosing a difference that is not there could not fail |
+| The P2 conflict is disclosed | **cut** | — | — | the P2 conflict no longer exists: with desk-research first, this path and P2 agree that evidence precedes shaping. A criterion disclosing a difference that is not there could not fail |
+| The guide surface does not contradict its own order | admitted | AC-0022 | a chooser row ordering these four differently from the path | `guides/README.md` |
 | The path names each handoff | admitted | AC-0010 | in the guides path, any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
 | A cold reader can restate the sequence | admitted | AC-0011 | order or any handoff unstatable | the reader |
 | Guide frontmatter stays valid | admitted | AC-0012 | invalid or missing frontmatter | `validate_guides.py` |
@@ -263,7 +271,7 @@ standing alone: on its own it passes on the empty set, because a path emitting
 no links has no unresolved link. AC-0020 and AC-0021 supply the links whose
 existence it then verifies, so the pair cannot both be satisfied vacuously.
 *Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0020;
-outcome 2 reaches AC-0008, AC-0009 and AC-0021; outcome 3 reaches AC-0007,
+outcome 2 reaches AC-0008, AC-0009, AC-0021 and AC-0022; outcome 3 reaches AC-0007,
 AC-0010 and AC-0011. The Objective's "and can walk it" reaches AC-0019, whose
 failure leaves a stated route unreachable even when every other criterion holds.
 The five `Never do` rails reach AC-0017, AC-0015, AC-0016, AC-0018 and the
@@ -291,7 +299,7 @@ criterion traces back to one of those.
   Bounded out with its owner named: correcting them is the brief's remediation,
   not this slice's. **Owner: the brief.**
 
-None is a defect found late; all three are judgements recorded when made.
+Neither is a defect found late; both are judgements recorded when made.
 
 ## Assumptions and undischarged risks
 
@@ -312,8 +320,18 @@ None is a defect found late; all three are judgements recorded when made.
   The owner reordered to `desk-research → product-strategy → experience-design
   → product-engineering`, which satisfies both that pair and the separate
   invariant that strategy precedes `product-engineering` and
-  `experience-design`. The packs do not order experience-design against
-  product-engineering, so that pair is unconstrained rather than contradicted.
+  `experience-design`. **The experience-design/product-engineering pair is
+  constrained too — an earlier draft of this entry wrongly called it
+  unconstrained.** `packs/experience-design/DESIGN.md` § "Downstream:
+  product-engineering" states that "the per-screen state matrix produced by
+  `user-flow` is the hand-off artifact `voice-and-microcopy`
+  (product-engineering pack) consumes", and `packs/product-engineering/DESIGN.md`
+  describes the same interface from its own side. That handoff runs
+  experience-design → product-engineering, which is the order adopted here. The
+  same PE file also records experience-design skills running "inside the
+  convergence loop as optional lens participants" during discovery; that is a
+  nesting, not a competing order, and the linear sequence does not claim to
+  represent it.
 
   **This also closed a criterion.** The former AC-0010 required disclosing that
   this path's order differs from the guides' P2. With desk-research first the
@@ -350,8 +368,23 @@ Blocking counts across rounds ran 3, 1, 2 — not converging — and **four of r
 repair-first habit produces, and it is the reason the open item below is being
 put to the owner rather than repaired again.
 
-**Every round-3 finding is now closed.** Its blocking order finding went to the
-owner rather than being repaired by the author, because the order is the owner's
-decision and the round showed it had been taken on evidence that omitted the
-packs' `DESIGN.md` files. The owner reordered on 2026-09-11; see § "Assumptions
-and undischarged risks". A fourth round has not run against the reordered text.
+**Four Sol rounds have run.** Blocking counts: 3, 1, 2, 5. Round 4 read the
+reordered text and returned 5 blocking, 1 major, 1 minor, ending
+`WORKER_BLOCKED`. Every round-4 finding is applied.
+
+**The trend is the thing to read, not the totals.** Six of round 4's seven
+findings originated in a prior round's repair, and five of those were
+stale-companion defects created by round 3's own renumbering — a task row still
+carrying a cut criterion's instruction, a sequencing note contradicted by a test
+added later, a residual count left at three. They were mechanical and cheap,
+which is a different character from round 1's design findings, but they are the
+signature of repair-first work and the reason this document records its own
+review economics rather than only its conclusions.
+
+**Round 4 also caught one real reversal.** Cutting the P2-disclosure criterion
+was correct about that criterion and wrong about the obligation beneath it: two
+chooser rows on the same guide surface still order these four disciplines
+strategy-first. AC-0022 replaces disclosure with self-consistency, which is a
+stronger check on the same obligation rather than a restatement of the cut one.
+
+**A fifth round has not run against this text.**
