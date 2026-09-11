@@ -175,9 +175,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       plan as a discovery predicate carrying its constraint, required outcome
       and verification mode.
 - [ ] The set-level pass tests necessity, uniqueness, consistency, joint
-      feasibility, coverage, and propagation — the last citing the rubric's
-      sibling check as its owner rather than restating it, and adding only that
-      it completes in the same round, before the round is reported.
+      feasibility, coverage, propagation, and residual freshness. Propagation
+      cites the rubric's sibling check as its owner rather than restating it,
+      adding only that it completes in the same round before the round is
+      reported; residual freshness re-tests each recorded residual against
+      current state rather than carrying it forward on its last wording.
 - [ ] The procedure defines coverage as satisfied for an Objective outcome or a
       non-waivable Boundary when it is either an admitted criterion or a routed
       disposition naming its owner, so no item can be both uncovered and
@@ -235,8 +237,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       finding — repair the artifact, narrow the claim to what its check reaches,
       cut the item the finding is about, dismiss the finding with its reason
       recorded and re-present it to the next round, repair the generator rather
-      than the instance, route it to an owner that already covers it, or bound
-      it out of scope and record a follow-on that names its new owner — and
+      than the instance, route it to an owner that already covers it, bound it
+      out of scope and record a follow-on that names its new owner, or accept it
+      with the reason it is proportionate recorded — and
       states that a sustained finding does not by itself require an edit.
 - [ ] Where a finding is that a claim reaches further than its check, the
       procedure states both answers and how to choose: strengthen the check when
