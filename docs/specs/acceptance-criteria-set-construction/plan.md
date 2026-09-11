@@ -472,6 +472,12 @@ what went stale when one was added.
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
   replaces.
+- **AC25.** The stop-decision report carries the trend and, per residual, its
+  consequence, its available responses, each response's cost, and any
+  protected-class marking. **Constraint:** extend the step that shipped in
+  2.25.14 rather than adding a second one — that step already reports the trend
+  and each residual's consequence, so a parallel step would put two homes on one
+  obligation. What is new is the options and their costs.
 - **AC26.** The procedure requires a changed criterion's references and
   verifications to be reconciled in the same round. **Constraint:** assert
   "in the same round, before the round is reported". A propagation rule with no
