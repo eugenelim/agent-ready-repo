@@ -645,6 +645,12 @@ rank does not close this task, and the count closes nothing.
 `workspace.toml`, `.agents/`, `.claude/`
 
 **Tests:**
+- `python '<skill-dir>/../work-loop/scripts/lint-spec-status.py'` over this spec
+  directory — the closing task flips `Status` and ticks the criteria, and no
+  command in any task reads either today. `Draft` beside a `queue` membership is
+  a consistent pair, so the reconciler cannot substitute: a missing flip reads
+  green. Assert the flipped `Status` and that every criterion is ticked or
+  carries a deferral anchor on its own line.
 - **The entry's content is read against the criteria it advertises.** Assert that
   every plan-authoring rule AC-0022 enumerates is either described by the release
   entry or absent from the shipped skill, so the entry cannot close describing a
@@ -847,10 +853,11 @@ in the same commit
   internal records or repository-only paths, so an assertion demanding that the
   step name `docs/product/intents/work-loop-review-economics.md` is one no
   implementation can satisfy — that owner is named here, in the contract, and
-  the pack states the rule. **Constraint:** extend the step that shipped in
-  the step that already reports the trend rather than adding a second one — that step
-  and each residual's consequence, so a parallel step would put two homes on one
-  obligation. What is new is the options and their costs.
+  the pack states the rule. **Constraint:** extend the step
+  that already reports the finding trend rather than adding a second one. That
+  step already carries the trend and each residual's consequence, so a parallel
+  step would put two homes on one obligation. What is new is the options
+  available to each residual and their costs.
 - **AC-0027. The `deletion-pass` pin updates with the prose.** That sentence is
   pinned verbatim in `RULES`, so rescoping it reds the existing entry; update
   the entry in the same change, the way this task already declares the
@@ -873,15 +880,13 @@ in the same commit
 
 
 **Grounding:**
-- **The roster modules that read T1's own surfaces**, found by searching for the
-  paths this task touches rather than by asking which rules apply:
-  `test_spec_authoring_rubric_brief_boundary.py`, which reads the rubric this
-  task cites. Two modules named here in an earlier round —
-  `test_spec_review_adjudication_documentation.py` and
-  `test_verification_ledger_contract.py` — read guide pages and `assets/plan.md`
-  respectively and are T6's and T7's surfaces, not T1's; grounding resolved for
-  the plan as a whole rather than for a task's own work is what AC-0031 rules
-  out, and naming them here was that defect. The mechanical search is
+- **The roster modules that read T6's own surfaces**, resolved against this
+  task's `Touches` rather than the plan's: `test_acceptance_criteria_discipline.py`,
+  which pins the review-step rules this task extends, and
+  `test_cognitive_load_repository_contract.py`, which compares the projections
+  this task's `SKILL.md` edit regenerates. A copy of T1's grounding stood here
+  for a round, which is the plan-level anchor list AC-0031 rules out — and this
+  task is the one that authors AC-0031. The mechanical search is
   exhaustive over references-by-path; the semantic sweep that preceded it was
   not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
@@ -1082,7 +1087,8 @@ in the same commit
   budget with roughly 350 spare, and T1 and T6 spend from the same budget, so the
   three are counted together before any of them lands.
 
-**Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
+**Tests:** **Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
 - `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
   states; the command stays in each prose-adding task's `Tests` because a
   closing condition reads its own list, and only the rationale is referenced.
@@ -1283,7 +1289,8 @@ in the same commit
   scoped-guidance probe consumes that identification and cites it rather than
   restating the rubric.
 
-**Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
+**Tests:** **Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 - `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
   states; the command stays in each prose-adding task's `Tests` because a
   closing condition reads its own list, and only the rationale is referenced.
@@ -1496,14 +1503,19 @@ is evidence about the check.
 
 ## Open decisions
 
-- **AC-0009's decomposition.** The whole-set pass found it carrying thirteen
-  separately remediable predicates under one checkbox, which the shape owner's
-  split test breaks. `notes/ac-0009-decomposition-proposal.md` records the
-  proposal AC-0016 obliges, the disposition of each predicate, and the honest
-  argument against splitting. Executing the split, narrowing it, or recording an
-  exemption are all available while the pair is at `Draft`; **re-recording
-  approval forecloses all three**, so the disposition belongs before that, not
-  after.
+- **The compound-criterion class, swept rather than repaired at one instance.**
+  Measured over all forty criteria against a median of 76 words, twelve exceed
+  twice the median: AC-0035 (461), AC-0009 (399), AC-0040 (279), AC-0033 (236),
+  AC-0023 (210), AC-0031 (207), AC-0018 (206), AC-0022 (196), AC-0030 (177),
+  AC-0037 (165), AC-0039 (161), AC-0026 (157). Size is a proxy, not the test —
+  the shape owner's test is whether a predicate expands into a different check
+  per member — so each needs a disposition rather than an automatic split.
+  `notes/ac-0009-decomposition-proposal.md` works AC-0009 through in full,
+  including the argument against splitting it; **AC-0035 is larger and is not
+  yet worked through**, which AC-0023's own class-count clause required before
+  repairing the first instance. Executing a split, narrowing one, or recording
+  an exemption are all available while the pair is at `Draft`; **re-recording
+  approval forecloses all of them.**
 - **Two `Ask first` brief edits.** The criterion-syntax section and the Spec map
   row are edits to a file whose boundary requires prior sign-off, and neither
   carries it. The Assumption records the residual; the cell is not reverted

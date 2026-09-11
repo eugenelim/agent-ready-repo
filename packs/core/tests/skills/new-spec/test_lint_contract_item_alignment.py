@@ -137,6 +137,30 @@ def _since(root: Path, ref: str = "HEAD") -> subprocess.CompletedProcess[str]:
     )
 
 
+@pytest.mark.parametrize("artifact", ["spec.md", "plan.md"])
+def test_a_refused_artifact_is_reported_through_the_tool(root, tmp_path_factory, artifact):
+    """Observed through the tool's own output, not through the helper.
+
+    The earlier case asserted on `_read_confined` directly, so it proved the
+    helper refuses and not that the run reports a refusal -- and it missed that
+    only the spec sentinel was checked, leaving a refused plan.md to raise a
+    TypeError and abandon every remaining spec directory.
+    """
+    _tree(root)
+    outside = tmp_path_factory.mktemp("outside")
+    target = outside / "leaked.md"
+    target.write_text("SECRET\n", encoding="utf-8")
+    path = root / "docs" / "specs" / "fixture" / artifact
+    path.unlink()
+    path.symlink_to(target)
+    result = _run(root)
+    assert "Traceback" not in result.stderr, result.stderr
+    assert "refusing path outside root" in result.stdout, result.stdout
+    assert artifact in result.stdout, \
+        f"the refusal must name which artifact was refused:\n{result.stdout}"
+    assert "SECRET" not in result.stdout, "the refused file's content was emitted"
+
+
 def _subject_module():
     import importlib.util
 

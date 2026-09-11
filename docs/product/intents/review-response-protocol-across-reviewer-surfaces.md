@@ -73,6 +73,46 @@ contradicted. A brief that had been grounded would have arrived carrying them.
   than a path — a different mechanism, not this one carried further. Settle that
   before building.
 
+## Observed 2026-09-11 — cold dispatch widens a reviewer's area, and that is the cost as well as the value
+
+Five rounds were dispatched the way `work-loop` prescribes — spec path, diff
+range, mode, nothing else — after eleven rounds had been dispatched with
+hand-built briefs carrying target lists, ranked priorities and the recorded
+owner decisions.
+
+**The value is not in dispute.** The first cold round found a pack version a
+peer had already released, which no warm round could reach because no warm brief
+had named `origin/main` as a surface. Later rounds reached the delivery brief,
+the release surface, a subsystem architecture page, the corpus index, the
+`/now/` projection, `workspace.toml` and `--help` output — all surfaces the
+briefs had fenced off.
+
+**The cost is area sprawl, and it is real.** A cold reviewer treats the whole
+diff as its subject, so findings arrive spread across every surface the diff
+touches rather than concentrated on the artifact under review. Three
+consequences showed up repeatedly:
+
+- **Refutation rates rose sharply** — one per warm round against seven, two,
+  three, six and an expected similar count across the five cold ones. Each
+  refutation is an adjudication entry rather than a repair, so the reviewer's
+  breadth is paid for at the adjudicator.
+- **The same finding recurs across rounds on different grounds.** Follow-on
+  registration was refuted in one round on the convention's selective-registration
+  rule and raised again two rounds later on the different ground that one intent
+  receives a non-waivable Boundary's deferral. Both readings are defensible; a
+  reviewer with no memory of the earlier verdict cannot know one was taken.
+- **Findings land on surfaces no task owns**, which is useful when the surface
+  should have an owner and noise when it belongs to another delivery. Two
+  rounds raised edits to an intent owned by a different spec's plan.
+
+**What this suggests for the reviewer surfaces.** A cold reviewer needs no brief,
+but the *adjudicator* needs the prior verdicts — otherwise a refuted finding
+costs a full round again each time it recurs. The asymmetry is the design point:
+the reviewer stays stateless and the adjudication record accumulates. Whether an
+adjudicator should be handed the previous rounds' refutations, and what that does
+to its independence, is the question this intent should settle before carrying
+the protocol to the other surfaces.
+
 ## Boundary
 
 - Includes `shaping-reviewer` first, then a survey of the reviewer and
