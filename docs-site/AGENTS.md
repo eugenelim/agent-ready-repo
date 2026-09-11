@@ -21,15 +21,10 @@ npm run build --prefix docs-site
 
 ## Action-changing traps
 
-- **Anchor on the prime journey before changing what this surface says.**
-  [`docs/design/journeys/team-orientation-future-state.md`](../docs/design/journeys/team-orientation-future-state.md)
-  is the standing, gate-approved map for a team learning the whole system.
-  **Stages 4-5 — roll out a cohort, make it the default — are this surface**;
-  stages 1-3 are `web/`. The reader arriving here has already installed and
-  proved it, and is now equipping other people. Read the map before deciding a
-  reader or a navigation model, and reconcile a contradiction there rather than
-  only in a content brief. Stage changes need re-gating through
-  `approve-journey`; `docs/design/README.md` carries the gate state.
+- **Stages 4-5 of the prime journey — roll out a cohort, make it the default — are
+  this surface; stages 1-3 are `web/`.** Anchor a reader or navigation decision on
+  [the map](../docs/design/journeys/team-orientation-future-state.md), not a content
+  brief, and re-gate a stage change through `approve-journey`.
 - Generate content before starting the docs development server.
 - The repository, not Starlight, checks rendered internal links after both builds.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
@@ -65,8 +60,8 @@ npm run build --prefix docs-site
   stop --root docs-site`. `--root` is load-bearing — astro resolves the project
   from the working directory, not from `--prefix`, so without it the command
   reports nothing running and leaves the orphan holding the port.
-- After a Starlight upgrade, re-verify dependent integration contracts against
-  vendored `node_modules/@astrojs/starlight` components.
+- After a Starlight upgrade, re-verify integration contracts against the vendored
+  `node_modules/@astrojs/starlight` components.
 - Starlight's `print:hidden` does **not** suppress an element whose own component
   `<style>` sets `display`, and it fails silently: both compile unlayered at
   `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links
