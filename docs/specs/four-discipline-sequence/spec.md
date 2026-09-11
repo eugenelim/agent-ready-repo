@@ -122,8 +122,9 @@ the obligation to state that difference rather than publish the two as agreeing.
 - **Guide validity (AC-0013 to AC-0015):** the three existing guide gates, each
   named separately because they inspect different contracts, fail differently,
   and are fixed differently.
-- **The prohibitions (AC-0016 to AC-0019):** two whole-diff reads and one
-  path-scoped `git diff`.
+- **The prohibitions (AC-0016 to AC-0019):** four observations, not three — an
+  image-syntax scan over the edited files (AC-0016), two whole-diff reads
+  (AC-0017, AC-0019), and one path-scoped `git diff` (AC-0018).
 - **Required links (AC-0021, AC-0022):** goal-based checks — AC-0021 on the
   built page over the `web/` vitest suite, AC-0022 over `guides/README.md`.
 - **Link integrity (AC-0020):** `make site-link-check`. It verifies resolution,
@@ -162,7 +163,8 @@ prose would assert its own fixture.
 - [ ] **AC-0007.** On the index, each of the first three disciplines names what
       it hands the next, and the fourth names what the reader ends with.
 - [ ] **AC-0008.** `guides/README.md` carries an ordered path covering the four
-      disciplines in the same order as AC-0002.
+      disciplines in the order product-strategy, desk-research,
+      experience-design, product-engineering.
 - [ ] **AC-0009.** That path states a prerequisite, a `**First value:**` moment
       and an "ends at", matching the shape P1–P6 already use.
 - [ ] **AC-0010.** The path states, where a reader can see it, that its order
@@ -206,11 +208,11 @@ observing surface could be named.
 | Step position reaches assistive tech | admitted | AC-0004 | number present but `aria-hidden` with no text equivalent | accessible name of each card heading |
 | No journey dropped or duplicated | admitted | AC-0005 | one slug omitted, or one rendered twice | slug multiset comparison |
 | An ungrouped journey still renders | admitted | AC-0006 | catch-all replaced by a hardcoded list | the rendered page under a fixture journey |
-| The index names each handoff | admitted | AC-0007 | any of the first three not naming what it passes on, or the fourth not naming its end state | the index page copy |
-| The guides carry the same sequence | admitted | AC-0008 | path absent, or ordered differently from AC-0002 | `guides/README.md` |
+| The index names each handoff | admitted | AC-0007 | on the index, any of the first three not naming what it passes on, or the fourth not naming its end state | the index page copy |
+| The guides carry the same sequence | admitted | AC-0008 | path absent, or the four in any other order | `guides/README.md` |
 | The path matches the P-path shape | admitted | AC-0009 | any of prerequisite, first value, ends-at missing | `guides/README.md` |
 | The P2 conflict is disclosed | admitted | AC-0010 | difference unstated where both paths are reachable | `guides/README.md` |
-| The path names each handoff | admitted | AC-0011 | any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
+| The path names each handoff | admitted | AC-0011 | in the guides path, any of the first three not naming what it passes on, or the fourth not naming its end state | `guides/README.md` |
 | A cold reader can restate the sequence | admitted | AC-0012 | order or any handoff unstatable | the reader |
 | Guide frontmatter stays valid | admitted | AC-0013 | invalid or missing frontmatter | `validate_guides.py` |
 | `title` matches the H1 | admitted | AC-0014 | the two diverge | `lint-guide-titles.py` |
@@ -238,7 +240,9 @@ observing surface could be named.
 predicate above — input, expected outcome, observing surface — and no sibling
 enforces the same predicate. AC-0005 and AC-0006 can both red on a missing
 journey, which the contract permits: two controls may share an input while
-asserting different outcomes. AC-0005 asserts exhaustiveness over the current
+asserting different outcomes. AC-0007 and AC-0011 are the other such pair —
+the same obligation on two surfaces — so their red inputs are stated
+surface-first to keep them distinguishable at a glance. AC-0005 asserts exhaustiveness over the current
 collection; AC-0006 asserts that the catch-all mechanism exists, and its red
 input is the hardcoded-list mutation, not an omission. *Uniqueness:* every
 criterion names exactly one observing surface. AC-0003 and AC-0004 are adjacent
@@ -255,13 +259,15 @@ ordered list satisfy without one. AC-0020 is deliberately paired rather than
 standing alone: on its own it passes on the empty set, because a path emitting
 no links has no unresolved link. AC-0021 and AC-0022 supply the links whose
 existence it then verifies, so the pair cannot both be satisfied vacuously.
-*Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and
-AC-0021; outcome 2 reaches AC-0008 to AC-0010 and AC-0022; outcome 3 reaches
-AC-0007, AC-0011 and AC-0012; the six `Never do` rails reach AC-0018, AC-0016,
-AC-0017, AC-0019, AC-0010 and the routed repository-decision row respectively;
-the three applicable Durable Outputs reach AC-0008 and AC-0022, AC-0013 to
-AC-0015, and the ledger row, with the brief roll-up carried by the routed
-`lint-brief-coverage` row. Every criterion traces back to one of those.
+*Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0021;
+outcome 2 reaches AC-0008 to AC-0010 and AC-0022; outcome 3 reaches AC-0007,
+AC-0011 and AC-0012. The Objective's "and can walk it" reaches AC-0020, whose
+failure leaves a stated route unreachable even when every other criterion holds.
+The six `Never do` rails reach AC-0018, AC-0016, AC-0017, AC-0019, AC-0010 and
+the routed repository-decision row respectively. The three applicable Durable
+Outputs reach AC-0008 and AC-0022, AC-0013 to AC-0015, and the ledger row, with
+the brief roll-up carried by the routed `lint-brief-coverage` row. Every
+criterion traces back to one of those.
 
 ## Accepted residuals
 
