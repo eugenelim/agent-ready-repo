@@ -108,7 +108,11 @@ two recollections.
 - **Cite, never restate.** Every shape, diagnosis or repair question in the
   procedure resolves to `assets/spec.md` or the rubric by name. Rejected:
   summarising the conjunction test inline for the reader's convenience — a
-  shorter restatement is still a second home. Traces to: AC19.
+  shorter restatement is still a second home. Traces to: the `Never do` boundary
+  forbidding a rule owned by `assets/spec.md`, `assets/plan.md` or
+  `references/spec-authoring-rubric.md` from being restated into a second file,
+  and to AC15 where that boundary reaches the guide page. No criterion states
+  the whole decision, which is why the boundary is cited rather than a number.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
   Traces to: AC21.
