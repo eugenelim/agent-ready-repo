@@ -13,15 +13,42 @@
       "changelogAnchor": "core22516--2026-09-11",
       "highlights": [
         {
-          "source": "**`new-spec` now tells you where a fact belongs, and hands you the facts to decide with.** Plans kept accumulating design reasoning inside task lists — why an assertion had to take a particular shape — where it went stale against everything else and generated review findings of its own. The rule is now explicit: a fact belongs in the design unless a task must implement or verify it, because tasks are jobs to be done rather than containers for facts. And when a spec reaches you for approval, the skill reports the finding trend and every remaining concern with its consequence, rather than a verdict you cannot check.",
+          "source": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet.",
           "segments": [
             {
-              "type": "strong",
-              "value": "`new-spec` now tells you where a fact belongs, and hands you the facts to decide with."
-            },
+              "type": "text",
+              "value": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet."
+            }
+          ]
+        },
+        {
+          "source": "A second, optional read attacks the bet itself and may only hand back an open question with a named decider or a kill condition with its real-world trigger. It cannot ask you to reword anything, and an empty answer is a real answer.",
+          "segments": [
             {
               "type": "text",
-              "value": " Plans kept accumulating design reasoning inside task lists — why an assertion had to take a particular shape — where it went stale against everything else and generated review findings of its own. The rule is now explicit: a fact belongs in the design unless a task must implement or verify it, because tasks are jobs to be done rather than containers for facts. And when a spec reaches you for approval, the skill reports the finding trend and every remaining concern with its consequence, rather than a verdict you cannot check."
+              "value": "A second, optional read attacks the bet itself and may only hand back an open question with a named decider or a kill condition with its real-world trigger. It cannot ask you to reword anything, and an empty answer is a real answer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "product-engineering",
+          "version": "0.13.11"
+        }
+      ],
+      "date": "2026-09-11",
+      "heading": "[product-engineering][0.13.11] — 2026-09-11",
+      "changelogAnchor": "product-engineering01311--2026-09-11",
+      "highlights": [
+        {
+          "source": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own."
             }
           ]
         }
