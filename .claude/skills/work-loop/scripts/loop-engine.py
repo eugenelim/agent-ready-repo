@@ -220,7 +220,6 @@ _GATE_RESULTS = {
 }
 
 
-
 def _phase_duration_s(phase_started_at: str | None, now: str) -> int | None:
     """Whole seconds between two engine timestamps, or None if either is unusable.
 
@@ -244,7 +243,7 @@ def _budget_snapshot(spec_dir: Path) -> dict:
     must be able to tell "not recorded" from "zero", and a key that silently
     disappears reads as the latter.
     """
-    snapshot: dict[str, int | None] = {field: None for field in _BUDGET_FIELDS}
+    snapshot: dict[str, int | None] = dict.fromkeys(_BUDGET_FIELDS)
     try:
         cohort = _read_managed_json(spec_dir / "state.json", "state.json")
     except Exception:
