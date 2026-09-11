@@ -74,7 +74,7 @@ Must-say, probably-say, might-say.
 | Content item | Tier | Placement notes |
 | --- | --- | --- |
 | One "start here" promise — a single link and a single stated outcome | **must-say** | Above the fold. Does not exist today; the nearest thing is the first path, several screens down. |
-| The six ordered paths, each with prerequisite, audience, time cost, first value, and end state | **must-say** | Immediately below. Currently present and correctly written; currently below a nav instruction. |
+| The ordered paths, each with prerequisite, audience, time cost, first value, and end state | **must-say** | Immediately below. Currently present and correctly written; currently below a nav instruction. **Amended 2026-09-11: seven, not six** — see the amendment below. |
 | That a path ends at a handoff, not at a document | **must-say** | With the paths. This is the sentence that makes the paths handover-able rather than reading lists. |
 | Prominent search with a placeholder naming a real example query | **must-say** | At 229 published pages this surface is in the search-first tier. Today search is a header widget with a generic placeholder. |
 | Which of the two generated hierarchies — guides or pack reference — answers which kind of question | **must-say** | At the point the reader chooses between them. Currently unstated, and they appear as peers. |
@@ -84,6 +84,49 @@ Must-say, probably-say, might-say.
 | Cross-cutting shared guidance list | probably-say | Grouped, not enumerated inline. |
 | "Writing a guide" | might-say | Contributor-facing, not reader-facing. Lowest position. |
 | The note that the site generates pack and guide navigation from this tree | might-say | Useful to a maintainer, invisible in value to a champion. |
+
+## Amendment 2026-09-11 — the four-discipline path, and where it sits
+
+**What changed.** A seventh path was added: the four product disciplines in
+order — desk research, product strategy, experience design, product engineering.
+It is slice S6 of `sdlc-guide-uplift-and-learning-paths`.
+
+**It was placed wrongly, and this amendment is the correction.** S6 appended it
+below P6 under the heading "Another route", after the whole install-to-ship
+walkthrough and after a branch section. That contradicts this brief twice: the
+paths are **must-say, immediately below** the start-here promise, and the
+Pyramid arc this surface selected says *the paths are the answer* and lead. A
+path placed seventh, below a branch, under a heading that calls it an
+afterthought, is supporting detail by position regardless of its content.
+
+**Where it belongs, and why.** Not at the bottom, and not as a branch after P6.
+P6 is genuinely a branch — it runs *after* the walkthrough and extends the
+catalogue. The four-discipline path is not after anything: it is **the wider
+alternative to P2**. P2 takes an idea to a build-ready bet by the fastest route
+— gather evidence, shape an intent, hand to build. The four-discipline path
+takes the same idea through strategy and design as well. Same position in the
+reader's journey, different appetite.
+
+So it sits **adjacent to P2**, and P2 must name it. **Applied 2026-09-11**: it
+is now `P2b`, placed directly after P2 and before P3, with P2 carrying a
+"Wider alternative" pointer at the moment of choice. `P2b` follows the `10b`
+convention the marketing-home brief already uses for a variant at one position. A reader choosing a shaping
+route has to see both options at the moment they choose, or the wider one is
+invisible to everyone who does not scroll past the entire walkthrough.
+
+**What this does not authorise.** It does not restructure the hub's navigation
+model, which belongs to
+[`cohort-orientation-surfaces`](../../product/intents/cohort-orientation-surfaces.md)
+along with this brief. Moving one path within the existing paths block and
+adding a cross-link from P2 is content placement inside the structure that
+intent already fixed. Renaming the section, re-grouping the paths, or changing
+the sidebar would not be, and is not done here.
+
+**Still unresolved, and deliberately not decided here.** Whether the paths block
+should be explicitly grouped — walkthrough / alternatives / branches — rather
+than a flat P1..P6 run with P2b inside it. That is a navigation-model question and therefore
+`cohort-orientation-surfaces`'. Recorded so the next reader does not mistake the
+flat run for a considered structure.
 
 ## What this surface must not become
 
