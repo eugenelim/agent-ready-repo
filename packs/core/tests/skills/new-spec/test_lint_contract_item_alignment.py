@@ -137,6 +137,91 @@ def _since(root: Path, ref: str = "HEAD") -> subprocess.CompletedProcess[str]:
     )
 
 
+def _subject_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "packs_core_new_spec_lint_contract_item_alignment_sec", CHECKER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("ref", ["--output=/tmp/x", "-p", "--exec=sh", "--upload-pack=sh"])
+def test_a_caller_supplied_revision_cannot_act_as_a_git_option(root, ref, monkeypatch):
+    """A revision is data. `--` separates a pathspec from revisions, not
+    revisions from flags, so a ref beginning with a dash would be read as one.
+
+    The oracle is that git is never invoked, not that the result is None --
+    None is also what a failed git returns, so asserting on it passes whether
+    the ref was refused or merely broke the command. Dropping the filter must
+    red this case, and with the None assertion it did not.
+    """
+    module = _subject_module()
+    _repo(root)
+    calls: list[list[str]] = []
+
+    def spy(argv, *a, **k):
+        calls.append(argv)
+        raise AssertionError(f"git was invoked with a refused ref: {argv}")
+
+    monkeypatch.setattr(module.subprocess, "run", spy)
+    assert module._changed_lines(root, ref, root / "docs" / "specs" / "fixture" / "spec.md") is None, \
+        f"option-shaped ref {ref!r} was not refused"
+    assert not calls, f"git reached with {ref!r}"
+
+
+def test_a_valid_revision_does_reach_git(root, monkeypatch):
+    """The companion the refusal case needs: the filter must not refuse everything.
+
+    Without this, a filter that rejected every ref would pass every case above.
+    """
+    module = _subject_module()
+    _repo(root)
+    seen: list[list[str]] = []
+    real = module.subprocess.run
+
+    def spy(argv, *a, **k):
+        seen.append(argv)
+        return real(argv, *a, **k)
+
+    monkeypatch.setattr(module.subprocess, "run", spy)
+    module._changed_lines(root, "HEAD", root / "docs" / "specs" / "fixture" / "spec.md")
+    assert seen, "a well-formed revision never reached git"
+    assert "--end-of-options" in seen[0], \
+        f"the option list must be closed before the ref: {seen[0]}"
+
+
+def test_a_symlink_pointing_outside_the_root_is_not_read(root, tmp_path_factory):
+    """`..` rejection does not stop an in-boundary link pointing out.
+
+    The repository's own security rule names this escape: canonicalise and
+    re-check containment on the resolved path, and refuse a link rather than
+    following it.
+    """
+    module = _subject_module()
+    outside = tmp_path_factory.mktemp("outside")
+    secret = outside / "secret.md"
+    secret.write_text("SECRET\n", encoding="utf-8")
+    link = root / "spec.md"
+    link.symlink_to(secret)
+    assert module._read_confined(link, root) is None, \
+        "a link resolving outside the root was read"
+    # Containment alone catches the escaping link, so it does not isolate the
+    # link guard. A link whose target is *inside* the root passes containment
+    # and must still be refused, which is what makes the guard testable.
+    inside = root / "target.md"
+    inside.write_text("inside\n", encoding="utf-8")
+    inner_link = root / "plan.md"
+    inner_link.symlink_to(inside)
+    assert module._read_confined(inner_link, root) is None, \
+        "an in-boundary link was followed; the link guard is untested by the escape case"
+    plain = root / "real.md"
+    plain.write_text("ok\n", encoding="utf-8")
+    assert module._read_confined(plain, root) == "ok\n", \
+        "an ordinary regular file inside the root must still be read"
+
+
 def test_a_reworded_criterion_whose_assertion_followed_is_clean(root):
     _repo(root)
     spec_path = root / "docs" / "specs" / "fixture" / "spec.md"

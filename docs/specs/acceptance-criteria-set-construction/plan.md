@@ -383,11 +383,15 @@ in the same commit
 
 
 **Grounding:**
-- **Three further roster modules name this skill's paths** and were found by
-  searching for the touched paths rather than by asking which rules apply:
-  `test_spec_review_adjudication_documentation.py` (the review step T6 edits),
-  `test_verification_ledger_contract.py` (the assets T7 edits), and
-  `test_spec_authoring_rubric_brief_boundary.py`. The mechanical search is
+- **The roster modules that read T1's own surfaces**, found by searching for the
+  paths this task touches rather than by asking which rules apply:
+  `test_spec_authoring_rubric_brief_boundary.py`, which reads the rubric this
+  task cites. Two modules named here in an earlier round —
+  `test_spec_review_adjudication_documentation.py` and
+  `test_verification_ledger_contract.py` — read guide pages and `assets/plan.md`
+  respectively and are T6's and T7's surfaces, not T1's; grounding resolved for
+  the plan as a whole rather than for a task's own work is what AC-0031 rules
+  out, and naming them here was that defect. The mechanical search is
   exhaustive over references-by-path; the semantic sweep that preceded it was
   not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
@@ -758,12 +762,9 @@ its `Tests` names carries its mutation proof, recorded and restored, and
 in the same commit
 
 **Tests:**
-- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
-  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
-  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
-  task that spends from the budget without naming this command closes green with
-  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
-  so each names it rather than relying on a later task to discover the overrun.
+- `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
+  states; the command stays in each prose-adding task's `Tests` because a
+  closing condition reads its own list, and only the rationale is referenced.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
 - `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
@@ -872,11 +873,15 @@ in the same commit
 
 
 **Grounding:**
-- **Three further roster modules name this skill's paths** and were found by
-  searching for the touched paths rather than by asking which rules apply:
-  `test_spec_review_adjudication_documentation.py` (the review step T6 edits),
-  `test_verification_ledger_contract.py` (the assets T7 edits), and
-  `test_spec_authoring_rubric_brief_boundary.py`. The mechanical search is
+- **The roster modules that read T1's own surfaces**, found by searching for the
+  paths this task touches rather than by asking which rules apply:
+  `test_spec_authoring_rubric_brief_boundary.py`, which reads the rubric this
+  task cites. Two modules named here in an earlier round —
+  `test_spec_review_adjudication_documentation.py` and
+  `test_verification_ledger_contract.py` — read guide pages and `assets/plan.md`
+  respectively and are T6's and T7's surfaces, not T1's; grounding resolved for
+  the plan as a whole rather than for a task's own work is what AC-0031 rules
+  out, and naming them here was that defect. The mechanical search is
   exhaustive over references-by-path; the semantic sweep that preceded it was
   not, and missed all of them.
 - **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
@@ -1065,18 +1070,22 @@ in the same commit
   points and non-regular files before opening.
 - **The invocation is wired, and this task owns it.** A shipped script no
   surface names is a control nobody runs: the sibling precedent,
-  `author-delivery-brief/SKILL.md`, references its own lint. Add the reference to
+  `author-delivery-brief/SKILL.md`, references its own lint — but it writes a
+  bare `scripts/…` path, which resolves only with the skill directory as the
+  working directory and so does not resolve in an installed adopter tree. **The
+  form to follow is the installer-supplied one a sibling already uses:**
+  `python '<skill-dir>/scripts/<name>.py'`, as `work-loop/SKILL.md` does for
+  `loop-cohort.py`. The skill projects into every adapter prefix, so the form
+  decides whether "invoked from" is reachable at all rather than only here. Add
+  the reference to
   the skill's own procedure rather than to a gate list — two lines against a
   budget with roughly 350 spare, and T1 and T6 spend from the same budget, so the
   three are counted together before any of them lands.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
-- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
-  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
-  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
-  task that spends from the budget without naming this command closes green with
-  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
-  so each names it rather than relying on a later task to discover the overrun.
+- `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
+  states; the command stays in each prose-adding task's `Tests` because a
+  closing condition reads its own list, and only the rationale is referenced.
 - `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q` —
   this task adds files under the skill's `scripts/`, and that module compares
   every non-bytecode file under a canonical skill byte-for-byte across `.apm/`,
@@ -1138,6 +1147,17 @@ in the same commit
   than no rule, so the fixtures carry the shapes the predicate must not report
   rather than a quoted rate: a rate belongs to the prototyping that chose the
   predicate, not to the contract that ships it.
+- **The confinement boundary these tools cross, asserted rather than narrated.**
+  Assert that a caller-supplied revision cannot act as a git option — the oracle
+  is that git is never invoked, not that the result is empty, since an empty
+  result is also what a failed git returns — and that a companion case proves a
+  well-formed revision does reach git with the option list closed before it.
+  Assert that a read outside the invocation root is refused after
+  canonicalisation, and that an in-boundary link is refused too, since
+  containment alone catches only the escaping one. **Mutation:** removing the
+  ref filter, the option terminator, or the link guard must each red its own
+  case. This obligation was recorded in `Grounding`, which no completion gate
+  reads, which is why it is here.
 - **AC-0033, the partial-report contract.** Assert that a spec with no `plan.md`
   reports every plan-gated rule as having no input, by name, and that the
   summary distinguishes that state from a clean run. **Constraint:** the
@@ -1264,12 +1284,9 @@ in the same commit
   restating the rubric.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
-- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
-  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
-  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
-  task that spends from the budget without naming this command closes green with
-  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
-  so each names it rather than relying on a later task to discover the overrun.
+- `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
+  states; the command stays in each prose-adding task's `Tests` because a
+  closing condition reads its own list, and only the rationale is referenced.
 
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q` —
   AC-0037's suite. Named here because `Tests` is what a completion gate reads and
@@ -1476,6 +1493,22 @@ is evidence about the check.
 - **The recorded run is a small sample.** Three cases, one attempt each, is the
   gate the brief specifies and not a general claim. Mitigation: record it as
   three samples and make no portable claim in shipped text.
+
+## Open decisions
+
+- **AC-0009's decomposition.** The whole-set pass found it carrying thirteen
+  separately remediable predicates under one checkbox, which the shape owner's
+  split test breaks. `notes/ac-0009-decomposition-proposal.md` records the
+  proposal AC-0016 obliges, the disposition of each predicate, and the honest
+  argument against splitting. Executing the split, narrowing it, or recording an
+  exemption are all available while the pair is at `Draft`; **re-recording
+  approval forecloses all three**, so the disposition belongs before that, not
+  after.
+- **Two `Ask first` brief edits.** The criterion-syntax section and the Spec map
+  row are edits to a file whose boundary requires prior sign-off, and neither
+  carries it. The Assumption records the residual; the cell is not reverted
+  because the Release-history row forbids leaving this spec unresolvable through
+  the brief.
 
 ## Changelog
 
