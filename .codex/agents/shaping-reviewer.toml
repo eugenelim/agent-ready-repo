@@ -40,9 +40,8 @@ No severity label, no `Fix:` line, and no `Clean` result appears in this mode's
 output. There is no gradient to rank and no remedy to propose: a condition
 either holds or it does not.
 
-`MALFORMED(owner)` is emitted alone and suppresses the other five: a wrong owner
-outranks every other observation, and the rest of the artifact is not yours to
-assess until it is settled.
+`MALFORMED(owner)` is emitted alone and suppresses the other five. The
+precedence this carries is stated once, below, for every mode.
 
 A condition the packet cannot settle emits its token. An intent whose parent is
 absent from the packet does not pass conditions 4 or 5 by default — absent
