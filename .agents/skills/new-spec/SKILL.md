@@ -550,6 +550,19 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    paths. Its finding-adjudication gateway owns the shared adjudication
    semantics. Classify and act only on the paired adjudication artifact; never
    use raw report prose as verdict-bearing input.
+   **A later round reviews what changed, not the whole diff.** The first round
+   is dispatched over the artifacts entire; each round after it is bounded to the
+   delta since the previous persisted report, whose revision the report records.
+   A prior round's result stays valid for text that has not changed since it
+   ran, so re-presenting that text only re-finds a different slice of it — which
+   is how a review loop runs at a flat finding rate instead of converging. The
+   bound is sound exactly while the claim "the unchanged text was reviewed" is
+   true, so the reviewed revision is recorded rather than assumed, and the delta
+   includes the repair commits: a repair is the highest-yield part of the range,
+   never an exempt part. Where a delta cannot be computed — no revision control,
+   or a first round — reduce the surface instead by naming the artifacts under
+   review rather than handing over everything the change touched.
+
    Revise the spec or plan only from sustained findings; keep refuted findings
    in the audit, and stop on an indeterminate result. `finding-adjudicator`
    already tests authority, reachability, existing handling, consequence, and
