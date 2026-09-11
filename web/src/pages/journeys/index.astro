@@ -343,6 +343,15 @@ const rest = Object.keys(taglineMap)
     margin-top: var(--ds-space-6);
   }
 
+  /* A link inside a block of text needs a non-colour distinguisher. The global
+     `a` rule sets `text-decoration: none` and relies on colour alone, which axe
+     flags as `link-in-text-block` (serious) against this paragraph's muted text.
+     Underlining satisfies the rule without depending on a contrast ratio
+     between two palette tokens. */
+  .journeys-group__onward a {
+    text-decoration: underline;
+  }
+
   .journey-card__hands {
     font-size: var(--ds-type-sm);
     color: var(--ds-on-surface);
