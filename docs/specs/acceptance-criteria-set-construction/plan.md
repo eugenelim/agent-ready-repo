@@ -328,7 +328,12 @@ in the same commit
   a count standing beside the set it enumerates. Both decay with no edit at all,
   so a member that reads only criterion-against-criterion never reaches them;
   each ban must red on its own deletion, because one assertion over "the
-  consistency member" is satisfied by prose carrying neither ban. Deleting
+  consistency member" is satisfied by prose carrying neither ban.
+  **Constraint on the shape re-read:** assert that the member cites
+  `assets/spec.md` as the owner of the two shape rules and never restates them —
+  the spec's *Never do* forbids restating a rule that file owns, so an assertion
+  demanding the rule text here is one no implementation can satisfy. Assert the
+  re-read obligation and the citation separately. Deleting
   that clause must red this assertion; without it the member reads as a
   criteria-only comparison, and the body statement that contradicted its own
   criteria survived three rounds because nothing looked there.
@@ -1063,7 +1068,12 @@ in the same commit
   failure this checker exists to detect elsewhere. **Constraint on the scope:**
   a case where the only line naming the criterion sits outside an assertion
   block — a changelog entry — must still report, since reading the document as a
-  whole is what silenced the rule.
+  whole is what silenced the rule. **Constraint on the over-report:** a case
+  where a criterion is trimmed with its obligation unchanged must *also* report,
+  asserting the stated residue rather than a precision the rule does not have —
+  the measured figure came from a span of additions only, and pinning it as a
+  property would make the rule's first prose-reduction round read as a
+  regression.
 - **The Interface-compatibility durable output, asserted per script.** Read each
   script's module docstring and assert it names every flag the parser accepts and
   every exit code the script can return, and that it claims no outcome the code

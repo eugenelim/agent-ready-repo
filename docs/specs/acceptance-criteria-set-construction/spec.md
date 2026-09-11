@@ -255,12 +255,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       which reads the body's own prose against the criteria, not only criterion
       against criterion, because the Objective, the Boundaries and the durable
       outputs all make claims a criterion can contradict. Consistency also tests
-      the body for two claim kinds that decay with no edit at all: narrated
-      history of the delivery, which the retcon discipline sends to the
-      changelog, and a count standing beside the set it enumerates, which
-      AC-0018 forbids. Both are stale the moment the delivery moves, and a
-      reviewer who finds them spends a round on a number rather than on the
-      contract —
+      the body for the two claim kinds that decay with no edit at all: narrated
+      delivery history, which the retcon discipline sends to the changelog, and a
+      count standing beside the set it enumerates, which AC-0018 forbids. It also
+      reads each criterion against the two shape rules `assets/spec.md` owns —
+      every claim makes a wrong implementation detectable, and a criterion names
+      an observable outcome — because those rules govern authoring and nothing
+      re-reads them once a criterion starts accreting rationale round over
+      round —
       joint feasibility, coverage, propagation, and residual freshness. The
       members carrying a stated plan-side question are named: uniqueness asks whether a
       criterion and a construction test claim the same thing, coverage asks
@@ -325,14 +327,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       carrying older count prose are a recorded residual, not this criterion. The wider claim that count never proves quality is a
       non-waivable Boundary, not this criterion, because no check reaches it.
       The procedure also states the authoring rule this follows from: where a set
-      is enumerated, name the set, never its cardinality. A numeral beside an
-      enumeration is a second statement of what the list already says, it goes
-      stale the moment a member is added, and it is checkable only against the
-      list it duplicates — so it generates review findings that cost a round each
-      and change nothing an implementer builds. The same rule forbids a count of
-      the delivery's own history: how many rounds ran, how many defects a class
-      produced, how many rules landed ahead of their criterion. Those belong to
-      the changelog, which owns history, and nowhere in a criterion.
+      is enumerated, name the set, never its cardinality, since a numeral beside
+      an enumeration is checkable only against the list it duplicates and goes
+      stale when a member is added. The same rule forbids a count of the
+      delivery's own history — rounds run, defects a class produced, rules landed
+      ahead of their criterion — which belongs to the changelog.
 - [ ] **AC-0019.** The skill's eval register carries one frozen case per named
       shape: a small change, a large change, and an amendment to an existing
       contract. Whether the large case's obligation set is genuinely irreducible
@@ -374,13 +373,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       response includes a count of every other instance before any repair, and
       the procedure says why: repairing the named instance leaves the class, and
       a reviewer sees the instances it happened to look at rather than the set.
-      Repair also carries its own rider, scoped to what the set-level pass
-      cannot reach: a repair sweeps the prose adjacent to a changed artifact
-      outside the loop contract — a module docstring describing the predicate
-      beneath it, a header naming a set the code no longer has — because that
-      prose does not move with the change and the pass reads only the spec and
-      the plan. Inside the contract, AC-0009's propagation member owns the
-      re-read in both directions and this rider adds nothing to it.
+      Repair also carries a rider, scoped to what the set-level pass cannot
+      reach: it sweeps the prose adjacent to a changed artifact outside the loop
+      contract — a module docstring describing the predicate beneath it, a header
+      naming a set the code no longer has. Inside the contract AC-0009's
+      propagation member owns that re-read, and this rider adds nothing to it.
 - [ ] **AC-0024.** Where a finding is that a claim and its check disagree in reach, the
       procedure states both directions and how to choose. A claim reaching
       further than its check is strengthened when some check can reach the
@@ -471,27 +468,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       carries a well-formed identifier, identifiers are unique within the spec
       directory, none appears in the retired list, every identifier reference in
       `spec.md` and `plan.md` carrying the criterion class marker resolves to a
-      live criterion or to one the retired list records — a retired identifier is
-      a resolvable reference, since the convention keeps it recorded precisely so
-      a citation to it does not dangle — while an item-class identifier is not
-      resolved
-      against the criteria at all — no item registry exists for it to resolve
-      against, and claiming one would reach past every oracle here — every
-      criterion is named by at least one plan entry and appears in exactly one
-      verification group, and a verification item's identifier does not mirror
-      the criterion it serves. Derivation from a *task* is not checked and this
-      criterion does not claim it: nothing relates an item to a task number, and
-      the uniqueness rule reads criteria only. Both are review obligations,
-      named so the criterion claims exactly what its oracle decides. A spec whose criteria
-      carry no identifiers is skipped rather than failed, so the checker is
-      adoptable against the existing corpus on the commit that introduces it.
-      A rule whose input is absent is reported as having no input, named, rather
-      than counted as checked, and the report distinguishes that state from a
-      clean one: a partial check read as a complete one is the defect this
-      checker exists to find in other artifacts, and it would otherwise be the
-      checker's own output contract. A rule that still decides part of its
-      subject is applied, not unapplied — it is the absence of the whole input
-      that this reports.
+      live criterion or to one the retired list records, a retired identifier
+      being resolvable by design; every criterion is named by at least one plan
+      entry and appears in exactly one verification group; and a verification
+      item's identifier does not mirror the criterion it serves. An item-class
+      identifier is not resolved against the criteria, and derivation from a
+      *task* is not checked: no item registry exists, and nothing relates an item
+      to a task number. Both are review obligations, named so the criterion
+      claims exactly what its oracle decides. A spec whose criteria carry no
+      identifiers is skipped rather than failed, so the checker is adoptable
+      against the existing corpus on the commit that introduces it. A rule whose
+      input is absent is named as having no input rather than counted as checked,
+      and the report distinguishes that state from a clean one — a partial check
+      read as complete is the defect this checker exists to find elsewhere. A
+      rule that still decides part of its subject is applied, not unapplied.
 - [ ] **AC-0034.** The procedure requires each candidate's disposition to be recorded,
       and the candidate and final counts that follow from those dispositions. The
       rubric owns deriving a count threshold from the author's shipped corpus and
@@ -505,32 +495,26 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       one, which gates would run one, which quote a distinctive line from one,
       and which scoped guidance governs each, plus which paths a seed names that
       no longer resolve. The probe set is selected by stage rather than run
-      whole, because at discovery nothing is authored yet and a
-      dead-reference scan returns a reassuring empty result, while at review the
-      artifacts are the seeds and their references are the question; each stage's
-      report names the probes it ran. Every probe reports and none
-      decides; the two thresholds whose right value is repository-shaped — the
-      sweep-commit size and the phrase cutoff — derive from the adopter
-      repository's own distribution rather than being fixed, and the report names
-      each value with what it was derived from, so a mis-calibration is visible
-      instead of silently narrowing the result. A third bound, the minimum
-      co-occurrences before a partner is reported, filters results rather than
-      presenting them, so it is reported with its value on every run even though
-      it is not derived; the remaining bounds are presentation limits with
-      documented defaults and flags. Every probe carries a bounded result; and
-      every probe whose input can be missing distinguishes three outcomes —
-      found, none found, and input unavailable — because a probe that returns
-      empty when its input is missing is indistinguishable from a clean result.
-      Those are the probes reading a seed's text, a runner set, or history. The
-      two that read the tree itself, scoped guidance and path references, cannot
-      have a missing input and report two outcomes; the criterion says which
-      rather than claiming a third outcome the code does not have. Whatever the explorer cannot
-      settle mechanically it emits as a named ambiguity with its candidate
-      resolutions, for the author to decide once and record. It reads no
-      configuration file of its own, and an absent or thin grounding surface
-      lowers the starting information and never fails the run. The report carries
-      a surface inventory, in the stages whose probe set includes it, saying
-      which known grounding surfaces are present and which carry content, so a
+      whole, and each stage's report names the probes it ran. Every probe reports
+      and none decides. The thresholds whose right value is repository-shaped —
+      the sweep-commit size and the phrase cutoff — derive from the adopter
+      repository's own distribution, and the report names each value with what
+      produced it, so a defaulted value is not labelled as measured. The minimum
+      co-occurrences before a partner is reported filters results rather than
+      presenting them, so it is reported on every run though it is not derived;
+      the remaining bounds are presentation limits with documented defaults and
+      flags. Every probe carries a bounded result. A probe whose input can be
+      missing distinguishes found, none found, and input unavailable, since empty
+      and unavailable are otherwise indistinguishable; the probes reading the
+      tree itself, scoped guidance and path references, cannot have a missing
+      input and distinguish found from none found. The criterion states which
+      probes fall on each side rather than claiming an outcome the code cannot
+      reach. What the explorer cannot settle mechanically it emits as a named
+      ambiguity with its candidate resolutions, for the author to decide once and
+      record. It reads no configuration file of its own, and an absent or thin
+      grounding surface lowers the starting information and never fails the run.
+      In the stages whose probe set includes it, the report inventories which
+      known grounding surfaces are present and which carry content, so a
       degraded grounding is legible rather than silent.
       Consuming those surfaces as probe input — a recorded value seeding a
       derivation, and a record the repository contradicts reported as drift — is
@@ -571,7 +555,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       that the checker reports the subset a machine can see. Its residue is
       stated for the same reason — an assertion that changed for an unrelated
       reason reads as covered, so the rule under-reports, and the re-read AC-0009
-      requires is what closes the gap the rule cannot. Its scope is the task
+      requires is what closes the gap the rule cannot. It over-reports in one
+      direction too: a criterion trimmed of rationale without its obligation
+      changing needs no new assertion, and the rule reports it anyway, because a
+      reworded criterion and a re-obligated one are the same edit to a diff. That
+      is why it reports and never blocks — a round spent confirming a trim is
+      cheap, and a round that would have to be spent finding an unpropagated
+      obligation is not. Its scope is the task
       entries that carry assertions, not the whole plan: a criterion named in a
       changelog entry or a rationale is not a criterion whose assertion
       followed, and reading the document as a whole silenced the rule wherever a
