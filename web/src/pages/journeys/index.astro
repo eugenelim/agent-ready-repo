@@ -121,6 +121,10 @@ const rest = Object.keys(taglineMap)
         </li>
       ))}
     </ol>
+    <p class="journeys-group__onward">
+      Ready to walk it? <a href={withBase('/docs/guides/#p2b--take-the-wider-route-through-the-four-disciplines--4-hours')}>The wider shaping route</a>
+      takes the same four in the same order, with what to run at each step.
+    </p>
   </Section>
 
   <!-- ── Supervised loops ───────────────────────────────────────────────── -->
@@ -329,6 +333,14 @@ const rest = Object.keys(taglineMap)
     letter-spacing: var(--ds-track-label);
     color: var(--ds-accent-deep);
     margin-bottom: var(--ds-space-2);
+  }
+
+  .journeys-group__onward {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    max-width: 62ch;
+    margin-top: var(--ds-space-6);
   }
 
   .journey-card__hands {

@@ -61,7 +61,7 @@ Not for review. Whoever builds this reads these; the owner does not need to.
 
 **Flow and screens** — [`screens/team-orientation-flow.md`](screens/team-orientation-flow.md) (293) plus five more per-screen briefs: `marketing-home`, `guides-index`, `path-page`, `search-results`, `internal-case-route`.
 
-**Copy and content** — [`copy/copy-deck.md`](copy/copy-deck.md) (416, every string plus the headline candidates), [`copy/brand-register.md`](copy/brand-register.md), [`copy/marketing-home.md`](copy/marketing-home.md), [`content/`](content/) (two briefs), and [`../product/voice/agent-ready-repo.md`](../product/voice/agent-ready-repo.md).
+**Copy and content** — [`copy/copy-deck.md`](copy/copy-deck.md) (416, every string plus the headline candidates), [`copy/brand-register.md`](copy/brand-register.md), [`copy/marketing-home.md`](copy/marketing-home.md), [`content/`](content/) (four briefs, including [`content/journeys-index.md`](content/journeys-index.md), added 2026-09-11 outside the packet), and [`../product/voice/agent-ready-repo.md`](../product/voice/agent-ready-repo.md).
 
 **Direction** — [`direction/tech-site-amendment.md`](direction/tech-site-amendment.md) (262, amends the aesthetic direction; **this is the operative document**, not the frozen original) and [`direction/token-verification.md`](direction/token-verification.md) (209).
 
@@ -82,7 +82,15 @@ act.
 | `approve-aesthetic-direction` | passed 2026-09-04 |
 | `review-experience-designs` | **passed 2026-09-10** — 6 blockers fixed, 14 of 16 majors fixed. Major 1/V1 closed by a live GitHub render probe. Minor 5 **retired**, not deferred: the champion interview it waited on was retired as theatre, so M2 carries no pre-redesign baseline and will not get one. |
 | Build intent | [`../product/intents/cohort-orientation-surfaces.md`](../product/intents/cohort-orientation-surfaces.md) — `Draft` |
-| Implemented | **nothing yet.** No file outside `docs/` has been touched; all three gates are now passed, so delivery is unblocked. |
+| Implemented | **Partly, and not by this packet.** Slice S6 of `sdlc-guide-uplift-and-learning-paths` shipped the journeys index grouping and `guides/README.md` P2b on 2026-09-11, touching `web/` and `guides/`. That surface was **never in this packet's scope** — see the note below. Everything this packet itself specifies remains unbuilt; all three gates are passed, so delivery is unblocked. |
+
+**The journeys index is outside this packet, and that had a cost.** This packet
+briefs the marketing home, the guides index, a path page, search results, the
+internal-case route and the canvas. It does not brief `/journeys/`. When S6
+redesigned that surface it had no brief to anchor on, and an independent design
+review found its groups "feel added above an existing catalogue grid". A content
+brief now exists at [`content/journeys-index.md`](content/journeys-index.md),
+authored after the fact, and it records that the surface still has no owner.
 
 **One verification blocks build and cannot be closed by writing:** whether the
 canvas survives GitHub's Markdown sanitiser was probed 2026-09-10 against
