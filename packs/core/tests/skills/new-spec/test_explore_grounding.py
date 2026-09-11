@@ -97,7 +97,7 @@ def test_gate_reachability_reports_unreached_as_the_finding(root):
     seed = _seeded(root)
     (root / "Makefile").write_text("check:\n\techo nothing\n", encoding="utf-8")
     out = _run(root, seed)
-    assert "UNREACHED" in out, out
+    assert "UNREACHED — no runner names this path" in out, out
     assert "considered" in out, "the report must name how many runners it looked at"
 
 
@@ -127,7 +127,7 @@ def test_co_change_reports_unavailable_without_history(root):
     """Neither found nor none: the input is missing and the output must say so."""
     seed = _seeded(root)
     out = _run(root, seed)
-    assert "unavailable" in out, out
+    assert "unavailable — input missing" in out, out
     assert "not a clean result" in out, out
 
 

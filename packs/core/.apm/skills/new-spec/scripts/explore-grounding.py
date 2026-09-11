@@ -79,6 +79,24 @@ PHASES = {
     "all": ("surfaces", "scoped", "refs", "pins", "gates", "dead", "co-change"),
 }
 
+# Every distinct outcome this explorer can report, keyed by name. Declared here
+# so the repository-level catalogue check can verify that some case exercises
+# each one; a probe outcome no test observes has no red case. It is a floor, not
+# a derivation -- containing a fragment is not asserting on it.
+FINDING_KINDS = {
+    "none-found": "none found",
+    "unavailable": "unavailable — input missing",
+    "unreached": "UNREACHED — no runner names this path",
+    "copies": "copies of seed",
+    "dead-ref": "dead refs",
+    "ambiguous-ref": "ambiguous refs",
+    "capped": "capped at",
+    "unconfined": "refusing seed outside root",
+    "no-git": "git unavailable",
+    "cutoff-basis": "cutoff",
+    "sweep-basis": "sweep-commit threshold",
+}
+
 TEXT_SUFFIXES = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".sh", ""}
 MAX_READ_BYTES = 2_000_000
 _TOP_CACHE: tuple[str, ...] = ()

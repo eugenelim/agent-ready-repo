@@ -281,6 +281,17 @@ def test_several_spec_directories_are_checked_independently(root):
     assert "docs/specs/fixture" not in result.stdout.split("assigned twice")[0].rsplit("\n", 2)[-1]
 
 
+def test_a_spec_dir_outside_the_root_is_refused(root):
+    """The confinement refusal, which had no case until the catalogue named it."""
+    _tree(root)
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), str(root.parent)],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 2, result.stdout
+    assert "refusing path outside root" in result.stdout
+
+
 def test_missing_plan_does_not_crash(root):
     """A spec authored before its plan exists is checked for what it can be."""
     result = _run(_tree(root, plan=None))

@@ -34,6 +34,25 @@ import re
 import sys
 from pathlib import Path
 
+# Every distinct finding this checker can emit, keyed by rule. The catalogue is
+# here rather than in the suite so the two cannot drift: the messages below are
+# formatted from these fragments, and the suite asserts that each fragment is
+# exercised by some case. A rule whose fragment no test observes is a rule with
+# no red case -- which is how four rules shipped with green suites and no way to
+# fail. It is a floor, not a derivation: a test could contain a fragment without
+# asserting on it, and only running the case proves the branch is reachable.
+FINDING_KINDS = {
+    "unlabelled": "criterion carries no identifier",
+    "duplicate": "is assigned twice",
+    "retired": "is retired and must not be reused",
+    "malformed": "malformed identifier",
+    "unresolved": "resolves to no criterion",
+    "no-task-entry": "is named by no task entry",
+    "group-count": "appears in",
+    "derived-item": "mirrors",
+    "unconfined": "refusing path outside root",
+}
+
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
 UNLABELLED = re.compile(r"^- \[[ x]\] (?!\*\*(?:AC|VI)-\d{4}\.\*\*)", re.M)
 CRITERION_REF = re.compile(r"\bAC-\d{4}\b")
@@ -114,10 +133,10 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
     seen: set[str] = set()
     for ident in criteria:                                        # rules 1-3
         if ident in seen:
-            findings.append(f"{rel}/spec.md: {ident} is assigned twice")
+            findings.append(f"{rel}/spec.md: {ident} {FINDING_KINDS['duplicate']}")
         seen.add(ident)
     for ident in sorted(seen & retired(spec)):
-        findings.append(f"{rel}/spec.md: {ident} is retired and must not be reused")
+        findings.append(f"{rel}/spec.md: {ident} {FINDING_KINDS['retired']}")
     # Scoped to the section, not the document. A spec legitimately carries
     # checkboxes elsewhere -- a rollout step, a migration list -- and scanning
     # the whole file reported those as unlabelled criteria and failed a valid
@@ -127,14 +146,14 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
     for lineno, line in enumerate(section.splitlines(), 1):
         if UNLABELLED.match(line + "\n"):
             findings.append(
-                f"{rel}/spec.md:{lineno + offset}: criterion carries no identifier"
+                f"{rel}/spec.md:{lineno + offset}: {FINDING_KINDS['unlabelled']}"
             )
 
     for name, text in (("spec.md", spec), ("plan.md", plan)):     # rules 1 and 4
         for bad in sorted(set(MALFORMED.findall(text))):
-            findings.append(f"{rel}/{name}: malformed identifier {bad}")
+            findings.append(f"{rel}/{name}: {FINDING_KINDS['malformed']} {bad}")
         for ref in sorted(set(CRITERION_REF.findall(text)) - seen):
-            findings.append(f"{rel}/{name}: {ref} resolves to no criterion")
+            findings.append(f"{rel}/{name}: {ref} {FINDING_KINDS['unresolved']}")
 
     if plan:                                                      # rule 5
         named = task_entries(plan)
@@ -142,20 +161,20 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
         for ident in criteria:
             if ident not in named:
                 hint = " (mentioned in plan, but not in a task entry)" if ident in mentioned else ""
-                findings.append(f"{rel}/plan.md: {ident} is named by no task entry{hint}")
+                findings.append(f"{rel}/plan.md: {ident} {FINDING_KINDS['no-task-entry']}{hint}")
 
     groups = verification_groups(spec)                            # rule 6
     for ident in criteria:
         count = groups.get(ident, 0)
         if count != 1:
             where = "no verification group" if count == 0 else f"{count} verification groups"
-            findings.append(f"{rel}/spec.md: {ident} appears in {where}")
+            findings.append(f"{rel}/spec.md: {ident} {FINDING_KINDS['group-count']} {where}")
 
     for item in sorted(set(ITEM_REF.findall(plan))):              # rule 7
         digits = item.split("-")[1]
         if f"AC-{digits}" in seen:
             findings.append(
-                f"{rel}/plan.md: {item} mirrors AC-{digits}; a verification "
+                f"{rel}/plan.md: {item} {FINDING_KINDS['derived-item']} AC-{digits}; a verification "
                 f"item's identifier is its own, never derived from what it serves"
             )
     return findings, True
@@ -178,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     findings, ran, skipped = [], 0, 0
     for target in targets:
         if root not in target.parents and target != root:
-            print(f"lint-contract-item-alignment: refusing path outside root: {target}")
+            print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
             return 2
         found, applied = check(target)
         findings.extend(found)
