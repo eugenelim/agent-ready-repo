@@ -38,6 +38,17 @@
         "Continues authoring the intent through the documented degradation path",
         "Keeps any alternative review independent and bound to the same evidence"
       ]
+    },
+    {
+      "id": "intent-review-returns-malformed-tokens",
+      "prompt": "frame-intent sends a product intent to Core's shaping-reviewer in intent mode. The review returns MALFORMED(non-goals) and nothing else. What happens next?",
+      "expected_output": "frame-intent returns the token to the author for revision and does not treat the intent as reviewed: an unresolved token blocks a reviewed handoff. It records the intent revision it dispatched, because an empty pass state carries no bytes to carry that binding, and it reads whether the dispatch completed from its own host rather than from the output. A review result alone changes no status or decision.",
+      "assertions": [
+        "Returns the MALFORMED token to the author rather than proceeding",
+        "Blocks a reviewed handoff while a token is unresolved",
+        "Owns the revision binding and reads completion from the host",
+        "Claims no lifecycle effect from the review result"
+      ]
     }
   ]
 }
