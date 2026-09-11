@@ -16,7 +16,7 @@
     "profiles/_example/README.md": "164494df049ddce3e57cb44ed604cb3d39be0a6ec2072e609ea3fa4bbfc74c72",
     "profiles/_example/profile.toml": "68af18cf50fa0327a9776b029c92bb1cf82710c649691b3ac889eb8537b8eac7",
     "tests/conformance/test_gemini_admissibility.py": "8b337da9272823aed2cb22041b3f9fd27549f075f28b9817efd5be8f8c5bb948",
-    "tests/conformance/test_pack_layout_declared_section.py": "ac72518c852944b955d00e57c7a59209a273820b8a9461f5f95f5deb382b277d",
+    "tests/conformance/test_pack_layout_declared_section.py": "1e03e04b995bd3f3cd2e6362c07d05514d3fe995c0fbe59045e3cc11a1e787a0",
     "tests/conformance/test_pack_metadata.py": "8ea175b88cc6e10ba10cda87676fc225ee2b968d710c8e6ab05fb20e31ec978a",
     "tests/conformance/test_shared_library_boundaries.py": "5e07783459336e657a355f43aa5a9cf6c138603624daec258ecc0fa3d74239c3"
   },

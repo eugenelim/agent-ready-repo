@@ -22,9 +22,15 @@ document describes that combination, and the pair rule is what rejects it.
 
 This file is pack-portable by rule: it derives every pack and every pair from
 the tree rather than naming any. It also ships — `catalogue init` writes it
-into an adopter's catalogue, which may hold no packs at all — so the
-tree-derived cases skip on an empty catalogue while the rule's own
-discrimination is proven against synthetic input that is always present.
+into an adopter's catalogue, which may hold no packs, or packs that declare no
+layout — so every tree-derived case skips when its evidence is absent, and the
+rule's own discrimination is proven against synthetic input that is always
+present and can never be vacuous.
+
+That the *source* catalogue actually supplies that evidence is a claim about
+this repository, not about every catalogue, so it lives in `tests/roster/`,
+which does not ship. Without it a mis-rooted glob here would skip rather than
+fail.
 """
 
 from __future__ import annotations
@@ -100,24 +106,6 @@ def _documented_pairs(pack: str, *, repo_scope: bool = True) -> set[tuple[str, s
             if _is_repo_scope_base(base) is repo_scope
         }
     return pairs
-
-
-def _catalogue_has_packs() -> bool:
-    return PACKS_DIR.is_dir() and any(PACKS_DIR.glob("*/pack.toml"))
-
-
-def test_a_populated_catalogue_declares_at_least_one_layout() -> None:
-    """A non-empty floor, scoped to a catalogue that has packs.
-
-    The tree-derived case below is a `for` over a glob, and a glob matching
-    nothing satisfies "for every pack ..." vacuously — so a mis-rooted or
-    renamed tree must go red rather than pass everything downstream. An
-    adopter's catalogue with no packs yet is a different thing from a broken
-    enumeration, and only the second is a defect.
-    """
-    if not _catalogue_has_packs():
-        pytest.skip("no packs in this catalogue")
-    assert _declaring_packs(), "packs are present but none declares a layout"
 
 
 def _is_admitted(
@@ -206,18 +194,12 @@ def test_a_repo_declaration_is_not_validated_by_a_user_scope_example() -> None:
             if any(s == section for s, _ in repo_pairs):
                 assert (section, user_base) not in repo_pairs
                 checked += 1
-    if not _catalogue_has_packs():
-        pytest.skip("no packs in this catalogue")
-    assert checked, (
-        "no pack documents one section at both scopes, so the scope split is "
-        "untested against the tree"
-    )
+    if not checked:
+        pytest.skip("no pack here documents one section at both scopes")
 
 
 def test_no_pack_documents_a_crossing_of_its_own_pairs() -> None:
     """The same property over the real tree, where there is one."""
-    if not _catalogue_has_packs():
-        pytest.skip("no packs in this catalogue")
     for pack, _scope, _section, _base in _declaring_packs():
         pairs = _documented_pairs(pack)
         assert not (_crossed_pairs(pairs) & pairs), (
@@ -233,8 +215,6 @@ def test_every_reference_doc_agrees_with_its_pack_on_the_base() -> None:
     base the installer does not write, and stay green — the adopter reading
     that page gets a location nothing populates.
     """
-    if not _catalogue_has_packs():
-        pytest.skip("no packs in this catalogue")
     walked = 0
     for pack, scope, section, output_dir in _declaring_packs():
         if scope != "repo":
@@ -252,4 +232,5 @@ def test_every_reference_doc_agrees_with_its_pack_on_the_base() -> None:
                 f"{doc.relative_to(REPO_ROOT)} documents {sorted(pairs)} for "
                 f"[{section}] while {pack} declares {output_dir!r}"
             )
-    assert walked, "no reference doc documented a declared repo-scope section"
+    if not walked:
+        pytest.skip("no reference doc here documents a declared repo-scope section")
