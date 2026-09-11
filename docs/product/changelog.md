@@ -54,6 +54,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [agentbundle][0.44.0] — 2026-09-11
+
+### Fixed
+
+- Installing a pack now adds its default output location to an
+  `agentbundle-layout.toml` you already keep. The step has existed since
+  `agentbundle 0.7.0` and has never written anything: it looked for a manifest
+  key no pack declares, and named the table after the pack while every skill
+  reads a differently-named section.
+- The append no longer rebuilds your file. It adds one table and leaves every
+  other byte alone — comments, key order, quoting style, line endings, and any
+  key or section it has no model for. Previously it re-emitted the file from a
+  single key and discarded the rest, which would have deleted adopter content
+  the first time the step became reachable. A pack from an external catalogue
+  could already trigger that, so this is a live fix rather than a latent one.
+- Your file's permissions survive the write. The atomic replace handed the
+  target the temporary file's owner-only mode, so a group-readable layout file
+  became private on first append.
+- A layout file that is a symbolic link is left alone and reported, instead of
+  being replaced by a regular file and stranding what it pointed at.
+- A layout problem no longer fails the install. A read-only file, an
+  unwritable directory or a refused path is reported, and the install finishes
+  with its files in place. Marker failures stay fatal.
+
+### Changed
+
+- A pack declares the layout section it writes, as
+  `[pack.layout.<scope>].section`. The value carries the same character class
+  as a pack name, because it becomes a TOML table header.
+- A declared `output_dir` is confined to the directory the installer already
+  writes under, and a relative value is anchored there rather than to your
+  shell's working directory.
+- A configured `output_dir` in a repo-scope `agentbundle-layout.toml` resolves
+  against the repository root. It resolved against the process working
+  directory, so the same configuration meant different things depending on
+  where a tool was launched. A relative value in the user-scope file is
+  reported and ignored, as the reference docs already said it would be.
+- A layout file using lone-CR line endings is now reported as unparseable. It
+  previously parsed only because the file was read in text mode, which is the
+  same behaviour that silently rewrote CRLF files.
+
+### Highlights
+
+- Installing a pack now sets up where its output goes, instead of quietly
+  doing nothing.
+- Your `agentbundle-layout.toml` keeps its comments, formatting and
+  permissions when a pack is installed.
+
+## [architect][0.15.8] — 2026-09-11
+
+### Changed
+
+- Architecture output defaults to `docs/architecture` rather than
+  `docs/design`, matching where this repository documents architecture. The
+  two reference pages say so.
+- Declares `architecture` as its layout section, so installing the pack sets
+  that default up for you.
+
+## [core][2.25.15] — 2026-09-11
+
+### Fixed
+
+- `workspace-status`'s reference page no longer says an install discards your
+  comments and unknown keys. It does not.
+
+## [desk-research][1.1.8] — 2026-09-11
+
+### Changed
+
+- Declares `research` as its layout section, so installing the pack sets that
+  default up for you.
+- The reference page shows the shipped repo-scope default,
+  `docs/product/research`. It previously documented only a personal-vault
+  path, so the value the installer writes appeared nowhere.
+
+## [experience-design][2.0.4] — 2026-09-11
+
+### Changed
+
+- Declares `design` as its layout section, so installing the pack sets that
+  default up for you.
+
+## [product-engineering][0.13.10] — 2026-09-11
+
+### Changed
+
+- Declares `product` as its layout section, so installing the pack sets that
+  default up for you.
+
+## [product-strategy][0.2.6] — 2026-09-11
+
+### Changed
+
+- Declares `strategy` as its layout section, so installing the pack sets that
+  default up for you.
+
 ## [core][2.25.14] — 2026-09-10
 
 ### Highlights

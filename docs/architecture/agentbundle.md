@@ -135,32 +135,52 @@ installed state, source content, drift, orphaned configuration, and conformance.
 Build output, self-host projections, manifests, and install-state files provide
 the durable evidence record.
 
-### 7.1 Known drift — the install-time layout default writes nothing
+### 7.1 The install-time layout default
 
 `_append_layout_section` maintains an adopter-owned `agentbundle-layout.toml`
 so a pack can ship a default output location at install
-(append-if-exists / never-create / never-overwrite). Traced 2026-09-10, the
-writer and the readers do not agree on any of three things, so the path is
-inert for every pack in the catalogue:
+(append-if-exists / never-create / never-overwrite).
 
-| | Writer (`install.py`) | Readers (`workspace_mcp.py`, skills) | Packs declare |
-| --- | --- | --- | --- |
-| Section | `[<pack-name>]` | closed set: `research`, `product`, `design` | — |
-| Key | `parent` | `output_dir` | `output_dir` |
+A pack declares both halves of what gets written:
 
-Because all five consumers (`architect`, `desk-research`, `experience-design`,
-`product-engineering`, `product-strategy`) declare `[pack.layout.repo].output_dir`
-and the writer reads `parent`, it returns before writing. Verified by executing
-the real function against the real `desk-research` manifest: the layout file is
-unchanged. Even with the key corrected, the writer would emit
-`[desk-research]` where readers look in `[research]`.
+```toml
+[pack.layout.repo]
+section    = "design"
+output_dir = "docs/design"
+```
 
-`tests/unit/test_append_layout_section.py` passes `pack_name="research"` and
-`{"repo": {"parent": …}}` — a shape no pack produces — so it proves the
-function against inputs production never supplies and cannot catch this.
+The section name is declared rather than derived from the pack name, because
+the two are not the same thing and no function maps one to the other —
+`experience-design` writes `[design]`, `desk-research` writes `[research]`.
+There are two reader classes and only one of them is code: `workspace_mcp.py`
+resolves item-type paths, while every consuming skill reads its section by
+prose instruction in its own `SKILL.md`. A skill cannot consult a lookup table,
+so the manifest has to name the section each pack already documents, and
+`tests/conformance/test_pack_layout_declared_section.py` compares the declared
+(section, base) pair against the pairs that pack's own reference docs state.
 
-Adopter-authored layout files work correctly; only the shipped-default path is
-affected. Tracked in `[backlog].open`.
+**The append preserves the rest of the file.** It reads bytes, parses a
+throwaway copy only to decide occupancy, and writes the original bytes plus one
+table — so comments, key order, quoting style, line endings, and any key or
+section it has no model for all survive, and the file keeps its mode across the
+atomic replace.
+
+**It is best-effort.** It never raises and never fails the install: a layout
+problem is reported and the install completes with its files in place.
+`_append_install_marker` shares the call site but keeps its own fatal handler,
+because uninstall and `adapt` read what it writes. The reachable states are
+enumerated in `docs/specs/layout-install-sections/spec.md` and implemented in
+that order; three are silent because they are the contract working (no layout
+file, an incomplete declaration, and a section already present — every
+re-install of a configured pack), the rest report, and a terminal row makes the
+never-raise property rest on a catch-all rather than on the enumeration being
+exhaustive.
+
+`output_dir` is catalogue-sourced and reaches a filesystem root here, so it is
+confined to the same root the write jail uses for that scope, with a relative
+value anchored there rather than to the process working directory. `section`
+becomes a TOML table header and carries the same character class as a pack
+name.
 
 ## 8. Mechanical invariants
 

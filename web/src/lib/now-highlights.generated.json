@@ -4,6 +4,45 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.44.0"
+        }
+      ],
+      "date": "2026-09-11",
+      "heading": "[agentbundle][0.44.0] — 2026-09-11",
+      "changelogAnchor": "agentbundle0440--2026-09-11",
+      "highlights": [
+        {
+          "source": "Installing a pack now sets up where its output goes, instead of quietly doing nothing.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Installing a pack now sets up where its output goes, instead of quietly doing nothing."
+            }
+          ]
+        },
+        {
+          "source": "Your `agentbundle-layout.toml` keeps its comments, formatting and permissions when a pack is installed.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Your "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle-layout.toml"
+            },
+            {
+              "type": "text",
+              "value": " keeps its comments, formatting and permissions when a pack is installed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.25.14"
         }
