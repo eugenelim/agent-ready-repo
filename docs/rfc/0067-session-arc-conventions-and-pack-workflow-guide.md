@@ -240,3 +240,30 @@ To be filled in on acceptance:
 - Spec: `docs/specs/spec-B-pack-status-skills/` — Change B (desk-research-project-status, experience-status, workspace.toml `design` type).
 - Spec: `docs/specs/spec-C-workloop-argless-resume/` — Change C (description triggers + Step 0 wiring).
 - Spec: `docs/specs/spec-D-pack-workflow-guide/` — Change D (new guide, CONTRIBUTING.md step 0, author-a-skill.md update).
+
+## Errata
+
+- **2026-09-10 — the `[design]` and `[research]` section names used throughout
+  this RFC contradict the rule it states.** The rule is correct and stands:
+  "one `[section]` per pack, one `output_dir` key per section" (Change B,
+  `experience-status`), matching RFC-0040's "one table per consuming pack". The
+  worked examples do not follow it. `[design]` is not a pack name — the pack is
+  `experience-design` — and `[research]` names a pack that
+  `docs/product/roadmap.md` M3 renamed to `desk-research`. Read every
+  `[design] output_dir` in this RFC as `[experience-design] output_dir`, and
+  every `[research] output_dir` as `[desk-research] output_dir`.
+
+  This matters because the examples, not the rule, are what the readers
+  implemented. `workspace_mcp.py`'s `_LAYOUT_TYPE_BASES` keys on `research`,
+  `product`, and `design`, and 23 per-skill `references/agentbundle-layout.md`
+  files document those same off-canon names. The result is a section vocabulary
+  that matches no pack, which is why no single surface can be asked where a
+  pack's output goes.
+
+  `architect` also gains a default base of `docs/architecture` — see the
+  RFC-0040 erratum, which carries the full correction and its mechanism. In
+  short: a skill reads the section named after its own pack, so most of the
+  central registry disappears; the one surviving table maps item type to
+  owning pack; and each rename ships a permanent read-only alias row beside
+  it, because an adopter's `agentbundle-layout.toml` lives outside this
+  repository and cannot be migrated by us. Approver: eugenelim.

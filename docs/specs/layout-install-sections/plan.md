@@ -1,280 +1,336 @@
-# Plan: <feature name>
+# Plan: Catalogue install writes a layout section the skills read
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** <task-relevant architecture/convention source;
-  one or two analogous production implementations; corresponding tests or
-  construction path; named uncertainty/deviation — or `none — non-structural`>
+- **Repository anchors:** `docs/architecture/agentbundle.md` § 7.1 records the
+  measured drift, and names both reader classes — `workspace_mcp.py` and the
+  skills. The `[backlog].open` entry at `workspace.toml:449` owns the defect and
+  names both halves, the key/section mismatch and the fixture shape that hid
+  it, which is why one spec closes it. The analogous implementation is
+  `install.py::_append_install_marker`: same read, sanitise, re-emit shape, same
+  jail — a shape precedent only, since it appends unconditionally and never
+  replaces an entry (`install.py:3126-3136`). Tests live at
+  `packages/agentbundle/tests/unit/test_append_layout_section.py`;
+  `packages/AGENTS.md` § Test conventions assigns homes by assertion owner.
+  Named uncertainty: adopter files cannot be observed, so nothing here can tell
+  whether an adopter has hand-authored a section under a name no pack declares.
 
 > **Plan contract:** this is the implementation strategy. It may change
-> substantively only while its Status is `Drafting`, before approval records its
-> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
-> only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
-
-<!-- Existing plans without this field remain valid. Treat its absence as a
-named assurance gap during structural review, not a universal lint failure. -->
-
-<!-- **Durable-plan fill.** This template is the implementation and verification
-strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
-Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
-spec is the durable behavior contract. Eligible direct-light work does not
-create this artifact. -->
+> substantively only while its Status is `Drafting`, before approval records
+> its baseline. After approval, `spec.md` and `plan.md` are pinned in
+> substance; only lifecycle bookkeeping is permitted, and execution
+> observations belong in
+> `docs/specs/layout-install-sections/notes/verification-ledger.md`. A genuine
+> artifact error follows the controlled-amendment path.
 
 ## Approach
 
-<!--
-A paragraph describing the strategy. What's the shape of the change? What's
-the order of operations? What's the riskiest part?
+The installer reads the wrong key and writes the wrong section name. Correcting
+the key alone is not safe, because the code that runs once the append is
+reachable rebuilds the whole file from that key and discards everything else —
+so the rebuild has to go in the same change.
 
-A reader should finish this section knowing roughly what files will move and
-what the testing story is, without yet seeing the detailed task list.
--->
+Where the section name comes from is the decision that sizes this work. Deriving
+it from the pack name would mean moving 23 skill bodies and the document corpus
+onto that vocabulary, because a skill resolves its section by prose instruction
+to the agent and cannot consult a Python alias table. Declaring it in the
+manifest instead means the installer writes exactly what each pack's skills
+already read, and no skill body, guide or convention page changes. That is the
+route taken; the vocabulary move is logged separately.
+
+The resolver is untouched. Skills do not read through it, so it cannot make an
+installed default findable or unfindable. One bug in it is in scope, because
+this change activates it: it anchors a relative configured value to the process
+working directory, and writing repo-relative defaults turns a path reachable
+only by hand-authored config into the common one.
 
 ## Constraints
 
-<!--
-What ADRs, RFCs, or other commitments shape this implementation? Cite them.
-This is what keeps the plan from contradicting prior decisions.
--->
+- `packages/agentbundle/` is a protected tree with only `build/recipes/` and
+  `/tests/` carved out, so every commit touching the installer, the resolver or
+  `_data/` carries `Engine-Change-RFC: RFC-0040`.
+- The two `pack.schema.json` copies are byte-parity gated; they move in one
+  commit or the gate fails. `_data/pack.schema.json` is a maintained copy, not
+  generated — the hand copy is correct and the gate is what catches a one-sided
+  move.
+- `packages/AGENTS.md` cross-package traps bind: `tmp_path` rather than
+  `mkdtemp`, explicit `encoding="utf-8"`, no hardcoded `/tmp`, and
+  `AGENTBUNDLE_USER_ROOT` set with `HOME` for any user-scope case.
+- `packages/agentbundle/AGENTS.md` says to normalize CRLF before byte
+  comparisons of *checked-out text*. That does not apply to these fixtures: the
+  test writes them with explicit line endings, and normalising erases the
+  difference AC2 and AC3 exist to detect.
+- `safety.write_jailed` and `config._emit_basic_string` stay on the path. They
+  are security controls, not implementation detail.
+- `packs/AGENTS.md` § Version bump rule governs each edited pack;
+  `packs/AGENTS.local.md` governs the engine bump.
 
 ## Construction tests
 
-Most construction tests live under **Tasks** below (per-task `Tests:`
-subsections). This top-level section is only for cross-cutting tests that
-span tasks.
+`packages/agentbundle/tests/unit/test_append_layout_section.py` holds the
+installer cases; it is also the file whose fixture shape let this through,
+passing `pack_name="research"` with a `parent` key — a combination no pack
+produces. Its fixtures are re-pointed at the real manifests.
 
-<!--
-Construction tests guide implementation. They sit in two layers:
+`test_reemit_drops_tampered_existing_parent`'s two assertions are **deleted**,
+not amended: they state the data loss as the contract.
 
-1. **Per-task tests** (the majority) live under each Task below, in the
-   `Tests:` subsection. That's where unit, edge-case, and property tests
-   for a single task go.
-2. **Cross-cutting tests** (this section) live here, listed once: integration
-   tests that span tasks, end-to-end smoke tests, and any manual verification
-   steps.
+Preservation fixtures are literal bytes, not serialised from a dict — a
+serialised fixture cannot carry the comment AC2 is about or the line ending AC3
+is about. Each asserts the exact complete result, because a survival-only
+assertion passes on a file nobody wrote to.
 
-Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. The contract itself lives in
-`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
-that verify it live here.
+The anchoring case (AC7) belongs with the resolver's own tests and runs with a
+working directory other than the repository root.
 
-**Integration tests:** <list, or "none beyond per-task tests">
-**Manual verification:** <list, or "none">
--->
+The document and schema checks (AC6, AC8, AC9, AC10) are catalogue rules and
+belong in the repository's `tests/conformance/`, not under
+`packages/agentbundle/tests/` — that tree ships to adopters, where no `packs/`
+directory exists and a derivation over `packs/*/pack.toml` would enumerate an
+empty set and pass on empty state.
 
 ## Durable-output map
 
-<!--
-This section maps each task to the spec's Durable Outputs table so closeout can
-verify planned output, implementation evidence, and closeout evidence without
-copying requirements into a second record.
-
-For each output, name:
-
-- planned output
-- implementing task(s)
-- implementation evidence
-- closeout evidence
-- unresolved destination or freshness blocker, if any
-
-If the plan's Design (LLD) contains a non-inferable design fact, map it to its
-semantic owner here. Mechanically evident details may stay with code, types,
-docstrings, and tests; one-off construction order may remain delivery residue.
--->
-
-| Durable output | Tasks | Implementation evidence | Closeout evidence |
-| --- | --- | --- | --- |
-| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+| Spec output | Task | Evidence |
+| --- | --- | --- |
+| Interface compatibility (`pack.schema.json`) | T1 | Parity gate green |
+| User-facing promise (reference docs) | T4 | Corrected value, no comment-loss claim |
+| Current architecture (`agentbundle.md` § 7.1) | T6 | Both reader classes agree |
+| Release history (changelog) | T6 | An `agentbundle` entry and one per bumped pack |
 
 ## Design (LLD)
 
-The low-level design — the *how*, below the Approach and above the per-task
-steps. **Optional and shape-pruned:** scaffold only the sub-sections the spec's
-`Shape:` selects, and delete the rest. A one-file change keeps this section thin
-or empty; a heavyweight feature fills most of it. The spec stays the contract —
-**no acceptance criterion lives here**; each sub-section instead **traces to the
-AC(s) it satisfies and the `contracts/` it implements**, so the design is always
-anchored to something verifiable.
-
-Stack-neutral by construction: these are the *kinds* of design decision every
-build makes, never a framework. Name your actual stack *inside* each sub-section
-from the repository's mapped architecture and convention sources. If none are
-usable, use manifests/build files and, for structural work, one or two analogous
-production implementations with their tests or construction path; elicit any
-unresolved load-bearing choice. The headings themselves stay universal.
-
-<!-- Shape → sub-sections (a guide, not a gate):
-  ui          → decomposition, state & control flow, behavior & rules, quality attributes
-  service     → interfaces & contracts, data & schema, failure & resilience, quality attributes
-  data        → data & schema, interfaces & contracts
-  integration → dependencies & integration, interfaces & contracts, failure & resilience
-  mixed/unsure→ scaffold all, then prune.
-Delete every sub-heading the shape doesn't select. -->
-
 ### Design decisions
-<!-- optional — the load-bearing choices and the alternatives rejected, one line
-of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
+
+**Why `section` is declared, not derived.** No function of the pack name yields
+the section: `experience-design` writes `[design]`, `desk-research` writes
+`[research]`. Deriving it would require moving the vocabulary, and the readers
+that matter are prose instructions inside skill bodies, not code that could
+consult a map. An installer-held table was rejected for the same reason it was
+rejected in RFC-0040's design: a hand-maintained table far from the manifests it
+describes is the shape that produced this defect.
+
+**Why the key fix and the preservation fix are one change.** Correcting the key
+is what makes the re-emit reachable. Shipped apart, either the release deletes
+adopter sections, or the preservation fix must build its fixtures on `parent` —
+the one shape no pack produces, which the backlog entry names as the reason the
+original defect went unseen.
+
+**Why the parse stays.** Two obligations still need it: refusing a file that
+cannot be read, and detecting an occupied name. Neither needs the parsed values
+written back.
+
+**Why append rather than preserve-more-keys.** Preserving more keys means
+enumerating what an adopter may have written, which is unknowable. Not
+rewriting is the only approach whose correctness does not depend on that
+enumeration.
+
+**Why an occupied name refuses.** Today an occupying scalar or array is
+silently destroyed and the output still parses — the loss is real, the invalid
+TOML is not. Once the file is preserved rather than rebuilt, appending beside an
+existing scalar of the same name *would* redeclare, so the refusal is a property
+of the new design rather than a repair of the old. It costs the pack's default
+on a file whose name is already taken, which is the lesser harm against
+destroying what the adopter put there.
+
+**Why the absent-file case stays silent.** It is the designed no-op and the
+common case. Obliging a diagnostic there would emit one line per declaring pack
+per scope on every install into a repository with no layout file.
+
+**Why bytes, not text.** `read_text` folds CRLF and lone CR to LF, so a
+text-mode read rewrites every Windows adopter's file. The decode stays inside
+the refusal boundary: a non-UTF-8 file is caught today by the same `except` that
+catches a parse failure, and moving the decode outside turns a warning into an
+uncaught traceback.
+
+**Why the resolver is otherwise untouched.** Skills resolve the layout file
+themselves and never call it, so its coverage does not decide whether an
+installed default is found. Its three-of-five coverage and the `[product]`
+sharing are real, and logged.
 
 ### Data & schema
-<!-- optional — entities, fields, types, ownership, migrations, retention.
-Traces to: <AC(s)> · <contracts/…>. -->
+
+`[pack.layout.<scope>]` gains one optional string key, `section`. `parent` stays
+in the schema: removing it is a separate compatibility question, and nothing
+reads it once the installer stops.
 
 ### Interfaces & contracts
-<!-- optional — the surfaces this feature exposes or consumes (REST API, event
-interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
-Traces to: <AC(s)> · <contracts/…>. -->
 
-### Component / module decomposition
-<!-- optional — the parts and their responsibilities; what's new vs. reused; for
-UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
-
-### State & control flow
-<!-- optional — state model and transitions; sequencing across components; for
-UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
-
-### Behavior & rules
-<!-- optional — the business and validation rules and the decisions they drive.
-Traces to: <AC(s)> · <contracts/…>. -->
+`_append_layout_section`'s signature is unchanged. It reads `section` and
+`output_dir` instead of `parent`, names the table from `section` instead of
+`pack_name`, and writes bytes-read-plus-one-table instead of a reconstruction.
+Its refusals gain the non-UTF-8 case explicitly and widen the occupied-name case
+from "is a table" to "is present".
 
 ### Failure, edge cases & resilience
-<!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
-partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
 
-### Quality attributes (NFRs)
-<!-- optional — how the design meets each NFR-with-a-bar from the spec's
-Acceptance Criteria (performance, accessibility, security posture, operability).
-Traces to: <AC(s)> · <contracts/…>. -->
-
-### Dependencies & integration
-<!-- optional — external systems, services, and libraries this design leans on,
-and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
-below for *execution* ordering; this sub-section is for *design*-level coupling.)
-Traces to: <AC(s)> · <contracts/…>. -->
-
-> **Rollout & deployment** — the tenth design dimension — is **not** a
-> sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,
-> external-system integration, deployment sequencing). Cross-link it from the
-> relevant sub-sections; never duplicate it.
+An empty file takes the append path and yields one table. A file with no line
+ending gets `\n`, there being no style to match. A pack declaring `output_dir`
+but not `section`, or the reverse, appends nothing — the same no-op an absent
+sub-table takes today, so a pack that has not opted in is unaffected.
 
 ## Tasks
 
-The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Phrase each task as a verifiable goal, not a procedure.** The task name
-*is* the success criterion: *"Add validation"* → *"All invalid-input tests
-pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. **Within each task, `Tests:` comes before `Approach:`** —
-tests drive implementation, not the other way around. Use red-green-refactor
-with separate commits when the change is non-trivial.
+### T1: Admit `section` in the pack schema
 
-**Every task must declare `Depends on:` explicitly** — list prior task IDs
-or `none`. Don't omit the field; "obvious from order" is the failure mode
-that hides serial-by-default thinking. `none` is a valid and common answer.
-
-Planning is sufficient when the plan supplies an observable contract, owner,
-boundaries, ordering, discovery predicates where a seam is not grounded,
-required outcomes, and verification modes adequate to begin safely. It need
-not settle a helper name, symbol, fixture-internal detail, or complete edge-case
-matrix before implementation. Such questions are build-time guidance unless
-their absence makes the plan unable to start or verify the contract.
-
-Keep observable behavior in `spec.md`. Use an exact path or symbol here only
-when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
-constraint, required outcome, and verification mode; do not invent a helper,
-fixture, module, path, or symbol.
-
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
-local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
-`spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
-ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first).
-
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
-A task *may* add a `**Touches:**` line listing the file globs it expects to
-touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
-
-<!--
-Order matters — list tasks in the order they should be done. Mark
-dependencies inline. Format each task so a contributor (human or agent)
-could pick it up and complete it without follow-up questions:
-
-### T1: <task name>
-
-**Depends on:** <none | T0, ...>
+**Depends on:** none
 
 **Tests:**
-- <test 1 — behaviour, edge case, or property; reference the Acceptance
-  Criterion from spec.md this step verifies, if any>
-- <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+- A manifest carrying `section` inside `[pack.layout.repo]` validates; one
+  carrying an unknown sibling does not. This is an engine-distribution
+  assertion, so it lives in `packages/agentbundle/tests/unit/`. (AC10)
+- The shipped parity gate compares the two copies byte-for-byte and must stay
+  green. (AC10)
 
 **Approach:**
-- <step 1>
-- <step 2>
+- Add the key to `contracts/pack.schema.json` under both scope sub-tables and
+  copy to `packages/agentbundle/agentbundle/_data/pack.schema.json`.
 
-**Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
-  an execution-evidence destination; use the verification ledger. Not "looks
-  good" or "feature works".>
+**Done when:** those checks pass.
 
-### T2: <task name>
+### T2: Read `section` and `output_dir`, and append instead of re-emitting
 
-...
--->
+**Depends on:** T1
 
+**Tests:**
+- A declaring pack appends `[<section>] output_dir = <output_dir>`; the result
+  is the original bytes plus the separator plus that table. A pack missing
+  either key appends nothing. (AC1)
+- A file with comments, blank lines, adopter sections, an extra key inside a
+  section, a nested sub-table and a top-level non-table value is otherwise
+  byte-identical. (AC2)
+- A CRLF file stays CRLF; a file without a trailing newline gains exactly one
+  in its own style; one with a trailing newline gains none; a file with no line
+  ending gains `\n`. (AC3)
+- Undecodable, unparseable, and occupied-name-as-table/scalar/array each leave
+  the file byte-identical and write the reason to stderr. (AC4)
+- An absent file is not created and nothing is printed. (AC5)
+- The injection round-trip stays green and is mutation-checked by removing the
+  emitter call. (AC11)
+
+**Approach:**
+- Read with `read_bytes`; decode a throwaway copy inside the existing `try`.
+- Widen the already-present check from "is a table" to "is present".
+- Delete the section-rebuild loop and both drop-and-warn branches.
+- Source the table name from `section` and the value from `output_dir`,
+  returning early when either is not a string.
+- Emit both through `_emit_basic_string`; write original bytes plus separator
+  plus table through `safety.write_jailed`.
+- Delete `test_reemit_drops_tampered_existing_parent`'s two assertions and
+  re-point the suite's fixtures at the real manifests.
+
+**Done when:** those cases pass and the mutation check confirms AC11 can fail.
+
+### T3: Declare a section in each consuming pack
+
+**Depends on:** T1
+
+**Tests:**
+- Every pack declaring `[pack.layout.<scope>]` declares a `section` equal to
+  the section its own shipped skill bodies and reference docs instruct a reader
+  to look in. Both sides derived from the repository. (AC6)
+
+**Approach:**
+- Add `section` to the five manifests: `architect` → `architecture`,
+  `desk-research` → `research`, `experience-design` → `design`,
+  `product-engineering` → `product`, `product-strategy` → `strategy`.
+- Bump each edited pack's `pack.toml` and `.claude-plugin/plugin.json`.
+
+**Done when:** the check passes and `agentbundle catalogue lint` is clean.
+
+### T4: Correct the two documented facts this change falsifies
+
+**Depends on:** none
+
+**Tests:**
+- `architect`'s manifest and both of its reference docs name
+  `docs/architecture`; no `architect` surface names `docs/design`. (AC8)
+- No `references/agentbundle-layout.md` claims the append fails to preserve
+  comments or off-schema keys. The file set is derived. (AC9)
+
+**Approach:**
+- Change `architect`'s `output_dir` and the two reference docs' documented
+  value.
+- Remove the comment-loss sentence from the six reference docs that carry it;
+  regenerate the `workspace-status` projections rather than editing them.
+- Bump each edited pack.
+
+**Done when:** both checks pass.
+
+### T5: Anchor a repo-scope relative value to the repository root
+
+**Depends on:** none
+
+**Tests:**
+- A relative `output_dir` in the repo-scope file resolves against the
+  repository root, asserted from a working directory that is not the repository
+  root. (AC7)
+
+**Approach:**
+- Resolve a repo-scope relative value against the resolver's own repository
+  root instead of the ambient working directory. User-scope values stay
+  absolute per RFC-0040.
+
+**Done when:** that case passes and the resolver's existing tests stay green.
+
+### T6: Record the release
+
+**Depends on:** T2, T3, T4, T5
+
+**Tests:**
+- None of its own. Every obligation is discharged by another task's criterion
+  or by the release gates.
+
+**Approach:**
+- Bump `pyproject.toml` and `agentbundle/version.py` together.
+- Replace `agentbundle.md` § 7.1 with shipped behaviour, describing both reader
+  classes.
+- Retire the `[backlog].open` entry at `workspace.toml:449`.
+- Add the changelog entries, resolving versions against `origin/main` at the
+  time this runs.
+- Record the probe outputs and the AC11 mutation-check result in
+  `notes/verification-ledger.md`.
+
+**Done when:** `make build-check` is green and the backlog entry is gone.
 
 ## Rollout
 
-<!--
-How this ships — the tenth design dimension, realized here rather than as a
-`## Design (LLD)` sub-heading (cross-linked from there, never duplicated). Cover
-the dimensions that apply; a pure-logic change with none of them says so in one
-line.
+No migration and no flag. The append has never written a section from this
+catalogue, so there is no prior state to reconcile, and an adopter with no
+layout file is unaffected. An adopter who hand-authored a section keeps it: the
+append never replaces one.
 
-- **Delivery:** behind a flag? big bang? gradual / canary? Reversible — what is
-  the rollback, and what's irreversible (a data migration, a published event)?
-- **Infrastructure:** new or changed infra this needs (compute, storage, queues,
-  network, secrets, IAM) and how it's provisioned.
-- **External-system integration:** third-party or sibling-service dependencies
-  that must be live, migrated, or version-matched before this can ship.
-- **Deployment sequencing:** the order steps must ship in when one depends on
-  another — schema migration before the code that reads it, consumer before
-  producer, dark-launch before cutover. This is the dimension with no other home.
--->
+The data loss is not known never to have fired. The schema admits `parent` and
+`agentbundle install` accepts an external catalogue, so a third-party pack
+declaring it has been able to destroy adopter sections for as long as this has
+shipped. The changelog says that rather than calling it latent.
+
+One narrowing ships with the byte-preserving read: a file using lone-CR line
+endings parses today only because `read_text` translates them, and is refused as
+unparseable afterwards. It is reported, not silent.
 
 ## Risks
 
-<!--
-What could go wrong during implementation (vs. risks of the design itself,
-which belong in the spec)? Things like: "this migration is online and could
-slow the database", "this changes a behavior X teams depend on".
--->
+- **A fix that appends raw bytes disarms the injection control.** The
+  round-trip test would pass with the emitter bypassed if the value were benign.
+  T2 mutation-checks it.
+- **Preservation assertions that only check survival cannot fail.** The function
+  returns before writing for any shipped manifest today, so a survival-shaped
+  test passes on an untouched file. Every case asserts the exact complete result
+  and sources its manifest from the catalogue.
+- **A declared section drifts from what the skills read.** That is the defect
+  this repairs, reintroduced. AC6 derives both sides rather than comparing
+  against a list, so a skill body edited later fails the check.
+- **A bump collides.** Peer sessions claim versions concurrently; this
+  repository collided twice in one day. Resolve every version against
+  `origin/main` when T6 runs.
 
 ## Changelog
 
-<!--
-While the plan is `Drafting` and changes meaningfully, add a dated entry. This
-isn't bureaucracy — it's how a reviewer (or a returning agent) understands why
-the current plan looks different from yesterday's plan. After approval this
-section is pinned like the rest of the plan: an execution observation goes to
-the verification ledger, not to a new changelog entry.
-
-- YYYY-MM-DD: initial plan
-- YYYY-MM-DD: switched from approach A to B because <reason>
--->
+- 2026-09-10 — drafted as `layout-default-append`; premise invalidated in
+  review.
+- 2026-09-11 — re-drafted on pack-keyed sections, merged with the preservation
+  fix, then cut back after review established that skills resolve sections by
+  prose instruction and cannot consult an alias table — which makes a declared
+  `section` the only route that repairs the install without moving the
+  vocabulary. The vocabulary move is logged as separate work.

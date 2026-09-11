@@ -447,6 +447,31 @@ open = [
   # Evidence and the comparison table: docs/architecture/agentbundle.md 7.1.
   # Unblocks when: an owner picks which side is authoritative.
   {path = "docs/architecture/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "packages/agentbundle/agentbundle/commands/install.py"}, summary = "The install-time `agentbundle-layout.toml` default never writes: the appender reads `parent` and emits a pack-name section while every pack declares `output_dir` and every reader looks in the semantic `research`/`product`/`design` sections, and the unit test uses a fixture shape no pack produces", needs = []},
+  # The layout section vocabulary is not the pack vocabulary. Packs were
+  # deliberately renamed to canonical names (`research` -> `desk-research`,
+  # `experience` -> `experience-design`; roadmap M3), but the sections their
+  # skills read kept the old short names, and `architecture`/`strategy`/
+  # `product`/`discovery` match no pack at all. RFC-0040 specifies one table
+  # per consuming pack and RFC-0067 restates it, yet RFC-0067's worked examples
+  # use `[design]` and `[research]` — the examples, not the rule, are what the
+  # readers implemented. Both RFCs now carry errata recording this.
+  # Not a rename sweep: a skill resolves its section by prose instruction to
+  # the agent, so there is no code path an alias table could sit on, and every
+  # reader has to move together. Surface measured 2026-09-11: 23 `SKILL.md`
+  # bodies, the `references/agentbundle-layout.md` set, five `pack.toml`
+  # comment blocks, four `DESIGN.md`, `docs/CONVENTIONS.md` and its byte-parity
+  # twin, the guide corpus, the work-loop corpus fixtures, and
+  # `tools/test_live_demo_guide.py`, which asserts a literal section name.
+  # Two decisions it must settle first: `[product]` is shared by two item types
+  # in `workspace_mcp.py::_LAYOUT_TYPE_BASES`, so a one-to-one alias silently
+  # drops one; and `[discovery]`'s base is `docs/discovery`, not
+  # `product-engineering`'s `docs/product`.
+  # Deferring is safe but not free: nothing breaks, because
+  # `docs/specs/layout-install-sections/` makes the installer write the section
+  # each pack's skills already read. The cost is that the configuration
+  # vocabulary stays off-canon.
+  # Unblocks when: `docs/specs/layout-install-sections/` ships.
+  {path = "docs/architecture/agentbundle.md", kind = "chore", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine

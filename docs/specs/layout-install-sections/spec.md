@@ -1,276 +1,259 @@
-# Spec: <feature name>
+# Spec: Catalogue install writes a layout section the skills read
 
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Owner:** <github-handle>
+- **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
-- **Brief:** <!-- optional: the delivery brief this spec was derived from (`docs/product/briefs/<slug>.md`); stamped by author-delivery-brief continue. Omit, or "none", for a spec authored directly. Distinct from Constrained by: this is product provenance, not a governance constraint. -->
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / CONVENTIONS § 4 Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Constrained by:**
+  - [RFC-0040](../../rfc/0040-consolidated-pack-layout-config.md) — sets the
+    append-if-exists / never-create / never-overwrite contract and the
+    repo-relative anchoring rule; its erratum records the key rename and
+    `architect`'s base
+- **Brief:** none
+- **Discovery:** none
+- **Contract:** `contracts/pack.schema.json` (modified — adds one optional key)
+- **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Objective, Boundaries, Testing
-Strategy, Acceptance Criteria, and Assumptions to the depth the durable work
-requires. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-changelog. This applies to the spec body only — `plan.md` keeps its own
-changelog of how the approach evolved. -->
-
 ## Objective
 
-<!--
-One paragraph. What are we building, who is the user, and what does success
-look like for them? Frame from the user's perspective, not the implementer's.
-Implementation detail belongs in `plan.md`.
--->
+Installing a pack into a repository that keeps an `agentbundle-layout.toml`
+adds the pack's default output location, and the pack's own skills find it.
 
-## Durable Outputs
+The install-time append writes nothing for any pack in the catalogue. It reads a
+manifest key no pack declares, and writes a section name no reader looks for.
+Both halves close here, and the code that runs once the append is reachable
+rebuilds the adopter's file from a single key and destroys the rest — so
+preservation lands in the same change.
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
+A pack declares which section owns its output:
 
-For each row, name:
+```toml
+[pack.layout.repo]
+section    = "design"
+output_dir = "docs/design"
+```
 
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
+At install, that becomes a section in the adopter's file:
 
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
+```toml
+[design]
+output_dir = "docs/design"
+```
 
-| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
-| --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+The section is declared rather than derived from the pack name, because the
+section name and the pack name are not the same thing and no function maps one
+to the other — `experience-design` writes `[design]`, `desk-research` writes
+`[research]`. Each pack's skills already document and read the section this
+declares, so the install and the skill agree on the first try.
 
 ## Boundaries
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Keep the append conditional: never create a file, never replace a section an
+  adopter wrote.
+- Leave the adopter's existing bytes untouched.
+- Keep the per-scope write jail and the injection-safe string emission.
+- Keep the two `pack.schema.json` copies byte-identical, moved together.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- Any change to a pack's default `output_dir` beyond `architect`'s. A default
+  is an adopter-visible path.
+- Any change to which section a pack declares. Each value matches what that
+  pack's skills already read; changing one silently breaks them.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
-
-## Testing Strategy
-
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **No new top-level directory, module, or dependency.**
+- Never rename a section in a skill body, reference doc, guide, or convention
+  page. Moving the vocabulary onto pack names is separate, logged work.
+- Never create a layout file that did not already exist, on any scope.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see CONVENTIONS § 4 Spec
-metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+- [ ] **AC1 — A declaring pack's default reaches an existing adopter file.**
+  Installing a pack whose manifest declares both `section` and `output_dir` for
+  the install scope, into a scope holding an `agentbundle-layout.toml`, appends
+  a table named by `section` carrying `output_dir` set to the declared value.
+  A pack missing either key for that scope appends nothing.
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
+- [ ] **AC2 — Every other byte is unchanged.** Comments, blank lines, key
+  order, quoting style, line endings, and every existing table and top-level
+  value survive. After the append of AC1 the file equals the original bytes
+  plus exactly the separator of AC3 and the appended table — stated as the
+  complete result, so a no-op cannot satisfy it. The comparison is on bytes: a
+  parsed comparison sees neither a lost comment nor a folded CRLF.
 
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
+- [ ] **AC3 — The separator is the only added byte.** A file already ending in
+  a newline gains none. A file ending without one gains exactly one, in the
+  line-ending style the file already uses, or `\n` when it carries none.
 
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
+- [ ] **AC4 — Three states refuse and report.** A file that cannot be decoded
+  as UTF-8, a file that cannot be parsed, and a top-level name already taken by
+  the declared section — whatever its type — each leave the file byte-identical
+  and write the reason to stderr.
 
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
+- [ ] **AC5 — An absent file stays absent, silently.** Installing into a scope
+  with no `agentbundle-layout.toml` creates nothing and emits no diagnostic.
+  This is the designed no-op on the majority of installs, not a refusal.
 
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
+- [ ] **AC6 — Each pack declares the section its own skills read.** For every
+  pack declaring `[pack.layout.<scope>]`, the declared `section` equals the
+  section name that pack's shipped skill bodies and `references/agentbundle-layout.md`
+  instruct a reader to look in. Both sides are derived from the repository.
 
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
+- [ ] **AC7 — A repo-scope relative value resolves against the repository
+  root.** `workspace_mcp.py` anchors a relative `output_dir` from the repo-scope
+  file to the repository root, not to the process working directory. The test
+  runs from a working directory other than the repository root, so an
+  implementation that resolves against the process CWD fails.
 
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
+- [ ] **AC8 — `architect` declares `docs/architecture`, and says so.** Its
+  manifest names that base, and both of its `references/agentbundle-layout.md`
+  files document the same value rather than `docs/design`.
 
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
+- [ ] **AC9 — No shipped document claims the append drops content.** No
+  `references/agentbundle-layout.md` states that the installer re-emits the file
+  without preserving comments or off-schema keys. The file set is derived from
+  the repository.
 
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
+- [ ] **AC10 — The manifest schema admits `section` and still refuses an
+  unknown key.** `pack.schema.json` accepts `section` inside
+  `[pack.layout.repo]` and `[pack.layout.user]`, refuses a key it does not name,
+  and its two copies are byte-equal.
 
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
+- [ ] **AC11 — The emitted table is injection-safe.** A declared `section` or
+  `output_dir` containing `"`, `]`, a newline, or `../` round-trips through
+  `tomllib` as one string in one table, landing no additional TOML structure.
 
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
+## Testing Strategy
 
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Objective guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
+- **The write behaviour (AC1, AC2, AC3, AC4, AC5):** TDD. Each fails on a
+  different input — a wrong key, a wrong section name, a lost comment, a folded
+  line ending, a file created that should not be, a diagnostic on a designed
+  no-op.
 
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
+- **The round trip (AC6):** goal-based check. Writer and readers disagreed on
+  both the key and the section name for two releases with tests green on each
+  side, because each was exercised against its own idea of the shape. The
+  observation is that the manifest's declared section and the section the
+  shipped skill reads are the same string, derived from both.
 
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
+- **Path anchoring (AC7):** TDD. The failing input is a test run from a
+  directory other than the repository root, which is what makes a CWD-anchored
+  implementation red.
 
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
+- **The documents (AC8, AC9):** goal-based checks over the repository-derived
+  file set. They fail on different inputs — a wrong value in two files, a stale
+  behavioural claim in six — so they need separate repairs.
 
-- [x] <observable outcome>. Satisfies: US-2
+- **The schema (AC10):** goal-based check. A manifest carrying `section`
+  validates, one carrying an unknown sibling does not, and the copies compare
+  equal; the shipped parity gate owns the last half.
 
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
-
-## Follow-ons
-
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+- **Injection safety (AC11):** TDD, mutation-checked by removing the emitter
+  call to confirm the control can still fail.
 
 ## Assumptions
 
-<!--
-Audit trail for the assumption-surfacing checkpoint that ran when this
-spec was drafted (see `new-spec` SKILL.md step 3). Each item names how
-it was settled. This section is *not* the contract — it's the frame the
-contract was written under. The contract lives above (Objective,
-Boundaries, Testing Strategy, Acceptance Criteria).
+- Technical: the installer reads `[pack.layout.<scope>].parent` and returns
+  before writing when it is absent, while all five declaring packs write
+  `output_dir` — so the append is inert for the whole catalogue (source:
+  `packages/agentbundle/agentbundle/commands/install.py:3254-3261`;
+  `packs/*/pack.toml`, read 2026-09-10)
+- Technical: the installer writes a `[<pack_name>]` table, and no pack's skills
+  read a section named for their pack — `experience-design`'s skills read
+  `[design]`, `desk-research`'s read `[research]`, `architect`'s read
+  `[architecture]`, `product-strategy`'s read `[strategy]`,
+  `product-engineering`'s read `[product]` (source:
+  `packs/*/.apm/skills/*/references/agentbundle-layout.md`, read 2026-09-10)
+- Technical: skills resolve the layout file themselves by prose instruction and
+  never call `workspace_mcp` — so the resolver's behaviour does not affect
+  whether an installed default is found by the pack that wrote it (source:
+  `packs/experience-design/.apm/skills/experience-status/SKILL.md:45-53`; grep
+  for `workspace_mcp` across shipped `SKILL.md` returns none, 2026-09-11)
+- Technical: the re-emit rebuilds the file from `(name, parent)` pairs, dropping
+  every other key, every comment, and any section whose `parent` is not a
+  string — and every real adopter file carries `output_dir` (source:
+  `install.py:3286-3316`, read 2026-09-10)
+- Technical: an occupied top-level name does not produce invalid TOML today —
+  the occupant is silently dropped and the output parses. Executing the real
+  function against `research = 1` and against `[[research]]` returned
+  `["research"]\nparent = ".context/research"\n` in both cases (source: probe
+  against `_append_layout_section`, 2026-09-11; output recorded in
+  `notes/verification-ledger.md` at execution)
+- Technical: a file that cannot be decoded as UTF-8 is caught today by the
+  malformed branch because `read_text` sits inside the `try`, so a
+  byte-preserving read must keep the decode inside that boundary (source: probe
+  with a latin-1 comment, 2026-09-11; recorded in the ledger at execution)
+- Technical: `read_text` folds CRLF and lone CR to LF, and
+  `safety.write_jailed` accepts `bytes` directly, so a byte-preserving path
+  needs no signature change (source: `install.py:3267`;
+  `packages/agentbundle/agentbundle/safety.py:386`; CR-only probe, 2026-09-11)
+- Technical: the absent-file branch returns silently by design, and installing
+  into a repository with no layout file is the common case (source:
+  `install.py:3250-3252`, read 2026-09-11)
+- Technical: `workspace_mcp.py` resolves a configured value with
+  `str(Path(raw).expanduser().resolve())`, anchoring a relative value to the
+  process working directory rather than the repository root. The path is
+  reachable today only through hand-authored config; writing a repo-relative
+  default makes it the common case (source:
+  `packages/agentbundle/agentbundle/workspace_mcp.py:1595`, read 2026-09-10)
+- Technical: `contracts/pack.schema.json` sets `additionalProperties: false` on
+  both layout scope sub-tables and refuses `section` today, so admitting it is
+  a schema change; the two copies are byte-parity gated (source: schema read
+  and `jsonschema` validation probe, 2026-09-10)
+- Technical: two shipped assertions pin the data loss as correct (source:
+  `packages/agentbundle/tests/unit/test_append_layout_section.py`,
+  `test_reemit_drops_tampered_existing_parent`, read 2026-09-10)
+- Technical: six `references/agentbundle-layout.md` files state the installer
+  "does not preserve freeform comments or off-schema keys", which this change
+  makes false (source: repository grep, 2026-09-11)
+- Technical: both `architect` reference docs document `output_dir = "docs/design"`
+  (source: `packs/architect/.apm/skills/architect-design/references/agentbundle-layout.md`,
+  read 2026-09-11)
+- Technical: the defect is unreached by this catalogue but not unreachable —
+  the schema admits `parent` and `agentbundle install` accepts an external
+  catalogue, so a third-party pack declaring it reaches the re-emit today
+  (source: `contracts/pack.schema.json`; `install.py:516`, read 2026-09-10)
+- Product: the installer writes the section each pack's skills already read;
+  moving the vocabulary onto pack names is logged as separate work (source:
+  user confirmation 2026-09-11)
+- Product: `architect`'s base is `docs/architecture` (source: user confirmation
+  2026-09-10)
 
-Format: `- <category>: <fact> (source: <path | URL | probe | user
-confirmation YYYY-MM-DD>)`
+## Durable outputs
 
-- Technical: <fact> (source: <…>)
-- Process: <fact> (source: <…>)
-- Product: <fact> (source: user confirmation YYYY-MM-DD)
+| Role | Destination | Owner | Evidence | Closes when |
+| --- | --- | --- | --- | --- |
+| Current architecture | `docs/architecture/agentbundle.md` § 7.1 | eugenelim | The drift section describes both reader classes agreeing | The section describes what ships |
+| User-facing promise | the `architect` and re-emit reference docs | eugenelim | Corrected value and no comment-loss claim | AC8, AC9 |
+| Interface compatibility | `contracts/pack.schema.json` | eugenelim | Both copies byte-equal | AC10 |
+| Release history | `docs/product/changelog.md` | eugenelim | An `agentbundle` entry and one per bumped pack | Released |
 
-If an assumption later turns out wrong, fix the spec body in the same
-PR and add a one-line note here recording what changed and why.
--->
+The decision rationale already landed: RFC-0040 and RFC-0067 carry errata
+recording the key rename, the pack renames, and `architect`'s base. No further
+decision record is owed, and no criterion here claims one.
+
+## Follow-ons
+
+- **Move the section vocabulary onto pack names.** Logged as a backlog entry.
+  It reaches 23 `SKILL.md` bodies, the `references/agentbundle-layout.md` set,
+  five `pack.toml` comment blocks, four `DESIGN.md`, `docs/CONVENTIONS.md` and
+  its byte-parity twin, the guide corpus, the work-loop corpus fixtures, and
+  `tools/test_live_demo_guide.py`, which asserts a literal section name. It must
+  also settle `[product]`, which two item types share in `workspace_mcp.py`, and
+  `[discovery]`, whose base is not `product-engineering`'s. Owner: eugenelim.
+- **`workspace_mcp.py` resolves three of the five declaring packs.**
+  `architect` has no item type and `strategy` keys on `[product]`. This spec
+  does not touch it, because skills do not read through it. Owner: eugenelim.
+- **Key drift in two shipped documents.** `packs/core/.apm/skills/workspace-status/references/agentbundle-layout.md`
+  documents `[product]` with a `shaping` key, and
+  `guides/product-engineering/reference/intent-fields-and-modes.md` documents
+  reading `parent` — neither is `output_dir`. Owner: eugenelim.
+- **Removing `parent` from `pack.schema.json`.** Nothing reads it after this,
+  but removing a key an external manifest may carry is its own compatibility
+  question. Owner: eugenelim.
