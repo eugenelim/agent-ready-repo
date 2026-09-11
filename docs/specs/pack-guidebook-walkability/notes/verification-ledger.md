@@ -209,7 +209,7 @@ Authoring guidance for waves 2 and 3, not blockers:
   `copy-direction` and `tone-of-voice` are both needed or alternatives.
 - `experience-reviewer` is described as required but is a subagent, not a
   skill, so there is nothing to type. **I first classified this as mechanical
-  and it is not**: the added runnable check fires only on the `Run \`x\`` form,
+  and it is not**: the added runnable check fires only on the `Run `x`` form,
   which these pages never use for it. The claim is about prose adequacy.
 - Undefined domain terms — SIPOC, stable referent, arbitration test, semantic
   token, spatial layout grammar, transaction bridge — and the unexplained
