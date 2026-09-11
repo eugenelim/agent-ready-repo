@@ -113,7 +113,7 @@ two recollections.
   then a shape test, which cannot fail on the commit that introduces it.
   Traces to: AC20.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC21, AC26.
+  recorded exercise and the counts live in prose. Traces to: AC21, AC28.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -349,7 +349,7 @@ entries landed and green after, and the full pack suite is green.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC26 and AC27** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
+- **AC28 and AC29** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -472,7 +472,12 @@ what went stale when one was added.
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
   replaces.
-- **AC25.** The earn-its-keep test is stated over every criterion rather than
+- **AC26.** The procedure requires a changed criterion's references and
+  verifications to be reconciled in the same round. **Constraint:** assert
+  "in the same round, before the round is reported". A propagation rule with no
+  timing leaves it to a later pass, and four findings across this cycle were
+  exactly that later pass.
+- **AC27.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial
