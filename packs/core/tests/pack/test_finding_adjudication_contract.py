@@ -104,6 +104,11 @@ def test_finding_adjudicator_source_contract() -> None:
         "sustains at advisory severity",
     ):
         assert authority_tier_rule in flat(body), authority_tier_rule
+    # The consequence predicate was written against a severity-labelled finding.
+    # Two reviewer modes now emit findings with no severity at all, so the
+    # predicate has to state its reading for them here, at the source that owns
+    # it -- a consumer-side narrowing would be a second home that can drift.
+    assert "no severity" in body
     # The strict consumer rejects a multi-anchor sustained entry and stops the
     # loop, so the producer must state the constraint rather than leave it to
     # be inferred from the template.
