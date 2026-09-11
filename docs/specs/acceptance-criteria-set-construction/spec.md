@@ -144,6 +144,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
 - **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **Per-task grounding (AC-0031):** goal-based check over the authored skill
+  file, on the pack-local suite. Grouped with the plan rules rather than the
+  procedure, because the plan step is its surface.
 - **The template carries the identifier convention (AC-0030):** goal-based check
   over `assets/spec.md`, on the pack-local suite. The asset sits inside
   `packs/core`, so no pack-test boundary is crossed.
@@ -172,14 +175,19 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       candidate's failure would be observed, and the procedure states that a
       candidate whose observing surface cannot be named stays a candidate
       rather than becoming a criterion.
-- [ ] **AC-0006.** Admission additionally requires grounding the criterion in the guidance
-      governing the surface it demands content on: the procedure resolves that
-      surface's scoped guidance by walking from the surface's own directory up
-      to the repository root and reading each file found, and a candidate
-      demanding what that guidance forbids is not admissible in that form. The
-      walk is stated as a walk, not as a single lookup, because a nested file
-      does not replace the one above it and stopping at the first hit skips the
-      rest silently.
+- [ ] **AC-0006.** Admission additionally requires grounding the criterion in what already
+      governs the surface it demands content on. The procedure defines that
+      **governing set** once, and it has four members: the scoped `AGENTS.md`
+      files, resolved by walking from the surface's own directory up to the
+      repository root and reading each file found; the gates and linters that run
+      against that surface; the documents that already own rules for it; and the
+      repository conventions that apply to it. A candidate demanding what any
+      member forbids is not admissible in that form. The `AGENTS.md` member is
+      stated as a walk, not a single lookup, because a nested file does not
+      replace the one above it and stopping at the first hit skips the rest
+      silently. The other three members are named because guidance files are the
+      surfaces an author thinks to read, and a linter, an existing owner and a
+      convention are the ones that actually fail the work.
 - [ ] **AC-0007.** Each admitted obligation carries one positive and one disconfirming
       scenario.
 - [ ] **AC-0008.** The procedure routes each rejected candidate to a named destination:
@@ -302,6 +310,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       removals recorded in the artifact's retired list — and the template's own
       criteria list shows the labelled form, so a criterion is cited without
       being counted.
+- [ ] **AC-0031.** The plan step requires each task to be grounded against the same
+      governing set AC-0006 defines, resolved for the surfaces that task's own
+      work touches rather than for the plan as a whole, and to record what it
+      resolved. A plan-level anchor list is not sufficient and the procedure says
+      so: it is written once, against the surfaces the author expected to touch,
+      and a task added later inherits it without ever testing it. The procedure
+      names no tool for the resolving. It requires the recorded result and
+      instructs the author to pick the most token-efficient bounded exploration
+      the session actually offers — a subagent, a worker, or a direct search —
+      because a named tool makes the rule unrunnable wherever that tool is
+      absent, and the obligation is the grounding, never the mechanism.
 
 ## Follow-ons
 

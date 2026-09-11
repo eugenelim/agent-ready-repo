@@ -235,14 +235,20 @@ in the same commit
   against this task's own constraint that every assertion fails under deletion
   of the clause it pins. They take both-clause assertions below. AC-0008 and AC-0016
   stay, each being one contiguous sentence a whole-sentence pin does reach.
-- **AC-0006.** Assert the admission step names the surface-guidance walk and states
-  the inadmissibility consequence. **Constraint:** assert that the prose reads as
-  a walk from the surface's own directory up to the root — "each file found", not
-  "the nearest" — and assert the consequence clause separately. A walk stated as
-  a single lookup is the defect: a nested scoped file does not replace the one
-  above it, so stopping at the first hit skips the rest silently, and the root
-  `AGENTS.md` says exactly that. The mutation that must fail is rewriting the
-  walk as a nearest-file lookup while leaving the consequence clause intact.
+- **AC-0006.** Assert the admission step names all four members of the governing
+  set — scoped `AGENTS.md`, gates and linters, existing owner documents,
+  repository conventions — one assertion per member, then assert the
+  inadmissibility consequence separately. **Constraint on the members:** one
+  assertion each, never one pin over the sentence. The members fail
+  independently, and the three non-`AGENTS.md` members are the ones that matter:
+  this plan's own pre-EXECUTE review sustained three blockers, and each rested on
+  a linter, an owner document, or a convention — none on a scoped `AGENTS.md`
+  file, all four of which the plan had already cited. **Constraint on the walk:**
+  assert the `AGENTS.md` member reads as a walk — "each file found", not "the
+  nearest" — because a nested scoped file does not replace the one above it and
+  the root `AGENTS.md` says stopping at the first hit skips the rest silently.
+  The mutation that must fail is rewriting the walk as a nearest-file lookup
+  while leaving the consequence clause intact.
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the five stage
   intervals, the fifth closing at the end of the procedure span. This supports
@@ -300,6 +306,25 @@ in the same commit
   **Required outcome:** the suite is red before the prose lands, green after.
   **Verification mode:** goal-based, pack-local suite.
 
+
+**Grounding:**
+- `skill_spec_lint.py` measures `SKILL.md` body length: **over 500 lines warns,
+  over 1,000 errors.** The file is 660 lines today and T1 and T6 both add prose
+  to it. Budget against the error ceiling, and treat the warning as already
+  breached rather than as headroom.
+- `test_acceptance_criteria_discipline.py` `RULES` pins exact normalized prose to
+  one owner; `test_step_pointers_name_headings_that_still_exist` pins the step-5
+  and step-9 headings; `test_corpus_absence_rule_precedes_the_sign_off_gate` pins
+  a relative ordering. Any of the three reds on a careless edit to this step.
+- `tests/roster/test_cognitive_load_repository_contract.py` requires exactly one
+  rendering start/end marker pair per canonical skill and no internal routing
+  references inside that block.
+- Owners that must be cited, never restated: `assets/spec.md` (criterion shape),
+  the rubric (six failure classes; ordering and the count threshold),
+  `assets/plan.md` (construction-test placement).
+- `packs/AGENTS.md` — a non-cosmetic pack change also updates that pack's eval
+  harness, and shipped prose cites no internal record.
+
 **Approach:**
 - Rewrite the AC step's `No Acceptance Criteria` bullet into the numbered
   procedure, keeping its existing pointers to step 9 and step 5 intact — the
@@ -351,6 +376,29 @@ missing one of them does not close this task.
   `title` must equal the leading H1.
 - Every link target stays inside `guides/`. A link out renders as an off-site
   GitHub blob URL.
+
+
+**Grounding:**
+- **`tools/lint-guides-no-repo-only-refs.py` rejects a guide that links a
+  governance path, carries an ADR or RFC token, or references a real
+  `docs/specs/<slug>` directory.** The page therefore cannot cite this spec, the
+  ADR behind the identifier convention, or any `docs/` path — it states its
+  rules directly. This is the single constraint most likely to be breached by an
+  author writing the page from the spec.
+- `.github/workflows/docs.yml` runs `validate_guides.py` over the real tree and
+  requires **0 errors and 0 warnings**; a warning is fatal there even though it
+  is not locally.
+- `contracts/guide.schema.json` requires `title`, `summary`, `pack`, `kind`,
+  rejects any undeclared field, and constrains `kind` to tutorial / how-to /
+  reference / explanation. `lint-guide-titles.py` requires the leading body H1 to
+  match `title`.
+- No registration is owed: `lint-guide-titles.py`, `build-site.py` and
+  `check-guide-index.py` all discover pages recursively, `check-guide-index.py`
+  checks pack-level links only, and `guide-nav-baseline.toml` is for deletes and
+  renames. A titled page needs no baseline row.
+- The new roster module is auto-collected by `make test` and `test-roster.yml`;
+  there is no roster manifest. Its basename must be unique across suites sharing
+  a process.
 
 **Approach:**
 - Author the page as `kind: reference`, `pack: core`, scoped to selection,
@@ -407,6 +455,21 @@ in the same commit
   is a failure. The ranks without that rule leave the failure condition
   unstated, which is the half AC-0021 exists for.
 
+
+**Grounding:**
+- `skill_spec_lint.py` `_check_evals_json` requires a non-empty `skill_name`
+  matching the skill, a non-empty `evals` list, unique non-Boolean ids, and
+  non-empty string `prompt` and `expected_output`. **There is no id-format rule**
+  — the kebab-case ids this plan uses are a local convention, not a validated
+  one, so the construction test is their only guard.
+- No test fixes the total entry count, so three new entries break no count pin.
+- `tests/roster/test_cognitive_load_repository_contract.py` requires every
+  publishable pack to keep at least one pinned `cognitive-load-*` eval, and
+  requires the register to be byte-identical in both projections after
+  self-host.
+- `packs/AGENTS.md` — a non-cosmetic pack update updates the eval harness, which
+  is what this task is.
+
 **Approach:**
 - Author the three prompts as authoring frames, not review frames — the graded
   actor is selecting candidates pre-seal.
@@ -433,6 +496,16 @@ entries landed and green after, and the full pack suite is green.
 - Read the result against the scoring order: recall of every seeded objective
   and non-waivable guardrail first, then rejection of the seeded
   non-criterion material, then count as a description.
+
+
+**Grounding:**
+- `docs/CONVENTIONS.md` names `notes/verification-ledger.md` as the home for an
+  execution-produced observation and pins an approved spec directory in
+  substance, so the run is recorded there and never back into `spec.md` or
+  `plan.md`.
+- No automated validator reads this ledger path. The `Done when` above is its
+  only gate, which is why the per-case contents are stated in `Tests` rather
+  than left to `Approach`.
 
 **Approach:**
 - Record per case: candidate count, final count, and each candidate's
@@ -500,6 +573,26 @@ close this task, and the count closes nothing.
   `build-check`, so a green `build-check` says nothing about it.
 - `make build-self` regenerates the projections with no drift.
 
+
+**Grounding:**
+- Four independent checks assert pack/plugin version parity: catalogue lint,
+  catalogue verify step 5, `tests/conformance/test_pack_metadata.py`, and
+  `tests/roster/test_security_checklists_okf_projection.py`. The last also
+  requires the **topmost** `## [core][...]` changelog heading to carry the new
+  version.
+- `tests/roster/test_workspace_status_projection.py` carries a ratchet rejecting
+  any increase in nested dated or versioned releases — the new section is
+  free-standing at `##` directly beneath `[Unreleased]`, not nested.
+- **If the entry carries a `### Highlights` block**, `docs/product/AGENTS.md`
+  requires regenerating `web/src/lib/now-highlights.generated.json` in the same
+  commit, checked by `tools/test_build_site_routing.py -k now`. A highlight must
+  be a `-` bullet; a paragraph is dropped silently and the staleness check still
+  passes.
+- `workspace_status_engine.py` gates membership on spec `Status`: `work.active`
+  requires `Implementing`, `work.shipped` requires `Shipped`, and `queue` rejects
+  both. A mismatch returns `impossible_transition`.
+- Core is repo-only, so no root marketplace entry is expected for it.
+
 **Approach:**
 - Bump `pack.toml` and `plugin.json` together — patch, since nothing added is a
   new primitive. Diff `origin/main`'s `pack.toml` first: an unpushed peer bump
@@ -556,6 +649,14 @@ in the same commit
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
   replaces.
+- **AC-0031.** The plan step requires per-task grounding against the governing
+  set and requires the task to record what it resolved. **Constraint:** assert
+  the per-task scoping and the recording obligation separately, and assert that
+  the prose rules out a plan-level anchor list as sufficient. A rule that says
+  "ground the plan" is satisfied by the `Repository anchors:` field that already
+  exists and that this plan filled in — with three `AGENTS.md` files, a schema
+  and two analogues — while missing all three blockers. The mutation that must
+  fail is relaxing "each task" to "the plan".
 - **AC-0025.** The review step states the surface-guidance finding class and its
   one answer: the criterion changes, and the forbidden content is never authored
   to satisfy it. **Constraint:** assert the prohibition as well as the class. A
@@ -589,6 +690,22 @@ in the same commit
   edit leaves the old reading intact.
 - **Exact wording is build-discovered**, on the same predicate, constraint,
   required outcome and verification mode as T1's.
+
+
+**Grounding:**
+- **The review step already carries exact content and order pins** in
+  `test_acceptance_criteria_discipline.py` — review persistence, clean-report
+  shape, dispatch order and the repair gateway; the executable adjudication path
+  and its ordering; the two origin labels and the unresolved-origin stop rule.
+  Editing this step reds them unless each is updated deliberately, exactly as
+  this task already declares for the `deletion-pass` pin.
+- Five plan-authoring rules are individually pinned to `SKILL.md`; the sixth is
+  added here.
+- The same 500-warning / 1,000-error body-line ceiling applies, and T1 is
+  spending from the same budget. The file is 660 lines today.
+- The existing plan step, review step and deletion pass are each already located
+  in `SKILL.md`; every one of this task's edits extends prose that exists rather
+  than adding a sibling home.
 
 **Approach:**
 - Extend the review step rather than adding a new one; the responses belong
@@ -629,6 +746,20 @@ in the same commit
   content from citing this catalogue's internal records, so the template states
   the rule directly and names no ADR. The assertion reads for the properties,
   never for a record identifier.
+
+
+**Grounding:**
+- `assets/spec.md` carries its own exact pins:
+  `test_worked_example_has_one_owner_and_occurs_once` fixes every worked-example
+  label, rationale and exemplar to exactly one occurrence and absence elsewhere,
+  and `test_rubric_is_reachable_from_both_authoring_surfaces` pins the asset's
+  rubric reference and its "This section owns criterion shape" sentence. Add
+  beside them; do not reflow the section.
+- `SKILL.md` and the rubric both already defer criterion shape to this asset, so
+  the convention goes in the asset and is not restated in either.
+- `packs/AGENTS.md` — the asset cannot cite the ADR or any internal identifier,
+  which is why the convention is stated directly; and changing a shipped asset
+  bumps the core pack version.
 
 **Approach:**
 - State the convention inside the existing `## Acceptance Criteria` comment block
@@ -694,6 +825,10 @@ drift.
 ## Changelog
 
 - 2026-09-10: initial plan.
+- 2026-09-10: every task grounded against its own governing set and the result
+  recorded under `**Grounding:**`, per AC-0031. The plan-level
+  `Repository anchors:` field above was filled in and still missed all three
+  pre-EXECUTE blockers, which is the evidence for making grounding per-task.
 - 2026-09-10: owner-approved scope addition — T7 carries the identifier
   convention into the spec template, and this spec's own criteria are the first
   to be labelled. Identifiers assigned 2026-09-10 and frozen from that point;
