@@ -934,6 +934,16 @@ open = [
   # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
   # scoping the smallest guide consumer.
   {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
+  # The Draft slice of the intent directly above, carrying 22 criteria and 6
+  # tasks. It was authored and reviewed but never registered, so nothing
+  # scheduled it and any amendment would have landed on an untracked spec.
+  # `needs` is empty although the parent's is not: the parent is blocked on
+  # portfolio-pack-first-value-contract only for a certified first-value claim,
+  # and states that the entry links and the install how-to are not blocked by
+  # that question because they promise a route and a submitted install rather
+  # than a completed method. This spec claims only that unblocked half, which is
+  # what its AC12 fences. Unblocks now.
+  {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/claude-apps-first-value-entry.md"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
 
 ]
 
