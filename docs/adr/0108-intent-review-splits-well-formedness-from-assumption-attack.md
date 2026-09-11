@@ -97,6 +97,21 @@ cannot express a rewrite.
 spec review, or adversarial intent mode returns empty on intents that later fail on their riskiest
 assumption.
 
+### The no-new-shaping-surface boundary is mode-scoped
+
+The accepted intent behind RFC-0099 forbids "no common script, separate durable shaping-review
+state, generic shaping loop, or fourth `shaping-reviewer` mode", and preserves the three-lens
+ceiling on the *code-review* gate. It sets no limit on how many independent reviewers one shaping
+artifact passes, and the boundary immediately after it already admits the adversarial reviewer's
+full-diff second read as correctness evidence.
+
+That boundary is therefore read as mode-scoped, and this decision conforms to it as built: three
+`shaping-reviewer` modes, no shaping state, no shaping loop. The second intent-stage read is
+optional, advisory, and establishes nothing — `Accepted` is gated by the well-formedness result plus
+explicit human confirmation alone — so it adds a reviewer, not a gate. The owner confirmed this
+reading on 2026-09-11, after the adversarial intent mode raised it as an open question on its first
+real target.
+
 ## Confirmation
 
 - **Mode:** lint/CI

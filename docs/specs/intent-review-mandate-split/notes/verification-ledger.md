@@ -94,8 +94,18 @@ mode on `shaping-reviewer`" (which this change honours: still three modes) or
 "no additional independent review gate per shaping artifact" (which it does not:
 an intent may now pass two reviewers). The intent constrains the mode count at
 `:118` and `:430-433` and says nothing about reviewer count. Decider named:
-the RFC-0099 approver. Recorded here rather than resolved, because it is an
-owner decision about an accepted boundary and not a defect in this change.
+the RFC-0099 approver.
+
+**Resolved 2026-09-11 by the named decider: mode-scoped.** The boundary means
+what it says, the optional advisory read gates nothing, and the boundary after
+it already admits the adversarial reviewer as an extra read. The reading is
+recorded in ADR-0108 § Consequences so a later author does not re-derive it. No
+change to this spec or its implementation followed.
+
+This is the mode's first real output, and it worked: an open question with a
+named decider, raised on an accepted boundary that five shaping rounds and three
+adversarial rounds over the same artifacts had not surfaced, answered by its
+decider in one exchange, and closed without a code change.
 
 ### Route to closing these three criteria
 
