@@ -244,17 +244,53 @@ def test_an_ambiguous_reference_is_named_with_its_candidate(root):
     assert "lib/vendor/thing.md" in out, "the candidate resolution must be named"
 
 
-def test_a_symlink_escaping_the_root_is_not_followed(root):
-    """Confinement of the walk, distinct from refusing an out-of-root seed."""
+def test_a_symlinked_file_pointing_out_of_the_root_is_refused(root):
+    """The guard that actually refuses, exercised.
+
+    A symlinked *directory* proves nothing: `os.walk` defaults to
+    followlinks=False, so the directory filter cannot change the outcome and the
+    case stays green with the filter deleted. The refusal that does the work is
+    the lstat/S_ISREG check, and only a symlinked *file* reaches it.
+    """
     seed = _seeded(root)
-    outside = root.parent / "outside-secret.md"
-    outside.write_text(f"quoting: {LONG}\n", encoding="utf-8")
+    outside = root.parent / f"outside-{root.name}.md"
+    outside.write_text(f"secret quoting: {LONG}\n", encoding="utf-8")
     try:
-        (root / "escape").symlink_to(outside.parent, target_is_directory=True)
+        (root / "linked.md").symlink_to(outside)
     except OSError:
         pytest.skip("symlinks unavailable")
-    out = _run(root, seed)
-    assert "outside-secret" not in out, "the walk must not follow a link out of the root"
+    try:
+        out = _run(root, seed)
+        assert "linked.md" not in out, f"a symlinked file must be refused:\n{out}"
+    finally:
+        outside.unlink(missing_ok=True)
+
+
+def test_confinement_holds_on_the_tracked_set_branch(root):
+    """Every real repository takes the git branch, so the fixture must too.
+
+    Without history `confined_files` walks the filesystem; with it, the
+    tracked-set path runs instead. A confinement case that only ever exercises
+    the walk says nothing about the branch production uses.
+    """
+    seed = _seeded(root)
+    outside = root.parent / f"tracked-outside-{root.name}.md"
+    outside.write_text(f"secret quoting: {LONG}\n", encoding="utf-8")
+    try:
+        (root / "linked.md").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    try:
+        _git(root, "init", "-q")
+        _git(root, "config", "user.email", "t@example.invalid")
+        _git(root, "config", "user.name", "t")
+        _git(root, "add", "-A")
+        _git(root, "commit", "-q", "-m", "seed")
+        out = _run(root, seed)
+        assert "git unavailable" not in out, "this case must take the tracked-set branch"
+        assert "linked.md" not in out, f"the tracked-set branch must refuse it too:\n{out}"
+    finally:
+        outside.unlink(missing_ok=True)
 
 
 def test_calibration_does_not_carry_between_seeds(root):
