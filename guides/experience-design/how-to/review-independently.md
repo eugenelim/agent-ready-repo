@@ -25,10 +25,27 @@ order: 5
 
 - [The experience thread](../explanation/the-experience-thread.md) explains the quality floor and why the independent reviewer reads artifacts cold.
 
-#### Run `design-review`
+## What you will run
 
-**You type:** `Review this design set against its user task, principles, quality floor, genre rubric, and grounded aesthetic direction.`
+| Skill | What it produces | Needed? |
+| --- | --- | --- |
+| `design-review` | Findings against the quality floor before the independent review. | Required |
+
+Prompts go into an AI agent session with this pack installed — the same session
+throughout. In every path below, `<output_dir>` is the design output directory
+this pack is configured to write to, and `<slug>` is the short name you give
+this piece of work.
+
+<!-- rung: packs/experience-design/JOURNEY.md -->
+
+## Run `design-review` — your own pass first
+
+**You type:**
 <!-- rung: design-review SKILL.md -->
+
+```
+Review this design set against its user task, principles, quality floor, genre rubric, and grounded aesthetic direction.
+```
 
 **Agent returns:**
 <!-- rung: design-review SKILL.md -->
@@ -52,7 +69,7 @@ order: 5
 **Watch out for:** A uniformly confident review may be guessing where states or source artifacts are absent. Notice findings that cite no observed screen state or grounded rule; supply the missing evidence, discard unsupported taste claims, and re-run the affected scope.
 <!-- rung: design-review SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-review.md`, with both bracketed segments replaced for this review.
+**Where it lands:** `<output_dir>/screens/<slug>-review.md`.
 <!-- rung: authored; design-review SKILL.md declares the review record but not its path -->
 
 **Expect these headings:**
@@ -67,6 +84,8 @@ order: 5
 - `Director’s notes`
 
 The journey then invokes the read-only `experience-reviewer` in an independent context. It is a reviewer role, not a skill you type. Resolve its blockers before design feeds the build loop.
+
+## Where this leads
 
 **Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours), after the independent findings are resolved.
 <!-- rung: authored -->

@@ -25,10 +25,30 @@ order: 2
 
 - [The experience thread](../explanation/the-experience-thread.md) distinguishes flow across screens from behavior within one screen.
 
-#### Run `content-design`
+## What you will run
 
-**You type:** `Define what this account-setup surface should say, for whom, and to what objective.`
+| Skill | What it produces | Needed? |
+| --- | --- | --- |
+| `content-design` | A content brief: what the surface says, to whom, in what form. | Required |
+| `copy-direction` | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
+| `tone-of-voice` | The cross-surface voice all per-surface copy decisions reference. | Optional |
+| `user-flow` | The screen inventory, the state each screen handles, and the transitions. | Required |
+
+Prompts go into an AI agent session with this pack installed — the same session
+throughout. In every path below, `<output_dir>` is the design output directory
+this pack is configured to write to, and `<slug>` is the short name you give
+this piece of work.
+
+<!-- rung: packs/experience-design/JOURNEY.md -->
+
+## Run `content-design` — the content brief
+
+**You type:**
 <!-- rung: content-design SKILL.md -->
+
+```
+Define what this account-setup surface should say, for whom, and to what objective.
+```
 
 **Agent returns:**
 <!-- rung: content-design SKILL.md -->
@@ -52,7 +72,7 @@ order: 2
 **Watch out for:** A finished-looking brief can hide unresolved audience priority or combine several surfaces. Notice competing section jobs or more than one primary surface, then narrow the brief or split it before continuing.
 <!-- rung: content-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/content/<slug>.md`, with both bracketed segments replaced for this project.
+**Where it lands:** `<output_dir>/content/<slug>.md`.
 <!-- rung: content-design SKILL.md -->
 
 **Expect these headings:**
@@ -72,10 +92,14 @@ order: 2
 - `Completion metric`
 - `Open questions`
 
-#### Run `copy-direction`
+## Run `copy-direction` — copy goals for one surface
 
-**You type:** `Name the ranked copy goals for this account-setup surface.`
+**You type:**
 <!-- rung: copy-direction SKILL.md -->
+
+```
+Name the ranked copy goals for this account-setup surface.
+```
 
 **Agent returns:**
 <!-- rung: copy-direction SKILL.md -->
@@ -99,7 +123,7 @@ order: 2
 **Watch out for:** Goals can sound authoritative while resting on a general copy pattern. Notice goals with no cited reader language, precedent quality, or standard; argue with those first and replace them with grounded referents.
 <!-- rung: copy-direction SKILL.md -->
 
-**Where it lands:** `<output_dir>/copy/<slug>.md`, with both bracketed segments replaced for this surface.
+**Where it lands:** `<output_dir>/copy/<slug>.md`.
 <!-- rung: copy-direction SKILL.md -->
 
 **Expect these headings:**
@@ -114,10 +138,14 @@ order: 2
 - `Plain-language floor notes`
 - `Open questions`
 
-#### Run `tone-of-voice`
+## Run `tone-of-voice` — the brand copy register
 
-**You type:** `Name the brand-level copy register for this product.`
+**You type:**
 <!-- rung: tone-of-voice SKILL.md -->
+
+```
+Name the brand-level copy register for this product.
+```
 
 **Agent returns:**
 <!-- rung: tone-of-voice SKILL.md -->
@@ -155,10 +183,14 @@ order: 2
 - `Plain-language floor notes`
 - `Open questions`
 
-#### Run `user-flow`
+## Run `user-flow` — the screen inventory
 
-**You type:** `Turn the approved journey into screens, transitions, failure routes, and one brief per screen.`
+**You type:**
 <!-- rung: JOURNEY stage 2 -->
+
+```
+Turn the approved journey into screens, transitions, failure routes, and one brief per screen.
+```
 
 **Agent returns:**
 <!-- rung: JOURNEY stage 2 -->
@@ -202,6 +234,8 @@ order: 2
 - `Done`
 - `Genre-specific notes`
 - `How it fits the flow`
+
+## Where this leads
 
 **Next:** [Establish design intent](establish-design-intent.md).
 <!-- rung: authored -->

@@ -16,9 +16,10 @@ because a label wrapped across a newline stops being one token:
     what_changes        **What changes:**
     prerequisite_cost   **What you need first:**  plus  *Skipping costs:*
     concept_resolved    **Concepts:**
+    step_map            ## What you will run  then a table
     next_step           **Next:**
     go_deeper           **Go deeper:**
-    utterance           **You type:**
+    utterance           **You type:**  then a fenced block
     attributed_response **Agent returns:**  then a blockquote
     correction          **You push back:**  then a blockquote
     variability         **Output varies**
@@ -29,8 +30,14 @@ because a label wrapped across a newline stops being one token:
     artifact_outline    **Expect these headings:**  or  **Writes no artifact.**
 
 The nine per-skill obligations are declared inside a skill's own
-``#### Run `<skill>` `` block and nowhere else; the six step-level ones appear
+``## Run `<skill>` `` block and nowhere else; the step-level ones appear
 once on the page.
+
+The page's ``##`` headings must be ``What you will run``, then one
+``Run `<skill>` `` per skill in run order, then ``Where this leads`` — and
+nothing else at that level.  That level is what the docs site builds its
+in-page table of contents from, so a deeper heading publishes a page a reader
+cannot navigate.
 
 ``--contract`` selects the contract file (default: ``guides/AGENTS.md``).
 The positional arguments select one or more guidebook directories.
@@ -54,7 +61,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SECTION_HEADING = "## The guidebook step contract"
 JUDGEMENT_HEADING = "### Judgement kinds"
 VOCABULARY_HEADING = "### Prohibited vocabulary"
-RUN_HEADING = re.compile(r"^#### Run `([^`]+)`\s*$", re.M)
+# One constant, so the suite builds its fixture at the level the lint reads.
+# The fixture used to hardcode `#### Run`, which left nine per-skill checks
+# reporting "no block declares it" and passing for the wrong reason.
+RUN_HEADING_FORM = "## Run"
+RUN_HEADING = re.compile(r"^" + RUN_HEADING_FORM + r" `([^`]+)`", re.M)
+STEP_MAP_HEADING = "## What you will run"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
 
@@ -323,7 +335,7 @@ def _check_obligation(
     label = contract.labels[obligation]
     blocks = [("step", body)] if contract.scopes[obligation] == "step" else _skill_blocks(body)
     if contract.scopes[obligation] == "per skill" and not blocks:
-        return [Finding(path, step, obligation, "no `#### Run `<skill>` block declares it")]
+        return [Finding(path, step, obligation, "no `## Run `<skill>` block declares it")]
     findings: list[Finding] = []
     for skill, target in blocks:
         lines = target.splitlines()
@@ -388,6 +400,67 @@ def _check_obligation(
         elif primary.startswith("**Next:") and not re.search(r"\]\([^)]+\)", line):
             # A cold reader could not act on "continue with the build workflow".
             findings.append(Finding(path, step, obligation, "must carry a resolving link, not a prose promise"))
+        elif primary.startswith("**You type:") and not (_following_nonblank(lines, index) or "").startswith("```"):
+            # The site attaches its copy button to fenced blocks only, so an
+            # inline utterance is the one value a reader must retype by hand.
+            findings.append(Finding(path, step, obligation, "must be followed by a fenced block a reader can copy"))
+        elif primary.startswith(STEP_MAP_HEADING):
+            detail = _check_step_map(body)
+            if detail:
+                findings.append(Finding(path, step, obligation, detail))
+    return findings
+
+
+def _check_step_map(body: str) -> str | None:
+    """The overview table must name every skill the step runs, and only those.
+
+    Checked both ways on purpose. A row with no block sends a reader looking for
+    a skill the step never explains; a block with no row leaves that skill with
+    no statement of whether it is needed, which is the whole reason the table
+    exists.
+    """
+    headings = {name for name, _ in _skill_blocks(body)}
+    section = body.split(STEP_MAP_HEADING, 1)[1].split("\n## ", 1)[0]
+    rows = {
+        match.group(1)
+        for line in section.splitlines()
+        if line.startswith("|") and (match := re.match(r"^\|\s*`([a-z0-9-]+)`\s*\|", line))
+    }
+    if not rows:
+        return "table names no skill"
+    if missing := headings - rows:
+        return f"table omits {', '.join('`' + name + '`' for name in sorted(missing))}"
+    if extra := rows - headings:
+        return f"table names {', '.join('`' + name + '`' for name in sorted(extra))} with no block"
+    return None
+
+
+SKELETON_TAIL = "## Where this leads"
+
+
+def check_page_skeleton(path: Path, step: str, body: str) -> list[Finding]:
+    """The `##` headings must be the declared skeleton, in order.
+
+    The level is what makes the in-page table of contents work, so a step that
+    drifts back to a deeper level publishes a page a reader cannot navigate.
+    """
+    headings = re.findall(r"^## (.+?)\s*$", body, re.M)
+    if not headings:
+        return [Finding(path, step, "skeleton", "carries no `##` heading, so the page has no in-page navigation")]
+    expected_first, expected_last = STEP_MAP_HEADING[3:], SKELETON_TAIL[3:]
+    findings: list[Finding] = []
+    if headings[0] != expected_first:
+        findings.append(Finding(path, step, "skeleton", f"first `##` is `{headings[0]}`, not `{expected_first}`"))
+    if headings[-1] != expected_last:
+        findings.append(Finding(path, step, "skeleton", f"last `##` is `{headings[-1]}`, not `{expected_last}`"))
+    for name in headings[1:-1]:
+        if not name.startswith("Run `"):
+            findings.append(Finding(path, step, "skeleton", f"`{name}` is not a `Run` block and may not be a `##`"))
+    # A trailing heading with nothing under it is worse than no heading: it
+    # publishes a table-of-contents entry that leads a reader to an empty page
+    # section. The onward pointers are what the section is for.
+    if SKELETON_TAIL in body and "**Next:**" not in body.split(SKELETON_TAIL, 1)[1]:
+        findings.append(Finding(path, step, "skeleton", f"`{expected_last}` carries no onward pointer"))
     return findings
 
 
@@ -437,11 +510,11 @@ def check_named_runnables(path: Path, step: str, body: str, skills: set[str]) ->
     if not skills:
         return []
     findings: list[Finding] = []
-    for name in sorted(set(re.findall(r"^#### Run `([a-z0-9-]+)`", body, re.M))):
+    for name in sorted(set(re.findall(r"^" + RUN_HEADING_FORM + r" `([a-z0-9-]+)`", body, re.M))):
         if name not in skills:
             findings.append(Finding(path, step, "runnable", f"`{name}` is not a published skill of this pack"))
     for name in sorted(set(re.findall(r"[Rr]un `([a-z0-9-]+)`", body))):
-        if name not in skills and not re.search(r"^#### Run `" + re.escape(name), body, re.M):
+        if name not in skills and not re.search(r"^" + RUN_HEADING_FORM + r" `" + re.escape(name), body, re.M):
             findings.append(Finding(path, step, "runnable", f"`{name}` is presented as a run but is not a published skill"))
     return findings
 
@@ -475,6 +548,7 @@ def check_step(path: Path, contract: Contract) -> list[Finding]:
         for finding in check(path, step, body)
     ]
     findings.extend(check_page(path, step, body, contract))
+    findings.extend(check_page_skeleton(path, step, body))
     findings.extend(check_named_runnables(path, step, body, _pack_skills(path)))
     lowered = body.casefold()
     for term in contract.prohibited_terms:

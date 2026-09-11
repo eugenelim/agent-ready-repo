@@ -45,6 +45,7 @@ judgement kinds and prohibited vocabulary from this section.
 | `what_changes` | What this step makes different, and what it costs to skip it |
 | `correction` | One turn where the reader pushes back and the agent adjusts |
 | `go_deeper` | One closing pointer at the authoritative source this step projects from |
+| `step_map` | A table naming every skill this step runs, what each produces, and whether it is needed |
 
 ### How a step is written
 
@@ -57,9 +58,10 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | `what_changes` | `**What changes:**` | step |
 | `prerequisite_cost` | `**What you need first:**` plus `*Skipping costs:*` | step |
 | `concept_resolved` | `**Concepts:**` with links | step |
+| `step_map` | `## What you will run` then a table | step |
 | `next_step` | `**Next:**` with a link | step |
 | `go_deeper` | `**Go deeper:**` with a path | step |
-| `utterance` | `**You type:**` | per skill |
+| `utterance` | `**You type:**` then a fenced block | per skill |
 | `attributed_response` | `**Agent returns:**` then a blockquote | per skill |
 | `correction` | `**You push back:**` then a blockquote | per skill |
 | `variability` | `**Output varies**` | per skill |
@@ -69,12 +71,53 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | `artifact_location` | `**Where it lands:**` with a backticked path, or `**Writes no artifact.**` | per skill |
 | `artifact_outline` | `**Expect these headings:**`, or `**Writes no artifact.**` | per skill |
 
-A per-skill obligation is declared inside that skill's own `#### Run \`<skill>\``
+A per-skill obligation is declared inside that skill's own `## Run \`<skill>\``
 block and nowhere else. A step naming ten skills with one shared utterance
 satisfies nothing — a step-level value cannot be attributed to one of ten
 skills, which is the difference between a skill being mentioned and a reader
 being able to run it. Templated path segments are written `<slug>`, never as a
 literal.
+
+### The page skeleton, and why the heading levels are what they are
+
+Every step page carries exactly these `##` headings, in this order:
+
+1. `## What you will run`
+2. `## Run \`<skill>\`` — one per skill, in run order
+3. `## Where this leads`
+
+Nothing else may be an `##`. The step's own framing — position, what changes,
+what you need first, concepts — sits above the first heading, because a reader
+arriving from search needs it before any navigation.
+
+**The level is load-bearing, not cosmetic.** The docs site renders an in-page
+table of contents from `h2`–`h3` only. These blocks were once `####`, so a step
+running eight skills published a table of contents with one entry and a reader
+on a long page had no way to jump to the skill they wanted. Eye-tracking work on
+scanning also finds that a reader skimming a page reads the `h2` and `h3`
+headings and little else — which is why the heading names a skill and what it
+produces, rather than being a bare label.
+
+`step_map` is the step's one overview, and it exists to answer a question the
+per-skill blocks structurally cannot: **which of these do I actually have to
+run?** A step presenting four skills in the same imperative `Run` form, with the
+optional ones distinguished only by a sentence of prose, reads as four
+obligations. The table's third column says so per skill, and the lint checks the
+table against the headings in both directions — a skill with no row, or a row
+with no block, is a finding.
+
+`utterance` is a **fenced block**, not inline code. The site attaches a copy
+button to fenced blocks and to nothing else, so an inline utterance made the one
+value on the page a reader must transfer verbatim the one value they had to
+retype. Keep the fence unlabelled: it is a sentence typed into a chat session,
+not source in any language.
+
+`## What you will run` also states **where** these are typed and what the
+templated path segments mean, once, in a line under the table. A reader arriving
+from search lands mid-guidebook and never sees the entry page, so a step that
+shows `<output_dir>/journeys/<slug>.md` without ever resolving either segment
+has named a location the reader cannot find. Say it on every step; the
+repetition is the point.
 
 Worked examples of each label, and the exact parse, are in
 `python3 tools/lint-guidebook-steps.py --help`.
