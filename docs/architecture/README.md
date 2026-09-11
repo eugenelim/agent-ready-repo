@@ -17,6 +17,7 @@ live in [RFCs](../rfc/).
 - [`security.md`](security.md) — security-review posture.
 - [`credentials.md`](credentials.md) — brokers, storage, and trust boundaries.
 - [`knowledge-capture.md`](knowledge-capture.md) — capture, distillation, and enquiry.
+- [`telemetry.md`](telemetry.md) — what a pack records about its own execution, and the export boundary.
 
 Architecture docs are a living snapshot. Update them with layout or dependency
 changes.
