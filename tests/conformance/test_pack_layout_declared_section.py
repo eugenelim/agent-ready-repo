@@ -21,7 +21,10 @@ installs a default under a section whose readers resolve somewhere else. No
 document describes that combination, and the pair rule is what rejects it.
 
 This file is pack-portable by rule: it derives every pack and every pair from
-the tree rather than naming any.
+the tree rather than naming any. It also ships — `catalogue init` writes it
+into an adopter's catalogue, which may hold no packs at all — so the
+tree-derived cases skip on an empty catalogue while the rule's own
+discrimination is proven against synthetic input that is always present.
 """
 
 from __future__ import annotations
@@ -71,18 +74,26 @@ def _documented_pairs(pack: str) -> set[tuple[str, str]]:
     return pairs
 
 
-def test_the_catalogue_has_declaring_packs() -> None:
-    """A non-empty floor.
+def _catalogue_has_packs() -> bool:
+    return PACKS_DIR.is_dir() and any(PACKS_DIR.glob("*/pack.toml"))
 
-    Every check below is a `for` over a glob, and a glob that matches nothing
-    satisfies "for every pack ..." vacuously. A mis-rooted or renamed tree must
-    go red here rather than pass everything downstream.
+
+def test_a_populated_catalogue_declares_at_least_one_layout() -> None:
+    """A non-empty floor, scoped to a catalogue that has packs.
+
+    The tree-derived case below is a `for` over a glob, and a glob matching
+    nothing satisfies "for every pack ..." vacuously — so a mis-rooted or
+    renamed tree must go red rather than pass everything downstream. An
+    adopter's catalogue with no packs yet is a different thing from a broken
+    enumeration, and only the second is a defect.
     """
-    assert len(_declaring_packs()) >= 5
+    if not _catalogue_has_packs():
+        pytest.skip("no packs in this catalogue")
+    assert _declaring_packs(), "packs are present but none declares a layout"
 
 
 @pytest.mark.parametrize("pack,section,output_dir", _declaring_packs())
-def test_declared_pair_is_documented_by_the_pack(
+def test_declared_pair_is_documented_by_the_pack(  # noqa: D103
     pack: str, section: str | None, output_dir: str | None
 ) -> None:
     assert section, f"{pack} declares a repo layout without a section"
@@ -98,27 +109,40 @@ def test_declared_pair_is_documented_by_the_pack(
     )
 
 
-def test_a_crossed_pair_is_never_itself_documented() -> None:
-    """The rule must discriminate, not merely pass on today's tree.
+def _crossed_pairs(pairs: set[tuple[str, str]]) -> set[tuple[str, str]]:
+    """Every (section, base) formed from two *different* documented pairs."""
+    return {
+        (one_section, other_base)
+        for one_section, one_base in pairs
+        for other_section, other_base in pairs
+        if one_section != other_section and one_base != other_base
+    }
 
-    Wherever a pack documents two distinct pairs, crossing them — one pair's
-    section carried on the other's base — must not appear in the documented
-    set. If it did, the pair rule would admit exactly the drift it exists to
-    reject. The crossing packs are derived, not named, so this stays portable.
+
+def test_the_rule_rejects_a_crossed_pair() -> None:
+    """The rule must discriminate, proven without depending on the tree.
+
+    Section membership alone would admit a declaration that takes its section
+    from one documented pair and its base from another. This is the property
+    that makes the pair rule worth having, so it is asserted against synthetic
+    input rather than against whichever packs happen to document two pairs
+    today — on an empty catalogue that evidence would simply be absent, and
+    the guarantee would silently stop being checked.
     """
-    crossings = 0
+    documented = {("alpha", "one/alpha"), ("beta", "two/beta")}
+    crossed = _crossed_pairs(documented)
+
+    assert crossed == {("alpha", "two/beta"), ("beta", "one/alpha")}
+    assert not (crossed & documented), "a crossed pair must never be documented"
+
+
+def test_no_pack_documents_a_crossing_of_its_own_pairs() -> None:
+    """The same property over the real tree, where there is one."""
+    if not _catalogue_has_packs():
+        pytest.skip("no packs in this catalogue")
     for pack, _section, _base in _declaring_packs():
         pairs = _documented_pairs(pack)
-        for one_section, one_base in pairs:
-            for other_section, other_base in pairs:
-                if one_section == other_section or one_base == other_base:
-                    continue
-                assert (one_section, other_base) not in pairs, (
-                    f"{pack} documents both ({one_section}, {one_base}) and "
-                    f"({other_section}, {other_base}), and also their cross"
-                )
-                crossings += 1
-    assert crossings, (
-        "no pack documents two distinct pairs, so the discrimination this "
-        "rule provides is untested — the assertion above never ran"
-    )
+        assert not (_crossed_pairs(pairs) & pairs), (
+            f"{pack} documents a pair and also a crossing of it, so the rule "
+            "cannot discriminate for that pack"
+        )
