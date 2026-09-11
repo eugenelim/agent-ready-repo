@@ -24,9 +24,27 @@ route in no more steps than the baseline recorded before this work starts.
 
 ## Direction 2026-09-10 — recommend Desktop's Code tab first
 
-**Owner decision.** The starting point we recommend to a non-technical adopter
-is **Claude Desktop's Code tab**, not the chat tab. Plugins for the chat
-surface become a later, separate decision rather than this intent's premise.
+**Owner decision, amended 2026-09-10.** The starting point we *recommend* is
+**Claude Desktop's Code tab**. Both surfaces are **admitted now** — the Code
+tab and the Claude apps — rather than the chat surface being deferred to a
+later decision.
+
+*What the earlier version said, and why it changed.* It deferred the chat
+surface entirely, on the reasoning that it is "worth having only if the
+degradation is repaired first". That set the bar in the wrong place. Claude
+plugins carry **skills on all three surfaces**, and skills are what carry the
+method; the degradation is confined to sub-agents, affecting five of fifteen
+published packs. Deferring a surface where the primary primitive works in
+order to wait on a secondary one costs more than it protects.
+
+*What admitting it trades, stated plainly.* On the chat surface a reader using
+`desk-research`, `experience-design`, `product-engineering`, `architect` or
+`frontend-engineering` gets the thinner method and nothing tells them at the
+point of use. The mitigation is disclosure — the capability reference — not
+repair. **Admitting the surface does not close the defect**; it stays open and
+separately owned at
+`docs/specs/claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md`,
+and a reader who never opens the reference still gets a silent pass.
 
 **Why it dissolves most of this intent's difficulty.** The Code tab *is* Claude
 Code. So on that surface: sub-agents run, the filesystem is readable and
@@ -73,10 +91,10 @@ The chat-surface row is the defect at
 Recommending the Code tab does not repair it — the packs still ship into a
 surface where it bites — but it means no adopter we point at a route meets it.
 
-**What this leaves to decide later:** whether we want the chat surface at all.
-That decision now has its cost visible: it is worth having only if the
-degradation is repaired first, because five of the fifteen published plugins
-degrade silently there.
+**Decided 2026-09-10: we want both surfaces.** The chat surface is admitted
+with its cost disclosed rather than repaired. What remains open is the defect
+itself, which is a packs-level contract problem and not a reason to withhold a
+route whose skills work.
 
 ## Boundary
 

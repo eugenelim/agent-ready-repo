@@ -929,7 +929,7 @@ open = [
   # can exist until portfolio-pack-first-value-contract's owner decides the
   # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
   # scoping the smallest guide consumer.
-  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; recommended start is Desktop's Code tab, which runs sub-agents and writes artifacts, so no capability degrades", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
+  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
 
 ]
 

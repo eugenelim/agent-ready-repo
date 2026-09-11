@@ -204,6 +204,57 @@ published changes and documentation takes no version bump.
 No TDD-mode outcome: this changes prose and one component's content, and a unit
 test over prose would assert its own fixture.
 
+## Acceptance-set construction record
+
+Run 2026-09-10 after the owner amended the parent to admit both surfaces.
+Obligations were enumerated from the Objective's three outcomes, the
+non-waivable `Never do` rails, and the applicable Durable Outputs; each was
+then admitted only once an observer could be named.
+
+- **Candidate obligations:** 26
+- **Admitted as criteria:** 22
+- **Routed or merged:** 4
+
+| Candidate obligation | Disposition | Criterion / owner | Red input | Observer |
+| --- | --- | --- | --- | --- |
+| A how-to exists with steps for both surfaces | admitted | AC1 | page absent, or only one registration path | the file |
+| Separate-stores warning sits at the registration step | admitted | AC2 | warning absent or elsewhere on the page | reader of that step |
+| Eligibility and recovery stated before step one | admitted | AC3 | any of plan, admin-restriction or missing-menu absent | reader of the preamble |
+| A capability reference exists with fixed columns and rows | admitted | AC4 | page absent, column or surface missing | the rendered table |
+| No cell claims what no source supports | admitted | AC5 | a cell neither traceable nor `not established` | reviewer against ADR-0107 + survey |
+| Two doors render with equal treatment | admitted | AC6 | differing heading level, variant, scale or container | captures at 2 viewports × 2 themes |
+| Neither door's copy hedges the other | admitted | AC7 | fallback/secondary/alternative/lite/workaround in copy | reader of the rendered copy |
+| The Claude-apps door opens onto the how-to | admitted | AC8 | link resolves anywhere else | the rendered href |
+| Guide hub and docs-site install page link in | admitted | AC9 | either link absent | the two files |
+| install-routes links to both new pages | admitted | AC10 | either link absent | that file |
+| Emitted internal links resolve | admitted | AC11 | any unresolved emitted link | `make site-link-check` |
+| No first-value claim, no install-success claim | admitted | AC12 | any such assertion in the change | whole-diff read + independent verdict |
+| No published counts | admitted | AC13 | a count of the named kinds anywhere in the change | whole-diff read |
+| Route-docs literals still present | admitted | AC14 | a pinned literal missing | `lint-plugin-route-docs.py` |
+| Pinned literals byte-unchanged | admitted | AC15 | any literal altered vs accepted base | `git diff <base> -- install-routes.md` |
+| A cold reader can state door, action and surface | admitted | AC16 | any of the three unstatable, or help needed | the reader |
+| Evidence boundary stated before the install action | admitted | AC17 | absent or after the action | reader of that step |
+| No image in either new page | admitted | AC18 | any image syntax in either file | the two files |
+| The how-to links to the capability reference | admitted | AC19 | link absent or after pack selection | reader of the how-to |
+| Guide frontmatter valid | admitted | AC20 | invalid or missing frontmatter | `validate_guides.py` |
+| Guide index complete | admitted | AC21 | pack missing from the index | `check-guide-index.py` |
+| `title:` matches the leading H1 | admitted | AC22 | title and H1 diverge | `lint-guide-titles.py` |
+| Sub-agent degradation is *repaired* | **routed** | `claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md` | — | not this spec's; disclosure only, via AC4 |
+| Guide images work on both surfaces | **routed** | `docs-site-build-contract-hardening/notes/guide-image-projection.md` | — | not this spec's; AC18 avoids the defect |
+| A pack *delivers first value* on either surface | **routed** | `claude-apps-first-value-entry` | — | needs step-5a probe; AC12 fences it |
+| Which of four entry points to use | **merged** | into AC9 | — | scoping decision, not a separate obligation |
+
+**Set-level result.** *Necessity:* every criterion names a red input above, and
+no two share one — AC14's linter proves presence while AC15 proves the bytes
+are unchanged, which the gate record shows are different failures. *Uniqueness:*
+one observer each; the four-linter conjunction that previously violated this is
+now AC14 and AC20–AC22. *Consistency:* AC12's prohibition and AC1's instruction
+coexist because the how-to ends at a submitted install. *Joint feasibility:* no
+criterion requires content another forbids; AC18 and AC4 agree because the
+reference is a table. *Coverage both ways:* each of the three Objective
+outcomes, each `Never do` rail and each applicable Durable Output reaches a
+criterion or a routed owner above, and every criterion traces back to one.
+
 ## Accepted residuals
 
 Sustained findings answered by acceptance rather than repair, with the reason
@@ -245,20 +296,15 @@ A reviewer read the spec cold against the acceptance-criteria construction
 contract. Three blocking and two major findings. Applied: the false
 "differ in exactly two things" premise (B2), the four-linter criterion split
 into AC14 and AC20–AC22 with its acceptance retracted (M1), and three stale
-plan mappings from a late renumber (M2). **Open: B1 and B3.**
+plan mappings from a late renumber (M2). **B1 and B3 are now closed** — B1 by the owner amending the parent to admit
+both surfaces on 2026-09-10, B3 by the construction record above.
 
-- **B1 — this spec contradicts its parent, and only the owner can resolve it.**
-  `claude-apps-first-value-entry` records that "plugins for the chat surface
-  become a later, separate decision" and are worth having "only if the
-  degradation is repaired first". This spec now offers the Claude-apps
-  registration path as an equal supported route. Either the parent is amended
-  to admit both surfaces, or AC1–AC3 and T2 drop the Claude-apps branch. Not
-  repairable here: it is an owner decision, not a defect.
-- **B3 — no acceptance-set construction record.** The governing contract
-  requires the candidate count, every candidate's disposition and owner, each
-  criterion's red input, and a two-way coverage pass. Deliberately **not**
-  written yet: B1 changes which criteria exist, so building the record first
-  would produce one that is wrong the moment B1 resolves.
+- **B1 — resolved by the owner.** The parent now admits both surfaces, with
+  the Code tab recommended and the chat surface's sub-agent gap disclosed
+  rather than repaired. The defect stays open and separately owned; admitting
+  the surface did not close it.
+- **B3 — resolved.** The construction record above was built from an actual
+  selection pass once B1 settled which criteria exist.
 
 **Prior debt, still true.** After
 they ran, the owner widened the spec to target Claude Desktop's Code tab
