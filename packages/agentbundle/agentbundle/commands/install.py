@@ -3381,9 +3381,16 @@ def _append_layout_section(
         # At user scope the root is the adopter's whole home, which is far
         # wider than anything the installer may write. Narrow it to the
         # adapter's declared prefixes by calling the same helper `write_jailed`
-        # uses, rather than re-implementing containment here — that helper owns
-        # the trailing-slash invariant that stops `.claude/` admitting
-        # `.claudefoo`, and a copy would not follow it if it tightened.
+        # uses, rather than re-implementing containment here, so the two cannot
+        # drift apart.
+        #
+        # The trailing-slash invariant — the thing that stops `.claude/`
+        # admitting `.claudefoo` — is enforced by `write_jailed` itself, not by
+        # the helper, which does a bare prefix comparison. A slashless entry is
+        # already refused by the adapter contract schema, and the layout
+        # write's own `write_jailed` call would refuse one that slipped
+        # through, so nothing widens here today. Reordering these two calls
+        # would change that, which is why the ownership is written down.
         if scope == "user" and allowed_prefixes is not None:
             if resolved == confine_root:
                 _report(
