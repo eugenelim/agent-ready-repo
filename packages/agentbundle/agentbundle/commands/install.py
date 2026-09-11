@@ -30,6 +30,7 @@ from __future__ import annotations
 import functools
 import os
 import re
+import stat
 import sys
 import tomllib
 from dataclasses import dataclass, field
@@ -1906,6 +1907,9 @@ def _run(args: argparse.Namespace) -> int:
         if plan.scope == "local":
             continue
         scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
+        # The marker stays fatal: uninstall and `adapt` read what it writes,
+        # so an install reporting success with no marker entry is a worse
+        # outcome than a failed install.
         try:
             _append_install_marker(
                 plan.root,
@@ -1916,16 +1920,21 @@ def _run(args: argparse.Namespace) -> int:
                 new_companions=plan.new_companions,
                 allowed_prefixes=plan.allowed_prefixes,
             )
-            _append_layout_section(
-                plan.root,
-                plan.scope,
-                pack_name=pack_name,
-                pack_layout=pack_layout,
-                allowed_prefixes=plan.allowed_prefixes,
-            )
         except (OSError, safety.PathJailError) as exc:
             print(f"install: {exc}", file=sys.stderr)
             return 1
+
+        # Layout maintenance is best-effort and handles every failure itself,
+        # reporting on stderr and returning. It is deliberately outside the
+        # handler above: sharing it would mean a relaxation for one became a
+        # relaxation for both.
+        _append_layout_section(
+            plan.root,
+            plan.scope,
+            pack_name=pack_name,
+            pack_layout=pack_layout,
+            allowed_prefixes=plan.allowed_prefixes,
+        )
 
     # ── Step 12: Chained adapt (in-process) ──────────────────────────────────
     # Invoke `agentbundle.commands.adapt.run` in-process
@@ -3205,131 +3214,263 @@ def _append_layout_section(
     pack_layout: dict,
     allowed_prefixes: list[str] | None,
 ) -> None:
-    """Append a ``[<pack_name>]`` table to an adopter-owned
-    ``agentbundle-layout.toml`` at *root* — but **only if the file already
-    exists** and the section is **absent**. Repo-scope
-    file lives at ``<repo>/agentbundle-layout.toml``; user-scope at
-    ``<user-root>/.agentbundle/agentbundle-layout.toml``.
+    """Append a pack's declared layout section to an adopter-owned
+    ``agentbundle-layout.toml`` at *root* — appending only, never creating the
+    file and never replacing a section the adopter wrote.
 
-    Append-if-exists / never-create / never-overwrite. The file is
-    adopter-owned, so this step never brings it into being and never
-    rewrites a section the adopter already authored.
+    The table is named by the manifest's ``[pack.layout.<scope>].section`` and
+    carries its ``output_dir``. The section name is declared rather than
+    derived from the pack name: ``experience-design`` writes ``[design]``,
+    ``desk-research`` writes ``[research]``, and every consuming skill resolves
+    its section by prose instruction in its own ``SKILL.md``, so nothing at
+    runtime could reconcile a name the pack does not already document.
 
-    Modelled on :func:`_append_install_marker`'s upsert: read +
-    type-validate + re-emit, with **every** emitted string — including each
-    re-emitted table header, since a parsed section key can itself contain
-    ``]`` or a newline — routed through :func:`config._emit_basic_string`, and
-    the write going through :func:`safety.write_jailed` with the
-    marker-mirrored per-scope jail (repo: top-level relpath, no prefixes;
-    user: ``root=<home>`` + ``.agentbundle/`` relpath + ``allowed-prefixes.user``
-    via :func:`safety.user_state_path`).
+    **Best-effort maintenance.** This never raises and never fails the install.
+    It returns having written one table or nothing, and reports on stderr
+    whenever it declines — except for the three states that are the contract
+    working, where a message would be noise on the majority of installs. The
+    caller's handler is therefore scoped to ``_append_install_marker``, which
+    stays fatal because uninstall and ``adapt`` read what it writes.
 
-    The appended default is sourced from the pack's scope-keyed
-    ``[pack.layout.<scope>].parent`` manifest table. A scope whose sub-table
-    (or its ``parent``) is absent appends **nothing** — e.g. all three current
-    consumers omit ``[pack.layout.user]``, so the user-scope append is a no-op
-    A pack with no ``[pack.layout]`` at all (most packs) no-ops too,
-    so this is safe to call unconditionally per scope.
+    The reachable states, **in this order** (spec
+    ``docs/specs/layout-install-sections``):
+
+    1.  declaration incomplete — silent
+    2.  layout path is a symlink, by ``lstat`` — report
+    3.  no layout file at the scope — silent
+    4.  ``section`` outside the character class — report
+    5.  ``output_dir`` relative at user scope — report
+    6.  ``output_dir`` resolves outside the confinement root — report
+    7.  file or user-state directory cannot be opened — report
+    8.  not decodable as UTF-8 — report
+    9.  not parseable as TOML — report
+    10. section already present as a table — silent
+    11. name present as a scalar or array of tables — report
+    12. the write itself fails — report
+    13. otherwise — one table appended
+    14. any failure not enumerated above — report
+
+    Order carries three decisions. The symlink probe uses ``lstat`` and
+    precedes the existence check, because ``Path.exists()`` follows the link
+    and a layout file pointing at a moved target would otherwise read as absent
+    and go silent. Manifest faults (4-6) precede the file-state checks, so a
+    pack whose declaration is wrong is reported even on a re-install where
+    state 10 would be silent. And state 7 covers the read side, including
+    ``safety.user_state_path`` raising before the file even exists — the wide
+    ``except`` at the call site absorbs that today, and narrowing it without
+    this row would turn it into a traceback after projection.
+
+    The adopter's bytes are never round-tripped through a parser. The file is
+    read as bytes, parsed from a throwaway copy only to decide occupancy, and
+    written back as the original bytes plus one table — so comments, key order,
+    quoting style and line endings all survive. The file's mode is carried
+    across the atomic replace, which would otherwise hand it the temporary
+    file's private mode.
     """
     import tomllib
 
     from agentbundle import safety
-    from agentbundle.config import _emit_basic_string
+    from agentbundle.config import _emit_basic_string, _toml_key
 
-    if scope == "user":
-        # Mirror `_append_install_marker`: route through `user_state_path`
-        # so the dot-directory is created 0o700 with the symlink probe, then
-        # sit the layout file next to `state.toml`.
-        state_path = safety.user_state_path(home=root)
-        layout_path = state_path.parent / "agentbundle-layout.toml"
-        layout_relpath = ".agentbundle/agentbundle-layout.toml"
-    else:
-        layout_path = root / "agentbundle-layout.toml"
-        layout_relpath = "agentbundle-layout.toml"
+    def _report(message: str) -> None:
+        print(f"install: {message}", file=sys.stderr)
 
-    # Never-create: the file is adopter-owned; absent ⇒ no-op.
-    if not layout_path.exists():
-        return
-
-    # Scope-keyed default. A missing sub-table or missing/`non-str` `parent`
-    # ⇒ no-op (e.g. consumers that omit `[pack.layout.user]`).
+    # ── 1. Declaration incomplete ⇒ silent ──────────────────────────────────
+    # Most packs declare no layout at all, and a pack carrying only one of the
+    # two keys has not opted in either. Both are the common case; neither is an
+    # error to report.
     scope_table = pack_layout.get(scope) if isinstance(pack_layout, dict) else None
-    default_parent = (
-        scope_table.get("parent") if isinstance(scope_table, dict) else None
-    )
-    if not isinstance(default_parent, str):
+    section = scope_table.get("section") if isinstance(scope_table, dict) else None
+    output_dir = scope_table.get("output_dir") if isinstance(scope_table, dict) else None
+    if not isinstance(section, str) or not section:
+        return
+    if not isinstance(output_dir, str) or not output_dir:
         return
 
-    # Read + parse existing sections. A malformed file is left **untouched**
-    # (warn) — appending to a file we cannot parse risks a duplicate
-    # `[<pack>]` or a corrupt write, both worse than a skipped maintenance.
     try:
-        existing = tomllib.loads(layout_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        print(
-            f"install: warning: existing layout file at {layout_path} is "
-            f"malformed ({exc}); leaving it untouched (no [{pack_name}] appended)",
-            file=sys.stderr,
+        # ── 7 (partial). Locating the file can fail before it is read ───────
+        if scope == "user":
+            state_path = safety.user_state_path(home=root)
+            layout_path = state_path.parent / "agentbundle-layout.toml"
+            layout_relpath = ".agentbundle/agentbundle-layout.toml"
+        else:
+            layout_path = root / "agentbundle-layout.toml"
+            layout_relpath = "agentbundle-layout.toml"
+
+        # ── 2. Symlink ⇒ report. `lstat`, before the existence check ────────
+        if layout_path.is_symlink():
+            _report(
+                f"layout file at {layout_path} is a symbolic link; leaving it "
+                f"untouched (no [{section}] appended)"
+            )
+            return
+
+        # ── 3. Absent ⇒ silent. The file is adopter-owned; never create it ──
+        if not layout_path.exists():
+            return
+
+        # ── 4. Section character class ⇒ report ─────────────────────────────
+        # The value becomes a TOML table header and the key every reader
+        # trusts. Injection is structurally prevented by `_emit_basic_string`;
+        # refusing here is the bell-rings-loud companion, and it also rejects a
+        # well-formed name carrying `/` or `.` that no reader could match.
+        if not _PACK_NAME_RE.fullmatch(section):
+            _report(
+                f"pack {pack_name} declares layout section {section!r}, which "
+                f"must match ^[a-z0-9][a-z0-9-]*$; leaving {layout_path} "
+                "untouched"
+            )
+            return
+
+        # ── 5/6. Confine the declared base to the root we write under ───────
+        # `output_dir` is catalogue-sourced and reaches a filesystem root for
+        # the first time here, so it is confined to the same root the write
+        # jail uses for this scope (RFC-0040's security contract). A relative
+        # value is anchored to that root, never to the process working
+        # directory — anchoring to the CWD is the defect the resolver side
+        # repairs, and it would also refuse every shipped default whenever the
+        # CLI runs from another directory.
+        confine_root = root.resolve()
+        candidate = Path(output_dir).expanduser()
+        if not candidate.is_absolute():
+            if scope == "user":
+                # One profile serves many repositories, so a relative value has
+                # no stable base. The resolver refuses exactly this shape;
+                # writing it would install a configuration our own reader
+                # rejects.
+                _report(
+                    f"pack {pack_name} declares a relative user-scope "
+                    f"output_dir {output_dir!r}; a user-scope value must be "
+                    f"absolute. Leaving {layout_path} untouched"
+                )
+                return
+            candidate = confine_root / candidate
+        resolved = candidate.resolve()
+        if resolved != confine_root and confine_root not in resolved.parents:
+            _report(
+                f"pack {pack_name} declares output_dir {output_dir!r}, which "
+                f"resolves to {resolved} outside {confine_root}; leaving "
+                f"{layout_path} untouched"
+            )
+            return
+
+        # ── 7. Read as bytes ⇒ report on failure ────────────────────────────
+        # Bytes, not text: `read_text` folds CRLF and lone CR to LF, so a
+        # text-mode read would rewrite every Windows adopter's file.
+        try:
+            original = layout_path.read_bytes()
+        except OSError as exc:
+            _report(
+                f"cannot read layout file at {layout_path} ({exc}); leaving it "
+                f"untouched (no [{section}] appended)"
+            )
+            return
+
+        # ── 8. Decode ⇒ report. A throwaway copy, only to inspect ───────────
+        try:
+            text = original.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            _report(
+                f"layout file at {layout_path} is not valid UTF-8 ({exc}); "
+                f"leaving it untouched (no [{section}] appended)"
+            )
+            return
+
+        # ── 9. Parse ⇒ report ───────────────────────────────────────────────
+        # Appending to a file we cannot parse risks a duplicate table or a
+        # corrupt write, both worse than skipped maintenance.
+        try:
+            existing = tomllib.loads(text)
+        except Exception as exc:
+            _report(
+                f"existing layout file at {layout_path} is malformed ({exc}); "
+                f"leaving it untouched (no [{section}] appended)"
+            )
+            return
+
+        # ── 10/11. Occupancy ────────────────────────────────────────────────
+        if section in existing:
+            if isinstance(existing[section], dict):
+                # The steady state: every re-install of a configured pack, and
+                # every adopter who wrote the section by hand. Never replace
+                # it, and do not announce the non-event.
+                return
+            # A scalar or array of tables holds the name. TOML cannot express
+            # `[section]` beside it, so preserving the adopter's value and
+            # appending are jointly unsatisfiable — preservation wins.
+            _report(
+                f"layout file at {layout_path} already uses {section!r} as a "
+                f"{type(existing[section]).__name__}; leaving it untouched "
+                f"(no [{section}] appended)"
+            )
+            return
+
+        # ── 12/13. Append the table to the bytes already on disk ────────────
+        # Line-ending style is the file's own; a mixed file takes its last
+        # terminator, so the result is derivable rather than chosen.
+        # Last terminator wins, so a mixed-ending file has a derivable
+        # oracle rather than one the implementer picks.
+        last_lf = original.rfind(b"\n")
+        if last_lf == -1:
+            newline = b"\n"
+        elif last_lf > 0 and original[last_lf - 1 : last_lf] == b"\r":
+            newline = b"\r\n"
+        else:
+            newline = b"\n"
+
+        separator = b"" if (not original or original.endswith(b"\n")) else newline
+        table = (
+            f"[{_toml_key(section)}]".encode()
+            + newline
+            + f"output_dir = {_emit_basic_string(output_dir)}".encode()
+            + newline
+        )
+        content = original + separator + table
+
+        # Mirror `_append_install_marker`'s per-scope jail: at repo scope the
+        # layout file is top-level, so the per-prefix check is skipped; at user
+        # scope it sits under `.agentbundle/` and the adapter's
+        # `allowed-prefixes.user` list applies.
+        layout_prefixes = allowed_prefixes
+        if scope == "repo" and layout_relpath == "agentbundle-layout.toml":
+            layout_prefixes = None
+
+        # Carry the adopter's mode across the atomic replace. Without this the
+        # target inherits the temp file's 0600 and a group-readable layout file
+        # silently becomes owner-only — invisible to a byte comparison.
+        try:
+            existing_mode = stat.S_IMODE(layout_path.stat().st_mode)
+        except OSError:
+            existing_mode = None
+
+        try:
+            safety.write_jailed(
+                root,
+                layout_relpath,
+                content,
+                mode=existing_mode,
+                scope=scope,
+                allowed_prefixes=layout_prefixes,
+            )
+        except (OSError, safety.PathJailError) as exc:
+            _report(
+                f"cannot write layout file at {layout_path} ({exc}); no "
+                f"[{section}] appended"
+            )
+            return
+
+    # ── 14. Anything not enumerated above ⇒ report ──────────────────────────
+    # The never-raise property rests on this, not on the enumeration being
+    # exhaustive. `Path.expanduser()` raises `RuntimeError` with no resolvable
+    # home — real in corporate sandboxes and containers — and `write_jailed`
+    # can raise `TypeError`. Either would escape as a traceback after the
+    # projection and the marker are already written.
+    except Exception as exc:  # noqa: BLE001 - deliberate catch-all; see above
+        _report(
+            f"layout maintenance failed for pack {pack_name} at {scope} scope "
+            f"({type(exc).__name__}: {exc}); install is unaffected"
         )
         return
-
-    # Never-overwrite: section already present ⇒ no-op.
-    if isinstance(existing.get(pack_name), dict):
-        return
-
-    # Re-emit: preserve each existing `[<pack>]` section's `parent`, type-
-    # validating it (drop a non-`str` `parent` before re-emission, mirroring
-    # `_append_install_marker`'s parsed-field hardening), then append the new
-    # section. Every emitted string — header key and value alike — routes
-    # through `_emit_basic_string`, so a tampered existing `parent` (or a
-    # hostile section key) cannot land phantom TOML structure on re-emit.
-    sections: list[tuple[str, str]] = []
-    for key, val in existing.items():
-        if not isinstance(val, dict):
-            # Off-schema top-level scalar/array we don't model (the documented
-            # file schema is `[<pack>]` tables only). Dropped on re-emit, as
-            # the marker model drops anything off its schema.
-            print(
-                f"install: warning: layout file at {layout_path} has an "
-                f"off-schema top-level key {key!r} ({type(val).__name__}); "
-                f"dropping it on re-emit",
-                file=sys.stderr,
-            )
-            continue
-        parent = val.get("parent")
-        if not isinstance(parent, str):
-            print(
-                f"install: warning: layout section [{key}] at {layout_path} "
-                f"has non-string parent (got {type(parent).__name__}); "
-                f"dropping the section on re-emit",
-                file=sys.stderr,
-            )
-            continue
-        sections.append((key, parent))
-    sections.append((pack_name, default_parent))
-
-    lines: list[str] = []
-    for name, parent in sections:
-        lines.append(f"[{_emit_basic_string(name)}]")
-        lines.append(f"parent = {_emit_basic_string(parent)}")
-        lines.append("")
-    content = "\n".join(lines).rstrip() + "\n"
-
-    # Per-scope jail, mirroring `_append_install_marker`: at repo scope the
-    # layout file is a top-level `agentbundle-layout.toml` (not under a
-    # declared prefix), so the per-prefix check is skipped; at user scope it
-    # sits under `.agentbundle/` and the adapter's `allowed-prefixes.user`
-    # list applies.
-    layout_prefixes = allowed_prefixes
-    if scope == "repo" and layout_relpath == "agentbundle-layout.toml":
-        layout_prefixes = None
-    safety.write_jailed(
-        root,
-        layout_relpath,
-        content,
-        scope=scope,
-        allowed_prefixes=layout_prefixes,
-    )
 
 
 def _chain_adapt(repo_root: Path) -> int:
