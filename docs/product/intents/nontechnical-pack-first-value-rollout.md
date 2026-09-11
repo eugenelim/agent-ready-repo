@@ -44,8 +44,11 @@ from `[pack.install] allowed-scopes` plus the Claude-plugin route's user-scope
 admission (`claude-plugin-route-scope`, Shipped) and ADR-0107, so the
 vocabulary was never the gate. `surfaces` records *verified* first-value
 surfaces, and no pack can declare one for the Claude apps until a dated
-observation exists. **That observation is the real and only remaining
-dependency.**
+observation exists — but that declaration has no consumer, so it is **dropped
+as a dependency** rather than carried. A Claude-apps slice is unblocked.
+Separately, the recommended starting point is now Desktop's **Code tab**,
+which is Claude Code and therefore already covered by the
+`surfaces = ["claude-code"]` these packs declare.
 
 | Slice | Owns | Status |
 | --- | --- | --- |

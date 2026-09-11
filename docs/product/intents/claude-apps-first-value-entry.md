@@ -22,6 +22,62 @@ artifact in the same session.
 **Guardrail:** a terminal adopter can still reach and complete the existing CLI
 route in no more steps than the baseline recorded before this work starts.
 
+## Direction 2026-09-10 — recommend Desktop's Code tab first
+
+**Owner decision.** The starting point we recommend to a non-technical adopter
+is **Claude Desktop's Code tab**, not the chat tab. Plugins for the chat
+surface become a later, separate decision rather than this intent's premise.
+
+**Why it dissolves most of this intent's difficulty.** The Code tab *is* Claude
+Code. So on that surface: sub-agents run, the filesystem is readable and
+writable so a method's artifact lands where the pack's layout says, there is no
+second plugin store to register in, and no capability differs from the route
+the catalogue was built for. It is also genuinely no-terminal — Claude Desktop
+is a GUI application and `/plugin marketplace add` is a slash command in the
+app, not a shell command.
+
+**And it needs no contract change at all.** `surfaces = ["claude-code"]`, which
+all four discipline packs already declare, is *already true* for the Code tab.
+The vocabulary question that this intent recorded as a hard predecessor is not
+merely narrowed — for this direction it does not arise.
+
+**The honest caveat.** Claude Code works against a local directory, so an
+adopter needs a folder to work in. That is a smaller ask than a terminal, and
+it is what makes artifacts persist.
+
+### Sub-agent audit, 2026-09-10
+
+Seven packs ship sub-agents. Five of them are published as plugins, carrying
+eight sub-agents onto the plugin route:
+
+| Pack | Sub-agents | Scopes | Published as a plugin |
+| --- | --- | --- | --- |
+| `product-engineering` | 3 | user, repo | yes |
+| `desk-research` | 2 | user, repo | yes |
+| `architect` | 1 | user, repo | yes |
+| `experience-design` | 1 | user, repo | yes |
+| `frontend-engineering` | 1 | user, repo | yes |
+| `core` | 6 | repo | no — repo-scope, so the route never carries it |
+| `release-engineering` | 1 | repo | no — same |
+
+**Impact by surface:**
+
+| Surface | Sub-agents | Filesystem | Consequence |
+| --- | --- | --- | --- |
+| Claude Code, incl. Desktop's **Code tab** | run | yes | no degradation; this is the recommended start |
+| Cowork | run | — | sub-agents work; artifact destination unestablished |
+| Desktop **chat** tab, web chat | present, listed, **unrunnable** | no | 8 sub-agents across 5 published packs are inert, and no pack's fallback fires because all are keyed on *absence* |
+
+The chat-surface row is the defect at
+`docs/specs/claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md`.
+Recommending the Code tab does not repair it — the packs still ship into a
+surface where it bites — but it means no adopter we point at a route meets it.
+
+**What this leaves to decide later:** whether we want the chat surface at all.
+That decision now has its cost visible: it is worth having only if the
+degradation is repaired first, because five of the fifteen published plugins
+degrade silently there.
+
 ## Boundary
 
 - The marketing home's start zone: **two equal links**, one to the existing
