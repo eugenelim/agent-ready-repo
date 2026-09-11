@@ -72,7 +72,10 @@ installs are accepted as sufficient.
   coupled meta-packs on portability grounds; a convenience gain does not buy
   that back.
 - **Honest support claims.** RFC-0092 admits no claim above
-  `documentation-verified` without a dated per-client record.
+  `documentation-verified` without a dated per-client record. Note what that
+  does and does not gate: it gates a *declaration*, not this route's use. The
+  route works and is documented; the record is owed only if and when something
+  consumes the claim.
 
 ## Decision
 
@@ -144,11 +147,25 @@ Specifically:
 - **Conditional reach.** The personal path is generally available, but an
   organisation's administrators can restrict what a group may install, so
   "supported" still does not mean "available to everyone".
-- **A degraded surface is now a supported surface.** Sub-agents are inert in
-  chat, which for `desk-research` means its parallel retrieval subagents are
-  unavailable there. Supporting a surface where a shipped primitive does not run
-  is a real cost, accepted because skills carry the method and Cowork carries
-  the rest.
+- **A degraded surface is now a supported surface, and the degradation is not
+  currently handled.** Sub-agents ship in the plugin — the route declares
+  `agent = native` and the Claude Code adapter projects `agent →
+  .claude/agents/` — so on the chat surface they are **present, listed and
+  unrunnable**, not absent. Every pack that ships them degrades only on
+  *absence*, so no fallback fires in that state:
+  `experience-reviewer-work-loop-gate` (Shipped) guarantees a missing reviewer
+  is "a named skip, not a silent pass", and on this surface the trigger never
+  fires. Accepting this surface therefore accepts a state in which a shipped
+  contract can pass silently. Tracked as a defect at
+  `docs/specs/claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md`
+  and not repairable by documentation, which can disclose the difference but
+  does not own the contract.
+
+  *Amended 2026-09-10, before publication.* The original wording called this
+  "degradation accepted because skills carry the method". That was too
+  comfortable: it described the capability gap and missed that the handling for
+  it never triggers. The decision is unchanged — the surface is still
+  supported — but the cost is larger than first recorded.
 - **Revisit if:** Anthropic ships a scope-aware bundle primitive (not the
   coupled `dependencies` array), or adopter demand for a curated bundle
   outweighs the coupling cost ADR-0003 / RFC-0013 option F rejected.
