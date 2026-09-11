@@ -153,6 +153,16 @@ RULES = (
         "skill",
         "A round count is not a fact anyone can act on",
     ),
+    (
+        "criterion-needs-a-machine",
+        "skill",
+        "An obligation whose only check is that a sentence exists is not a",
+    ),
+    (
+        "intent-frozen-at-shaping",
+        "skill",
+        "frozen once shaping closes, and this",
+    ),
 )
 EXAMPLES = (
     ('E1', 'splits', 'Two different predicates; no single sentence covers both.', '`writer.py` emits `manifest.json` with keys in byte-sorted order, and `--dry-run` prints that manifest without writing a file.'),

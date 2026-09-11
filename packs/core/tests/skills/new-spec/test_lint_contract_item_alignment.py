@@ -161,6 +161,37 @@ def test_a_refused_artifact_is_reported_through_the_tool(root, tmp_path_factory,
     assert "SECRET" not in result.stdout, "the refused file's content was emitted"
 
 
+def test_a_refused_plan_leaves_the_spec_only_rules_applied(root, tmp_path_factory):
+    """A refused plan.md must not unapply the rules that read spec.md alone.
+
+    The directory-wide early return reported rules 1, 2, 3 and 6 as neither run
+    nor input-less, which is the partial-read-as-clean failure this module
+    exists to detect. An absent plan.md already takes the no-input route; a
+    refused one takes the same route plus its own finding. The fixture plants a
+    duplicate identifier so a spec-only rule has something to find: if the
+    refusal suppressed rule 1, the duplicate goes unreported.
+    """
+    _tree(root)
+    spec = root / "docs" / "specs" / "fixture" / "spec.md"
+    spec.write_text(spec.read_text(encoding="utf-8").replace(
+        "- [ ] **AC-0002.** ", "- [ ] **AC-0001.** ", 1), encoding="utf-8")
+    outside = tmp_path_factory.mktemp("outside")
+    target = outside / "leaked.md"
+    target.write_text("SECRET\n", encoding="utf-8")
+    plan = root / "docs" / "specs" / "fixture" / "plan.md"
+    plan.unlink()
+    plan.symlink_to(target)
+    result = _run(root)
+    assert "Traceback" not in result.stderr, result.stderr
+    assert "plan.md: refusing path outside root" in result.stdout, result.stdout
+    assert "AC-0001" in result.stdout and "is assigned twice" in result.stdout, \
+        f"a rule whose only input is spec.md must still be applied:\n{result.stdout}"
+    for rule in ("no-task-entry", "derived-item", "broken-entry"):
+        assert rule in result.stdout, \
+            f"the plan-reading rules must be named as having no input:\n{result.stdout}"
+    assert "SECRET" not in result.stdout
+
+
 def _subject_module():
     import importlib.util
 

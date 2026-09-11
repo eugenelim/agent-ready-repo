@@ -9,17 +9,18 @@
 
 ## Outcome
 
-- **Steerable input:** Ship the selection procedure, the set-level sweep and the
-  review-response protocol that `acceptance-criteria-set-construction` drafted,
-  once a frozen-case run can show each change improves criterion selection
-  rather than only sounding better.
+- **Steerable input:** Bring the selection procedure, the set-level sweep and
+  the review-response protocol that `acceptance-criteria-set-construction`
+  drafted back under contract, once a frozen-case run can show each change
+  improves criterion selection rather than only sounding better. The guidance
+  itself is already released; what waits on the score is the obligation.
 - **Lagging outcome:** An author's criterion set is measurably better with the
   procedure than without it — higher recall of stated objectives and guardrails,
   lower admission of implementation detail, duplicate claims and example-only
   variants.
-- **Guardrail:** No part of this ships on an argument. Each change is scored
-  against the frozen cases before and after, and a change that lowers recall is
-  refused however much it improves rejection.
+- **Guardrail:** No part of this becomes a criterion on an argument. Each change
+  is scored against the frozen cases before and after, and a change that lowers
+  recall is refused however much it improves rejection.
 
 ## Why this is deferred rather than shipped
 
@@ -45,8 +46,8 @@ same spec defines, a smaller set obtained by losing a guardrail is a failure,
 not a success. Neither arm rejected the already-enforced property.
 
 **That is the whole case for deferring.** Sixteen rounds argued the prose; two
-subagent calls decided it. Nothing here ships until the run is built and the
-score moves the right way.
+subagent calls decided it. Nothing here becomes a criterion again until the run
+is built and the score moves the right way.
 
 ## What the deferral also revealed
 
@@ -66,19 +67,39 @@ score moves the right way.
   closes and the spec cites it rather than restating it. Both are
   authoring-protocol prose and so belong to this intent's scope; they are
   recorded here because shipped guidance with no criterion needs a named owner.
+  Each carries a `RULES` pin — `criterion-needs-a-machine` and
+  `intent-frozen-at-shaping` — landed in the same change that shipped it, so the
+  claim below that the protection sits in the pins is true of these two as well.
 
 ## Boundary
 
-- Includes the procedure, the set-level sweep, the response protocol, per-task
-  grounding, disposition recording and the discovery pass — the criteria carried
-  verbatim below.
-- Includes building the frozen-case run that scores them, which
-  `acceptance-criteria-set-construction` retains as its own criteria.
-- Excludes the three shipped checkers, the identifier convention, the release
-  surface and the eval register: those have mechanical oracles and stay in the
-  delivering spec.
-- Excludes shipping any of this on a review round's approval. The frozen-case
-  score is the gate.
+**What this intent owns is the criteria, not the prose.** The guidance it covers
+is already released in `core` and pinned by rule name in the pack suite. This
+intent gates *promoting any of it back to a criterion* — an obligation a
+completion gate reads and an approval pins — until the frozen-case score moves
+the right way. It does not gate authoring, editing or shipping the guidance
+itself, which an implementer corrects in place against those pins.
+
+- Includes the twenty-three criteria carried verbatim below, covering the
+  selection procedure, the set-level sweep, the response protocol, disposition
+  recording and the discovery pass. Re-promoting any of them is what the
+  frozen-case score gates.
+- Includes the two authoring rules recorded above, which shipped with `RULES`
+  pins and no criterion.
+- Excludes the prose these criteria used to govern. It ships from
+  `acceptance-criteria-set-construction`'s own tasks, and each such rule is
+  listed in that plan's `## Shipped ahead of a criterion, deliberately` with its
+  route here.
+- Excludes the criteria that delivering spec retains, which have mechanical
+  oracles: AC-0006 (the governing set admission resolves against), AC-0011 (the
+  set-level coverage read), AC-0031 (per-task grounding), the frozen-case
+  criteria AC-0019 through AC-0021 and AC-0028 through AC-0029, the three
+  shipped checkers, the identifier convention, the release surface and the eval
+  register.
+- Excludes building the frozen-case run. The delivering spec builds it under its
+  own criteria; this intent consumes its score as the gate.
+- Excludes re-promoting any deferred criterion on a review round's approval. The
+  frozen-case score is the gate.
 
 ## Owner
 

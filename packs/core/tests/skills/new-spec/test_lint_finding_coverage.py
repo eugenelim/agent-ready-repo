@@ -277,6 +277,30 @@ def test_discovery_mode_reports_an_unreadable_subject(root):
     assert "1 unreadable" in result.stdout
 
 
+def test_discovery_mode_names_a_candidate_it_refuses(root):
+    """A refused candidate appeared in no list at all.
+
+    `confined` returns None for a link, an unresolvable path and a containment
+    failure alike, and `continue` left the candidate reported as neither checked,
+    skipped nor unreadable — the silent omission this check exists to report.
+    The link points *inside* the root, so containment alone would admit it: the
+    refusal under test is the non-regular-file rejection, not the boundary.
+    """
+    subject = _skill(
+        root, "packs/demo/tests/skills/widget",
+        'def test_a():\n    assert "the alpha rule fired" in out\n'
+        'def test_b():\n    assert "the beta rule fired" in out\n')
+    target = subject.parent / "real.py"
+    target.write_text('FINDING_KINDS = {"alpha": "the alpha rule fired"}\n', encoding="utf-8")
+    link = subject.parent / "linked.py"
+    link.symlink_to(target)
+    result = _run(root, "--discover", str(root / "packs"))
+    assert result.returncode == 1, result.stdout
+    assert "refusing path outside root" in result.stdout
+    assert "linked.py" in result.stdout
+    assert "Traceback" not in result.stderr
+
+
 def test_the_searched_directories_are_named_on_a_clean_report(root):
     """Silence about the candidate set is what turns a heuristic into a false clean."""
     subject = _skill(

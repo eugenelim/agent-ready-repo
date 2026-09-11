@@ -14,14 +14,25 @@
 
 ## Objective
 
-**Scope.** This spec covers the authoring moves the criteria below deliver, and
-states no count of them. The moves share one defect: the skill tells an author
+**Scope.** This spec ships the authoring moves below and states no count of
+them. The moves share one defect: the skill tells an author
 what a finished artifact
 must look like and never what move to make, so an author selects by instinct,
-places facts by habit, and answers every finding by repairing it. The added
-moves are the plan-authoring rules, brought under contract here rather than
-left shipped without one, a review-response protocol the skill does not have
-today, and the mechanical checks the skill ships over its own artifacts.
+places facts by habit, and answers every finding by repairing it.
+
+**What carries a criterion here, and what does not.** The criteria below are the
+obligations a machine decides: the governing set admission resolves against,
+the set-level coverage read, per-task grounding, the count prohibition, the
+frozen cases and their scoring, the identifier convention, and the checks the
+skill ships over its own artifacts. The selection procedure's remaining stages,
+the plan-authoring rules and the review-response protocol ship from this spec's
+tasks and carry no criterion here: their only check would be that a sentence
+exists, so they are routed to
+`docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`,
+which gates promoting any of them back to a criterion on a frozen-case score.
+Each is listed once in the plan's `## Shipped ahead of a criterion,
+deliberately` with that route, and each is pinned by rule name in the pack
+suite, so routing loses the obligation and keeps the check.
 
 An author using `new-spec` — human or agent — decides *which* contract
 obligations become acceptance criteria before wording any of them. The skill's
@@ -192,7 +203,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0006.** Admission additionally requires grounding the criterion in what already
+- [ ] **AC-0006.** The procedure carries an admission step, and a candidate passes it only
+      once it is grounded in what already
       governs the surface it demands content on. The procedure defines that
       **governing set** once, and names its members: the scoped `AGENTS.md`
       files, resolved by walking from the surface's own directory up to the
@@ -205,9 +217,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       silently. The remaining members are named because guidance files are the
       surfaces an author thinks to read, and a linter, an existing owner and a
       convention are the ones that actually fail the work.
-- [ ] **AC-0011.** The set-level pass additionally reads coverage from the criteria back to
+- [ ] **AC-0011.** The procedure carries a pass over the set as a whole, after the
+      per-criterion work, and that pass reads coverage from the criteria back to
       their observers: every admitted criterion has exactly one observing
-      surface, and a criterion with none, or with two, fails the pass.
+      surface, and a criterion with none, or with two, fails the pass. Both
+      halves are required of the prose: a procedure with no set-level pass
+      satisfies a coverage rule that assumes one.
 - [ ] **AC-0018.** No surface this slice ships — the procedure span, the guide page, or the
       frozen eval entries — states a fixed absolute criterion count, meaning a
       cap, ceiling, budget, refusal or pass/fail bar on how many criteria a spec

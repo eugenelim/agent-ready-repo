@@ -120,9 +120,12 @@ the protocol to the other surfaces.
   `quality-engineer`, `security-reviewer`, `design-reviewer`, the
   experience-design and discovery reviewers, and `finding-adjudicator` — and
   whichever of them the survey shows would change behaviour.
-- Excludes re-deriving the protocol. A6's spec owns the eight responses and
-  their definitions; this intent carries them and never restates them into a
-  second home.
+- Excludes re-deriving the protocol. `new-spec`'s review step is where the eight
+  responses ship, delivered by `acceptance-criteria-set-construction`; the
+  criterion that used to define them is deferred to
+  [the authoring protocol measured before shipping](spec-authoring-protocol-measured-before-shipping.md),
+  which carries the definitions verbatim. This intent carries them from there
+  and never restates them into a second home.
 - Excludes any blocking, scoring or refusal behaviour on any surface.
 - Excludes `new-spec`, which A6 delivers.
 

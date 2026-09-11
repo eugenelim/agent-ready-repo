@@ -785,11 +785,7 @@ in the same commit
   whole skill file, so a rule moved out of the plan step would otherwise stay
   green. The rules already located in the skill's plan step, which shipped ahead
   of this contract, are a recorded deviation, and this task closes it by bringing them under the spec
-  rather than re-shipping them. **Constraint on the field-authority rule:** assert
-  that the plan step states which fields a completion gate reads *and* which are
-  working material, naming both sets — prose naming only the pinned half leaves
-  an implementer unable to tell whether correcting `Grounding` needs an
-  amendment, which is the question the rule exists to settle.
+  rather than re-shipping them.
   **What is owed is read, never counted:** every rule in the plan step with no
   pinned entry must gain one. The obligation points at the shipped prose rather
   than at a number, and the assertion iterates it for the same reason, so a rule
@@ -918,6 +914,12 @@ in the same commit
   than adding a sibling home.
 
 **Approach:**
+- The plan-authoring rules and the response protocol this task ships have no
+  criterion in `spec.md`; they are carried by
+  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`,
+  and each entry in `## Shipped ahead of a criterion, deliberately` states the
+  route. The `RULES` assertions below stay, as construction checks over shipped
+  prose.
 - Extend the review step rather than adding a new one; the responses belong
   where a finding is already being dispositioned.
 - Widen the existing deletion pass in place. A second pass beside it would put
@@ -932,6 +934,8 @@ in the same commit
 **Touches:** `packs/core/.apm/skills/new-spec/assets/spec.md`,
 `packs/core/.apm/skills/new-spec/assets/plan.md`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`tests/roster/test_verification_ledger_contract.py` (exists) — the module the
+field-authority assertion lands in,
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
@@ -944,6 +948,17 @@ in the same commit
   and changelog regions, and this task edits that file. The pack-local suite
   cannot reach it, so a red this task causes would otherwise be invisible to its
   own gate.
+- **The plan template's field authority — shipped, asserted here.** The rule is
+  in `assets/plan.md`'s plan-contract region, not in `SKILL.md`'s plan step, so
+  the assertion reads the template and lands in
+  `tests/roster/test_verification_ledger_contract.py`, which already pins that
+  region and which this task's `Tests` names. Assert that the region states
+  which fields a completion gate reads *and* which are working material, naming
+  both sets, and assert the `Grounding` clause separately: prose naming only the
+  pinned half leaves an implementer unable to tell whether correcting
+  `Grounding` needs an amendment, which is the question the rule exists to
+  settle. **Constraint:** the module flattens the region before comparing, so a
+  pin carrying a line break fails on a correct file.
 - **AC-0030, the convention.** Assert `assets/spec.md` states each property
   separately — opaque, append-only, spec-directory scoped, assigned once, never
   renumbered on insertion or reorder, never reused after removal, removals
@@ -1089,7 +1104,7 @@ in the same commit
   budget with roughly 350 spare, and T1 and T6 spend from the same budget, so the
   three are counted together before any of them lands.
 
-**Tests:** **Tests:**
+**Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
 - `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
   states; the command stays in each prose-adding task's `Tests` because a
@@ -1291,7 +1306,7 @@ in the same commit
   scoped-guidance probe consumes that identification and cites it rather than
   restating the rubric.
 
-**Tests:** **Tests:**
+**Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 - `make lint-packs` — the CAT-S003 body-line ceiling, for the reason T1's entry
   states; the command stays in each prose-adding task's `Tests` because a
@@ -1514,6 +1529,23 @@ is evidence about the check.
   because shipped behaviour no criterion covers is brought under one, cut, or
   routed, and naming the owner is the third answer — routed, with the
   route stated. A pin in the discipline suite stops it being deleted silently.
+- **The plan template's field authority** (`assets/plan.md`, plan-contract
+  region) is shipped prose with no criterion here. Route: it is a plan-authoring
+  rule, and those are carried by
+  [the authoring protocol measured before shipping](../../product/intents/spec-authoring-protocol-measured-before-shipping.md).
+  Its pin is in `tests/roster/test_verification_ledger_contract.py` and T7's
+  assertion reads the template.
+- **The criterion test — an obligation whose only check is a present sentence**
+  (`SKILL.md` step 4) and **the intent freeze at shaping close** (`SKILL.md`
+  step 3) are shipped prose with no criterion here. Route: the same intent,
+  which is where the measurement that would justify a criterion lives. Both
+  gained `RULES` entries — `criterion-needs-a-machine` and
+  `intent-frozen-at-shaping` — in the same change that shipped them, so neither
+  can be deleted silently while it waits for that measurement.
+- **The plan-authoring rules and the review-response protocol** (`SKILL.md` plan
+  step and review step) are shipped prose whose criteria this delivery retired.
+  Route: the same intent. Their protection is the `RULES` block T6 asserts
+  against, which is why T6 ships them rather than holding them.
 
 ## Open decisions
 
@@ -1536,6 +1568,19 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: **cold round 6, delta-bounded, and the owner call it forced.** Ten
+  of thirteen findings sustained; two were refuted because they were repaired
+  before adjudication ran, and one is held behind this entry's decision. The
+  decision: the deferral intent gates *promoting a deferred criterion back to a
+  criterion*, not shipping the prose it used to govern — the guidance is already
+  released and pinned by rule name, so the tasks that ship it keep shipping, and
+  the intent's `Boundary` now excludes the prose, the retained criteria and
+  building the frozen-case run. AC-0006 and AC-0011 each absorb the subject
+  their establishing criterion used to supply, since "additionally" modified a
+  step nothing required to exist. The field-authority assertion moved from T6 to
+  T7, which owns the file the rule actually shipped in. The two authoring rules
+  that shipped without a criterion gained `RULES` pins in the same change, and
+  every rule this delivery ships without one is now registered with its route.
 - 2026-09-11: **the lifecycle state moves back to `Draft`/`Drafting`.** Approval
   records a baseline after which the pair is pinned in substance, and eleven
   review rounds since approval added four criteria and reworded several more —
