@@ -67,7 +67,37 @@ the ordered paths; a continuous install-to-ship walkthrough; the
 tutorials missing complete worked input-and-output examples; the sample-output
 gap for invocable-skill how-tos; and any path metadata or navigation needed to
 keep the route visible after generation. The delivered and open tables below
-are the current status: only S3-S5 remain open.
+are the current status: S3-S6 remain open.
+
+**Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
+S6.** Presenting `product-strategy → desk-research → experience-design →
+product-engineering` as one ordered sequence, on the journeys index and in
+`guides/README.md`, is delivered here rather than under a separate intent.
+
+Ownership was tested against the alternatives before this decision. This brief's
+own outcome is guides "grouped into ordered paths that name their
+prerequisites", which is exactly the guides half. `cohort-orientation-surfaces`
+places journey pages explicitly out of its Boundary, and
+`digital-product-guides-update` is RFC-0071 M6 — a chain carrying
+frontend-engineering rather than `desk-research`, gated behind unstarted M5.
+`digital-product-maker-profile` names the same four disciplines but its unit is
+a `profiles/*.toml` that by its own record "is read only by the `agentbundle`
+CLI and never reaches the plugin route".
+
+**This widens the brief's site surface, deliberately and only by degree.** S1
+already delivered `web/` entry points — it named the walkthrough on the guide
+hub and entered it from the marketing landing page. S6 adds one further `web/`
+page, the journeys index. `guides/README.md`'s navigation model remains owned by
+`cohort-orientation-surfaces`: S6 adds a path within the existing hub structure
+and does not restructure it, the same coordination stance
+`claude-apps-route-docs` records for its own link into that file.
+
+**Route constraint, measured.** `product-engineering` ships 3 agents,
+`desk-research` 2, `experience-design` 1, `product-strategy` 0. Claude plugins
+carry agents, so all four install there. Agent Plugins 1.0.0 defines no agent
+component type, so three of the four are refused and the sequence cannot be
+walked on that route. S6 is a Claude-plugins-route outcome and may not describe
+the two routes as equivalent.
 
 **Owner decisions, 2026-09-03.** The routed questions this brief held outside
 delivery have been settled, and their consequences are in scope:
@@ -165,8 +195,10 @@ S1 and S2 have shipped. S3 passed its shaping gate and an owner-authorized
 fourth adversarial round after repairing the third-round construction-gate
 finding. S4 passed a clean-room review after its earlier indeterminate review
 unit was closed and its gate and scope findings were repaired. S5 passed its
-shaping gate and three adversarial rounds. S3-S5 are registered below as Draft
-specs pending human approval.
+shaping gate and three adversarial rounds. S6 was added by owner decision on
+2026-09-11 and has had one Sol review round; its rounds restarted when the
+owner routed it into this brief, so it is not yet review-clean. S3-S6 are
+registered below as Draft specs pending human approval.
 
 | Spec | Status |
 | --- | --- |
@@ -175,10 +207,12 @@ specs pending human approval.
 | `guide-invocation-outcome-coverage` | Draft |
 | `tutorial-worked-examples` | Draft |
 | `how-to-sample-output-coverage` | Draft |
+| `four-discipline-sequence` | Draft |
 
 ## Open delivery slices
 
-Review-clean S3-S5 now appear in the Spec map as non-dispatchable Drafts.
+Review-clean S3-S5, and newly-routed S6, now appear in the Spec map as
+non-dispatchable Drafts.
 Shipped S1 and S2 are recorded with the delivered work above rather than mixed
 into this table.
 
@@ -186,6 +220,7 @@ into this table.
 | --- | --- | --- | --- |
 | S3 | Raise invocation and outcome coverage — **confirmed 2026-09-09, review-clean and registered as Draft [`guide-invocation-outcome-coverage`](../../specs/guide-invocation-outcome-coverage/spec.md)** | Guides still lack literal chat inputs and stated outcomes, and user-invocable skill descriptions still lack quoted examples or `Triggers on` phrasing | Every current in-scope target identified by the audit gains its missing source-grounded invocation or outcome affordance; the accepted-base ledger proves positive movement without freezing corpus totals |
 | S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, review-clean and registered as Draft [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
+| S6 | Present the four disciplines as one sequence — **added 2026-09-11 by owner decision, registered as Draft [`four-discipline-sequence`](../../specs/four-discipline-sequence/spec.md)** | Nothing on either surface presents the four as a workflow: the journeys index renders one flat grid where they land at positions 2, 9, 10 and 19 of 20, and the six ordered paths are keyed to lifecycle stage, so `product-strategy` and `experience-design` appear in no path at all | The journeys index groups the four in the decided order with membership derived from the `journeys` collection, and `guides/README.md` gains a matching path in the existing P-path shape; generated journey content, images, and any first-value claim stay out |
 | S5 | Close the how-to sample-output gap — **confirmed 2026-09-09, review-clean and registered as Draft [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md)** | Sample-output coverage did not move in the earlier uplift, and many invocable-skill how-tos still describe a result without showing a representative agent response | Every current in-scope how-to target shows a source-grounded representative response; reference and explanation pages and related-intent surfaces remain excluded |
 
 ## Rabbit holes

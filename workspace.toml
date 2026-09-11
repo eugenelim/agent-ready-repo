@@ -369,6 +369,19 @@ queue   = [
   # 2026-09-09 and registered after a clean shaping review and three adversarial
   # rounds. It remains Draft and requires human approval before dispatch.
   {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
+  # Slice S6 of sdlc-guide-uplift-and-learning-paths, added by owner decision
+  # 2026-09-11. Nothing on either surface presents the four disciplines as a
+  # workflow: the journeys index renders one flat grid where they land at
+  # positions 2, 9, 10 and 19 of 20, and the six ordered paths are keyed to
+  # lifecycle stage, so product-strategy and experience-design appear in no path.
+  # Routed here rather than to a new intent because this brief's own outcome is
+  # guides "grouped into ordered paths that name their prerequisites". The
+  # revision pins the brief as amended by that decision, so it differs from
+  # S3-S5's pin. Claude-plugins route only: three of the four packs ship agents
+  # and Agent Plugins 1.0.0 refuses them. One Sol round ran against an earlier,
+  # differently-scoped draft; the rescope restarted the rounds, so this text is
+  # unreviewed. Draft, requires human approval before dispatch.
+  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:e87bd4321f8c0f69c75c6f5d8812d6fa3d85d93e6908e7e0259a121e4d7a9a35", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Group the journeys index into a collection-derived ordered sequence and add the matching guides path, with the P2 order conflict disclosed and no adopter-outcome claim", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -944,29 +957,6 @@ open = [
   # than a completed method. This spec claims only that unblocked half, which is
   # what its AC12 fences. Unblocks now.
   {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/claude-apps-first-value-entry.md"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
-  # Nothing presents the four disciplines as a workflow. Measured: the journeys
-  # index renders one flat grid where the four land at positions 2, 9, 10 and 19
-  # of 20, and guides/README.md's six ordered paths are keyed to lifecycle stage,
-  # so product-strategy and experience-design appear in no path at all. Ownership
-  # was settled against the files before authoring: cohort-orientation-surfaces
-  # puts journey pages explicitly out; sdlc-guide-uplift ceded the cross-pack
-  # digital-product surface; digital-product-guides-update is RFC-0071 M6, whose
-  # chain carries frontend-engineering rather than desk-research and which is
-  # gated behind unstarted M5. digital-product-maker-profile names the same four
-  # but its unit is a CLI-only profile and it is blocked on ini-003. Hence a new
-  # intent. Claude-plugins route only: product-engineering (3), desk-research (2)
-  # and experience-design (1) ship agents, so Agent Plugins 1.0.0 refuses three of
-  # the four. Blocked on one owner decision: three sources give three different
-  # orders for the sequence.
-  {path = "docs/product/intents/four-discipline-sequence-surfaces.md", kind = "intent", source = {mode = "chat-only", ref = "chat/team-sop", revision = "2026-09-10"}, summary = "A first-time Claude Desktop user can see the four disciplines as one ordered sequence on the journeys index and in the guides paths, and walk it stopping anywhere", needs = []},
-  # Delivers the whole of the intent directly above; not a slice. 19 criteria
-  # from 27 candidates, 8 routed to named owners. Order is the owner's decision
-  # of 2026-09-10 and conflicts with the shipped P2 step order, which AC-0009
-  # discloses rather than reconciles -- reconciling changes a shipped path and
-  # belongs to sdlc-guide-uplift. Its first task is local-evidence repair:
-  # `make bootstrap-sites` exits 0 without emitting build/docs/, and every
-  # built-HTML criterion observes through that build. Unblocks now.
-  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "chat-only", ref = "chat/team-sop", revision = "2026-09-10", parent = "docs/product/intents/four-discipline-sequence-surfaces.md"}, summary = "Group the journeys index into a collection-derived ordered sequence and add the matching guides path, with the P2 order conflict disclosed and no first-value claim", needs = []},
 
 ]
 
