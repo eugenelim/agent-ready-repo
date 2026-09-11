@@ -166,3 +166,71 @@ presence — as `artifact_outline`, `judgement_check` and `concept_resolved` all
 do — would receive only the generic label check if it were added without bespoke
 logic. Nothing detects that. It is recorded in the suite beside the AC-0003 case
 and is the honest limit of what AC-0003 reaches.
+
+
+## T4 — the cold read, and what it was allowed to block
+
+A fresh Codex session read only the five rendered `build/docs/.../how-to/*/index.html`
+pages, barred from `docs/`, `packs/`, `guides/`, and any file named `spec`,
+`plan`, `AGENTS` or `JOURNEY`. It answered eight questions per step and four
+whole-walk questions.
+
+**It labelled eleven findings "execution defects" and the criterion, as first
+written, made every one a blocker.** Owner correction: **only a mechanically
+decidable finding blocks a wave.** Severity is not a cold reader's to assign,
+and two models arguing about malleable prose is not a gate. AC-0021 and T4 were
+amended to say so.
+
+### Mechanically decidable — closed by a lint check, not by editing prose
+
+Each was a **gap in the lint**, which is why closing it is worth more than
+fixing five pages: it cannot recur in the four remaining packs.
+
+| Finding | The check now enforcing it | Proof |
+| --- | --- | --- |
+| Step 5's `**Next:**` was a prose promise — "continue with the build workflow" — naming nothing clickable | `next_step` must carry a resolving link | Reverting the link reds; restored byte-identical |
+| `[/screen]` — the reader could not tell literal from argument from placeholder | a templated segment uses `<segment>` and no other form | Reverting reds |
+| **168 `*(Rung: …)*` markers published to readers.** The reader asked what "Rung" meant | provenance belongs in an HTML comment; visible prose reds | Reverting one marker reds |
+
+The third is mine, not the worker's: the contract said *record* the rung and
+never said **where**. It now says an HTML comment — machine-readable for
+AC-0006, invisible to a reader.
+
+### Judgement — recorded, dispositioned, not gated
+
+Authoring guidance for waves 2 and 3, not blockers:
+
+- Where the prompts are typed, and what `<output_dir>` and `<slug>` mean. The
+  guidebook assumes an invocation context it never states.
+- Whether a skill is optional **within** a step. Step 1 calls
+  `service-blueprint` and `process-mapping` "useful context, not gates" while
+  presenting them in the same imperative form as the gated primary action;
+  `experience-status` gives no signal either way; step 2 never says whether
+  `copy-direction` and `tone-of-voice` are both needed or alternatives.
+- `experience-reviewer` is described as required but is a subagent, not a
+  skill, so there is nothing to type. **I first classified this as mechanical
+  and it is not**: the added runnable check fires only on the `Run \`x\`` form,
+  which these pages never use for it. The claim is about prose adequacy.
+- Undefined domain terms — SIPOC, stable referent, arbitration test, semantic
+  token, spatial layout grammar, transaction bridge — and the unexplained
+  review categories. This is precisely the residue AC-0022 does not reach,
+  which is why the cold read owns it.
+- Site pagination and the in-body `Next:` disagree: pagination leads to "Choose
+  the right copy skill" while step 5 points at the build loop. The survey's own
+  "duplicated or contradictory next pointers" anti-pattern, arriving in our
+  output. Recorded because the sidebar order is generated and the fix is a
+  navigation decision, not a page edit.
+
+### What held up, confirmed by a reader who could not see the source
+
+All five steps state "Step N of 5". Steps 1 to 4 carry resolving in-body `Next:`
+links, so the order is discoverable from the pages rather than only from
+navigation. The agent's turn is attributed in an `Agent:`-prefixed blockquote
+and distinguishable from the reader's input. Step 4's genre-direct choice —
+pick one structural pass, keep the interaction work — read clearly.
+
+### After the fixes
+
+`lint-guidebook-steps guides/experience-design` exits 0; 24 contract cases pass;
+the three guide validators exit 0; the new step-5 target
+`guides/README.md` § P3 exists.

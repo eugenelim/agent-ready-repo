@@ -24,21 +24,28 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 
 #### Run `journey-mapping`
 
-**You type:** `journey-mapping` — describe the user, the goal, and where the current experience breaks down. *(Rung: JOURNEY stage 1.)*
+**You type:** `journey-mapping` — describe the user, the goal, and where the current experience breaks down.
+<!-- rung: JOURNEY stage 1 -->
 
 **Agent returns:**
 
-> **Agent:** a journey map with stages, actions, emotions, pains, opportunities, and a proposed screen list. *(Rung: JOURNEY stage 1, separately attributed from your request.)*
+> **Agent:** a journey map with stages, actions, emotions, pains, opportunities, and a proposed screen list.
+<!-- rung: JOURNEY stage 1, separately attributed from your request -->
 
-**Output varies** with the user, outcome, evidence, and surface. *(Rung: authored.)*
+**Output varies** with the user, outcome, evidence, and surface.
+<!-- rung: authored -->
 
-**You decide:** approve the journey map before screens are derived from it. *(Rung: JOURNEY stage 1.)*
+**You decide:** approve the journey map before screens are derived from it.
+<!-- rung: JOURNEY stage 1 -->
 
-**Check (grounded):** Can you trace the proposed screens to the stated customer outcome and its failure modes? *(Rung: authored.)*
+**Check (grounded):** Can you trace the proposed screens to the stated customer outcome and its failure modes?
+<!-- rung: authored -->
 
-**If it fails:** correct the user, outcome, or failing journey moment, then re-prompt with that case. *(Rung: authored.)*
+**If it fails:** correct the user, outcome, or failing journey moment, then re-prompt with that case.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/journeys/<slug>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/journeys/<slug>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -50,25 +57,33 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Emotional arc`
 - `Handoff notes`
 
-*Source:* `../../../packs/experience-design/.apm/skills/journey-mapping/assets/journey-map-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/journey-mapping/assets/journey-map-template.md`
+<!-- rung: asset template -->
 
 #### Run `service-blueprint`
 
-**You type:** `Blueprint the services behind this customer journey.` *(Rung: SKILL.md description.)*
+**You type:** `Blueprint the services behind this customer journey.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** a service blueprint that connects frontstage actions to backstage and support work. *(Rung: SKILL.md.)*
+> **Agent:** a service blueprint that connects frontstage actions to backstage and support work.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the journey touchpoints and named services. *(Rung: authored.)*
+**Output varies** with the journey touchpoints and named services.
+<!-- rung: authored -->
 
-**You decide:** approve the named service boundaries only if they are useful for later architecture work. *(Rung: authored.)*
+**You decide:** approve the named service boundaries only if they are useful for later architecture work.
+<!-- rung: authored -->
 
-**Check (observable):** Does each frontstage action have enough backstage context to explain how it is supported? *(Rung: authored.)*
+**Check (observable):** Does each frontstage action have enough backstage context to explain how it is supported?
+<!-- rung: authored -->
 
-**If it fails:** add the missing touchpoint or service context and re-prompt. *(Rung: authored.)*
+**If it fails:** add the missing touchpoint or service context and re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/blueprints/<slug>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/blueprints/<slug>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -80,25 +95,33 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Hand-off`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/service-blueprint/assets/service-blueprint-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/service-blueprint/assets/service-blueprint-template.md`
+<!-- rung: asset template -->
 
 #### Run `process-mapping`
 
-**You type:** `Map the internal process behind this experience.` *(Rung: SKILL.md description.)*
+**You type:** `Map the internal process behind this experience.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** an as-is and to-be process map for the internal operation. *(Rung: SKILL.md.)*
+> **Agent:** an as-is and to-be process map for the internal operation.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the actors, handoffs, and operational evidence. *(Rung: authored.)*
+**Output varies** with the actors, handoffs, and operational evidence.
+<!-- rung: authored -->
 
-**You decide:** choose whether the internal process is in scope for this design thread. *(Rung: authored.)*
+**You decide:** choose whether the internal process is in scope for this design thread.
+<!-- rung: authored -->
 
-**Check (falsifiable):** Can a named actor and decision gate explain every material handoff? *(Rung: authored.)*
+**Check (falsifiable):** Can a named actor and decision gate explain every material handoff?
+<!-- rung: authored -->
 
-**If it fails:** supply the missing actor, activity, or exception and re-prompt. *(Rung: authored.)*
+**If it fails:** supply the missing actor, activity, or exception and re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/processes/<slug>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/processes/<slug>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -111,25 +134,33 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Seams`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/process-mapping/assets/process-flow-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/process-mapping/assets/process-flow-template.md`
+<!-- rung: asset template -->
 
 #### Run `experience-status`
 
-**You type:** `Show the current design-thread status.` *(Rung: SKILL.md description.)*
+**You type:** `Show the current design-thread status.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** a read-only account of what design artifacts exist, what is missing, and which skill fits next. *(Rung: SKILL.md.)*
+> **Agent:** a read-only account of what design artifacts exist, what is missing, and which skill fits next.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the configured design output directory. *(Rung: authored.)*
+**Output varies** with the configured design output directory.
+<!-- rung: authored -->
 
-**You decide:** whether the reported state matches the work you intend to continue. *(Rung: authored.)*
+**You decide:** whether the reported state matches the work you intend to continue.
+<!-- rung: authored -->
 
-**Check (observable):** Does the status distinguish existing artifacts from missing ones? *(Rung: authored.)*
+**Check (observable):** Does the status distinguish existing artifacts from missing ones?
+<!-- rung: authored -->
 
-**If it fails:** configure the output location or name the artifact you expect, then re-run it. *(Rung: authored.)*
+**If it fails:** configure the output location or name the artifact you expect, then re-run it.
+<!-- rung: authored -->
 
-**Writes no artifact.** It reports to the chat and leaves nothing on disk, so there is no path to hold. *(Rung: SKILL.md.)*
+**Writes no artifact.** It reports to the chat and leaves nothing on disk, so there is no path to hold.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -138,6 +169,8 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Missing artifacts`
 - `Recommended next skill`
 
-*Source:* `authored` *(Rung: authored; this skill reports status rather than writing a document.)*
+*Source:* `authored`
+<!-- rung: authored; this skill reports status rather than writing a document -->
 
-**Next:** [derive the screen flow](derive-the-screen-flow.md). *(Rung: authored.)*
+**Next:** [derive the screen flow](derive-the-screen-flow.md).
+<!-- rung: authored -->

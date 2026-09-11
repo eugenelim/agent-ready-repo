@@ -75,8 +75,24 @@ Worked examples of each label, and the exact parse, are in
 
 Take each projected value from the highest rung of its ladder that exists — the
 pack's `JOURNEY.md` stage, then the skill's `SKILL.md`, then authored — and
-record which rung it came from. Authoring is permitted only where no higher rung
+record which rung it came from **in an HTML comment**, `<!-- rung: … -->`, on
+the line after the label. Authoring is permitted only where no higher rung
 exists.
+
+The comment form is not decoration. Provenance is bookkeeping for a maintainer
+and a lint; a reader asked what "Rung" meant when it was published as visible
+prose. A comment keeps it checkable and keeps it off the page.
+
+Three further rules a lint enforces, each because a reader hit it:
+
+- **`**Next:**` carries a resolving link**, not a prose promise. "Continue with
+  the build workflow" names nothing a reader can click.
+- **Every runnable a step names must be a published skill of that pack.** A
+  subagent or a reviewer role is not something a reader can type, so it is
+  described, never presented as a run.
+- **A templated path segment uses `<segment>` and no other form.** A reader
+  could not tell whether `[/screen]` was literal, an argument, or a
+  placeholder.
 
 **Link to an explanation; never absorb it.** Inlining explanation into a step is
 content drift. Author a bounded explanation — a sentence or two plus a link out —

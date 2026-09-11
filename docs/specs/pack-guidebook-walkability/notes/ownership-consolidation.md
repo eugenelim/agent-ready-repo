@@ -8,43 +8,48 @@ reader of any of these documents is owed the reason their scope changed.
 
 Verified 2026-09-11 by reading each document's Status and Outcome.
 
-## Superseded inside the five packs
+## Nothing is superseded — the overlap is three pages
 
-These three own the guidebook's rows 3, 4 and 10 across the whole guide corpus
-against their own accepted-base ledgers. They keep the corpus; this slice takes
-the five packs a team SOP needs, because a step that satisfies three rows out of
-eleven is not walkable and no reader benefits from four slices each delivering a
-fraction of a step.
+**Corrected 2026-09-11 by owner decision, after enumerating the targets.** An
+earlier version of this ledger handed each sibling "every guide outside the five
+packs". Measuring what they actually own showed that over-reaches badly.
 
-**The carve-out is by target path, not by pack name.** An earlier draft of this
-ledger handed each sibling "every guide outside the five packs", which would
-have stranded work neither slice could then do. S3's plan names **16
-`SKILL.md` targets inside these five packs** — 7 under `packs/core/.apm/skills/`,
-7 under `packs/desk-research/.apm/skills/`, 2 under
-`packs/product-engineering/.apm/skills/`. This slice forbids every `packs/**`
-edit, so a pack-level carve-out would have removed those 16 from S3 while giving
-them to nobody. AC-0012 checks the carve-out at path granularity for exactly
-this reason.
+Targets the three siblings own **inside** the five packs:
 
-| Spec | What it owns | After this slice |
-| --- | --- | --- |
-| `guide-invocation-outcome-coverage` (S3) | literal chat input and stated outcome | Keeps every guide outside the five packs **and retains all 16 of its `packs/**/.apm/skills/**` targets**, including those inside the five, which this slice cannot edit |
-| `tutorial-worked-examples` (S4) | demonstrated input paired with output | Keeps every guide target outside the five packs; retains any non-guide target inside them |
-| `how-to-sample-output-coverage` (S5) | representative agent response | Same carve-out as S4 |
+| Spec | inside the five packs | `packs/**` source | `guides/` |
+| --- | --: | --: | --: |
+| `guide-invocation-outcome-coverage` (S3) | 20 | **16** | 4 |
+| `tutorial-worked-examples` (S4) | 5 | 0 | 5 |
+| `how-to-sample-output-coverage` (S5) | 25 | 0 | 25 |
 
-None of the three reaches the deliverable obligations as this contract states
-them — the artifact's **path** and its **expected outline**. S3's "stated
-outcome" is an end state in prose, not a location or a shape. An earlier draft
-of this ledger asserted the siblings owned those rows; they do not. The
-deliverable half collides with no sibling and is new obligation, not
-re-parcelled scope.
+**31 of those 34 guide targets carry no `order:` frontmatter, so they are not
+guidebook steps at all.** The siblings uplift existing pages; this slice authors
+new ones. Superseding would have stranded 31 targets with nobody uplifting
+them, on top of S3's 16 `packs/**` targets this slice's boundary forbids it from
+touching. `experience-design` — the pack this slice proves the contract on —
+appears in **no** sibling ledger.
 
-**Future state, not current.** Only `skill-sequence-wayfinding.md` names this
-spec today. The reciprocal records in the other eight artifacts are T8's work,
-and AC-0012 is false until they exist — this ledger states what must be true,
-not what is. Each of the three will record the carve-out in its own body, so the
-boundary is readable from either side. Their accepted-base ledgers are unchanged: this slice
-adds no entries to them and removes none.
+So: **the siblings keep every target they own, inside and outside the five
+packs.** This slice owns only the guidebook steps it authors.
+
+### The three pages that genuinely collide
+
+All in `guides/core/`, which already carries an ordered fragment at orders 9 to
+12 tagged `journey: core`:
+
+| Page | Also owned by |
+| --- | --- |
+| `guides/core/how-to/start-or-remember-work.md` | S3, S5 |
+| `guides/core/how-to/close-and-disposition-work.md` | S3, S5 |
+| `guides/core/reference/work-intake-routing-and-lifecycle.md` | S3 |
+
+Owner decision, 2026-09-11: **T6 absorbs core's four existing ordered pages into
+its seven-step guidebook** rather than leaving an orphan fragment beside a new
+sequence — two competing ordered sets on one sidebar is the reader confusion
+this slice exists to remove. Those three pages therefore become guidebook steps,
+and the carve-out is recorded on both sides for **those three only**. AC-0012
+compares target paths for exactly this reason, and its universe is the three
+siblings' accepted-base ledgers.
 
 ## Partly delivered here
 

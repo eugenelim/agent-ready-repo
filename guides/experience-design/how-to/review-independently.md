@@ -22,21 +22,28 @@ Review the completed design work against its principles, quality floor, and conc
 
 #### Run `design-review`
 
-**You type:** `Review this screen against the quality floor, heuristics, and grounded direction.` *(Rung: SKILL.md description.)*
+**You type:** `Review this screen against the quality floor, heuristics, and grounded direction.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** severity-rated findings tied to a principle, floor commitment, heuristic, or grounded aesthetic goal. *(Rung: SKILL.md.)*
+> **Agent:** severity-rated findings tied to a principle, floor commitment, heuristic, or grounded aesthetic goal.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the screen, its genre, and the evidence available for review. *(Rung: authored.)*
+**Output varies** with the screen, its genre, and the evidence available for review.
+<!-- rung: authored -->
 
-**You decide:** act on blockers before design proceeds to build planning. *(Rung: JOURNEY stage 5.)*
+**You decide:** act on blockers before design proceeds to build planning.
+<!-- rung: JOURNEY stage 5 -->
 
-**Check (falsifiable):** Can each finding name what was observed and the rule or commitment it violates? *(Rung: authored.)*
+**Check (falsifiable):** Can each finding name what was observed and the rule or commitment it violates?
+<!-- rung: authored -->
 
-**If it fails:** supply the screen state, user task, or missing design artifact and re-prompt. *(Rung: authored.)*
+**If it fails:** supply the screen state, user task, or missing design artifact and re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/screens/<slug>-review.md`. *(Rung: authored; SKILL.md specifies the review record but not its output path.)*
+**You now hold:** `<output_dir>/screens/<slug>-review.md`.
+<!-- rung: authored; SKILL.md specifies the review record but not its output path -->
 
 **Expect these headings:**
 
@@ -48,8 +55,11 @@ Review the completed design work against its principles, quality floor, and conc
 - `Taste findings`
 - `Director’s notes`
 
-*Source:* `authored` *(Rung: SKILL.md defines the review record; no asset template exists.)*
+*Source:* `authored`
+<!-- rung: SKILL.md defines the review record; no asset template exists -->
 
-The journey then calls `experience-reviewer`, the independently run, read-only reviewer. It returns findings rather than changing artifacts; act on its blockers before design feeds the build loop. *(Rung: JOURNEY stage 5.)*
+The journey then calls `experience-reviewer`, the independently run, read-only reviewer. It returns findings rather than changing artifacts; act on its blockers before design feeds the build loop.
+<!-- rung: JOURNEY stage 5 -->
 
-**Next:** continue with the build workflow after the independent findings are resolved. *(Rung: authored.)*
+**Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours) — the `core` build loop takes the approved design set and ends at a merged change. Resolve the independent findings first.
+<!-- rung: authored -->

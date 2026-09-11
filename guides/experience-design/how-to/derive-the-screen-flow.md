@@ -20,25 +20,33 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 
 - [The experience thread](../explanation/the-experience-thread.md) distinguishes macro flow across screens from behavior inside one screen.
 
-**No decision gate at this step.** *(Rung: JOURNEY stage 2.)*
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
 
 #### Run `content-design`
 
-**You type:** `Define what this surface should say, for whom, and to what objective.` *(Rung: SKILL.md description.)*
+**You type:** `Define what this surface should say, for whom, and to what objective.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** a content brief for the surface. *(Rung: SKILL.md.)*
+> **Agent:** a content brief for the surface.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the audience, surface, and intended objective. *(Rung: authored.)*
+**Output varies** with the audience, surface, and intended objective.
+<!-- rung: authored -->
 
-**No decision gate at this step.** *(Rung: JOURNEY stage 2.)*
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
 
-**Check (sufficient-for-next):** Does the brief give a screen-flow author a clear reader, task, and content priority? *(Rung: authored.)*
+**Check (sufficient-for-next):** Does the brief give a screen-flow author a clear reader, task, and content priority?
+<!-- rung: authored -->
 
-**If it fails:** name the missing audience or surface objective and re-prompt. *(Rung: authored.)*
+**If it fails:** name the missing audience or surface objective and re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/content/<slug>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/content/<slug>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -56,25 +64,33 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Completion metric`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/content-design/assets/content-brief-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/content-design/assets/content-brief-template.md`
+<!-- rung: asset template -->
 
 #### Run `copy-direction`
 
-**You type:** `Name the copy goals for this acquisition surface.` *(Rung: SKILL.md description.)*
+**You type:** `Name the copy goals for this acquisition surface.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** ranked per-surface copy goals and arbitration rules. *(Rung: SKILL.md.)*
+> **Agent:** ranked per-surface copy goals and arbitration rules.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the surface, reader, and available brand register. *(Rung: authored.)*
+**Output varies** with the surface, reader, and available brand register.
+<!-- rung: authored -->
 
-**No decision gate at this step.** *(Rung: JOURNEY stage 2.)*
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
 
-**Check (grounded):** Are the goals tied to named reader language or another stable referent? *(Rung: authored.)*
+**Check (grounded):** Are the goals tied to named reader language or another stable referent?
+<!-- rung: authored -->
 
-**If it fails:** provide reader language or a referent and re-prompt. *(Rung: authored.)*
+**If it fails:** provide reader language or a referent and re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/copy/<slug>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/copy/<slug>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -87,25 +103,33 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Plain-language floor notes`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md`
+<!-- rung: asset template -->
 
 #### Run `tone-of-voice`
 
-**You type:** `Name the brand-level copy register for this product.` *(Rung: SKILL.md description.)*
+**You type:** `Name the brand-level copy register for this product.`
+<!-- rung: SKILL.md description -->
 
 **Agent returns:**
 
-> **Agent:** a brand register with ranked copy goals and arbitration rules. *(Rung: SKILL.md.)*
+> **Agent:** a brand register with ranked copy goals and arbitration rules.
+<!-- rung: SKILL.md -->
 
-**Output varies** with the brand, readers, and available evidence. *(Rung: authored.)*
+**Output varies** with the brand, readers, and available evidence.
+<!-- rung: authored -->
 
-**No decision gate at this step.** *(Rung: JOURNEY stage 2.)*
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
 
-**Check (testable):** Can a copy conflict be resolved against the dominant goal? *(Rung: authored.)*
+**Check (testable):** Can a copy conflict be resolved against the dominant goal?
+<!-- rung: authored -->
 
-**If it fails:** add a conflicting copy choice and re-prompt for arbitration. *(Rung: authored.)*
+**If it fails:** add a conflicting copy choice and re-prompt for arbitration.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/copy/brand-register.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/copy/brand-register.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -117,25 +141,33 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Plain-language floor notes`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md`
+<!-- rung: asset template -->
 
 #### Run `user-flow`
 
-**You type:** `user-flow`. *(Rung: JOURNEY stage 2.)*
+**You type:** `user-flow`.
+<!-- rung: JOURNEY stage 2 -->
 
 **Agent returns:**
 
-> **Agent:** a screen inventory, transitions, per-screen briefs, and a state matrix. *(Rung: JOURNEY stage 2, separately attributed from your request.)*
+> **Agent:** a screen inventory, transitions, per-screen briefs, and a state matrix.
+<!-- rung: JOURNEY stage 2, separately attributed from your request -->
 
-**Output varies** with the journey, surface, and genre. *(Rung: authored.)*
+**Output varies** with the journey, surface, and genre.
+<!-- rung: authored -->
 
-**No decision gate at this step.** *(Rung: JOURNEY stage 2.)*
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
 
-**Check (observable):** Can you follow every transition, including an error route, to a named screen or state? *(Rung: authored.)*
+**Check (observable):** Can you follow every transition, including an error route, to a named screen or state?
+<!-- rung: authored -->
 
-**If it fails:** give the failing action and its destination, then re-prompt. *(Rung: authored.)*
+**If it fails:** give the failing action and its destination, then re-prompt.
+<!-- rung: authored -->
 
-**You now hold:** `<output_dir>/screens/<slug>-flow.md` and `<output_dir>/screens/<slug>/<screen>.md`. *(Rung: SKILL.md.)*
+**You now hold:** `<output_dir>/screens/<slug>-flow.md` and `<output_dir>/screens/<slug>/<screen>.md`.
+<!-- rung: SKILL.md -->
 
 **Expect these headings:**
 
@@ -154,6 +186,8 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Genre-specific notes`
 - `How it fits the flow`
 
-*Source:* `../../../packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md` *(Rung: asset template.)*
+*Source:* `../../../packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md`
+<!-- rung: asset template -->
 
-**Next:** [establish design intent](establish-design-intent.md). *(Rung: authored.)*
+**Next:** [establish design intent](establish-design-intent.md).
+<!-- rung: authored -->

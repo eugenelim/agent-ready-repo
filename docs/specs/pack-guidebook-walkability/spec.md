@@ -144,7 +144,7 @@ correction is carried here rather than deferred.
 | Decision rationale | Applicable — the contract is a house choice grounded in external evidence | `docs/product/research/workflow-guidebooks-survey.md` | This spec's owner | Each contract row traces to a cited finding; rows resting on weak evidence say so | Survey states the confidence behind every row and its known unknowns |
 | Decision rationale | Applicable — an owner decision reversed the inherited walk premise | [`notes/walk-premise-correction.md`](notes/walk-premise-correction.md) and this plan's `## Changelog` | This spec's owner | The premise note states its evidence and authority; each delivery decision is dated | No owner decision is discoverable only from a commit message |
 | Reusable learning | Applicable — the mutation proofs are a recorded exercise | `notes/verification-ledger.md` | This spec's owner | Every guard's mutation applied, observed red, restored by editing | Ledger records each mutation with its observed failure |
-| Current product truth | Applicable — the brief tracks slice delivery, and this slice narrows three sibling specs, partly delivers one intent, and takes scope from another | the brief, the three sibling specs, `skill-sequence-wayfinding`, `experience-design-delivery-packet`, and the four bounded artifacts, all listed in [`notes/ownership-consolidation.md`](notes/ownership-consolidation.md) | `lint-brief-coverage` roll-up | The brief's Spec map cell is `<auto>`; every artifact in the ledger carries its own record | Roll-up names this spec; the ledger and the records agree in both directions |
+| Current product truth | Applicable — the brief tracks slice delivery, and this slice carves three pages out of two sibling specs, partly delivers one intent, and takes scope from another | the brief, the three sibling specs, `skill-sequence-wayfinding`, `experience-design-delivery-packet`, and the four bounded artifacts, all listed in [`notes/ownership-consolidation.md`](notes/ownership-consolidation.md) | `lint-brief-coverage` roll-up | The brief's Spec map cell is `<auto>`; every artifact in the ledger carries its own record | Roll-up names this spec; the ledger and the records agree in both directions |
 | Release history | **Not applicable** | — | — | — | No `packs/**` source changes, so not a released pack change |
 
 ## Boundaries
@@ -407,9 +407,17 @@ AC-0014 to AC-0021 rather than renumbered into place.
       any step assumed a concept it never named**. The last three are the
       residue AC-0009, AC-0013, AC-0014, AC-0020 and AC-0022 explicitly do not
       reach; assigning them to this observer for one pack only would have left
-      them unobserved in the other four. No execution defect any read finds is
-      left unresolved when the next wave opens; a recorded deferral is not a
-      resolution.
+      them unobserved in the other four.
+
+      **A finding blocks the next wave only when a check can decide it.** Where
+      the read finds something mechanically decidable — a link that does not
+      resolve, a placeholder outside the declared form, internal bookkeeping on
+      a reader-facing page — the answer is a lint check, and the wave does not
+      open until it passes. Where the finding is about the adequacy of prose it
+      is recorded and dispositioned, not gated: severity is not a cold reader's
+      to assign, and two models arguing about malleable wording is not a gate.
+      An earlier draft made every finding the read labelled an "execution
+      defect" a blocker, which handed the gate to a label.
 
 ## Follow-ons
 
@@ -467,10 +475,15 @@ AC-0014 to AC-0021 rather than renumbered into place.
   `experience-design`, `product-engineering` and `core`; a guidebook step maps
   to a journey stage rather than to a skill, giving 25 steps (source: owner
   decision 2026-09-11)
-- Product: this slice supersedes `guide-invocation-outcome-coverage`,
-  `tutorial-worked-examples` and `how-to-sample-output-coverage` inside those
-  five packs only; they keep the rest of the corpus (source: owner decision
-  2026-09-11)
+- Product: this slice supersedes no sibling. Measured, the three siblings own
+  34 guide targets inside the five packs and 31 carry no `order:`, so they are
+  not guidebook steps; the siblings keep every target they own. Only three
+  pages collide, all in `guides/core/`, and the carve-out is recorded for those
+  three (source: owner decision 2026-09-11, correcting an earlier decision
+  taken before the targets were enumerated)
+- Product: `core` already carries an ordered fragment at orders 9 to 12, and T6
+  absorbs those four pages into its seven-step guidebook rather than leaving
+  two competing ordered sets on one sidebar (source: owner decision 2026-09-11)
 - Product: the contract's obligations are a mix of evidence-backed mechanics and
   labelled house choices, grounded in cited
   evidence, and no claim rests on completion-rate figures, which the survey
