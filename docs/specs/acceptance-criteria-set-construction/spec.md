@@ -131,7 +131,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   AC-0033, owner-approved 2026-09-10: it takes a `scripts/` directory inside
   this skill, which is the catalogue's standard skill layout and is already how
   sibling skills already ship their own tooling. The checkers that ship there are
-  AC-0033's alignment check, AC-0035's grounding explorer and AC-0037's
+  AC-0033's alignment check, the grounding explorer AC-0041 admits, and AC-0037's
   finding-coverage check, each admitted by its own criterion rather than by
   sitting beside one that was.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
@@ -165,8 +165,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   pack-local suite.
 - **The finding-coverage check (AC-0037):** TDD. Its rules are functions over
   fixture skill trees, and its cases compress into assertions.
-- **The grounding explorer (AC-0035):** TDD. Each probe is a function over a
-  fixture tree, and its cases compress into assertions.
+- **The grounding explorer, five criteria over one script (AC-0041, AC-0042,
+  AC-0043, AC-0044, AC-0045):** TDD. Each probe is a function over a fixture
+  tree, and its cases compress into assertions. Each criterion takes its own
+  cases rather than sharing one group, because they fail on different inputs:
+  the explorer can exist and answer every probe while stage selection filters
+  instead of gating (AC-0041 green, AC-0042 red), and every probe can be
+  stage-selected and bounded while a threshold reports no basis (AC-0042 green,
+  AC-0043 red).
 - **A reworded criterion whose assertion did not follow (AC-0040):** TDD, on the
   pack-local suite, over fixture repositories with real history rather than this
   repository's own. It reports rather than blocks, and it under-reports by
@@ -320,41 +326,45 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       and the report distinguishes that state from a clean one — a partial check
       read as complete is the defect this checker exists to find elsewhere. A
       rule that still decides part of its subject is applied, not unapplied.
-- [ ] **AC-0035.** The skill ships a grounding explorer in its own `scripts/`, depending
-      on no other skill, answering the mechanical half of AC-0031 from a seed set
-      of touched paths: which files name a seed, which historically change with
-      one, which gates would run one, which quote a distinctive line from one,
-      and which scoped guidance governs each, plus which paths a seed names that
-      no longer resolve. The probe set is selected by stage rather than run
-      whole: a probe outside a stage's set does not execute, and each stage's
-      report names the probes it ran. Selection is executional rather than a
-      filter on the output, because a discarded result is work an adopter paid
-      for, and an oracle that reads only the report cannot tell a probe that was
-      skipped from one whose output was suppressed. Every probe reports
-      and none decides. The thresholds whose right value is repository-shaped —
-      the sweep-commit size and the phrase cutoff — derive from the adopter
+- [ ] **AC-0041.** The skill ships a grounding explorer in its own `scripts/`,
+      depending on no other skill, answering the mechanical half of AC-0031 from
+      a seed set of touched paths: which files name a seed, which historically
+      change with one, which gates would run one, which quote a distinctive line
+      from one, and which scoped guidance governs each, plus which paths a seed
+      names that no longer resolve. It reads no configuration file of its own,
+      and its own top-level expectations are the adopter repository's rather than
+      this one's.
+- [ ] **AC-0042.** The probe set is selected by stage rather than run whole: a probe
+      outside a stage's set does not execute, and each stage's report names the
+      probes it ran. Selection is executional rather than a filter on the output,
+      because a discarded result is work an adopter paid for, and an oracle that
+      reads only the report cannot tell a probe that was skipped from one whose
+      output was suppressed.
+- [ ] **AC-0043.** The thresholds whose right value is repository-shaped — the
+      sweep-commit size and the phrase cutoff — derive from the adopter
       repository's own distribution, and the report names each value with what
-      produced it — on every stage, whether or not that stage's probe set
-      consumes the value — so a defaulted value is not labelled as measured and
-      an absent line is not read as an absent derivation. The minimum
-      co-occurrences before a partner is reported filters results rather than
-      presenting them, so it is reported on every run though it is not derived;
-      the remaining bounds are presentation limits with documented defaults and
-      flags. Every probe carries a bounded result. A probe whose input can be
-      missing distinguishes found, none found, and input unavailable, since empty
-      and unavailable are otherwise indistinguishable: those are the probes
-      reading a seed's text, a runner set, or history — phrase pins, dead
-      references, gate reachability and co-change. The probes reading the tree
-      itself — scoped guidance, path references and the surface inventory —
-      cannot have a missing input and distinguish found from none found. Both
-      memberships are stated here so no probe is left without a declared case
-      shape, and so the criterion claims no outcome the code cannot reach. What the explorer cannot settle mechanically it emits as a named
+      produced it, on every stage, whether or not that stage's probe set consumes
+      the value, so a defaulted value is not labelled as measured and an absent
+      line is not read as an absent derivation. The minimum co-occurrences before
+      a partner is reported filters results rather than presenting them, so it is
+      reported on every run though it is not derived; the remaining bounds are
+      presentation limits with documented defaults and flags.
+- [ ] **AC-0044.** Every probe reports and none decides, and every probe carries a
+      bounded result. A probe whose input can be missing distinguishes found,
+      none found, and input unavailable, since empty and unavailable are
+      otherwise indistinguishable: those are the probes reading a seed's text, a
+      runner set, or history — phrase pins, dead references, gate reachability
+      and co-change. The probes reading the tree itself — scoped guidance, path
+      references and the surface inventory — cannot have a missing input and
+      distinguish found from none found. Both memberships are stated here so no
+      probe is left without a declared case shape, and so no outcome is claimed
+      that the code cannot reach.
+- [ ] **AC-0045.** What the explorer cannot settle mechanically it emits as a named
       ambiguity with its candidate resolutions, for the author to decide once and
-      record. It reads no configuration file of its own, and an absent or thin
-      grounding surface lowers the starting information and never fails the run.
-      In the stages whose probe set includes it, the report inventories which
-      known grounding surfaces are present and which carry content, so a
-      degraded grounding is legible rather than silent.
+      record. An absent or thin grounding surface lowers the starting information
+      and never fails the run, and in the stages whose probe set includes it, the
+      report inventories which known grounding surfaces are present and which
+      carry content, so a degraded grounding is legible rather than silent.
       Consuming those surfaces as probe input — a recorded value seeding a
       derivation, and a record the repository contradicts reported as drift — is
       named in the follow-on that owns it, not claimed here.
@@ -443,6 +453,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - AC-0026
 - AC-0027
 - AC-0034
+- AC-0035
 - AC-0036
 
 ## Follow-ons
@@ -507,15 +518,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Process: this slice edits the brief in four places — the A6 row's widened
   scope, the review-loop disposition section, a section recording that a
   criterion syntax was tested by rewriting and rejected, and the Spec map cell.
-  The first two carry their authority on their own face. The fourth writes the
-  `<auto>` placeholder the roll-up resolves, which the Release-history row above
-  requires and which hand-writes no status. **The third and fourth are edits to
-  an `Ask first` file whose sign-off is owed rather than recorded** — one
-  residual covering both, for the owner to close or to direct their removal; the
-  cell is not reverted, because the durable-output row forbids leaving this spec
-  unresolvable through the brief. The § "Corpus" exclusion rule already covers
-  this spec generically (source: owner decision 2026-09-10 in the brief's A6
-  row; the third and fourth edits' authority is unrecorded)
+  All four carry owner authority: the first two on their own face, and the third
+  and fourth by sign-off recorded here. The fourth writes the `<auto>`
+  placeholder the roll-up resolves and hand-writes no status, which is what the
+  lint's own contract asks for; reverting it would leave the roll-up naming this
+  spec as `untracked` rather than `Draft`, measured on both states, and would
+  not change the lint's exit status either way. The § "Corpus" exclusion rule
+  already covers this spec generically (source: owner decision 2026-09-10 in the
+  brief's A6 row for the first two; owner sign-off 2026-09-11 for the criterion-syntax
+  section and the Spec map cell)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
   when the procedure, the guide's set-construction section, the three frozen
   cases, their seed pinning and the recorded run exist (source: user

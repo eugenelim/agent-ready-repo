@@ -1366,7 +1366,13 @@ in the same commit
   since an absent check needs no caller. Both mutations are executed and their
   red recorded, not merely described here.
 
-**AC-0035.** Every bullet below is one of its cases. Each probe that can fail
+**AC-0041, AC-0042, AC-0043, AC-0044 and AC-0045.** Every bullet below is one of
+their cases: the probe bullets and `portability` are AC-0041's surface;
+`phase selects the probe set`, the stage-report clause and the executional-selection
+constraint are AC-0042's; `calibration is live, and reported` and the
+threshold-reporting constraint are AC-0043's; the three-outcome and two-outcome
+case shapes and `bounded output` are AC-0044's; `ambiguity`, `confinement` and the
+surface inventory are AC-0045's. Each probe that can fail
 open — phrase pins, dead references, gate reachability, co-change — gets a
 positive, a negative and an unavailable case. The probes reading the tree itself
 — scoped guidance, path references and the surface inventory — get a positive
@@ -1550,24 +1556,33 @@ is evidence about the check.
 ## Open decisions
 
 - **The compound-criterion class, swept rather than repaired at one instance.**
-  Measured over the criteria this contract now carries against a median of 153
-  words, one exceeds twice the median: **AC-0035 (461)**. Size is a proxy, not
-  the test — the shape owner's test is whether a predicate expands into a
-  different check per member — so it needs a disposition rather than an
-  automatic split, and it is not yet worked through.
-  `notes/ac-0009-decomposition-proposal.md` works the same question through in
-  full for a criterion now deferred, including the argument against splitting
-  it, and stands as the worked shape for AC-0035's disposition. Executing a split, narrowing one, or recording
-  an exemption are all available while the pair is at `Draft`; **re-recording
-  approval forecloses all of them.**
-- **Two `Ask first` brief edits.** The criterion-syntax section and the Spec map
-  row are edits to a file whose boundary requires prior sign-off, and neither
-  carries it. The Assumption records the residual; the cell is not reverted
-  because the Release-history row forbids leaving this spec unresolvable through
-  the brief.
+  Closed by owner decision 2026-09-11: the one criterion over twice the live
+  median was split. AC-0035 carried the grounding explorer as a single
+  identifier while its predicates expanded into thirty-two test functions and
+  this task's own case list, so it became AC-0041 through AC-0045 — the explorer
+  and its probe set, stage-scoped execution, derived thresholds and their basis,
+  bounded results and the two case-shape memberships, and degraded grounding
+  reported rather than fatal. AC-0035 is retired and never reused.
+  `notes/ac-0009-decomposition-proposal.md` holds the worked shape, including
+  the argument against splitting, for the next criterion that reaches this
+  class. **The class is not closed by the split.** Splitting the largest
+  criterion lowered the live median from 153 words to 104, which brought AC-0040
+  (283) and AC-0033 (236) above twice it — the sweep re-runs against the set the
+  split produced, not against the set that motivated it, and each of those two
+  needs its own disposition on the same test: whether the predicate expands into
+  a different check per member.
 
 ## Changelog
 
+- 2026-09-11: **owner sign-off on the two `Ask first` brief edits, and AC-0035
+  split into five.** The criterion-syntax section and the Spec map cell are
+  signed off as written; the Assumption records the authority and replaces the
+  claim that the durable-output row forbids reverting the cell with the measured
+  consequence — the roll-up reports `untracked` rather than `Draft`, and
+  `lint-brief-coverage` exits 0 on both states. AC-0035 became AC-0041 through
+  AC-0045 because one identifier stood in front of thirty-two test functions and
+  twenty-three plan bullets; AC-0035 is retired. The compound-criterion sweep
+  re-ran on the post-split set and is still open on AC-0040 and AC-0033.
 - 2026-09-11: **cold round 6, delta-bounded, and the owner call it forced.** Ten
   of thirteen findings sustained; two were refuted because they were repaired
   before adjudication ran, and one is held behind this entry's decision. The
