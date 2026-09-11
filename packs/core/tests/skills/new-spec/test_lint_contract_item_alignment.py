@@ -192,6 +192,35 @@ def test_retired_identifier_may_not_be_reused(root):
     assert "AC-0002 is retired and must not be reused" in result.stdout
 
 
+def test_a_correctly_retired_criterion_passes(root):
+    """The operation the retired list exists for, which used to fail.
+
+    Rule 4 resolved every identifier against the live criteria only, so retiring
+    one — removing the criterion and recording the identifier — reported it as an
+    unresolved reference and failed a correctly retired spec. The existing
+    retirement case keeps the identifier live, which is the only shape producing
+    the *intended* finding, so nothing reached this branch.
+    """
+    spec = (SPEC.replace("- [ ] **AC-0002.** The second thing holds.\n", "")
+                .replace("- **The second group (AC-0002):** TDD.\n", "")
+            + "\n## Retired identifiers\n\n- AC-0002\n")
+    plan = PLAN.split("### T2:")[0]
+    result = _run(_tree(root, spec=spec, plan=plan))
+    assert result.returncode == 0, result.stdout
+    assert "resolves to no criterion" not in result.stdout
+
+
+def test_a_plan_less_spec_is_reported_as_partial(root):
+    """Two rules have no input without a plan; the summary must say so.
+
+    Counting it under "checked" is the skipped-reads-as-clean failure this
+    module exists to detect in other artifacts.
+    """
+    result = _run(_tree(root, plan=None))
+    assert "partial (rules with no input:" in result.stdout, result.stdout
+    assert "task-entry" in result.stdout and "derived-item" in result.stdout
+
+
 def test_absent_retired_heading_is_an_empty_list(root):
     """Omitting the heading while nothing is retired is the convention."""
     result = _run(_tree(root))

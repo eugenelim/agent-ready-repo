@@ -305,6 +305,78 @@ def test_an_empty_seed_file_yields_no_phantom_phrases(root):
     assert pins and "none found" in pins[0], f"an empty seed samples no phrases:\n{out}"
 
 
+def test_a_directory_seed_gets_its_own_governing_file(root):
+    """Every plan `Touches` field names directories, and a directory governs itself.
+
+    The walk began at the seed's parent — correct only for a file — so a
+    directory seed silently lost the most governing file for its own surface.
+    """
+    _seeded(root, top="app")
+    out = _run(root, "app")
+    block = out.split("scoped rules", 1)[1]
+    assert "app/AGENTS.md" in block, f"a directory seed must include its own:\n{out}"
+
+
+def test_a_non_prose_seed_reports_unavailable_not_empty(root):
+    """A seed with nothing to sample is unavailable input, not a clean result."""
+    _seeded(root)
+    (root / "lib" / "data.json").write_text('{"a": 1}\n', encoding="utf-8")
+    out = _run(root, "lib/data.json")
+    pins = [line for line in out.splitlines() if "phrase pins" in line]
+    assert pins and "unavailable" in pins[0], f"non-prose seed:\n{out}"
+
+
+def test_an_absent_seed_reports_unavailable_not_empty(root):
+    """The normal discovery seed: a destination the delivery will create."""
+    _seeded(root)
+    out = _run(root, "lib/not-yet.md")
+    pins = [line for line in out.splitlines() if "phrase pins" in line]
+    assert pins and "unavailable" in pins[0], f"absent seed:\n{out}"
+
+
+def test_scanned_suffixes_follow_the_repository_not_a_builtin_list(root):
+    """The portability case that varies file *types*, not just directory names.
+
+    A hardcoded allowlist makes every probe silently empty on an adopter whose
+    sources are TypeScript or Go. The earlier portability case varied only the
+    top-level name, so nothing reached this.
+    """
+    seed = _seeded(root)
+    (root / "app.ts").write_text("import x from 'lib/seed.md';\n", encoding="utf-8")
+    (root / "svc.go").write_text('// see lib/seed.md\n', encoding="utf-8")
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "t@example.invalid")
+    _git(root, "config", "user.name", "t")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "seed")
+    out = _run(root, seed)
+    assert "scanned suffixes" in out, "the considered set must be named"
+    refs = out.split("path refs", 1)[1].split("phrase pins", 1)[0]
+    assert "app.ts" in refs and "svc.go" in refs, f"non-Markdown sources unscanned:\n{out}"
+
+
+def test_a_file_past_the_size_bound_is_counted_not_silently_empty(root):
+    """A large file's references must not vanish into "none found"."""
+    seed = _seeded(root)
+    (root / "huge.md").write_text("x" * 2_100_000, encoding="utf-8")
+    out = _run(root, seed)
+    assert "past the size bound" in out, f"the omission must be visible:\n{out}"
+
+
+def test_the_co_change_minimum_is_reported(root):
+    """A bound that filters results must name itself, like the other two."""
+    seed = _seeded(root)
+    out = _run(root, seed)
+    assert "minimum co-occurrences" in out, out
+
+
+def test_sweep_is_not_derived_when_no_probe_consumes_it(root):
+    """One git call per commit, for a value the discovery phase never reads."""
+    seed = _seeded(root)
+    out = _run(root, seed, extra=["--phase", "discovery"])
+    assert "co-change" not in out.split("phase probes")[1].split("\n")[0]
+
+
 def test_seed_outside_the_root_is_refused(root):
     result = subprocess.run(
         [sys.executable, str(EXPLORER), "--root", str(root), "../escape.md"],

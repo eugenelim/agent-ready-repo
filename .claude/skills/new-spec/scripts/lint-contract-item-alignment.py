@@ -111,24 +111,32 @@ def task_entries(plan: str) -> dict[str, list[str]]:
     return named
 
 
-def check(spec_dir: Path) -> tuple[list[str], bool]:
-    """Return findings for one spec directory, and whether the check ran.
+def check(spec_dir: Path, root: Path | None = None) -> tuple[list[str], bool, list[str]]:
+    """Return findings, whether the check ran, and which rules could not.
 
-    The second value distinguishes "no findings" from "not applicable". A caller
-    that cannot tell them apart reads a skipped check as a clean one.
+    The second value distinguishes "no findings" from "not applicable"; the third
+    distinguishes "no findings" from "some rules had no input". A caller that
+    cannot tell those apart reads a partial check as a clean one, which is the
+    failure this module exists to detect in other artifacts.
     """
     spec_path, plan_path = spec_dir / "spec.md", spec_dir / "plan.md"
     if not spec_path.is_file():
-        return [f"{spec_dir}: no spec.md"], False
+        return [f"{spec_dir}: no spec.md"], False, []
     spec = spec_path.read_text(encoding="utf-8")
     plan = plan_path.read_text(encoding="utf-8") if plan_path.is_file() else ""
 
     criteria = CRITERION.findall(spec)
     if not criteria:
-        return [], False                      # forward-only: unlabelled specs are skipped
+        return [], False, []                  # forward-only: unlabelled specs are skipped
 
     findings: list[str] = []
-    rel = spec_dir.as_posix()
+    # Relative to the invocation root, not an absolute host path: a finding is
+    # pasted into a review, a commit message and an issue, and an absolute path
+    # is wrong in all three.
+    try:
+        rel = spec_dir.relative_to(root).as_posix() if root else spec_dir.as_posix()
+    except ValueError:
+        rel = spec_dir.as_posix()
 
     seen: set[str] = set()
     for ident in criteria:                                        # rules 1-3
@@ -149,12 +157,18 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
                 f"{rel}/spec.md:{lineno + offset}: {FINDING_KINDS['unlabelled']}"
             )
 
+    # Rule 4 resolves against live criteria *and* the retired list. Without the
+    # second half, retiring a criterion -- the one operation the retired list
+    # exists for -- reports the retired identifier as unresolved and fails a
+    # correctly retired spec.
+    resolvable = seen | retired(spec)
     for name, text in (("spec.md", spec), ("plan.md", plan)):     # rules 1 and 4
         for bad in sorted(set(MALFORMED.findall(text))):
             findings.append(f"{rel}/{name}: {FINDING_KINDS['malformed']} {bad}")
-        for ref in sorted(set(CRITERION_REF.findall(text)) - seen):
+        for ref in sorted(set(CRITERION_REF.findall(text)) - resolvable):
             findings.append(f"{rel}/{name}: {ref} {FINDING_KINDS['unresolved']}")
 
+    unapplied: list[str] = [] if plan else ["task-entry", "derived-item"]
     if plan:                                                      # rule 5
         named = task_entries(plan)
         mentioned = set(CRITERION_REF.findall(plan))
@@ -177,7 +191,7 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
                 f"{rel}/plan.md: {item} {FINDING_KINDS['derived-item']} AC-{digits}; a verification "
                 f"item's identifier is its own, never derived from what it serves"
             )
-    return findings, True
+    return findings, True, unapplied
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -194,22 +208,25 @@ def main(argv: list[str] | None = None) -> int:
         p.parent for p in (root / "docs" / "specs").glob("*/spec.md")
     )
 
-    findings, ran, skipped = [], 0, 0
+    findings, ran, skipped, partial = [], 0, 0, []
     for target in targets:
         if root not in target.parents and target != root:
             print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
             return 2
-        found, applied = check(target)
+        found, applied, unapplied = check(target, root)
         findings.extend(found)
         ran += applied
         skipped += not applied
+        if unapplied:
+            partial.append(f"{target.name}: {', '.join(unapplied)}")
 
     for finding in findings:
         print(f"lint-contract-item-alignment: {finding}")
-    print(
-        f"lint-contract-item-alignment: {len(findings)} finding(s); "
-        f"{ran} spec(s) checked, {skipped} skipped as unlabelled."
-    )
+    summary = (f"lint-contract-item-alignment: {len(findings)} finding(s); "
+               f"{ran} spec(s) checked, {skipped} skipped as unlabelled")
+    if partial:
+        summary += f", {len(partial)} partial (rules with no input: {'; '.join(partial)})"
+    print(summary + ".")
     return 1 if findings else 0
 
 

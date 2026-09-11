@@ -93,11 +93,40 @@ FINDING_KINDS = {
     "capped": "capped at",
     "unconfined": "refusing seed outside root",
     "no-git": "git unavailable",
+    "suffix-basis": "scanned suffixes",
+    "co-min": "minimum co-occurrences",
+    "oversize": "past the size bound",
     "cutoff-basis": "cutoff",
     "sweep-basis": "sweep-commit threshold",
 }
 
-TEXT_SUFFIXES = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".sh", ""}
+# A seed suffix allowlist is a repository-shape assumption: on a TypeScript or Go
+# adopter an omitted suffix makes every probe silently empty. The set is derived
+# from what the repository actually tracks, capped so one stray binary extension
+# cannot widen the scan without bound, overridable by flag, and named in the
+# report -- silence about the candidate set is what turns a heuristic into a
+# false clean.
+BINARY_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".zip", ".gz",
+                   ".woff", ".woff2", ".ttf", ".eot", ".mp4", ".webp", ".so", ".dylib"}
+SUFFIX_CAP = 40
+FALLBACK_SUFFIXES = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cfg", ".ini",
+                     ".txt", ".sh", ""}
+
+
+def text_suffixes(root: Path, tracked: set[str] | None,
+                  override: tuple[str, ...] | None) -> tuple[set[str], str]:
+    """Which file suffixes to scan, derived from the repository's own contents."""
+    if override:
+        return {s if s.startswith(".") or s == "" else f".{s}" for s in override}, "given"
+    if not tracked:
+        return set(FALLBACK_SUFFIXES), "default (no tracked set)"
+    counts = Counter(Path(rel).suffix.lower() for rel in tracked)
+    derived = {suffix for suffix, _ in counts.most_common(SUFFIX_CAP)
+               if suffix not in BINARY_SUFFIXES}
+    return derived or set(FALLBACK_SUFFIXES), f"derived from {len(tracked)} tracked file(s)"
+
+
+TEXT_SUFFIXES = FALLBACK_SUFFIXES
 MAX_READ_BYTES = 2_000_000
 _TOP_CACHE: tuple[str, ...] = ()
 
@@ -162,7 +191,8 @@ def top_levels(root: Path) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
-def confined_files(root: Path, tracked: set[str] | None) -> list[Path]:
+def confined_files(root: Path, tracked: set[str] | None,
+                   suffixes: set[str] | None = None) -> list[Path]:
     """Every readable regular file under root, symlinks refused rather than followed."""
     if tracked:
         out = []
@@ -172,7 +202,7 @@ def confined_files(root: Path, tracked: set[str] | None) -> list[Path]:
                 info = path.lstat()
             except OSError:
                 continue
-            if stat.S_ISREG(info.st_mode) and path.suffix.lower() in TEXT_SUFFIXES:
+            if stat.S_ISREG(info.st_mode) and path.suffix.lower() in (suffixes or TEXT_SUFFIXES):
                 out.append(path)
         return out
     out = []
@@ -184,7 +214,7 @@ def confined_files(root: Path, tracked: set[str] | None) -> list[Path]:
                 info = path.lstat()
             except OSError:
                 continue
-            if stat.S_ISREG(info.st_mode) and path.suffix.lower() in TEXT_SUFFIXES:
+            if stat.S_ISREG(info.st_mode) and path.suffix.lower() in (suffixes or TEXT_SUFFIXES):
                 out.append(path)
     return out
 
@@ -210,6 +240,17 @@ def _runner_patterns(seed: str) -> list[re.Pattern[str]]:
     ]
 
 
+def _oversize(files: list[Path]) -> int:
+    """Files skipped for size. Counted rather than silently read as empty."""
+    total = 0
+    for path in files:
+        try:
+            total += path.stat().st_size > MAX_READ_BYTES
+        except OSError:
+            continue
+    return total
+
+
 def _read(path: Path) -> str:
     try:
         if path.stat().st_size > MAX_READ_BYTES:
@@ -225,7 +266,11 @@ def scoped_rules(root: Path, seed: str, filename: str) -> list[str]:
     The walk is the point. A nested file does not replace the one above it, so
     stopping at the first hit skips the rest silently.
     """
-    found, here = [], (root / seed).parent
+    # A directory seed governs itself. Starting at the parent -- correct only for
+    # a file -- silently drops the most governing file for the surface, and every
+    # plan `Touches` field names directories.
+    target = root / seed
+    found, here = [], (target if target.is_dir() else target.parent)
     while True:
         candidate = here / filename
         if candidate.is_file():
@@ -236,11 +281,18 @@ def scoped_rules(root: Path, seed: str, filename: str) -> list[str]:
     return found
 
 
-def distinctive_lines(root: Path, seed: str, limit: int = 40) -> list[str]:
-    """Prose lines long enough to be distinctive, sampled across a seed file."""
+def distinctive_lines(root: Path, seed: str, limit: int = 40) -> list[str] | None:
+    """Sampled prose lines, or None when the seed offers no text to sample.
+
+    None is not an empty list. A seed that does not exist yet -- the normal
+    discovery-phase seed, since discovery is seeded by destinations the delivery
+    will create -- and a seed that is not prose both yield nothing, and reporting
+    either as "none found" is the conflation of unavailable input with a clean
+    result that this explorer refuses everywhere else.
+    """
     path = root / seed
     if not path.is_file() or path.suffix != ".md":
-        return []
+        return None
     lines = [
         line.strip() for line in _read(path).splitlines()
         if 60 <= len(line.strip()) <= 140 and line.strip()[:1].isalpha()
@@ -387,17 +439,20 @@ def _emit(label: str, status: str, rows: list[str], cap: int) -> None:
 
 def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             cap: int, cutoff: int, co_min: int, sweep: int,
-            probes: tuple[str, ...]) -> None:
+            probes: tuple[str, ...], suffix_override: tuple[str, ...] | None) -> None:
     tracked_raw = _git(root, "ls-files")
     tracked = {t for t in tracked_raw if t} if tracked_raw is not None else None
     tops = top_levels(root)
-    files = confined_files(root, tracked)
+    suffixes, suffix_basis = text_suffixes(root, tracked, suffix_override)
+    files = confined_files(root, tracked, suffixes)
     runners = runner_files(root, globs)
 
     global _TOP_CACHE
     _TOP_CACHE = tuple(f"{t}/" for t in tops)
     print(f"seeds: {len(seeds)}   top-levels derived: {len(tops)}   "
           f"files scanned: {len(files)}   runner candidates: {len(runners)}")
+    print(f"scanned suffixes: {len(suffixes)} — {suffix_basis}"
+          + (f"; skipped {oversize} file(s) past the size bound" if (oversize := _oversize(files)) else ""))
     print(f"phase probes: {', '.join(probes)}")
     if "surfaces" in probes:
         print("grounding surfaces:")
@@ -414,7 +469,11 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         print("note: git unavailable — tracked-set and co-change probes degrade; "
               "ignored files are not excluded")
 
-    sweep, sweep_basis = calibrate_sweep(root, sweep)
+    # Derived only when something consumes it: the walk costs one git call per
+    # commit, and no phase but co-change reads the result.
+    sweep_basis = "not derived (no co-change probe in this phase)"
+    if "co-change" in probes:
+        sweep, sweep_basis = calibrate_sweep(root, sweep)
     phrases = {s: distinctive_lines(root, s) for s in seeds}
     refs: dict[str, list[str]] = {s: [] for s in seeds}
     hits: dict[tuple[str, str], set[str]] = {}
@@ -437,7 +496,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             # runs a path.
             if path in runners and any(p.search(text) for p in _runner_patterns(seed)):
                 gates[seed].append(rel)
-            for phrase in phrases.get(seed, ()):
+            for phrase in (phrases.get(seed) or ()):
                 if phrase in text:
                     hits.setdefault((seed, phrase), set()).add(rel)
 
@@ -450,7 +509,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         # A floor, not just a ratio. With few sampled phrases half of them can be
         # one, and a single quotation is exactly what a pin looks like -- so
         # without the floor every pin is misread as a copy.
-        sampled = max(1, len(phrases.get(seed, ())))
+        sampled = max(1, len(phrases.get(seed) or ()))
         copy_threshold = max(2, sampled // 2)
         # Bound to a local, never back into `cutoff`. Reassigning the parameter
         # fed seed N's derived value in as seed N+1's default, so the value was
@@ -469,6 +528,11 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             if per_file[rel] < copy_threshold
         })
         copies = sorted(rel for rel, n in per_file.items() if n >= copy_threshold)
+        # Unavailable is not empty: a seed that is absent or not prose offers
+        # nothing to sample, and reporting that as "none found" is the conflation
+        # this explorer refuses everywhere else.
+        pins_status = ("unavailable" if phrases.get(seed) is None
+                       else ("found" if pins else "none"))
         print(f"\n=== {seed}")
         if "scoped" in probes:
             rules = scoped_rules(root, seed, guidance)
@@ -476,7 +540,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         if "refs" in probes:
             _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
         if "pins" in probes:
-            _emit("phrase pins", "found" if pins else "none", pins, cap)
+            _emit("phrase pins", pins_status, pins, cap)
             print(f"                 cutoff {seed_cutoff} — {cutoff_basis}")
         if copies and "pins" in probes:
             _emit("copies of seed", "found", copies, cap)
@@ -498,6 +562,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     status, ranked = co_change(root, seeds, co_min, sweep)
     print(f"\n=== co-change over all {len(seeds)} seed(s)")
     print(f"  sweep-commit threshold {sweep} — {sweep_basis}")
+    print(f"  minimum co-occurrences {co_min} — a partner below this is filtered out")
     _emit("partners", status,
           [f"{name}   {count} commits, confidence {ratio:.2f}" for name, count, ratio in ranked],
           cap)
@@ -512,6 +577,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--phrase-cutoff", type=int, default=BOILERPLATE_CUTOFF)
     parser.add_argument("--co-change-min", type=int, default=CO_CHANGE_MIN)
     parser.add_argument("--sweep-commit-size", type=int, default=SWEEP_COMMIT_SIZE)
+    parser.add_argument("--suffix", action="append", default=None,
+                        help="scan these file suffixes instead of the derived set")
     parser.add_argument("--phase", choices=sorted(PHASES), default="all",
                         help="which probe set this stage needs")
     parser.add_argument("seed", nargs="+")
@@ -532,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
     explore(root, seeds, args.guidance_file,
             tuple(args.runner_glob) if args.runner_glob else RUNNER_GLOBS,
             args.cap, args.phrase_cutoff, args.co_change_min, args.sweep_commit_size,
-            PHASES[args.phase])
+            PHASES[args.phase], tuple(args.suffix) if args.suffix else None)
     return 0          # reports; never decides
 
 
