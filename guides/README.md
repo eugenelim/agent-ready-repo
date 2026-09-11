@@ -120,11 +120,32 @@ This release and reporting stage takes the build through its human ship gate.
 **First value:** one skill of your own that your agent can run.
 **Ends at:** a catalogue your organisation owns.
 
+## Another route: the four product disciplines in order
+
+### P7 · Take a product idea through the four disciplines — ~4 hours
+
+**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer.
+
+P2 is the fastest route from an idea to a build-ready bet. This path is the
+wider one: it adds strategy and design, and follows the order the packs
+themselves declare, so each step hands a named artifact to the next.
+
+1. [Find out what is true](desk-research/) — hands Product Strategy graded evidence, with a confidence level per finding
+2. [Decide what to build](product-strategy/) — hands Experience Design a committed strategy artifact naming the outcome and the bet behind it
+3. [Design how it should feel](experience-design/) — hands Product Engineering a per-screen state matrix, one cell per screen and state
+4. [Shape the bet and build it](product-engineering/) — you end with a shaped bet, and a change you approved before it merged
+
+You can stop after any step and still hold the artifact it produced.
+
+**First value:** graded evidence on the question you actually have, before
+anyone commits to an answer.
+**Ends at:** a shaped bet whose evidence, strategy, and design you can point to.
+
 ## Choose what you want to achieve
 
 | I need to… | Start with | Continue with |
 | --- | --- | --- |
-| **Decide what to build** | [`product-strategy`](product-strategy/) for strategic choices | [`desk-research`](desk-research/) for evidence, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
+| **Decide what to build** | [`desk-research`](desk-research/) for evidence first | [`product-strategy`](product-strategy/) for the strategic choice, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
 | **Design the product and system** | [`experience-design`](experience-design/) for journeys and surfaces | [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/) for the system, interfaces, and implementation |
 | **Build and review software** | [`core`](core/) to route work into a durable artifact and supervised loop | [`governance-extras`](governance-extras/) for durable decisions and [`monorepo-extras`](monorepo-extras/) for package scaffolding |
 | **Provision and release safely** | [`iac-terraform`](iac-terraform/) for reviewable infrastructure plans | [`release-engineering`](release-engineering/) for deployed validation and the human production gate, supervised by [`core`](core/) |
@@ -136,7 +157,7 @@ The [`core`](core/) build loop is the catalogue's flagship and its strongest sta
 
 ## Choose by role
 
-- **Product manager or strategist:** [decide what to build](product-strategy/), [gather evidence](desk-research/), then [shape the bet](product-engineering/).
+- **Product manager or strategist:** [gather evidence](desk-research/), [decide what to build](product-strategy/), then [shape the bet](product-engineering/).
 - **Platform, infrastructure, or SRE team:** [design the system](architect/), [author its contracts](contracts/), [plan infrastructure](iac-terraform/), and [validate the release](release-engineering/).
 - **Software engineer:** start with the [`core` work loop](core/), then add the design, contract, frontend, infrastructure, or governance pack your change needs.
 - **Designer or UX practitioner:** start with [`experience-design`](experience-design/) and connect the result to [`product-engineering`](product-engineering/) or [`frontend-engineering`](frontend-engineering/).

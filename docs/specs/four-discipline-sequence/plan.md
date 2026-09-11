@@ -1,7 +1,7 @@
 # Plan: the four disciplines read as one sequence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 ## Discovery predicates
 

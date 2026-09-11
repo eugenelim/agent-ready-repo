@@ -1,6 +1,6 @@
 # Spec: the four disciplines read as one sequence
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -156,46 +156,46 @@ prose would assert its own fixture.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The journeys index renders the four disciplines in a group
+- [x] **AC-0001.** The journeys index renders the four disciplines in a group
       distinct from all other journeys, under a heading naming it as a sequence.
-- [ ] **AC-0002.** Within that group the four appear in the order
+- [x] **AC-0002.** Within that group the four appear in the order
       desk-research, product-strategy, experience-design, product-engineering.
-- [ ] **AC-0003.** The group is an ordered list element, so the order is carried
+- [x] **AC-0003.** The group is an ordered list element, so the order is carried
       by the markup and not only by visual arrangement.
-- [ ] **AC-0004.** The visible step number is hidden from assistive technology,
+- [x] **AC-0004.** The visible step number is hidden from assistive technology,
       so a reader hears the position once from the ordered list rather than
       twice.
-- [ ] **AC-0005.** The multiset of journey slugs rendered on the page equals the
+- [x] **AC-0005.** The multiset of journey slugs rendered on the page equals the
       multiset of slugs in the `journeys` collection.
-- [ ] **AC-0006.** A journey present in the collection but named in no group
+- [x] **AC-0006.** A journey present in the collection but named in no group
       still renders, in the catch-all group.
-- [ ] **AC-0007.** On the index, each of the first three disciplines names what
+- [x] **AC-0007.** On the index, each of the first three disciplines names what
       it hands the next, and the fourth names what the reader ends with.
-- [ ] **AC-0008.** `guides/README.md` carries an ordered path covering the four
+- [x] **AC-0008.** `guides/README.md` carries an ordered path covering the four
       disciplines in the order desk-research, product-strategy,
       experience-design, product-engineering.
-- [ ] **AC-0009.** That path states a prerequisite, a `**First value:**` moment
+- [x] **AC-0009.** That path states a prerequisite, a `**First value:**` moment
       and an "ends at", matching the shape P1–P6 already use.
-- [ ] **AC-0010.** In the path, each of the first three disciplines names what it
+- [x] **AC-0010.** In the path, each of the first three disciplines names what it
       hands the next, and the fourth names what the reader ends with.
-- [ ] **AC-0011.** A cold reader who has seen only these two surfaces can name
+- [x] **AC-0011.** A cold reader who has seen only these two surfaces can name
       the four disciplines in order and state what one hands the next.
-- [ ] **AC-0012.** `guides/README.md` frontmatter remains valid.
-- [ ] **AC-0013.** `guides/README.md`'s `title` matches its leading H1.
-- [ ] **AC-0014.** The guide index remains complete.
-- [ ] **AC-0015.** Neither edited surface contains image syntax.
-- [ ] **AC-0016.** No text in the change claims that a reader has reached first
+- [x] **AC-0012.** `guides/README.md` frontmatter remains valid.
+- [x] **AC-0013.** `guides/README.md`'s `title` matches its leading H1.
+- [x] **AC-0014.** The guide index remains complete.
+- [x] **AC-0015.** Neither edited surface contains image syntax.
+- [x] **AC-0016.** No text in the change claims that a reader has reached first
       value, completed a method, or installed successfully. The structural
       `**First value:**` path label required by AC-0009 is not such a claim.
-- [ ] **AC-0017.** No file under `web/src/content/journeys/` is modified.
-- [ ] **AC-0018.** No text in the change describes the Claude-plugins route and
+- [x] **AC-0017.** No file under `web/src/content/journeys/` is modified.
+- [x] **AC-0018.** No text in the change describes the Claude-plugins route and
       the Agent Plugins route as carrying the same packs.
-- [ ] **AC-0019.** Every internal link emitted by the change resolves.
-- [ ] **AC-0020.** On the index, each of the four discipline cards links to that
+- [x] **AC-0019.** Every internal link emitted by the change resolves.
+- [x] **AC-0020.** On the index, each of the four discipline cards links to that
       discipline's journey page.
-- [ ] **AC-0021.** In the path, each of the four steps links to that discipline's
+- [x] **AC-0021.** In the path, each of the four steps links to that discipline's
       guide directory.
-- [ ] **AC-0022.** No other row on `guides/README.md` states an order for these
+- [x] **AC-0022.** No other row on `guides/README.md` states an order for these
       four disciplines that conflicts with AC-0008's.
 
 ## Acceptance-set construction record
@@ -387,4 +387,20 @@ chooser rows on the same guide surface still order these four disciplines
 strategy-first. AC-0022 replaces disclosure with self-consistency, which is a
 stronger check on the same obligation rather than a restatement of the cut one.
 
-**A fifth round has not run against this text.**
+**A fifth round has not run against this text.** The owner approved the spec and
+plan on 2026-09-11 and directed the build to proceed, accepting the review
+economics recorded above: further rounds were auditing prior repairs rather than
+the artifact.
+
+## Delivery
+
+Built 2026-09-11. All 22 criteria are ticked against observed evidence, not
+against intent; every observation is recorded in
+[`notes/verification-ledger.md`](notes/verification-ledger.md), including the
+three mutation proofs, the resolved D1 count and D3 seam, the cold read, and the
+gate results.
+
+**Status stays `Implementing` rather than `Shipped` because the change is not
+merged.** It moves to `Shipped` on merge, which is also when the brief's
+coverage roll-up will derive that value — the Spec-map cell is `<auto>` and must
+not be hand-written.
