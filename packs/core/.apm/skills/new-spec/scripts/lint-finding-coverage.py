@@ -49,6 +49,7 @@ FINDING_KINDS = {
     # common word was matched by `def test_..._searched...` and reported covered
     # with both assertions deleted.
     "searched": "directories searched",
+    "missing": "path does not resolve",
 }
 
 
@@ -198,12 +199,22 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             if catalogue(candidate) is None or catalogue(candidate):
                 subjects.append(candidate)
+    # Confinement first, on every supplied path, before anything reads or
+    # classifies it: a path outside the root is refused whether or not it
+    # exists, and deciding existence first would let an out-of-root path be
+    # reported as a typo instead of refused.
     for subject in subjects:
         if root != subject and root not in subject.parents:
             print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: {subject}")
             return 2
+    # Only then: a caller's path typo is not a malformed subject. Collapsing the
+    # two reported an adopter's mistyped argument as "could not be parsed",
+    # which sends them to debug a checker instead of their command line.
+    missing = [s for s in subjects if not s.exists()]
+    subjects = [s for s in subjects if s.exists()]
 
     findings, participating, skipped, unreadable, searched = check(subjects, args.tests, root)
+    findings = [f"{s}: {FINDING_KINDS['missing']}" for s in missing] + findings
     for finding in findings:
         print(f"lint-finding-coverage: {finding}")
     if args.discover is not None and not participating:

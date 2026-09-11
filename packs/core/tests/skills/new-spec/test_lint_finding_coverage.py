@@ -197,6 +197,25 @@ def test_a_suite_named_with_a_test_suffix_is_read_as_a_source(root):
         "source:\n" + result.stdout)
 
 
+def test_an_absent_path_is_not_reported_as_unparseable(root):
+    """A caller's typo and a malformed subject are different diagnoses.
+
+    `catalogue()` returns None on OSError, which a missing path raises, so a
+    mistyped argument was reported as "could not be parsed" and counted as
+    unreadable -- sending an adopter to debug the checker instead of their
+    command line.
+    """
+    _skill(root, "tests", "def test_a():\n    pass\n")
+    result = _run(root, str(root / "packs" / "demo" / ".apm" / "skills" / "widget"
+                            / "scripts" / "nope.py"))
+    assert result.returncode == 1, result.stdout
+    assert "path does not resolve" in result.stdout, result.stdout
+    assert "could not be parsed" not in result.stdout, \
+        f"an absent path must not read as a malformed subject:\n{result.stdout}"
+    assert "0 unreadable" in result.stdout, \
+        f"it must not be counted as unreadable:\n{result.stdout}"
+
+
 def test_a_subject_outside_the_root_is_refused(root):
     _skill(root, "tests", "def test_a():\n    pass\n")
     result = _run(root, str(root.parent / "elsewhere.py"))

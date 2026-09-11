@@ -40,12 +40,13 @@ the design, and a criterion's verification mode never does either.
 
 ## 3. Item identity
 
-Acceptance criteria and verification items carry **opaque, append-only
-identifiers, scoped to their own spec directory**. Assign once; never renumber
-on insertion or reorder; never reuse after removal, recording the removal in the
-artifact's retired list. A verification item's identifier is independent of the
-criterion and the task it serves, never derived from either. Cite across specs
-with the `spec:<slug>/` marker the plan template already uses for cross-spec
+[ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md) decides
+how acceptance criteria and verification items are identified, and owns the
+convention's wording; the skill's `assets/spec.md` states it to authors. This
+section records only that the decision exists and where it binds: identity is
+**opaque and append-only, scoped to a spec directory**, so an item's identifier
+is not its position and a reader cannot infer order from it. Cross-spec citation
+uses the `spec:<slug>/` marker the plan template already carries for cross-spec
 task dependencies.
 
 Three reasons, evidenced in [the identifier comparison

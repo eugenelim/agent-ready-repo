@@ -1,6 +1,6 @@
 # Spec: acceptance-criteria set construction
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108
@@ -75,6 +75,7 @@ uniqueness and necessity checks compare.
 | Current product truth | Applicable — the brief tracks slice delivery | `docs/product/briefs/agent-authoring-input-quality.md` § "Spec map" | `lint-brief-coverage` roll-up | Coverage roll-up resolves this spec through its `Brief:` back-link | Roll-up names this spec; no status hand-written into the brief |
 | Decision rationale | Applicable — this slice amends a decision record, and owner decisions taken during delivery are recorded rather than left in commit messages | [`docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`](../../adr/0108-opaque-append-only-loop-contract-identifiers.md) for the identifier decision; this plan's `## Changelog` for the delivery decisions | This spec's owner | ADR-0108's `Confirmation` names the shipped check and its `Revisit if` records the fired trigger, with the decision text unchanged; each delivery decision is dated in the plan's changelog | The ADR states no falsehood about current tooling, and no owner decision from this delivery is discoverable only from a commit message |
 | Interface compatibility | Applicable — the slice ships command-line checkers that project into every installed adapter, each with its own flags, exit codes and output contract | each checker's own `--help` text, which is its docstring | This spec's owner | Each shipped script's header names its probe or rule set, its flags, and what its exit codes mean | An adopter reading `--help` learns every flag and every exit code the script can return, and no header describes a set the code does not have |
+| Current architecture | Applicable — this slice adds a subsystem page for the loop contract, which `docs/CONVENTIONS.md` names as a durable role | [`docs/architecture/loop-contract.md`](../../architecture/loop-contract.md) | This spec's owner | The page states ownership, boundaries and navigation and cites each rule's owner by document and identifier | No rule is restated where an owner already states it, and the page is reachable from the architecture index |
 
 ## Boundaries
 
@@ -89,13 +90,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Add a pointer when a rule already has an owner, and cite that owner by
   document and identifier.
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to the
-  same version, with core leading its own free-standing changelog entry. The
-  version is bumped when pack content first changes in the delivery, and while it
-  remains unreleased its changelog entry is amended as further content lands, so
-  one version string never describes two code states. Bumping again per repair
-  round would publish a version for each round and collide with an unpushed peer
-  bump at the same number. The task that closes the release surface owns the
-  final state of that entry, not a second bump.
+  same version, with core leading its own free-standing changelog entry. While
+  the delivery is unreleased its entry is amended in place as further content
+  lands, so one version string never describes two code states. The task that
+  closes the release surface owns the entry's final state **and re-resolves the
+  version number against `origin/main` at that moment**: a number taken from
+  what was free when the branch started is a claim, not a reservation, and a peer
+  that merges first takes it. Re-resolving at close is not a second bump — it is
+  the only point at which the number can be correct.
 
 ### Ask first
 
@@ -662,9 +664,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   no results file format (source:
   `docs/product/briefs/agent-authoring-input-quality.md` § "Author criteria
   from obligations, not from every check")
-- Process: the brief's body is not edited by this slice; its § "Corpus"
-  exclusion rule already covers this spec generically (source: user
-  confirmation 2026-09-10)
+- Process: the brief's body is edited by this slice only where an owner decision
+  records it — the A6 row's widened scope, and the review-loop disposition
+  section that carries its own owner agreement on its face; its § "Corpus"
+  exclusion rule already covers this spec generically, and the Spec map cell is
+  the roll-up's to write, not this slice's (source: owner decision 2026-09-10,
+  recorded in the brief's A6 row)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
   when the procedure, the guide's set-construction section, the three frozen
   cases, their seed pinning and the recorded run exist (source: user

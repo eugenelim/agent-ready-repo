@@ -1,7 +1,7 @@
 # Plan: acceptance-criteria set construction
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` and `packs/core/AGENTS.md` for the
   `.apm/` export boundary and the version bump rule; `guides/AGENTS.md` and
   `contracts/guide.schema.json` for the guide surface. Analogous
@@ -88,6 +88,7 @@ two recollections.
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
 | Decision rationale → `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
 | Interface compatibility → the three checkers' `--help` and module headers | T8 (`lint-contract-item-alignment.py`); T9 (`explore-grounding.py`, `lint-finding-coverage.py`) | Each script's header states its flags and every exit code it can return, and the explorer states its per-probe outcome sets | A header describes no set the code does not have, asserted per script in the task that ships it |
+| Current architecture → `docs/architecture/loop-contract.md` | T1 | The page cites ADR-0108 for item identity and the rubric for the shape rules, restating neither | A grep for a restated rule finds none, and the architecture index links the page |
 
 ## Design (LLD)
 
@@ -212,6 +213,7 @@ whole-file token deny-list is unavailable either way; see the probe under
 
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`docs/architecture/loop-contract.md` (exists), `docs/architecture/README.md`,
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
@@ -1289,7 +1291,15 @@ on this side because it reports each surface present or absent and has no
 unavailable branch. The result cap is shared through one emitter, so the
 suite carries one flood case rather than one per probe. Owner-approved
 2026-09-11, after two stronger claims were found to describe a suite that did
-not exist. **Constraint on the stage-report clause:** assert that each stage's
+not exist. **Constraint on executional selection:** assert that a probe outside the
+selected stage set does no work, observed other than through the report — a
+report-reading oracle cannot tell a skipped probe from a suppressed one, which
+the criterion says in terms. Counting calls into the probe's own sampling is the
+shape that reds when selection is reverted to a filter on the output.
+**Constraint on threshold reporting:** assert that every stage's report carries
+each derived threshold with its basis, whether or not that stage's probe set
+consumes the value; an absent line is otherwise indistinguishable from an absent
+derivation. **Constraint on the stage-report clause:** assert that each stage's
 report names the probes it ran, per stage, with a case that would red if the
 report named the probe set of a different stage or named none. A suite that only
 asserts a probe behaves correctly cannot tell whether it ran at all, and stage
@@ -1362,8 +1372,11 @@ is evidence about the check.
 - **External-system integration:** none. The eval workflow at
   `.github/workflows/pack-evals.yml` is schedule-and-dispatch-only and
   report-only, so it is not a precondition and is not this gate.
-- **Deployment sequencing:** the version bump comes last. Projection
-  regeneration does not: each `.apm/`-touching task runs `make build-self`
+- **Deployment sequencing:** the version number is re-resolved against
+  `origin/main` last, when T5 closes the release surface. A number is already
+  carried in `pack.toml` and its entry is amended in place as content lands;
+  what T5 owns is checking that a peer has not merged the same number first,
+  which happened once in this delivery. Projection regeneration does not wait: each `.apm/`-touching task runs `make build-self`
   (`FORCE=1` on a dirty tree, per `docs/CONVENTIONS.md`) and commits source and
   projections together, which is what the spec's `Always do` requires.
 
@@ -1423,6 +1436,16 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: **the lifecycle state moves back to `Draft`/`Drafting`.** Approval
+  records a baseline after which the pair is pinned in substance, and eleven
+  review rounds since approval added four criteria and reworded several more —
+  so the recorded status was false about what was happening to the artifacts.
+  The iterative-spike decision authorizes implementation landing before the
+  gates; it does not authorize post-approval substantive amendment, and the
+  pinning rule is `docs/CONVENTIONS.md`'s to change, not this instance's. The
+  consequence is deliberate: the queued entry now carries `unapproved_spec` and
+  blocks autonomous dispatch, which is the honest reading of a contract still
+  under amendment. Approval is re-recorded when a round returns clean.
 - 2026-09-11: owner-approved tuning — **state sets, never counts, and narrate no
   delivery history.** AC-0018 gains the authoring rule (where a set is
   enumerated, name the set and not its cardinality; no criterion carries a count
@@ -1437,13 +1460,17 @@ is evidence about the check.
   by their sets, and the assertions that read them now iterate the set. Rule 9
   reported six criteria whose assertions had not followed, which is how the
   propagation was found rather than remembered.
-- 2026-09-11: owner-approved tuning — the version-bump `Always do` now states
-  its timing: the bump lands once, on the release task, covering every `.apm/`
-  change in the delivery. As worded before, an unconditional `Always do` and the
-  rollout's deferral of the bump to T5 contradicted each other, which is the
-  body-versus-criteria inconsistency AC-0009's consistency member reads for. The
-  ordering itself was already authorized; only the wording was false. Same shape
-  as the 2026-09-10 `Never do` amendment below.
+- 2026-09-11: the version-bump `Always do` now states that the release task
+  re-resolves the number against `origin/main` when it closes. An earlier
+  wording put the bump at the first content change and forbade a second one,
+  which left no owner able to retire a number a peer had taken — and a peer had:
+  `main` merged `2.25.14` for a different release while this branch carried the
+  same number, so the merged changelog would have held two identical headings
+  and the topmost-heading parity gate would have red. This branch moved to
+  `2.25.16`, the next number free against a freshly fetched `main`. A number
+  chosen from what was free when a branch started is a claim, not a reservation;
+  only the release close can resolve it correctly. Found by the first cold
+  review round, and by no warm round before it.
 - 2026-09-11: **owner decision — this slice runs a quasi-normal lifecycle, in
   iterative spike mode, until the contract-finding rate quietens.** Implementation
   may land alongside contract review rather than strictly after the engine gates,
