@@ -257,6 +257,54 @@ def test_a_symlink_escaping_the_root_is_not_followed(root):
     assert "outside-secret" not in out, "the walk must not follow a link out of the root"
 
 
+def test_calibration_does_not_carry_between_seeds(root):
+    """Regression: the cutoff was reassigned inside the per-seed loop.
+
+    Seed N's derived value entered seed N+1 as its default, so the printed value
+    was order-dependent and a thin second seed reported the first seed's number
+    under the basis "default". Running the same pair in both orders must give
+    each seed the same value and basis either way.
+    """
+    first = _seeded(root)
+    # The calibration branch needs real signal to enter at all: at least 50
+    # scanned files and 8 matched phrases. A small fixture returns the default
+    # for both seeds, so the orders agree and the case passes with the bug
+    # present -- which is what the first version of this test did.
+    lines = [f"A sampled sentence number {i} that is comfortably long enough to matter."
+             for i in range(14)]
+    (root / first).write_text("# Seed\n\n" + "\n".join(lines) + "\n", encoding="utf-8")
+    (root / "lib" / "second.md").write_text("# Second\n\nshort\n", encoding="utf-8")
+    second = "lib/second.md"
+    for index in range(60):
+        (root / f"noise{index}.md").write_text("\n".join(lines[: 1 + index % 12]) + "\n",
+                                               encoding="utf-8")
+
+    def cutoffs(out: str) -> list[str]:
+        return [line.strip() for line in out.splitlines() if "cutoff" in line]
+
+    forward = cutoffs(_run(root, first, second))
+    backward = cutoffs(_run(root, second, first))
+    assert forward and backward, "both orders must report a cutoff per seed"
+    assert sorted(forward) == sorted(backward), (
+        f"calibration must not depend on seed order:\n{forward}\n{backward}")
+
+
+def test_a_seed_that_does_not_exist_is_reported_not_crashed(root):
+    """An author names a file the delivery will create; that must not be fatal."""
+    _seeded(root)
+    out = _run(root, "lib/not-yet-written.md")
+    assert "lib/not-yet-written.md" in out, out
+    assert "Traceback" not in out
+
+
+def test_an_empty_seed_file_yields_no_phantom_phrases(root):
+    seed = _seeded(root)
+    (root / seed).write_text("", encoding="utf-8")
+    out = _run(root, seed)
+    pins = [l for l in out.splitlines() if "phrase pins" in l]
+    assert pins and "none found" in pins[0], f"an empty seed samples no phrases:\n{out}"
+
+
 def test_seed_outside_the_root_is_refused(root):
     result = subprocess.run(
         [sys.executable, str(EXPLORER), "--root", str(root), "../escape.md"],

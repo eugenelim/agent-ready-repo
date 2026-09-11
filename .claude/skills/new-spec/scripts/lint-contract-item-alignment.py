@@ -118,9 +118,17 @@ def check(spec_dir: Path) -> tuple[list[str], bool]:
         seen.add(ident)
     for ident in sorted(seen & retired(spec)):
         findings.append(f"{rel}/spec.md: {ident} is retired and must not be reused")
-    for lineno, line in enumerate(spec.splitlines(), 1):
-        if UNLABELLED.match(line + "\n") and "## Acceptance Criteria" in spec:
-            findings.append(f"{rel}/spec.md:{lineno}: criterion carries no identifier")
+    # Scoped to the section, not the document. A spec legitimately carries
+    # checkboxes elsewhere -- a rollout step, a migration list -- and scanning
+    # the whole file reported those as unlabelled criteria and failed a valid
+    # spec. Line numbers are offset back to the file so the finding is locatable.
+    section = _section(spec, "Acceptance Criteria")
+    offset = spec[: spec.find(section)].count("\n") if section else 0
+    for lineno, line in enumerate(section.splitlines(), 1):
+        if UNLABELLED.match(line + "\n"):
+            findings.append(
+                f"{rel}/spec.md:{lineno + offset}: criterion carries no identifier"
+            )
 
     for name, text in (("spec.md", spec), ("plan.md", plan)):     # rules 1 and 4
         for bad in sorted(set(MALFORMED.findall(text))):

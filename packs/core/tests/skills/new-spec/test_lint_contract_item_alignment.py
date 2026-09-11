@@ -233,6 +233,54 @@ def test_independent_verification_item_is_accepted(root):
     assert result.returncode == 0, result.stdout
 
 
+def test_a_shipped_spec_with_checked_criteria_is_still_checked(root):
+    """A Shipped spec has every criterion ticked; the rules still apply to it."""
+    spec = SPEC.replace("- [ ] **AC-", "- [x] **AC-")
+    result = _run(_tree(root, spec=spec))
+    assert result.returncode == 0, result.stdout
+    assert "1 spec(s) checked" in result.stdout
+
+
+def test_an_indented_checkbox_is_not_a_criterion(root):
+    """A nested list under a criterion is part of it, not a sibling criterion."""
+    spec = SPEC + "      - [ ] a nested detail under the criterion above\n"
+    result = _run(_tree(root, spec=spec))
+    assert result.returncode == 0, result.stdout
+    assert "carries no identifier" not in result.stdout
+
+
+def test_a_retired_identifier_may_be_backticked(root):
+    """The convention shows bare identifiers; a backticked one is the same list."""
+    spec = SPEC + "\n## Retired identifiers\n\n- `AC-0002`\n"
+    result = _run(_tree(root, spec=spec))
+    assert result.returncode == 1, result.stdout
+    assert "AC-0002 is retired" in result.stdout
+
+
+def test_crlf_line_endings_do_not_defeat_the_rules(root):
+    """An adopter on Windows must get the same findings as one on POSIX."""
+    spec = SPEC.replace("**AC-0002.** The second", "**AC-0001.** The second").replace("\n", "\r\n")
+    plan = PLAN.replace("\n", "\r\n")
+    result = _run(_tree(root, spec=spec, plan=plan))
+    assert result.returncode == 1, result.stdout
+    assert "AC-0001 is assigned twice" in result.stdout
+
+
+def test_several_spec_directories_are_checked_independently(root):
+    """The corpus case: one bad spec must not mask or infect a good one."""
+    _tree(root)
+    other = root / "docs" / "specs" / "other"
+    other.mkdir(parents=True)
+    (other / "spec.md").write_text(SPEC.replace("**AC-0002.** The second",
+                                                "**AC-0001.** The second"), encoding="utf-8")
+    (other / "plan.md").write_text(PLAN, encoding="utf-8")
+    result = _run(root)
+    assert result.returncode == 1, result.stdout
+    assert "2 spec(s) checked" in result.stdout
+    assert "docs/specs/other/spec.md: AC-0001 is assigned twice" in result.stdout
+    assert "docs/specs/fixture" not in result.stdout.split("assigned twice")[0].rsplit("\n", 2)[-1]
+
+
 def test_missing_plan_does_not_crash(root):
     """A spec authored before its plan exists is checked for what it can be."""
     result = _run(_tree(root, plan=None))

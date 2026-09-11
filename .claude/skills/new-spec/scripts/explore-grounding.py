@@ -434,7 +434,11 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         # without the floor every pin is misread as a copy.
         sampled = max(1, len(phrases.get(seed, ())))
         copy_threshold = max(2, sampled // 2)
-        cutoff, cutoff_basis = calibrate_cutoff(
+        # Bound to a local, never back into `cutoff`. Reassigning the parameter
+        # fed seed N's derived value in as seed N+1's default, so the value was
+        # order-dependent and a thin second seed printed the first seed's number
+        # under the basis "default" -- which defeats the point of naming a basis.
+        seed_cutoff, cutoff_basis = calibrate_cutoff(
             [len(w) for (o, _), w in hits.items() if o == seed], len(files), cutoff)
         per_file: Counter[str] = Counter()
         for (owner, _), where in hits.items():
@@ -442,7 +446,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
                 per_file.update(where)
         pins = sorted({
             rel for (owner, _), where in hits.items()
-            if owner == seed and len(where) <= cutoff
+            if owner == seed and len(where) <= seed_cutoff
             for rel in where
             if per_file[rel] < copy_threshold
         })
@@ -455,7 +459,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
         if "pins" in probes:
             _emit("phrase pins", "found" if pins else "none", pins, cap)
-            print(f"                 cutoff {cutoff} — {cutoff_basis}")
+            print(f"                 cutoff {seed_cutoff} — {cutoff_basis}")
         if copies and "pins" in probes:
             _emit("copies of seed", "found", copies, cap)
         if "dead" in probes:
