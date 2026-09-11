@@ -944,6 +944,21 @@ open = [
   # than a completed method. This spec claims only that unblocked half, which is
   # what its AC12 fences. Unblocks now.
   {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/claude-apps-first-value-entry.md"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
+  # Nothing presents the four disciplines as a workflow. Measured: the journeys
+  # index renders one flat grid where the four land at positions 2, 9, 10 and 19
+  # of 20, and guides/README.md's six ordered paths are keyed to lifecycle stage,
+  # so product-strategy and experience-design appear in no path at all. Ownership
+  # was settled against the files before authoring: cohort-orientation-surfaces
+  # puts journey pages explicitly out; sdlc-guide-uplift ceded the cross-pack
+  # digital-product surface; digital-product-guides-update is RFC-0071 M6, whose
+  # chain carries frontend-engineering rather than desk-research and which is
+  # gated behind unstarted M5. digital-product-maker-profile names the same four
+  # but its unit is a CLI-only profile and it is blocked on ini-003. Hence a new
+  # intent. Claude-plugins route only: product-engineering (3), desk-research (2)
+  # and experience-design (1) ship agents, so Agent Plugins 1.0.0 refuses three of
+  # the four. Blocked on one owner decision: three sources give three different
+  # orders for the sequence.
+  {path = "docs/product/intents/four-discipline-sequence-surfaces.md", kind = "intent", source = {mode = "chat-only", ref = "chat/team-sop", revision = "2026-09-10"}, summary = "A first-time Claude Desktop user can see the four disciplines as one ordered sequence on the journeys index and in the guides paths, and walk it stopping anywhere", needs = []},
 
 ]
 
