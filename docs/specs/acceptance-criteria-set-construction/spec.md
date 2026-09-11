@@ -122,29 +122,30 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - **The shipped procedure, its stage order, its admission grounds, its routing
   table, its composition hand-off, its set-level pass and the count policy
-  (AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11, AC12, AC15, AC16,
-  AC17, AC18):** goal-based check over the authored skill file. The observation
+  (AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11, AC12, AC13, AC16,
+  AC17,
+  AC18, AC19):** goal-based check over the authored skill file. The observation
   is the presence, relative order and scope of that prose; the verification
   surface is the pack-local suite.
-- **The guide publishes the procedure (AC13):** goal-based check over the guide's
+- **The guide publishes the procedure (AC14):** goal-based check over the guide's
   own content. The observation is that each of the five stage names appears on
   the page. The guide validators establish publication, not content, so they do
   not discharge this criterion; the verification surface is a content check over
   the page.
-- **The guide cites the shape owner (AC14):** goal-based check over the same
+- **The guide cites the shape owner (AC15):** goal-based check over the same
   page. The observation is that the criterion-shape owner is named and no rule
-  that owner holds is restated. Separate from AC13 because a page can carry the
+  that owner holds is restated. Separate from AC14 because a page can carry the
   stages while restating a shape rule, and can cite the owner while omitting a
   stage; the two fail on different inputs and need different repairs.
-- **The three frozen cases and their seeded integrity (AC19, AC20):** TDD. Each
+- **The three frozen cases and their seeded integrity (AC20, AC21):** TDD. Each
   case is data whose required shape and seeded material are compressible into
   assertions.
-- **The frozen scoring order (AC21):** goal-based check. The observation is that
+- **The frozen scoring order (AC22):** goal-based check. The observation is that
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC24, AC25, AC26):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
-- **The recorded run, both graded ranks (AC27, AC28):** visual / manual QA. A model-in-the-loop
+- **The plan rules, the response protocol and the earn-its-keep scope (AC23, AC24, AC25, AC26, AC27, AC28):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The recorded run, both graded ranks (AC29, AC30):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -169,6 +170,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       candidate's failure would be observed, and the procedure states that a
       candidate whose observing surface cannot be named stays a candidate
       rather than becoming a criterion.
+- [ ] Admission additionally requires grounding the criterion in the guidance
+      governing the surface it demands content on: the procedure resolves that
+      surface's scoped guidance by walking from the surface's own directory up
+      to the repository root and reading each file found, and a candidate
+      demanding what that guidance forbids is not admissible in that form. The
+      walk is stated as a walk, not as a single lookup, because a nested file
+      does not replace the one above it and stopping at the first hit skips the
+      rest silently.
 - [ ] Each admitted obligation carries one positive and one disconfirming
       scenario.
 - [ ] The procedure routes each rejected candidate to a named destination:
@@ -258,14 +267,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] Where a finding is that a claim reaches further than its check, the
       procedure states both answers and how to choose: strengthen the check when
       one can reach the stated obligation, narrow the claim when none can.
+- [ ] Where a finding is that a criterion demands content the guidance
+      governing its destination surface forbids, the procedure states that the
+      criterion changes and the forbidden content is never authored to satisfy
+      it. A criterion no implementation can satisfy is a defect in the
+      criterion, and a repair round is where one is most often introduced.
 - [ ] The skill's review step instructs the stop-decision report to carry the
       finding trend by round, and for each remaining residual its consequence,
       the responses available to it, and what each would cost — so the owner
       chooses between stated options rather than reading a list of problems. It
       states the protected-risk-class condition directly and enumerates no class
       list, because shipped pack content carries no citation to an internal
-      record; the owner of that class set is named in this contract, not in the
-      pack.
+      record. The owner of that class set is
+      `docs/product/intents/work-loop-review-economics.md` § Guardrail, named
+      here in the contract and deliberately not in the pack.
 - [ ] The earn-its-keep test applies to every criterion in the set rather than
       only to those added during review, and runs while rounds are still
       running rather than only after they converge.
