@@ -75,22 +75,39 @@ Define what this account-setup surface should say, for whom, and to what objecti
 **Where it lands:** `<output_dir>/content/<slug>.md`.
 <!-- rung: content-design SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/content-design/assets/content-brief-template.md -->
 
-- `Content brief: <surface name>`
-- `Surface objective`
-- `Audience awareness level`
-- `Narrative arc selection`
-- `Scroll sections`
-- `Above-fold structure`
-- `CTAs`
-- `Success metric`
-- `User task`
-- `Content format`
-- `Content hierarchy`
-- `Completion metric`
-- `Open questions`
+```markdown
+---
+type: content-brief
+surface-type: <acquisition | product-or-reference>
+persona: <short persona name or pointer to persona artifact>
+date: <YYYY-MM-DD>
+---
+
+# Content brief: <surface name>
+
+<!--
+  Written by the `content-design` skill. Fill the angle-bracket prompts and
+  delete this comment. This doc names *content direction* — what the surface
+  must say, for whom, in what form, and to what objective. It does not contain
+  finished copy, design values, or implementation details. Keep it short enough
+  that a non-writer reads it in three minutes.
+
+  Delete the variant sections that do not apply to this surface type.
+-->
+
+## Surface objective
+
+**Surface type:** <acquisition | product-or-reference>
+
+**Primary reader:** <who arrives here; role + context that brought them>
+
+**Objective:** <the single outcome this surface must drive — one verb phrase>
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `copy-direction` — copy goals for one surface
 
@@ -126,17 +143,39 @@ Name the ranked copy goals for this account-setup surface.
 **Where it lands:** `<output_dir>/copy/<slug>.md`.
 <!-- rung: copy-direction SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md -->
 
-- `Copy direction: <surface name>`
-- `Reader map`
-- `Named copy goals (ranked)`
-- `What each goal means`
-- `Dominant goal`
-- `Brand-register consistency`
-- `Plain-language floor notes`
-- `Open questions`
+```markdown
+---
+type: copy-direction
+surface-slug: <kebab-case surface name — e.g. landing-page, pricing-page, onboarding-hero>
+date: <YYYY-MM-DD>
+---
+
+# Copy direction: <surface name>
+
+<!--
+  Written by the `copy-direction` skill. Fill the angle-bracket prompts and
+  delete this comment. This doc names *copy direction* for one specific surface —
+  the goals and arbitration rules that steer every copy choice here. It holds NO
+  finished copy, formula tables, or pre-written strings. Keep it short enough
+  that a writer picks up direction in two minutes.
+-->
+
+## Reader map
+
+| Reader type | Copy JTBD sentence | Rank |
+|---|---|---|
+| <reader type — role + context on this surface> | When [situation on this surface], I want to [action with this copy], so that [goal]. | Primary |
+| <reader type> | When [situation], I want to [action], so that [goal]. | Secondary |
+
+## Named copy goals (ranked)
+
+<!-- 3–5 goals, each a noun phrase a non-designer can recall. Ranked: #1 is
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `tone-of-voice` — the brand copy register
 
@@ -172,16 +211,39 @@ Name the brand-level copy register for this product.
 **Where it lands:** `<output_dir>/copy/brand-register.md`, with `<output_dir>` replaced for this project.
 <!-- rung: tone-of-voice SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md -->
 
-- `Brand register: <brand or product name>`
-- `Reader map`
-- `Named copy goals (ranked)`
-- `What each goal means`
-- `Dominant goal`
-- `Plain-language floor notes`
-- `Open questions`
+```markdown
+---
+type: tone-of-voice
+scope: brand-level
+persona: <short persona name or pointer to persona artifact>
+date: <YYYY-MM-DD>
+---
+
+# Brand register: <brand or product name>
+
+<!--
+  Written by the `tone-of-voice` skill. Fill the angle-bracket prompts and
+  delete this comment. This doc names the brand-level copy register — the
+  cross-surface copy personality that all per-surface copy decisions reference.
+  It holds NO finished copy, formula tables, or per-surface direction strings.
+  Per-surface copy direction lives in copy/<surface-slug>.md (copy-direction skill).
+  Keep this doc short enough that a writer picks up the brand register in two minutes.
+-->
+
+## Reader map
+
+| Reader type | Copy JTBD sentence | Rank |
+|---|---|---|
+| <reader type — role + context> | When [situation], I want to [action with this copy], so that [goal]. | Primary |
+| <reader type> | When [situation], I want to [action], so that [goal]. | Secondary |
+
+## Named copy goals (ranked)
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `user-flow` — the screen inventory
 
@@ -217,23 +279,37 @@ Turn the approved journey into screens, transitions, failure routes, and one bri
 **Where it lands:** `<output_dir>/screens/<slug>-flow.md` and `<output_dir>/screens/<slug>/<screen>.md`; replace each bracketed segment.
 <!-- rung: user-flow SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md -->
 
-- Per-screen brief — the unit `user-flow` emits per screen
-- `Template`
-- `Screen brief: <screen-name> · <product-slug> · surface: <responsive-web | iOS | Android | cross-platform>`
-- `Place in the whole`
-- `Job`
-- `States (defer to the shared quality floor — name which apply)`
-- `Data & actions (each action names its backing service)`
-- `Interaction & behavior (from interaction-design — referenced, enriched there)`
-- `Copy (from ux-writing; per state)`
-- `Shared contract — REFERENCE, do not restate`
-- `Consistency invariants`
-- `Done`
-- `Genre-specific notes`
-- `How it fits the flow`
+````markdown
+---
+type: screen-flow-brief
+screen: <screen-name>
+flow: <slug>
+surface: <responsive-web | iOS | Android | cross-platform>
+surface-genre: <marketing | documentation | informational | analytical | transactional-journey | marketplace | workspace>
+---
+
+# Screen brief: <screen-name>   ·   <product-slug>   ·   surface: <responsive-web | iOS | Android | cross-platform>
+
+## Place in the whole
+<!-- Traceability marker. The structural-orphan lint reads this exact bold-body
+     field (NOT the frontmatter `type:`) to recognize this artifact as a `screen`
+     chain node — by marker, not path. Keep the value exactly `screen-brief`. -->
+- **Type:** screen-brief
+- Journey step(s): <which step(s) of the journey this serves>
+- Enters from: <screen(s) / entry points>      Exits to: <screen(s) / next actions>
+- Traces to outcome: <the outcome/JTBD this screen advances>   (traceability ↑)
+- Surface genre: <genre> — determines design patterns and IA approach
+
+## Job
+<One sentence: the single job this screen does for the user.>
+
+## States  (defer to the shared quality floor — name which apply)
+````
+
+*One of these per screen. The agent replaces every `<…>`; the shared design contract is referenced, never copied into each brief.*
 
 ## Where this leads
 

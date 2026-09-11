@@ -74,11 +74,16 @@ Turn these journey pains and peak moments into three to five design principles.
 **Where it lands:** `docs/design/principles/<slug>.md`, with `<slug>` replaced for this product.
 <!-- rung: design-principles SKILL.md -->
 
-**Expect these headings:**
-<!-- rung: design-principles SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- One heading for each `<Principle title>`
-- `Known tradeoffs`
+```markdown
+# <Principle title>
+
+## Known tradeoffs
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `creative-direction` — the aesthetic direction
 
@@ -114,15 +119,39 @@ Set a visual direction for this surface from its audience, persona, precedents, 
 **Where it lands:** `<output_dir>/aesthetic/<slug>.md`.
 <!-- rung: authored; creative-direction SKILL.md declares the record but not its path -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md -->
 
-- `Aesthetic direction: <surface or product name>`
-- `Surface`
-- `Named goals (ranked)`
-- `What each goal means`
-- `Dominant goal for arbitration`
-- `Open questions`
+```markdown
+# Aesthetic direction: <surface or product name>
+
+<!--
+  Copied into your repo by the `creative-direction` skill. Fill the angle-
+  bracket prompts and delete this comment. This doc names *direction* — the
+  emotional and brand goals the build steers by. It holds NO palette, font,
+  or values; those are derived later by `design-system`. Keep it
+  short enough that a non-designer reads it in two minutes.
+-->
+
+## Surface
+
+<!-- The target platform for this direction. One of:
+     responsive-web | iOS | Android | cross-platform
+     This changes which platform standards ground each goal. -->
+
+**Target surface:** <responsive-web | iOS | Android | cross-platform>
+
+## Named goals (ranked)
+
+<!-- 3–5 goals, each a noun phrase a non-designer can recall. Ranked: #1 is
+     the dominant goal that wins when goals conflict. Each goal lists what
+     grounds it — persona, precedent, standards, and platform conventions.
+     A goal with no stable referent is still a fresh opinion; ground it first. -->
+
+1. <dominant goal — e.g. "Quiet confidence">
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `design-system` — the token set
 
@@ -158,14 +187,18 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 **Where it lands:** `<output_dir>/aesthetic/<slug>-tokens.md`.
 <!-- rung: authored; design-system SKILL.md declares the taxonomy but not its path -->
 
-**Expect these headings:**
-<!-- rung: design-system SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Token taxonomy`
-- `Semantic roles`
-- `Scale rationale`
-- `Accessibility constraints`
-- `Composition rules`
+```markdown
+# Token taxonomy
+## Semantic roles
+## Scale rationale
+## Accessibility constraints
+## Composition rules
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Where this leads
 

@@ -75,16 +75,39 @@ Map the journey for a new account owner who wants to connect their first data so
 **Where it lands:** `<output_dir>/journeys/<slug>.md`.
 <!-- rung: journey-mapping SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/journey-mapping/assets/journey-map-template.md -->
 
-- `Journey: <title>`
-- `Stage 1: <stage name>`
-- `Stage 2: <stage name>`
-- `Stage 3: <stage name>`
-- `Frontstage actions`
-- `Emotional arc`
-- `Handoff notes`
+```markdown
+---
+type: customer-journey
+slug: <slug>
+persona: <persona-name-or-role>
+outcome: <the outcome the customer is trying to reach>
+surface: <responsive-web | iOS | Android | cross-platform>
+---
+
+# Journey: <title>
+
+**Persona:** <who the customer is and the relevant context>
+**Outcome:** <what done looks like for the customer>
+**Surface:** <the platform/surface this journey is designed for>
+**Trigger:** <what initiates the journey — the first action or event>
+**End state:** <what the customer has achieved when the journey is complete>
+
+---
+
+## Stage 1: <stage name>
+
+| Row | Content |
+|-----|---------|
+| **Actions** | <what the customer does — frontstage, in the customer's words> |
+| **Emotions** | <how the customer feels; mark valence: positive / neutral / negative> |
+| **Pains** | <friction, confusion, or gaps — in the customer's words> |
+| **Opportunities** | <what would change if the pain were addressed — solution-independent> |
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `service-blueprint` — the backstage blueprint
 
@@ -120,16 +143,39 @@ Blueprint the people, services, and systems behind this customer journey.
 **Where it lands:** `<output_dir>/blueprints/<slug>.md`.
 <!-- rung: service-blueprint SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/service-blueprint/assets/service-blueprint-template.md -->
 
-- `Service Blueprint: <Journey Name>`
-- `Summary`
-- `Blueprint`
-- `Column gaps`
-- `Named backstage services`
-- `Hand-off`
-- `Open questions`
+```markdown
+---
+type: service-blueprint
+journey: "<journey name>"
+slug: "<kebab-case-slug>"
+date: "<YYYY-MM-DD>"
+---
+
+# Service Blueprint: <Journey Name>
+
+## Summary
+
+**Journey:** <one-sentence description of the customer journey this blueprint covers>
+**Scope:** <start stage> → <end stage>
+**Surfaces / channels:** <web | mobile | in-person | …>
+
+---
+
+## Blueprint
+
+<!-- Column headings = journey steps (one per stage/touchpoint).
+     Fill each row for every column. Leave no frontstage cell without
+     checking the backstage row — a blank backstage against a frontstage
+     action is a named gap (see "Column gaps" below). -->
+
+| Row | Step 1: <name> | Step 2: <name> | Step 3: <name> | … |
+| --- | --- | --- | --- | --- |
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `process-mapping` — the internal process map
 
@@ -165,17 +211,39 @@ Map the internal process that supports this experience, from its trigger to its 
 **Where it lands:** `<output_dir>/processes/<slug>.md`.
 <!-- rung: process-mapping SKILL.md -->
 
-**Expect these headings:**
+**What it looks like:**
 <!-- rung: packs/experience-design/.apm/skills/process-mapping/assets/process-flow-template.md -->
 
-- `Process Map: <L3 Process Name>`
-- `SIPOC`
-- `As-is swimlane`
-- `As-is pain/waste register`
-- `To-be swimlane`
-- `As-is → to-be delta`
-- `Seams`
-- `Open questions`
+```markdown
+---
+type: process-flow
+process: "<L3 process name>"
+slug: "<kebab-case-slug>"
+date: "<YYYY-MM-DD>"
+---
+
+# Process Map: <L3 Process Name>
+
+## SIPOC
+
+<!-- Bound the process before drawing any swimlane.
+     Suppliers and Customers here are internal process participants,
+     not the end customer (that is the journey map's domain). -->
+
+| Suppliers | Inputs | Process | Outputs | Customers |
+| --- | --- | --- | --- | --- |
+| <who/what provides the key inputs — teams, systems, external parties> | <what arrives at the start — documents, data, requests> | **<L3 process name>** | <what the process produces — deliverables, decisions, state changes> | <who receives the output — teams, systems, downstream consumers> |
+
+---
+
+## As-is swimlane
+
+<!-- L4 activities across actor lanes.
+     Each subgraph is one actor lane.
+     Use decision nodes (diamond shape in mermaid: {Decision?}) for gateways.
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
 ## Run `experience-status` — a read of where you are
 
@@ -211,13 +279,17 @@ Show the current design-thread status.
 **Writes no artifact.** It reports in the agent session and does not change files.
 <!-- rung: experience-status SKILL.md -->
 
-**Expect these headings:**
-<!-- rung: experience-status SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Current design-thread status`
-- `Existing artifacts`
-- `Missing artifacts`
-- `Recommended next skill`
+```markdown
+# Current design-thread status
+## Existing artifacts
+## Missing artifacts
+## Recommended next skill
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Where this leads
 

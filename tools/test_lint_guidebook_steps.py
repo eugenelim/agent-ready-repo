@@ -161,8 +161,9 @@ def _emit(contract, obligation: str) -> list[str]:
         return [f"**Check ({contract.judgement_kinds[0]}):** Does it fit this fixture?"]
     if obligation == "artifact_location":
         return [f"{label} `artifacts/fixture.md`"]
-    if obligation == "artifact_outline":
-        return [label, "<!-- rung: outline-source.md -->", "- Overview", "- Decision"]
+    if obligation == "artifact_preview":
+        return [label, "<!-- rung: preview-source.md -->", "", "```markdown",
+                "# Overview", "", "## Decision", "```"]
     if obligation == "utterance":
         return [label, "", "```", "Do the fixture thing.", "```"]
     if obligation == "step_map":
@@ -182,7 +183,7 @@ def _complete_step(tmp_path: Path) -> tuple[Path, object]:
     guidebook = tmp_path / "guidebook"
     guidebook.mkdir()
     (guidebook / "concept.md").write_text("# Concept\n", encoding="utf-8")
-    (guidebook / "outline-source.md").write_text(
+    (guidebook / "preview-source.md").write_text(
         "# Overview\n\n## Decision\n", encoding="utf-8"
     )
     # Laid out as the contract's page skeleton declares: the step's framing
@@ -276,12 +277,17 @@ def test_ac0003_each_contract_obligation_detects_its_omission(
     assert obligation in {finding.obligation for finding in findings}
 
 
-def test_ac0003_artifact_outline_detects_divergence_from_its_source(tmp_path: Path) -> None:
-    """Mutation proof: retain the label but make its stated outline diverge."""
+def test_ac0003_artifact_preview_detects_divergence_from_its_source(tmp_path: Path) -> None:
+    """Mutation proof: keep the label, make the shown excerpt diverge.
+
+    The excerpt is the reader's only sight of the artifact, so an excerpt that
+    has drifted from what the skill writes teaches the wrong shape and nothing
+    else would notice.
+    """
     step, contract = _complete_step(tmp_path)
-    obligation = "artifact_outline"
+    obligation = "artifact_preview"
     step.write_text(
-        step.read_text(encoding="utf-8").replace("- Decision", "- Different heading"),
+        step.read_text(encoding="utf-8").replace("## Decision", "## Different heading"),
         encoding="utf-8",
     )
     findings = lint_guidebook_steps.lint([step.parent], contract)
@@ -344,7 +350,7 @@ def test_help_docstring_names_contract_labels_flags_and_exit_codes() -> None:
 # diagnose.
 #
 # Residual, stated rather than claimed closed: an obligation whose enforcement
-# needs semantics *beyond* label presence — as `artifact_outline`,
+# needs semantics *beyond* label presence — as `artifact_preview`,
 # `judgement_check` and `concept_resolved` all do — would receive only the
 # generic label check if it were added without bespoke logic. Nothing here
 # detects that, and it is recorded in the verification ledger.

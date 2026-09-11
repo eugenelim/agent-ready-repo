@@ -631,6 +631,17 @@ def _strip_guide_metadata(text: str) -> str:
         data["description"] = str(data["summary"]).strip()
         _TRANSFORM_COUNTS["summary_mapped"] += 1
 
+    # A guidebook step's position, carried into the projected page so the
+    # in-page navigation can say "Step 3 of 5" instead of "On this page". The
+    # source is the body's own declaration, so the heading, the sidebar number
+    # and the page text can never disagree. Non-steps carry neither field and
+    # keep the default heading.
+    position = _STEP_OF.search(body)
+    if position:
+        data = dict(data)
+        data["step"] = int(position.group(1))
+        data["steps"] = int(position.group(2))
+
     # Exclude None values so yaml.safe_dump doesn't emit `key: null` noise.
     cleaned = {
         k: v for k, v in data.items()
@@ -717,7 +728,8 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
         if path.suffix != ".md" or not path.is_file():
             continue
         rel_parts = list(path.relative_to(guides_root).parts)
-        fm = _parse_frontmatter(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+        fm = _parse_frontmatter(text)
 
         # A file directly under guides/ has no pack segment — the root README
         # belongs to the tree itself, not to a pack called "README.md".
@@ -752,11 +764,19 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             print(f"  note  {_relpath(path)}: {why}; mirrored but not in navigation",
                   file=sys.stderr)
 
+        # A guidebook step declares its own position in its body. That
+        # declaration -- not `order:` -- is what makes a page a step, because
+        # `order:` also carries a cross-kind reading thread (Atlassian's runs
+        # tutorial, how-to, reference, explanation) whose members are not steps
+        # and must not be numbered as if they were.
+        step = _declared_step(text)
+
         records.append({
             "source_path": path,
             "pack": pack,
             "kind": kind,
             "order": order,
+            "step": step,
             "title": title,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
@@ -799,6 +819,22 @@ _KIND_BUCKETS = (
     ("reference", "Reference"),
     ("explanation", "Explanation"),
 )
+
+
+
+_STEP_DECLARATION = re.compile(r"^\*\*Step (\d+) of \d+ — ", re.M)
+_STEP_OF = re.compile(r"^\*\*Step (\d+) of (\d+) — ", re.M)
+
+
+def _declared_step(text: str) -> int | None:
+    """The step number a guidebook page declares in its own body, if any.
+
+    Taken from the body rather than frontmatter so navigation and the page can
+    never disagree: the reader sees "Step 3 of 5" on the page and "3." in the
+    sidebar because both come from the same statement.
+    """
+    match = _STEP_DECLARATION.search(text)
+    return int(match.group(1)) if match else None
 
 
 def _guide_label(record: dict, baseline: dict) -> str:
@@ -869,9 +905,19 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 
         for rec in sorted((r for r in members if r["is_index"]), key=lambda r: r["slug"]):
             group_items.append(entry(rec))
-        for rec in sorted((r for r in members if r["order"] is not None and not r["is_index"]),
-                          key=lambda r: (r["order"], r["slug"])):
-            group_items.append(entry(rec))
+        # A guidebook step is numbered in the sidebar, because the run is flat
+        # and a reader otherwise sees consecutive siblings with nothing marking
+        # them as a sequence. The number comes from the page's own "Step N of M"
+        # declaration, so nav and body cannot disagree, and a page that never
+        # calls itself a step is left alone. Applied here rather than in
+        # `_guide_label` so pack index link text keeps the plain title.
+        ordered = sorted((r for r in members if r["order"] is not None and not r["is_index"]),
+                         key=lambda r: (r["order"], r["slug"]))
+        for rec in ordered:
+            item = entry(rec)
+            if rec.get("step") is not None:
+                item["label"] = f"{rec['step']}. {item['label']}"
+            group_items.append(item)
         for rec in sorted((r for r in members
                            if r["order"] is None and not r["is_index"] and r["kind"] is None),
                           key=lambda r: r["slug"]):

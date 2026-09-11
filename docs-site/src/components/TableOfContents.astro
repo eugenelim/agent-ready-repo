@@ -1,0 +1,107 @@
+---
+// Override of Starlight's TableOfContents: a guidebook step gets its own walk
+// in the right-hand rail, above the page's headings.
+//
+// The global sidebar lists every guide in every pack -- over two hundred
+// entries -- so it answers "where am I in the documentation" and cannot answer
+// "where am I in this walk". A reader working through a guidebook needs the
+// second, and the right rail is where they are already looking for position.
+//
+// `step` / `steps` are projected by tools/build-site.py from the body's own
+// "**Step N of M**" line, so this panel, the numbered sidebar entry and the
+// page text all derive from one statement and cannot disagree. A page that is
+// not a step carries neither field and renders Starlight's component alone,
+// unchanged.
+import { getCollection } from 'astro:content';
+import Default from '@astrojs/starlight/components/TableOfContents.astro';
+
+const { entry } = Astro.locals.starlightRoute;
+const { step, steps } = entry.data;
+
+// Siblings are the steps sharing this page's directory. Scoping by directory
+// rather than by pack keeps a pack that grows a second guidebook from merging
+// the two walks into one list.
+const directory = entry.id.split('/').slice(0, -1).join('/');
+const walk =
+  step && steps
+    ? (
+        await getCollection(
+          'docs',
+          (other) =>
+            other.data.step !== undefined &&
+            other.id.split('/').slice(0, -1).join('/') === directory,
+        )
+      )
+        .sort((a, b) => (a.data.step ?? 0) - (b.data.step ?? 0))
+        .map((item) => ({
+          step: item.data.step as number,
+          title: item.data.title,
+          href: `${import.meta.env.BASE_URL.replace(/\/$/, '')}/${item.id}/`,
+          current: item.id === entry.id,
+        }))
+    : [];
+---
+
+{
+  walk.length > 1 && (
+    <nav class="guidebook-walk" aria-labelledby="guidebook-walk-heading">
+      <h2 id="guidebook-walk-heading">Step {step} of {steps}</h2>
+      <ol>
+        {walk.map((item) => (
+          <li>
+            <a href={item.href} aria-current={item.current ? 'page' : undefined}>
+              <span class="walk-number">{item.step}</span>
+              <span>{item.title}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+<Default />
+
+<style>
+  .guidebook-walk {
+    margin-bottom: 1.5rem;
+  }
+
+  .guidebook-walk ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-inline-start: 1px solid var(--sl-color-hairline-light);
+  }
+
+  .guidebook-walk a {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.3rem 0 0.3rem 1rem;
+    margin-inline-start: -1px;
+    border-inline-start: 1px solid transparent;
+    font-size: var(--sl-text-xs);
+    line-height: 1.4;
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+  }
+
+  .guidebook-walk a:hover {
+    color: var(--sl-color-white);
+  }
+
+  .guidebook-walk a[aria-current='page'] {
+    color: var(--sl-color-text-accent);
+    border-inline-start-color: var(--sl-color-text-accent);
+    font-weight: 600;
+  }
+
+  .walk-number {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    color: var(--sl-color-gray-4);
+  }
+
+  .guidebook-walk a[aria-current='page'] .walk-number {
+    color: inherit;
+  }
+</style>

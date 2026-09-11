@@ -72,16 +72,20 @@ Review this design set against its user task, principles, quality floor, genre r
 **Where it lands:** `<output_dir>/screens/<slug>-review.md`.
 <!-- rung: authored; design-review SKILL.md declares the review record but not its path -->
 
-**Expect these headings:**
-<!-- rung: design-review SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Review scope`
-- `Findings by severity`
-- `Quality-floor findings`
-- `Heuristic findings`
-- `Genre-rubric findings`
-- `Taste findings`
-- `Director’s notes`
+```markdown
+# Review scope
+## Findings by severity
+## Quality-floor findings
+## Heuristic findings
+## Genre-rubric findings
+## Taste findings
+## Director’s notes
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 The journey then invokes the read-only `experience-reviewer` in an independent context. It is a reviewer role, not a skill you type. Resolve its blockers before design feeds the build loop.
 

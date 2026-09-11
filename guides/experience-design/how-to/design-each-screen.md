@@ -81,15 +81,19 @@ Organize this screen around its primary task, content rank, recovery paths, and 
 **Where it lands:** `<output_dir>/screens/<slug>-ia.md`.
 <!-- rung: authored; information-architecture SKILL.md declares the record but not its path -->
 
-**Expect these headings:**
-<!-- rung: information-architecture SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Screen framing`
-- `Content rank`
-- `Reading pattern`
-- `Progressive disclosure`
-- `Navigation and wayfinding`
-- `Per-state layout notes`
+```markdown
+# Screen framing
+## Content rank
+## Reading pattern
+## Progressive disclosure
+## Navigation and wayfinding
+## Per-state layout notes
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `analytical-design` — dashboard structure
 
@@ -125,15 +129,19 @@ Design this dashboard around the named business questions and domain model.
 **Where it lands:** `<output_dir>/screens/<slug>-analytical.md`.
 <!-- rung: authored; analytical-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: analytical-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Business questions`
-- `Domain model`
-- `Widget hierarchy`
-- `Spatial layout grammar`
-- `Role-based views`
-- `Per-widget states`
+```markdown
+# Business questions
+## Domain model
+## Widget hierarchy
+## Spatial layout grammar
+## Role-based views
+## Per-widget states
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `conversion-design` — marketing-page structure
 
@@ -169,13 +177,17 @@ Structure this acquisition surface around its content brief and design principle
 **Where it lands:** `<output_dir>/screens/<slug>-conversion.md`.
 <!-- rung: authored; conversion-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: conversion-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Hero approach`
-- `Above-fold contract`
-- `Scroll story`
-- `Social-proof architecture`
+```markdown
+# Hero approach
+## Above-fold contract
+## Scroll story
+## Social-proof architecture
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `documentation-design` — documentation structure
 
@@ -211,13 +223,17 @@ Design the hierarchy and navigation for this documentation surface and its reade
 **Where it lands:** `<output_dir>/screens/<slug>-documentation.md`.
 <!-- rung: authored; documentation-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: documentation-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Content hierarchy`
-- `Navigation strategy`
-- `Reading goal`
-- `Documentation architecture`
+```markdown
+# Content hierarchy
+## Navigation strategy
+## Reading goal
+## Documentation architecture
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `informational-design` — editorial structure
 
@@ -253,13 +269,17 @@ Design the reading hierarchy and editorial grid for this informational surface.
 **Where it lands:** `<output_dir>/screens/<slug>-informational.md`.
 <!-- rung: authored; informational-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: informational-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Typographic hierarchy`
-- `Reading-pattern calibration`
-- `Editorial grid`
-- `What’s next`
+```markdown
+# Typographic hierarchy
+## Reading-pattern calibration
+## Editorial grid
+## What’s next
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `marketplace-design` — marketplace structure
 
@@ -295,13 +315,17 @@ Design the listing, filter, comparison, and transaction structure for this marke
 **Where it lands:** `<output_dir>/screens/<slug>-marketplace.md`.
 <!-- rung: authored; marketplace-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: marketplace-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Listing card IA`
-- `Filter and facet architecture`
-- `Comparison affordances`
-- `Transaction bridge`
+```markdown
+# Listing card IA
+## Filter and facet architecture
+## Comparison affordances
+## Transaction bridge
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `workspace-design` — workspace structure
 
@@ -337,13 +361,17 @@ Design the context, attention, and interruption structure for this workspace sur
 **Where it lands:** `<output_dir>/screens/<slug>-workspace.md`.
 <!-- rung: authored; workspace-design SKILL.md declares the specification but not its path -->
 
-**Expect these headings:**
-<!-- rung: workspace-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `Session arc`
-- `Context-persistence architecture`
-- `Attention zones`
-- `Interrupt design`
+```markdown
+# Session arc
+## Context-persistence architecture
+## Attention zones
+## Interrupt design
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `interaction-design` — states and behaviours
 
@@ -379,13 +407,17 @@ Design the behavior for <screen>, including feedback, validation, recovery, and 
 **Where it lands:** `<output_dir>/screens/<slug>.md`.
 <!-- rung: authored; interaction-design SKILL.md declares the behavior enrichment but not its output path -->
 
-**Expect these headings:**
-<!-- rung: interaction-design SKILL.md -->
+**What it looks like:**
+<!-- rung: authored -->
 
-- `States and transitions`
-- `Feedback and validation`
-- `Motion and reduced-motion`
-- `Navigation behavior`
+```markdown
+# States and transitions
+## Feedback and validation
+## Motion and reduced-motion
+## Navigation behavior
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Where this leads
 
