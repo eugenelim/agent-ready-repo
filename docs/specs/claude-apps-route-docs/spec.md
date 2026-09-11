@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0107
-- **Brief:** none — but see Provenance below; this is a slice of a registered intent
+- **Brief:** none
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed

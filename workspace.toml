@@ -353,22 +353,6 @@ shipped = [
   {path = "docs/specs/dependency-scoped-completion-receipts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Project the dependency-scoped four-field completion receipt from the citing local need, so a dependant on a closed-out and pruned delivery resolves instead of reporting missing_dependency", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/status-projection-and-context-exclusion/spec.md"}]},
   {path = "docs/specs/reclassified-lifecycle-result/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Carry Reclassified in the lifecycle record by pairing it with retain-exception, reachable only from a retained record on a supplied acceptance and terminal thereafter", needs = []},
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
-]
-queue   = [
-  # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
-  # 2026-09-09 and registered after a clean shaping review and the
-  # owner-authorized fourth adversarial round. It remains Draft and requires
-  # human approval before dispatch.
-  {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
-  # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
-  # 2026-09-09 and registered after its clean-room adversarial review reached
-  # clean on Round 2. It remains Draft and requires human approval before
-  # dispatch.
-  {path = "docs/specs/tutorial-worked-examples/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add paired demonstrated inputs, representative outputs, and result-reading cues to every accepted-base tutorial", needs = []},
-  # Slice S5 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
-  # 2026-09-09 and registered after a clean shaping review and three adversarial
-  # rounds. It remains Draft and requires human approval before dispatch.
-  {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
   # Slice S6 of sdlc-guide-uplift-and-learning-paths, added by owner decision
   # 2026-09-11. Nothing on either surface presents the four disciplines as a
   # workflow: the journeys index renders one flat grid where they land at
@@ -388,6 +372,22 @@ queue   = [
   # delivery to drop "and can walk it": no criterion tested walkability, and the
   # delivered surfaces do not provide it. The walk is candidate slice S7.
   {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:0b25a9bb5aa42cb0c04fb87769b7c6590daaef5371d46dcd0768df47906bc1de", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Make the four disciplines discoverable as one ordered sequence on the journeys index and in guides/README.md P7, ordered desk-research first to match the packs' dependency contracts; Shipped 2026-09-11 with its Objective narrowed to drop walkability, which is slice S7", needs = []},
+]
+queue   = [
+  # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
+  # 2026-09-09 and registered after a clean shaping review and the
+  # owner-authorized fourth adversarial round. It remains Draft and requires
+  # human approval before dispatch.
+  {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
+  # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
+  # 2026-09-09 and registered after its clean-room adversarial review reached
+  # clean on Round 2. It remains Draft and requires human approval before
+  # dispatch.
+  {path = "docs/specs/tutorial-worked-examples/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add paired demonstrated inputs, representative outputs, and result-reading cues to every accepted-base tutorial", needs = []},
+  # Slice S5 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
+  # 2026-09-09 and registered after a clean shaping review and three adversarial
+  # rounds. It remains Draft and requires human approval before dispatch.
+  {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -961,8 +961,10 @@ open = [
   # and states that the entry links and the install how-to are not blocked by
   # that question because they promise a route and a submitted install rather
   # than a completed method. This spec claims only that unblocked half, which is
-  # what its AC12 fences. Unblocks now.
-  {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/claude-apps-first-value-entry.md"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
+  # what its AC12 fences. No source.parent: the engine requires that field to
+  # resolve to a brief path, and this spec has no parent brief -- it is a slice
+  # of an intent, which its own Provenance section records. Unblocks now.
+  {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
 
 ]
 

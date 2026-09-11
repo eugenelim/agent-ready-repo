@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Brief:** [`docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md`](../../product/briefs/sdlc-guide-uplift-and-learning-paths.md)
+- **Brief:** docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed
