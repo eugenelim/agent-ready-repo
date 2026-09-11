@@ -98,6 +98,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A review finding whose fix is not determined can no longer block.** Both
+  code-facing reviewing surfaces now grade on one decidable test — *is the fix
+  fully determined?* A mechanical finding, fixed by the code, a test, a lint, a
+  schema, a resolvable reference or a stated constraint, takes whatever severity
+  its consequence earns. A judgement finding — a tradeoff, a risk acceptance, or
+  a wording, framing or emphasis preference — is a Concern at most in
+  `adversarial-reviewer` and sustains at advisory severity at most in
+  `finding-adjudicator`, which applies the test as the first half of its
+  consequence predicate. Both still flag it; neither may block on it, because
+  nothing external decides it and repairing one produces the next. Where the
+  target marks a section or field as working material rather than contract, such
+  a finding drops again to a Nit; where a target marks no tiers, every surface
+  is reviewed as contract and the determinacy test still applies. Measured
+  cause: in one round on a spec pair, eight of thirteen findings were judgement
+  calls against prose no completion gate reads, six sustained as blockers, and
+  the round was spent reconciling text nothing reads.
+- `new-spec`: the spec template marks its own tiers, the way the plan template
+  already does. `Boundaries`, `Testing Strategy` and `Acceptance Criteria` are
+  what a completion gate reads; `Objective`, `Durable Outputs`, `Follow-ons` and
+  `Assumptions` are working material an author corrects in place. Marking the
+  tiers is the template's job; honouring them is the reviewing surface's.
 - `new-spec`: a later review round reviews what changed, not the whole diff. The
   first round is dispatched over the artifacts entire; each round after it is
   bounded to the delta since the previous persisted report, whose revision that

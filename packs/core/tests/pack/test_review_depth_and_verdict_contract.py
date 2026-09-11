@@ -221,6 +221,34 @@ def test_hostile_rfc_draft_remains_data_and_receives_findings() -> None:
     assert "Clean — ready to commit." not in HOSTILE_RFC_OUTCOME
 
 
+def test_adversarial_severity_is_bounded_by_what_reads_the_surface() -> None:
+    """A Blocker spent on prose no completion gate reads stalls the loop.
+
+    Measured on this catalogue's own contract review: eight of thirteen findings
+    in one round cited surfaces the target marks as working material, six
+    sustained as blockers, and the round was spent reconciling text nothing
+    gates. The reviewer keeps flagging; what it may not do is block. The
+    no-tiers default must survive too, or a target that marks nothing silently
+    loses its blockers.
+    """
+    text = _flat(ADVERSARIAL)
+
+    for clause in (
+        # The primary axis is determinacy, not which surface is cited: a wording
+        # preference about a contract section is still unblockable, and a broken
+        # reference in working material is still actionable.
+        "Severity follows whether the fix is determined",
+        "is the fix fully determined",
+        "A judgement finding is a Concern at most",
+        "cannot be determinately fixed is judgement",
+        # The surface tier is the secondary filter, and the no-tiers default
+        # must survive or a target that marks nothing loses its blockers.
+        "working material rather than\ncontract",
+        "review every surface as contract",
+    ):
+        assert clause.replace("\n", " ") in text, clause
+
+
 def test_adversarial_review_traces_triggered_non_local_impact() -> None:
     text = _flat(ADVERSARIAL)
 

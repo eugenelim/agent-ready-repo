@@ -163,6 +163,18 @@ RULES = (
         "skill",
         "frozen once shaping closes, and this",
     ),
+    (
+        "spec-field-authority",
+        "spec",
+        "Not every section is contract.",
+    ),
+    (
+        "advisory-against-working-material",
+        "spec",
+        # Within one line: `flattened` keeps the blockquote's `>` markers as
+        # tokens, so a pin crossing a line break fails on a correct file.
+        "working material is advisory \u2014 it cannot block",
+    ),
 )
 EXAMPLES = (
     ('E1', 'splits', 'Two different predicates; no single sentence covers both.', '`writer.py` emits `manifest.json` with keys in byte-sorted order, and `--dry-run` prints that manifest without writing a file.'),
