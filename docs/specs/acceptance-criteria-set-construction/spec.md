@@ -403,7 +403,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       of touched paths: which files name a seed, which historically change with
       one, which gates would run one, which quote a distinctive line from one,
       and which scoped guidance governs each. Every probe reports and none
-      decides; every probe carries a boilerplate cutoff and a bounded result; and
+      decides; every threshold is derived from the adopter repository's own
+      distribution rather than fixed, with the report naming the value used and
+      what it was derived from, so a mis-calibration is visible instead of
+      silently narrowing the result; every probe carries a bounded result; and
       every probe distinguishes three outcomes — found, none found, and input
       unavailable — because a probe that returns empty when its input is missing
       is indistinguishable from a clean result. Whatever the explorer cannot

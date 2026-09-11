@@ -1033,6 +1033,14 @@ case, a negative case, and a flood case.
 - **gate reachability** — a seed named by a runner is reported with it; **a seed
   no runner reaches is reported as unreached**, which is the finding, not its
   absence.
+- **calibration is live, and reported.** The sweep-commit threshold comes from
+  the repository's own p90 commit size and the phrase cutoff from the observed
+  match distribution; both fall back to a documented default when there is too
+  little signal, and both print the value with its basis. A fixed constant is a
+  guess about someone else's repository — a monorepo's ordinary commit touches
+  more files than a small library's, and being wrong is silent either way, since
+  an over-tight threshold simply reports nothing. Assert a small fixture and a
+  large one derive different thresholds, and that each names its basis.
 - **phrase pins** — a line quoted once is found; a line in more than the cutoff
   number of files is excluded. **Mutation proof:** removing the cutoff must red
   this case, with a fixture carrying shipped boilerplate across many files.
