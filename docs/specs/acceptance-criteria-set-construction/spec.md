@@ -108,6 +108,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Silence a pre-existing warn-only lint warning to make a gate read clean.
 - Introduce a new top-level directory, a new module boundary, or a new
   dependency; the selection procedure is prose in files that already exist.
+- Claim, on any surface, that a criterion count proves a set well-shaped. The
+  count orders how hard the set-level pass looks and settles nothing on its own;
+  no check reaches this claim, so it is held here and read at review.
 - Claim, in shipped text, that written guidance changes author behaviour in
   general. This slice's evaluation covers three frozen cases and nothing wider.
 - Build the identity or fingerprint mechanism beneath the single-homing check.
@@ -178,10 +181,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The set-level pass runs over the loop contract as one set — the spec's
       criteria together with the plan entries that trace to them — rather than
       over the criteria alone, and tests necessity, uniqueness, consistency,
-      joint feasibility, coverage, propagation, and residual freshness. Each
-      member reads both artifacts: a criterion and a construction test can fail
-      uniqueness, consistency or coverage against each other, and a pass that
-      reads only the spec cannot see it. Propagation cites the rubric's sibling
+      joint feasibility, coverage, propagation, and residual freshness. Three
+      members carry a stated plan-side question: uniqueness asks whether a
+      criterion and a construction test claim the same thing, coverage asks
+      whether every admitted criterion has a plan entry, and propagation asks
+      whether a touched criterion's entry still matches it. The rest read the
+      criteria. Propagation cites the rubric's sibling
       check as its owner rather than restating it, adding only its scope and its
       timing: it re-reads each touched criterion's construction test and
       verification entry against that criterion's current wording, because a
@@ -257,8 +262,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       finding trend by round, and for each remaining residual its consequence,
       the responses available to it, and what each would cost — so the owner
       chooses between stated options rather than reading a list of problems. It
-      cites the owner of the protected-risk-class set rather than enumerating
-      one here.
+      states the protected-risk-class condition directly and enumerates no class
+      list, because shipped pack content carries no citation to an internal
+      record; the owner of that class set is named in this contract, not in the
+      pack.
 - [ ] The earn-its-keep test applies to every criterion in the set rather than
       only to those added during review, and runs while rounds are still
       running rather than only after they converge.

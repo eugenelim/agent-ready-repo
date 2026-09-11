@@ -195,16 +195,19 @@ whole-file token deny-list is unavailable either way; see the probe under
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
 - **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
   pinned entry per criterion in the spec's Testing Strategy goal-based group
-  over the skill file. For the eight criteria with no bullet of their own below,
-  whose whole claim is that a named sentence is present in the shipped
-  procedure, **presence of the pinned sentence inside the procedure span is the
-  oracle** and no further assertion is owed. The span matters: the owner test
+  over the skill file. Seven criteria have no bullet of their own below —
+  **AC4, AC6, AC7, AC9, AC11, AC12, AC15** — and their whole claim is that a
+  named sentence is present in the shipped procedure, so **presence of the
+  pinned sentence inside the procedure span is the oracle** and no further
+  assertion is owed. Each of the seven takes exactly one `RULES` entry keyed to
+  its identifier; the sentence itself is build-discovered, but the mapping from
+  identifier to entry is fixed here, so propagation can name the entry to
+  re-read when one of these criteria changes. The span matters: the owner test
   searches the whole file, so a sentence moved out of the procedure stays green
   under it, and the per-stage floor only places *some* pinned sentence in each
-  interval. Assert span membership for this exact eight-entry set; the mutation
-  that must fail is moving one of the eight outside the span while leaving it in
-  the file. A reviewer has read this bullet as specifying nothing twice
-  now, so the mapping is stated rather than inherited.
+  interval. Assert span membership for this exact seven-entry set; the mutation
+  that must fail is moving one of the seven outside the span while leaving it in
+  the file.
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the five stage
   intervals, the fifth closing at the end of the procedure span. This supports
@@ -229,10 +232,15 @@ whole-file token deny-list is unavailable either way; see the probe under
 - **AC17, AC18 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
 - **AC8.** Assert the pass states its subject as the spec-and-plan pair, assert
-  all seven sweep members are named, then assert the two that carry a contract
-  beyond their name. **Constraint on the subject clause:** assert that both
-  artifacts are named, not that the word "set" appears; a pass whose subject
-  reads as the criteria alone is the one that shipped through round 5.
+  all seven sweep members are named, then assert the plan-side question stated
+  for each of the three that carry one — uniqueness, coverage, propagation — and
+  the contract carried by propagation and residual freshness. **Constraint on
+  the subject clause:** assert that both artifacts are named, not that the word
+  "set" appears; a pass whose subject reads as the criteria alone is the one
+  that shipped through round 5. **Constraint on scope:** assert the three
+  plan-reading members by name and assert no plan-side operation for the other
+  four. Asserting a pair-wide reading over all seven would claim a reach the
+  prose does not have, which is the defect AC24 exists to answer.
   **Propagation:** the
   sentence names the rubric's sibling check as its owner and adds only scope and
   timing — a re-read of each touched criterion's construction test and
@@ -456,8 +464,7 @@ close this task, and the count closes nothing.
 
 **Done when:** every Tests bullet above passes, including the pack-local suite
 with the cross-surface sweep present and its mutation proof recorded and
-restored, and `make build-self` leaves no drift. Counting the commands here is
-what went stale when one was added.
+restored, and `make build-self` leaves no drift.
 
 ### T6: The review-response protocol ships, and the plan rules come under contract
 
@@ -498,14 +505,17 @@ what went stale when one was added.
   report; an assertion phrased over the report would claim a reach it does not
   have. Assert the instructed fields — the finding trend by round, and per
   residual its consequence, the responses available to it, and what each would
-  cost — and assert separately that the step cites the owner of the
-  protected-risk-class set by document name
-  (`docs/product/intents/work-loop-review-economics.md` § Guardrail) and
-  enumerates no class list of its own. **Constraint:** extend the step that
-  shipped in 2.25.14 rather than adding a second one — that step already reports
-  the trend and each residual's consequence, so a parallel step would put two
-  homes on one obligation. What is new is the options, their costs, and the
-  owner citation.
+  cost — and assert separately that the step states the protected-risk-class
+  condition directly while enumerating no class list. **Constraint on the
+  citation:** the assertion reads for the condition, never for a document name.
+  `packs/AGENTS.md` forbids shipped pack content from citing this catalogue's
+  internal records or repository-only paths, so an assertion demanding that the
+  step name `docs/product/intents/work-loop-review-economics.md` is one no
+  implementation can satisfy — that owner is named here, in the contract, and
+  the pack states the rule. **Constraint:** extend the step that shipped in
+  2.25.14 rather than adding a second one — that step already reports the trend
+  and each residual's consequence, so a parallel step would put two homes on one
+  obligation. What is new is the options and their costs.
 - **AC26.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
