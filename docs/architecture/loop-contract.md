@@ -64,7 +64,63 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
   repository collided on one such counter — the released pack version — twice in
   a single day.
 
-## 4. Dependencies and allowed edges
+## 4. Change detection
+
+Stable identity makes a reference *resolve*. It does not tell you whether what
+it resolves to still says what the referrer assumed. Those are different
+failures, and the second is the one a loop produces constantly, because every
+repair round edits an artifact that something else was written against.
+
+Requirements tooling answers it the same way across vendors: a content change to
+a source artifact marks its downstream links **suspect** rather than breaking
+them, and a person clears the flag after looking. Doorstop implements the same
+idea in a text repository with a per-item hash over the item's identifier, text,
+references and links; when a parent changes, its children are flagged for
+re-review.
+
+The loop contract adopts that pairing. **Identity survives editing; a fingerprint
+notices it.** Concretely:
+
+- A criterion's recorded fingerprint covers its own text. When the text changes,
+  every verification item and construction test tracing to that criterion is
+  suspect until re-checked.
+- A pinned rule sentence's fingerprint covers the sentence. When the shipped
+  rule changes, the assertion pinning it is suspect even where the assertion
+  still passes.
+
+**What this reaches, and what it does not.** It converts a silent blind spot
+into a prompted re-check. It does not close one. A fingerprint detects
+*identity*, not *similarity*: a rule restated elsewhere in different words has
+its own fingerprint and is not recognised as a duplicate of anything. So
+fingerprinting bounds the paraphrase gap — the next edit to either location
+raises a flag — without detecting the paraphrase itself. Say that plainly rather
+than let a hash imply a guarantee it does not give.
+
+**The flag's consumer is the next review's scope.** A suspect mark with nothing
+reading it is a control that cannot fail, so the edge is named here rather than
+assumed: a suspect item enters the scope of the next re-review, alongside the
+sustained findings being repaired and the bytes their repair touched. That is
+the one part of this repository's review-economics experiment that survived
+measurement — focused re-review of a repair, its findings and the affected
+contract bytes retained closure verification and caught repair-induced defects,
+while the broad resample around it mostly resampled its own repairs.
+
+**It scopes; it never blocks.** A suspect flag selects what the next round
+*looks at*. It does not decide whether the change may proceed, and it never
+becomes a blocking verdict of its own. That boundary is deliberate: blocking on
+a derived signal is consequence-bound blocking, which was built, measured and
+killed here for missing protected-class findings. A flag that blocks would
+rebuild it under a new name. Clearing a flag is a reviewer's act after looking,
+recorded like any other review disposition.
+
+**A fingerprint baseline is the one stored value that is allowed to go stale**,
+because its going stale *is* the mechanism. Compute the fingerprint from the
+source at check time and compare it against a recorded baseline; the mismatch is
+the signal. That is the deliberate exception to the rule against storing a value
+a check reads, and it only holds while the stored side is the baseline and never
+the answer.
+
+## 5. Dependencies and allowed edges
 
 - The contract is authored by `new-spec` and consumed by `work-loop`. The
   harness reads it; it never writes requirements into it.
@@ -76,7 +132,7 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
 - Criterion *shape* — whether a sentence is one criterion or two — is owned by
   the `new-spec` skill's bundled spec template, not by this page.
 
-## 5. Mechanical invariants
+## 6. Mechanical invariants
 
 - Every acceptance criterion is a task-list item, and a newly shipped spec has
   none open.
@@ -86,7 +142,7 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.
 
-## 6. Relevant records
+## 7. Relevant records
 
 - [Identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md)
   — the identifier decision and its alternatives.

@@ -436,11 +436,22 @@ mechanical result.
 
 | Concern | Consequence if it bites | Protected? |
 | --- | --- | --- |
-| The single-homing pinned set is a proxy. A stage carrying two rule sentences where only one is pinned is not covered by the floor. | A rule could be duplicated into a second authoring surface without the suite noticing; caught at review by the rubric's first class, or not at all. | No |
-| The oracle matches exact sentences, so a paraphrased second home is invisible. | Same as above, for reworded duplication. | No |
-| The suite checks presence-in-owner and absence-elsewhere but never counts occurrences *inside* the owner, so a reworded second copy within one file passes. | A rule stated twice in one authoring surface ships green. Reported by a peer session, not found by our own review. | No |
-| Plan traceability from criteria to construction evidence holds by reference to the spec's own group, not by a mechanical check. | A later edit could leave a criterion without construction evidence silently. | No |
-| T1 and T3 sit above the template's ~2× `Tests:Approach` smell; Addendum 9 holds the measured sequence rather than a figure repeated here. | Measured, not hypothetical: prose-described assertions supplied the family-A findings that dominated rounds 8-15. | No |
+| **The single-homing oracle compares presence and absence of hand-declared exact phrases.** Three consequences from one root: a stage's second rule sentence can be unpinned and uncovered by the floor; a paraphrased second home is invisible; an occurrence repeated inside one file is never counted. | A rule could reach a second authoring surface, or be stated twice in one, without the suite noticing. Reachable at review by the rubric's first class, and by nothing mechanical. | No |
+
+Three earlier rows are retired rather than carried. Plan traceability by
+reference is **decided**, not residual: ADR-0107 settles identity and change
+detection, leaving implementation rather than an open question. The
+`Tests:Approach` ratio row is **dissolved**: once a task's tests are identified
+verification items, a word-ratio instrument measures nothing, so the row was an
+artifact of the old shape. And the relocated-design-facts disagreement is
+**resolved**: measured per verification item rather than per task, three of five
+facts govern two or more items and stay in the design, two govern one each and
+returned to their task.
+
+The surviving concern is bounded by a decided design and unimplemented. Rule
+identifiers would make the pinned set derivable rather than hand-declared, which
+closes the first and third consequences; fingerprints bound the second by
+flagging the next edit to either location for re-review. Neither is built.
 
 The last one is the only concern with a *measured* consequence, so it is accepted
 with a reason rather than as trivia. Two things bound it. The eliminator

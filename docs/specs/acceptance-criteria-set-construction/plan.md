@@ -165,24 +165,12 @@ comparison across all five offsets, not pairwise against neighbours, because a
 pairwise walk stays green under a swap of two non-adjacent stages.
 Traces to: AC1, AC2.
 
-**The pinned set is a proxy, and must not be described as a derivation.**
-`RULES` is a hand-declared tuple that the suite iterates, so no assertion can
-notice a rule sentence nobody pinned. Whether a sentence states a rule is a
-judgement and therefore not mechanizable. The per-stage floor bounds the
-proxy's incompleteness; it does not close it. Traces to: AC18.
-
 **A requirement without its consequence reads as advice.** Three criteria pair a
 requirement with what happens when it is unmet — composition with
 compose-rather-than-check, the observing surface with stays-a-candidate,
 bidirectional coverage with the pass failing. Assert both clauses per criterion:
 the requirement alone is the form that leaves the existing habit in place.
 Traces to: AC3, AC5, AC10.
-
-**A two-branch criterion's content is the difference between its branches.** For
-the percentile criterion, an assertion on the high branch alone passes when the
-branch is unconditional, and naming a second lower threshold reinstates the
-undefined band the criterion was repaired to remove. One threshold, both
-branches. Traces to: AC17.
 
 **The count prohibition must not key on a numeral.** The forbidden shape is a
 fixed absolute criterion count — a cap, ceiling, refusal or pass/fail bar. The
@@ -205,7 +193,11 @@ whole-file token deny-list is unavailable either way; see the probe under
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below. Each bullet names its criteria and the observation; the
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
-- **AC18.** Extend `RULES`, owner `skill`. Per-entry single-homing is the
+- **AC18.** **Constraint, local to this assertion:** `RULES` is a hand-declared
+  tuple the suite iterates, so nothing here can notice a rule sentence nobody
+  pinned; whether a sentence states a rule is a judgement and is not
+  mechanizable. The floor bounds that incompleteness without closing it — do not
+  describe it as a derivation. Extend `RULES`, owner `skill`. Per-entry single-homing is the
   pre-existing owner test's job and is no longer a criterion of this slice; what
   this task adds is one assertion that the pinned set reaches each of the five
   stage intervals, the fifth closing at the end of the procedure span. The set
@@ -216,7 +208,11 @@ whole-file token deny-list is unavailable either way; see the probe under
 - **AC16, AC19.** The count sentence records count and corpus position; the same
   span carries no rejection and states that a set above the p75 passes on its
   obligations alone.
-- **AC17.** The percentile condition, the pairwise whole-set uniqueness re-run,
+- **AC17.** **Constraint, local to this assertion:** the criterion's content is
+  the *difference* between its branches, so a high-branch assertion alone passes
+  when the branch is unconditional, and naming a second lower threshold
+  reinstates the undefined band the criterion was repaired to remove. One
+  threshold, both branches. Assert the percentile condition, the pairwise whole-set uniqueness re-run,
   the record-the-result instruction, and the below-p75 branch.
 - **AC17, AC19 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
