@@ -53,11 +53,29 @@ levels one to three, and this reader is at two. Conversion-Centered Design
 targets bottom-of-funnel readers who already know they want the product, which
 describes almost nobody arriving here.
 
-**One deliberate adaptation.** In the standard arc the hero is the reader. Here
-the reader is a hero who must go on to guide three other people. So the arc's
-"plan" element does double duty: it is both the champion's plan and the thing
-they hand over. That is why the plan section is the adoption arc rather than a
-list of steps to install.
+**One deliberate adaptation — revised 2026-09-10.** The hero is the reader, and
+only the reader. The arc's "plan" element is this reader's own path through
+stages 1-3: see whether this is real, prove it on one real task, and reach a
+result worth showing someone. It is not a hand-over artifact, and it is not
+anyone else's plan.
+
+*What it was, and why it changed.* This previously read: "the reader is a hero
+who must go on to guide three other people", so the plan element did double duty
+as both their plan and the thing they hand over. That was written when this
+surface carried all five stages. It no longer does — stages 1-3 are this
+surface and stages 4-5 are `docs-site/` — so the double duty described a job
+this page cannot do. A first-time user who has not yet run anything cannot be
+handed an enablement artifact, and asking them to plan for three colleagues
+before they have a result of their own inverts the arc's own order.
+
+*The adaptation that replaces it.* The standard arc establishes the guide's
+authority with social proof — testimonials, logos, customer counts. This page
+has none and should not manufacture any. It substitutes **proof by runnable
+artifact**: the strongest element on the page is a command the reader can run,
+and the self-host check that fails on drift is evidence the reader can verify
+rather than be told about. That substitution is the adaptation, and it fits the
+reader better than testimony would, because the stated blocker is suspicion
+that the thing is not real.
 
 ## The information hierarchy this mode requires, mapped to the page
 
@@ -275,13 +293,18 @@ That is levels two to three, which is StoryBrand's range.
 The action-goal change reweights the CTA, not the narrative structure. No new
 arc is needed, and none of the three in the closed set fits better.
 
-**What does need revising is the adaptation, not the arc.** The body records
-one: the reader is "a hero who must go on to guide three other people", so the
-plan element does double duty as the thing they hand over. That was written
-when this surface carried all five stages. Stages 4-5 now belong to the
-documentation guides index, so the plan element no longer has to be the
-hand-over artifact — it can be the reader's own path. Revisiting that
-adaptation is the open item; the arc is settled.
+**What needed revising was the adaptation, not the arc. Done 2026-09-10.** The
+body recorded one: the reader is "a hero who must go on to guide three other
+people", so the plan element did double duty as the thing they hand over. That
+was written when this surface carried all five stages. Stages 4-5 now belong to
+the documentation guides index, so the plan element is the reader's own path
+through stages 1-3, and the hand-over artifact is not this page's to produce.
+
+The rewrite is in § "One deliberate adaptation" above. It does two things:
+withdraws the double duty, and names the adaptation that is actually in force —
+proof by runnable artifact standing in for the social proof the standard arc
+uses and this page does not have. **This open item is closed**; the arc was
+already settled.
 
 **How the two arcs meet.** StoryBrand here carries stages 1-3, problem-first,
 because the reader does not yet recognise their situation. Pyramid Principle on

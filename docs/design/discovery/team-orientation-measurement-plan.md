@@ -365,12 +365,27 @@ Each condition names an observation that would make a design decision untenable.
 ### Use one canvas for the intended influencer roles
 
 - **Falsifying observation:** M4 shows a role-linked failure: a tested engineer,
-  platform lead, or budget holder scores `absent` on the item that represents
-  that role's central question while champions can answer it from the same
-  artifact.
-- **Response:** Keep a shared model only if useful, but add role-specific proof
-  or collateral for the failed audience instead of claiming one artifact is
-  sufficient.
+  tech lead, or platform lead scores `absent` on the item that represents that
+  role's central question while champions can answer it from the same artifact.
+- **Response:** Keep a shared model only if useful. If it fails for one
+  influencer role, narrow what the canvas claims to cover and route that role's
+  question to a surface that can answer it — do not widen the canvas until it
+  covers everyone.
+
+**Narrowed 2026-09-10, with the rest of the plan.** This previously scored a
+**budget holder** and responded by adding "role-specific proof or collateral for
+the failed audience". Both are now wrong for this artifact. Budget holders sit
+in the gatekeeper tier, which
+[`cohort-orientation-surfaces`](../../product/intents/cohort-orientation-surfaces.md)
+puts explicitly outside its Boundary, so a budget holder scoring `absent` is not
+a falsification of this decision — it is a reader the outcome never claimed.
+And the old response prescribed exactly the gatekeeper collateral that Boundary
+excludes: a TCO, an exit path, an SBOM, a data-flow diagram. A kill condition
+may not respond by commissioning work no one owns.
+
+The gatekeeper question is real and still unowned. It is not answered here, and
+its absence from this condition is a scope statement, not a claim that
+gatekeepers are served.
 
 ### Express the tracker as a one-way outbound relationship
 
