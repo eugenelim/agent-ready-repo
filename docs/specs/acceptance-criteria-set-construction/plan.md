@@ -113,7 +113,7 @@ two recollections.
   then a shape test, which cannot fail on the commit that introduces it.
   Traces to: AC20.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC21, AC25.
+  recorded exercise and the counts live in prose. Traces to: AC21, AC26.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -349,7 +349,7 @@ entries landed and green after, and the full pack suite is green.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC25 and AC26** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
+- **AC26 and AC27** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -462,7 +462,7 @@ what went stale when one was added.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
-- **AC24.** The earn-its-keep test is stated over every criterion rather than
+- **AC25.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial

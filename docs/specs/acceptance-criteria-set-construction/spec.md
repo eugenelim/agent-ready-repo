@@ -135,8 +135,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC24):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
-- **The recorded run, both graded ranks (AC25, AC26):** visual / manual QA. A model-in-the-loop
+- **The plan rules, the response protocol and the earn-its-keep scope (AC22, AC23, AC25):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
+- **The recorded run, both graded ranks (AC26, AC27):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -226,10 +226,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       its oracle performs; a `Tests`-outruns-`Approach` ratio is read before it
       is cut; and a whole-plan walk precedes review.
 - [ ] The skill's review step names the responses available to a sustained
-      finding — repair the artifact, cut the item the finding is about, dismiss
-      the finding with its reason recorded, repair the generator rather than the
-      instance, or route it to an owner that already covers it — and states that
-      a sustained finding does not by itself require an edit.
+      finding — repair the artifact, narrow the claim to what its check reaches,
+      cut the item the finding is about, dismiss the finding with its reason
+      recorded and re-present it to the next round, repair the generator rather
+      than the instance, or route it to an owner that already covers it — and
+      states that a sustained finding does not by itself require an edit.
+- [ ] Where a finding is that a claim reaches further than its check, the
+      procedure states both answers and how to choose: strengthen the check when
+      one can reach the stated obligation, narrow the claim when none can.
 - [ ] The earn-its-keep test applies to every criterion in the set rather than
       only to those added during review, and runs while rounds are still
       running rather than only after they converge.
