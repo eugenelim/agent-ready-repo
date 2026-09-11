@@ -965,19 +965,24 @@ open = [
   # resolve to a brief path, and this spec has no parent brief -- it is a slice
   # of an intent, which its own Provenance section records. Unblocks now.
   {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
-  # The catalogue declares sequences and surfaces them by hand. Measured over the
-  # canonical corpus (137 skills under packs/*/.apm/skills/*/SKILL.md; the literal
-  # tree holds 505, which are projections and fixtures): 24 skills across 10 packs
-  # already name a completion-time successor, all hand-authored against no shared
-  # source, with nothing checking they still match the sequence their pack
-  # declares. The other 113 are silent, and silence means both "terminal" and
-  # "unrecorded". A derivable source exists: all 14 packs shipping JOURNEY.md carry
-  # numbered ordered stages -- 62 in total -- with skills listed and a contract
-  # block declaring youProvide/youReceive. Capability, sliced per pack;
+  # The catalogue declares sequences and surfaces them by hand. Canonical corpus:
+  # the 137 skills under packs/*/.apm/skills/*/SKILL.md (the literal tree holds
+  # 510; the rest are projections and fixtures). How many already name a successor
+  # is not yet knowable -- three predicates over the same corpus returned 1, 24 and
+  # 17, because the affordance is unstructured prose in whatever shape each author
+  # chose. Defining that inclusion rule is slice 1's first task. What survives any
+  # predicate: some skills carry it, hand-written against no shared source with
+  # nothing checking it still matches their pack's declared sequence, and most
+  # carry nothing, where silence means both "terminal" and "unrecorded".
+  # JOURNEY.md (14 packs, 62 ordered stages, youProvide/youReceive) supplies stage
+  # order and handoff vocabulary but does NOT encode edges -- skills are a flat
+  # inventory, stages are prose, and cross-pack edges are absent. Capability,
+  # sliced per pack plus a final cross-pack edge slice;
   # experience-design first because it is the only pack declaring an internal craft
   # sequence, all 20 of its skills are named in its own DESIGN.md, and it is the
   # pack whose absence triggered this. One shaping review ran (Sol, NEEDS CHANGES,
-  # 1 blocking + 4 major, all applied). Registered repo-origin: the engine's
+  # 1 blocking + 4 major; round 2 NEEDS CHANGES, 4 major + 1 minor, all five
+  # originating in round-1 repairs. All applied. Registered repo-origin: the engine's
   # SOURCE_MODES admits only repo-origin and tracker-origin, so the document's
   # own chat-only provenance lives in its Source block, not here -- the same
   # shape the other chat-only intents use. Unblocks now; no dependency.

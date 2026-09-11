@@ -23,30 +23,54 @@ A practitioner who has to open a `DESIGN.md` to answer has also failed it.
 
 The catalogue declares sequences, and surfaces them inconsistently and by hand.
 
-**Measured 2026-09-11 over the canonical corpus** — the 137 skills under
-`packs/*/.apm/skills/*/SKILL.md`. (The literal tree holds 505 `SKILL.md` files;
-the rest are projections and test fixtures, and are not the corpus.)
+**The canonical corpus is the 137 skills under
+`packs/*/.apm/skills/*/SKILL.md`.** The literal tree holds 510 `SKILL.md`
+files; the rest are projections and test fixtures, and are not the corpus.
 
-**24 of 137 skills already name a completion-time successor**, across ten packs:
-`atlassian` 6, `product-engineering` 4, `experience-design` 3, `core` 3,
-`governance-extras` 2, `desk-research` 2, and one each in `release-engineering`,
-`linear`, `figma`, `converters`. `experience-status` carries an explicit "What
-to run next"; the `desk-research-project-*` chain hands forward by name.
+**How many already name a successor is not yet a knowable number, and that is
+the first finding.** Three predicates applied over the same corpus on 2026-09-11
+returned **1**, **24**, and **17**. The first matched only a literal `Next:`
+heading. The second added `run \`x\``, `move to`, `Then run`. The third added
+`Hand off`, which alone surfaces six `experience-design` skills — `content-design`,
+`copy-direction`, `creative-direction`, `journey-mapping`, `user-flow` and
+`tone-of-voice` — that the earlier two missed entirely.
 
-So the affordance is **wanted and already being written** — and that is the
-problem. Every one of those 24 is hand-authored prose, written against no shared
-source, with nothing checking it still matches the sequence its pack declares. A
-successor can drift from its own pack's stated order and nothing fails. The
-other 113 are silent, and silence is currently indistinguishable from "this step
-is terminal".
+The spread is the evidence. **"Names a completion-time successor" has no
+reproducible inclusion rule**, because the affordance is unstructured prose in
+whatever shape each author chose: a `**Hand off.**` section, a "What to run
+next" heading, an inline "Point the user to `user-flow`", or a sentence inside a
+paragraph. A count cannot be trusted until the predicate is defined, and no
+check can enforce agreement with a declared sequence while the thing being
+checked cannot be located.
 
-**A derivable source already exists, and is better than expected.** All **14**
-packs that ship a `JOURNEY.md` carry numbered, ordered stages — **62 stages**
-in total, three to seven per pack — with the pack's skills listed and a
-`contract:` block declaring `youProvide` and `youReceive`. Eighteen stages carry
-a literal chat input and 27 carry a fenced sample-output block. `JOURNEY.md` is
-therefore a broader source than `DESIGN.md`, which only eight packs ship and in
-which only `experience-design` declares an internal craft sequence.
+Two facts survive any predicate. Some skills already carry the affordance and
+wrote it by hand against no shared source, so **nothing verifies it still
+matches the sequence its pack declares** — `experience-status` says "What to run
+next", `creative-direction` hands to `design-system`, `tone-of-voice` names both
+`ux-writing` and `copy-direction`. And most carry nothing, where silence means
+both "this step is terminal" and "nobody recorded one".
+
+**A candidate source exists, and it is not yet an edge model.** All **14** packs
+shipping a `JOURNEY.md` carry numbered, ordered stages — **62** in total, three
+to seven per pack — with the pack's skills listed and a `contract:` block
+declaring `youProvide` and `youReceive`. Eighteen stages carry a literal chat
+input and 27 carry a fenced sample-output block. That is broader than
+`DESIGN.md`, which only eight packs ship and in which only `experience-design`
+declares an internal craft sequence.
+
+**But it does not encode edges, and an earlier draft of this intent overclaimed
+that it did.** The skills block is a flat pack-level inventory and the stages are
+prose; nothing maps each skill to a stage. `experience-design`'s journey lists 20
+skills against five stages, and one stage reads "`information-architecture` (or a
+genre-direct skill) … then `interaction-design`" — a branch in prose, not a
+relation. Cross-pack edges are absent too: that journey's `relatedJourneys` names
+only `architect` and `core`, while `copy-direction` hands off to `ux-writing` in
+`product-engineering`. And `youProvide`/`youReceive` are **pack-level** contracts,
+not per-edge dependency reasons.
+
+So `JOURNEY.md` supplies stage order and handoff vocabulary. **Building the edge
+model is slice 1's first task, not an inherited asset**, and the closed-set
+falsifier is finite but not enumerable until that model exists.
 
 **The triggering evidence is first-hand and self-referential.** While building
 the four-discipline sequence itself — slice S6 of
@@ -68,6 +92,12 @@ assumption, where it gets designed around rather than decided."
 - The successor is **derived from, or checked against, the owning pack's
   declared sequence**. The 24 existing hand-written instances are the evidence
   that an unchecked copy drifts.
+- **The dependency reason for an edge is visible on the same surface**, not only
+  the successor's name. The falsifier asks a practitioner to state *why* this
+  step follows that one; without this requirement a delivery could satisfy every
+  other item and still fail the outcome.
+- An inclusion rule for "names a completion-time successor" is defined before
+  any count is claimed or any check is built.
 - Sequences that span packs are expressible. `desk-research` → `product-strategy`
   and the experience-design craft thread both cross pack lines, and a
   per-pack-only model cannot represent the walk this came from.
@@ -118,8 +148,11 @@ pack's skills, and marks its terminal nodes.
    blocks. It is also the pack whose absence the owner personally hit.
 2. Then the remaining packs that ship a `JOURNEY.md`, ordered by whether they
    already carry hand-written successors to reconcile.
-3. The cross-pack edges last, because they need more than one pack's source
-   settled first.
+3. **A final cross-pack edge slice**, which is its own feature intent and not
+   part of any pack slice — no single pack owns an edge that leaves it. It runs
+   last because it needs at least two packs' sources settled, and it owns the
+   `desk-research` → `product-strategy` and `experience-design` →
+   `product-engineering` edges that the per-pack slices structurally cannot.
 
 The shared sequence source is decided in slice 1 and reused, not re-decided per
 slice. If slice 1 shows the source cannot generalise, that is a kill signal for
