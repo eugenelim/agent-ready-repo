@@ -228,6 +228,15 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  # Slice A6 of agent-authoring-input-quality, confirmed by the owner
+  # 2026-09-10 and widened the same day from acceptance-criteria set
+  # construction to loop-contract authoring: the plan-authoring rules and a
+  # review-response protocol were absorbed because one defect produced all
+  # three. Registered at spec-approval time, matching the U1 and S1 precedent
+  # below — a brief's child scope derives from its registered spec memberships,
+  # so a confirmed slice with no entry leaves the parent brief with no
+  # execution evidence.
+  {path = "docs/specs/acceptance-criteria-set-construction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:2e2eb308e8e5a51b95ba264be4b2bb4ccfd9a5ea3bdb1276d7b919f96b776e66", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Author a loop contract from obligations rather than from every check: a five-stage selection procedure, a set-level sweep over the spec and plan as one set, and a review-response protocol naming eight answers to a sustained finding", needs = []},
 ]
 shipped = [
   # Slice S2 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
@@ -429,6 +438,14 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Registered rather than folded into A6 because the surfaces are different and
+  # the protocol must not gain a second home: A6 owns the eight responses and
+  # ships them into new-spec, the authoring side. shaping-reviewer and the pack
+  # reviewers are the receiving side and carry none of it, so a sustained finding
+  # reads as an instruction to edit. Carries a second, reviewer-side obligation
+  # A6 does not own: a reviewer must not relitigate a decision the brief records
+  # as settled, which is distinct from raising a real pre-existing defect late.
+  {path = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Carry the eight-response review protocol out to shaping-reviewer and the pack reviewer surfaces, and rule out relitigating a settled decision", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
   # The Makefile's own `Revisit if` note beside --strict has now fired with
   # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
   # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.

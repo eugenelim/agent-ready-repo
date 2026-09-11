@@ -1193,7 +1193,7 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| `acceptance-criteria-set-construction` | Approved |
 
 ## Provenance
 

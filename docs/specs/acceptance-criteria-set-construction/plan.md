@@ -1,7 +1,7 @@
 # Plan: acceptance-criteria set construction
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` and `packs/core/AGENTS.md` for the
   `.apm/` export boundary and the version bump rule; `guides/AGENTS.md` and
   `contracts/guide.schema.json` for the guide surface. Analogous
