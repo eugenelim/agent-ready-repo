@@ -98,7 +98,7 @@ two recollections.
   file.** The rubric earned its own file because it is worked per defect and
   re-read; a five-step selection procedure runs once, inline, before wording.
   Rejected: a second `references/` file, which splits the AC step's reading
-  order across two files for no gain. Traces to: AC-0001, AC-0002.
+  order across two files for no gain. Traces to: the procedure's stage set and order.
 - **The build-discovery destination reuses the plan template's existing
   contract, and is not a new concept.** `assets/plan.md` already requires
   `no stub (implementation-discovered)` plus a discovery predicate, constraint,
@@ -110,14 +110,14 @@ two recollections.
   home on a contract that already exists. The four fields are what stop this
   being a licence to under-specify — "we will figure it out" is worse than
   either specifying or omitting, while a stated predicate is a hole of known
-  shape. Traces to: AC-0008.
+  shape. Traces to: the routing table's build destination.
 - **Cite, never restate.** Every shape, diagnosis or repair question in the
   procedure resolves to `assets/spec.md` or the rubric by name. Rejected:
   summarising the conjunction test inline for the reader's convenience — a
   shorter restatement is still a second home. Traces to: the `Never do` boundary
   forbidding a rule owned by `assets/spec.md`, `assets/plan.md` or
   `references/spec-authoring-rubric.md` from being restated into a second file,
-  and to AC-0015 where that boundary reaches the guide page. No criterion states
+  and to the guide page, where that boundary reaches published prose. No criterion states
   the whole decision, which is why the boundary is cited rather than a number.
 - **The count threshold has an owner, and it is not this spec.**
   `references/spec-authoring-rubric.md` § *What belongs here is the ordering and
@@ -132,7 +132,7 @@ two recollections.
   single-homing suite could not have caught it either — it compares exact
   sentences, and the duplicate was reworded. An owner search reads the surfaces
   it already cites, not only the surfaces it expects to find an owner in.
-  Traces to: AC-0017, AC-0018.
+  Traces to: AC-0018 and the whole-set uniqueness re-run.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
   Traces to: AC-0020.
@@ -148,7 +148,8 @@ two recollections.
   side: the shaping failure classes are all per-criterion, and 29148's
   set-level *able to be validated* has no counterpart in the guidance. Rejected:
   leaving the observer to Testing Strategy and adding a reviewer check, which
-  finds the gap one stage after it is cheap to fix. Traces to: AC-0005, AC-0011.
+  finds the gap one stage after it is cheap to fix. Traces to: the
+  observer-at-admission rule and AC-0011.
 - **The count assertion is span-scoped, not a whole-file token deny-list.** A
   pre-review probe on 2026-09-10 ran a candidate deny-list against the shipped
   `SKILL.md` and found `at most` already present in the output-rendering block
@@ -188,14 +189,14 @@ admission alone is too weak: routing and the pass both follow admission, so
 wording could land mid-procedure and still pass. Stage order is one ascending
 comparison across all five offsets, not pairwise against neighbours, because a
 pairwise walk stays green under a swap of two non-adjacent stages.
-Traces to: AC-0001, AC-0002.
+Traces to: the procedure's stage set and order.
 
-**A requirement without its consequence reads as advice.** Three criteria pair a
+**A requirement without its consequence reads as advice.** Three rules pair a
 requirement with what happens when it is unmet — composition with
 compose-rather-than-check, the observing surface with stays-a-candidate,
-bidirectional coverage with the pass failing. Assert both clauses per criterion:
+bidirectional coverage with the pass failing. Assert both clauses per rule:
 the requirement alone is the form that leaves the existing habit in place.
-Traces to: AC-0003, AC-0005, AC-0011.
+Traces to: the composition hand-off, the observer-at-admission rule and AC-0011.
 
 **The count prohibition must not key on a numeral.** The forbidden shape is a
 fixed absolute criterion count — a cap, ceiling, refusal or pass/fail bar. The
@@ -203,7 +204,7 @@ permitted shape is a percentile derived from the author's own corpus, used only
 to order scrutiny, and the percentile criterion requires one in the same span. A
 bare-numeral test therefore forbids what another criterion requires. A
 whole-file token deny-list is unavailable either way; see the probe under
-*Design decisions*. Traces to: AC-0017, AC-0018.
+*Design decisions*. Traces to: AC-0018 and the whole-set uniqueness re-run.
 
 ## Tasks
 
@@ -243,25 +244,21 @@ in the same commit
   `Done when`.
 - **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
   pinned entry per criterion in the spec's Testing Strategy goal-based group
-  over the skill file. Five criteria have no bullet of their own below —
-  **AC-0004, AC-0007, AC-0008, AC-0010, AC-0016** — and their whole claim is that a
-  named sentence is present in the shipped procedure, so **presence of the
-  pinned sentence inside the procedure span is the oracle** and no further
-  assertion is owed. Each of the five takes exactly one `RULES` entry keyed to
-  its identifier; the sentence itself is build-discovered, but the mapping from
-  identifier to entry is fixed here, so propagation can name the entry to
-  re-read when one of these criteria changes. The span matters: the owner test
+  over the skill file, plus one per rule the shipped procedure states whose
+  criterion is deferred. For a rule whose whole claim is that a named sentence is
+  present, **presence of the pinned sentence inside the procedure span is the
+  oracle** and no further assertion is owed. The span matters: the owner test
   searches the whole file, so a sentence moved out of the procedure stays green
   under it, and the per-stage floor only places *some* pinned sentence in each
   interval. Assert span membership for this exact five-entry set; the mutation
-  that must fail is moving one of the five outside the span while leaving it in
-  the file. **AC-0012 and AC-0013 are deliberately not in it:** each states its
-  requirement and its separately-failing consequence in *separate* sentences, so
-  one contiguous pin leaves the second clause undetectable under deletion,
-  against this task's own constraint that every assertion fails under deletion
-  of the clause it pins. They take both-clause assertions below. AC-0008 and AC-0016
-  stay, each being one contiguous sentence a whole-sentence pin does reach.
-- **AC-0036.** Assert the discovery pass sits after the durable-outputs step and
+  that must fail is moving one entry outside the span while leaving it in
+  the file. **A rule stated across two sentences takes a both-clause assertion,
+  never one contiguous pin:** a requirement and its separately-failing
+  consequence in *separate* sentences leave the second clause undetectable under
+  a single spanning pin, against this task's own constraint that every assertion
+  fails under deletion of the clause it pins. A rule that is one contiguous
+  sentence is reached by a whole-sentence pin.
+- **The discovery pass.** Assert it sits after the durable-outputs step and
   before the spec body, that it is seeded by the resolved destinations, and that
   it instructs the result to be recorded. **Constraint on the span:** this
   assertion is scoped to the durable-outputs-to-body boundary, **not** to the
@@ -286,7 +283,7 @@ in the same commit
   the root `AGENTS.md` says stopping at the first hit skips the rest silently.
   The mutation that must fail is rewriting the walk as a nearest-file lookup
   while leaving the consequence clause intact.
-- **AC-0034.** Assert the procedure requires each candidate's disposition to be
+- **The disposition record.** Assert the procedure requires each candidate's disposition to be
   recorded and the two counts that follow from it. **Constraint:** assert the
   disposition record and the counts separately, and assert that the counts are
   stated as following from the dispositions. A count obligation standing alone
@@ -296,17 +293,17 @@ in the same commit
   describes the author's shipped corpus.
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the stage
-  intervals, the fifth closing at the end of the procedure span. This supports
-  **AC-0001**; it is not a criterion of its own, because its failure would mean the
+  intervals, the fifth closing at the end of the procedure span. This supports the
+  stage-order prose; it is not a criterion of its own, because its failure would mean the
   tuple lacks a representative sentence rather than that the procedure lacks a
   stage. **Constraint:** `RULES` is a hand-declared tuple the suite iterates, so
   nothing here notices a rule nobody pinned, and whether a sentence states a
   rule is a judgement. The floor bounds that without closing it — do not
   describe it as a derivation.
-- **AC-0001, AC-0002.** Two offset comparisons over the stage markers.
-- **AC-0003, AC-0005, AC-0011, AC-0012, AC-0013.** Both clauses of each criterion — requirement
-  and consequence. For AC-0012 and AC-0013 the two clauses are in separate sentences,
-  so each takes two assertions rather than one spanning pin.
+- **The stage order.** Two offset comparisons over the stage markers.
+- **AC-0011, and the admission and hand-off rules.** Both clauses of each —
+  requirement and consequence. Where the two clauses sit in separate sentences,
+  each takes two assertions rather than one spanning pin.
 - **AC-0018.** The procedure span carries no rejection and states that a set above
   the author's stated threshold passes on its obligations alone, **and states the
   set-not-count authoring rule**: where a set is enumerated, the prose names the
@@ -319,17 +316,17 @@ in the same commit
   than inheriting a number", so pinning one here makes the shipped prose breach
   its own owner. The count-recording obligation is the
   rubric's, not this spec's — see the ownership note in *Design decisions*.
-- **AC-0017.** **Constraint, local to this assertion:** the criterion's content is
+- **The whole-set uniqueness re-run.** **Constraint, local to this assertion:** its content is
   the *difference* between its branches, so a high-branch assertion alone passes
   when the branch is unconditional, and naming a second lower threshold
-  reinstates the undefined band the criterion was repaired to remove. One
+  reinstates an undefined band between them. One
   threshold, both branches. Assert the at-or-above condition against the
   procedure's recorded threshold, the pairwise whole-set uniqueness re-run, the
   record-the-result instruction, and the below-threshold branch — no percentile
   literal in any of the four.
-- **AC-0017, AC-0018 together.** Slice the procedure span and assert the absence of a
+- **The re-run and AC-0018 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
-- **AC-0009.** Assert the pass states its subject as the spec-and-plan pair, assert
+- **The set-level pass.** Assert it states its subject as the spec-and-plan pair, assert
   every sweep member the criterion enumerates is named, then assert the
   plan-side question stated for each member that carries one — uniqueness,
   coverage, propagation — and
@@ -339,7 +336,7 @@ in the same commit
   that shipped through round 5. **Constraint on scope:** assert the plan-reading
   members by name and assert no plan-side operation for the remaining members.
   Asserting a pair-wide reading over every member would claim a reach the prose
-  does not have, which is the defect AC-0024 exists to answer.
+  does not have, which is the defect the claim-reaches-further response answers.
   **Constraint on the consistency member:** assert that it reads the spec's own
   body prose against the criteria, not the criteria against each other, and
   assert separately that it tests the body for narrated delivery history and for
@@ -419,6 +416,9 @@ in the same commit
   harness, and shipped prose cites no internal record.
 
 **Approach:**
+- Rules this task ships whose criterion is deferred are measured under
+  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`.
+  The assertions above stay, as construction checks over shipped prose.
 - Rewrite the AC step's `No Acceptance Criteria` bullet into the numbered
   procedure, keeping its existing pointers to step 9 and step 5 intact — the
   `step-four-pointers` pin and `test_step_pointers_name_headings_that_still_exist`
@@ -442,7 +442,7 @@ together.
 - `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
   — the module carrying the content check below. Without it the check is
   authored and never executed.
-- **AC-0014 and AC-0015 — content check, at repository level, not in the pack suite.**
+- **The guide content check — at repository level, not in the pack suite.**
   This check relates a `guides/` page to a shipped `core` pack file, so it
   crosses the pack boundary. `tools/lint-pack-test-boundary.py`'s
   `pack-tests-stay-in-pack` case rejects a test under `packs/core/tests/` whose
@@ -464,8 +464,7 @@ together.
   re-declared copy in `tests/roster/` is protected by no test, drifts silently,
   and is exactly the second home this plan exists to avoid; `SOURCES` in that
   module covers the four pack files only, so nothing would catch the drift. Paraphrase is outside this assertion and is a review
-  obligation; the criterion was narrowed to match, so test and criterion now
-  claim the same thing. The suite reads the guide by
+  obligation, so the assertion claims only what it reads. The suite reads the guide by
   repository-relative path, the way
   `tests/roster/test_spec_authoring_rubric_brief_boundary.py` reaches across the
   pack boundary. **Constraint, local to this assertion:** assert one operative
@@ -504,6 +503,9 @@ together.
   a process.
 
 **Approach:**
+- This task's two guide outcomes have no criterion in `spec.md`; they are
+  measured under
+  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`.
 - Author the page as `kind: reference`, `pack: core`, scoped to selection,
   scenario placement, routing and the set-level pass.
 - Leave the per-criterion failure-class section to the slice that owns it; do
@@ -618,11 +620,11 @@ in the same commit
 
 **Approach:**
 - Record per case: candidate count, final count, and each candidate's
-  disposition **in AC-0008's vocabulary** — admitted, or routed to the plan, to
+  disposition **in the routing table's vocabulary** — admitted, or routed to the plan, to
   Testing Strategy, to an existing owner named, to the body, out of the
   contract, or to the plan as a discovery predicate. A collapsed `relocate`
-  loses which named owner a rejected candidate reached, and AC-0010 counts a
-  disposition as coverage only when it names that owner. This ledger is the sole
+  loses which named owner a rejected candidate reached, and a disposition counts
+  as coverage only when it names that owner. This ledger is the sole
   closeout evidence for the reusable-learning output and cannot be corrected back
   into the pinned contract afterwards.
 - A smaller set obtained by losing a distinct obligation or guardrail is a
@@ -652,9 +654,9 @@ rank does not close this task, and the count closes nothing.
   green. Assert the flipped `Status` and that every criterion is ticked or
   carries a deferral anchor on its own line.
 - **The entry's content is read against the criteria it advertises.** Assert that
-  every plan-authoring rule AC-0022 enumerates is either described by the release
-  entry or absent from the shipped skill, so the entry cannot close describing a
-  smaller set than the version carries. **Mutation:** add a rule to AC-0022
+  every plan-authoring rule the shipped skill states is either described by the
+  release entry or absent from the skill, so the entry cannot close describing a
+  smaller set than the version carries. **Mutation:** add a rule to the plan step
   without touching the entry and the assertion must red. Version and heading
   parity is already covered and does not reach the body.
 - `python3 .agents/skills/workspace-status/scripts/workspace_status.py reconcile
@@ -758,7 +760,7 @@ rank does not close this task, and the count closes nothing.
 its `Tests` names carries its mutation proof, recorded and restored, and
 `make build-self` leaves no drift.
 
-### T6: The review-response protocol ships, and the plan rules come under contract
+### T6: The review-response protocol ships, and the plan rules are pinned in place
 
 **Depends on:** T1
 
@@ -777,8 +779,8 @@ in the same commit
   — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
   them, so without this command a red this task causes closes green under its own
   `Done when`.
-- **AC-0022 — partly shipped, asserted here.** Add a span-scoped assertion that
-  every rule AC-0022 enumerates occurs inside the plan step, with a mutation
+- **The plan-authoring rules — shipped, pinned here.** Add a span-scoped assertion that
+  every rule the plan step states occurs inside that step, with a mutation
   moving one rule outside it that must fail; the existing owner test searches the
   whole skill file, so a rule moved out of the plan step would otherwise stay
   green. The rules already located in the skill's plan step, which shipped ahead
@@ -788,15 +790,11 @@ in the same commit
   working material, naming both sets — prose naming only the pinned half leaves
   an implementer unable to tell whether correcting `Grounding` needs an
   amendment, which is the question the rule exists to settle.
-  **What is owed is read, never counted:** every
-  rule the criterion enumerates that has no prose in the plan step must be
-  written, and every one with no pinned entry must gain one. This bullet has now
-  twice carried a count of the gap that was false by the round that read it —
-  the criterion gained a seventh rule, then an eighth and a ninth — which is why
-  the obligation points at the enumeration and the shipped prose rather than at a
-  number. The assertion iterates the enumeration for the same reason, so a rule
-  added later cannot leave it sized to a stale total.
-- **AC-0023.** The review step names every response to a sustained finding
+  **What is owed is read, never counted:** every rule in the plan step with no
+  pinned entry must gain one. The obligation points at the shipped prose rather
+  than at a number, and the assertion iterates it for the same reason, so a rule
+  added later cannot leave the assertion sized to a stale total.
+- **The response set.** The review step names every response to a sustained finding
   — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
   bound-and-defer, accept-with-reason — one assertion per response so none can
   be dropped silently, and
@@ -812,12 +810,12 @@ in the same commit
   sweep of the prose adjacent to a changed artifact outside the contract, and
   that the shipped prose defers the re-read inside it to the set-level pass
   **by condition, never by identifier** — shipped pack content may not cite this
-  catalogue's acceptance criteria, so an assertion demanding the text name
-  AC-0009 is one no implementation can satisfy. The AC-0009 attribution stays
-  here, in the contract. Deleting the rider must red this assertion; without it
+  catalogue's acceptance criteria, so an assertion demanding the text name a
+  criterion is one no implementation can satisfy. The set-level pass is named
+  here, in the plan. Deleting the rider must red this assertion; without it
   the response list reads as complete while the companion prose a repair strands
   is nobody's obligation.
-- **AC-0024.** The review step states both answers to a claim-reaches-further
+- **The claim-reaches-further response.** The review step states both answers to a claim-reaches-further
   finding and the rule for choosing between them. **Constraint:** assert the
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
@@ -836,13 +834,13 @@ in the same commit
   exists and that this plan filled in — with three `AGENTS.md` files, a schema
   and two analogues — while missing all three blockers. The mutation that must
   fail is relaxing "each task" to "the plan".
-- **AC-0025.** The review step states the surface-guidance finding class and its
+- **The surface-guidance finding class.** The review step states its finding class and its
   one answer: the criterion changes, and the forbidden content is never authored
   to satisfy it. **Constraint:** assert the prohibition as well as the class. A
   finding class named with no stated answer leaves the author choosing, and the
   choice that reads as cheapest — write the content the criterion demands — is
   the one this repository's round 6 actually produced.
-- **AC-0026.** The review step *instructs* the stop-decision report. The oracle is
+- **The stop-decision report.** The review step *instructs* it. The oracle is
   the shipped instruction, because nothing in this task observes a produced
   report; an assertion phrased over the report would claim a reach it does not
   have. Assert the instructed fields — the finding trend by round, and per
@@ -863,7 +861,7 @@ in the same commit
   step already carries the trend and each residual's consequence, so a parallel
   step would put two homes on one obligation. What is new is the options
   available to each residual and their costs.
-- **AC-0027. The `deletion-pass` pin updates with the prose.** That sentence is
+- **The earn-its-keep test, and the `deletion-pass` pin that updates with it.** That sentence is
   pinned verbatim in `RULES`, so rescoping it reds the existing entry; update
   the entry in the same change, the way this task already declares the
   whole-plan-walk pin addition, so the red reads as planned work rather than a
@@ -907,13 +905,12 @@ in the same commit
   and its ordering; the two origin labels and the unresolved-origin stop rule.
   Editing this step reds them unless each is updated deliberately, exactly as
   this task already declares for the `deletion-pass` pin.
-- The pinned plan-authoring block in `test_acceptance_criteria_discipline.py` is
-  **not** a subset of AC-0022's enumeration: it also pins rules whose prose sits
-  in the review step, `owner-gets-decision-facts` among them, which AC-0026
-  owns. So the assertion iterates AC-0022's enumeration and matches each rule
-  against the block, rather than treating the block as the criterion's rule set —
-  reading the block as the set would credit a non-member and silently shrink what
-  AC-0022 is checked against.
+- The pinned plan-authoring block in `test_acceptance_criteria_discipline.py`
+  **also pins rules whose prose sits in the review step**,
+  `owner-gets-decision-facts` among them. So the assertion iterates the rules
+  stated in the plan step and matches each against the block, rather than
+  treating the block as the plan step's rule set — reading the block as the set
+  would credit a non-member and silently shrink what is checked.
 - The same 500-warning / 1,000-error body-line ceiling applies, and T1 is
   spending from the same budget. The file is 660 lines today.
 - The existing plan step, review step and deletion pass are each already located
@@ -1514,23 +1511,21 @@ is evidence about the check.
   economics, which
   [work-loop review economics](../../product/intents/work-loop-review-economics.md)
   owns, not about acceptance-criteria set construction. It is recorded here
-  because AC-0024 requires shipped behaviour no criterion covers to be brought
-  under one or cut, and naming the owner is the third answer — routed, with the
+  because shipped behaviour no criterion covers is brought under one, cut, or
+  routed, and naming the owner is the third answer — routed, with the
   route stated. A pin in the discipline suite stops it being deleted silently.
 
 ## Open decisions
 
 - **The compound-criterion class, swept rather than repaired at one instance.**
-  Measured over all forty criteria against a median of 76 words, twelve exceed
-  twice the median: AC-0035 (461), AC-0009 (399), AC-0040 (279), AC-0033 (236),
-  AC-0023 (210), AC-0031 (207), AC-0018 (206), AC-0022 (196), AC-0030 (177),
-  AC-0037 (165), AC-0039 (161), AC-0026 (157). Size is a proxy, not the test —
-  the shape owner's test is whether a predicate expands into a different check
-  per member — so each needs a disposition rather than an automatic split.
-  `notes/ac-0009-decomposition-proposal.md` works AC-0009 through in full,
-  including the argument against splitting it; **AC-0035 is larger and is not
-  yet worked through**, which AC-0023's own class-count clause required before
-  repairing the first instance. Executing a split, narrowing one, or recording
+  Measured over the criteria this contract now carries against a median of 153
+  words, one exceeds twice the median: **AC-0035 (461)**. Size is a proxy, not
+  the test — the shape owner's test is whether a predicate expands into a
+  different check per member — so it needs a disposition rather than an
+  automatic split, and it is not yet worked through.
+  `notes/ac-0009-decomposition-proposal.md` works the same question through in
+  full for a criterion now deferred, including the argument against splitting
+  it, and stands as the worked shape for AC-0035's disposition. Executing a split, narrowing one, or recording
   an exemption are all available while the pair is at `Draft`; **re-recording
   approval forecloses all of them.**
 - **Two `Ask first` brief edits.** The criterion-syntax section and the Spec map

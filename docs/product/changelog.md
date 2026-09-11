@@ -135,6 +135,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `new-spec`: a later review round reviews what changed, not the whole diff. The
+  first round is dispatched over the artifacts entire; each round after it is
+  bounded to the delta since the previous persisted report, whose revision that
+  report records, and the delta includes the repair commits. A prior round's
+  result stays valid for text that has not changed, so re-presenting that text
+  only re-finds a different slice of it — which is how a review loop runs at a
+  flat finding rate instead of converging. Where no delta can be computed, the
+  surface is reduced by naming the artifacts under review instead.
+- `new-spec`: the plan template states which of its fields are contract.
+  `Touches`, `Tests` and `Done when` are what a completion gate reads and are
+  pinned; `Design`, `Approach`, `Grounding` and `Risks` are working material an
+  implementer corrects in place. `Grounding` stays recorded — a per-task
+  resolution nobody wrote is not grounding — but stops being a claim a reviewer
+  holds the plan to.
+- `new-spec`: an obligation whose only check is that a sentence exists is not a
+  criterion. The test is what would red if the obligation were violated: a
+  machine makes it a criterion, "a reader would object" makes it design material
+  protected by a content pin. A contract made mostly of the second kind does not
+  converge, because each review round produces fresh plausible objections at
+  about the rate the last round's are resolved.
+- `new-spec`: whatever `Brief:` or `Discovery:` points at is frozen once shaping
+  closes, and the spec cites it rather than restating it. An intent still moving
+  is the one input no amount of criterion work compensates for.
 - `new-spec`: the authoring rubric adds a repair method. A finding names a
   symptom at a location; repairing that location without re-deciding the
   property behind it is why a repair so often introduces the next defect. Three

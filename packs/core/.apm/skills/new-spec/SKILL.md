@@ -198,7 +198,16 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      discovery loop's G3 hand-off). Set it to that artifact's stable id;
      leave it blank or `none` otherwise. It is the discovery-side sibling
      of `Brief:` — the spec→discovery up-edge a traceability check walks
-     — additive, and a spec without it stays valid. This is format-only
+     — additive, and a spec without it stays valid.
+
+     **Whatever those headers point at is frozen once shaping closes, and this
+     spec cites it rather than restating it.** The upstream artifact carries the
+     outcome the work is for; the spec carries the obligations that deliver it.
+     Restating the intent gives it two homes that drift, and the upstream
+     outcome is the layer that holds still while criteria churn, so the stable
+     layer is already upstream and only needs to be left alone. If shaping has not closed, the
+     spec is not ready to author: an intent still moving is the one input no
+     amount of criterion work compensates for. This is format-only
      metadata; follow the repository's mapped workflow guidance when it
      defines a stricter rule.
 
@@ -274,6 +283,17 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      an obligation authored where an owner already exists — outranks every
      criterion-craft question below it.
      See step 9 for citation discipline and step 5 for the corpus obligation.
+   - **An obligation whose only check is that a sentence exists is not a
+     criterion.** Ask what would red if the obligation were violated. If the
+     answer is a machine — a test, a lint, a parse, a scored run over a frozen
+     case — the obligation is a criterion. If the answer is "a reader would
+     object", it is design material: it belongs in the plan's living design,
+     where an implementer corrects it without an amendment, and its protection
+     is a content pin in the suite rather than a checkbox in the contract. A
+     contract made mostly of the second kind does not converge, because each
+     review round produces fresh plausible objections at about the rate the last
+     round's are resolved and nothing external decides between them. Prefer a
+     smaller set that can red over a larger one that can only be argued.
    - **Body narrates history or the future.** Write the spec in the
      present tense, as if the feature already exists and always worked
      this way — the *retcon* discipline. No "will be implemented", no
