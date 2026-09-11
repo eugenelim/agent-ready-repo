@@ -351,6 +351,55 @@ def test_a_spec_dir_outside_the_root_is_refused(root):
     assert "refusing path outside root" in result.stdout
 
 
+def _many_bad(root: Path, count: int = 30) -> Path:
+    """A corpus where many specs adopt labels and each carries several defects."""
+    for index in range(count):
+        spec_dir = root / "docs" / "specs" / f"s{index}"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text(
+            SPEC.replace("**AC-0002.** The second", "**AC-0001.** The second")
+            + "- [ ] Unlabelled one.\n", encoding="utf-8")
+        (spec_dir / "plan.md").write_text(
+            PLAN.replace("**AC-0001.**", "**AC-0009.**"), encoding="utf-8")
+    return root
+
+
+def test_a_flood_of_findings_is_capped_with_an_exact_remainder(root):
+    """An error path that floods is worse than the defect it reports.
+
+    A checker's output lives in its caller's context for the rest of a session.
+    Uncapped, thirty bad specs produced 211 lines and 18KB — an order of
+    magnitude more than the happy path anyone optimises.
+    """
+    result = _run(_many_bad(root))
+    assert result.returncode == 1
+    lines = result.stdout.splitlines()
+    assert len(lines) < 40, f"capped output must stay small:\n{len(lines)} lines"
+    assert "not listed; re-run with --verbose" in result.stdout
+    assert "more finding(s) in docs/specs/" in result.stdout, (
+        "the remainder must be grouped by spec, since a flat cut-off hides which "
+        "specs are affected")
+
+
+def test_capping_the_listing_does_not_change_the_count(root):
+    """The load-bearing property: compression may hide lines, never findings.
+
+    If the total moved with the cap, the summary would under-report and the
+    compression would be deleting evidence rather than presenting it.
+    """
+    tree = _many_bad(root)
+    capped = _run(tree)
+    verbose = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(tree), "--verbose"],
+        capture_output=True, text=True, check=False)
+    def total(out: str) -> str:
+        return next(l for l in out.splitlines() if "finding(s);" in l)
+    assert total(capped.stdout) == total(verbose.stdout), (
+        f"the exact total must survive capping:\n{total(capped.stdout)}\n"
+        f"{total(verbose.stdout)}")
+    assert len(verbose.stdout.splitlines()) > len(capped.stdout.splitlines())
+
+
 def test_missing_plan_does_not_crash(root):
     """A spec authored before its plan exists is checked for what it can be."""
     result = _run(_tree(root, plan=None))

@@ -51,7 +51,16 @@ FINDING_KINDS = {
     "group-count": "appears in",
     "derived-item": "mirrors",
     "unconfined": "refusing path outside root",
+    "capped": "more finding(s) in",
 }
+
+# Findings are listed up to this many, then grouped by spec with an exact
+# remainder. Uncapped, thirty bad specs produced 211 lines and 18KB -- and a
+# checker's output lives in its caller's context for the rest of a session, so
+# an error path that floods is a worse failure than the one it reports. The
+# counts stay exact and `--verbose` restores the full list, following the
+# repository's own convention for its spec-status lint.
+FINDING_CAP = 20
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
 UNLABELLED = re.compile(r"^- \[[ x]\] (?!\*\*(?:AC|VI)-\d{4}\.\*\*)", re.M)
@@ -206,6 +215,8 @@ def check(spec_dir: Path, root: Path | None = None) -> tuple[list[str], bool, li
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--verbose", action="store_true",
+                        help="list every finding instead of capping the listing")
     parser.add_argument("spec_dir", nargs="*", type=Path)
     args = parser.parse_args(argv)
 
@@ -229,8 +240,20 @@ def main(argv: list[str] | None = None) -> int:
         if unapplied:
             partial.append(f"{target.name}: {', '.join(unapplied)}")
 
-    for finding in findings:
+    shown = findings if (args.verbose or len(findings) <= FINDING_CAP) else findings[:FINDING_CAP]
+    for finding in shown:
         print(f"lint-contract-item-alignment: {finding}")
+    if len(shown) < len(findings):
+        # Grouped by spec rather than truncated mid-list: the reader needs to
+        # know which specs are affected, which a flat cut-off hides.
+        from collections import Counter
+        rest = Counter(f.split(":", 1)[0] for f in findings[FINDING_CAP:])
+        for spec, count in rest.most_common(10):
+            print(f"lint-contract-item-alignment: {count} {FINDING_KINDS['capped']} {spec}")
+        if len(rest) > 10:
+            print(f"lint-contract-item-alignment: and {len(rest) - 10} further spec(s)")
+        print(f"lint-contract-item-alignment: {len(findings) - len(shown)} finding(s) "
+              f"not listed; re-run with --verbose for the full list")
     summary = (f"lint-contract-item-alignment: {len(findings)} finding(s); "
                f"{ran} spec(s) checked, {skipped} skipped as unlabelled")
     if partial:

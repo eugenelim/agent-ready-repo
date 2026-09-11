@@ -146,6 +146,22 @@ def test_an_explicit_tests_directory_overrides_discovery(root):
     assert result.returncode == 0, result.stdout
 
 
+def test_the_searched_directory_list_is_capped(root):
+    """The candidate set must be named without the naming itself flooding."""
+    subject = _skill(
+        root, "packs/demo/tests/skills/widget",
+        'def test_a():\n    assert "the alpha rule fired" in out\n'
+        'def test_b():\n    assert "the beta rule fired" in out\n')
+    extra = [root / f"extra{i}" for i in range(9)]
+    for directory in extra:
+        directory.mkdir()
+        (directory / "test_x.py").write_text("def t():\n    pass\n", encoding="utf-8")
+    result = _run(root, str(subject), *[a for d in extra for a in ("--tests", str(d))])
+    line = next(l for l in result.stdout.splitlines() if "searched" in l)
+    assert "more" in line, f"the list must be capped:\n{line}"
+    assert len(line) < 700, f"a capped line must actually be short:\n{len(line)}"
+
+
 def test_a_subject_outside_the_root_is_refused(root):
     _skill(root, "tests", "def test_a():\n    pass\n")
     result = _run(root, str(root.parent / "elsewhere.py"))

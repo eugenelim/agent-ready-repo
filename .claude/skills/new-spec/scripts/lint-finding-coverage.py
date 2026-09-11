@@ -188,8 +188,14 @@ def main(argv: list[str] | None = None) -> int:
     # a fragment observed by an unrelated suite reads as covered, and only the
     # directory list makes that visible.
     if searched:
-        print(f"lint-finding-coverage: {FINDING_KINDS['searched']} "
-              f"{', '.join(sorted(set(searched)))}")
+        # The directory list is unbounded across many subjects, so it is capped
+        # with an exact remainder. The set still has to be named -- silence about
+        # it is what turns a heuristic into a false clean -- but naming it must
+        # not itself flood.
+        uniq = sorted(set(searched))
+        head = ", ".join(uniq[:6])
+        tail = f" and {len(uniq) - 6} more" if len(uniq) > 6 else ""
+        print(f"lint-finding-coverage: {FINDING_KINDS['searched']} {head}{tail}")
     print(f"lint-finding-coverage: {len(findings)} finding(s); "
           f"{participating} subject(s) checked, {skipped} skipped as not opted in, "
           f"{unreadable} unreadable.")
