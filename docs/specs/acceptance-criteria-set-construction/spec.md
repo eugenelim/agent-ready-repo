@@ -517,10 +517,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       as prose while the artifact or command it closed on is gone; three of this
       contract's own closing conditions were destroyed that way and survived a
       reviewer's read. The check matches backtick runs the way the markup
-      delimits a span, not by counting backticks, because a doubled delimiter and
-      a fence inside a pattern are both legitimate and both break a count. It
-      reports, and it is scoped to task entries rather than the whole document,
-      so prose elsewhere is not its business.
+      delimits a span rather than counting backticks, and it discards a fence
+      token written inline before matching: prose that mentions a fence, and a
+      fence quoted inside a search pattern, both break a count and neither is a
+      broken span — with no matching run of the same length the markup leaves
+      the run literal, so it renders as written. Those two shapes were the only
+      thing either predicate reported over this repository's plan corpus, and
+      reporting them was wrong both times. It reports, and it is scoped to task
+      entries rather than the whole document, so prose elsewhere is not its
+      business.
 - [ ] **AC-0040.** Given a base revision, the alignment checker reports each criterion
       whose text changed since that revision while no line naming it in the plan
       changed with it — a criterion reworded without its implementing assertion
@@ -534,7 +539,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       that the checker reports the subset a machine can see. Its residue is
       stated for the same reason — an assertion that changed for an unrelated
       reason reads as covered, so the rule under-reports, and the re-read AC-0009
-      requires is what closes the gap the rule cannot.
+      requires is what closes the gap the rule cannot. Its scope is the task
+      entries that carry assertions, not the whole plan: a criterion named in a
+      changelog entry or a rationale is not a criterion whose assertion
+      followed, and reading the document as a whole silenced the rule for eight
+      criteria on this contract before the scope was narrowed.
 - [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by the
       step of the procedure that consumes it, so no shipped control is one
       nobody runs: the grounding explorer at the discovery pass AC-0036 places,

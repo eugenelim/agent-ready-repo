@@ -216,6 +216,29 @@ def test_a_rule_that_cannot_run_is_skipped_not_reported_clean(root, label, ref, 
     assert "partial" in result.stdout, f"{label} must report a partial check:\n{result.stdout}"
 
 
+def test_a_changelog_mention_does_not_count_as_the_assertion_following(root):
+    """Rule 9's silencing case: mention-anywhere, reappearing one rule later.
+
+    A changelog bullet naming a criterion satisfied the "followed" predicate, so
+    the rule went quiet for the eight criteria this contract's own changelog
+    names. The module header records that rule 5 was scoped to task entries to
+    kill exactly this, which is why the scope is the assertion blocks.
+    """
+    _repo(root)
+    d = root / "docs" / "specs" / "fixture"
+    (d / "spec.md").write_text(
+        SPEC.replace("The first thing holds.",
+                     "The first thing holds, and a new clause too."),
+        encoding="utf-8")
+    (d / "plan.md").write_text(
+        PLAN + "\n## Changelog\n\n- 2026-09-11: AC-0001 was reworded this round.\n",
+        encoding="utf-8")
+    result = _since(root)
+    assert result.returncode == 1, result.stdout
+    assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, \
+        result.stdout
+
+
 def test_a_truncated_task_entry_is_reported(root):
     """Rule 8: a multi-site edit that eats the head of a surviving clause.
 
@@ -234,18 +257,27 @@ def test_a_truncated_task_entry_is_reported(root):
 
 
 @pytest.mark.parametrize(
-    ("label", "clause"),
-    [("doubled delimiter", "the marker ``  `<adapt:name>`  `` is not collected"),
-     ("fence inside a pattern", "- `! grep -Eq '^\\s*```bash' file`"),
-     ("balanced pair", "both `a` and `b` hold")],
+    ("label", "clause", "breaks_a_count"),
+    [("bare inline fence", "Assert a fenced ```python example exists.", True),
+     ("fence inside a pattern", "- `! grep -Eq '^\\s*```bash' file`", True),
+     ("doubled delimiter", "the marker ``  `<adapt:name>`  `` is not collected", False),
+     ("balanced pair", "both `a` and `b` hold", False)],
 )
-def test_legitimate_backtick_shapes_are_not_reported(root, label, clause):
-    """Counting backticks flagged all three of these; matching runs does not.
+def test_legitimate_backtick_shapes_are_not_reported(root, label, clause, breaks_a_count):
+    """None of these is a broken span, and two of them break a naive count.
 
-    Measured over this repository's own plan corpus, the counting predicate
-    reported three valid entries for every genuine one. A rule at that rate is
-    one an author learns to ignore, which is worse than no rule.
+    `breaks_a_count` records which shapes discriminate this predicate from
+    counting backticks: the two fence shapes do, and the doubled delimiter and
+    the balanced pair are even under both, so they guard the predicate without
+    distinguishing it. Saying so here stops the two non-discriminating cases
+    being read as evidence for the design.
     """
+    if breaks_a_count:
+        assert clause.count("`") % 2 == 1, \
+            f"{label} is claimed to break a count but its backticks are even"
+    else:
+        assert clause.count("`") % 2 == 0, \
+            f"{label} is claimed not to break a count but its backticks are odd"
     plan = PLAN.replace("**Done when:** the AC-0001 bullet lands.",
                         f"**Done when:** {clause}")
     result = _run(_tree(root, plan=plan))

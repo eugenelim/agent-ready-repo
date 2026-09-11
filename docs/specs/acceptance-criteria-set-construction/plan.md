@@ -1024,13 +1024,16 @@ in the same commit
   and a rule that cannot run reading as a rule that passed is the failure this
   checker exists to detect elsewhere.
 - **AC-0039, a structurally broken task entry.** Cases: a balanced entry is
-  clean; an entry truncated mid-clause is reported by task; a doubled delimiter
-  and a fence inside a search pattern are both clean, since counting backticks
-  flagged all three. **Constraint:** assert the *pairing* of value and rule —
-  that the finding names the task — not merely that some finding was emitted.
-  The false-positive rate is measured over this repository's plan corpus as part
-  of this case, because the rule is only worth shipping if an author does not
-  learn to ignore it.
+  clean; an entry truncated mid-clause is reported by task; and four legitimate
+  backtick shapes are clean, each case recording whether it breaks a naive count
+  — the two fence shapes do and therefore discriminate this predicate from
+  counting, while a doubled delimiter and a balanced pair are even under both
+  and guard without discriminating. **Constraint:** assert the *pairing* of
+  value and rule — that the finding names the task — not merely that some
+  finding was emitted, and do not let a non-discriminating case stand as
+  evidence for the design. The false-positive count over this repository's plan
+  corpus is recorded in the ledger with its date and method; a rule an author
+  learns to ignore is worse than no rule.
 - **AC-0033, the invariants.** One case per rule, each named below. Every bullet
   in this task traces to AC-0033; the criterion's own checker asserts that every
   criterion is named by at least one plan entry, so a task leaving its criterion
