@@ -772,6 +772,7 @@ in the same commit
 **Depends on:** none
 
 **Touches:** `packs/core/.apm/skills/new-spec/assets/spec.md`,
+`packs/core/.apm/skills/new-spec/assets/plan.md`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
@@ -788,6 +789,15 @@ in the same commit
   independently: a template that says "give each criterion an identifier" and
   omits no-reuse ships a convention that silently permits the defect it exists
   to prevent, and a paragraph-level pin stays green through that deletion.
+- **AC-0030, the verification half.** The convention covers acceptance criteria
+  *and* verification items, and a verification item lives in the plan template's
+  per-task `Tests:` subsection, not in the spec template. Assert `assets/plan.md`
+  carries the same convention for verification items, including that an item's
+  identifier is its own and never derived from the criterion or task it serves.
+  **Constraint:** this is a second file, not a second home — the spec asset owns
+  the convention for criteria, the plan asset for verification items, and
+  neither restates the other's half. Without it AC-0032's checker has a rule to
+  enforce over items no template ever labels.
 - **AC-0030, the emitted form.** Assert the template's own criteria list carries
   labelled items, so an author copying it inherits the form rather than reading
   about it. **Constraint:** assert the label shape on a template criterion, not
@@ -809,6 +819,12 @@ in the same commit
   beside them; do not reflow the section.
 - `SKILL.md` and the rubric both already defer criterion shape to this asset, so
   the convention goes in the asset and is not restated in either.
+- **Co-change mining over the seed paths found this task's gap**: `assets/plan.md`
+  moves with `assets/spec.md` in 9 of the last 47 commits touching either. Two
+  other frequent co-changes were checked and dismissed with evidence — the root
+  `.claude-plugin/marketplace.json` carries no `core` entry, and
+  `packs/core/README.md` inventories skills rather than their assets or scripts,
+  so neither moves for this change.
 - `packs/AGENTS.md` — the asset cannot cite the ADR or any internal identifier,
   which is why the convention is stated directly; and changing a shipped asset
   bumps the core pack version.
