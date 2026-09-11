@@ -62,3 +62,59 @@ undifferentiated fix passes the repo-scope case and fails the user-scope one.
 invocation was pinned to the local package. A bare `python3 -m agentbundle`
 resolves to the stale `site-packages` install, which validates against an older
 schema copy. A lint verdict here means nothing unless the invocation is pinned.
+
+## Shipping record — 2026-09-11
+
+Every acceptance criterion ticked against a named observer that exists and
+runs. 83 cases across six files; the mapping was verified mechanically rather
+than by reading, and no criterion is discharged by a test that does not exist.
+
+| AC | Observer |
+| --- | --- |
+| AC1 | unit append case + the end-to-end install case |
+| AC2 | three preservation cases (extra key, nested table, top-level scalar) |
+| AC3 | five line-ending cases including CRLF-without-terminator |
+| AC4 | nine reporting rows, exercised individually |
+| AC5 | three silent rows plus two ordering cases |
+| AC6 | conformance pair rule + its synthetic discrimination proof + roster floor |
+| AC7 | five anchoring cases across both scopes |
+| AC8 | every reference doc agrees with its pack's declared base |
+| AC9 | schema admission, refusal, and the character-class pattern |
+| AC10 | four injection payloads that reach the emitter |
+| AC11 | reporting state leaves exit status intact; marker failure still fatal |
+| AC12 | mode preserved, asserted with the bytes so a no-op cannot pass |
+| AC13 | symlink refused and left a link; dangling link reports |
+| AC14 | out-of-root, out-of-prefix, prefix sibling, home root, in-prefix |
+| AC15 | five rejected section values including the empty string |
+
+### Remote CI, final round
+
+All three green on the shipping head: `build-check`, `test-corpus`,
+`test-roster`. Eight rounds were needed. Every failure was a real repository
+rule about *membership* — publication, portability, projection, admitted
+backlog kinds, pinned release surfaces — rather than the behaviour, which the
+unit and mutation work had covered before the first dispatch.
+
+### Review rounds
+
+Contract: five rounds. Code: three. The code rounds found 4, then 11, then 1
+(a nit). Round 1's severe finding was a security control this spec specified
+correctly and the implementation did not honour: user-scope confinement was
+the whole home rather than the adapter's write prefixes. Round 2's most
+valuable finding was repair-origin — round 1 moved empty-string `section` to
+the report row and left the identical clause on `output_dir` silent.
+
+Two reported blockers were dismissed rather than repaired, each after the
+premise failed under execution: that an occupied top-level name produces
+invalid TOML (the occupant is silently dropped and the output parses), and
+that a glob in `output_dir` collapses `git_commit` scope to the worktree (it
+fails closed, matching nothing).
+
+### What is not covered
+
+- Concurrent installs racing on one layout file can lose the earlier append.
+  Accepted, recorded in the plan and the function's docstring.
+- The atomic replace carries the file's mode and nothing else: group
+  ownership, ACLs, extended attributes and hard links are not preserved.
+- Adopter layout files cannot be observed, so nothing here can tell whether a
+  section name exists in the wild that no pack declares.

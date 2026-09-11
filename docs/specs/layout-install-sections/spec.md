@@ -1,6 +1,6 @@
 # Spec: Catalogue install writes a layout section the skills read
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -133,20 +133,20 @@ noise.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — A declaring pack's default reaches an existing adopter file.**
+- [x] **AC1 — A declaring pack's default reaches an existing adopter file.**
   Installing a pack whose manifest declares both `section` and `output_dir` for
   the install scope, into a scope holding an `agentbundle-layout.toml`, appends
   a table named by `section` carrying `output_dir` set to the declared value.
   A pack missing either key for that scope appends nothing.
 
-- [ ] **AC2 — Every other byte is unchanged.** Comments, blank lines, key
+- [x] **AC2 — Every other byte is unchanged.** Comments, blank lines, key
   order, quoting style, line endings, and every existing table and top-level
   value survive. After the append of AC1 the file equals the original bytes
   plus exactly the separator of AC3 and the appended table — stated as the
   complete result, so a no-op cannot satisfy it. The comparison is on bytes: a
   parsed comparison sees neither a lost comment nor a folded CRLF.
 
-- [ ] **AC3 — The separator is the only addition.** A file already ending in a
+- [x] **AC3 — The separator is the only addition.** A file already ending in a
   line terminator gains none. A file ending without one gains exactly one
   terminator, matching the style the file already uses, or `\n` when it carries
   none. The appended table's own line terminators match that same style, so a
@@ -155,19 +155,19 @@ noise.
   LF and CRLF takes the style of its last terminator, so the oracle is
   derivable rather than chosen by the implementer.
 
-- [ ] **AC4 — Every reporting state reports, and writes nothing.** Each state
+- [x] **AC4 — Every reporting state reports, and writes nothing.** Each state
   the table marks *report* leaves the file byte-identical and writes one stderr
   line naming the layout file's path and the section not written. The states
   are exercised individually, so a handler covering one does not stand in for
   another.
 
-- [ ] **AC5 — Every silent state is silent.** Each state the table marks
+- [x] **AC5 — Every silent state is silent.** Each state the table marks
   *silent* writes nothing and emits no diagnostic on any stream. A state
   reachable by two rows resolves to the earlier row's verdict, so a re-install
   of a pack whose `output_dir` is out of root reports rather than staying
   silent.
 
-- [ ] **AC6 — The declared section and base match one documented pair.** For
+- [x] **AC6 — The declared section and base match one documented pair.** For
   every pack declaring `[pack.layout.<scope>]`, the pair
   (`section`, `output_dir`) equals a (section, base) pair documented together
   for that same scope in one `references/agentbundle-layout.md` under that
@@ -194,7 +194,7 @@ noise.
   rename, so it stays inside the Boundaries above.
 
 
-- [ ] **AC7 — A relative value is anchored, or refused, per scope.** A relative
+- [x] **AC7 — A relative value is anchored, or refused, per scope.** A relative
   `output_dir` in the repo-scope file resolves against the repository root, not
   the process working directory; the test asserts this from a working directory
   that is not the repository root, so a CWD-anchored implementation fails.
@@ -209,17 +209,17 @@ noise.
   ignored. One fix that anchors both scopes to the repository root satisfies
   the first half and fails the second.
 
-- [ ] **AC8 — `architect` declares `docs/architecture`, and says so.** Its
+- [x] **AC8 — `architect` declares `docs/architecture`, and says so.** Its
   manifest names that base, and both of its `references/agentbundle-layout.md`
   files document the same value rather than `docs/design`.
 
-- [ ] **AC9 — The manifest schema admits `section` and still refuses an
+- [x] **AC9 — The manifest schema admits `section` and still refuses an
   unknown key.** `pack.schema.json` accepts `section` inside
   `[pack.layout.repo]` and `[pack.layout.user]` and refuses a key it does not
   name. Byte-equality of the two copies is not restated here; the shipped
   contract-parity gate owns it.
 
-- [ ] **AC10 — The emitted value is injection-safe.** A declared `output_dir`
+- [x] **AC10 — The emitted value is injection-safe.** A declared `output_dir`
   containing `"`, `]`, or a newline — each of which resolves inside the root,
   so the state table's row 4 does not refuse it first — round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
@@ -231,7 +231,7 @@ noise.
   input list: `../` is refused at row 4 before emission, so it would make the
   observation vacuous and the mutation check green. It belongs to AC14.
 
-- [ ] **AC11 — A layout failure never fails the install; a marker failure still
+- [x] **AC11 — A layout failure never fails the install; a marker failure still
   does.** For every state the table marks *report* — read-side and write-side
   alike, including a layout path that is a directory, a `0o000` file, and a
   user-state directory that cannot be prepared — `agentbundle install` completes
@@ -241,12 +241,12 @@ noise.
   implementation that relaxes it wholesale satisfies the first half and fails
   the second.
 
-- [ ] **AC12 — The adopter's file keeps its permissions.** A layout file
+- [x] **AC12 — The adopter's file keeps its permissions.** A layout file
   readable by the adopter's group or others has the same mode after an append
   as before it. The atomic replace must not hand the file the temporary file's
   private mode.
 
-- [ ] **AC13 — A symlinked layout file is refused, not replaced.** When
+- [x] **AC13 — A symlinked layout file is refused, not replaced.** When
   `agentbundle-layout.toml` is a symbolic link, the append writes nothing,
   reports why, and leaves the link itself intact — matching `workspace_mcp.py`,
   which already refuses to read one. It reports rather than raising, per the
@@ -254,7 +254,7 @@ noise.
   stranding what the adopter pointed it at; an out-of-tree link is already
   refused by the write jail, and that refusal becomes a report too.
 
-- [ ] **AC14 — A declared `output_dir` is confined to the root the install
+- [x] **AC14 — A declared `output_dir` is confined to the root the install
   itself writes under.** The value is refused — nothing written, reason
   reported — unless it resolves inside that root: the repository at repo
   scope, and at user scope the resolved user root the install is using, within
@@ -281,7 +281,7 @@ noise.
   first of those carries instruction authority into every later session.
 
 
-- [ ] **AC15 — A declared `section` matches a bounded character class.** A
+- [x] **AC15 — A declared `section` matches a bounded character class.** A
   `section` that is not `^[a-z0-9][a-z0-9-]*$` is refused at schema validation
   and again at the install site, which reports and writes nothing. `pack_name`
   already carries this check because it becomes a TOML key; `section` becomes a

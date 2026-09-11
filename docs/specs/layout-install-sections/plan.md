@@ -1,7 +1,7 @@
 # Plan: Catalogue install writes a layout section the skills read
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/agentbundle.md` § 7.1 records the
   measured drift, and names both reader classes — `workspace_mcp.py` and the
   skills. The `[backlog].open` entry at `workspace.toml:449` owns the defect and
