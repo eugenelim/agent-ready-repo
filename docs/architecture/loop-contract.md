@@ -67,6 +67,14 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
 
 ## 4. Change detection
 
+> **STATUS: PLANNED.** Nothing in the skill implements this. It is recorded here
+> because the pairing is what the identity decision is *for*; the decision
+> itself is
+> [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md), and
+> the unbuilt half is carried by
+> [its follow-on intent](../product/intents/loop-contract-item-identity-mechanism.md).
+> No accepted record decides the change-detection half yet.
+
 Stable identity makes a reference *resolve*. It does not tell you whether what
 it resolves to still says what the referrer assumed. Those are different
 failures, and the second is the one a loop produces constantly, because every
@@ -128,11 +136,16 @@ and accepted decisions. The expensive failure is not bad reasoning; it is a
 well-formed artifact that conflicts with something nobody looked up. So the
 probes are directed by *stage*, seeded by whatever paths that stage can resolve.
 
-| Stage | Seeds | Probes | What it is for |
-| --- | --- | --- | --- |
-| **Discovery** — durable outputs resolved, body not yet written | the resolved destinations | surfaces, scoped rules, path refs, phrase pins, gates | Learn what already owns and governs these surfaces, *before* a design is committed to. Nothing is authored yet, so dead references cannot exist. |
-| **Task grounding** — per plan task | that task's `Touches` | scoped rules, path refs, phrase pins, gates, co-change | Find the checks that will run against this task's files, and the files that historically move with them. |
-| **Review sweep** — after a repair round | the spec and plan themselves | path refs, dead refs, co-change | Find what the repair broke: a reference to something that moved, a path that no longer resolves. |
+The explorer's own `PHASES` table is canonical for which probes each stage runs;
+this page names the stages and what each is *for*, and does not restate the
+probe sets — a second copy would be falsified by the next edit to the script
+with nothing comparing them.
+
+| Stage | Seeds | What it is for |
+| --- | --- | --- |
+| **Discovery** — durable outputs resolved, body not yet written | the resolved destinations | Learn what already owns and governs these surfaces, *before* a design is committed to. Nothing is authored yet, so dead references cannot exist. |
+| **Task grounding** — per plan task | that task's `Touches` | Find the checks that will run against this task's files, and the files that historically move with them. |
+| **Review sweep** — after a repair round | the spec and plan themselves | Find what the repair broke: a reference to something that moved, a path that no longer resolves. |
 
 Two rules make the staging honest rather than decorative.
 

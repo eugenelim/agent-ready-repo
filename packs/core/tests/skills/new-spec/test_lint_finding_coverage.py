@@ -197,6 +197,26 @@ def test_a_suite_named_with_a_test_suffix_is_read_as_a_source(root):
         "source:\n" + result.stdout)
 
 
+def test_no_emitted_line_carries_an_absolute_host_path(root):
+    """Every emitted path is relative to the caller's root.
+
+    The sibling checker relativizes for the stated reason -- an absolute host
+    path is wrong in a review, a commit message and an issue alike -- and this
+    one did not, so its output carried the operator's home directory into text
+    an agent pastes elsewhere. Asserted over every line rather than one, because
+    six emission sites had to be changed and a per-line check is what stops the
+    seventh regressing.
+    """
+    subject = _skill(root, "unrelated", "def test_a():\n    pass\n")
+    (root / "unrelated" / "test_widget.py").unlink()
+    result = _run(root, str(subject))
+    assert result.returncode == 1, result.stdout
+    leaked = [l for l in result.stdout.splitlines() if str(root) in l]
+    assert not leaked, f"absolute host paths emitted:\n" + "\n".join(leaked)
+    assert "packs/demo" in result.stdout, \
+        f"the finding must still name the subject, relatively:\n{result.stdout}"
+
+
 def test_an_absent_path_is_not_reported_as_unparseable(root):
     """A caller's typo and a malformed subject are different diagnoses.
 

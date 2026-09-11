@@ -664,12 +664,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   no results file format (source:
   `docs/product/briefs/agent-authoring-input-quality.md` § "Author criteria
   from obligations, not from every check")
-- Process: the brief's body is edited by this slice only where an owner decision
-  records it — the A6 row's widened scope, and the review-loop disposition
-  section that carries its own owner agreement on its face; its § "Corpus"
-  exclusion rule already covers this spec generically, and the Spec map cell is
-  the roll-up's to write, not this slice's (source: owner decision 2026-09-10,
-  recorded in the brief's A6 row)
+- Process: this slice edits the brief's body in three places — the A6 row's
+  widened scope, the review-loop disposition section, and a section recording
+  that a criterion syntax was tested by rewriting and rejected. The first two
+  carry their authority on their own face. **The third records a measurement
+  taken during delivery and carries no owner agreement, so its sign-off against
+  the `Ask first` boundary is owed rather than recorded** — a residual for the
+  owner to close or to direct the section's removal. The § "Corpus" exclusion
+  rule already covers this spec generically, and the Spec map cell is the
+  roll-up's to write, not this slice's (source: owner decision 2026-09-10 in the
+  brief's A6 row; the third section's authority is unrecorded)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
   when the procedure, the guide's set-construction section, the three frozen
   cases, their seed pinning and the recorded run exist (source: user

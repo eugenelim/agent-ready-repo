@@ -218,6 +218,18 @@ whole-file token deny-list is unavailable either way; see the probe under
 in the same commit
 
 **Tests:**
+- **The Current-architecture durable output, observed rather than tabled.** Assert
+  over `docs/architecture/loop-contract.md` that every rule it states cites an
+  owner by document and identifier, that it restates none, and that
+  `docs/architecture/README.md` links it. **Mutation:** restore a restated rule
+  and the assertion must red; the durable-output table itself is read by no
+  command, which is why the condition lives here.
+- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
+  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
+  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
+  task that spends from the budget without naming this command closes green with
+  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
+  so each names it rather than relying on a later task to discover the overrun.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below. Each bullet names its criteria and the observation; the
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
@@ -625,6 +637,12 @@ rank does not close this task, and the count closes nothing.
 `workspace.toml`, `.agents/`, `.claude/`
 
 **Tests:**
+- **The entry's content is read against the criteria it advertises.** Assert that
+  every plan-authoring rule AC-0022 enumerates is either described by the release
+  entry or absent from the shipped skill, so the entry cannot close describing a
+  smaller set than the version carries. **Mutation:** add a rule to AC-0022
+  without touching the entry and the assertion must red. Version and heading
+  parity is already covered and does not reach the body.
 - `python3 .agents/skills/workspace-status/scripts/workspace_status.py reconcile
   --root .` — Type 1, 2 and 3 all 0.
 - `python3 .agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py
@@ -704,12 +722,15 @@ rank does not close this task, and the count closes nothing.
 - Core is repo-only, so no root marketplace entry is expected for it.
 
 **Approach:**
-- Bump `pack.toml` and `plugin.json` together — patch, since nothing added is a
-  new primitive. Diff `origin/main`'s `pack.toml` first: an unpushed peer bump
-  to the same version collides silently.
-- Give core its own free-standing topmost changelog section. A combined heading
-  with another guarded pack leaves that pack's topmost heading on an older
-  release.
+- **Both version files and the changelog section already exist**, carrying
+  `2.25.16` and a free-standing topmost `core` heading, and the `/now/`
+  projection has been regenerated once. This task creates none of them. What
+  remains is to **re-resolve the number against a freshly fetched `origin/main`**
+  — a peer took this branch's first choice mid-delivery, which is why the rule
+  puts the re-resolution here — to bring the entry to its final state including
+  its date, and to regenerate the projection again if the `Highlights` block has
+  moved since. A condition that reads as "the files exist" closes green on work
+  already present, which is the form T8 and T9 were restated onto.
 - The `workspace.toml` entry already exists in `["ini-002".work].queue` with the
   brief as `source.parent`; registration is not this task's work. What closes
   here is the membership move that follows the spec's `Status`, since
@@ -733,6 +754,12 @@ its `Tests` names carries its mutation proof, recorded and restored, and
 in the same commit
 
 **Tests:**
+- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
+  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
+  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
+  task that spends from the budget without naming this command closes green with
+  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
+  so each names it rather than relying on a later task to discover the overrun.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
 - `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
@@ -1040,6 +1067,12 @@ in the same commit
   three are counted together before any of them lands.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
+- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
+  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
+  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
+  task that spends from the budget without naming this command closes green with
+  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
+  so each names it rather than relying on a later task to discover the overrun.
 - `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q` —
   this task adds files under the skill's `scripts/`, and that module compares
   every non-bytecode file under a canonical skill byte-for-byte across `.apm/`,
@@ -1227,6 +1260,12 @@ in the same commit
   restating the rubric.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
+- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
+  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
+  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
+  task that spends from the budget without naming this command closes green with
+  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
+  so each names it rather than relying on a later task to discover the overrun.
 
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q` —
   AC-0037's suite. Named here because `Tests` is what a completion gate reads and
