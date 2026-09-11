@@ -450,6 +450,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   repair: it shares this contract's guardrail of adding no lint and no
   review-count limit, and the two must not both come to own how a finding is
   answered.
+- eugenelim: [`docs/product/intents/grounding-probe-extensions.md`](../../product/intents/grounding-probe-extensions.md)
+  — the two probes this slice's survey ranks second and third: authority and
+  projection closure, and the executable document-contract check. Held back
+  because neither is cheap the way live-references was, and the second would
+  execute a consumer's parse mode, which is a security surface the shipped probes
+  do not have.
 
 ## Assumptions
 

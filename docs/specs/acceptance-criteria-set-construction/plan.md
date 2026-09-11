@@ -847,6 +847,22 @@ in the same commit
   beside them; do not reflow the section.
 - `SKILL.md` and the rubric both already defer criterion shape to this asset, so
   the convention goes in the asset and is not restated in either.
+- **A pinned sentence enumerates what that block owns, and identifiers are not in
+  it.** `RULES` carries, owner `skill`: "`assets/spec.md`'s `## Acceptance
+  Criteria` guidance owns the criterion-shape rules, including the independence
+  boundary, worked examples, limits, claim minimality, and the mechanism
+  give-away." Adding the identifier convention to that block widens what it owns
+  past its own stated enumeration, so the pin is extended in the same change —
+  the way T6 extends `deletion-pass` — and the assertion checks the enumeration
+  still matches the block's contents. Leaving them to diverge is the drift a
+  Shipped sibling spec, `spec-authoring-discipline`, holds criteria over: each
+  rule resolves to one owning file.
+- **Two Shipped specs hold frozen criteria over this file.**
+  `spec-authoring-discipline` owns the criterion-shape rules in this block;
+  `doc-drift-prevention` owns its status-line comment at line 3, which this task
+  does not touch. Neither spec may be edited — a frozen spec takes a status-line
+  pointer only — so a collision is resolved by changing this task, never by
+  amending theirs.
 - **Co-change mining over the seed paths found this task's gap**: `assets/plan.md`
   moves with `assets/spec.md` in 9 of the last 47 commits touching either. Two
   other frequent co-changes were checked and dismissed with evidence — the root
