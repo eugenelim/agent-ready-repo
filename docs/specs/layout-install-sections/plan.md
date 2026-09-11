@@ -250,7 +250,8 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - One case per *report* row of the spec's state table, exercised individually:
   bad `section` class, out-of-root `output_dir`, symlinked path, unopenable
   file and unpreparable user-state directory, undecodable, unparseable,
-  occupied by scalar or array, and a failing write. Plus row 13: a failure the
+  occupied by scalar or array, a relative user-scope value, a dangling symlink,
+  and a failing write. Plus the catch-all row: a failure the
   rows above do not name — `expanduser` with no resolvable home is the
   reachable one — still reports rather than escaping. Each leaves the file
   byte-identical and emits one stderr line. (AC4)
@@ -276,14 +277,17 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Read with `read_bytes`; decode a throwaway copy inside the existing `try`.
 - Widen the already-present check from "is a table" to "is present", and route
   the table case to the silent return while scalar and array report.
-- Refuse a symlinked target before writing, matching the resolver, reporting
-  rather than raising.
+- Probe the symlink with `lstat` before the existence check. `Path.exists()`
+  follows the link, so a layout file pointing at a moved target would read as
+  absent and go silent where AC13 promises a report.
+- Refuse a relative `output_dir` at user scope, matching what AC7 has the
+  resolver reject.
 - Confine the resolved `output_dir` to the same root `write_jailed` uses for
   that scope — `plan.root`, which honours `AGENTBUNDLE_USER_ROOT` — anchoring a
   relative value to that root rather than the process CWD. Refuse a `section`
   outside `^[a-z0-9][a-z0-9-]*$`.
-- Wrap the body so any unenumerated failure takes row 13, before narrowing the
-  call-site handler. Narrowing first converts an absorbed failure into a
+- Wrap the body so any unenumerated failure takes the table's final row, before
+  narrowing the call-site handler. Narrowing first converts an absorbed failure into a
   traceback.
 - Carry the target's existing mode across the atomic replace.
 - Do not widen the call-site `except`. `_append_layout_section` handles every
@@ -342,6 +346,11 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 **Approach:**
 - Change `architect`'s `output_dir` and the two reference docs' documented
   value.
+- Add the repo-scope example to `desk-research`'s reference doc, which today
+  documents `[research]` only against `~/research-projects` and an absolute
+  path, so the shipped default `docs/product/research` appears nowhere as a
+  documented pair and AC6 cannot pass for that pack. An added example is not a
+  section rename, so it stays inside the spec's Boundaries.
 - Remove the comment-loss sentence from every `references/agentbundle-layout.md`
   that carries it, file set derived; regenerate the `workspace-status`
   projections rather than editing them, and run `make build-self` so the

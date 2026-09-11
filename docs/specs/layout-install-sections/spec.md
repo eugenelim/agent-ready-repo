@@ -88,25 +88,26 @@ to this table rather than re-deciding a state.
 
 | # | State | Verdict |
 | --- | --- | --- |
-| 1 | No `agentbundle-layout.toml` at the scope | silent |
-| 2 | Pack declares neither, or only one, of `section` and `output_dir` | silent |
-| 3 | `section` is outside `^[a-z0-9][a-z0-9-]*$` | report |
-| 4 | `output_dir` resolves outside the scope's confinement root | report |
-| 5 | The layout path is a symbolic link | report |
-| 6 | The file or the user-state directory cannot be opened | report |
-| 7 | The file cannot be decoded as UTF-8 | report |
-| 8 | The file cannot be parsed as TOML | report |
-| 9 | The declared section is already present as a table | silent |
-| 10 | The declared name is present as a scalar or array of tables | report |
-| 11 | Otherwise: append. The write itself fails | report |
-| 12 | Otherwise: append succeeds | one table written |
-| 13 | Any failure not enumerated above | report |
+| 1 | Pack declares neither, or only one, of `section` and `output_dir` | silent |
+| 2 | The layout path is a symbolic link, decided by `lstat` | report |
+| 3 | No `agentbundle-layout.toml` at the scope | silent |
+| 4 | `section` is outside `^[a-z0-9][a-z0-9-]*$` | report |
+| 5 | `output_dir` is relative at user scope | report |
+| 6 | `output_dir` resolves outside the scope's confinement root | report |
+| 7 | The file or the user-state directory cannot be opened | report |
+| 8 | The file cannot be decoded as UTF-8 | report |
+| 9 | The file cannot be parsed as TOML | report |
+| 10 | The declared section is already present as a table | silent |
+| 11 | The declared name is present as a scalar or array of tables | report |
+| 12 | Otherwise: append. The write itself fails | report |
+| 13 | Otherwise: append succeeds | one table written |
+| 14 | Any failure not enumerated above | report |
 
 **Silent** means write nothing and emit no diagnostic. **Report** means write
 nothing and write one line to stderr naming the layout file's path and the
 section not written. No state raises.
 
-Row 13 is what makes that last sentence true. Without it the property rests on
+Row 14 is what makes that last sentence true. Without it the property rests on
 this enumeration being exhaustive, and it is not: `Path.expanduser()` raises
 `RuntimeError` when no home can be determined — a case this repository already
 treats as real in corporate sandboxes and containers — and `write_jailed` can
@@ -115,15 +116,19 @@ call-site handler narrows, after the projection and the marker are already
 written. The catch-all is the control; the rows above it exist to give each
 common failure its own message.
 
-Order carries two decisions. Manifest faults (3, 4) precede file-state checks,
-so a pack whose declaration is wrong is reported even on a re-install where
-state 9 would otherwise be silent. And state 6 covers the read side, including
+Order carries three decisions. The symlink probe (2) uses `lstat` and precedes
+the existence check (3), because `Path.exists()` follows the link: a layout
+file that is a symlink to a moved target would otherwise read as absent and go
+silent, contradicting the report AC13 promises for every symlinked path.
+Manifest faults (4, 5, 6) precede file-state checks, so a pack whose
+declaration is wrong is reported even on a re-install where state 10 would
+otherwise be silent. And state 7 covers the read side, including
 `safety.user_state_path` failing before the file-existence check — today the
 call site's wide `except` absorbs that as a failed install, and narrowing it
 without state 6 would turn it into an uncaught traceback.
 
-The three silent states are the contract working: 1 and 2 on the majority of
-installs, 9 on every re-install of a configured pack. A diagnostic there is
+The three silent states are the contract working: 1 and 3 on the majority of
+installs, 10 on every re-install of a configured pack. A diagnostic there is
 noise.
 
 ## Acceptance Criteria
@@ -164,8 +169,11 @@ noise.
 
 - [ ] **AC6 — The declared section and base match one documented pair.** For
   every pack declaring `[pack.layout.<scope>]`, the pair
-  (`section`, `output_dir`) equals a (section, base) pair documented together in
-  one `references/agentbundle-layout.md` under that pack. Both sides derive
+  (`section`, `output_dir`) equals a (section, base) pair documented together
+  for that same scope in one `references/agentbundle-layout.md` under that
+  pack. Scope matters: the reference docs carry both a repo-scope and a
+  user-scope example, and a repo-scope declaration must match the repo-scope
+  one. Both sides derive
   from the repository, and the check asserts the size of the set it walked, so
   an enumeration that finds nothing fails rather than passes.
 
@@ -178,6 +186,12 @@ noise.
   would install a default under a section whose readers expect another base.
   Requiring equality against every section a pack mentions fails in the other
   direction, since that pack legitimately names three.
+
+  One pack does not satisfy this today. `desk-research` declares
+  `docs/product/research` while its reference doc shows only `~/research-projects`
+  and an absolute path — the shipped default appears nowhere as a documented
+  pair. Its doc gains the repo-scope example. That is an addition, not a
+  rename, so it stays inside the Boundaries above.
 
 
 - [ ] **AC7 — A relative value is anchored, or refused, per scope.** A relative
@@ -250,8 +264,11 @@ noise.
   which is adopter-facing remediation for sandboxes and containers, not a test
   hook.
 
-  A relative value is anchored to that same root before resolution, never to
-  the process working directory; anchoring it to the CWD is the defect AC7
+  A relative value at **user scope** is refused outright at row 5, because
+  AC7 has the resolver reject exactly that shape — writing a default our own
+  reader is contracted to refuse would install a dead configuration. At repo
+  scope a relative value is anchored to that same root before resolution, never
+  to the process working directory; anchoring it to the CWD is the defect AC7
   repairs one component over, and it would let `../../../.ssh` pass here while
   AC7 resolves the same string somewhere else entirely.
 
