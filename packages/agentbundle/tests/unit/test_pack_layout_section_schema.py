@@ -19,14 +19,16 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-_SCHEMA_PATHS = (
-    Path(__file__).resolve().parents[4] / "contracts" / "pack.schema.json",
-    Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "pack.schema.json",
+# This tree ships to adopters, where `contracts/` does not exist — so the
+# packaged copy is the only one addressable here. The repository rule that the
+# two copies agree lives in `tests/conformance/`, which never ships.
+_PACKAGED_SCHEMA = (
+    Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "pack.schema.json"
 )
 
 
 def _schema() -> dict:
-    return json.loads(_SCHEMA_PATHS[0].read_text(encoding="utf-8"))
+    return json.loads(_PACKAGED_SCHEMA.read_text(encoding="utf-8"))
 
 
 def _manifest(layout: dict) -> dict:
@@ -79,15 +81,14 @@ def test_section_inside_the_character_class_is_admitted(section: str) -> None:
     assert _validates({"repo": {"section": section, "output_dir": "d"}})
 
 
-def test_both_schema_copies_carry_the_key() -> None:
-    """The parity gate owns byte-equality; this owns the key being in both.
+def test_the_packaged_schema_carries_the_key_at_both_scopes() -> None:
+    """The engine validates against this copy, so it must carry the key.
 
-    A one-sided edit would let the packaged engine validate a manifest the
-    repository refuses, or the reverse.
+    That the repository copy agrees is a repository rule, checked where the
+    repository is present — see `tests/conformance/`.
     """
-    for path in _SCHEMA_PATHS:
-        layout = json.loads(path.read_text(encoding="utf-8"))["properties"]["pack"][
-            "properties"
-        ]["layout"]["properties"]
-        for scope in ("repo", "user"):
-            assert "section" in layout[scope]["properties"], f"{path} :: {scope}"
+    layout = json.loads(_PACKAGED_SCHEMA.read_text(encoding="utf-8"))["properties"][
+        "pack"
+    ]["properties"]["layout"]["properties"]
+    for scope in ("repo", "user"):
+        assert "section" in layout[scope]["properties"], scope

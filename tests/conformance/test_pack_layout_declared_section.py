@@ -13,13 +13,15 @@ no list of expected section names; a list is the hand-maintained table the
 design rejects.
 
 Matching the *pair* rather than the section alone is what makes the check
-discriminate. `product-engineering` legitimately documents three sections —
-`[product]` for its intents and rollups, `[discovery]` (a different base) for
-the discovery loop, and `[design]`, which `ux-writing` only *reads* from
-`experience-design`. Section membership alone would admit
-`section = "discovery"` carried on `output_dir = "docs/product"`: a pair no
-document describes, installing a default under a section whose readers resolve
-somewhere else.
+discriminate. A pack may legitimately document several sections: one per
+output tree it owns, plus any it only *reads* from a sibling pack. Section
+membership alone would then admit a declaration that crosses two of them — a
+section from one documented pair carried on the base from another — which
+installs a default under a section whose readers resolve somewhere else. No
+document describes that combination, and the pair rule is what rejects it.
+
+This file is pack-portable by rule: it derives every pack and every pair from
+the tree rather than naming any.
 """
 
 from __future__ import annotations
@@ -96,14 +98,27 @@ def test_declared_pair_is_documented_by_the_pack(
     )
 
 
-def test_a_mismatched_pair_is_rejected() -> None:
-    """The check must discriminate, not just pass on today's tree.
+def test_a_crossed_pair_is_never_itself_documented() -> None:
+    """The rule must discriminate, not merely pass on today's tree.
 
-    `product-engineering` documents both `[product]`/`docs/product` and
-    `[discovery]`/`docs/discovery`. The cross of the two is the exact defect
-    the pair rule exists to catch, and it must not be in the documented set.
+    Wherever a pack documents two distinct pairs, crossing them — one pair's
+    section carried on the other's base — must not appear in the documented
+    set. If it did, the pair rule would admit exactly the drift it exists to
+    reject. The crossing packs are derived, not named, so this stays portable.
     """
-    documented = _documented_pairs("product-engineering")
-    assert ("product", "docs/product") in documented
-    assert ("discovery", "docs/discovery") in documented
-    assert ("discovery", "docs/product") not in documented
+    crossings = 0
+    for pack, _section, _base in _declaring_packs():
+        pairs = _documented_pairs(pack)
+        for one_section, one_base in pairs:
+            for other_section, other_base in pairs:
+                if one_section == other_section or one_base == other_base:
+                    continue
+                assert (one_section, other_base) not in pairs, (
+                    f"{pack} documents both ({one_section}, {one_base}) and "
+                    f"({other_section}, {other_base}), and also their cross"
+                )
+                crossings += 1
+    assert crossings, (
+        "no pack documents two distinct pairs, so the discrimination this "
+        "rule provides is untested — the assertion above never ran"
+    )

@@ -290,14 +290,14 @@ def test_an_unreadable_file_is_reported_not_raised(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
     path = _seed(tmp_path, b'[research]\noutput_dir = "vault"\n')
-    os.chmod(path, 0o000)
+    path.chmod(0o000)
     try:
         if os.access(path, os.R_OK):  # pragma: no cover - running as root
             pytest.skip("cannot make a file unreadable as this user")
         _append(tmp_path)
         _assert_reported(capsys, "cannot read")
     finally:
-        os.chmod(path, 0o644)
+        path.chmod(0o644)
 
 
 def test_a_directory_where_the_file_belongs_is_reported_not_raised(
@@ -374,7 +374,7 @@ def test_an_occupied_name_of_another_type_is_refused(
 def test_the_files_mode_survives_the_atomic_replace(tmp_path: Path) -> None:
     """`mkstemp` creates 0600 and `replace` carries that onto the target."""
     path = _seed(tmp_path, b'[research]\noutput_dir = "vault"\n')
-    os.chmod(path, 0o644)
+    path.chmod(0o644)
 
     _append(tmp_path)
 

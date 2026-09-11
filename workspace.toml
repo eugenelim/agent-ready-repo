@@ -453,7 +453,7 @@ open = [
   # each pack's skills already read. The cost is that the configuration
   # vocabulary stays off-canon.
   # Unblocks when: `docs/specs/layout-install-sections/` ships.
-  {path = "docs/architecture/agentbundle.md", kind = "chore", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
+  {path = "docs/architecture/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because
   # each needs an owner decision, not an edit. Shared root cause: the engine

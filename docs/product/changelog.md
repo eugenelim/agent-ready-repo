@@ -54,6 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.15] — 2026-09-11
+
+### Fixed
+
+- `workspace-status`'s reference page no longer says an install discards your
+  comments and unknown keys. It does not.
+
 ## [agentbundle][0.44.0] — 2026-09-11
 
 ### Fixed
@@ -111,13 +118,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   two reference pages say so.
 - Declares `architecture` as its layout section, so installing the pack sets
   that default up for you.
-
-## [core][2.25.15] — 2026-09-11
-
-### Fixed
-
-- `workspace-status`'s reference page no longer says an install discards your
-  comments and unknown keys. It does not.
 
 ## [desk-research][1.1.8] — 2026-09-11
 
