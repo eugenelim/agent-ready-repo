@@ -52,6 +52,13 @@ drops exactly the rare edge the author needed. A grounding probe is
 proportional to the seed set and its references. `[high]` — structural, and
 independent of any measurement.
 
+**Staleness is the second argument, and the owner's decision of 2026-09-10 rests
+on it.** A map is a derived artifact answering from a snapshot; a seed-bounded
+search reads live state and cannot be stale. For a single repository that
+settles it, and graphs are deferred rather than rejected. Across repositories the
+trade reverses — a cross-repository edge is not findable by searching one live
+tree — but that is outside this system's scope.
+
 The benchmark literature is harsher than the tooling market. SWE-Explore finds
 that BM25, TF-IDF and embedding retrieval "remain close to Random on most
 metrics" for repository exploration, with agentic multi-step exploration a clear
