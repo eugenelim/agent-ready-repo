@@ -70,8 +70,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `new-spec`: three checkers in the skill's own `scripts/`, each reporting and
-  none blocking. An item-alignment check over a spec directory's identifiers,
+- `new-spec`: three checkers in the skill's own `scripts/`. The grounding
+  explorer never fails: it reports and exits zero whatever it finds. The two
+  linters exit non-zero on a finding, so they can stand in a gate, except for
+  the reworded-criterion rule, which prints as "reported, not failing" and
+  leaves the status alone because it over-reports on a prose edit. An
+  item-alignment check over a spec directory's identifiers,
   references and coverage; a grounding explorer that answers what already
   governs a set of paths, selected by stage and calibrated from the adopter
   repository's own distribution; and a finding-coverage check that reports a

@@ -329,11 +329,12 @@ in the same commit
   so a member that reads only criterion-against-criterion never reaches them;
   each ban must red on its own deletion, because one assertion over "the
   consistency member" is satisfied by prose carrying neither ban.
-  **Constraint on the shape re-read:** assert that the member cites
-  `assets/spec.md` as the owner of the two shape rules and never restates them —
-  the spec's *Never do* forbids restating a rule that file owns, so an assertion
-  demanding the rule text here is one no implementation can satisfy. Assert the
-  re-read obligation and the citation separately. Deleting
+  **Constraint on the shape re-read:** assert that the member obliges the re-read
+  and identifies the rules by their pinned names, and assert separately that it
+  carries neither rule's wording — the spec's *Never do* forbids restating a rule
+  `assets/spec.md` owns. Reading for the pin names rather than the rule text is
+  also what keeps the assertion satisfiable: shipped prose may not cite this
+  catalogue's records, and the pin names are the pack's own. Deleting
   that clause must red this assertion; without it the member reads as a
   criteria-only comparison, and the body statement that contradicted its own
   criteria survived three rounds because nothing looked there.
@@ -762,13 +763,13 @@ in the same commit
   what left two further instances of one class standing in this cycle.
   **Constraint on the repair rider:** assert separately that repair obliges a
   sweep of the prose adjacent to a changed artifact outside the contract, and
-  that the rider cites AC-0009 for the re-read inside it. Deleting the rider
-  must red this assertion; without it the response list reads as complete while
-  the companion prose a repair strands is nobody's obligation, which is how a
-  docstring came to describe the opposite of the predicate beneath it. Deleting
-  that clause must red this assertion. Repairing the reported instance alone is
-  what left two further instances of one class standing in this cycle, and the
-  walk that clause requires turned a two-instance finding into five.
+  that the shipped prose defers the re-read inside it to the set-level pass
+  **by condition, never by identifier** — shipped pack content may not cite this
+  catalogue's acceptance criteria, so an assertion demanding the text name
+  AC-0009 is one no implementation can satisfy. The AC-0009 attribution stays
+  here, in the contract. Deleting the rider must red this assertion; without it
+  the response list reads as complete while the companion prose a repair strands
+  is nobody's obligation.
 - **AC-0024.** The review step states both answers to a claim-reaches-further
   finding and the rule for choosing between them. **Constraint:** assert the
   choosing rule, not just the pair. A pair of options with no basis for choosing
@@ -1278,10 +1279,12 @@ in the same commit
   red recorded, not merely described here.
 
 **AC-0035.** Every bullet below is one of its cases. Each probe that can fail
-open — one reading a seed's text, a runner set or history — gets a positive, a
-negative and an unavailable case. The two reading the tree itself, scoped
-guidance and path references, get a positive and a negative only, since their
-input cannot be missing. The result cap is shared through one emitter, so the
+open — phrase pins, dead references, gate reachability, co-change — gets a
+positive, a negative and an unavailable case. The probes reading the tree itself
+— scoped guidance, path references and the surface inventory — get a positive
+and a negative only, since their input cannot be missing; the inventory belongs
+on this side because it reports each surface present or absent and has no
+unavailable branch. The result cap is shared through one emitter, so the
 suite carries one flood case rather than one per probe. Owner-approved
 2026-09-11, after two stronger claims were found to describe a suite that did
 not exist. **Constraint on the stage-report clause:** assert that each stage's

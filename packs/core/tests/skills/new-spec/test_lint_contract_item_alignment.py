@@ -159,11 +159,17 @@ def test_a_reworded_criterion_whose_assertion_did_not_follow_is_reported(root):
                                       "The first thing holds, and so does a new clause."),
                          encoding="utf-8")
     result = _since(root)
-    assert result.returncode == 1, result.stdout
+    # Rule 9 reports without failing: it over-reports on a rationale trim, so a
+    # non-zero exit would fail a build for a prose edit. The distinction has to
+    # be observable to a caller, which is why the exit code is asserted here.
+    assert result.returncode == 0, result.stdout
+    assert "reported, not failing:" in result.stdout, result.stdout
     assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, \
         result.stdout
     assert "AC-0002" not in result.stdout.split("reworded")[1], \
         "only the reworded criterion may be named"
+    assert "0 finding(s)" in result.stdout, \
+        f"a reporting rule must not raise the failing count:\n{result.stdout}"
 
 
 def test_an_assertion_added_as_an_indented_constraint_counts_as_following(root):
@@ -234,7 +240,8 @@ def test_a_changelog_mention_does_not_count_as_the_assertion_following(root):
         PLAN + "\n## Changelog\n\n- 2026-09-11: AC-0001 was reworded this round.\n",
         encoding="utf-8")
     result = _since(root)
-    assert result.returncode == 1, result.stdout
+    assert result.returncode == 0, result.stdout
+    assert "reported, not failing:" in result.stdout, result.stdout
     assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, \
         result.stdout
 
@@ -429,10 +436,12 @@ def test_a_plan_less_spec_is_reported_as_partial(root):
     """Every plan-gated rule has no input without a plan; the summary says so.
 
     Counting it under "checked" is the skipped-reads-as-clean failure this
-    module exists to detect in other artifacts. The expectation derives from the
-    subject's own list of plan-gated rules rather than a pair written out here:
-    the hand-listed form stayed green when a third plan-gated rule was added and
-    silently reported nothing.
+    module exists to detect in other artifacts. The expectation is the list
+    declared in this suite, and the subject's own tuple is checked *against* it
+    rather than read as it -- reading the subject on both sides made one value
+    compare to itself, so dropping a rule from it left this case green. Both
+    directions now red: a rule missing from the subject fails the no-input
+    check, and a rule added to the subject fails the equality check.
     """
     import importlib.util
 

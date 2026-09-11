@@ -30,9 +30,13 @@ Forward-only by construction: a spec whose criteria carry no identifiers is
 skipped entirely, so introducing this check does not fail a corpus authored
 before the convention existed.
 
-Exit codes: ``0`` no findings, or nothing to check; ``1`` at least one finding;
-``2`` the check could not run -- a missing spec directory, or a path outside the
-invocation root.
+Exit codes: ``0`` no failing findings -- which includes a run where a reporting
+rule flagged something, since those are printed as "reported, not failing" and
+never set the status; ``1`` at least one failing finding; ``2`` the check could
+not run -- a missing spec directory, or a path outside the invocation root.
+
+Rule 9 is the reporting rule. It over-reports by construction, so a non-zero
+exit on it would fail a build for a prose edit.
 """
 
 from __future__ import annotations
@@ -287,8 +291,10 @@ def stale_assertions(spec_dir: Path, root: Path, ref: str,
     return sorted(reworded - followed)
 
 
-def check(spec_dir: Path, root: Path | None = None, since: str | None = None) -> tuple[list[str], bool, list[str]]:
-    """Return findings, whether the check ran, and which rules could not.
+def check(spec_dir: Path, root: Path | None = None,
+          since: str | None = None) -> tuple[list[str], bool, list[str], list[str]]:
+    """Return failing findings, whether the check ran, rules with no input, and
+    findings that report without failing.
 
     The second value distinguishes "no findings" from "not applicable"; the third
     distinguishes "no findings" from "some rules had no input". A caller that
@@ -297,15 +303,16 @@ def check(spec_dir: Path, root: Path | None = None, since: str | None = None) ->
     """
     spec_path, plan_path = spec_dir / "spec.md", spec_dir / "plan.md"
     if not spec_path.is_file():
-        return [f"{spec_dir}: no spec.md"], False, []
+        return [f"{spec_dir}: no spec.md"], False, [], []
     spec = spec_path.read_text(encoding="utf-8")
     plan = plan_path.read_text(encoding="utf-8") if plan_path.is_file() else ""
 
     criteria = CRITERION.findall(spec)
     if not criteria:
-        return [], False, []                  # forward-only: unlabelled specs are skipped
+        return [], False, [], []              # forward-only: unlabelled specs are skipped
 
     findings: list[str] = []
+    reported: list[str] = []
     # Relative to the invocation root, not an absolute host path: a finding is
     # pasted into a review, a commit message and an issue, and an absolute path
     # is wrong in all three.
@@ -375,7 +382,11 @@ def check(spec_dir: Path, root: Path | None = None, since: str | None = None) ->
             unapplied.append("stale-assertion")
         else:
             for ident in stale:
-                findings.append(
+                # Reported, never failing. This rule over-reports by construction
+                # -- a criterion trimmed with its obligation unchanged needs no
+                # new assertion and is reported anyway -- so exiting non-zero on
+                # it would fail a build for a prose edit.
+                reported.append(
                     f"{rel}/plan.md: {ident} {FINDING_KINDS['stale-assertion']} plan.md "
                     f"since {since}"
                 )
@@ -391,7 +402,7 @@ def check(spec_dir: Path, root: Path | None = None, since: str | None = None) ->
                 f"{rel}/plan.md: {item} {FINDING_KINDS['derived-item']} AC-{digits}; a verification "
                 f"item's identifier is its own, never derived from what it serves"
             )
-    return findings, True, unapplied
+    return findings, True, unapplied, reported
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -413,13 +424,14 @@ def main(argv: list[str] | None = None) -> int:
         p.parent for p in (root / "docs" / "specs").glob("*/spec.md")
     )
 
-    findings, ran, skipped, partial = [], 0, 0, []
+    findings, ran, skipped, partial, reported = [], 0, 0, [], []
     for target in targets:
         if root not in target.parents and target != root:
             print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
             return 2
-        found, applied, unapplied = check(target, root, args.since)
+        found, applied, unapplied, noted = check(target, root, args.since)
         findings.extend(found)
+        reported.extend(noted)
         ran += applied
         skipped += not applied
         if unapplied:
@@ -439,11 +451,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"lint-contract-item-alignment: and {len(rest) - 10} further spec(s)")
         print(f"lint-contract-item-alignment: {len(findings) - len(shown)} finding(s) "
               f"not listed; re-run with --verbose for the full list")
+    for note in reported:
+        print(f"lint-contract-item-alignment: reported, not failing: {note}")
     summary = (f"lint-contract-item-alignment: {len(findings)} finding(s); "
                f"{ran} spec(s) checked, {skipped} skipped as unlabelled")
+    if reported:
+        summary += f", {len(reported)} reported without failing"
     if partial:
         summary += f", {len(partial)} partial (rules with no input: {'; '.join(partial)})"
     print(summary + ".")
+    # Only the failing rules set the exit code. A caller can therefore tell a
+    # contract that breaks a rule from one a reporting rule merely flagged.
     return 1 if findings else 0
 
 

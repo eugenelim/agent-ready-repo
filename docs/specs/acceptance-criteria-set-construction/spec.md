@@ -258,11 +258,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the body for the two claim kinds that decay with no edit at all: narrated
       delivery history, which the retcon discipline sends to the changelog, and a
       count standing beside the set it enumerates, which AC-0018 forbids. It also
-      reads each criterion against the two shape rules `assets/spec.md` owns —
-      every claim makes a wrong implementation detectable, and a criterion names
-      an observable outcome — because those rules govern authoring and nothing
-      re-reads them once a criterion starts accreting rationale round over
-      round —
+      re-reads each criterion against the criterion-shape rules `assets/spec.md`
+      owns in its Acceptance Criteria guidance, identified by their pinned
+      names — `claim-minimality` and `observable-outcome` — and never restated
+      here. Each pin already carries a recorded mutation proof, so naming it
+      obliges the re-read as specifically as reproducing the rule would while
+      leaving one home for the wording. The member exists because a rule with an
+      owner is read when a criterion is written and never again, which is how a
+      criterion accretes rationale round over round —
       joint feasibility, coverage, propagation, and residual freshness. The
       members carrying a stated plan-side question are named: uniqueness asks whether a
       criterion and a construction test claim the same thing, coverage asks
@@ -505,11 +508,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the remaining bounds are presentation limits with documented defaults and
       flags. Every probe carries a bounded result. A probe whose input can be
       missing distinguishes found, none found, and input unavailable, since empty
-      and unavailable are otherwise indistinguishable; the probes reading the
-      tree itself, scoped guidance and path references, cannot have a missing
-      input and distinguish found from none found. The criterion states which
-      probes fall on each side rather than claiming an outcome the code cannot
-      reach. What the explorer cannot settle mechanically it emits as a named
+      and unavailable are otherwise indistinguishable: those are the probes
+      reading a seed's text, a runner set, or history — phrase pins, dead
+      references, gate reachability and co-change. The probes reading the tree
+      itself — scoped guidance, path references and the surface inventory —
+      cannot have a missing input and distinguish found from none found. Both
+      memberships are stated here so no probe is left without a declared case
+      shape, and so the criterion claims no outcome the code cannot reach. What the explorer cannot settle mechanically it emits as a named
       ambiguity with its candidate resolutions, for the author to decide once and
       record. It reads no configuration file of its own, and an absent or thin
       grounding surface lowers the starting information and never fails the run.
