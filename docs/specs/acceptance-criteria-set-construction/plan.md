@@ -969,7 +969,39 @@ in the same commit
   gate enforces it. So whatever this explorer cannot derive at run time it reads
   from surfaces the adopter already owns. Found by running the explorer on its
   own skill: the accepted decision predates, and rules out, the design proposed
-  for it.
+  for it. **The correction it forces is not just "no file" but "no substitute
+  for deriving":** the record seeds the derivation, and a recorded value the
+  repository contradicts is surfaced as drift, never trusted over live state.
+- **There is no skill-has-run state to detect, and the explorer must not look for
+  one.** `adapt-to-project`'s anchoring phase is marker-independent and read-only
+  by default, emits zero filesystem diff, and "remains useful when the repository
+  has no pack state, install marker, root `AGENTS.md`, or durable adaptation
+  files". The detectable signal is the *surface's content*, not the skill's
+  history: whether `reference.md` exists and its named slots carry content. This
+  repository is the worked example — 95 lines with the Constraints, Solution
+  strategy and Crosscutting slots filled, and the identifier standard already
+  recorded in them.
+- **The known grounding surfaces, and what each is good for.**
+  `adapt-to-project` writes `.adapt-discovery.toml`, `.adapt-pending.md` and
+  `.adapt-install-marker.toml`; the durable anchoring surfaces are the
+  `AGENTS.md` chain and `docs/architecture/reference.md`. Presence and schema
+  version are detectable for all five. **Content value differs sharply:** this
+  repository's `.adapt-discovery.toml` carries `[markers]` — project name, repo
+  URL, owner, default branch — and none of the `[[findings.*]]` arrays its schema
+  allows, so it grounds nothing. `reference.md`'s filled arc42 slots and the
+  `AGENTS.md` chain are where the content is.
+- **The read boundary is narrower than that file's header first reads.**
+  "Consumed by `make build-self` only" continues "every other *build mode* copies
+  markers through unchanged" — the restriction is on build modes substituting
+  markers, not on readers. A grounding read of the findings arrays is legitimate;
+  reading `[markers]` to substitute is not, and this explorer does neither
+  substitution nor writing.
+- **A thin surface is reported, never escalated.** The explorer names what the
+  absent surface cost and may offer that `adapt-to-project` fills it, because the
+  skill ships in the same pack. It never requires the skill to have run, never
+  fails on absence, and is never wired to a gate — D2 makes the presence check
+  absolute in the other direction, and a grounding tool that blocks on a missing
+  optional document is the consequence-bound blocking already killed here.
 - **`docs/specs/repository-context-anchoring/` is Shipped** and owns how an
   adopter's real development guidance is identified, including the rubric reused
   across `adapt-to-project`, authoring skills and focused review. The

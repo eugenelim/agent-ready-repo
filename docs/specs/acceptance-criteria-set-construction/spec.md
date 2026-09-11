@@ -407,8 +407,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       settle mechanically it emits as a named ambiguity with its candidate
       resolutions, for the author to decide once and record. What it cannot
       derive at run time it reads from surfaces the adopter already owns, if
-      present, and never from a configuration file of its own: an absent surface
-      lowers the starting information and never fails the run.
+      present, and never from a configuration file of its own. A recorded value
+      seeds the derivation and never replaces it, so a record contradicting what
+      the repository currently shows is reported as drift rather than believed.
+      An absent or thin surface lowers the starting information and never fails
+      the run. The report carries a surface inventory saying which known
+      grounding surfaces are present, which carry content, and what a thin one
+      cost this run, so a degraded grounding is legible rather than silent.
 
 ## Follow-ons
 
