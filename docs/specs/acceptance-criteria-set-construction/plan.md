@@ -228,6 +228,22 @@ whole-file token deny-list is unavailable either way; see the probe under
   the record-the-result instruction, and the below-p75 branch.
 - **AC17, AC18 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
+- **AC8.** Assert all seven sweep members are named in the set-level pass, then
+  assert the two that carry a contract beyond their name. **Propagation:** the
+  sentence names the rubric's sibling check as its owner and adds only scope and
+  timing — a re-read of each touched criterion's construction test and
+  verification entry against that criterion's current wording, completing "in the
+  same round, before the round is reported". **Constraint:** assert the citation,
+  the read-back scope *and* the timing, never a restated propagation rule. A
+  text-search reading passes this spec's own round 5, where two plan tests still
+  described pre-repair criteria while every phrase grep came back clean;
+  restating the rule here
+  is the second home this spec's own Boundary forbids, and a propagation rule
+  with no timing leaves reconciliation to a later pass — four findings across
+  this cycle were exactly that later pass. **Residual freshness:** the sentence
+  requires each recorded residual to be re-tested against current state rather
+  than carried forward on its last wording. The mutation that must fail is
+  dropping either clause while leaving the member's name in the list.
 - **Exact assertion wording is build-discovered.** The phrases, markers and
   offsets cannot be settled until the procedure prose exists.
   **Discovery predicate:** each assertion is written against the shipped
@@ -473,17 +489,19 @@ what went stale when one was added.
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
   replaces.
-- **AC25.** The stop-decision report carries the trend and, per residual, its
-  consequence, its available responses, each response's cost, and any
-  protected-class marking. **Constraint:** extend the step that shipped in
-  2.25.14 rather than adding a second one — that step already reports the trend
-  and each residual's consequence, so a parallel step would put two homes on one
-  obligation. What is new is the options and their costs.
-- **AC26.** The procedure requires a changed criterion's references and
-  verifications to be reconciled in the same round. **Constraint:** assert
-  "in the same round, before the round is reported". A propagation rule with no
-  timing leaves it to a later pass, and four findings across this cycle were
-  exactly that later pass.
+- **AC25.** The review step *instructs* the stop-decision report. The oracle is
+  the shipped instruction, because nothing in this task observes a produced
+  report; an assertion phrased over the report would claim a reach it does not
+  have. Assert the instructed fields — the finding trend by round, and per
+  residual its consequence, the responses available to it, and what each would
+  cost — and assert separately that the step cites the owner of the
+  protected-risk-class set by document name
+  (`docs/product/intents/work-loop-review-economics.md` § Guardrail) and
+  enumerates no class list of its own. **Constraint:** extend the step that
+  shipped in 2.25.14 rather than adding a second one — that step already reports
+  the trend and each residual's consequence, so a parallel step would put two
+  homes on one obligation. What is new is the options, their costs, and the
+  owner citation.
 - **AC26.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass

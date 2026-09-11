@@ -177,8 +177,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] The set-level pass tests necessity, uniqueness, consistency, joint
       feasibility, coverage, propagation, and residual freshness. Propagation
       cites the rubric's sibling check as its owner rather than restating it,
-      adding only that it completes in the same round before the round is
-      reported; residual freshness re-tests each recorded residual against
+      adding only its scope and its timing: it re-reads each touched criterion's
+      construction test and verification entry against that criterion's current
+      wording, because a text search cannot see a test that still describes the
+      pre-repair claim, and it completes in the same round before the round is
+      reported. Residual freshness re-tests each recorded residual against
       current state rather than carrying it forward on its last wording.
 - [ ] The procedure defines coverage as satisfied for an Objective outcome or a
       non-waivable Boundary when it is either an admitted criterion or a routed
