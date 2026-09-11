@@ -113,6 +113,7 @@
 | 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed |
 | 0105 | [Retained lifecycle records may terminate as Reclassified](0105-retained-lifecycle-records-may-terminate-as-reclassified.md) | Accepted |
 | 0106 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
+| 0107 | [Identity for loop-contract items — opaque and append-only, not positional](0107-opaque-append-only-loop-contract-identifiers.md) | Accepted |
 
 ## Adding a new ADR
 
