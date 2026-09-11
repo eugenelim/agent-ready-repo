@@ -957,12 +957,22 @@ in the same commit
 
 **Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
-`packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (new),
-`packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (new),
+`packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (exists),
+`packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (exists),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
 **Grounding:**
+- **The checker and its suite landed ahead of this contract, as a recorded
+  deviation.** They were built during the pre-EXECUTE review rounds, on direct
+  owner instruction, before the engine gates were fired — so this task does not
+  create them. It closes the deviation by bringing them under the spec, the same
+  way T6 closes the six plan rules that landed in core 2.25.14 ahead of their
+  criterion. What remains here is the work no commit has done: the assertions
+  AC-0033, AC-0039 and AC-0040 require, the ADR edit AC-0032 requires, and the
+  invocation reference. **A `Done when` that reads as "the file exists" closes
+  green on work already present, which is why every condition below is an
+  assertion or an edit, never a creation.**
 - **The checker belongs to this skill and depends on no other.**
   `packs/AGENTS.md` states skills are independent. The precedent is
   `author-delivery-brief/scripts/lint-brief-coverage.py` with its test at
@@ -1058,14 +1068,18 @@ in the same commit
 **Depends on:** T8
 
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
-`packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (new),
-`packs/core/.apm/skills/new-spec/scripts/lint-finding-coverage.py` (new),
-`packs/core/tests/skills/new-spec/test_explore_grounding.py` (new),
-`packs/core/tests/skills/new-spec/test_lint_finding_coverage.py` (new),
+`packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (exists),
+`packs/core/.apm/skills/new-spec/scripts/lint-finding-coverage.py` (exists),
+`packs/core/tests/skills/new-spec/test_explore_grounding.py` (exists),
+`packs/core/tests/skills/new-spec/test_lint_finding_coverage.py` (exists),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
 **Grounding:**
+- **Both scripts and both suites landed ahead of this contract, on the same
+  recorded deviation as T8's.** This task does not create them. It brings them
+  under the spec and lands what no commit has: AC-0035's and AC-0037's
+  assertions, AC-0038's invocation references, and the stage-report constraint.
 - Same skill-owned precedent and layout as T8; seven sibling core skills carry a
   `scripts/` directory and `pack.toml` declares no script inventory.
 - **These two invocations are wired here, and this task owns the closing check.**
@@ -1304,6 +1318,29 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: **owner decision — this slice runs a quasi-normal lifecycle, in
+  iterative spike mode, until the contract-finding rate quietens.** Implementation
+  may land alongside contract review rather than strictly after the engine gates,
+  because the contract is about authoring moves whose value is only legible once
+  the checks exist: three of this cycle's most serious findings were found by
+  code that the strict ordering would not have written yet. The obligation the
+  mode keeps is the one the deviation below broke — the plan must stay true about
+  what already exists, so a task never carries a creation step for a file on
+  disk. The mode ends when the rounds quieten, and the engine gates are fired
+  from the state the repository is actually in at that point, not from the state
+  the plan was written against.
+- 2026-09-11: **recorded deviation — the three checkers landed before the engine
+  gates.** `lint-contract-item-alignment.py`, `explore-grounding.py` and
+  `lint-finding-coverage.py`, with their suites, were built during the
+  pre-EXECUTE review rounds on direct owner instruction and committed to
+  `.apm/`, with projections, while this pair was still under review and no
+  engine state existed. T8 and T9 are therefore restated to close the deviation
+  rather than to create the files: their conditions are assertions and edits, not
+  creations. Owner decision 2026-09-11, on the precedent T6 already uses for the
+  six plan rules that landed in core 2.25.14 ahead of their criterion. The cost
+  of the ordering is recorded here because nothing else would show it: a plan
+  frozen with a creation step for an existing file gives two tasks a gate that
+  passes without the work.
 - 2026-09-10: initial plan.
 - 2026-09-10: every task grounded against its own governing set and the result
   recorded under `**Grounding:**`, per AC-0031. The plan-level
