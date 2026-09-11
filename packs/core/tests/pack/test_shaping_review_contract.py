@@ -554,3 +554,58 @@ def test_the_failure_mode_table_does_not_reach_the_intent_rubric() -> None:
         assert row_title.strip() not in rubric, row_title
     for column_text in ("Tell", "Fix shape"):
         assert column_text not in rubric, column_text
+
+
+def test_each_mode_agnostic_rule_has_one_named_home() -> None:
+    """Changed bytes. The failure-mode section held four pieces at three scopes.
+
+    The ownership precedence governs every mode, so it moved to its own section.
+    The restated-guidance rule and the emphasis-density routing are expressible
+    only where findings carry prose, so they are scoped to the other two modes.
+    """
+    ownership = re.sub(
+        r"\s+", " ", _section("Ownership outranks criterion craft", level=2)
+    ).strip()
+    assert "This holds in every mode." in ownership
+    assert "`MALFORMED(owner)` suppression rule is how it is carried" in ownership
+
+    table_section = re.sub(
+        r"\s+",
+        " ",
+        _section("Known failure modes in delivery-brief and spec mode", level=2),
+    ).strip()
+    assert "restated by hand as degraded" in table_section
+    assert "That routing is for these two modes" in table_section
+
+
+def test_the_intent_rubric_states_no_precedence_of_its_own() -> None:
+    """Changed bytes. One home for the precedence fact, or the two drift.
+
+    The rubric keeps the suppression behaviour -- which is intent mode's own
+    output rule -- and points at the section that owns the reason.
+    """
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "suppresses the other five" in rubric
+    assert "stated once, below, for every mode" in rubric
+    for re_derivation in (
+        "outranks every other observation",
+        "Ownership outranks criterion craft",
+        "not yours to assess",
+    ):
+        assert re_derivation not in rubric, re_derivation
+
+
+def test_the_adversarial_intent_mode_establishes_nothing() -> None:
+    """Changed bytes, and asserted apart from the trust paragraph.
+
+    The nearest prior assertion accepted "holds no lifecycle authority", which
+    the trust paragraph supplies for a different criterion -- so deleting this
+    paragraph entirely left the suite green.
+    """
+    branch = re.sub(r"\s+", " ", _adversarial_section("Intent review mode")).strip()
+
+    assert "This mode's output is advisory and establishes nothing." in branch
+    assert "does not claim that the dispatch completed" in branch
+    assert "that the bet was attacked" in branch
+    assert "no lifecycle transition may rest on it" in branch
