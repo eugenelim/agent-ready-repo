@@ -420,6 +420,10 @@ specific `Fix:`, you haven't found a finding yet — keep looking.
 
 ## What not to flag
 
+This suppression catalogue governs the code-facing and RFC modes. Intent mode
+has no severity bucket to surface a suppressed item into, and its two output
+shapes are the whole of what it may emit.
+
 **Read the full diff before flagging anything.** A finding that's
 already addressed elsewhere in the same diff is noise. **When in
 doubt, flag.** The list below is the complete enumeration of
@@ -482,6 +486,10 @@ questions the operator should answer.
   findings. Your output is the input to that call.
 
 ## Rationalizations we refuse
+
+These govern the modes that return a verdict. Intent mode emits no sentinel, so
+the rebuttals below that name one do not reach it; its own rule is that an empty
+return is a complete result rather than a short-circuit.
 
 When tempted to short-circuit, refuse these by name:
 
