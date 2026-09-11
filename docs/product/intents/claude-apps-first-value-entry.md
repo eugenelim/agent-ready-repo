@@ -1,0 +1,150 @@
+# A non-technical adopter reaches first value from the site home, without a terminal
+
+- **Status:** Draft
+- **Level:** feature
+- **Scale:** app
+- **Parent:** [`nontechnical-pack-first-value-rollout`](nontechnical-pack-first-value-rollout.md)
+
+## Outcome
+
+Someone who lands on the public site, works in the Claude apps, and has no
+terminal can choose and install at least one of the four discipline packs and
+complete one method end to end.
+
+**Steerable input:** the number of terminal-only prerequisites on the shortest
+existing public route to a verified Claude-apps first-value path. The baseline is
+established by the probe below, not asserted here, and the target is zero.
+
+**Lagging outcome:** an adopter arriving from a public entry point installs a
+discipline pack in the Claude apps and produces that discipline's first
+artifact in the same session.
+
+**Guardrail:** a terminal adopter can still reach and complete the existing CLI
+route in no more steps than the baseline recorded before this work starts.
+
+## Boundary
+
+- The marketing home's start zone: **two equal links**, one to the existing
+  terminal route and one to the no-terminal route; and the no-terminal route's
+  copy through a submitted install. Ceded here from
+  [`cohort-orientation-surfaces`](cohort-orientation-surfaces.md) on 2026-09-10,
+  because this repository resolves ownership by outcome and the doors serve
+  reaching a route, not comprehension.
+- **The two entry links and the install how-to may be specified before
+  `[pack.first-value].surfaces` is resolved**, but they must not claim completed
+  first value. That contract question gates only the method-to-artifact tutorial
+  and the lagging outcome.
+- **This intent is a consumer of each pack's `[pack.first-value]` contract, not
+  a second owner of it.** Supported surfaces, prerequisites, install
+  verification, recovery, starter task, expected result, and safety behaviour
+  remain owned in `packs/<pack>/pack.toml` under
+  [`portfolio-pack-first-value-contract`](../../specs/portfolio-pack-first-value-contract/spec.md),
+  and must be updated or parity-checked there before any public copy ships.
+- If the contract's `surfaces` vocabulary cannot represent the Claude apps, that
+  contract change routes to its owner first — see Unresolved questions.
+- Entry-point precedent:
+  [`install-to-ship-walkthrough`](../../specs/install-to-ship-walkthrough/spec.md)
+  used four — the marketing landing page at `/` (`web/src/pages/index.astro`),
+  the documentation home (`docs-site/src/content/docs/index.mdx`),
+  getting-started (`docs-site/src/content/docs/getting-started/index.mdx`), and
+  the guide hub (`guides/README.md`). How many this slice needs is a scoping
+  decision.
+- Outside this intent: the `digital-product` CLI profile and its persona journey
+  page (owned by [`digital-product-maker-profile`](digital-product-maker-profile.md),
+  blocked on `ini-003`); sub-agent degradation policy, which is already owned
+  per pack (see Assumptions); and any change to the published plugin packages.
+
+## Owner
+
+- Platform Core (`ini-002`). No individual owner is recorded.
+
+## Unresolved questions
+
+- **Can `[pack.first-value].surfaces` even name this surface?** The contract
+  requires `surfaces ⊆ [pack.install].allowed-adapters`, a closed set of adapter
+  names, and all four packs currently declare `surfaces = ["claude-code"]`. The
+  Claude apps are not an adapter. Until that vocabulary question is decided by
+  the contract's owner, no compliant Claude-apps first-value record can exist,
+  so **the method-to-artifact tutorial and any certified first-value claim
+  cannot reach a spec. It does not block the home-page doors or the
+  installation how-to**, which promise a route and a submitted install rather
+  than a completed method.
+- Which discipline supplies the walkthrough. `product-strategy` is the only one
+  of the four that ships no sub-agents, so it is the only one whose method is
+  unaffected by the chat surface's sub-agent gap — which makes it the cheapest
+  honest choice and avoids a dependency on degradation work.
+- How many of the four entry points this slice needs. One home-page link may
+  satisfy the outcome; four is precedent, not obligation.
+- Whether the route is a new guide or a section of the existing install-routes
+  explanation, which already carries the mechanics after ADR-0107. Duplicating
+  them decays.
+- What "evaluation evidence" means for a documentation slice, given the parent
+  requires it of every slice.
+
+## Projection
+
+- **Probe before spec.** Run one dated Claude-apps install-to-first-value probe
+  for one chosen pack, covering marketplace registration, installation, skill
+  discovery, invocation, a visible result, and recovery. If it succeeds, scope
+  the smallest consumer-documentation spec. If it fails, the deviation routes to
+  the owning pack or to the first-value contract before any navigation is
+  specified. This is `new-spec` step 5a's cheapest-disconfirming-evidence gate,
+  and it is required because the load-bearing premise is third-party behaviour.
+
+## Opportunity
+
+**Functional job.** Get a working product-strategy, research, or design method
+running in the Claude app I already have open, starting from whatever page I
+first landed on.
+
+**Emotional job.** To feel invited rather than filtered — for the first
+instruction I meet to be one I can actually follow.
+
+**Social job.** To bring a practice to my team without asking an engineer to set
+it up for me.
+
+**Struggling moment.** The site home's install affordance is a terminal
+component (`InstallTerminal` in `web/src/pages/index.astro`). A strategist or
+designer reading that page sees a shell command as the way in and concludes the
+project is not for them — even though ADR-0107 established that their surface is
+supported. The capability and the signpost point in opposite directions.
+
+The second trap is subtler. An adopter who does find the plugin route can
+register it in Claude Code and reasonably assume they are done, because nothing
+tells them the Claude apps keep a separate plugin store. They then look for the
+skills in the chat tab and find nothing.
+
+## Assumptions
+
+- ADR-0107 is Accepted, so the route and audience are settled and this slice
+  does not reopen them.
+- **Marketplace presence is not installability.** All four packs appear in
+  `.claude-plugin/marketplace.json`, which proves publication eligibility only.
+  Whether the Claude apps install this marketplace, and whether a
+  filesystem-oriented skill completes there, is unverified — the survey states
+  that no claim in it is runtime-verified. The probe above exists to settle it.
+- ADR-0107 records that the chat surface reads nothing from disk, while current
+  first-value records expect artifacts written to repository paths. That tension
+  is unresolved and may be what the probe fails on.
+- Registration is per surface, and adopters will not infer it.
+- **Sub-agent degradation is already owned per pack, not by this intent.**
+  `research-pack/spec.md` specifies that "on hosts without subagents the skills
+  run inline"; `experience-reviewer-work-loop-gate/spec.md` makes reviewer
+  absence "a named skip, not a silent pass". Any observed deviation from those
+  is a defect against the owning spec. Choosing `product-strategy` avoids the
+  question for this slice entirely.
+- The parent capability's outcome is unchanged by ADR-0107, but the
+  supported-surface contract it depends on is not — see the parent's Derived
+  work section.
+
+## Decomposition
+
+*(empty — `decompose-intent` owns this)*
+
+## Source
+
+- Mode: repo-origin
+- Locator: docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md
+- Revision: local-2026-09-10 (the cited ADR is uncommitted; replace with its
+  committed revision once it lands)
+- Authority: repo-origin

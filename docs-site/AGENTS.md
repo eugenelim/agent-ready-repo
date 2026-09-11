@@ -21,6 +21,15 @@ npm run build --prefix docs-site
 
 ## Action-changing traps
 
+- **Anchor on the prime journey before changing what this surface says.**
+  [`docs/design/journeys/team-orientation-future-state.md`](../docs/design/journeys/team-orientation-future-state.md)
+  is the standing, gate-approved map for a team learning the whole system.
+  **Stages 4-5 — roll out a cohort, make it the default — are this surface**;
+  stages 1-3 are `web/`. The reader arriving here has already installed and
+  proved it, and is now equipping other people. Read the map before deciding a
+  reader or a navigation model, and reconcile a contradiction there rather than
+  only in a content brief. Stage changes need re-gating through
+  `approve-journey`; `docs/design/README.md` carries the gate state.
 - Generate content before starting the docs development server.
 - The repository, not Starlight, checks rendered internal links after both builds.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in

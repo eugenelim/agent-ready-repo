@@ -23,6 +23,22 @@ The proposed `digital-product` user-scope profile is `product-strategy+product-e
 
 Unblocks when: all `ini-003` specs ship, because the skill set must be final before guide content is authored and premature guide content will drift.
 
+### Relationship to the Claude-plugin route
+
+[ADR-0107](../../adr/0107-claude-plugin-route-serves-non-technical-adopters.md)
+(Accepted 2026-09-10) settled how the same four disciplines reach a
+non-terminal adopter: the Claude-plugin route is a supported surface, and the
+packs install there individually. It deliberately creates **no** aggregate
+plugin, because that is the meta-pack shape ADR-0003 / RFC-0013 option F
+rejected and ADR-0107 upholds.
+
+So the curation this intent expresses stays CLI-only by decision, not by
+omission. A `profiles/*.toml` is read only by the `agentbundle` CLI and never
+reaches the plugin route; a Claude-apps adopter gets the same four packs as
+separate installs, and an organisation wanting one-shot setup scripts it itself.
+This intent still owns the profile, the persona journey page, and the
+first-session workflow, and its `ini-003` unblock is unchanged.
+
 ## Assumptions
 
 - No accepted decision authorises a new user-scope profile yet; the profile follows the Digital Experience Doctrine initiative shipping. The gap is concrete because the existing `solution-architect`, `inception`, and `full-ceremony` profiles do not serve the digital-product-maker persona.

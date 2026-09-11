@@ -10,6 +10,17 @@ used by this site. Do not edit generated inputs by hand.
 
 ## Action-changing traps
 
+- **Anchor on the prime journey before changing what this surface says.**
+  [`docs/design/journeys/team-orientation-future-state.md`](../docs/design/journeys/team-orientation-future-state.md)
+  is the standing, gate-approved map for a team learning the whole system. It is
+  one person across five stages, not several personas: **stages 1-3 — evaluate,
+  prove on real work, win buy-in — are this surface**, and stages 4-5 are
+  `docs-site/`. Read it before deciding a reader, an action goal, or a section's
+  job, and reconcile a contradiction there rather than only in a content brief.
+  Changing a stage's actions or residual pains needs re-gating through
+  `approve-journey`; `docs/design/README.md` carries the gate state. The
+  content brief at `docs/design/content/marketing-home.md` is downstream of the
+  map, not a substitute for it.
 - Build marketing before docs: the web build cleans repository `build/`.
 - Markdown content uses relative cross-site links; origin-root paths fail under a
   subpath deployment.

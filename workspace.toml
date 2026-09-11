@@ -879,6 +879,44 @@ open = [
   {path = "docs/product/intents/test-runner-boundary-completion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/build-check-coverage-gaps/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Every in-scope tool and end-to-end test has an invoked runner or an explicit, recorded no-runner contract", needs = []},
   {path = "docs/product/intents/tracker-writeback-result-contracts.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Tracker write-back boundaries reject receipt-shaped impostors and expose deliberate, closed result-code vocabularies for each processor result type", needs = []},
   {path = "docs/product/intents/workflow-posture-harness-consolidation.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Workflow-posture checks use a maintainable shared harness and structural workflow parsing where appropriate, while each workflow's distinct security assertions and mutation contract remain intact", needs = []},
+  # The build intent for the team-orientation design packet, Draft since
+  # 2026-09-04 and never registered -- so workspace-status could not see it and
+  # three artifacts were written this session against surfaces it already owns
+  # (the marketing home's structure and copy, the guides index and its
+  # navigation). All three design gates now pass: approve-journey (re-gated
+  # 2026-09-10 for the Stage 2 surface-plural install), approve-aesthetic-
+  # direction, and review-experience-designs (granted 2026-09-10; V1 closed by
+  # probe, Minor 5 deferred). Delivery is unblocked and nothing is implemented.
+  # De-risked 2026-09-10 against prior art (docs/product/research/platform-
+  # adoption-evaluation-survey.md): verdict is PARTIALLY KILLED. The estate is
+  # two-tier -- influencers advocate, gatekeepers (ARB, security, procurement,
+  # budget holder) veto and demand TCO, exit path, SBOM and DORA deltas that no
+  # explanatory artifact carries. The outcome's claim to serve a budget holder
+  # does not survive; the influencer half does (91% rely on docs when
+  # evaluating). The canvas centrepiece is unmeasured -- no empirical research
+  # exists on diagram effectiveness. Nearest analogue Backstage plateaus at ~10%
+  # externally for being treated as a catalogue. Next: narrow the outcome to the
+  # influencer tier, name gatekeeper artifacts out of scope, ship the two-way
+  # surfaces first; one-way items still withheld.
+  {path = "docs/product/intents/cohort-orientation-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/design/discovery/team-orientation-build-handoff.md", revision = "sha256-bytes-v1:fb74c0f2034dd6a0422b958b56f89a8abec66b48ec15becdf46509b92c70eadc"}, summary = "An adoption champion can understand the operating model from the published surfaces and re-explain it to an engineer and a platform team; gatekeeper evidence (TCO, exit path, SBOM) is explicitly out of scope", needs = []},
+  # guides/** is browsed on GitHub and projected into Starlight by
+  # tools/build-site.py, so an image must resolve under two renderers from one
+  # source. Neither syntax does: the rewriter regex cannot tell an image from a
+  # link so Markdown image paths become page or blob URLs, HTML img/picture are
+  # untouched, and no asset is ever copied. GitHub itself is fine -- probed
+  # 2026-09-10, <picture> and relative <img> both survive. Fix: teach
+  # _rewrite_guide image syntax as a distinct case and add an asset copy. That
+  # regex governs every link in 209 pages, so it needs its own contract.
+  # Unexercised today: no guide carries an image. Unblocks now; no dependency.
+  {path = "docs/specs/docs-site-build-contract-hardening/notes/guide-image-projection.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A guide cannot carry an image that renders on both GitHub and the docs site; the projector rewrites Markdown image paths into page URLs and copies no assets", needs = []},
+  # Claude-app users can reach the published discipline packs without a terminal,
+  # but the site home's only install affordance is a terminal component. Blocked
+  # first: [pack.first-value].surfaces must be a subset of allowed-adapters, and
+  # all four packs declare only "claude-code", so no compliant Claude-apps record
+  # can exist until portfolio-pack-first-value-contract's owner decides the
+  # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
+  # scoping the smallest guide consumer.
+  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site and completes one method by choosing and installing at least one of the four discipline packs", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
 
 ]
 
