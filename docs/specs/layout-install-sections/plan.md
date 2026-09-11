@@ -86,7 +86,7 @@ assertion passes on a file nobody wrote to.
 The anchoring case (AC7) belongs with the resolver's own tests and runs with a
 working directory other than the repository root.
 
-The document and schema checks (AC6, AC8, AC9, AC10) are catalogue rules and
+The document and schema checks (AC6, AC8, AC9, AC9) are catalogue rules and
 belong in the repository's `tests/conformance/`, not under
 `packages/agentbundle/tests/` — that tree ships to adopters, where no `packs/`
 directory exists and a derivation over `packs/*/pack.toml` would enumerate an
@@ -98,8 +98,8 @@ empty set and pass on empty state.
 | --- | --- | --- |
 | Interface compatibility (`pack.schema.json`) | T1 | Parity gate green |
 | User-facing promise (reference docs) | T4 | Corrected value, no comment-loss claim |
-| Current architecture (`agentbundle.md` § 7.1) | T6 | Both reader classes agree |
-| Release history (changelog) | T6 | An `agentbundle` entry and one per bumped pack |
+| Current architecture (`agentbundle.md` § 7.1) | T4 | Both reader classes agree |
+| Release history (changelog) | T4 | An `agentbundle` entry and one per bumped pack |
 
 ## Design (LLD)
 
@@ -163,7 +163,7 @@ an optional maintenance step. The append reports and yields instead.
 its temp file privately and the atomic replace carries that mode onto the
 target, so an adopter's group-readable file silently becomes owner-only; and a
 symlinked target is replaced by a regular file, stranding whatever it pointed
-at. Both are invisible to a byte comparison, which is why AC13 and AC14 observe
+at. Both are invisible to a byte comparison, which is why AC12 and AC13 observe
 the stat mode and the link rather than the contents. The reader already refuses
 a symlinked layout file, so refusing to write one makes the two agree.
 
@@ -208,9 +208,9 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 **Tests:**
 - A manifest carrying `section` inside `[pack.layout.repo]` validates; one
   carrying an unknown sibling does not. This is an engine-distribution
-  assertion, so it lives in `packages/agentbundle/tests/unit/`. (AC10)
+  assertion, so it lives in `packages/agentbundle/tests/unit/`. (AC9)
 - The shipped parity gate compares the two copies byte-for-byte and must stay
-  green. (AC10)
+  green. (AC9)
 
 **Approach:**
 - Add the key to `contracts/pack.schema.json` under both scope sub-tables,
@@ -239,16 +239,16 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Three designed no-ops write nothing and print nothing: absent file, section
   already present as a table, pack declaring only one of the two keys. (AC5)
 - A read-only layout file and a jail-refused path each leave `install`'s exit
-  status and projected files unaffected, and report. (AC12)
-- A group-readable layout file has the same stat mode after the append. (AC13)
+  status and projected files unaffected, and report. (AC11)
+- A group-readable layout file has the same stat mode after the append. (AC12)
 - A symlinked layout file is refused, still a symlink afterwards, with no
-  exception escaping the function. (AC14)
+  exception escaping the function. (AC13)
 - An `output_dir` resolving outside the scope's root — absolute, `~`-anchored,
-  or via `..` — is refused and reported. (AC15)
+  or via `..` — is refused and reported. (AC14)
 - A `section` outside the character class is refused at the schema and at the
-  install site. (AC16)
+  install site. (AC15)
 - The injection round-trip stays green and is mutation-checked by removing the
-  emitter call. (AC11)
+  emitter call. (AC10)
 
 **Approach:**
 - Read with `read_bytes`; decode a throwaway copy inside the existing `try`.
@@ -270,13 +270,13 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Rewrite `test_symlink_layout_file_fails_closed`: it asserts
   `pytest.raises(PathJailError)` out of the function, which the refusal
   contract replaces with report-and-return. It also covers only an out-of-tree
-  link, which `assert_under` already refuses; the in-tree case AC14 is about is
+  link, which `assert_under` already refuses; the in-tree case AC13 is about is
   untested today and is added.
 - Build the unit fixtures as literal manifests in the test tree, not by reading
   `packs/`. That tree ships to adopters, where no catalogue exists; AC6 is what
   binds the literals to the shipped manifests, and it runs repository-only.
 
-**Done when:** those cases pass and the mutation check confirms AC11 can fail.
+**Done when:** those cases pass and the mutation check confirms AC10 can fail.
 
 ### T3: Declare a section in each consuming pack
 
@@ -296,26 +296,35 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 
 **Done when:** the check passes and `agentbundle catalogue lint` is clean.
 
-### T4: Correct the two documented facts this change falsifies
+### T4: Correct what this change falsifies, and record it
 
-**Depends on:** none
+**Depends on:** T2, T3, T5
 
 **Tests:**
 - `architect`'s manifest and both of its `references/agentbundle-layout.md`
   files name `docs/architecture`. Scoped to those three files: two
   `evals.json` assertions name `docs/design` deliberately, as negatives, and
   must survive. (AC8)
-- No `references/agentbundle-layout.md` claims the append fails to preserve
-  comments or off-schema keys. The file set is derived. (AC9)
 
 **Approach:**
 - Change `architect`'s `output_dir` and the two reference docs' documented
   value.
-- Remove the comment-loss sentence from the six reference docs that carry it;
-  regenerate the `workspace-status` projections rather than editing them.
-- Bump each edited pack.
+- Remove the comment-loss sentence from every `references/agentbundle-layout.md`
+  that carries it, file set derived; regenerate the `workspace-status`
+  projections rather than editing them, and run `make build-self` so the
+  self-host drift gate sees them. No criterion: this is a documentation
+  correction, owned by the Durable outputs' user-facing-promise row.
+- Replace `agentbundle.md` § 7.1 with shipped behaviour, describing both reader
+  classes. Owned by the Durable outputs' current-architecture row.
+- Retire the `[backlog].open` entry at `workspace.toml:449`.
+- Bump every pack edited here and in T3, and `pyproject.toml` with
+  `agentbundle/version.py` together for the engine changes in T2 and T5.
+  Resolve each version against `origin/main` at the time this runs.
+- Record the probe outputs and the AC10 mutation-check result in
+  `notes/verification-ledger.md`.
 
-**Done when:** both checks pass.
+**Done when:** AC8 passes, `make build-check` is green, and the backlog entry
+is gone.
 
 ### T5: Anchor a repo-scope relative value, and refuse a relative user-scope one
 
@@ -341,25 +350,6 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 
 **Done when:** that case passes and the resolver's existing tests stay green.
 
-### T6: Record the release
-
-**Depends on:** T2, T3, T4, T5
-
-**Tests:**
-- None of its own. Every obligation is discharged by another task's criterion
-  or by the release gates.
-
-**Approach:**
-- Bump `pyproject.toml` and `agentbundle/version.py` together.
-- Replace `agentbundle.md` § 7.1 with shipped behaviour, describing both reader
-  classes.
-- Retire the `[backlog].open` entry at `workspace.toml:449`.
-- Add the changelog entries, resolving versions against `origin/main` at the
-  time this runs.
-- Record the probe outputs and the AC11 mutation-check result in
-  `notes/verification-ledger.md`.
-
-**Done when:** `make build-check` is green and the backlog entry is gone.
 
 ## Rollout
 
@@ -393,7 +383,7 @@ unparseable afterwards. It is reported, not silent.
   `discovery` with `product`'s base still fails.
 - **A bump collides.** Peer sessions claim versions concurrently; this
   repository collided twice in one day. Resolve every version against
-  `origin/main` when T6 runs.
+  `origin/main` when T4 runs.
 
 ## Changelog
 

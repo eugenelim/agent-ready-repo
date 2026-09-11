@@ -159,22 +159,17 @@ record of the install.
   manifest names that base, and both of its `references/agentbundle-layout.md`
   files document the same value rather than `docs/design`.
 
-- [ ] **AC9 — No shipped document claims the append drops content.** Every
-  `references/agentbundle-layout.md` that describes what an append does to the
-  rest of the file describes preservation. The file set derives from the
-  repository.
-
-- [ ] **AC10 — The manifest schema admits `section` and still refuses an
+- [ ] **AC9 — The manifest schema admits `section` and still refuses an
   unknown key.** `pack.schema.json` accepts `section` inside
   `[pack.layout.repo]` and `[pack.layout.user]` and refuses a key it does not
   name. Byte-equality of the two copies is not restated here; the shipped
   contract-parity gate owns it.
 
-- [ ] **AC11 — The emitted table is injection-safe.** A declared `section` or
+- [ ] **AC10 — The emitted table is injection-safe.** A declared `section` or
   `output_dir` containing `"`, `]`, a newline, or `../` round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
 
-- [ ] **AC12 — A layout failure never fails the install; a marker failure still
+- [ ] **AC11 — A layout failure never fails the install; a marker failure still
   does.** When the layout append cannot write — read-only file, unwritable
   directory, or a path the write jail refuses — `agentbundle install` completes
   with its normal exit status and its projected files intact, and the reason is
@@ -183,12 +178,12 @@ record of the install.
   implementation that relaxes it wholesale satisfies the first half and fails
   the second.
 
-- [ ] **AC13 — The adopter's file keeps its permissions.** A layout file
+- [ ] **AC12 — The adopter's file keeps its permissions.** A layout file
   readable by the adopter's group or others has the same mode after an append
   as before it. The atomic replace must not hand the file the temporary file's
   private mode.
 
-- [ ] **AC14 — A symlinked layout file is refused, not replaced.** When
+- [ ] **AC13 — A symlinked layout file is refused, not replaced.** When
   `agentbundle-layout.toml` is a symbolic link, the append writes nothing,
   reports why, and leaves the link itself intact — matching `workspace_mcp.py`,
   which already refuses to read one. It reports rather than raising, per the
@@ -196,7 +191,7 @@ record of the install.
   stranding what the adopter pointed it at; an out-of-tree link is already
   refused by the write jail, and that refusal becomes a report too.
 
-- [ ] **AC15 — A declared `output_dir` is confined to its scope's root.** A
+- [ ] **AC14 — A declared `output_dir` is confined to its scope's root.** A
   value that resolves — after `~` expansion and symlink resolution — outside
   the repository at repo scope, or outside the user state root at user scope,
   is refused: nothing is written and the reason is reported. The criterion is
@@ -205,7 +200,7 @@ record of the install.
   a catalogue-sourced value, and this change is what first carries one to a
   filesystem root.
 
-- [ ] **AC16 — A declared `section` matches a bounded character class.** A
+- [ ] **AC15 — A declared `section` matches a bounded character class.** A
   `section` that is not `^[a-z0-9][a-z0-9-]*$` is refused at schema validation
   and again at the install site, which reports and writes nothing. `pack_name`
   already carries this check because it becomes a TOML key; `section` becomes a
@@ -221,7 +216,7 @@ record of the install.
   line ending, a file created that should not be, a diagnostic on a designed
   no-op.
 
-- **The filesystem outcomes (AC12, AC13, AC14):** TDD. These are the states the
+- **The filesystem outcomes (AC11, AC12, AC13):** TDD. These are the states the
   change reaches for the first time, because the write has never executed. Each
   needs an observation the byte comparison cannot make — an exit status and a
   projected-file listing, a stat mode, and whether the path is still a link —
@@ -243,10 +238,10 @@ record of the install.
   file set. They fail on different inputs — a wrong documented value, and a
   stale behavioural claim — so they need separate repairs.
 
-- **The schema (AC10):** goal-based check. A manifest carrying `section`
+- **The schema (AC9):** goal-based check. A manifest carrying `section`
   validates and one carrying an unknown sibling does not.
 
-- **Injection safety (AC11):** TDD, mutation-checked by removing the emitter
+- **Injection safety (AC10):** TDD, mutation-checked by removing the emitter
   call to confirm the control can still fail.
 
 ## Assumptions
@@ -324,7 +319,7 @@ record of the install.
 | --- | --- | --- | --- | --- |
 | Current architecture | `docs/architecture/agentbundle.md` § 7.1 | eugenelim | The drift section describes both reader classes agreeing | The section describes what ships |
 | User-facing promise | the `architect` and re-emit reference docs | eugenelim | Corrected value and no comment-loss claim | AC8, AC9 |
-| Interface compatibility | `contracts/pack.schema.json` | eugenelim | Both copies byte-equal | AC10 |
+| Interface compatibility | `contracts/pack.schema.json` | eugenelim | Both copies byte-equal | AC9 |
 | Release history | `docs/product/changelog.md` | eugenelim | An `agentbundle` entry and one per bumped pack | Released |
 
 The decision rationale already landed: RFC-0040 and RFC-0067 carry errata
