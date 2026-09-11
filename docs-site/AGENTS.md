@@ -21,10 +21,9 @@ npm run build --prefix docs-site
 
 ## Action-changing traps
 
-- **Stages 4-5 of the prime journey — roll out a cohort, make it the default — are
-  this surface; stages 1-3 are `web/`.** Anchor a reader or navigation decision on
-  [the map](../docs/design/journeys/team-orientation-future-state.md), not a content
-  brief, and re-gate a stage change through `approve-journey`.
+- Anchor a reader or navigation decision on [the prime journey](../docs/design/journeys/team-orientation-future-state.md),
+  not a content brief: this surface owns its stages 4-5, `web/` owns 1-3, and
+  changing a stage re-gates through `approve-journey`.
 - Generate content before starting the docs development server.
 - The repository, not Starlight, checks rendered internal links after both builds.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
@@ -52,16 +51,14 @@ npm run build --prefix docs-site
   now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
   `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
   published corpus, or the plugin becomes unverifiable again.
-- Under an agent, `astro dev` forks a detached server and returns at once with
-  JSON output, leaving it recorded in `.astro/` — so the development server the
-  § Build commands tell you to start is not the process you launched. A *live*
-  orphan blocks the next start on *any* port, so stop it rather than deleting
-  the record, which frees nothing: `npm exec --prefix docs-site -- astro dev
-  stop --root docs-site`. `--root` is load-bearing — astro resolves the project
-  from the working directory, not from `--prefix`, so without it the command
-  reports nothing running and leaves the orphan holding the port.
+- Under an agent, `astro dev` forks a detached server and returns at once, recorded
+  in `.astro/` — so the server § Build tells you to start is not the process you
+  launched. A *live* orphan blocks the next start on *any* port, and deleting the
+  record frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop
+  --root docs-site`. `--root` is load-bearing — astro resolves the project from the
+  working directory, not `--prefix`; without it the command reports nothing running.
 - After a Starlight upgrade, re-verify integration contracts against the vendored
-  `node_modules/@astrojs/starlight` components.
+  components.
 - Starlight's `print:hidden` does **not** suppress an element whose own component
   `<style>` sets `display`, and it fails silently: both compile unlayered at
   `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links
