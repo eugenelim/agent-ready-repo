@@ -353,25 +353,6 @@ shipped = [
   {path = "docs/specs/dependency-scoped-completion-receipts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Project the dependency-scoped four-field completion receipt from the citing local need, so a dependant on a closed-out and pruned delivery resolves instead of reporting missing_dependency", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/status-projection-and-context-exclusion/spec.md"}]},
   {path = "docs/specs/reclassified-lifecycle-result/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Carry Reclassified in the lifecycle record by pairing it with retain-exception, reachable only from a retained record on a supplied acceptance and terminal thereafter", needs = []},
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
-  # Slice S6 of sdlc-guide-uplift-and-learning-paths, added by owner decision
-  # 2026-09-11. Nothing on either surface presents the four disciplines as a
-  # workflow: the journeys index renders one flat grid where they land at
-  # positions 2, 9, 10 and 19 of 20, and the six ordered paths are keyed to
-  # lifecycle stage, so product-strategy and experience-design appear in no path.
-  # Routed here rather than to a new intent because this brief's own outcome is
-  # guides "grouped into ordered paths that name their prerequisites". The
-  # revision pins the brief as amended by that decision, so it differs from
-  # S3-S5's pin. Claude-plugins route only: three of the four packs ship agents
-  # and Agent Plugins 1.0.0 refuses them. Three Sol rounds plus a mechanical
-  # set-level sweep have run; the rounds restarted once when the owner routed it
-  # into the brief. Round 3 found the order inverted the packs' own dependency
-  # contracts -- desk-research declares "Upstream (none)" with product-strategy
-  # downstream -- and the owner reordered to desk-research first. No round has
-  # returned clean. **Shipped 2026-09-11** by owner decision on the recorded
-  # review economics rather than on convergence. Its Objective was narrowed on
-  # delivery to drop "and can walk it": no criterion tested walkability, and the
-  # delivered surfaces do not provide it. The walk is candidate slice S7.
-  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:0b25a9bb5aa42cb0c04fb87769b7c6590daaef5371d46dcd0768df47906bc1de", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Make the four disciplines discoverable as one ordered sequence on the journeys index and in guides/README.md P7, ordered desk-research first to match the packs' dependency contracts; Shipped 2026-09-11 with its Objective narrowed to drop walkability, which is slice S7", needs = []},
 ]
 queue   = [
   # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner

@@ -41,17 +41,19 @@ The previous session spent four review rounds discovering this. The answer:
 
 ## What S6 shipped, and what it deliberately did not
 
-S6 (`docs/specs/four-discipline-sequence/`) is **Shipped and is discoverability
-only**. Its Objective was narrowed on delivery to drop "and can walk it",
-because no criterion in it ever tested walkability. It delivered:
+S6's outcome shipped and is **discoverability only**. Its spec was discarded on
+2026-09-11 — it was off, and it never reached `main`, so nothing depended on it.
+Its Objective had already been narrowed on delivery to drop "and can walk it",
+because no criterion in it ever tested walkability. What shipped:
 
 - the journeys index as three collection-derived groups, with the four in an
   ordered `<ol>`, membership derived so nothing can silently drop;
 - `guides/README.md` **P2b** — an alternative beside `P2`, not a trailing seventh path;
 - the two chooser rows that ordered these four strategy-first, reconciled.
 
-Read its `notes/verification-ledger.md` before starting. It records three
-mutation proofs, a cold read, and two build facts you will otherwise re-derive.
+Read [`four-discipline-sequence-verification.md`](four-discipline-sequence-verification.md)
+before starting. It records three mutation proofs, a cold read, and two build
+facts you will otherwise re-derive. The spec is gone; that evidence is not.
 
 ## The gaps S7 must close — measured, not asserted
 
@@ -367,24 +369,35 @@ Write the spec so a reader can tell which is which. A criterion that is already
 green is not evidence of nothing — it is a regression guard — but presenting it
 as delivered work would overstate the slice.
 
-## Do not reopen a frozen spec. This cost a full review round.
+## Check whether a spec is actually frozen before treating it as history
 
 `docs/CONVENTIONS.md` § Documentation classes: shipped `specs/*` are "Immutable
 history. Status fields can change, bodies cannot." § Lifecycle: after a feature
 ships "the *code is the truth*, and the spec becomes the record of what was
 agreed."
 
-Two shipped specs were mutated during S6 — `four-discipline-sequence` was
-reopened to `Implementing` with four criteria added, and
-`install-to-ship-walkthrough`'s AC2 was amended in place. An independent review
-sustained both as **blocking**, and both bodies were restored.
+**That rule applies to specs that reached `main`.** During S6 two specs were
+edited and only one of those edits was a violation:
 
-The trap is subtle and worth stating, because the owner's framing and the
-convention sound opposed and are not: **a shipped contract is a historical
-snapshot, not future-binding — which is exactly why you do not rewrite it.** When
-a shipped criterion blocks a change that is right, the answer is a new slice. Not
-contorting the content to satisfy the old criterion, and not editing the frozen
-record. Both wrong moves were made in sequence before the right one.
+- `install-to-ship-walkthrough` **is** on `main` (`e00d1bc0b`, Status `Shipped`).
+  Amending its AC2 body in place was a genuine violation, and it was restored.
+- `four-discipline-sequence` **never reached `main`**. Its `Shipped` status was
+  a label applied on an unmerged branch. Treating that as immutable history —
+  and building a restoration, a new S8 slice, and a fold back into S7 on top of
+  it — was churn on a false premise. An independent review asserted the
+  violation, and it was accepted without checking provenance.
+
+**The check is one command**, and it is the difference between a real constraint
+and an invented one:
+
+```bash
+git log --oneline origin/main -- docs/specs/<slug>/spec.md
+```
+
+Empty output means the spec is yours to change or delete. The lesson that
+survives is narrower than "never touch a shipped spec": **a spec is frozen when
+something downstream could have depended on it, not when its own status field
+says so.**
 
 ## Re-derive the inherited tests. Do not trust their names.
 
@@ -422,7 +435,7 @@ test. A count-preserving mutation is the useful shape where a count is involved
 
 An independent design review ran against the **rendered** surfaces and returned
 SHIP WITH CHANGES — 1 blocking, 8 major, 3 minor. Its dispositions are in
-`docs/specs/four-discipline-sequence/notes/design-review-2026-09-11.md`. Most
+[`four-discipline-sequence-design-review.md`](four-discipline-sequence-design-review.md). Most
 findings are pre-existing and routed to `cohort-orientation-surfaces`; do not
 absorb them. **What remains genuinely open and is not S7's:** the guides hub's
 prominent search and its route back to the internal-case material, the marketing
