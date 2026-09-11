@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.44.0
+
+Installing a pack now adds its default output location to an
+`agentbundle-layout.toml` you already keep. That step has existed for several
+releases and never wrote anything: it looked for a manifest key no pack
+declares, and named the table after the pack while every skill reads a
+differently-named section. A pack now declares the section it writes.
+
+The append also stops rewriting your file. It adds one table and leaves every
+other byte alone — comments, key order, quoting style, line endings, and any
+key it does not recognise — and the file keeps its permissions. A layout
+problem is reported and the install finishes; it no longer aborts.
+
 ## What's new in 0.43.1
 
 `agentbundle catalogue init` now writes `packs/CLAUDE.md` and

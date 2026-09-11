@@ -1137,11 +1137,29 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
   }
 
   /** Per-stage blocks: each level-3 heading and everything up to the next one. */
+  /**
+   * A *stage* is a heading labelled `P<n>` with a bare number, per the spec's
+   * 2026-09-11 amendment. A heading labelled `P<n>b` is an alternative route —
+   * it sits inside this section deliberately, so a reader sees it at the moment
+   * they choose, but it is not a stage and takes no part in the count, the
+   * prerequisite chain, the first-value set, or the successor chain.
+   *
+   * This was previously "every h3 in the section", which made any alternative
+   * fail AC2. The guard still catches a sixth *numbered* stage, which is the
+   * case it exists for.
+   */
+  const STAGE_LABEL = /^p\d+\s*·/i;
+
   function stageBlocks(): { heading: Element; body: Element[] }[] {
     const blocks: { heading: Element; body: Element[] }[] = [];
+    let inStage = false;
     for (const n of walkthroughNodes()) {
-      if (headingLevel(n) === 3) blocks.push({ heading: headingEl(n), body: [] });
-      else if (blocks.length) blocks[blocks.length - 1].body.push(n);
+      if (headingLevel(n) === 3) {
+        inStage = STAGE_LABEL.test(text(headingEl(n)).trim());
+        if (inStage) blocks.push({ heading: headingEl(n), body: [] });
+      } else if (inStage && blocks.length) {
+        blocks[blocks.length - 1].body.push(n);
+      }
     }
     return blocks;
   }

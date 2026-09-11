@@ -113,6 +113,8 @@
 | 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed |
 | 0105 | [Retained lifecycle records may terminate as Reclassified](0105-retained-lifecycle-records-may-terminate-as-reclassified.md) | Accepted |
 | 0106 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
+| 0106 | [Direct skill identity and upgrade revision route](0106-direct-skill-identity-and-upgrade-revision-route.md) — shares the 0106 ordinal with the row above; both were accepted independently and neither is renumbered, because an accepted ADR's identifier is cited elsewhere | Accepted |
+| 0107 | [The Claude-plugin route serves non-technical adopters, as individual per-pack plugins](0107-claude-plugin-route-serves-non-technical-adopters.md) | Accepted |
 | 0108 | [Identity for loop-contract items — opaque and append-only, not positional](0108-opaque-append-only-loop-contract-identifiers.md) | Accepted |
 
 ## Adding a new ADR

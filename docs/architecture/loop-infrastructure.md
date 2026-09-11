@@ -43,6 +43,57 @@ advance FSM phase state.
 3. `loop-cohort.py` records plan approval, scheduling, attempts, waves, and
    review evidence. `loop-engine.py` records phase transitions and events.
 
+### The phase machine
+
+Ten states and eighteen transitions. Ten edges move forward; **eight move
+backward**, so rework is not an exception path but nearly half the machine —
+`contract-amendment` alone returns a run five phases, from implementation to
+drafting. `loop-engine.py`'s transition tables are the authority; this diagram
+renders them.
+
+```mermaid
+stateDiagram-v2
+  direction TB
+  SP_DRAFTING : SPEC-PLAN-DRAFTING
+  SP_REVIEW : SPEC-PLAN-REVIEW
+  S_HUMAN_GATE : SPEC-HUMAN-GATE
+  P_HUMAN_GATE : PLAN-HUMAN-GATE
+  SP_APPROVED : SPEC-PLAN-APPROVED
+  C_IMPLEMENTATION : CODE-IMPLEMENTATION
+  C_VERIFICATION : CODE-VERIFICATION
+  C_REVIEW : CODE-REVIEW
+  C_HUMAN_GATE : CODE-HUMAN-GATE
+
+  [*] --> SP_DRAFTING
+
+  SP_DRAFTING --> SP_REVIEW : spec-ready
+  SP_REVIEW --> S_HUMAN_GATE : reviewers-clean
+  S_HUMAN_GATE --> P_HUMAN_GATE : spec-approved
+  P_HUMAN_GATE --> SP_APPROVED : plan-approved
+  SP_APPROVED --> C_IMPLEMENTATION : plan-locked (code)
+  C_IMPLEMENTATION --> C_VERIFICATION : wave-complete
+  C_VERIFICATION --> C_REVIEW : gates-clean
+  C_REVIEW --> C_HUMAN_GATE : reviewers-clean
+  C_HUMAN_GATE --> DONE : done
+  SP_APPROVED --> DONE : plan-locked (spec-plan)
+
+  SP_REVIEW --> SP_DRAFTING : findings-remain
+  S_HUMAN_GATE --> SP_DRAFTING : spec-rejected
+  P_HUMAN_GATE --> SP_DRAFTING : plan-rejected
+  C_IMPLEMENTATION --> SP_DRAFTING : contract-amendment
+  C_VERIFICATION --> C_IMPLEMENTATION : wave-passed
+  C_VERIFICATION --> C_IMPLEMENTATION : gates-failed
+  C_REVIEW --> C_IMPLEMENTATION : findings-remain
+  C_HUMAN_GATE --> C_IMPLEMENTATION : blocker-applied
+
+  DONE --> [*]
+```
+
+`plan-locked` is the one event whose target depends on mode: it seals the
+baseline and hands off to implementation in `code` mode, and terminates the run
+in `spec-plan` mode. The three `*-HUMAN-GATE` states are where the run waits on
+a person; every other state is agent work.
+
 ### TDD stub artifact boundary
 
 For a full-mode TDD task, `plan.md` owns the exact stub code and its validation
@@ -68,9 +119,20 @@ directory. A crash leaves either the previous JSON or the replacement JSON.
 
 ## 7. Observability and evidence
 
-Both tools expose `status --json`. `engine-state.json`, `state.json`, and
-`.loop-run/events.jsonl` record phase, cohort, and transition evidence.
-Workspace MCP reads the event stream.
+Both tools expose `status --json`. `engine-state.json` and `state.json` record
+phase and cohort state; `loop-engine transition` appends one line per
+transition to `.loop-run/events.jsonl` (ephemeral, gitignored). Workspace MCP
+reads that stream.
+
+The event line and the cohort's round payloads join on `<run_id>:<seq>`: the
+engine writes the run identifier and sequence, and `loop-cohort` records a
+round under `--operation-id <run_id>:<seq>`. So finding counts and
+round-recurrence are read from cohort state through that join rather than
+duplicated onto the line.
+
+The envelope's field set, its export posture, its configuration route and what
+a backend can do with it are a cross-cutting concern: see
+[telemetry](telemetry.md).
 
 ## 8. Mechanical invariants
 
@@ -89,4 +151,4 @@ Workspace MCP reads the event stream.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`831f8e92f`

@@ -23,6 +23,49 @@ remaining rollout without imposing one generic onboarding flow.
 - The rollout remains one appetite-bounded programme whose pack slices can ship
   independently.
 
+## Derived work
+
+[ADR-0107](../../adr/0107-claude-plugin-route-serves-non-technical-adopters.md)
+(Accepted 2026-09-10) leaves this capability's abstract outcome unchanged, but it
+**widens the supported-surface contract this capability depends on**. Before a
+Claude-apps slice reaches spec, the first-value contract's owner must decide how
+the Claude apps, per-surface registration, the absence of filesystem access, and
+surface-specific degradation are represented — without duplicating those facts
+into guides.
+
+**Superseded reasoning, retained:**
+[`portfolio-pack-first-value-contract`](../../specs/portfolio-pack-first-value-contract/spec.md)
+requires `surfaces ⊆ [pack.install].allowed-adapters`, and all four discipline
+packs declare `surfaces = ["claude-code"]`, so no compliant Claude-apps
+first-value record can be written today.
+
+**Narrowed 2026-09-10: that is not a predecessor.** Plugin reach is derivable
+from `[pack.install] allowed-scopes` plus the Claude-plugin route's user-scope
+admission (`claude-plugin-route-scope`, Shipped) and ADR-0107, so the
+vocabulary was never the gate. `surfaces` records *verified* first-value
+surfaces, and no pack can declare one for the Claude apps until a dated
+observation exists — but that declaration has no consumer, so it is **dropped
+as a dependency** rather than carried. A Claude-apps slice is unblocked.
+Separately, the recommended starting point is now Desktop's **Code tab**,
+which is Claude Code and therefore already covered by the
+`surfaces = ["claude-code"]` these packs declare.
+
+| Slice | Owns | Status |
+| --- | --- | --- |
+| [`claude-apps-first-value-entry`](claude-apps-first-value-entry.md) | A no-terminal public route into installing at least one discipline pack in the Claude apps, plus one first-value walkthrough — as a *consumer* of each pack's `[pack.first-value]` contract | Draft, blocked on the surfaces decision above |
+
+Two further constraints every Claude-apps slice inherits:
+
+- **Registration is per surface.** Claude Code and the Claude apps keep separate
+  plugin stores, so a slice's instructions must say where to register and must
+  not imply one install reaches both.
+- **Sub-agents are inert in the chat tab.** Degradation is already owned per
+  pack — `research-pack/spec.md` specifies inline fallback, and
+  `experience-reviewer-work-loop-gate/spec.md` makes reviewer absence a named
+  skip — so a slice picks a pack whose method survives the surface, and routes
+  any deviation as a defect against the owning spec rather than restating a
+  policy here.
+
 ## Source
 
 - Mode: repo-origin

@@ -26,7 +26,7 @@ canvas that makes the team's adoption arc dominant and the work lifecycle nested
 inside it, remove all eleven internal gate codes from adopter copy, and give the
 documentation surface a job-grouped navigation and a promoted set of ordered
 paths — so that a champion can explain the model to an engineer, a platform team,
-and a budget holder without improvising.
+so that a champion can explain the model to an engineer and a platform team without improvising. (Narrowed 2026-09-10: the budget holder was removed from the outcome on the de-risk — gatekeepers need TCO, exit path and security evidence no canvas carries.)
 
 ## Work items, in dependency order
 
@@ -99,7 +99,7 @@ Five things the design asserts and could not prove.
 
 | # | Claim | How to prove it |
 | --- | --- | --- |
-| V1 | The canvas survives GitHub's Markdown sanitiser | Render a probe SVG in a real README and inspect the result. Read from documentation, never tested. |
+| V1 | The canvas survives GitHub's Markdown sanitiser | **CLOSED 2026-09-10.** The `<img>` binding works and is confirmed end to end: GitHub renders the tag and proxies it through `camo.githubusercontent.com`, which serves `image/svg+xml` (HTTP 200). **Inline embedding does not degrade — it is removed outright.** In both `markdown` and `gfm` modes the rendered HTML contains zero `<svg>`, `<defs>`, `<marker>`, `<path>`, `<text>` and `<line>` elements, and the `<desc>` copy leaks into the page as visible prose ("A route with five evenly spaced stations…"). So inline is not a fallback at any quality level: the canvas vanishes and the accessibility description becomes body text. Probed 2026-09-10 (2026-09-11T00:53Z) via `gh api --method POST /markdown`, in both `markdown` and `gfm` modes with repository context — GitHub's own renderer, no push required. |
 | V2 | Re-grouping changes no URL | Diff the generated sidebar's slugs before and after. Note that a page's `slug:` frontmatter overrides the derived path — `guides/atlassian/review-your-team-backlog.md` is a live example. |
 | V3 | The three search placeholder queries return results | Query the live index. An example that returns nothing is worse than a generic placeholder. |
 | V4 | The three proofs can be generated, not pasted | Name the regenerator for each. If any cannot be shown, the band **names the evidence boundary** rather than substituting an example. |
@@ -170,7 +170,7 @@ that path, but 0.1 through 0.3 touch `docs/specs/` and `tools/`.
 2. **Who defines "pack" in plain words, and where?** Unfamiliar
    product-specific vocabulary in navigation on both surfaces; the
    plain-language floor bars it until defined.
-3. **The champion interview has not run.** Every stage emotion and pain stays
+3. **The champion interview will not run — retired 2026-09-10.** **Retired 2026-09-10.** The champion interview was retired as theatre by the owner; enterprise adoption dynamics are well characterised and one interview cannot sample a two-tier estate. See `docs/product/research/platform-adoption-evaluation-survey.md`. Do not reopen it as a delivery gate. Every stage emotion and pain stays
    assumption-based until it does, and the measurement plan's baseline depends on
    it.
 

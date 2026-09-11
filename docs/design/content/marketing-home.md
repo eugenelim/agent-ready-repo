@@ -2,7 +2,7 @@
 type: content-brief
 surface-type: acquisition
 communication_mode: product-copy
-persona: adoption-champion — docs/design/discovery/team-orientation-personas.md
+persona: first-time-user — see the 2026-09-10 amendment; supersedes adoption-champion for this surface
 date: 2026-09-04
 ---
 
@@ -53,11 +53,29 @@ levels one to three, and this reader is at two. Conversion-Centered Design
 targets bottom-of-funnel readers who already know they want the product, which
 describes almost nobody arriving here.
 
-**One deliberate adaptation.** In the standard arc the hero is the reader. Here
-the reader is a hero who must go on to guide three other people. So the arc's
-"plan" element does double duty: it is both the champion's plan and the thing
-they hand over. That is why the plan section is the adoption arc rather than a
-list of steps to install.
+**One deliberate adaptation — revised 2026-09-10.** The hero is the reader, and
+only the reader. The arc's "plan" element is this reader's own path through
+stages 1-3: see whether this is real, prove it on one real task, and reach a
+result worth showing someone. It is not a hand-over artifact, and it is not
+anyone else's plan.
+
+*What it was, and why it changed.* This previously read: "the reader is a hero
+who must go on to guide three other people", so the plan element did double duty
+as both their plan and the thing they hand over. That was written when this
+surface carried all five stages. It no longer does — stages 1-3 are this
+surface and stages 4-5 are `docs-site/` — so the double duty described a job
+this page cannot do. A first-time user who has not yet run anything cannot be
+handed an enablement artifact, and asking them to plan for three colleagues
+before they have a result of their own inverts the arc's own order.
+
+*The adaptation that replaces it.* The standard arc establishes the guide's
+authority with social proof — testimonials, logos, customer counts. This page
+has none and should not manufacture any. It substitutes **proof by runnable
+artifact**: the strongest element on the page is a command the reader can run,
+and the self-host check that fails on drift is evidence the reader can verify
+rather than be told about. That substitution is the adaptation, and it fits the
+reader better than testimony would, because the stated blocker is suspicion
+that the thing is not real.
 
 ## The information hierarchy this mode requires, mapped to the page
 
@@ -206,3 +224,190 @@ voice and register grounding, referencing the brand register once
 `tone-of-voice` has produced one. `conversion-design` reads this mode and runs
 its editorial quality gate. `user-flow` consumes the scroll sections as copy
 slots. `ux-writing` owns the strings, including the unfurl.
+
+---
+
+## Amendment — 2026-09-10: the reader is a first-time user, not a champion
+
+**This amendment changes the surface's audience and therefore its action goal.
+Where it conflicts with the body above, this section governs.** The body's
+analysis of the *page* remains accurate; its analysis of the *reader* does not.
+
+### The change
+
+People who land here are looking to **use the system for the first time**.
+
+**Corrected against the standing journey.** An earlier version of this
+amendment said the champion "arrives on the tech site instead". That is wrong,
+and the gate-approved
+[team-orientation future-state map](../journeys/team-orientation-future-state.md)
+says why: it maps *one person across five stages*, not two personas. Stages 1-3
+— evaluate, prove on real work, win buy-in — are all set on this surface; only
+stages 4-5, rolling out a cohort and making it the default, move to the
+documentation guides index.
+
+So the reader here is the same person who later becomes a champion, met at the
+stages where they are using the system for the first time. Their action goal on
+this surface is Execution because the journey's Stage 2 has them installing and
+running it on a real pending task — not because a different reader replaced
+them. [The guides index brief](docs-guides-index.md) owns their stages 4-5 job,
+which is why the hand-off work belongs there.
+
+### What this retires
+
+The body's central diagnosis — that the page "optimises for Execution" and that
+"that inversion is the defect" — **no longer holds**. For a first-time user,
+optimising for Execution is correct.
+
+The specific criticism survives in a sharper form. The defect is not that the
+page's strongest moment is a runnable command. It is that the page offers
+**exactly one door**, and readers who cannot use that door read it as a
+statement about who the product is for. One door, not the wrong kind of door.
+
+Consequently the resolution in the previous version of this amendment — serving
+the no-terminal reader through a transitional CTA so the fold could stay
+Understanding — is withdrawn. There is no longer a competing goal to protect the
+fold for.
+
+### The new frame
+
+| Field | Value |
+| --- | --- |
+| Primary reader | Someone evaluating whether to use this on their own work, today. Technical or not. |
+| Action goal | **Execution**, with Belief shift secondary — they must believe it is real enough to be worth starting. |
+| Objective | Get them to a first result on their own work, by whichever door fits them. |
+| Awareness level | Solution-Aware, edging Product-Aware. They arrive with intent, not to be convinced a category exists. |
+
+**Arc: StoryBrand stands. Checked 2026-09-10 against the closed set.**
+
+An earlier version of this amendment said the audience change routes the
+surface to Conversion-Centred Design. That was wrong, and it conflated two
+axes. Acquisition arcs are selected by **awareness level**; what changed here
+is the **action goal**. Wanting to use something for the first time is intent
+to act, not awareness of this product. CCD's applicability test is a reader who
+already knows the product and needs friction removed — and the journey says
+this one "arrives cold", triggered "mostly not the marketing page" but by a
+link pasted into a work chat, a search result, a package page, or the README.
+That is levels two to three, which is StoryBrand's range.
+
+The action-goal change reweights the CTA, not the narrative structure. No new
+arc is needed, and none of the three in the closed set fits better.
+
+**What needed revising was the adaptation, not the arc. Done 2026-09-10.** The
+body recorded one: the reader is "a hero who must go on to guide three other
+people", so the plan element did double duty as the thing they hand over. That
+was written when this surface carried all five stages. Stages 4-5 now belong to
+the documentation guides index, so the plan element is the reader's own path
+through stages 1-3, and the hand-over artifact is not this page's to produce.
+
+The rewrite is in § "One deliberate adaptation" above. It does two things:
+withdraws the double duty, and names the adaptation that is actually in force —
+proof by runnable artifact standing in for the social proof the standard arc
+uses and this page does not have. **This open item is closed**; the arc was
+already settled.
+
+**How the two arcs meet.** StoryBrand here carries stages 1-3, problem-first,
+because the reader does not yet recognise their situation. Pyramid Principle on
+[the guides index](docs-guides-index.md) carries stages 4-5, conclusion-first,
+because by then they have proved it and are equipping other people. The arc
+hand-off is the same seam as the journey's surface hand-off, which is why
+neither surface needs the other's arc.
+
+### Zone 9 is now the page's business, with two equal doors
+
+Starting is no longer station two of five reached partway down the page; it is
+what the reader came for.
+
+| Zone | Change |
+| --- | --- |
+| 9 — Start | Promoted in emphasis. Carries **two equal doors** — a terminal route and a Claude-apps route — presented as one section with two entrances, not a primary and a fallback. |
+| 10b | **Withdrawn.** The no-terminal route is no longer transitional; it is half of the primary. |
+| 10 — Roll it out to your team | Retained but demoted to transitional. It serves the champion, who is now a secondary reader here and a primary reader on the tech site. |
+
+Neither door may be framed as the lesser one. A reader who cannot use the
+terminal and is offered the other route as a fallback has had their original
+suspicion confirmed rather than answered.
+
+### What carries over unchanged
+
+- **The proofs.** Still the right mechanism, now answering "is this real enough
+  to start" rather than "can I re-explain this". The self-hosting proof — that
+  `make build-self` runs a self-host check that fails on drift — remains the
+  strongest, and is the one that substantiates the lifecycle position without a
+  number.
+- **No inventory.** No counts of reviewers, security modules, scanners, stages,
+  or feedback loops. The body already established why for the three current
+  numbers, and the reasoning is unchanged by the audience.
+- **The honest limit in zone 6.** Complete from intake to merge, deliberately
+  thin after it; observability and cost accounting named as later roadmap
+  initiatives rather than claimed. This matters *more* for a first-time user
+  than it did for a champion, because they are about to depend on it.
+- **Governance and orchestration as texture**, not headline: depth routed by
+  what a change touches, and a work loop that is resumable and auditable rather
+  than a prompt chain. No numbers.
+
+### Open questions this amendment leaves
+
+- Whether the arc moves from StoryBrand to Conversion-Centred Design. It
+  follows from the awareness change by this brief's own stated rule, and it
+  rewrites the section-by-section jobs above.
+- Whether the champion retains any presence on this surface at all, or whether
+  zone 10 should point at the tech site and stop. The journeys for both readers
+  exist; the question is one of emphasis, not evidence.
+- Whether the two doors in zone 9 read as one choice or as a fork the reader
+  must evaluate before acting. `conversion-design` owns it.
+
+---
+
+**Delivery ownership:** `claude-apps-first-value-entry`. This brief specifies
+composition and content constraints only; it does not own delivery of the
+first-value doors or the route copy.
+
+## Amendment 2026-09-11 — the journeys surface has no entry from this page
+
+**The gap, measured.** `web/src/pages/index.astro` contains **zero** references
+to `/journeys/`. The only link to the journeys index on the rendered home is the
+one the shared footer emits. In `site.toml`, `[shared_chrome].header` lists six
+destinations — `how-it-works`, `use-cases`, `catalogue`, `now`, `docs`,
+`try-the-build-loop` — and **`journeys` is not one of them**; it appears only in
+the footer's `product` group.
+
+The page does link three *individual* journeys — `core`, `product-engineering`,
+`release-engineering` — from the `ThreeLoops` component. Those are the
+supervised loops. So the only journey-shaped thing this page surfaces is the
+loop framing, and the four product disciplines appear nowhere on it.
+
+**Why this brief has to answer it.** A four-discipline sequence shipped on the
+journeys index in September 2026 and is reachable from this page only via the
+footer. For the first-time user this brief now names as its reader, a footer
+link is not an entry. The zone table below has no row for it, which is why it
+was never placed.
+
+**The decision.** Journeys is *proof-shaped* for this reader, not
+navigation-shaped: it answers "show me what using this actually looks like",
+which is the same job as zone 2's three proofs and zone 7's "recognise your
+work". So it takes **two placements, not one**:
+
+1. **A header destination.** Add `journeys` to `[shared_chrome].header` in
+   `site.toml`. It is the only product surface that shows the work rather than
+   describing it, and it is currently the only one of the five `product`-group
+   destinations absent from the header.
+2. **An in-page entry at zone 7.** "Recognise your work" already routes by
+   outcome before pack names. The four-discipline sequence is the outcome route
+   for a product team, and zone 7 is where that reader is already deciding.
+
+**What this amendment does not do.** It does not restructure the eleven zones,
+change the arc, or alter the `ThreeLoops` framing. Whether the loops component
+should also surface the four disciplines is a separate question and is **not**
+answered here.
+
+**Ownership, stated because it crosses.** `[shared_chrome].header` is the
+navigation model, and `site.toml` drives both sites' chrome, so this change
+reaches the documentation surface too. The marketing home's structure and the
+navigation model both sit inside
+[`cohort-orientation-surfaces`](../../product/intents/cohort-orientation-surfaces.md),
+which owns implementing this. This amendment records the design decision; it is
+not authority to edit the header.
+
+**Status: decided, not implemented.** No file under `web/` or `site.toml` was
+changed by this amendment.

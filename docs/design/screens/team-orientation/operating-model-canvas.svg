@@ -14,10 +14,15 @@
 
        Survives GitHub's Markdown sanitiser: no <style>, no class, no style
        attribute, no script, no foreignObject, no @import, no var(), no animation.
-       <defs> and <marker> survive. The two ids carry the accessible name and
-       description for the inline rendering; GitHub strips them, which is harmless
-       because an <img>-embedded SVG exposes no internals and the alt text carries
-       the name there instead. -->
+       MEASURED 2026-09-10 against GitHub's own renderer, not read from docs:
+       inline embedding is REMOVED OUTRIGHT - no svg, defs, marker, path, text or
+       line survives in either markdown or gfm mode, and this desc leaks into the
+       page as visible prose. Inline is not a degraded fallback; there is nothing
+       left to degrade. Use the <img> binding, which renders and is proxied by
+       camo (image/svg+xml, HTTP 200). Three ids are present: omc-title and
+       omc-desc carry the accessible name and description, and omc-arrow is
+       FUNCTIONAL - marker-end="url(#omc-arrow)" depends on it. Under the <img>
+       binding no internals are exposed and the alt text carries the name. -->
 
   <defs>
     <marker id="omc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">

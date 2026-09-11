@@ -13,7 +13,7 @@ governs every surface listed below and outlives any one piece of work.
 
 One engagement, 2026-09-04: redesigning the marketing home and the documentation
 guides index so a champion can explain the whole operating model to an engineer,
-a platform team, and a budget holder.
+and a platform team. (Narrowed 2026-09-10 on the de-risk; the budget holder is a gatekeeper needing evidence this packet does not carry.)
 
 **38 files, ~8,900 lines, one hand-authored SVG.** That is roughly six hours of
 reading end to end, which nobody should do. The tiers below exist so you can
@@ -61,7 +61,7 @@ Not for review. Whoever builds this reads these; the owner does not need to.
 
 **Flow and screens** — [`screens/team-orientation-flow.md`](screens/team-orientation-flow.md) (293) plus five more per-screen briefs: `marketing-home`, `guides-index`, `path-page`, `search-results`, `internal-case-route`.
 
-**Copy and content** — [`copy/copy-deck.md`](copy/copy-deck.md) (416, every string plus the headline candidates), [`copy/brand-register.md`](copy/brand-register.md), [`copy/marketing-home.md`](copy/marketing-home.md), [`content/`](content/) (two briefs), and [`../product/voice/agent-ready-repo.md`](../product/voice/agent-ready-repo.md).
+**Copy and content** — [`copy/copy-deck.md`](copy/copy-deck.md) (416, every string plus the headline candidates), [`copy/brand-register.md`](copy/brand-register.md), [`copy/marketing-home.md`](copy/marketing-home.md), [`content/`](content/) (four briefs, including [`content/journeys-index.md`](content/journeys-index.md), added 2026-09-11 outside the packet), and [`../product/voice/agent-ready-repo.md`](../product/voice/agent-ready-repo.md).
 
 **Direction** — [`direction/tech-site-amendment.md`](direction/tech-site-amendment.md) (262, amends the aesthetic direction; **this is the operative document**, not the frozen original) and [`direction/token-verification.md`](direction/token-verification.md) (209).
 
@@ -70,7 +70,7 @@ Not for review. Whoever builds this reads these; the owner does not need to.
 Kept because the packet's claims trace to them. Nobody needs to read these to
 act.
 
-`discovery/team-orientation-peer-audit.md` (441) · `discovery/team-orientation-heuristic-baseline.md` (426) · `discovery/team-orientation-measurement-plan.md` (510) · `journeys/` (three maps, 641) · `discovery/team-orientation-personas.md` (155) · `discovery/team-orientation-champion-interview.md` (152) · `discovery/team-orientation-content-inventory.md` (67) · `discovery/team-orientation-brief.md` (279) · `discovery/team-orientation-screen-list.md` (125)
+`discovery/team-orientation-peer-audit.md` (441) · `discovery/team-orientation-heuristic-baseline.md` (426) · `discovery/team-orientation-measurement-plan.md` (510) · `journeys/` (four maps, 641 + the practitioner current-state map) · `discovery/team-orientation-personas.md` (155) · `discovery/team-orientation-champion-interview.md` (152) · `discovery/team-orientation-content-inventory.md` (67) · `discovery/team-orientation-brief.md` (279) · `discovery/team-orientation-screen-list.md` (125)
 
 ---
 
@@ -78,14 +78,24 @@ act.
 
 | | |
 | --- | --- |
-| `approve-journey` | passed 2026-09-04 |
+| `approve-journey` | passed 2026-09-04; **re-gated 2026-09-10** for the future-state map's Stage 2 amendment (the terminal-only dependency) |
 | `approve-aesthetic-direction` | passed 2026-09-04 |
-| `review-experience-designs` | **requested** — 6 blockers fixed, 10 of 16 majors fixed, 6 owed |
+| `review-experience-designs` | **passed 2026-09-10** — 6 blockers fixed, 14 of 16 majors fixed. Major 1/V1 closed by a live GitHub render probe. Minor 5 **retired**, not deferred: the champion interview it waited on was retired as theatre, so M2 carries no pre-redesign baseline and will not get one. |
 | Build intent | [`../product/intents/cohort-orientation-surfaces.md`](../product/intents/cohort-orientation-surfaces.md) — `Draft` |
-| Implemented | **nothing.** No file outside `docs/` was touched. |
+| Implemented | **Partly, and not by this packet.** Slice S6 of `sdlc-guide-uplift-and-learning-paths` shipped the journeys index grouping and `guides/README.md` P2b on 2026-09-11, touching `web/` and `guides/`. That surface was **never in this packet's scope** — see the note below. Everything this packet itself specifies remains unbuilt; all three gates are passed, so delivery is unblocked. |
+
+**The journeys index is outside this packet, and that had a cost.** This packet
+briefs the marketing home, the guides index, a path page, search results, the
+internal-case route and the canvas. It does not brief `/journeys/`. When S6
+redesigned that surface it had no brief to anchor on, and an independent design
+review found its groups "feel added above an existing catalogue grid". A content
+brief now exists at [`content/journeys-index.md`](content/journeys-index.md),
+authored after the fact, and it records that the surface still has no owner.
 
 **One verification blocks build and cannot be closed by writing:** whether the
-canvas survives GitHub's Markdown sanitiser needs a probe in a real README.
+canvas survives GitHub's Markdown sanitiser was probed 2026-09-10 against
+GitHub's own renderer and is closed: the `<img>` binding works, inline embedding
+is removed outright.
 
 ## Two things to know before reading anything
 

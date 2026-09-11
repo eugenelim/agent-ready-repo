@@ -7,7 +7,9 @@ kind: explanation
 
 # Guides
 
-Use this catalogue to add repeatable, supervised ways of working to your agent. Start with the outcome you need; the linked pack guides explain what to install, what to ask for, what the agent produces, and where a human decides.
+**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — five steps, about ten hours, from installing the catalogue to a merged change a human approved.
+
+Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way. Each pack guide explains what to install, what to ask for, what the agent produces, and where a human decides.
 
 ## The install-to-ship walkthrough
 
@@ -60,6 +62,37 @@ first, then [identify opportunities](product-engineering/how-to/identify-opportu
 **Ends at:** Core intake, which selects the route from the content — a spec, a
 delivery brief, or a minimum repository intent.
 
+**Wider alternative:** [P2b · the four product disciplines](#p2b--take-the-wider-route-through-the-four-disciplines--4-hours)
+adds strategy and design to this step — about four hours instead of three.
+
+Next: [P3 · Build it](#p3--build-it--2-hours).
+
+### P2b · Take the wider route through the four disciplines — ~4 hours
+
+**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer.
+
+**An alternative to P2, not a step after it.** The two differ by *which
+disciplines the work needs*, not by how clear the problem is — P2's robust path
+already handles an unclear problem.
+
+Take **P2** when the work is a change to something that exists: you need a
+framed, evidenced bet and nothing else before build. Take **P2b** when the work
+needs a strategic choice and a designed surface as well — a new product area, a
+user-facing flow, anything where "what should we build" and "how should it feel"
+are still open questions rather than settled ones. P2b follows the order the
+packs themselves declare, so each step hands a named artifact to the next.
+
+1. [Find out what is true](desk-research/) — hands Product Strategy graded evidence, with a confidence level per finding
+2. [Decide what to build](product-strategy/) — hands Experience Design a committed strategy artifact naming the outcome and the bet behind it
+3. [Design how it should feel](experience-design/) — hands Product Engineering a per-screen state matrix, one cell per screen and state
+4. [Shape the bet and build it](product-engineering/) — you end with a shaped bet, and a change you approved before it merged
+
+You can stop after any step and still hold the artifact it produced.
+
+**First value:** graded evidence on the question you actually have, before
+anyone commits to an answer.
+**Ends at:** a shaped bet whose evidence, strategy, and design you can point to.
+
 Next: [P3 · Build it](#p3--build-it--2-hours).
 
 ### P3 · Build it — ~2 hours
@@ -106,7 +139,7 @@ This release and reporting stage takes the build through its human ship gate.
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.
 
-## A branch after the walkthrough: extend the catalogue
+## Extend the catalogue
 
 ### P6 · Extend the catalogue — ~3 hours
 
@@ -120,11 +153,11 @@ This release and reporting stage takes the build through its human ship gate.
 **First value:** one skill of your own that your agent can run.
 **Ends at:** a catalogue your organisation owns.
 
-## Choose what you want to achieve
+## Choose by outcome
 
 | I need to… | Start with | Continue with |
 | --- | --- | --- |
-| **Decide what to build** | [`product-strategy`](product-strategy/) for strategic choices | [`desk-research`](desk-research/) for evidence, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
+| **Decide what to build** | [`desk-research`](desk-research/) for evidence first | [`product-strategy`](product-strategy/) for the strategic choice, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
 | **Design the product and system** | [`experience-design`](experience-design/) for journeys and surfaces | [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/) for the system, interfaces, and implementation |
 | **Build and review software** | [`core`](core/) to route work into a durable artifact and supervised loop | [`governance-extras`](governance-extras/) for durable decisions and [`monorepo-extras`](monorepo-extras/) for package scaffolding |
 | **Provision and release safely** | [`iac-terraform`](iac-terraform/) for reviewable infrastructure plans | [`release-engineering`](release-engineering/) for deployed validation and the human production gate, supervised by [`core`](core/) |
@@ -136,14 +169,14 @@ The [`core`](core/) build loop is the catalogue's flagship and its strongest sta
 
 ## Choose by role
 
-- **Product manager or strategist:** [decide what to build](product-strategy/), [gather evidence](desk-research/), then [shape the bet](product-engineering/).
+- **Product manager or strategist:** [gather evidence](desk-research/), [decide what to build](product-strategy/), then [shape the bet](product-engineering/).
 - **Platform, infrastructure, or SRE team:** [design the system](architect/), [author its contracts](contracts/), [plan infrastructure](iac-terraform/), and [validate the release](release-engineering/).
 - **Software engineer:** start with the [`core` work loop](core/), then add the design, contract, frontend, infrastructure, or governance pack your change needs.
 - **Designer or UX practitioner:** start with [`experience-design`](experience-design/) and connect the result to [`product-engineering`](product-engineering/) or [`frontend-engineering`](frontend-engineering/).
 - **Researcher or analyst:** start with [`desk-research`](desk-research/) and add the relevant team-system or conversion pack.
 - **AI enablement or catalogue owner:** start with [the pack catalogue](_shared/explanation/pack-catalogue.md), then use [`catalogue-curation`](catalogue-curation/) to evolve your organization-owned collection.
 
-## Shared and pack-specific guidance
+## Guidance for every pack
 
 Pack directories contain task guidance for that pack. [`_shared/`](_shared/) contains cross-catalogue guidance that applies regardless of which packs you install:
 

@@ -4,9 +4,10 @@
 output-producing packs write their durable work. It is never shipped into a
 projected path; you create it by hand (or an `agentbundle install` step appends a
 default section to one you already have — **append-if-exists / never-create /
-never-overwrite**). On the rare append of a *missing* section, the installer
-re-emits the file and does **not** preserve freeform comments or off-schema keys;
-an existing section is left byte-identical. This page documents the
+never-overwrite**). On the append of a *missing* section, the installer adds that one table
+and leaves every other byte of the file unchanged — comments, key order,
+quoting style and line endings included. An existing section is never
+replaced. This page documents the
 `[product]` section that `frame-intent` and `align-value-stream` read.
 
 ## The `[product]` table

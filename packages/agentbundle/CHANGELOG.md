@@ -6,6 +6,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.44.0] — 2026-09-11
+
+### Added
+
+- `[pack.layout.<scope>]` accepts `section`, naming the table an install
+  appends to an adopter's `agentbundle-layout.toml`. The section name is not
+  derivable from the pack name, and the skills that read it do so by prose
+  instruction rather than through this package, so the manifest declares it.
+  The value carries the same character class as a pack name, because it
+  becomes a TOML table header.
+
+### Fixed
+
+- The install-time layout append now writes. It read a manifest key no pack
+  declares and named the table after the pack while every reader looked
+  elsewhere, so it was inert for the whole catalogue.
+- The append preserves the adopter's file. It adds one table and leaves every
+  other byte alone — comments, key order, quoting style, line endings, and any
+  key or section it has no model for. It previously rebuilt the file from a
+  single key, discarding the rest; a pack from an external catalogue could
+  already reach that path.
+- The file keeps its permissions across the atomic replace, and a symlinked
+  layout file is reported rather than replaced by a regular file.
+- A layout failure no longer fails the install. It is reported and the install
+  completes; `_append_install_marker` keeps its own fatal handling.
+- A declared `output_dir` is confined to the root the installer writes under,
+  and a relative value is anchored there rather than to the process working
+  directory.
+- `workspace_mcp` resolves a relative repo-scope `output_dir` against the
+  repository root instead of the process working directory. A relative
+  user-scope value is reported and ignored, as the reference docs already
+  stated.
+
 ## [0.43.1] — 2026-09-09
 
 ### Added

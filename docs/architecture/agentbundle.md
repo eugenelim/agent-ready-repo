@@ -135,6 +135,53 @@ installed state, source content, drift, orphaned configuration, and conformance.
 Build output, self-host projections, manifests, and install-state files provide
 the durable evidence record.
 
+### 7.1 The install-time layout default
+
+`_append_layout_section` maintains an adopter-owned `agentbundle-layout.toml`
+so a pack can ship a default output location at install
+(append-if-exists / never-create / never-overwrite).
+
+A pack declares both halves of what gets written:
+
+```toml
+[pack.layout.repo]
+section    = "design"
+output_dir = "docs/design"
+```
+
+The section name is declared rather than derived from the pack name, because
+the two are not the same thing and no function maps one to the other —
+`experience-design` writes `[design]`, `desk-research` writes `[research]`.
+There are two reader classes and only one of them is code: `workspace_mcp.py`
+resolves item-type paths, while every consuming skill reads its section by
+prose instruction in its own `SKILL.md`. A skill cannot consult a lookup table,
+so the manifest has to name the section each pack already documents, and
+`tests/conformance/test_pack_layout_declared_section.py` compares the declared
+(section, base) pair against the pairs that pack's own reference docs state.
+
+**The append preserves the rest of the file.** It reads bytes, parses a
+throwaway copy only to decide occupancy, and writes the original bytes plus one
+table — so comments, key order, quoting style, line endings, and any key or
+section it has no model for all survive, and the file keeps its mode across the
+atomic replace.
+
+**It is best-effort.** It never raises and never fails the install: a layout
+problem is reported and the install completes with its files in place.
+`_append_install_marker` shares the call site but keeps its own fatal handler,
+because uninstall and `adapt` read what it writes. The reachable states are
+enumerated in `docs/specs/layout-install-sections/spec.md` and implemented in
+that order; three are silent because they are the contract working (no layout
+file, an incomplete declaration, and a section already present — every
+re-install of a configured pack), the rest report, and a terminal row makes the
+never-raise property rest on a catch-all rather than on the enumeration being
+exhaustive.
+
+`output_dir` is catalogue-sourced and reaches a filesystem root here, so it is
+confined to the same root the write jail uses for that scope, with a relative
+value anchored there rather than to the process working directory. `section`
+becomes a TOML table header and carries the same character class as a pack
+name.
+
 ## 8. Mechanical invariants
 
 - `agentbundle catalogue verify` verifies projected agent artifacts and
@@ -168,4 +215,4 @@ the durable evidence record.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`29bad7200`

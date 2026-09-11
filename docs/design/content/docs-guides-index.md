@@ -74,7 +74,7 @@ Must-say, probably-say, might-say.
 | Content item | Tier | Placement notes |
 | --- | --- | --- |
 | One "start here" promise — a single link and a single stated outcome | **must-say** | Above the fold. Does not exist today; the nearest thing is the first path, several screens down. |
-| The six ordered paths, each with prerequisite, audience, time cost, first value, and end state | **must-say** | Immediately below. Currently present and correctly written; currently below a nav instruction. |
+| The ordered paths, each with prerequisite, audience, time cost, first value, and end state | **must-say** | Immediately below. Currently present and correctly written; currently below a nav instruction. **Amended 2026-09-11: seven, not six** — see the amendment below. |
 | That a path ends at a handoff, not at a document | **must-say** | With the paths. This is the sentence that makes the paths handover-able rather than reading lists. |
 | Prominent search with a placeholder naming a real example query | **must-say** | At 229 published pages this surface is in the search-first tier. Today search is a header widget with a generic placeholder. |
 | Which of the two generated hierarchies — guides or pack reference — answers which kind of question | **must-say** | At the point the reader chooses between them. Currently unstated, and they appear as peers. |
@@ -84,6 +84,65 @@ Must-say, probably-say, might-say.
 | Cross-cutting shared guidance list | probably-say | Grouped, not enumerated inline. |
 | "Writing a guide" | might-say | Contributor-facing, not reader-facing. Lowest position. |
 | The note that the site generates pack and guide navigation from this tree | might-say | Useful to a maintainer, invisible in value to a champion. |
+
+## Amendment 2026-09-11 — the four-discipline path, and where it sits
+
+**What changed.** A seventh path was added: the four product disciplines in
+order — desk research, product strategy, experience design, product engineering.
+It is slice S6 of `sdlc-guide-uplift-and-learning-paths`.
+
+**It was placed wrongly, and this amendment is the correction.** S6 appended it
+below P6 under the heading "Another route", after the whole install-to-ship
+walkthrough and after a branch section. That contradicts this brief twice: the
+paths are **must-say, immediately below** the start-here promise, and the
+Pyramid arc this surface selected says *the paths are the answer* and lead. A
+path placed seventh, below a branch, under a heading that calls it an
+afterthought, is supporting detail by position regardless of its content.
+
+**Where it belongs, and why.** Not at the bottom, and not as a branch after P6.
+P6 is genuinely a branch — it runs *after* the walkthrough and extends the
+catalogue. The four-discipline path is not after anything: it is **the wider
+alternative to P2**. P2 takes an idea to a build-ready bet by the fastest route
+— gather evidence, shape an intent, hand to build. The four-discipline path
+takes the same idea through strategy and design as well. Same position in the
+reader's journey, different appetite.
+
+So it sits **adjacent to P2**, and P2 must name it. **Applied 2026-09-11**: it
+is `P2b`, directly after `P2` and before `P3`, with `P2` carrying a "Wider
+alternative" pointer at the moment of choice. `P2b` follows the `10b` convention
+the marketing-home brief already uses for a variant at one position. The design
+review confirmed it: `P2b` "is now discoverable exactly when P2 is evaluated." A
+reader choosing a shaping route has to see both options at the moment they
+choose, or the wider one is invisible to everyone who does not scroll past the
+entire walkthrough.
+
+**A shipped test briefly moved it, and that was the wrong response.**
+[`install-to-ship-walkthrough`](../../specs/install-to-ship-walkthrough/spec.md)
+implemented "stage" as *every `h3` in the walkthrough section*, so `P2b` broke
+its five-stage count. The first repair moved `P2b` out of the section to satisfy
+that test, and reasoned backwards to justify it.
+
+**A Shipped spec records what was true at delivery; it does not bind the
+product's future shape.** Reshaping a page to preserve an implementation detail
+of a test turns a historical record into an accidental design constraint. When a
+shipped criterion blocks a change that is right, the criterion is amended with
+its owner's consent. That is what happened: "stage" now means a heading labelled
+`P<n>` with a bare number, `P<n>b` is an alternative route, and the guard was
+re-verified by mutation — a sixth *numbered* stage still fails AC2 and AC6.
+
+**What this does not authorise.** It does not restructure the hub's navigation
+model, which belongs to
+[`cohort-orientation-surfaces`](../../product/intents/cohort-orientation-surfaces.md)
+along with this brief. Moving one path within the existing paths block and
+adding a cross-link from P2 is content placement inside the structure that
+intent already fixed. Renaming the section, re-grouping the paths, or changing
+the sidebar would not be, and is not done here.
+
+**Still unresolved, and deliberately not decided here.** Whether the paths block
+should be explicitly grouped — walkthrough / alternatives / branches — rather
+than a flat P1..P6 run with P2b inside it. That is a navigation-model question and therefore
+`cohort-orientation-surfaces`'. Recorded so the next reader does not mistake the
+flat run for a considered structure.
 
 ## What this surface must not become
 
@@ -140,3 +199,40 @@ recovery, and the partial-path marker.
 first-value target per content type, and the on-ramp split.
 `information-architecture` has already fixed the navigation model and the job
 grouping.
+
+## Amendment 2026-09-11 (second) — the heading pass this brief had not had
+
+The placement fix moved a path; it did not look at the page's own words. Asked
+whether content design had actually been done here, the answer was no — a brief
+was authored for the *journeys index*, and a section was moved on this one.
+
+**Must-say #1 is now met.** This brief has required "one 'start here' promise —
+a single link and a single stated outcome" above the fold since 2026-09-04, and
+the page instead opened with "Use this catalogue… Start with the outcome you
+need" — the nav instruction the selected Pyramid arc exists to invert. It now
+opens with the answer: a link to the install-to-ship walkthrough, with its five
+steps and its ten-hour total stated, and one sentence placing everything else
+relative to it.
+
+An earlier design-review note routed this item to `cohort-orientation-surfaces`
+as unowned. **That routing was wrong and is withdrawn.** A single sentence and a
+link are content, and content on this surface is what this brief governs;
+`cohort-orientation-surfaces` owns the *navigation model*, which is untouched.
+Routing it away was avoidance dressed as ownership discipline.
+
+**Three headings now name their own content.**
+
+| Was | Is | Why |
+| --- | --- | --- |
+| A branch after the walkthrough: extend the catalogue | Extend the catalogue | Seven words positioning the section against another one before saying what it is. P6's own `Prerequisite: P1 and P3` already carries the sequencing |
+| Choose what you want to achieve | Choose by outcome | Now parallel with "Choose by role" — two ways in, named the same way. The table's own first column already says "I need to…" |
+| Shared and pack-specific guidance | Guidance for every pack | Named the repository's file taxonomy — `_shared/` versus pack directories — rather than the reader's need, which is guidance that holds regardless of which packs they installed |
+
+`## The install-to-ship walkthrough` is deliberately unchanged:
+`web/src/components/marketing/InstallTerminal.astro` links to its anchor, so its
+heading is a published destination, not free copy.
+
+**Still not done on this surface.** The prominent search with a real example
+query, and the route back to the internal-case material, are both must-say in the
+hierarchy above and both still absent. They are structure and navigation, not
+copy, and they stay with `cohort-orientation-surfaces`.
