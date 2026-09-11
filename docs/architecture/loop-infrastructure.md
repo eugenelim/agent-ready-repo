@@ -119,7 +119,70 @@ and its [vocabulary bake-off](../product/research/workflow-lifecycle-vocabulary-
 - **Content capture is a second, separate flag**, also defaulting off, so
   enabling transport never implies consenting to payloads.
 
-### 7.3 How an exporter would be configured
+### 7.3 What a backend can do with this, and what it cannot
+
+These signals describe a state machine, not an inference call. The engine
+invokes no model: the host runtime does, and it owns that telemetry. So the
+natural consumer is a general observability backend, not an LLM-operations
+platform — those organise their surfaces around prompts, tokens, cost and
+model, and have nothing here to render.
+
+| Tier | Examples | What lands |
+| --- | --- | --- |
+| Renders as-is | Honeycomb, Pydantic Logfire, Jaeger, Grafana Tempo | No LLM-specific view to miss, so the namespace arrives as first-class queryable fields and a trace view is time-in-phase |
+| Ingests, renders generically | Datadog LLM Observability, Langfuse, Braintrust, Arize, LangSmith, W&B Weave | Spans store and query, but fall outside the LLM surfaces, which key on `gen_ai.*` attributes this emitter does not produce |
+
+Views are authored either way. No backend ships a dashboard for an application
+namespace, so time-in-phase, gate-failure rate, and stalls are built once
+against whichever backend is chosen.
+
+**Answerable from the event line alone:** where wall-clock goes per phase and
+per run; gate failure counts split by deterministic, review, and human;
+rework, including the implementation-to-drafting return that carries a run
+five phases backwards; how close a run is to a retry cap; which transitions
+carried an override; and a phase exceeding a declared duration.
+
+**Not answerable, and each has a reason:**
+
+- *Token or cost attribution* — the host owns the inference call, so no cost
+  signal reaches this emitter.
+- *Why a review failed* — the line carries an outcome, never finding content
+  or per-role attribution.
+- *A run killed mid-phase* — closing evidence is written by the next
+  transition, so a terminated run's final phase has no record.
+- *Cap exhaustion versus a stall* — a cap refuses the transition, and a
+  refused transition writes nothing.
+- *Output quality* — evaluation is a separate plane; activation and judge
+  evals live beside each skill and run offline.
+
+Treat that second list as the boundary of what an operator may conclude from
+this log, not as a backlog.
+
+**Cost belongs to the host, and already has a home there.** Claude Code carries
+its own OpenTelemetry instrumentation, off until `CLAUDE_CODE_ENABLE_TELEMETRY`
+is set, with independent exporters for metrics, logs, and traces. It emits
+`claude_code.token.usage` and `claude_code.cost.usage`, and its
+`claude_code.api_request` event always carries model, cost, tokens, and
+duration. An administrator can fix all of it through managed settings, which
+lock the destination and drop conflicting developer variables. Token counts are
+recorded when the API response returns usage data, so an aborted request may
+carry none.
+
+A skill cannot reach any of that. Skills run as subprocesses of the CLI and
+never see the API response envelope; hook payloads carry no usage either. So
+cost is not a gap in this envelope — it is a signal that belongs to a layer
+above it, and a proxy or gateway that intercepts the model call is the other
+honest place to capture it.
+
+The consequence for design is **correlate, never duplicate**. Point both
+emitters at one collector and join in the backend rather than teaching this
+engine to guess at a number it cannot observe. Note the two carry different
+data classes: the host's attributes include `user.id`, `user.email`, and
+`organization.id`, while this envelope carries a run identifier and a spec
+path and no identity at all. Combining them in one view combines their
+disclosure, so that is an operator's decision to make deliberately.
+
+### 7.4 How an exporter would be configured
 
 Configuration uses the mechanism this repository already has for adopter-owned
 pack settings; it does not need a new one.
@@ -183,4 +246,4 @@ a path reasoned about. Only the install-time append ever writes a layout file.
 
 ## 10. Last verified against commit
 
-`6f030f151`
+`f583eaad5`
