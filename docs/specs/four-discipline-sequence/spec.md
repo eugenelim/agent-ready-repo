@@ -124,7 +124,11 @@ the obligation to state that difference rather than publish the two as agreeing.
   and are fixed differently.
 - **The prohibitions (AC-0016 to AC-0019):** two whole-diff reads and one
   path-scoped `git diff`.
-- **Link integrity (AC-0020):** `make site-link-check`.
+- **Required links (AC-0021, AC-0022):** goal-based checks — AC-0021 on the
+  built page over the `web/` vitest suite, AC-0022 over `guides/README.md`.
+- **Link integrity (AC-0020):** `make site-link-check`. It verifies resolution,
+  not existence; AC-0021 and AC-0022 own existence, which is why AC-0020 is not
+  load-bearing on its own.
 
 **Known verification risk.** `make bootstrap-sites` currently exits 0 locally
 without producing `build/docs/`, and four `web/` vitest cases already fail
@@ -173,6 +177,10 @@ prose would assert its own fixture.
 - [ ] **AC-0019.** No text in the change describes the Claude-plugins route and
       the Agent Plugins route as carrying the same packs.
 - [ ] **AC-0020.** Every internal link emitted by the change resolves.
+- [ ] **AC-0021.** On the index, each of the four discipline cards links to that
+      discipline's journey page.
+- [ ] **AC-0022.** In the path, each of the four steps links to that discipline's
+      guide directory.
 
 ## Acceptance-set construction record
 
@@ -181,9 +189,9 @@ were enumerated from the Objective's three outcomes, the non-waivable `Never do`
 rails, and the applicable Durable Outputs; each was admitted only once a single
 observing surface could be named.
 
-- **Candidate obligations:** 30
-- **Admitted as criteria:** 20
-- **Routed:** 10
+- **Candidate obligations:** 33
+- **Admitted as criteria:** 22
+- **Routed:** 11
 
 | Candidate obligation | Disposition | Criterion / owner | Red input | Observer |
 | --- | --- | --- | --- | --- |
@@ -206,7 +214,10 @@ observing surface could be named.
 | No adopter-outcome claim | admitted | AC-0017 | any first-value, completed-method or install-success assertion | whole-diff read |
 | Generated journey content untouched | admitted | AC-0018 | any modification under that path | `git diff -- web/src/content/journeys/` |
 | The two routes are not equated | admitted | AC-0019 | text implying both carry all four | whole-diff read |
+| The index links each discipline to its journey | admitted | AC-0021 | any of the four cards rendering without a link to its journey page | built page |
+| The path links each step to its guide | admitted | AC-0022 | any of the four steps stated without a link to its guide directory | `guides/README.md` |
 | Emitted links resolve | admitted | AC-0020 | any unresolved emitted link | `make site-link-check` |
+| The brief's coverage roll-up resolves this spec | **routed** | `lint-brief-coverage`, via the `Brief:` back-link | — | a pre-existing repository control; this slice supplies the back-link it reads |
 | A diagram of the sequence | **routed** | `docs-site-build-contract-hardening/notes/guide-image-projection.md` | — | not this slice's; AC-0016 avoids the defect |
 | Handoff copy inside journey content | **routed** | `packs/*/JOURNEY.md` + the pack release pipeline | — | a four-pack released change, fenced by AC-0018 |
 | Sub-agent degradation on the chat surface | **routed** | `claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md` | — | AC-0019 discloses; it does not repair |
@@ -235,12 +246,17 @@ distinction explicitly, so the two coexist. AC-0007 and AC-0011 require handoff
 copy while AC-0018 forbids touching journey content; they coexist because the
 copy is hand-authored on the index page and in the path. *Joint feasibility:*
 AC-0016 forbids images and AC-0001 needs a legible group, which a heading and an
-ordered list satisfy without one. *Coverage both ways:* Objective outcome 1
-reaches AC-0001 to AC-0006; outcome 2 reaches AC-0008 to AC-0010; outcome 3
-reaches AC-0007, AC-0011 and AC-0012; the six `Never do` rails reach AC-0018,
-AC-0016, AC-0017, AC-0019, AC-0010 and the routed repository-decision row
-respectively; the three applicable Durable Outputs reach AC-0008, AC-0013 to
-AC-0015, and the ledger row. Every criterion traces back to one of those.
+ordered list satisfy without one. AC-0020 is deliberately paired rather than
+standing alone: on its own it passes on the empty set, because a path emitting
+no links has no unresolved link. AC-0021 and AC-0022 supply the links whose
+existence it then verifies, so the pair cannot both be satisfied vacuously.
+*Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and
+AC-0021; outcome 2 reaches AC-0008 to AC-0010 and AC-0022; outcome 3 reaches
+AC-0007, AC-0011 and AC-0012; the six `Never do` rails reach AC-0018, AC-0016,
+AC-0017, AC-0019, AC-0010 and the routed repository-decision row respectively;
+the three applicable Durable Outputs reach AC-0008 and AC-0022, AC-0013 to
+AC-0015, and the ledger row, with the brief roll-up carried by the routed
+`lint-brief-coverage` row. Every criterion traces back to one of those.
 
 ## Accepted residuals
 
@@ -255,7 +271,17 @@ AC-0015, and the ledger row. Every criterion traces back to one of those.
   work rather than add a slice. Bounding it out and disclosing it is the honest
   move for this scope; recorded here so a later round does not re-raise it.
 
-Neither is a defect found late; both are judgements recorded when made.
+- **The brief's Spec map carries a hand-written status for this slice.**
+  `docs/CONVENTIONS.md:515` says the coverage map "rolls up from these
+  back-links automatically; never hand-write a spec's status into the brief."
+  The brief's Spec map already hand-writes five statuses, for S1 through S5,
+  and this slice adds a sixth row in the same shape. Bounded out and recorded
+  rather than repaired: removing one row's status would leave a table that is
+  inconsistent with itself, and correcting all six is the brief's own
+  remediation, not this slice's. **Owner: the brief.** This slice supplies the
+  `Brief:` back-link the roll-up reads, which is the part it can discharge.
+
+None is a defect found late; all three are judgements recorded when made.
 
 ## Assumptions and undischarged risks
 
