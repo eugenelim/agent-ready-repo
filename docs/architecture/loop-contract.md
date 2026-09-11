@@ -120,7 +120,46 @@ the signal. That is the deliberate exception to the rule against storing a value
 a check reads, and it only holds while the stored side is the baseline and never
 the answer.
 
-## 5. Dependencies and allowed edges
+## 5. Grounding: which probes run when
+
+A loop contract is authored against a repository that already has owners, gates
+and accepted decisions. The expensive failure is not bad reasoning; it is a
+well-formed artifact that conflicts with something nobody looked up. So the
+probes are directed by *stage*, seeded by whatever paths that stage can resolve.
+
+| Stage | Seeds | Probes | What it is for |
+| --- | --- | --- | --- |
+| **Discovery** — durable outputs resolved, body not yet written | the resolved destinations | surfaces, scoped rules, path refs, phrase pins, gates | Learn what already owns and governs these surfaces, *before* a design is committed to. Nothing is authored yet, so dead references cannot exist. |
+| **Task grounding** — per plan task | that task's `Touches` | scoped rules, path refs, phrase pins, gates, co-change | Find the checks that will run against this task's files, and the files that historically move with them. |
+| **Review sweep** — after a repair round | the spec and plan themselves | path refs, dead refs, co-change | Find what the repair broke: a reference to something that moved, a path that no longer resolves. |
+
+Two rules make the staging honest rather than decorative.
+
+**A probe reports; it never decides.** No stage gates on a probe result. Blocking
+on a derived signal is the consequence-bound blocking this repository built,
+measured and killed for missing protected-class findings.
+
+**Each stage runs only the probes its inputs support.** At discovery there is no
+authored text, so asking for dead references wastes a scan and returns a
+reassuring empty result. At review the artifacts *are* the seeds, and their
+references are the whole question.
+
+**Degradation is reported, never silent.** Every probe distinguishes *found*,
+*none found* and *input unavailable*. Co-change has no fallback without history —
+this loop is used on repositories before git is initialised — and a probe that
+returns empty when its input is missing is indistinguishable from a clean run.
+The report also carries a surface inventory: which known grounding surfaces
+exist, which carry content, and what a thin one cost, so an adopter who has never
+run `adapt-to-project` gets a weaker report that says it is weaker.
+
+**Calibration is what separates a probe from noise.** A phrase found in more than
+a few files is shipped boilerplate rather than a pin; a commit touching dozens of
+files is a formatting sweep rather than a coupling; a file matching most of a
+seed's sampled phrases is a copy of it, not a reference to it. Every threshold is
+a flag with a documented default, because the right value is repository-specific
+and no source converges on a universal one.
+
+## 6. Dependencies and allowed edges
 
 - The contract is authored by `new-spec` and consumed by `work-loop`. The
   harness reads it; it never writes requirements into it.
@@ -132,7 +171,7 @@ the answer.
 - Criterion *shape* — whether a sentence is one criterion or two — is owned by
   the `new-spec` skill's bundled spec template, not by this page.
 
-## 6. Mechanical invariants
+## 7. Mechanical invariants
 
 - Every acceptance criterion is a task-list item, and a newly shipped spec has
   none open.
@@ -142,10 +181,13 @@ the answer.
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.
 
-## 7. Relevant records
+## 8. Relevant records
 
 - [Identifier comparison matrix](../product/research/item-id-management-comparison-matrix.md)
   — the identifier decision and its alternatives.
+- [Grounding-probes survey](../product/research/repository-grounding-probes-survey.md)
+  — what each probe found here, the three ranked but unbuilt, and five checking
+  mechanisms this repository built and killed.
 - [Review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md)
   — why a review loop over these artifacts terminates on a residue rather than
   on a clean verdict.

@@ -910,7 +910,7 @@ in the same commit
   body-line budget first; T1 and T6 are already spending from it.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
-- **AC-0032, the ADR.** Assert `docs/adr/0107-...md` no longer states that no lint
+- **AC-0032, the ADR.** Assert `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
   enforces the convention, that its `Confirmation` names the shipped check, and
   that its `Revisit if` records the trigger as fired with the decision unchanged.
   **Constraint:** this is a lifecycle edit to an accepted record, not a reversal

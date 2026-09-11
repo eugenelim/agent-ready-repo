@@ -65,8 +65,23 @@ SWEEP_COMMIT_SIZE = 30
 # that floods its caller pushes the real finding below the fold.
 RESULT_CAP = 12
 
+# One script, directed differently by phase. The probe set is what changes, not
+# the mechanism: at discovery nothing has been written yet, so dead references
+# cannot exist and asking for them wastes a scan; at review the artifacts are the
+# seeds and their references are the whole question.
+PHASES = {
+    # After durable outputs resolve destinations, before the spec body is written.
+    "discovery": ("surfaces", "scoped", "refs", "pins", "gates"),
+    # Per plan task, seeded by that task's own Touches.
+    "task": ("scoped", "refs", "pins", "gates", "co-change"),
+    # Over the authored artifacts themselves, to catch what repair rounds broke.
+    "review": ("refs", "dead", "co-change"),
+    "all": ("surfaces", "scoped", "refs", "pins", "gates", "dead", "co-change"),
+}
+
 TEXT_SUFFIXES = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".sh", ""}
 MAX_READ_BYTES = 2_000_000
+_TOP_CACHE: tuple[str, ...] = ()
 
 
 def _git(root: Path, *args: str) -> list[str] | None:
@@ -156,6 +171,87 @@ def distinctive_lines(root: Path, seed: str, limit: int = 40) -> list[str]:
     return lines[::step][:limit]
 
 
+def declared_new(text: str) -> set[str]:
+    """Paths a document says it creates, which are legitimately absent.
+
+    Read from a plan's Touches declarations, a spec's durable-output map, and any
+    explicit `(new)` marker. The two artifacts declare creation differently, and
+    reading only one of them makes the other's intentional absences look dead. Without this every task that creates a file reads as a dead
+    reference, which is the false-positive class that dominates on a plan.
+    """
+    out: set[str] = set()
+    for block in re.findall(r"\*\*Touches:\*\*(.+?)(?:\n\n)", text, re.S):
+        out.update(_rooted(block))
+    # A spec declares what the delivery will produce through its durable-output
+    # map, never through Touches. Without this half every durable output a spec
+    # names reads as a dead reference, because it does not exist yet by design --
+    # which is the same false-positive class Touches closes for a plan.
+    for block in re.findall(r"^## Durable [Oo]utputs(.+?)(?=^## |\Z)", text, re.S | re.M):
+        out.update(_rooted(block))
+    for line in text.splitlines():
+        if "(new)" in line:
+            out.update(_rooted(line))
+    return out
+
+
+def _rooted(text: str) -> set[str]:
+    """Repository-rooted paths named in prose, calibrated against placeholders."""
+    out: set[str] = set()
+    for raw in re.findall(r"[A-Za-z0-9_.\-/]+", text):
+        token = re.sub(r"[#:]\d+(-\d+)?$", "", raw.rstrip(".,:;)"))
+        token = re.sub(r"#.*$", "", token)
+        if "/" not in token or not token.startswith(_TOP_CACHE):
+            continue
+        if any(ch in token for ch in "*{}<>") or "NNNN" in token:
+            continue
+        out.add(token)
+    return out
+
+
+def live_references(root: Path, seed: str, known: set[str] | None) -> tuple[list[str], list[str]]:
+    """Paths a seed names that no longer resolve, split from ambiguous ones.
+
+    A path resolving under some other root is a scope question no rule settles --
+    the same string is dead at the repository root and alive inside a package --
+    so it is emitted as an ambiguity with its candidate rather than asserted dead.
+    """
+    text = _read(root / seed)
+    if not text:
+        return [], []
+    created = declared_new(text)
+    dead: list[str] = []
+    ambiguous: list[str] = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        for token in sorted(_rooted(line)):
+            if (root / token).exists() or (known and token in known) or token in created:
+                continue
+            elsewhere = sorted(k for k in (known or ()) if k.endswith("/" + token))
+            if elsewhere:
+                ambiguous.append(f"{seed}:{lineno}  {token}  → resolves at {elsewhere[0]}")
+            else:
+                dead.append(f"{seed}:{lineno}  {token}")
+    return dead, ambiguous
+
+
+def surface_inventory(root: Path) -> list[str]:
+    """Which known grounding surfaces exist, and whether they carry content.
+
+    Reported so a degraded run is legible. Absence lowers the starting
+    information and never fails the run.
+    """
+    rows = []
+    for name in (".adapt-discovery.toml", ".adapt-pending.md", ".adapt-install-marker.toml",
+                 "AGENTS.md", "docs/architecture/reference.md"):
+        path = root / name
+        if not path.is_file():
+            rows.append(f"{name:<38} absent")
+            continue
+        body = _read(path)
+        headings = len(re.findall(r"^#{1,3} ", body, re.M))
+        rows.append(f"{name:<38} present  {len(body.splitlines())} lines, {headings} heading(s)")
+    return rows
+
+
 def runner_files(root: Path, globs: tuple[str, ...]) -> list[Path]:
     out: list[Path] = []
     for pattern in globs:
@@ -163,7 +259,8 @@ def runner_files(root: Path, globs: tuple[str, ...]) -> list[Path]:
     return sorted(set(out))
 
 
-def co_change(root: Path, seeds: list[str]) -> tuple[str, list[tuple[str, int, float]]]:
+def co_change(root: Path, seeds: list[str], co_min: int = 3,
+              sweep: int = 30) -> tuple[str, list[tuple[str, int, float]]]:
     """Files that historically move with the seeds. ("unavailable", []) without history.
 
     Three calibrations, all from the co-change literature and all load-bearing:
@@ -185,13 +282,13 @@ def co_change(root: Path, seeds: list[str]) -> tuple[str, list[tuple[str, int, f
         if files is None:
             continue
         touched = {f for f in files if f}
-        if len(touched) > SWEEP_COMMIT_SIZE:
+        if len(touched) > sweep:
             continue
         partners.update(touched - set(seeds))
     ranked = [
         (name, count, count / len(shas))
         for name, count in partners.most_common()
-        if count >= CO_CHANGE_MIN
+        if count >= co_min
     ]
     return ("found" if ranked else "none"), ranked
 
@@ -210,15 +307,31 @@ def _emit(label: str, status: str, rows: list[str], cap: int) -> None:
         print(f"      … and {len(rows) - cap} more (capped at {cap})")
 
 
-def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...], cap: int) -> None:
+def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
+            cap: int, cutoff: int, co_min: int, sweep: int,
+            probes: tuple[str, ...]) -> None:
     tracked_raw = _git(root, "ls-files")
     tracked = {t for t in tracked_raw if t} if tracked_raw is not None else None
     tops = top_levels(root)
     files = confined_files(root, tracked)
     runners = runner_files(root, globs)
 
+    global _TOP_CACHE
+    _TOP_CACHE = tuple(f"{t}/" for t in tops)
     print(f"seeds: {len(seeds)}   top-levels derived: {len(tops)}   "
           f"files scanned: {len(files)}   runner candidates: {len(runners)}")
+    print(f"phase probes: {', '.join(probes)}")
+    if "surfaces" in probes:
+        print("grounding surfaces:")
+        for row in surface_inventory(root):
+            print(f"  {row}")
+    unlisted = sorted(
+        p.name for p in root.iterdir()
+        if p.is_file() and p not in runners
+        and re.search(r"(?i)^(justfile|taskfile|noxfile|tox\.ini|.*\.mk|dagger\.json|earthfile)$", p.name)
+    )
+    if unlisted:
+        print(f"  note: runner-like files not in the candidate set: {', '.join(unlisted)}")
     if tracked is None:
         print("note: git unavailable — tracked-set and co-change probes degrade; "
               "ignored files are not excluded")
@@ -246,23 +359,52 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
 
     for seed in seeds:
         # A phrase in many files is the shipped boilerplate every sibling carries.
+        # A file matching most of the seed's sampled phrases is a copy of it --
+        # a generated projection, a vendored duplicate -- not a pin on it. A pin
+        # quotes one thing; a copy quotes everything. Content decides, so this
+        # needs no knowledge of where a given repository puts its projections.
+        # A floor, not just a ratio. With few sampled phrases half of them can be
+        # one, and a single quotation is exactly what a pin looks like -- so
+        # without the floor every pin is misread as a copy.
+        sampled = max(1, len(phrases.get(seed, ())))
+        copy_threshold = max(2, sampled // 2)
+        per_file: Counter[str] = Counter()
+        for (owner, _), where in hits.items():
+            if owner == seed:
+                per_file.update(where)
         pins = sorted({
-            rel for (s, _), where in hits.items()
-            if s == seed and len(where) <= BOILERPLATE_CUTOFF
+            rel for (owner, _), where in hits.items()
+            if owner == seed and len(where) <= cutoff
             for rel in where
+            if per_file[rel] < copy_threshold
         })
+        copies = sorted(rel for rel, n in per_file.items() if n >= copy_threshold)
         print(f"\n=== {seed}")
-        rules = scoped_rules(root, seed, guidance)
-        _emit("scoped rules", "found" if rules else "none", rules, cap)
-        _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
-        _emit("phrase pins", "found" if pins else "none", pins, cap)
-        if gates[seed]:
+        if "scoped" in probes:
+            rules = scoped_rules(root, seed, guidance)
+            _emit("scoped rules", "found" if rules else "none", rules, cap)
+        if "refs" in probes:
+            _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
+        if "pins" in probes:
+            _emit("phrase pins", "found" if pins else "none", pins, cap)
+        if copies and "pins" in probes:
+            _emit("copies of seed", "found", copies, cap)
+        if "dead" in probes:
+            dead, ambiguous = live_references(root, seed, tracked)
+            _emit("dead refs", "found" if dead else "none", dead, cap)
+            if ambiguous:
+                _emit("ambiguous refs", "found", ambiguous, cap)
+        if "gates" not in probes:
+            pass
+        elif gates[seed]:
             _emit("gates", "found", sorted(gates[seed]), cap)
         else:
             print(f"  {'gates':<14} UNREACHED — no runner names this path "
                   f"(considered {len(runners)} runner file(s))")
 
-    status, ranked = co_change(root, seeds)
+    if "co-change" not in probes:
+        return
+    status, ranked = co_change(root, seeds, co_min, sweep)
     print(f"\n=== co-change over all {len(seeds)} seed(s)")
     _emit("partners", status,
           [f"{name}   {count} commits, confidence {ratio:.2f}" for name, count, ratio in ranked],
@@ -275,6 +417,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--guidance-file", default="AGENTS.md")
     parser.add_argument("--runner-glob", action="append", default=None)
     parser.add_argument("--cap", type=int, default=RESULT_CAP)
+    parser.add_argument("--phrase-cutoff", type=int, default=BOILERPLATE_CUTOFF)
+    parser.add_argument("--co-change-min", type=int, default=CO_CHANGE_MIN)
+    parser.add_argument("--sweep-commit-size", type=int, default=SWEEP_COMMIT_SIZE)
+    parser.add_argument("--phase", choices=sorted(PHASES), default="all",
+                        help="which probe set this stage needs")
     parser.add_argument("seed", nargs="+")
     args = parser.parse_args(argv)
 
@@ -291,7 +438,9 @@ def main(argv: list[str] | None = None) -> int:
         seeds.append(candidate.relative_to(root).as_posix())
 
     explore(root, seeds, args.guidance_file,
-            tuple(args.runner_glob) if args.runner_glob else RUNNER_GLOBS, args.cap)
+            tuple(args.runner_glob) if args.runner_glob else RUNNER_GLOBS,
+            args.cap, args.phrase_cutoff, args.co_change_min, args.sweep_commit_size,
+            PHASES[args.phase])
     return 0          # reports; never decides
 
 

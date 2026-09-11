@@ -159,6 +159,42 @@ def test_result_cap_reports_an_exact_remainder(root):
     assert f"and {total - 3} more" in out, f"remainder must be exact:\n{out}"
 
 
+def test_a_copy_of_the_seed_is_not_a_pin_on_it(root):
+    """A pin quotes one thing; a copy quotes everything.
+
+    Content decides, so this needs no knowledge of where a repository puts its
+    projections. The floor matters as much as the ratio: with few sampled
+    phrases, half of them is one, and a single quotation is what a pin looks
+    like — without a floor every pin is misread as a copy.
+    """
+    seed = _seeded(root)
+    body = (root / seed).read_text(encoding="utf-8")
+    for index in range(6):
+        (root / "lib" / f"line{index}.md").write_text(
+            f"A distinctive sentence number {index} that is comfortably long enough to sample.\n",
+            encoding="utf-8")
+        body += f"A distinctive sentence number {index} that is comfortably long enough to sample.\n"
+    (root / seed).write_text(body, encoding="utf-8")
+    (root / "mirror.md").write_text(body, encoding="utf-8")     # a projection
+    (root / "pinner.md").write_text(f"quoting one line: {LONG}\n", encoding="utf-8")
+    out = _run(root, seed)
+    assert "copies of seed" in out and "mirror.md" in out, out
+    pins = out.split("phrase pins", 1)[1].split("copies of seed", 1)[0]
+    assert "mirror.md" not in pins, "a whole-file copy must not be reported as a pin"
+
+
+def test_phase_selects_the_probe_set(root):
+    """One script, directed by stage: at discovery a dead-reference scan is a
+    reassuring empty result, because nothing has been authored yet."""
+    seed = _seeded(root)
+    discovery = _run(root, seed, extra=["--phase", "discovery"])
+    assert "grounding surfaces:" in discovery, discovery
+    assert "dead refs" not in discovery, "discovery runs before anything is authored"
+    review = _run(root, seed, extra=["--phase", "review"])
+    assert "dead refs" in review, review
+    assert "scoped rules" not in review, "review does not re-ask what governs the surface"
+
+
 def test_seed_outside_the_root_is_refused(root):
     result = subprocess.run(
         [sys.executable, str(EXPLORER), "--root", str(root), "../escape.md"],
