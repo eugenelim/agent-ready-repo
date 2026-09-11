@@ -25,12 +25,30 @@ order: 1
 
 - [The experience thread](../explanation/the-experience-thread.md) explains the customer journey, screen flow, and shared quality floor.
 
-Service blueprinting and process mapping can run in parallel with this stage. They add context; neither is a gate for moving to the screen flow.
+## What you will run
 
-#### Run `journey-mapping`
+| Skill | What it produces | Needed? |
+| --- | --- | --- |
+| `journey-mapping` | A journey map: outcome phases, emotions, pains, and a proposed screen list. | Required |
+| `service-blueprint` | A blueprint connecting frontstage actions to backstage and support work. | Optional |
+| `process-mapping` | A SIPOC, as-is and to-be swimlanes, and the delta between them. | Optional |
+| `experience-status` | A read-only report of what design artifacts already exist. | Optional |
 
-**You type:** `Map the journey for a new account owner who wants to connect their first data source. The current experience breaks at setup.`
+Prompts go into an AI agent session with this pack installed — the same session
+throughout. In every path below, `<output_dir>` is the design output directory
+this pack is configured to write to, and `<slug>` is the short name you give
+this piece of work.
+
+<!-- rung: packs/experience-design/JOURNEY.md -->
+
+## Run `journey-mapping` — the journey map
+
+**You type:**
 <!-- rung: JOURNEY stage 1 -->
+
+```
+Map the journey for a new account owner who wants to connect their first data source. The current experience breaks at setup.
+```
 
 **Agent returns:**
 <!-- rung: JOURNEY stage 1 -->
@@ -54,7 +72,7 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 **Watch out for:** A polished map may present assumed emotions and pains with the same confidence as observed evidence. Check the `evidence-level`; label unsupported lines as assumptions, then correct the user, outcome, or failing moment and re-run the skill.
 <!-- rung: journey-mapping SKILL.md -->
 
-**Where it lands:** `<output_dir>/journeys/<slug>.md`, where both bracketed segments are replaced for this project.
+**Where it lands:** `<output_dir>/journeys/<slug>.md`.
 <!-- rung: journey-mapping SKILL.md -->
 
 **Expect these headings:**
@@ -68,10 +86,14 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 - `Emotional arc`
 - `Handoff notes`
 
-#### Run `service-blueprint`
+## Run `service-blueprint` — the backstage blueprint
 
-**You type:** `Blueprint the people, services, and systems behind this customer journey.`
+**You type:**
 <!-- rung: service-blueprint SKILL.md -->
+
+```
+Blueprint the people, services, and systems behind this customer journey.
+```
 
 **Agent returns:**
 <!-- rung: service-blueprint SKILL.md -->
@@ -95,7 +117,7 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 **Watch out for:** A confident blueprint may invent backstage services when evidence is thin. Notice service names with no source or owner, mark those general-pattern guesses first, and replace them with known context or an open question.
 <!-- rung: service-blueprint SKILL.md -->
 
-**Where it lands:** `<output_dir>/blueprints/<slug>.md`, with both bracketed segments replaced for this project.
+**Where it lands:** `<output_dir>/blueprints/<slug>.md`.
 <!-- rung: service-blueprint SKILL.md -->
 
 **Expect these headings:**
@@ -109,10 +131,14 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 - `Hand-off`
 - `Open questions`
 
-#### Run `process-mapping`
+## Run `process-mapping` — the internal process map
 
-**You type:** `Map the internal process that supports this experience, from its trigger to its operational outcome.`
+**You type:**
 <!-- rung: process-mapping SKILL.md -->
+
+```
+Map the internal process that supports this experience, from its trigger to its operational outcome.
+```
 
 **Agent returns:**
 <!-- rung: process-mapping SKILL.md -->
@@ -136,7 +162,7 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 **Watch out for:** The map can look complete while mixing customer stages with internal work. Notice customer actions inside actor lanes or a swimlane with no SIPOC boundary; move the former to the journey and add the latter before continuing.
 <!-- rung: process-mapping SKILL.md -->
 
-**Where it lands:** `<output_dir>/processes/<slug>.md`, with both bracketed segments replaced for this project.
+**Where it lands:** `<output_dir>/processes/<slug>.md`.
 <!-- rung: process-mapping SKILL.md -->
 
 **Expect these headings:**
@@ -151,10 +177,14 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 - `Seams`
 - `Open questions`
 
-#### Run `experience-status`
+## Run `experience-status` — a read of where you are
 
-**You type:** `Show the current design-thread status.`
+**You type:**
 <!-- rung: experience-status SKILL.md -->
+
+```
+Show the current design-thread status.
+```
 
 **Agent returns:**
 <!-- rung: experience-status SKILL.md -->
@@ -188,6 +218,8 @@ Service blueprinting and process mapping can run in parallel with this stage. Th
 - `Existing artifacts`
 - `Missing artifacts`
 - `Recommended next skill`
+
+## Where this leads
 
 **Next:** [Derive the screen flow](derive-the-screen-flow.md).
 <!-- rung: authored -->

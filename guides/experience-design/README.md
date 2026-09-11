@@ -14,7 +14,7 @@ screens, and tell me which design decision comes next.” You receive durable
 design artifacts and an explicit next step; the pack does not write frontend
 code or choose the product bet for you.
 
-## Follow the five-step guidebook
+## Walk the guidebook
 
 This guidebook is for a product designer, product engineer, or product team
 turning an understood user outcome into reviewed screen designs. It assumes you
@@ -32,13 +32,19 @@ Artifact paths use two placeholders:
 - `<slug>` is the short, project-specific name substituted into a file path,
   such as `account-setup`.
 
-Every step uses the same layout: what changes, prerequisites and their cost,
-linked concepts, one run block per skill, the next step, and an authoritative
-source path. Each run block shows what you type, what the agent returns, a real
-correction turn, the decision and judgement point, failure diagnosis, and the
-artifact shape.
+Every step has the same layout, so once you have read one you know where to
+look on the rest. Above the first heading: where you are, what the step changes,
+what you need first and the cost of skipping it, and any concept it depends on.
+Then **What you will run** — a table of that step's skills, what each produces,
+and which ones you actually have to run. Then one **Run** section per skill.
+Then **Where this leads**.
 
-Do these five steps in order:
+Each run section shows what you type, what the agent returns, a turn where you
+push back and the agent adjusts, the decision and judgement point, what to do
+when it goes wrong, and where the artifact lands with the headings to expect
+inside it.
+
+Walk these in order:
 
 1. [Map the customer journey](how-to/map-the-customer-journey.md)
 2. [Derive the screen flow](how-to/derive-the-screen-flow.md)

@@ -25,10 +25,29 @@ order: 3
 
 - [The experience thread](../explanation/the-experience-thread.md) explains how principles, direction, and tokens constrain screen craft.
 
-#### Run `design-principles`
+## What you will run
 
-**You type:** `Turn these journey pains and peak moments into three to five design principles.`
+| Skill | What it produces | Needed? |
+| --- | --- | --- |
+| `design-principles` | 3–5 named principles, each grounded in a journey moment. | Optional |
+| `creative-direction` | Named emotional and brand goals grounded in stable referents. | Required |
+| `design-system` | Primitive and semantic tokens derived from the aesthetic direction. | Optional |
+
+Prompts go into an AI agent session with this pack installed — the same session
+throughout. In every path below, `<output_dir>` is the design output directory
+this pack is configured to write to, and `<slug>` is the short name you give
+this piece of work.
+
+<!-- rung: packs/experience-design/JOURNEY.md -->
+
+## Run `design-principles` — 3–5 decision rules
+
+**You type:**
 <!-- rung: design-principles SKILL.md -->
+
+```
+Turn these journey pains and peak moments into three to five design principles.
+```
 
 **Agent returns:**
 <!-- rung: design-principles SKILL.md -->
@@ -61,10 +80,14 @@ order: 3
 - One heading for each `<Principle title>`
 - `Known tradeoffs`
 
-#### Run `creative-direction`
+## Run `creative-direction` — the aesthetic direction
 
-**You type:** `Set a visual direction for this surface from its audience, persona, precedents, and platform conventions.`
+**You type:**
 <!-- rung: JOURNEY stage 3 -->
+
+```
+Set a visual direction for this surface from its audience, persona, precedents, and platform conventions.
+```
 
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
@@ -88,7 +111,7 @@ order: 3
 **Watch out for:** Confident aesthetic language can conceal guesses. Notice goals with no referent and lines borrowed from a general genre pattern; argue with those first, and reject any direction that conflicts with the quality floor.
 <!-- rung: creative-direction SKILL.md -->
 
-**Where it lands:** `<output_dir>/aesthetic/<slug>.md`, with both bracketed segments replaced for this project.
+**Where it lands:** `<output_dir>/aesthetic/<slug>.md`.
 <!-- rung: authored; creative-direction SKILL.md declares the record but not its path -->
 
 **Expect these headings:**
@@ -101,10 +124,14 @@ order: 3
 - `Dominant goal for arbitration`
 - `Open questions`
 
-#### Run `design-system`
+## Run `design-system` — the token set
 
-**You type:** `Derive the semantic token and scale taxonomy from the approved aesthetic direction.`
+**You type:**
 <!-- rung: JOURNEY stage 3 -->
+
+```
+Derive the semantic token and scale taxonomy from the approved aesthetic direction.
+```
 
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
@@ -128,7 +155,7 @@ order: 3
 **Watch out for:** A complete-looking taxonomy may contain roles projected from general design-system patterns. Notice any role with no direction rationale or accessibility constraint; challenge those lines first and remove unsupported tokens.
 <!-- rung: design-system SKILL.md -->
 
-**Where it lands:** `<output_dir>/aesthetic/<slug>-tokens.md`, with both bracketed segments replaced for this project.
+**Where it lands:** `<output_dir>/aesthetic/<slug>-tokens.md`.
 <!-- rung: authored; design-system SKILL.md declares the taxonomy but not its path -->
 
 **Expect these headings:**
@@ -139,6 +166,8 @@ order: 3
 - `Scale rationale`
 - `Accessibility constraints`
 - `Composition rules`
+
+## Where this leads
 
 **Next:** [Design each screen](design-each-screen.md).
 <!-- rung: authored -->

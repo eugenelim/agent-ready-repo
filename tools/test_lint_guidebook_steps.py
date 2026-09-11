@@ -163,6 +163,16 @@ def _emit(contract, obligation: str) -> list[str]:
         return [f"{label} `artifacts/fixture.md`"]
     if obligation == "artifact_outline":
         return [label, "<!-- rung: outline-source.md -->", "- Overview", "- Decision"]
+    if obligation == "utterance":
+        return [label, "", "```", "Do the fixture thing.", "```"]
+    if obligation == "step_map":
+        return [
+            label,
+            "",
+            "| Skill | What it produces | Needed? |",
+            "| --- | --- | --- |",
+            "| `fixture-skill` | A fixture artifact. | Required |",
+        ]
     return [label, "A fixture sentence."]
 
 
@@ -175,18 +185,63 @@ def _complete_step(tmp_path: Path) -> tuple[Path, object]:
     (guidebook / "outline-source.md").write_text(
         "# Overview\n\n## Decision\n", encoding="utf-8"
     )
-    step_level = [o for o in contract.obligations if contract.scopes[o] == "step"]
+    # Laid out as the contract's page skeleton declares: the step's framing
+    # above the first heading, then the step map, the run block, and the
+    # onward pointers under the closing heading.
+    closing = {"next_step", "go_deeper"}
+    step_level = [
+        o for o in contract.obligations
+        if contract.scopes[o] == "step" and o not in closing and o != "step_map"
+    ]
     per_skill = [o for o in contract.obligations if contract.scopes[o] != "step"]
     lines = ["---", "order: 1", "---", ""]
     for obligation in step_level:
         lines += _emit(contract, obligation)
-    lines += ["", "#### Run `fixture-skill`", ""]
+    lines += [""] + _emit(contract, "step_map")
+    lines += ["", f"{lint_guidebook_steps.RUN_HEADING_FORM} `fixture-skill`", ""]
     for obligation in per_skill:
         lines += _emit(contract, obligation)
-    lines.append("")
+    lines += ["", lint_guidebook_steps.SKELETON_TAIL, ""]
+    for obligation in [o for o in contract.obligations if o in closing]:
+        lines += _emit(contract, obligation)
     step = guidebook / "step.md"
     step.write_text("\n".join(lines), encoding="utf-8")
     return step, contract
+
+
+def test_the_complete_fixture_is_clean(tmp_path: Path) -> None:
+    """The green baseline every omission case is measured against.
+
+    This guard is the one that was missing. The fixture built its run block at
+    `#### Run` after the contract moved to `##`, so nine per-skill obligations
+    reported "no block declares it" — the right obligation name for the wrong
+    reason — and every omission case still passed. Only one case, which asserted
+    on the *detail* rather than the name, noticed. A mutation that makes the
+    baseline dirty must fail here before it is measured anywhere else.
+    """
+    step, contract = _complete_step(tmp_path)
+    findings = lint_guidebook_steps.lint([step.parent], contract)
+    assert findings == [], [finding.render() for finding in findings]
+
+
+def test_the_fixture_declares_every_obligation_in_its_own_scope(tmp_path: Path) -> None:
+    """A per-skill obligation must sit inside the run block, not above it."""
+    step, contract = _complete_step(tmp_path)
+    body = step.read_text(encoding="utf-8")
+    head, _, block = body.partition(lint_guidebook_steps.RUN_HEADING_FORM)
+    # Matched the way the lint matches, because `position`'s label is a
+    # template — `**Step N of M — <title>**` is never a literal on a page.
+    found = lint_guidebook_steps._line_with_label
+    for obligation in contract.obligations:
+        label = contract.labels[obligation]
+        where = block if contract.scopes[obligation] == "per skill" else body
+        assert found(where.splitlines(), label) is not None, (
+            f"{obligation} is not declared in its declared scope"
+        )
+        if contract.scopes[obligation] == "per skill":
+            assert found(head.splitlines(), label) is None, (
+                f"{obligation} leaked above the run block"
+            )
 
 
 def _remove_label(step: Path, contract, obligation: str) -> None:
