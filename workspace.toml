@@ -228,15 +228,6 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Slice A6 of agent-authoring-input-quality, confirmed by the owner
-  # 2026-09-10 and widened the same day from acceptance-criteria set
-  # construction to loop-contract authoring: the plan-authoring rules and a
-  # review-response protocol were absorbed because one defect produced all
-  # three. Registered at spec-approval time, matching the U1 and S1 precedent
-  # below — a brief's child scope derives from its registered spec memberships,
-  # so a confirmed slice with no entry leaves the parent brief with no
-  # execution evidence.
-  {path = "docs/specs/acceptance-criteria-set-construction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:2e2eb308e8e5a51b95ba264be4b2bb4ccfd9a5ea3bdb1276d7b919f96b776e66", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Author a loop contract from obligations rather than from every check: a five-stage selection procedure, a set-level sweep over the spec and plan as one set, and a review-response protocol naming eight answers to a sustained finding", needs = []},
 ]
 shipped = [
   # Slice S2 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
@@ -364,6 +355,16 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
+  # Slice A6 of agent-authoring-input-quality, confirmed by the owner
+  # 2026-09-10 and widened the same day from acceptance-criteria set
+  # construction to loop-contract authoring: the plan-authoring rules and a
+  # review-response protocol were absorbed because one defect produced all
+  # three. Registered in the queue at spec-approval time; work.active requires
+  # Status: Implementing, which EXECUTE writes, matching the U1 and S1 precedent
+  # below — a brief's child scope derives from its registered spec memberships,
+  # so a confirmed slice with no entry leaves the parent brief with no
+  # execution evidence.
+  {path = "docs/specs/acceptance-criteria-set-construction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:2e2eb308e8e5a51b95ba264be4b2bb4ccfd9a5ea3bdb1276d7b919f96b776e66", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Author a loop contract from obligations rather than from every check: a five-stage selection procedure, a set-level sweep over the spec and plan as one set, and a review-response protocol naming eight answers to a sustained finding", needs = []},
   # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and the
   # owner-authorized fourth adversarial round. It remains Draft and requires
