@@ -9,45 +9,56 @@ order: 1
 # Map the customer journey
 
 **Step 1 of 5 — Map the customer journey**
+<!-- rung: JOURNEY stage 1 -->
 
-Start with the customer outcome and the points where the experience breaks. This stage produces the outside-in map that frames the rest of the thread.
+**What changes:** The customer outcome, breakpoints, supporting service context, and internal process context become explicit before screens are named.
+<!-- rung: JOURNEY stage 1 -->
 
-**You need:** a user, their intended outcome, and the surface you are designing.
+**What you need first:** A user, their intended outcome, the surface you are designing, and any evidence you already hold.
+<!-- rung: journey-mapping SKILL.md -->
 
-*Skipping costs:* later choices rest on an untested account of the customer’s path.
+*Skipping costs:* Later choices rest on an untested account of the customer’s path.
+<!-- rung: JOURNEY stage 1 -->
 
 **Concepts:**
+<!-- rung: authored -->
 
 - [The experience thread](../explanation/the-experience-thread.md) explains the customer journey, screen flow, and shared quality floor.
 
-Service blueprinting and process mapping run in parallel with this stage. They are useful context, not gates for moving to the screen flow.
+Service blueprinting and process mapping can run in parallel with this stage. They add context; neither is a gate for moving to the screen flow.
 
 #### Run `journey-mapping`
 
-**You type:** `journey-mapping` — describe the user, the goal, and where the current experience breaks down.
+**You type:** `Map the journey for a new account owner who wants to connect their first data source. The current experience breaks at setup.`
 <!-- rung: JOURNEY stage 1 -->
 
 **Agent returns:**
-
-> **Agent:** a journey map with stages, actions, emotions, pains, opportunities, and a proposed screen list.
-<!-- rung: JOURNEY stage 1, separately attributed from your request -->
-
-**Output varies** with the user, outcome, evidence, and surface.
-<!-- rung: authored -->
-
-**You decide:** approve the journey map before screens are derived from it.
 <!-- rung: JOURNEY stage 1 -->
 
-**Check (grounded):** Can you trace the proposed screens to the stated customer outcome and its failure modes?
-<!-- rung: authored -->
+> **Agent:** A journey map with stages, actions, emotions, pains, opportunities, and a proposed screen list.
 
-**If it fails:** correct the user, outcome, or failing journey moment, then re-prompt with that case.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: journey-mapping SKILL.md -->
 
-**You now hold:** `<output_dir>/journeys/<slug>.md`.
-<!-- rung: SKILL.md -->
+> “You made one stage per screen. Regroup these as coarse phases of the customer outcome, then derive screens later.” The agent replaces the screen-shaped stages with outcome phases and keeps the proposed screens separate.
+
+**Output varies** with the user, outcome, evidence level, surface, and surface genre.
+<!-- rung: journey-mapping SKILL.md -->
+
+**You decide:** Approve the journey map before screens are derived from it.
+<!-- rung: JOURNEY stage 1 -->
+
+**Check (grounded):** Ask whether each proposed screen traces to the customer outcome or a named failure moment; this surfaces screens copied from the current product or added as a wish list.
+<!-- rung: JOURNEY stage 1 -->
+
+**Watch out for:** A polished map may present assumed emotions and pains with the same confidence as observed evidence. Check the `evidence-level`; label unsupported lines as assumptions, then correct the user, outcome, or failing moment and re-run the skill.
+<!-- rung: journey-mapping SKILL.md -->
+
+**Where it lands:** `<output_dir>/journeys/<slug>.md`, where both bracketed segments are replaced for this project.
+<!-- rung: journey-mapping SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/journey-mapping/assets/journey-map-template.md -->
 
 - `Journey: <title>`
 - `Stage 1: <stage name>`
@@ -57,35 +68,38 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Emotional arc`
 - `Handoff notes`
 
-*Source:* `../../../packs/experience-design/.apm/skills/journey-mapping/assets/journey-map-template.md`
-<!-- rung: asset template -->
-
 #### Run `service-blueprint`
 
-**You type:** `Blueprint the services behind this customer journey.`
-<!-- rung: SKILL.md description -->
+**You type:** `Blueprint the people, services, and systems behind this customer journey.`
+<!-- rung: service-blueprint SKILL.md -->
 
 **Agent returns:**
+<!-- rung: service-blueprint SKILL.md -->
 
-> **Agent:** a service blueprint that connects frontstage actions to backstage and support work.
-<!-- rung: SKILL.md -->
+> **Agent:** A five-row service blueprint connecting evidence of service and frontstage actions to backstage and support work.
 
-**Output varies** with the journey touchpoints and named services.
+**You push back:**
+<!-- rung: service-blueprint SKILL.md -->
+
+> “The support system runs in parallel with the employee action, but your column makes it happen afterward. Align both beneath the same frontstage action.” The agent corrects the column without changing the journey sequence.
+
+**Output varies** with the journey touchpoints, screen inventory, named services, and available evidence.
+<!-- rung: service-blueprint SKILL.md -->
+
+**You decide:** Approve named service boundaries only when they help the later architecture work.
 <!-- rung: authored -->
 
-**You decide:** approve the named service boundaries only if they are useful for later architecture work.
-<!-- rung: authored -->
+**Check (observable):** Follow one frontstage action down its column; this surfaces missing employee, system, or support work behind what the customer encounters.
+<!-- rung: service-blueprint SKILL.md -->
 
-**Check (observable):** Does each frontstage action have enough backstage context to explain how it is supported?
-<!-- rung: authored -->
+**Watch out for:** A confident blueprint may invent backstage services when evidence is thin. Notice service names with no source or owner, mark those general-pattern guesses first, and replace them with known context or an open question.
+<!-- rung: service-blueprint SKILL.md -->
 
-**If it fails:** add the missing touchpoint or service context and re-prompt.
-<!-- rung: authored -->
-
-**You now hold:** `<output_dir>/blueprints/<slug>.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/blueprints/<slug>.md`, with both bracketed segments replaced for this project.
+<!-- rung: service-blueprint SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/service-blueprint/assets/service-blueprint-template.md -->
 
 - `Service Blueprint: <Journey Name>`
 - `Summary`
@@ -95,35 +109,38 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Hand-off`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/service-blueprint/assets/service-blueprint-template.md`
-<!-- rung: asset template -->
-
 #### Run `process-mapping`
 
-**You type:** `Map the internal process behind this experience.`
-<!-- rung: SKILL.md description -->
+**You type:** `Map the internal process that supports this experience, from its trigger to its operational outcome.`
+<!-- rung: process-mapping SKILL.md -->
 
 **Agent returns:**
+<!-- rung: process-mapping SKILL.md -->
 
-> **Agent:** an as-is and to-be process map for the internal operation.
-<!-- rung: SKILL.md -->
+> **Agent:** A SIPOC, as-is and to-be swimlanes, a pain register, and the delta between current and target operations.
 
-**Output varies** with the actors, handoffs, and operational evidence.
+**You push back:**
+<!-- rung: process-mapping SKILL.md -->
+
+> “You put the customer’s click in an internal swimlane and skipped the SIPOC. Move the customer action back to the journey context and bound this process before drawing lanes.” The agent rebuilds the map around internal actors and handoffs.
+
+**Output varies** with the actors, source material, handoffs, and operational evidence.
+<!-- rung: process-mapping SKILL.md -->
+
+**You decide:** Choose whether the internal process belongs in this design thread.
 <!-- rung: authored -->
 
-**You decide:** choose whether the internal process is in scope for this design thread.
-<!-- rung: authored -->
+**Check (falsifiable):** Ask which named actor owns each handoff and decision gate; this surfaces orphaned activities and branches with no accountable lane.
+<!-- rung: process-mapping SKILL.md -->
 
-**Check (falsifiable):** Can a named actor and decision gate explain every material handoff?
-<!-- rung: authored -->
+**Watch out for:** The map can look complete while mixing customer stages with internal work. Notice customer actions inside actor lanes or a swimlane with no SIPOC boundary; move the former to the journey and add the latter before continuing.
+<!-- rung: process-mapping SKILL.md -->
 
-**If it fails:** supply the missing actor, activity, or exception and re-prompt.
-<!-- rung: authored -->
-
-**You now hold:** `<output_dir>/processes/<slug>.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/processes/<slug>.md`, with both bracketed segments replaced for this project.
+<!-- rung: process-mapping SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/process-mapping/assets/process-flow-template.md -->
 
 - `Process Map: <L3 Process Name>`
 - `SIPOC`
@@ -134,43 +151,46 @@ Service blueprinting and process mapping run in parallel with this stage. They a
 - `Seams`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/process-mapping/assets/process-flow-template.md`
-<!-- rung: asset template -->
-
 #### Run `experience-status`
 
 **You type:** `Show the current design-thread status.`
-<!-- rung: SKILL.md description -->
+<!-- rung: experience-status SKILL.md -->
 
 **Agent returns:**
+<!-- rung: experience-status SKILL.md -->
 
-> **Agent:** a read-only account of what design artifacts exist, what is missing, and which skill fits next.
-<!-- rung: SKILL.md -->
+> **Agent:** A read-only account of existing journey maps, screen flows, per-screen briefs, and service blueprints, followed by the next fitting skill.
 
-**Output varies** with the configured design output directory.
+**You push back:**
+<!-- rung: experience-status SKILL.md -->
+
+> “The design output is not configured; do not report its artifacts as missing.” The agent changes the result to “not configured,” recommends `journey-mapping`, and leaves the filesystem unchanged.
+
+**Output varies** with the configured design output directory and the artifacts found there.
+<!-- rung: experience-status SKILL.md -->
+
+**You decide:** Whether the reported state matches the work you intend to continue.
 <!-- rung: authored -->
 
-**You decide:** whether the reported state matches the work you intend to continue.
-<!-- rung: authored -->
+**Check (observable):** Compare one reported count and path with the configured output directory; this surfaces stale locations and files that do not carry the expected artifact marker.
+<!-- rung: experience-status SKILL.md -->
 
-**Check (observable):** Does the status distinguish existing artifacts from missing ones?
-<!-- rung: authored -->
+**Watch out for:** “Missing” and “not configured” require different moves. If no output directory is configured, the report says so and stops; run `journey-mapping` to establish it instead of asking this read-only skill to write configuration.
+<!-- rung: experience-status SKILL.md -->
 
-**If it fails:** configure the output location or name the artifact you expect, then re-run it.
-<!-- rung: authored -->
-
-**Writes no artifact.** It reports to the chat and leaves nothing on disk, so there is no path to hold.
-<!-- rung: SKILL.md -->
+**Writes no artifact.** It reports in the agent session and does not change files.
+<!-- rung: experience-status SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: experience-status SKILL.md -->
 
 - `Current design-thread status`
 - `Existing artifacts`
 - `Missing artifacts`
 - `Recommended next skill`
 
-*Source:* `authored`
-<!-- rung: authored; this skill reports status rather than writing a document -->
+**Next:** [Derive the screen flow](derive-the-screen-flow.md).
+<!-- rung: authored -->
 
-**Next:** [derive the screen flow](derive-the-screen-flow.md).
+**Go deeper:** `packs/experience-design/.apm/skills/journey-mapping/SKILL.md`
 <!-- rung: authored -->

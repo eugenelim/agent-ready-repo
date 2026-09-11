@@ -42,6 +42,9 @@ judgement kinds and prohibited vocabulary from this section.
 | `artifact_outline` | The headings to expect inside it, with the source of that outline declared |
 | `next_step` | What to run next, named and linked |
 | `concept_resolved` | Any concept the step depends on, named and linked to where it is explained |
+| `what_changes` | What this step makes different, and what it costs to skip it |
+| `correction` | One turn where the reader pushes back and the agent adjusts |
+| `go_deeper` | One closing pointer at the authoritative source this step projects from |
 
 ### How a step is written
 
@@ -51,16 +54,19 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | Obligation | Label | Scope |
 | --- | --- | --- |
 | `position` | `**Step N of M — <title>**` | step |
-| `prerequisite_cost` | `**You need:**` plus `*Skipping costs:*` | step |
+| `what_changes` | `**What changes:**` | step |
+| `prerequisite_cost` | `**What you need first:**` plus `*Skipping costs:*` | step |
 | `concept_resolved` | `**Concepts:**` with links | step |
 | `next_step` | `**Next:**` with a link | step |
+| `go_deeper` | `**Go deeper:**` with a path | step |
 | `utterance` | `**You type:**` | per skill |
 | `attributed_response` | `**Agent returns:**` then a blockquote | per skill |
+| `correction` | `**You push back:**` then a blockquote | per skill |
 | `variability` | `**Output varies**` | per skill |
 | `decision` | `**You decide:**`, or `**No decision gate at this step.**` | per skill |
 | `judgement_check` | `**Check (<kind>):**` | per skill |
-| `failure_path` | `**If it fails:**` | per skill |
-| `artifact_location` | `**You now hold:**` with a backticked path, or `**Writes no artifact.**` | per skill |
+| `failure_path` | `**Watch out for:**` | per skill |
+| `artifact_location` | `**Where it lands:**` with a backticked path, or `**Writes no artifact.**` | per skill |
 | `artifact_outline` | `**Expect these headings:**`, or `**Writes no artifact.**` | per skill |
 
 A per-skill obligation is declared inside that skill's own `#### Run \`<skill>\``
@@ -75,13 +81,32 @@ Worked examples of each label, and the exact parse, are in
 
 Take each projected value from the highest rung of its ladder that exists — the
 pack's `JOURNEY.md` stage, then the skill's `SKILL.md`, then authored — and
-record which rung it came from **in an HTML comment**, `<!-- rung: … -->`, on
-the line after the label. Authoring is permitted only where no higher rung
+record which rung it came from **in an HTML comment**, `<!-- rung: … -->`,
+anywhere inside that obligation's block.
+
+**Where the rung is a file, write its repository-relative path.** For
+`artifact_outline` this is load-bearing: the lint compares the stated headings
+against that file, so a rung naming a source without its path — "the skill's
+asset template" — makes the comparison silently do nothing. Write
+`<!-- rung: packs/<pack>/.apm/skills/<skill>/assets/<file>.md -->`, or
+`<!-- rung: authored -->` when there is nothing to compare against. Authoring is permitted only where no higher rung
 exists.
 
 The comment form is not decoration. Provenance is bookkeeping for a maintainer
 and a lint; a reader asked what "Rung" meant when it was published as visible
 prose. A comment keeps it checkable and keeps it off the page.
+
+`correction` exists because a step showing only a clean response teaches a
+reader to accept the first draft. Show the reader rejecting something and the
+agent adjusting — confident output is a halo effect, and a guide that never
+models disagreement is a demo.
+
+`what_changes` states what the step makes different. A step with no stated
+purpose reads as ceremony. Keep it factual: this surface's content brief
+forbids a persuasive before-and-after framing.
+
+`go_deeper` closes with a path, not prose. The pack's own files stay
+authoritative and each step is a projection of them.
 
 Three further rules a lint enforces, each because a reader hit it:
 

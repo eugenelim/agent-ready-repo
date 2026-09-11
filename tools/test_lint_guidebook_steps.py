@@ -129,22 +129,45 @@ def test_ac0001_the_contract_declares_its_prohibited_vocabulary() -> None:
 # T2 — construction tests for the executable contract enforcement.
 # --------------------------------------------------------------------------
 
-def _obligation_with(contract, label_fragment: str) -> str:
-    """Find an obligation through its contract label, never a local id list."""
-    return next(
-        obligation
-        for obligation, label in contract.labels.items()
-        if label_fragment in label
-    )
-
-
 def _primary_label(contract, obligation: str) -> str:
     """Return the first literal label declared by one contract table row."""
     return lint_guidebook_steps._label_variants(contract.labels[obligation])[0]
 
 
+def _emit(contract, obligation: str) -> list[str]:
+    """Render one obligation in its declared form.
+
+    Keyed on the obligation **id**, never on its label text. An earlier version
+    looked obligations up by label — "You need:", "You now hold:" — and every
+    reader-facing rename broke twenty fixtures at once. The id is stable; the
+    label is the contract's to change.
+    """
+    label = _primary_label(contract, obligation)
+    if obligation == "position":
+        return ["**Step 1 of 1 — Fixture**"]
+    if obligation == "prerequisite_cost":
+        return [label, "*Skipping costs:* the result becomes unreliable."]
+    if obligation == "concept_resolved":
+        return [label, "- Fixture concept: [explanation](concept.md)"]
+    if obligation == "next_step":
+        return [f"{label} [Continue](concept.md)"]
+    if obligation == "go_deeper":
+        return [f"{label} `packs/fixture/.apm/skills/fixture-skill/SKILL.md`"]
+    if obligation in ("attributed_response", "correction"):
+        return [label, "> The fixture exchange."]
+    if obligation == "variability":
+        return [f"{label} with your inputs."]
+    if obligation == "judgement_check":
+        return [f"**Check ({contract.judgement_kinds[0]}):** Does it fit this fixture?"]
+    if obligation == "artifact_location":
+        return [f"{label} `artifacts/fixture.md`"]
+    if obligation == "artifact_outline":
+        return [label, "<!-- rung: outline-source.md -->", "- Overview", "- Decision"]
+    return [label, "A fixture sentence."]
+
+
 def _complete_step(tmp_path: Path) -> tuple[Path, object]:
-    """Build one valid step and its local concept/outline sources."""
+    """Build one step satisfying every obligation the contract enumerates."""
     contract = lint_guidebook_steps.parse_contract(CONTRACT)
     guidebook = tmp_path / "guidebook"
     guidebook.mkdir()
@@ -152,37 +175,15 @@ def _complete_step(tmp_path: Path) -> tuple[Path, object]:
     (guidebook / "outline-source.md").write_text(
         "# Overview\n\n## Decision\n", encoding="utf-8"
     )
-    position = _obligation_with(contract, "Step N of M")
-    prerequisite = _obligation_with(contract, "You need:")
-    concepts = _obligation_with(contract, "Concepts:")
-    next_step = _obligation_with(contract, "Next:")
-    utterance = _obligation_with(contract, "You type:")
-    response = _obligation_with(contract, "Agent returns:")
-    variability = _obligation_with(contract, "Output varies")
-    decision = _obligation_with(contract, "You decide:")
-    judgement = _obligation_with(contract, "Check (<kind>)")
-    failure = _obligation_with(contract, "If it fails:")
-    location = _obligation_with(contract, "You now hold:")
-    outline = _obligation_with(contract, "Expect these headings:")
-    lines = [
-        "---", "order: 1", "---", "",
-        "**Step 1 of 1 — Fixture**",
-        _primary_label(contract, prerequisite),
-        "*Skipping costs:* a missing prerequisite makes the result unreliable.",
-        _primary_label(contract, concepts),
-        "- Fixture concept: [explanation](concept.md)",
-        _primary_label(contract, next_step) + " [Continue](concept.md)",
-        "", "#### Run `fixture-skill`", "",
-        _primary_label(contract, utterance), "Use the fixture skill.",
-        _primary_label(contract, response), "> The fixture result.",
-        _primary_label(contract, variability) + " with your inputs.",
-        _primary_label(contract, decision), "Choose whether to continue.",
-        f"**Check ({contract.judgement_kinds[0]}):** The result fits this fixture.",
-        _primary_label(contract, failure), "Fix locally, then retry the failing case.",
-        _primary_label(contract, location) + " `artifacts/fixture.md`",
-        _primary_label(contract, outline),
-        "*Source:* `outline-source.md`", "- Overview", "- Decision", "",
-    ]
+    step_level = [o for o in contract.obligations if contract.scopes[o] == "step"]
+    per_skill = [o for o in contract.obligations if contract.scopes[o] != "step"]
+    lines = ["---", "order: 1", "---", ""]
+    for obligation in step_level:
+        lines += _emit(contract, obligation)
+    lines += ["", "#### Run `fixture-skill`", ""]
+    for obligation in per_skill:
+        lines += _emit(contract, obligation)
+    lines.append("")
     step = guidebook / "step.md"
     step.write_text("\n".join(lines), encoding="utf-8")
     return step, contract
@@ -199,7 +200,7 @@ def _remove_label(step: Path, contract, obligation: str) -> None:
 
 def test_ac0002_missing_obligation_reports_step_and_identifier(tmp_path: Path) -> None:
     step, contract = _complete_step(tmp_path)
-    obligation = _obligation_with(contract, "You need:")
+    obligation = "prerequisite_cost"
     _remove_label(step, contract, obligation)
     findings = lint_guidebook_steps.lint([step.parent], contract)
     finding = next(finding for finding in findings if finding.obligation == obligation)
@@ -223,7 +224,7 @@ def test_ac0003_each_contract_obligation_detects_its_omission(
 def test_ac0003_artifact_outline_detects_divergence_from_its_source(tmp_path: Path) -> None:
     """Mutation proof: retain the label but make its stated outline diverge."""
     step, contract = _complete_step(tmp_path)
-    obligation = _obligation_with(contract, "Expect these headings:")
+    obligation = "artifact_outline"
     step.write_text(
         step.read_text(encoding="utf-8").replace("- Decision", "- Different heading"),
         encoding="utf-8",
@@ -234,7 +235,7 @@ def test_ac0003_artifact_outline_detects_divergence_from_its_source(tmp_path: Pa
 
 def test_ac0014_judgement_kind_is_required_and_closed(tmp_path: Path) -> None:
     step, contract = _complete_step(tmp_path)
-    obligation = _obligation_with(contract, "Check (<kind>)")
+    obligation = "judgement_check"
     text = step.read_text(encoding="utf-8")
     text = re.sub(r"\*\*Check \([^)]+\):\*\*", "**Check:**", text)
     step.write_text(text, encoding="utf-8")
@@ -256,7 +257,7 @@ def test_ac0014_judgement_kind_is_required_and_closed(tmp_path: Path) -> None:
 
 def test_ac0022_unresolved_named_concept_fails(tmp_path: Path) -> None:
     step, contract = _complete_step(tmp_path)
-    obligation = _obligation_with(contract, "Concepts:")
+    obligation = "concept_resolved"
     step.write_text(
         step.read_text(encoding="utf-8").replace("concept.md", "missing-concept.md"),
         encoding="utf-8",
