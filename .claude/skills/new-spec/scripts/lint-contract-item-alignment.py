@@ -6,7 +6,7 @@ directory and owns no lifecycle question -- status vocabulary, ship transitions,
 deferral anchors and contract traceability belong to the spec-status lint, and
 duplicating them here would put two homes on one obligation.
 
-Nine rules, all mechanical:
+The rules, all mechanical:
 
   1. every acceptance criterion carries a well-formed identifier
   2. identifiers are unique within the spec directory
@@ -23,8 +23,8 @@ Nine rules, all mechanical:
 Rule 5 is scoped to task entries -- a task's ``Tests:`` and ``Done when:``
 blocks -- and not to the whole document. The weaker form, "does this identifier
 appear anywhere in plan.md", passes on a mention in prose, in a changelog, or in
-another task's rationale; it went green on this repository's own contract while
-a criterion had no implementing bullet at all.
+another task's rationale, so a criterion with no implementing bullet anywhere
+reads as covered.
 
 Forward-only by construction: a spec whose criteria carry no identifiers is
 skipped entirely, so introducing this check does not fail a corpus authored
@@ -47,8 +47,8 @@ from pathlib import Path
 # here rather than in the suite so the two cannot drift: the messages below are
 # formatted from these fragments, and the suite asserts that each fragment is
 # exercised by some case. A rule whose fragment no test observes is a rule with
-# no red case -- which is how four rules shipped with green suites and no way to
-# fail. It is a floor, not a derivation: a test could contain a fragment without
+# no red case, so its suite is green for a reason unrelated to whether the rule
+# works. It is a floor, not a derivation: a test could contain a fragment without
 # asserting on it, and only running the case proves the branch is reachable.
 FINDING_KINDS = {
     "unlabelled": "criterion carries no identifier",
@@ -73,11 +73,11 @@ FINDING_KINDS = {
 # repository's own convention for its spec-status lint.
 FINDING_CAP = 20
 
-# Every rule whose input is plan.md. Each reports itself as having no input when
-# no plan is present: a rule that silently runs on nothing is the
+# The rules that report no input when plan.md is absent. Rule 4 is deliberately
+# not here: it reads both texts and still decides the spec half, so it is
+# partially applied rather than unapplied, and listing it would claim a rule ran
+# on nothing when half of it ran. A rule that silently runs on nothing is the
 # partial-read-as-clean failure this module exists to detect in other artifacts.
-# Module-level so the suite derives its expectation from this tuple -- the
-# hand-listed pair it used before stayed green when a third rule joined.
 PLAN_GATED = ("task-entry", "derived-item", "broken-entry")
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)

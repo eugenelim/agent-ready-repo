@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Answer "what already governs these paths?" before a spec or plan is authored.
 
-Seven probes, seeded by the paths a change will touch, selected by stage. The cost is bounded by the
+Probes, seeded by the paths a change will touch, selected by stage. The cost is bounded by the
 seed set and its references rather than by the repository, which is the whole
 difference from a repository map: a map's cost scales with the repository and its
 token budget truncates exactly the rare edge you needed.
