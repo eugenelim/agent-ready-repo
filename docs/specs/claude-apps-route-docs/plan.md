@@ -74,7 +74,7 @@ Settled this session, recorded here so the implementer does not re-derive them:
 | The two plugin stores are separate | Register-once-per-surface is a step-level warning at the registration step, not a footnote |
 | Sub-agents and hooks are Cowork-only; skills work everywhere | `product-strategy` is the worked example because it ships no sub-agents, so nothing degrades silently while a reader is learning to trust the surface |
 | Inline SVG is removed by GitHub's renderer; `<img>` and `<picture>` survive | Any future diagram is `<img>`; the capability reference is a table |
-| Guides cannot carry a working image on both surfaces | AC19 forbids images in both new pages until the projection defect is fixed |
+| Guides cannot carry a working image on both surfaces | AC18 forbids images in both new pages until the projection defect is fixed |
 | An organisation marketplace needs a private repo synced from its default branch | The how-to names the personal path first; the organisation path is the admin fallback, not the default |
 
 ## Tasks
@@ -82,13 +82,13 @@ Settled this session, recorded here so the implementer does not re-derive them:
 ### T1 — Capability reference
 
 **Depends on:** none
-**Implements:** Objective outcome 3; AC4, AC5, AC19
+**Implements:** Objective outcome 3; AC4, AC5
 **Mode:** goal-based check
 
 **Tests:** `validate_guides.py` and `lint-guide-titles.py` cover frontmatter and
 title-H1 identity for the new file; neither exists as a per-page assertion, so
 the check is that both exit 0 with the file present. Row completeness is
-verified by reading the rendered table against the four surfaces named in AC3 —
+verified by reading the rendered table against the four surfaces and five columns named in AC4 —
 there is no fixture, and inventing one would pin the table to itself.
 
 **Approach:** Add the reference page. Source every row from ADR-0107 and the
@@ -100,7 +100,7 @@ anyway.
 ### T2 — Registration how-to
 
 **Depends on:** T1
-**Implements:** Objective outcome 2; AC1, AC2, AC3, AC17, AC18
+**Implements:** Objective outcome 2; AC1, AC2, AC3, AC17, AC18, AC19
 **Mode:** goal-based check, then manual QA in T6
 
 **Tests:** Same two gates as T1. AC2's placement is checked by reading the
@@ -117,7 +117,7 @@ differ; restate neither.
 ### T3 — install-routes links
 
 **Depends on:** T1, T2
-**Implements:** AC10, AC14, AC15
+**Implements:** AC10, AC14, AC15, AC20, AC21, AC22
 **Mode:** goal-based check
 
 **Tests:** `lint-plugin-route-docs.py` exits 0, and every literal the linter

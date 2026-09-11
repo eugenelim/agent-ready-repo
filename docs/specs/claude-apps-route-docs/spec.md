@@ -55,12 +55,18 @@ A first-time user who works in Claude Desktop and has no terminal finds, from
 the public home page, a documented route into this catalogue — and can tell,
 before spending effort, which surface does what.
 
-**Two target surfaces, one guide.** Claude Desktop's **Code tab** and the
-**Claude apps** (Desktop chat, web chat, Cowork) are both viable and both
-supported. They differ in exactly two things: the interface a reader uses, and
-how the catalogue is first registered. Everything after that — which packs to
-install, what to expect, where capabilities differ — is common, so the guide
-carries one body with two entry paths rather than splitting into two guides.
+**Two entry paths with shared navigation, not equivalent capabilities.** The
+Code tab and the Claude apps can share pack-selection links and the boundary
+that installation success is unverified. Their registration procedures and
+post-registration expectations remain surface-specific: the plugin stores are
+separate; filesystem access, sub-agents, hooks and artifact destinations differ
+or are unestablished. One guide may single-home genuinely shared material, but
+each path keeps its own steps, limitations and expected outcomes.
+
+An earlier wording claimed the surfaces "differ in exactly two things" and that
+everything after registration is common. That is false by this spec's own
+content — AC4, AC5 and AC18 exist precisely because behaviour after
+registration is not common.
 
 **The Code tab is the recommended default** because nothing degrades there:
 sub-agents run, the filesystem is readable and writable, and there is one
@@ -210,12 +216,12 @@ recorded so a later round does not re-raise them as open.
   the criterion can still fail, the comparison documents are named, and AC16
   already carries a human-observed check, so this adds no new class of
   verification burden.
-- **AC14 conjoins four linters.** Round 1 split criteria that joined different
-  predicates, and by that logic this could be four. Accepted as one: the four
-  are the same kind of check over the same tree with one remedy path — fix the
-  file and rerun — and splitting them would inflate the set without changing
-  what any implementer does. The `Verification` block in the plan already runs
-  them separately so a failure names itself.
+- **AC14's acceptance is retracted, 2026-09-10.** It was accepted as one
+  criterion on the reasoning that four linters are "the same kind of check with
+  one remedy path". That fails the governing contract: the four inspect
+  different contracts, fail differently, and are fixed differently, so they are
+  four observers and the one-observer rule decides it. Criterion count is
+  descriptive and was never a reason to merge. Split into AC14 and AC20–AC22.
 
 Neither is a defect discovered late; both are judgements recorded at the point
 they were made.
@@ -234,7 +240,27 @@ the share of findings introduced by the previous round's repair rose. That is
 the pattern a repair-first habit produces, and continuing would most likely
 have surfaced a seventh defect of the same origin.
 
-**Review debt, 2026-09-10 — the six rounds no longer cover this text.** After
+**Fresh whole-spec review, 2026-09-10 — `NEEDS CHANGES`, two findings open.**
+A reviewer read the spec cold against the acceptance-criteria construction
+contract. Three blocking and two major findings. Applied: the false
+"differ in exactly two things" premise (B2), the four-linter criterion split
+into AC14 and AC20–AC22 with its acceptance retracted (M1), and three stale
+plan mappings from a late renumber (M2). **Open: B1 and B3.**
+
+- **B1 — this spec contradicts its parent, and only the owner can resolve it.**
+  `claude-apps-first-value-entry` records that "plugins for the chat surface
+  become a later, separate decision" and are worth having "only if the
+  degradation is repaired first". This spec now offers the Claude-apps
+  registration path as an equal supported route. Either the parent is amended
+  to admit both surfaces, or AC1–AC3 and T2 drop the Claude-apps branch. Not
+  repairable here: it is an owner decision, not a defect.
+- **B3 — no acceptance-set construction record.** The governing contract
+  requires the candidate count, every candidate's disposition and owner, each
+  criterion's red input, and a two-way coverage pass. Deliberately **not**
+  written yet: B1 changes which criteria exist, so building the record first
+  would produce one that is wrong the moment B1 resolves.
+
+**Prior debt, still true.** After
 they ran, the owner widened the spec to target Claude Desktop's Code tab
 alongside the Claude apps. That changed the Objective and AC1, and reworded
 AC2. A material edit to Objective or Acceptance Criteria invalidates a shaping
@@ -296,8 +322,7 @@ an honest record that a human read is the control not yet applied.
 - [ ] **AC13.** No file changed by this spec publishes a count of reviewers,
       security modules, scanners, lifecycle stages, feedback loops, or knowledge
       topics.
-- [ ] **AC14.** Each of `lint-plugin-route-docs.py`, `validate_guides.py`,
-      `check-guide-index.py`, and `lint-guide-titles.py` exits 0.
+- [ ] **AC14.** `lint-plugin-route-docs.py` exits 0.
 - [ ] **AC15.** Every literal pinned for `install-routes.md` by
       `lint-plugin-route-docs.py` is byte-identical to its accepted-base value.
 - [ ] **AC16.** A reader who has not seen these surfaces, given only the home
@@ -315,3 +340,6 @@ an honest record that a human read is the control not yet applied.
 - [ ] **AC19.** Before the reader selects a discipline pack, the how-to links
       to the capability reference created by AC4 as the place to check
       surface-specific limits.
+- [ ] **AC20.** `validate_guides.py` exits 0.
+- [ ] **AC21.** `check-guide-index.py` exits 0.
+- [ ] **AC22.** `lint-guide-titles.py` exits 0.
