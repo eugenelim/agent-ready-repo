@@ -362,13 +362,17 @@ If the read shows an obligation that is satisfiable mechanically but useless to
 a reader, **stop and surface** rather than carrying the contract into four more
 packs. That is the whole reason this task exists between waves.
 
-**Done when:** the cold read is recorded with all eight answers per step,
-**every execution defect it found is resolved and the affected step re-read**,
-and
-`git status --short` is clean. A recorded disposition is not sufficient: AC-0021
-is false while any execution defect stands, and T5 must not open while it is
-false. If a defect cannot be resolved without changing the contract, stop and
-surface rather than deferring it into the next wave.
+**Done when:** the cold read is recorded with all eight answers per step; every
+**mechanically decidable** finding is closed **by a lint check that fails
+without the fix**, so it cannot recur in the four remaining packs; every
+judgement finding is recorded with a disposition; and `git status --short` is
+clean.
+
+The split is the point. A finding a check can decide is closed once and for all
+five packs by strengthening the lint, which is worth more than fixing five
+pages. A finding about prose adequacy is authoring guidance for the later
+waves, not a gate, because severity is not the reader's to assign and prose is
+malleable.
 
 ## Wave 2 — the packs whose journeys already reach every skill
 
@@ -414,7 +418,13 @@ with no unresolved execution defect.
 **Tests:** the AC-0004 to AC-0008, AC-0015 and AC-0022 cases extended to both
 packs, red first.
 
-**Approach:** 6 steps and 7 steps. These carry the largest orphan sets — 9 of 15
+**Approach:** 6 steps and 7 steps. **`core` absorbs rather than adds.** It
+already carries four ordered pages at orders 9 to 12 tagged `journey: core`;
+those are renumbered into the seven-step sequence and reused as steps where
+they already cover a stage, so the pack ends with one guidebook and no orphan
+fragment. Three of the four are also S3 or S5 targets — the only pages in the
+whole corpus where this slice and a sibling genuinely collide — so T8's
+carve-out covers exactly those three. These carry the largest orphan sets — 9 of 15
 and 10 of 18 skills unnamed in their journeys — so AC-0008 does the most work
 here. `core` is also the most expensive pack for the outline obligation, with 13
 of 18 skills declaring no form per
@@ -479,14 +489,14 @@ target universe derived from the three siblings' accepted-base ledgers, this
 ledger's rows, and the reciprocal records. Two-set equality is insufficient and
 the case proves it, because a target missing from both sides satisfies it.
 
-**Approach:** first enumerate the concrete carve-out. Read the accepted-base
-ledgers of `guide-invocation-outcome-coverage`, `tutorial-worked-examples` and
-`how-to-sample-output-coverage`, list every target path each one owns inside the
-five packs, and record in the ledger which of those this slice takes and which
-each sibling retains. A pack-level statement is not sufficient and AC-0012
-compares paths: S3 alone holds 16 `packs/**/.apm/skills/**` targets inside the
-five packs that this slice cannot edit, and an aggregate carve-out would strand
-any guide target it failed to name.
+**Approach:** the enumeration is **done** and recorded in
+[`notes/ownership-consolidation.md`](notes/ownership-consolidation.md): 34
+sibling guide targets sit inside the five packs and 31 carry no `order:`, so
+they are not guidebook steps and stay with their siblings, as do S3's 16
+`packs/**` targets. **Only three pages collide**, all in `guides/core/`, and the
+carve-out covers exactly those. A pack-level statement would have stranded the
+other 31 in neither slice, which is why AC-0012 compares paths against the
+siblings' accepted-base universe.
 
 Then, for each artifact in
 [`notes/ownership-consolidation.md`](notes/ownership-consolidation.md), add its
@@ -559,6 +569,21 @@ its count and runtime, plus the per-pack affordance before-and-after.
 - 2026-09-11 — Owner direction: consolidate the superseded intents and slugs.
   Ledger at [`notes/ownership-consolidation.md`](notes/ownership-consolidation.md);
   the earlier `four-discipline-walk-execution` slug is retired.
+- 2026-09-11 — **Owner direction, amending AC-0021 and T4.** Only mechanically
+  decidable findings block a wave. The first cold read labelled eleven findings
+  "execution defects" and the criterion made every one a blocker, which handed
+  the gate to a model's severity label. Three were decidable and became lint
+  checks; the rest are authoring guidance.
+- 2026-09-11 — **Amendment during T3/T8 enumeration.** The recorded
+  supersession over-reached. Measured, 31 of the 34 sibling guide targets inside
+  the five packs carry no `order:` and are therefore not guidebook steps, and
+  S3 holds 16 `packs/**` targets this slice cannot edit — superseding would have
+  stranded 47 targets in neither slice. Nothing is superseded; the carve-out is
+  three pages in `guides/core/`. Owner decision the same day, correcting a
+  decision taken before the targets were enumerated.
+- 2026-09-11 — **Owner decision:** `core` already carries an ordered fragment at
+  orders 9 to 12, so T6 absorbs those four pages into its seven-step guidebook
+  rather than leaving two competing ordered sets on one sidebar.
 - 2026-09-11 — **Amendment during T1.** AC-0001's Testing Strategy compared the
   contract's identifiers against the spec's obligation table; that table is
   numbered and carries no identifiers, so the oracle was not implementable. It

@@ -328,6 +328,57 @@ def _check_obligation(
             detail = _check_concepts(lines, index, path)
             if detail:
                 findings.append(Finding(path, step, obligation, detail))
+        elif primary.startswith("**Next:") and not re.search(r"\]\([^)]+\)", line):
+            # A cold reader could not act on "continue with the build workflow".
+            findings.append(Finding(path, step, obligation, "must carry a resolving link, not a prose promise"))
+    return findings
+
+
+PROVENANCE = re.compile(r"\*\(\s*Rung:", re.I)
+PLACEHOLDER = re.compile(r"\[/[A-Za-z][A-Za-z-]*\]|\{\{[^}]*\}\}")
+
+
+def _pack_skills(step_path: Path) -> set[str]:
+    """The published skills of the pack that owns this guide page.
+
+    Derived from the path — `guides/<pack>/...` — so a step cannot name a
+    runnable from another pack, or one that does not exist at all. Returns an
+    empty set when the pack ships no skills directory, which makes the runnable
+    check inert rather than wrong for a guide outside a pack.
+    """
+    parts = step_path.resolve().parts
+    if "guides" not in parts:
+        return set()
+    pack = parts[parts.index("guides") + 1]
+    root = Path(*parts[: parts.index("guides")]) / "packs" / pack / ".apm" / "skills"
+    if not root.is_dir():
+        return set()
+    return {child.name for child in root.iterdir() if (child / "SKILL.md").is_file()}
+
+
+def check_page(path: Path, step: str, body: str, contract: Contract) -> list[Finding]:
+    """Whole-page rules that belong to no single obligation.
+
+    Each of these was found by a first-time reader of a real guidebook, and
+    each is decidable, which is why it is gated here rather than argued over.
+    """
+    findings: list[Finding] = []
+    if PROVENANCE.search(body):
+        findings.append(Finding(path, step, "provenance", "records a rung in visible prose; use an HTML comment"))
+    for bad in PLACEHOLDER.findall(body):
+        findings.append(Finding(path, step, "placeholder", f"`{bad}` is not the declared `<segment>` form"))
+    return findings
+
+
+def check_named_runnables(path: Path, step: str, body: str, skills: set[str]) -> list[Finding]:
+    """Every runnable a step names must be a published skill of its pack."""
+    findings: list[Finding] = []
+    for name in sorted(set(re.findall(r"^#### Run `([a-z0-9-]+)`", body, re.M))):
+        if name not in skills:
+            findings.append(Finding(path, step, "runnable", f"`{name}` is not a published skill of this pack"))
+    for name in sorted(set(re.findall(r"[Rr]un `([a-z0-9-]+)`", body))):
+        if name not in skills and not re.search(r"^#### Run `" + re.escape(name), body, re.M):
+            findings.append(Finding(path, step, "runnable", f"`{name}` is presented as a run but is not a published skill"))
     return findings
 
 
@@ -359,6 +410,8 @@ def check_step(path: Path, contract: Contract) -> list[Finding]:
         for check in registered_checks(contract).values()
         for finding in check(path, step, body)
     ]
+    findings.extend(check_page(path, step, body, contract))
+    findings.extend(check_named_runnables(path, step, body, _pack_skills(path)))
     lowered = body.casefold()
     for term in contract.prohibited_terms:
         if term.casefold() in lowered:
