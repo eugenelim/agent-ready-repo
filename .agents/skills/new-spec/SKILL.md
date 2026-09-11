@@ -654,6 +654,27 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    places, record which statement is the owner and reduce the other to a
    cross-reference.
 
+   **The checks this skill ships, and where each is run.** Every check in this
+   skill's own `scripts/` is invoked by a named step, because a control nobody
+   calls reports nothing and is indistinguishable from one that found nothing.
+   Run them from the repository root as
+   `python '<skill-dir>/scripts/<name>.py'`, and read each one's `--help` for
+   its flags and exit codes.
+
+   - `lint-contract-item-alignment.py` — run here, at step 9, over the spec
+     directory. It decides that every criterion and verification item carries
+     an identifier, that identifiers are unique, that none is reused against the
+     artifact's retired list, that every item reference resolves, and that a
+     criterion is named by a task entry. It reports rather than blocks on a
+     reworded criterion whose assertion did not follow.
+   - `explore-grounding.py` — run at step 3, when resolving what already governs
+     the surfaces the work touches. It answers from a seed set of paths and
+     reports; it decides nothing and never fails a run.
+   - `lint-finding-coverage.py` — run at step 4, over a check whose findings a
+     criterion is about to rest on. It reports a rule whose message no test
+     observes, which is the shape that makes a criterion look verified by a
+     control that cannot fail.
+
 ## Project-knowledge non-gate
 
 Creating or reviewing a spec at `Status: Draft` and a plan at `Status: Drafting`
