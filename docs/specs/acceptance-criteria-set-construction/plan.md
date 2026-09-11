@@ -926,7 +926,11 @@ in the same commit
   pointer only — so a collision is resolved by changing this task, never by
   amending theirs.
 - **Co-change mining over the seed paths found this task's gap**: `assets/plan.md`
-  moves with `assets/spec.md` in 9 of the last 47 commits touching either. Two
+  moves with `assets/spec.md` in 9 of the 36 commits touching either — 25%,
+  measured 2026-09-11 with `git log --follow` over both asset paths, which is
+  what carries the count across the `docs/_templates/` rename. An earlier
+  denominator of 47 counted a base the rename had inflated and understated the
+  coupling. Two
   other frequent co-changes were checked and dismissed with evidence — the root
   `.claude-plugin/marketplace.json` carries no `core` entry, and
   `packs/core/README.md` inventories skills rather than their assets or scripts,
@@ -957,6 +961,7 @@ in the same commit
 
 **Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
+`packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (exists),
 `packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (exists),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
@@ -1002,6 +1007,16 @@ in the same commit
   three are counted together before any of them lands.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
+- `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q` —
+  this task adds files under the skill's `scripts/`, and that module compares
+  every non-bytecode file under a canonical skill byte-for-byte across `.apm/`,
+  `.agents/` and `.claude/`. A projection this task forgets to regenerate reds
+  there and nowhere else, so omitting the command closes this task green while
+  the repository is broken.
+- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q` —
+  this task edits `SKILL.md`, and both modules pin content in it. T1 and T6 name
+  them for the same reason: a red this task causes closes green under its own
+  `Done when` if the command is not named here.
 - **AC-0032, the ADR — at repository level, not pack-local.** `docs/adr/` climbs
   above `packs/core`, which `pack-tests-stay-in-pack` rejects, so this assertion
   joins the roster module T2 and T5 already use and runs under
@@ -1023,6 +1038,16 @@ in the same commit
   Returning "no findings" is what all three did before they were distinguished,
   and a rule that cannot run reading as a rule that passed is the failure this
   checker exists to detect elsewhere.
+- **The Interface-compatibility durable output, asserted per script.** Read each
+  script's module docstring and assert it names every flag the parser accepts and
+  every exit code the script can return, and that it claims no outcome the code
+  cannot reach. **Mutation:** add a fourth exit code to a header and the
+  assertion must red; remove a flag from the parser without touching the header
+  and it must red too, since the row's closeout is that a header describes no set
+  the code does not have — a one-directional check passes on a header that has
+  drifted behind the code. The row is the only home for this obligation; it is
+  observed here rather than left to the durable-output table, which no command
+  reads.
 - **AC-0039, a structurally broken task entry.** Cases: a balanced entry is
   clean; an entry truncated mid-clause is reported by task; and four legitimate
   backtick shapes are clean, each case recording whether it breaks a naive count
@@ -1032,8 +1057,10 @@ in the same commit
   value and rule — that the finding names the task — not merely that some
   finding was emitted, and do not let a non-discriminating case stand as
   evidence for the design. The false-positive count over this repository's plan
-  corpus is recorded in the ledger with its date and method; a rule an author
-  learns to ignore is worse than no rule.
+  corpus is recorded, with its method and date and a harness that reproduces it,
+  in `notes/checker-rule-measurements.md` — not in the verification ledger,
+  which T4 owns for the graded run; a rule an author learns to ignore is worse
+  than no rule.
 - **AC-0033, the invariants.** One case per rule, each named below. Every bullet
   in this task traces to AC-0033; the criterion's own checker asserts that every
   criterion is named by at least one plan entry, so a task leaving its criterion
@@ -1064,7 +1091,7 @@ in the same commit
   duplicating them here would put two homes on one obligation.
 - Skip-when-unlabelled is the first condition, not a late guard.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the AC-0032 ADR edit is landed and asserted at repository level, the invocation is referenced from the skill, the mutation proof is recorded and restored, and `make build-self` leaves no drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the AC-0032 ADR edit is landed and asserted at repository level, the invocation is referenced from the skill, every mutation this task's `Tests` states is executed with its red recorded and then restored — by reference to that list, not an enumeration here, which is the same drift the command rule was written after — and `make build-self` leaves no drift.
 
 ### T9: The skill ships its grounding explorer and its coverage check
 
@@ -1075,6 +1102,7 @@ in the same commit
 `packs/core/.apm/skills/new-spec/scripts/lint-finding-coverage.py` (exists),
 `packs/core/tests/skills/new-spec/test_explore_grounding.py` (exists),
 `packs/core/tests/skills/new-spec/test_lint_finding_coverage.py` (exists),
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
@@ -1154,9 +1182,34 @@ in the same commit
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q`
+- `python3 -m pytest packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py -q` —
+  AC-0038's assertion reads the authored `SKILL.md`, so it belongs in the module
+  that already asserts over this skill's prose rather than in either script
+  suite. Named here because a `Done when` closes on the commands its own `Tests`
+  names, and an assertion in a module no command runs closes green unauthored.
+- `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q` —
+  this task adds files under the skill's `scripts/`, and that module compares
+  every non-bytecode file under a canonical skill byte-for-byte across `.apm/`,
+  `.agents/` and `.claude/`. A projection this task forgets to regenerate reds
+  there and nowhere else, so omitting the command closes this task green while
+  the repository is broken.
+- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q` —
+  this task edits `SKILL.md`, and both modules pin content in it. T1 and T6 name
+  them for the same reason: a red this task causes closes green under its own
+  `Done when` if the command is not named here.
   — AC-0037's suite. Named here because `Tests` is what a completion gate reads
   and `Approach` is not, which is this contract's own rule.
 
+- **The Interface-compatibility durable output, asserted per script.** Read each
+  script's module docstring and assert it names every flag the parser accepts and
+  every exit code the script can return, and that it claims no outcome the code
+  cannot reach. **Mutation:** add a fourth exit code to a header and the
+  assertion must red; remove a flag from the parser without touching the header
+  and it must red too, since the row's closeout is that a header describes no set
+  the code does not have — a one-directional check passes on a header that has
+  drifted behind the code. The row is the only home for this obligation; it is
+  observed here rather than left to the durable-output table, which no command
+  reads.
 - **AC-0037, the finding-coverage check.** Assert each rule with a fixture skill
   tree rather than this repository's layout: a covered subject is clean; an
   unobserved rule is named; a subject declaring no catalogue is skipped and
@@ -1176,9 +1229,16 @@ in the same commit
   `scripts/` directory and assert that each script in it is referenced by the
   procedure — not from a restated list of three, which would pass unchanged on a
   fourth script added later with no caller. Assert the discovery pass names the
-  explorer. **Mutation:** remove one reference and the check must red, naming the
+  explorer. **Constraint on the enumeration:** source scripts only, bytecode
+  excluded. The pack suites import these scripts, which leaves `__pycache__`
+  beside the source, and an unfiltered walk therefore reds in CI — where
+  bytecode writing is on — while passing locally under
+  `PYTHONDONTWRITEBYTECODE`. The roster projection contract already carries this
+  exclusion for the same directories and is the shape to follow.
+  **Mutation:** remove one reference and the check must red, naming the
   unreferenced script; removing the reference *and* the script must stay green,
-  since an absent check needs no caller.
+  since an absent check needs no caller. Both mutations are executed and their
+  red recorded, not merely described here.
 
 **AC-0035.** Every bullet below is one of its cases. Each probe that can fail
 open — one reading a seed's text, a runner set or history — gets a positive, a
@@ -1249,7 +1309,7 @@ is evidence about the check.
   matches from twenty unrelated files and never found a real owner. Recorded as
   tried and cut, not as an oversight.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the phrase-cutoff, portability, gates-unavailable and cutoff-derivation mutation proofs are recorded and restored, and `make build-self` leaves no drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and every mutation this task's `Tests` states is executed with its red recorded and then restored — by reference to that list, not an enumeration here, since this clause named four while `Tests` had come to state more — and `make build-self` leaves no drift.
 
 ## Rollout
 
@@ -1321,6 +1381,13 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: owner-approved tuning — the version-bump `Always do` now states
+  its timing: the bump lands once, on the release task, covering every `.apm/`
+  change in the delivery. As worded before, an unconditional `Always do` and the
+  rollout's deferral of the bump to T5 contradicted each other, which is the
+  body-versus-criteria inconsistency AC-0009's consistency member reads for. The
+  ordering itself was already authorized; only the wording was false. Same shape
+  as the 2026-09-10 `Never do` amendment below.
 - 2026-09-11: **owner decision — this slice runs a quasi-normal lifecycle, in
   iterative spike mode, until the contract-finding rate quietens.** Implementation
   may land alongside contract review rather than strictly after the engine gates,

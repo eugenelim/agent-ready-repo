@@ -229,6 +229,25 @@ def test_phase_selects_the_probe_set(root):
     assert "scoped rules" not in review, "review does not re-ask what governs the surface"
 
 
+@pytest.mark.parametrize("phase", ["discovery", "task", "review", "all"])
+def test_the_report_names_the_probe_set_its_stage_ran(root, phase):
+    """The stage-report clause, which had no assertion that could fail.
+
+    Every other stage case reads per-probe output *sections*, which `_emit`
+    produces whether or not the report says which probes ran — so deleting the
+    `probes:` segment outright left the whole suite green. A reader who cannot
+    see the probe set cannot tell an empty result from a probe that never ran,
+    which is the one thing stage selection decides.
+    """
+    expected = _subject().PHASES[phase]
+    out = _run(root, _seeded(root), extra=["--phase", phase])
+    line = next((l for l in out.splitlines() if l.startswith("probes:")), None)
+    assert line, f"the {phase} report names no probe set:\n{out}"
+    named = {p.strip() for p in line[len("probes:"):].split("\u00b7")[0].split(",")}
+    assert named == set(expected), (
+        f"{phase} ran {sorted(expected)} but reported {sorted(named)}")
+
+
 def test_a_near_miss_path_is_not_a_reference_and_the_seed_is_not_its_own(root):
     """Two negatives the probe must hold: a similar path, and the seed itself."""
     seed = _seeded(root)

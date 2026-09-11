@@ -92,7 +92,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Add a pointer when a rule already has an owner, and cite that owner by
   document and identifier.
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to the
-  same version, with core leading its own free-standing changelog entry.
+  same version, with core leading its own free-standing changelog entry. The
+  bump lands once, on the task that closes the release surface, and covers every
+  `.apm/` change in the delivery — not once per intermediate commit. Bumping per
+  commit would publish a version for each repair round and collide with any
+  unpushed peer bump at the same number; the rule is that the delivery does not
+  land without the bump, not that every commit carries one.
 
 ### Ask first
 
@@ -170,15 +175,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   fixture tree, and its cases compress into assertions.
 - **A reworded criterion whose assertion did not follow (AC-0040):** TDD, on the
   pack-local suite, over fixture repositories with real history rather than this
-  repository's own. Measured over this contract's own cycle before shipping: on
-  nine reworded criteria it reported three of the five real gaps with no false
-  alarm, which is why it reports rather than blocks and why its under-reporting
-  is stated in the criterion.
+  repository's own. Measured over this contract's own cycle before shipping — on
+  nine reworded criteria it reported four of the five real gaps with no false
+  alarm — which is why it reports rather than blocks and why its under-reporting
+  is stated in the criterion. The figures, their method and their date are
+  recorded in `notes/checker-rule-measurements.md` with the harness that
+  reproduces them, because a rate quoted from a run that no longer exists cannot
+  be falsified.
 - **A structurally broken task entry (AC-0039):** TDD, on the pack-local suite.
-  The predicate is a function over entry text, so its cases are assertions; the
-  false-positive rate was measured over this repository's own plan corpus before
-  the rule shipped, because a report an author learns to ignore is worse than no
-  report.
+  The predicate is a function over entry text, so its cases are assertions. Its
+  false-positive count over this repository's plan corpus — zero over 3681 task
+  entries, against three for the naive predicate it replaced — is recorded with
+  its method and date in `notes/checker-rule-measurements.md`, because a report
+  an author learns to ignore is worse than no report, and because a rate with no
+  recorded origin cannot be checked later.
 - **Every shipped check names its consuming step (AC-0038):** goal-based check
   over the authored skill file, on the pack-local suite. The surface is the
   skill's procedure, not a gate list, and the check reads the skill's own
@@ -340,7 +350,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       since a closing condition that omits one closes green while that command
       reds — and a second copy of the list is itself the drift this rule was
       written after; a `Tests`-outruns-`Approach` ratio is read before
-      it is cut; and a whole-plan walk precedes review.
+      it is cut; a stated mutation is executed and its red recorded, because
+      describing a mutation is not performing one and a criterion whose required
+      mutation nobody ran stays green while the thing it pins is deleted; a task
+      added after these rules landed is walked against all of them in the round
+      that adds it, since a rule applied to the tasks that existed when it
+      shipped and to no later one is a rule that decays silently; and a
+      whole-plan walk precedes review.
 - [ ] **AC-0023.** The skill's review step names the responses available to a sustained
       finding — repair the artifact, narrow the claim to what its check reaches,
       cut the item the finding is about, dismiss the finding with its reason
