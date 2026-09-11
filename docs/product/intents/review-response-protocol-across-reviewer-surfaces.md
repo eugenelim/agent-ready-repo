@@ -126,7 +126,14 @@ the protocol to the other surfaces.
   [the authoring protocol measured before shipping](spec-authoring-protocol-measured-before-shipping.md),
   which carries the definitions verbatim. This intent carries them from there
   and never restates them into a second home.
-- Excludes any blocking, scoring or refusal behaviour on any surface.
+- Excludes any blocking, scoring or refusal behaviour on any surface, **except
+  the determinacy grading shipped on 2026-09-11** by
+  `acceptance-criteria-set-construction`: `adversarial-reviewer` caps a
+  judgement finding at Concern and `finding-adjudicator` sustains one at
+  advisory severity at most, on the test of whether the fix is fully determined.
+  That exception is recorded rather than re-derived — this intent carries it and
+  never restates it — and it narrows what may block rather than adding a new
+  block, which is the direction this exclusion was written to guard.
 - Excludes `new-spec`, which A6 delivers.
 
 ## Owner

@@ -16,8 +16,8 @@
 
 **The skill checks its own loop-contract artifacts.** `new-spec` ships three
 checks in its own `scripts/`, each reading artifacts the skill itself emits, and
-each named by the step of the procedure that consumes it, so no shipped control
-is one nobody runs:
+each named by a step of the procedure with the form that invokes it, so no
+shipped control is one nobody runs:
 
 - an **item-alignment check** over a spec directory, deciding that every
   criterion and verification item carries an identifier, that identifiers are
@@ -50,8 +50,8 @@ grades.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| User-facing promise | Applicable — adopters install the skill and need the procedure outside it | `guides/core/reference/acceptance-criteria-authoring.md` (new; the per-criterion section is a later slice's) | `author-product-docs` conventions | Page validates and publishes; `title` matches the leading H1 | Page exists, carries the set-construction section only, and passes the guide validators |
-| Reusable learning | Applicable — the delivery gate is a recorded exercise, not a suite | `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` for the graded run; `notes/set-construction-self-application.md` for the procedure's own first use; [`docs/product/research/item-id-management-comparison-matrix.md`](../../product/research/item-id-management-comparison-matrix.md) for the identity evidence ADR-0108 and the architecture page both cite; [`docs/product/research/review-loop-nonconvergence-survey.md`](../../product/research/review-loop-nonconvergence-survey.md) for the round measurements the loop-contract page links | This spec's owner | The graded run's per-candidate dispositions; the transcript's dated addenda; the matrix's alternatives and their rejection reasons | Each destination exists, is dated where it records a run, and nothing an architecture page or decision record cites is left without an owner |
+| User-facing promise | Not applicable to this slice — the guide page publishing the procedure was cut with the procedure; see the plan's `## Cut from this slice` | routed to [the authoring protocol measured before shipping](../../product/intents/spec-authoring-protocol-measured-before-shipping.md) | that intent's owner | none owed here | The route is recorded and no task in this slice claims the page |
+| Reusable learning | Applicable — the procedure's own first use, and the identity evidence the records cite | `notes/set-construction-self-application.md` for the procedure's own first use; [`docs/product/research/item-id-management-comparison-matrix.md`](../../product/research/item-id-management-comparison-matrix.md) for the identity evidence ADR-0108 and the architecture page both cite; [`docs/product/research/review-loop-nonconvergence-survey.md`](../../product/research/review-loop-nonconvergence-survey.md) for the round measurements the loop-contract page links | This spec's owner | The transcript's dated addenda; the matrix's alternatives and their rejection reasons | Each destination exists and nothing an architecture page or decision record cites is left without an owner |
 | Release history | Applicable — a `.apm/**` content change is a released pack change | `docs/product/changelog.md` (a pack keeps no `CHANGELOG.md` of its own; that convention is for published packages) | Pack release pipeline | Free-standing topmost `core` entry at the bumped version | Entry present at the version `pack.toml` and `plugin.json` both carry |
 | Current product truth | Applicable — the brief tracks slice delivery | `docs/product/briefs/agent-authoring-input-quality.md` § "Spec map" | `lint-brief-coverage` roll-up | Coverage roll-up resolves this spec through its `Brief:` back-link | Roll-up names this spec; no status hand-written into the brief |
 | Decision rationale | Applicable — this slice amends a decision record, and owner decisions taken during delivery are recorded rather than left in commit messages | [`docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`](../../adr/0108-opaque-append-only-loop-contract-identifiers.md) for the identifier decision; this plan's `## Changelog` for the delivery decisions | This spec's owner | ADR-0108's `Confirmation` names the shipped check and its `Revisit if` records the fired trigger, with the decision text unchanged; each delivery decision is dated in the plan's changelog | The ADR states no falsehood about current tooling, and no owner decision from this delivery is discoverable only from a commit message |
@@ -92,7 +92,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Add a fixed absolute criterion count to any surface — a cap, a ceiling, a
   budget, a refusal, or a pass/fail bar on how many criteria a spec may carry. A
   percentile derived from the author's own corpus, used only to order scrutiny,
-  is not one of these and is required elsewhere in this contract.
+  is not one of these and stays permitted.
 - Restate a rule owned by `assets/spec.md`, `assets/plan.md` or
   `references/spec-authoring-rubric.md` into a second file.
 - Silence a pre-existing warn-only lint warning to make a gate read clean.
@@ -109,7 +109,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   count orders how hard the set-level pass looks and settles nothing on its own;
   no check reaches this claim, so it is held here and read at review.
 - Claim, in shipped text, that written guidance changes author behaviour in
-  general. This slice's evaluation covers three frozen cases and nothing wider.
+  general. This slice ships no measurement of that, and the one measurement
+  taken found the guidance made selection worse.
 - Build the identity or fingerprint mechanism beneath the single-homing check.
   The phrase-based oracle is how that check already works; leaving it is
   declining to repair a pre-existing gap, not shipping new debt, and everything
@@ -152,16 +153,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   one decides *item alignment* and owns no lifecycle question.
 
 ## Acceptance Criteria
-
-
-
-
-
-
-
-
-
-
 
 - [ ] **AC-0032.** ADR-0108's `Revisit if` names a tool that enforces no-reuse for
       inline-Markdown items, and the checker below is that tool, so the trigger
@@ -269,14 +260,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       changelog entry or a rationale is not a criterion whose assertion
       followed, and reading the document as a whole silenced the rule wherever a
       changelog entry happened to name a criterion.
-- [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by the
-      step of the procedure that consumes it, so no shipped control is one
-      nobody runs: the grounding explorer at the discovery pass,
-      and the alignment and finding-coverage checks at the steps whose artifacts
-      they read. Naming the check is not naming a required mechanism: a tool a
-      session may not offer makes a rule unrunnable wherever it is absent, while
-      a check shipped inside the skill is present wherever the skill is, so the
-      obligation here is the invocation rather than a choice of mechanism.
+- [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by a
+      step of the procedure, together with the runnable form that resolves in an
+      installed tree, so no shipped control is one nobody runs and no named
+      control is one a reader cannot invoke. The obligation is read from the
+      `scripts/` directory rather than from a restated inventory, so a check
+      added later with no named caller fails rather than passing unnoticed.
+      Naming a check is not naming a required mechanism: a tool a session may
+      not offer makes a rule unrunnable wherever it is absent, while a check
+      shipped inside the skill is present wherever the skill is.
 - [ ] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
       depending on no other skill, which reads a subject's declared catalogue of
       the findings it can emit and reports any whose message no test in that
@@ -400,9 +392,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   already covers this spec generically (source: owner decision 2026-09-10 in the
   brief's A6 row for the first two; owner sign-off 2026-09-11 for the criterion-syntax
   section and the Spec map cell)
+- Process: this slice adds a tier blockquote to `assets/spec.md`, marking which
+  sections a completion gate reads and which are working material an author
+  corrects in place. That file is behind `Ask first` and the prose is not a
+  cross-reference, so it carries owner sign-off rather than a residual, and the
+  plan registers it as shipped without a criterion with its route (source: owner
+  sign-off 2026-09-11)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
-  when the procedure, the guide's set-construction section, the three frozen
-  cases, their seed pinning and the recorded run exist (source: user
-  confirmation 2026-09-10)
-- Product: the recorded three-case run happens inside this delivery rather
-  than as a later exercise (source: user confirmation 2026-09-10)
+  when the three checks over the skill's own artifacts exist, each named by the
+  step that runs it, under ADR-0108's identifier standard (source: user
+  confirmation 2026-09-10 for the audience; owner decision 2026-09-11 narrowing
+  the end state, which supersedes the procedure-and-graded-run wording)

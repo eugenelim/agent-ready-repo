@@ -86,18 +86,26 @@ itself, which an implementer corrects in place against those pins.
   frozen-case score gates.
 - Includes the two authoring rules recorded above, which shipped with `RULES`
   pins and no criterion.
+- Includes, from the 2026-09-11 cut, the criteria whose subject was never built:
+  AC-0006 (the governing set admission resolves against), AC-0011 (the set-level
+  coverage read), AC-0018 (the count prohibition), AC-0031 (per-task grounding),
+  and the frozen-case criteria AC-0019 through AC-0021 and AC-0028 through
+  AC-0029. All are retired in the delivering spec, so this intent is their only
+  owner.
+- Includes building the frozen-case run, which the delivering spec no longer
+  carries. The run is this intent's own gate, so the gate and the thing gated
+  now sit with one owner rather than two.
 - Excludes the prose these criteria used to govern. It ships from
   `acceptance-criteria-set-construction`'s own tasks, and each such rule is
   listed in that plan's `## Shipped ahead of a criterion, deliberately` with its
   route here.
-- Excludes the criteria that delivering spec retains, which have mechanical
-  oracles: AC-0006 (the governing set admission resolves against), AC-0011 (the
-  set-level coverage read), AC-0031 (per-task grounding), the frozen-case
-  criteria AC-0019 through AC-0021 and AC-0028 through AC-0029, the three
-  shipped checkers, the identifier convention, the release surface and the eval
-  register.
-- Excludes building the frozen-case run. The delivering spec builds it under its
-  own criteria; this intent consumes its score as the gate.
+- Excludes what the delivering spec retains and has an oracle for: the three
+  shipped checkers, their per-step invocation, ADR-0108's identifier standard
+  and its confirmation state, the release surface and the eval register.
+- Excludes the mechanical half of grounding. The explorer ships from the
+  delivering spec under AC-0041 through AC-0045; what is deferred is the
+  obligation on an author to assert a resolution, never the tool that answers
+  it.
 - Excludes re-promoting any deferred criterion on a review round's approval. The
   frozen-case score is the gate.
 
