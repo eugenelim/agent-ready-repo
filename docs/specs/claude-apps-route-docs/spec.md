@@ -51,28 +51,39 @@ deliberately stops short of.
 
 ## Objective
 
-A first-time user who works in the Claude apps and has no terminal finds, from
+A first-time user who works in Claude Desktop and has no terminal finds, from
 the public home page, a documented route into this catalogue — and can tell,
 before spending effort, which surface does what.
+
+**Two target surfaces, one guide.** Claude Desktop's **Code tab** and the
+**Claude apps** (Desktop chat, web chat, Cowork) are both viable and both
+supported. They differ in exactly two things: the interface a reader uses, and
+how the catalogue is first registered. Everything after that — which packs to
+install, what to expect, where capabilities differ — is common, so the guide
+carries one body with two entry paths rather than splitting into two guides.
+
+**The Code tab is the recommended default** because nothing degrades there:
+sub-agents run, the filesystem is readable and writable, and there is one
+plugin store rather than two. The Claude-apps path is offered as an equal
+route, not a lesser one, for a reader who works in chat.
 
 Three user-visible outcomes:
 
 1. **The home page offers two ways to start, not one.** Its start zone carries a
-   terminal route and a Claude-apps route as equal doors. Neither is labelled or
-   positioned as a fallback.
-2. **The Claude-apps door opens onto actionable registration steps.** A reader
-   who follows it finds the registration path, which packs the marketplace
-   carries, and where to go next — expressed as a task they perform, not as a
-   promised result.
+   terminal route and a Claude-Desktop route as equal doors. Neither is labelled
+   or positioned as a fallback.
+2. **That door opens onto actionable registration steps for both surfaces.** A
+   reader who follows it finds the registration path for the Code tab and for
+   the Claude apps, which packs the marketplace carries, and where to go next —
+   expressed as a task they perform, not as a promised result.
 3. **Surface limitations are stated before they cost anything.** Where a
    capability differs by surface — sub-agents, hooks, where an artifact lands —
    a reader can look it up in one table, and the registration steps warn at the
    point where a mistake is actually made.
 
 **This spec documents a route. It does not promise that an install succeeds or
-that a method completes on the Claude apps.** That promise belongs to the
-first-value contract, which cannot yet name this surface, and to a dated
-observation that does not yet exist.
+that a method completes.** Promising a completed method needs `new-spec` step
+5a's disconfirming probe, which has not run.
 
 ## Assumptions
 
@@ -223,6 +234,19 @@ the share of findings introduced by the previous round's repair rose. That is
 the pattern a repair-first habit produces, and continuing would most likely
 have surfaced a seventh defect of the same origin.
 
+**Review debt, 2026-09-10 — the six rounds no longer cover this text.** After
+they ran, the owner widened the spec to target Claude Desktop's Code tab
+alongside the Claude apps. That changed the Objective and AC1, and reworded
+AC2. A material edit to Objective or Acceptance Criteria invalidates a shaping
+result, so those sections are **unreviewed**.
+
+Judged honestly, the change is additive rather than a change of approach: the
+same two pages, the same links, the same home-page door, with the how-to
+covering two entry paths instead of one because the two surfaces differ only
+in interface and initial registration. That makes the debt narrow — but narrow
+is not none, and a fresh review should read the whole spec rather than
+continuing a loop that already produced three repair-origin defects.
+
 What this spec has instead of a clean verdict: a coverage pass reading
 obligations back to owners (which found the wrong parent that six rounds of
 reading criteria forward had missed), two residuals accepted with reasons, and
@@ -231,11 +255,15 @@ an honest record that a human read is the control not yet applied.
 ## Acceptance Criteria
 
 - [ ] **AC1.** `guides/_shared/how-to/` contains one page giving the steps a
-      reader performs to register this catalogue's marketplace in the Claude
-      apps and submit an install for a discipline pack.
-- [ ] **AC2.** That page states, at the registration step itself, that Claude
-      Code and the Claude apps keep separate plugin stores and that registering
-      in one does not register the other.
+      reader performs to register this catalogue's marketplace and submit an
+      install for a discipline pack, on **both** surfaces: Claude Desktop's
+      Code tab via `/plugin marketplace add`, and the Claude apps via
+      Customize › Plugins › Personal plugins. The Code tab is presented first
+      as the recommended default; neither path is described as a fallback.
+- [ ] **AC2.** That page states, at the registration step itself, that the Code
+      tab and the Claude apps keep separate plugin stores, so registering on one
+      does not register the other and a reader who works in both registers
+      twice.
 - [ ] **AC3.** That page states before its first step that the route needs a
       paid plan, that an administrator can restrict it, and what to do when the
       named menu is absent. It distinguishes viewport support from client
