@@ -6,7 +6,12 @@ criterion reads it — no acceptance criterion in `spec.md` depends on this file
 Case zero, distinct from the three frozen evaluation cases the delivery gate
 scores.
 
-## Counts
+## Counts, as they stood on 2026-09-10 at the first authoring pass
+
+The set has grown since, through the owner scope widenings and the review rounds
+the addenda below record; `spec.md` is the only current statement of it. These
+numbers are the state at the date in this heading and are kept because the
+procedure's first run is what this file records.
 
 - Candidates enumerated: 32
 - Final criteria: 18 (14 admitted here; four were split during review — see the addendum)
@@ -14,7 +19,8 @@ scores.
 
 Corpus position, from the brief's § "Corpus" instrument run 2026-09-10 over 249
 shipped specs with this spec and the brief excluded: criteria median 12, p75 19,
-max 78. A final set of 14 sits between the median and p75, so the set-level pass
+max 78. The set of 14 recorded above sat between the median and p75 on that date,
+so the set-level pass
 ran at ordinary depth rather than heightened scrutiny. No bound rejected the set,
 and its position is not evidence that the set is well-shaped.
 

@@ -6,7 +6,7 @@ directory and owns no lifecycle question -- status vocabulary, ship transitions,
 deferral anchors and contract traceability belong to the spec-status lint, and
 duplicating them here would put two homes on one obligation.
 
-Seven rules, all mechanical:
+Nine rules, all mechanical:
 
   1. every acceptance criterion carries a well-formed identifier
   2. identifiers are unique within the spec directory
@@ -15,6 +15,10 @@ Seven rules, all mechanical:
   5. every criterion is named by at least one task *entry*
   6. every criterion appears in exactly one verification group
   7. a verification item's identifier is its own, not derived from what it serves
+  8. no task entry leaves a code span open, which is how a multi-site edit
+     truncates a closing condition without making it look truncated
+  9. given a base revision, no criterion was reworded while every line naming it
+     in the plan stayed put -- a criterion whose assertion did not follow it
 
 Rule 5 is scoped to task entries -- a task's ``Tests:`` and ``Done when:``
 blocks -- and not to the whole document. The weaker form, "does this identifier
@@ -25,12 +29,17 @@ a criterion had no implementing bullet at all.
 Forward-only by construction: a spec whose criteria carry no identifiers is
 skipped entirely, so introducing this check does not fail a corpus authored
 before the convention existed.
+
+Exit codes: ``0`` no findings, or nothing to check; ``1`` at least one finding;
+``2`` the check could not run -- a missing spec directory, or a path outside the
+invocation root.
 """
 
 from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,6 +61,8 @@ FINDING_KINDS = {
     "derived-item": "mirrors",
     "unconfined": "refusing path outside root",
     "capped": "more finding(s) in",
+    "broken-entry": "entry has an unterminated code span",
+    "stale-assertion": "was reworded with no changed assertion in",
 }
 
 # Findings are listed up to this many, then grouped by spec with an exact
@@ -63,6 +74,7 @@ FINDING_KINDS = {
 FINDING_CAP = 20
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
+CRITERION_LINE = re.compile(r"- \[[ x]\] \*\*(AC-\d{4})\.\*\* ")
 UNLABELLED = re.compile(r"^- \[[ x]\] (?!\*\*(?:AC|VI)-\d{4}\.\*\*)", re.M)
 CRITERION_REF = re.compile(r"\bAC-\d{4}\b")
 ITEM_REF = re.compile(r"\bVI-\d{4}\b")
@@ -77,6 +89,10 @@ TASK = re.compile(r"^### (T\d+)\b(.*?)(?=^### T\d+\b|^## |\Z)", re.M | re.S)
 # not at any bold capital. `**AC-0035.**` opens a case bullet, not a field, and
 # treating it as a boundary truncated a task's Tests block at its first bullet.
 ENTRY = re.compile(r"\*\*(?:Tests|Done when):\*\*(.*?)(?=\n\*\*[A-Z][A-Za-z ]*:\*\*|\Z)", re.S)
+# Fenced blocks carry backticks whose count says nothing about the prose around
+# them, so they come out before a span is matched.
+FENCE = re.compile(r"^```.*?^```", re.M | re.S)
+RUN = re.compile(r"`+")
 GROUP_ITEM = re.compile(r"^- \*\*(.+?)\*\*", re.M | re.S)
 RETIRED_HEADING = re.compile(r"^## Retired identifiers\s*$", re.M)
 RETIRED_ENTRY = re.compile(r"^[-*]\s+`?((?:AC|VI)-\d{4})`?\s*$", re.M)
@@ -129,7 +145,114 @@ def task_entries(plan: str) -> dict[str, list[str]]:
     return named
 
 
-def check(spec_dir: Path, root: Path | None = None) -> tuple[list[str], bool, list[str]]:
+def unterminated(entry: str) -> bool:
+    """True when a code span in this entry is opened and never closed.
+
+    Backtick *runs* are matched the way the markup delimits a span -- a span
+    opens on a run of N and closes on the next run of exactly N. Counting
+    backticks instead reports a doubled delimiter and a fence inside a search
+    pattern, both legitimate; measured over a real plan corpus, counting flagged
+    three valid entries for every genuine one.
+    """
+    return _spans_open(FENCE.sub("", entry))
+
+
+def _spans_open(text: str) -> bool:
+    open_len = None
+    for run in RUN.findall(text):
+        if open_len is None:
+            open_len = len(run)
+        elif len(run) == open_len:
+            open_len = None
+    return open_len is not None
+
+
+def _changed_lines(root: Path, ref: str, path: Path) -> set[int] | None:
+    """New-file line numbers touched since ``ref``, or None when git cannot say.
+
+    None is not an empty set. An unresolvable ref, a tree with no history and a
+    missing git binary all mean "unknown", and reporting them as "nothing
+    changed" would turn every one of them into a silent clean pass.
+    """
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(root), "diff", "-U0", ref, "--", str(path)],
+            capture_output=True, text=True, check=False, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    touched: set[int] = set()
+    for hunk in re.finditer(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", done.stdout, re.M):
+        start = int(hunk.group(1))
+        touched.update(range(start, start + int(hunk.group(2) or 1)))
+    return touched
+
+
+def criterion_spans(spec: str) -> list[str | None]:
+    """One entry per 1-indexed spec line, naming the criterion it falls under."""
+    spans: list[str | None] = [None]      # index 0 unused; spans[n] is line n
+    current: str | None = None
+    for line in spec.splitlines():
+        found = CRITERION_LINE.match(line)
+        if found:
+            current = found.group(1)
+        elif line.startswith("## "):
+            current = None
+        spans.append(current)
+    return spans
+
+
+def _plan_owners(plan: str, changed: set[int]) -> set[str]:
+    """Which criteria the changed plan lines belong to.
+
+    A changed line is credited to the criteria named by the bullet it sits
+    under, not only to the criteria spelled on the line itself. An added
+    constraint is normally written beneath the bullet that already names the
+    identifier, so reading the line alone reports a criterion whose assertion
+    did in fact follow -- the false alarm this rule cannot afford, since its
+    whole value is that it never cries wolf.
+    """
+    owners: set[str] = set()
+    current: set[str] = set()
+    for number, line in enumerate(plan.splitlines(), 1):
+        stripped = line.lstrip()
+        # Only a line-initial field label is a boundary. An *indented* bold
+        # label is a constraint written inside a bullet -- exactly where a new
+        # assertion lands -- and treating it as a boundary drops the bullet's
+        # identifier, which is the same distinction the ENTRY pattern above
+        # already had to make.
+        if stripped.startswith("- ") or re.match(r"\*\*[A-Z][A-Za-z ]*:\*\*", line) \
+                or line.startswith(("#", "|")):
+            current = set(CRITERION_REF.findall(line))
+        elif not stripped:
+            current = set()
+        if number in changed:
+            owners.update(current or CRITERION_REF.findall(line))
+    return owners
+
+
+def stale_assertions(spec_dir: Path, root: Path, ref: str,
+                     spec: str, plan: str) -> list[str] | None:
+    """Criteria reworded since ``ref`` whose plan lines did not change with them.
+
+    The plan side deliberately reads *any* line naming the identifier, not only a
+    task entry: that is the predicate this rule was measured with, and narrowing
+    it to entries would report a criterion whose surrounding rationale was
+    rewritten instead.
+    """
+    spec_changed = _changed_lines(root, ref, spec_dir / "spec.md")
+    plan_changed = _changed_lines(root, ref, spec_dir / "plan.md")
+    if spec_changed is None or plan_changed is None:
+        return None
+    spans = criterion_spans(spec)
+    reworded = {spans[n] for n in spec_changed if n < len(spans) and spans[n]}
+    followed = _plan_owners(plan, plan_changed)
+    return sorted(reworded - followed)
+
+
+def check(spec_dir: Path, root: Path | None = None, since: str | None = None) -> tuple[list[str], bool, list[str]]:
     """Return findings, whether the check ran, and which rules could not.
 
     The second value distinguishes "no findings" from "not applicable"; the third
@@ -202,6 +325,30 @@ def check(spec_dir: Path, root: Path | None = None) -> tuple[list[str], bool, li
             where = "no verification group" if count == 0 else f"{count} verification groups"
             findings.append(f"{rel}/spec.md: {ident} {FINDING_KINDS['group-count']} {where}")
 
+    if plan:                                                      # rule 8
+        for task, body in TASK.findall(plan):
+            for entry in ENTRY.findall(body):
+                if unterminated(entry):
+                    findings.append(
+                        f"{rel}/plan.md: {task} {FINDING_KINDS['broken-entry']}"
+                    )
+                    break     # one finding per task; a broken entry usually breaks one clause
+
+    if since and plan:                                            # rule 9
+        stale = stale_assertions(spec_dir, root or spec_dir, since, spec, plan)
+        if stale is None:
+            unapplied.append("stale-assertion")
+        else:
+            for ident in stale:
+                findings.append(
+                    f"{rel}/plan.md: {ident} {FINDING_KINDS['stale-assertion']} plan.md "
+                    f"since {since}"
+                )
+    elif since:
+        unapplied.append("stale-assertion")
+    else:
+        unapplied.append("stale-assertion (no --since)")
+
     for item in sorted(set(ITEM_REF.findall(plan))):              # rule 7
         digits = item.split("-")[1]
         if f"AC-{digits}" in seen:
@@ -217,6 +364,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--verbose", action="store_true",
                         help="list every finding instead of capping the listing")
+    parser.add_argument("--since", metavar="REF",
+                        help="base revision for the reworded-criterion rule; "
+                             "skipped when absent or when the tree has no history")
     parser.add_argument("spec_dir", nargs="*", type=Path)
     args = parser.parse_args(argv)
 
@@ -233,7 +383,7 @@ def main(argv: list[str] | None = None) -> int:
         if root not in target.parents and target != root:
             print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
             return 2
-        found, applied, unapplied = check(target, root)
+        found, applied, unapplied = check(target, root, args.since)
         findings.extend(found)
         ran += applied
         skipped += not applied

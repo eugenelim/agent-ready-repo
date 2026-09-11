@@ -25,7 +25,8 @@
 
 ## Approach
 
-Five layers, in dependency order. The procedure lands as prose in the existing
+Layered in dependency order, one layer per task in the `## Tasks` order below.
+The procedure lands as prose in the existing
 acceptance-criteria step of `packs/core/.apm/skills/new-spec/SKILL.md`; the
 adopter-facing guide follows it; three frozen cases and their seed pins land in
 the pack's eval register and pack-local suite; the recorded run discharges the
@@ -85,6 +86,8 @@ two recollections.
 | Reusable learning → `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | T4 | The recorded run's per-candidate disposition table | T4's `Done when`, which owns the passing condition |
 | Release history → `docs/product/changelog.md` | T5 | Free-standing topmost `core` section at the bumped version | `test_core_version_and_okf_declaration_are_synchronized` green |
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
+| Decision rationale → `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
+| Interface compatibility → the three checkers' `--help` and module headers | T8 (`lint-contract-item-alignment.py`); T9 (`explore-grounding.py`, `lint-finding-coverage.py`) | Each script's header states its flags and every exit code it can return, and the explorer states its per-probe outcome sets | A header describes no set the code does not have, asserted per script in the task that ships it |
 
 ## Design (LLD)
 
@@ -158,10 +161,11 @@ two recollections.
 
 ### Component / module decomposition
 
-Four surfaces, all existing except the guide: the skill's acceptance-criteria
-step (new procedure), the pack's eval register (three new entries), the
-pack-local suite (new pins plus an extended rule set), and the new guide page.
-Nothing new is a module, a dependency, or a directory.
+The surfaces are the ones each task's `Touches` names, which is the only current
+list; all existed before this slice except the guide page and the skill's own
+`scripts/` directory. Nothing new is a module or a dependency. The one new
+directory is the checkers' `scripts/`, admitted by the owner carve-out in the
+spec's *Never do* rather than by this section.
 
 ### Behavior & rules
 
@@ -312,6 +316,11 @@ in the same commit
   plan-reading members by name and assert no plan-side operation for the other
   four. Asserting a pair-wide reading over all seven would claim a reach the
   prose does not have, which is the defect AC-0024 exists to answer.
+  **Constraint on the consistency member:** assert that it reads the spec's own
+  body prose against the criteria, not the criteria against each other. Deleting
+  that clause must red this assertion; without it the member reads as a
+  criteria-only comparison, and the body statement that contradicted its own
+  criteria survived three rounds because nothing looked there.
   **Propagation:** the
   sentence names the rubric's sibling check as its owner and adds only scope and
   timing — a re-read of each touched criterion's construction test and
@@ -375,10 +384,11 @@ in the same commit
   both read them.
 - Keep every shape and diagnosis question as a citation.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and py tests/roster/test_rfc0099_activation_coverage.py -q`
-are green. The roster command is named here because this task's own `Tests` calls
-it load-bearing, and a closing condition that omits it closes green while it
-reds. A green suite missing one of the bullets does not close this task, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and every `Tests` bullet above is
+landed as its own assertion. A green suite that is missing one of those bullets
+does not close this task. `make build-self` also leaves no drift, since this task
+edits `.apm/` and the spec's `Always do` requires source and projections to land
+together.
 
 ### T2: The guide publishes the set-construction section
 
@@ -576,10 +586,12 @@ in the same commit
 - A smaller set obtained by losing a distinct obligation or guardrail is a
   failure, not a pass — record it as one and stop rather than re-running.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and md` — the single home
+**Done when:** this task's `Tests` names no command — both its cases are manual QA —
+so what closes it is the record: every `Tests` bullet is discharged for all three
+cases and written to `notes/verification-ledger.md`, the single home
 `docs/CONVENTIONS.md` gives an execution-produced observation, so the run cannot
-land beside the ledger as a second copy — and all three pass. A pass on one graded rank does not
-close this task, and the count closes nothing.
+land beside the ledger as a second copy. All three cases pass. A pass on one graded
+rank does not close this task, and the count closes nothing.
 
 ### T5: The release surface closes
 
@@ -607,7 +619,8 @@ close this task, and the count closes nothing.
   silently on a dropped paragraph, so the regeneration is a command here rather
   than a note under Grounding.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — every assertion the
-  five skill-editing tasks landed. Re-run here because no required remote gate
+  skill-editing tasks landed, whichever those are in the task list rather than a
+  count restated here. Re-run here because no required remote gate
   reaches this suite, so T5 is the last point at which a red is visible before
   release.
 - `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
@@ -684,8 +697,8 @@ close this task, and the count closes nothing.
   `work-loop-delivery-efficiency` is `Accepted` and stays out of every
   collection: the reconciler rejects a terminal Accepted intent.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and py` carrying the
-cross-surface sweep with its mutation proof recorded and restored, and
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the cross-surface sweep
+its `Tests` names carries its mutation proof, recorded and restored, and
 `make build-self` leaves no drift.
 
 ### T6: The review-response protocol ships, and the plan rules come under contract
@@ -725,11 +738,22 @@ in the same commit
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
+  **Constraint on the class-count clause:** assert that a finding instantiating
+  a contract rule triggers a count of every instance before any repair. Deleting
+  that clause must red this assertion. Repairing the reported instance alone is
+  what left two further instances of one class standing in this cycle, and the
+  walk that clause requires turned a two-instance finding into five.
 - **AC-0024.** The review step states both answers to a claim-reaches-further
   finding and the rule for choosing between them. **Constraint:** assert the
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
-  replaces.
+  replaces. **Constraint on the second direction:** assert separately that a
+  *check* reaching further than any claim — shipped behaviour no criterion
+  authorises — is brought under a criterion or cut, and assert the stated reason
+  that direction needs saying. One assertion over "both directions" is satisfied
+  by prose naming only the first, which is the direction that shows up on its
+  own as a criterion nothing verifies; the second is invisible, because the
+  artifact works and nothing is failing.
 - **AC-0031.** The plan step requires per-task grounding against the governing
   set and requires the task to record what it resolved. **Constraint:** assert
   the per-task scoping and the recording obligation separately, and assert that
@@ -749,7 +773,11 @@ in the same commit
   report; an assertion phrased over the report would claim a reach it does not
   have. Assert the instructed fields — the finding trend by round, and per
   residual its consequence, the responses available to it, and what each would
-  cost — and assert separately that the step states the protected-risk-class
+  cost — and assert separately that the trend is instructed as a *split*, into
+  findings against settled text and findings against text the round changed.
+  Deleting the split must red this assertion: an undivided trend satisfies "the
+  finding trend by round" while losing the distinction the stop decision turns
+  on. Also assert that the step states the protected-risk-class
   condition directly while enumerating no class list. **Constraint on the
   citation:** the assertion reads for the condition, never for a document name.
   `packs/AGENTS.md` forbids shipped pack content from citing this catalogue's
@@ -768,7 +796,13 @@ in the same commit
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial
-  edit leaves the old reading intact.
+  edit leaves the old reading intact. **Constraint on the naming clause:** assert
+  that the prose names the earn-its-keep test *and* states it over both halves of
+  the conjunction its siblings define — a criterion names the outcome its failure
+  would leave unmet, and no sibling criterion or existing repository control
+  already enforces its predicate. Deleting either half must red this assertion:
+  named over one half only, the criterion scopes a test the contract never
+  establishes.
 - **Exact wording is build-discovered**, on the same predicate, constraint,
   required outcome and verification mode as T1's.
 
@@ -919,7 +953,7 @@ in the same commit
 
 ### T8: The skill ships its own alignment checker
 
-**Depends on:** T7
+**Depends on:** T2, T7
 
 **Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
@@ -969,6 +1003,24 @@ in the same commit
   — the decision stands, and only the confirmation state moves. Assert the
   decision text is unchanged in the same check, so a future edit cannot use this
   precedent to reopen the decision itself.
+- **AC-0040, a reworded criterion whose assertion did not follow.** Cases, each on
+  a fixture repository with real commits rather than this repository's history:
+  a criterion reworded with a plan line naming it also changed is clean; the same
+  rewording with the plan untouched is reported; an unresolvable base revision,
+  a tree with no history and no `--since` at all are each *skipped* and counted
+  as a rule with no input, never reported as clean. **Constraint:** the
+  no-history and bad-ref cases must assert the partial count, not the exit code.
+  Returning "no findings" is what all three did before they were distinguished,
+  and a rule that cannot run reading as a rule that passed is the failure this
+  checker exists to detect elsewhere.
+- **AC-0039, a structurally broken task entry.** Cases: a balanced entry is
+  clean; an entry truncated mid-clause is reported by task; a doubled delimiter
+  and a fence inside a search pattern are both clean, since counting backticks
+  flagged all three. **Constraint:** assert the *pairing* of value and rule —
+  that the finding names the task — not merely that some finding was emitted.
+  The false-positive rate is measured over this repository's plan corpus as part
+  of this case, because the rule is only worth shipping if an author does not
+  learn to ignore it.
 - **AC-0033, the invariants.** One case per rule, each named below. Every bullet
   in this task traces to AC-0033; the criterion's own checker asserts that every
   criterion is named by at least one plan entry, so a task leaving its criterion
@@ -1003,9 +1055,10 @@ in the same commit
 
 ### T9: The skill ships its grounding explorer and its coverage check
 
-**Depends on:** none
+**Depends on:** T8
 
-**Touches:** `packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (new),
+**Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
+`packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (new),
 `packs/core/.apm/skills/new-spec/scripts/lint-finding-coverage.py` (new),
 `packs/core/tests/skills/new-spec/test_explore_grounding.py` (new),
 `packs/core/tests/skills/new-spec/test_lint_finding_coverage.py` (new),
@@ -1015,6 +1068,14 @@ in the same commit
 **Grounding:**
 - Same skill-owned precedent and layout as T8; seven sibling core skills carry a
   `scripts/` directory and `pack.toml` declares no script inventory.
+- **These two invocations are wired here, and this task owns the closing check.**
+  T8 wires its own checker; the explorer and the coverage check had no named
+  caller at all, which is the control-nobody-runs case on the same rationale.
+  The explorer is named at the discovery pass, the coverage check at the step
+  whose artifacts it reads. Because AC-0038 closes over every check the skill
+  ships, the assertion can only run once T8's reference exists — which is why
+  this task now depends on T8. The three references spend from the same line
+  budget T1, T6 and T8 draw on, counted together before any of them lands.
 - `packs/AGENTS.md` — an `.apm/` script writing to stdout or stderr reconfigures
   both streams to UTF-8 before its first print.
 - **`tools/lint-conformance-portability.py` already names this script's central
@@ -1094,6 +1155,14 @@ in the same commit
   a pack in a catalogue and a loose script sit at different distances from their
   tests, and guessing one finds nothing in the other two, silently.
 
+- **AC-0038, every shipped check names its consuming step.** Read the skill's own
+  `scripts/` directory and assert that each script in it is referenced by the
+  procedure — not from a restated list of three, which would pass unchanged on a
+  fourth script added later with no caller. Assert the discovery pass names the
+  explorer. **Mutation:** remove one reference and the check must red, naming the
+  unreferenced script; removing the reference *and* the script must stay green,
+  since an absent check needs no caller.
+
 **AC-0035.** Every bullet below is one of its cases. Each probe that can fail
 open — one reading a seed's text, a runner set or history — gets a positive, a
 negative and an unavailable case. The two reading the tree itself, scoped
@@ -1101,7 +1170,11 @@ guidance and path references, get a positive and a negative only, since their
 input cannot be missing. The result cap is shared through one emitter, so the
 suite carries one flood case rather than one per probe. Owner-approved
 2026-09-11, after two stronger claims were found to describe a suite that did
-not exist.
+not exist. **Constraint on the stage-report clause:** assert that each stage's
+report names the probes it ran, per stage, with a case that would red if the
+report named the probe set of a different stage or named none. A suite that only
+asserts a probe behaves correctly cannot tell whether it ran at all, and stage
+selection is the one thing that decides that.
 
 - **path refs** — a fixture naming the seed is found; a near-miss path is not;
   the seed is excluded from its own results.
@@ -1146,7 +1219,8 @@ weak one. A mutation that does not red is evidence about the mutation before it
 is evidence about the check.
 
 **Approach:**
-- One tree walk shared by every probe; five scripts would scan five times. The
+- One tree walk shared by every probe; a script per probe would scan once per
+  probe. The
   probe set is selected by stage, and the report names which probes ran: at
   discovery a dead-reference scan is a reassuring empty result because nothing is
   authored yet, and at review the artifacts are the seeds. Assert each stage's

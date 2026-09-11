@@ -16,14 +16,15 @@
 
 **Scope, widened by owner decision on 2026-09-10, and again since.** This spec
 covers the authoring moves the criteria below deliver, not one. It states no
-count: the set has grown four times during this delivery, and a numeral here
-becomes a second statement of what the criteria already say. Two were added because the same
-defect produced all three: the skill tells an author what a finished artifact
+count: the set has grown repeatedly during this delivery, and a numeral here
+becomes a second statement of what the criteria already say. The additions share
+one defect: the skill tells an author what a finished artifact
 must look like and never what move to make, so an author selects by instinct,
 places facts by habit, and answers every finding by repairing it. The added
 moves are the plan-authoring rules, brought under contract here rather than
-left shipped without one, and a review-response protocol the skill does not
-have today.
+left shipped without one, a review-response protocol the skill does not have
+today, and the mechanical checks the skill ships over its own artifacts — the
+moves that survived being written as prose and not followed.
 
 An author using `new-spec` — human or agent — decides *which* contract
 obligations become acceptance criteria before wording any of them. The skill's
@@ -167,6 +168,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   durable-outputs step and the spec body, not the acceptance-criteria step.
 - **The grounding explorer (AC-0035):** TDD. Each probe is a function over a
   fixture tree, and its cases compress into assertions.
+- **A reworded criterion whose assertion did not follow (AC-0040):** TDD, on the
+  pack-local suite, over fixture repositories with real history rather than this
+  repository's own. Measured over this contract's own cycle before shipping: on
+  nine reworded criteria it reported three of the five real gaps with no false
+  alarm, which is why it reports rather than blocks and why its under-reporting
+  is stated in the criterion.
+- **A structurally broken task entry (AC-0039):** TDD, on the pack-local suite.
+  The predicate is a function over entry text, so its cases are assertions; the
+  false-positive rate was measured over this repository's own plan corpus before
+  the rule shipped, because a report an author learns to ignore is worse than no
+  report.
+- **Every shipped check names its consuming step (AC-0038):** goal-based check
+  over the authored skill file, on the pack-local suite. The surface is the
+  skill's procedure, not a gate list, and the check reads the skill's own
+  `scripts/` directory rather than a restated inventory, so a check added later
+  without a named caller fails rather than passing unnoticed.
 - **The disposition record (AC-0034):** goal-based check over the authored skill
   file, on the pack-local suite. Grouped with the procedure, which is its surface.
 - **ADR-0107's confirmation state (AC-0032):** goal-based check over the ADR,
@@ -351,14 +368,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       it. A criterion no implementation can satisfy is a defect in the
       criterion, and a repair round is where one is most often introduced.
 - [ ] **AC-0026.** The skill's review step instructs the stop-decision report to carry the
-      finding trend by round, and for each remaining residual its consequence,
+      finding trend by round, split into findings against text that was settled
+      before the round and findings against text the round itself changed, and
+      for each remaining residual its consequence,
       the responses available to it, and what each would cost — so the owner
       chooses between stated options rather than reading a list of problems. It
       states the protected-risk-class condition directly and enumerates no class
       list, because shipped pack content carries no citation to an internal
       record. The owner of that class set is
       `docs/product/intents/work-loop-review-economics.md` § Guardrail, named
-      here in the contract and deliberately not in the pack.
+      here in the contract and deliberately not in the pack. The split is
+      load-bearing for the stop decision: an undivided count cannot distinguish a
+      contract still yielding defects from one whose remaining findings are
+      churn the repairs themselves introduced, and those two states call for
+      opposite decisions — keep reviewing, or stop and build.
 - [ ] **AC-0027.** The procedure names the earn-its-keep test and states what it
       is: the conjunction of the two checks its siblings define — a criterion
       names the outcome its failure would leave unmet, and no sibling criterion
@@ -487,6 +510,40 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       outputs there are no destinations to ground, and after the body is written
       the same facts arrive one criterion at a time, against a design they would
       have changed.
+- [ ] **AC-0039.** The alignment checker reports a task entry whose text is
+      structurally broken — a code span opened and never closed inside a `Tests`
+      or `Done when` block. A multi-site edit that reshapes every entry at once
+      can eat the head of a surviving clause, leaving a sentence that still reads
+      as prose while the artifact or command it closed on is gone; three of this
+      contract's own closing conditions were destroyed that way and survived a
+      reviewer's read. The check matches backtick runs the way the markup
+      delimits a span, not by counting backticks, because a doubled delimiter and
+      a fence inside a pattern are both legitimate and both break a count. It
+      reports, and it is scoped to task entries rather than the whole document,
+      so prose elsewhere is not its business.
+- [ ] **AC-0040.** Given a base revision, the alignment checker reports each criterion
+      whose text changed since that revision while no line naming it in the plan
+      changed with it — a criterion reworded without its implementing assertion
+      following. This is the defect class that recurred across three review
+      cycles of this contract and that the propagation obligation, stated in
+      prose, did not prevent. The check reports and never blocks. The base
+      revision is supplied by the caller and the rule is skipped, not failed,
+      when it is absent or the repository has no history, so the check stays
+      usable where neither exists. It adds no obligation: the propagation
+      obligation is AC-0009's and stays there, and this criterion states only
+      that the checker reports the subset a machine can see. Its residue is
+      stated for the same reason — an assertion that changed for an unrelated
+      reason reads as covered, so the rule under-reports, and the re-read AC-0009
+      requires is what closes the gap the rule cannot.
+- [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by the
+      step of the procedure that consumes it, so no shipped control is one
+      nobody runs: the grounding explorer at the discovery pass AC-0036 places,
+      and the alignment and finding-coverage checks at the steps whose artifacts
+      they read. This does not reach AC-0031's prohibition on naming a tool for
+      the per-task resolving. That prohibition exists because a mechanism a
+      session may not offer makes a rule unrunnable wherever it is absent; a
+      check shipped inside the skill is present wherever the skill is, and the
+      obligation it carries is the invocation, not a choice of mechanism.
 - [ ] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
       depending on no other skill, which reads a subject's declared catalogue of
       the findings it can emit and reports any whose message no test in that

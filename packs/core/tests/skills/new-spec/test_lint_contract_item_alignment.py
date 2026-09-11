@@ -111,6 +111,147 @@ def test_aligned_contract_has_no_findings(root):
     assert "1 spec(s) checked" in result.stdout
 
 
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=True)
+
+
+def _repo(root: Path, spec: str = SPEC, plan: str = PLAN) -> Path:
+    """A fixture repository with one commit, so `--since` has a real base.
+
+    Built here rather than pointed at this repository: the rule reads git
+    history, and a suite that reads its own repository's history asserts against
+    a tree that changes under it every commit.
+    """
+    _tree(root, spec=spec, plan=plan)
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    _git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=Fixture",
+         "commit", "-q", "-m", "base", "--no-gpg-sign")
+    return root
+
+
+def _since(root: Path, ref: str = "HEAD") -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), "--since", ref],
+        capture_output=True, text=True, check=False,
+    )
+
+
+def test_a_reworded_criterion_whose_assertion_followed_is_clean(root):
+    _repo(root)
+    spec_path = root / "docs" / "specs" / "fixture" / "spec.md"
+    plan_path = root / "docs" / "specs" / "fixture" / "plan.md"
+    spec_path.write_text(SPEC.replace("The first thing holds.",
+                                      "The first thing holds, and so does a new clause."),
+                         encoding="utf-8")
+    plan_path.write_text(PLAN.replace("- **AC-0001.** Assert the first thing.",
+                                      "- **AC-0001.** Assert the first thing and the new clause."),
+                         encoding="utf-8")
+    result = _since(root)
+    assert "reworded" not in result.stdout, result.stdout
+
+
+def test_a_reworded_criterion_whose_assertion_did_not_follow_is_reported(root):
+    """The class that recurred across three review cycles of this contract."""
+    _repo(root)
+    spec_path = root / "docs" / "specs" / "fixture" / "spec.md"
+    spec_path.write_text(SPEC.replace("The first thing holds.",
+                                      "The first thing holds, and so does a new clause."),
+                         encoding="utf-8")
+    result = _since(root)
+    assert result.returncode == 1, result.stdout
+    assert "AC-0001 was reworded with no changed assertion in plan.md" in result.stdout, \
+        result.stdout
+    assert "AC-0002" not in result.stdout.split("reworded")[1], \
+        "only the reworded criterion may be named"
+
+
+def test_an_assertion_added_as_an_indented_constraint_counts_as_following(root):
+    """The normal shape of a new assertion, and the rule's worst false alarm.
+
+    A constraint is written *inside* the bullet that already names the
+    criterion, so the added lines do not repeat the identifier. Reading the
+    changed line alone reported four criteria whose assertions had in fact been
+    written, on this contract's own repair round -- and a rule whose value is
+    that it never cries wolf cannot afford that.
+    """
+    _repo(root)
+    d = root / "docs" / "specs" / "fixture"
+    (d / "spec.md").write_text(
+        SPEC.replace("The first thing holds.",
+                     "The first thing holds, and so does a new clause."),
+        encoding="utf-8")
+    (d / "plan.md").write_text(
+        PLAN.replace(
+            "- **AC-0001.** Assert the first thing.",
+            "- **AC-0001.** Assert the first thing.\n"
+            "  **Constraint on the new clause:** assert it separately."),
+        encoding="utf-8")
+    result = _since(root)
+    assert "reworded" not in result.stdout, (
+        "an indented constraint under the bullet is the assertion following:\n"
+        + result.stdout)
+
+
+@pytest.mark.parametrize(
+    ("label", "ref", "with_history"),
+    [("an unresolvable base revision", "no-such-ref", True),
+     ("a tree with no history", "HEAD", False)],
+)
+def test_a_rule_that_cannot_run_is_skipped_not_reported_clean(root, label, ref, with_history):
+    """Cannot-run must never read as passed.
+
+    All three of these returned "no findings" before they were distinguished,
+    which is the same defect this checker reports in other artifacts: a partial
+    check read as a clean one.
+    """
+    if with_history:
+        _repo(root)
+    else:
+        _tree(root)
+    result = _since(root, ref)
+    assert "reworded" not in result.stdout, f"{label} produced a finding:\n{result.stdout}"
+    assert "stale-assertion" in result.stdout, \
+        f"{label} must be counted as a rule with no input:\n{result.stdout}"
+    assert "partial" in result.stdout, f"{label} must report a partial check:\n{result.stdout}"
+
+
+def test_a_truncated_task_entry_is_reported(root):
+    """Rule 8: a multi-site edit that eats the head of a surviving clause.
+
+    Three of this contract's own closing conditions were destroyed exactly this
+    way and read as prose afterwards, so a reviewer's read did not catch them.
+    The residue's signature is a code span opened and never closed.
+    """
+    plan = PLAN.replace(
+        "**Done when:** the AC-0001 bullet lands.",
+        "**Done when:** every command is green — and py tests/roster/test_x.py -q`\nare green.")
+    result = _run(_tree(root, plan=plan))
+    assert result.returncode == 1, result.stdout
+    assert "T1 entry has an unterminated code span" in result.stdout, result.stdout
+    assert "T2" not in result.stdout.split("unterminated code span")[1], \
+        "only the broken task may be named"
+
+
+@pytest.mark.parametrize(
+    ("label", "clause"),
+    [("doubled delimiter", "the marker ``  `<adapt:name>`  `` is not collected"),
+     ("fence inside a pattern", "- `! grep -Eq '^\\s*```bash' file`"),
+     ("balanced pair", "both `a` and `b` hold")],
+)
+def test_legitimate_backtick_shapes_are_not_reported(root, label, clause):
+    """Counting backticks flagged all three of these; matching runs does not.
+
+    Measured over this repository's own plan corpus, the counting predicate
+    reported three valid entries for every genuine one. A rule at that rate is
+    one an author learns to ignore, which is worse than no rule.
+    """
+    plan = PLAN.replace("**Done when:** the AC-0001 bullet lands.",
+                        f"**Done when:** {clause}")
+    result = _run(_tree(root, plan=plan))
+    assert "unterminated code span" not in result.stdout, f"{label} false-positived:\n{result.stdout}"
+
+
 def test_unlabelled_spec_is_skipped_not_failed(root):
     """Forward-only adoption: a pre-convention spec is skipped, and says so.
 

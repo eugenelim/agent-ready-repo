@@ -43,6 +43,23 @@ if not EXPLORER.is_file():  # wrong parents[] depth after a move
 LONG = "The seed file states a rule long enough to be distinctive when quoted elsewhere."
 
 
+def _subject():
+    """Load the explorer under a pack- and skill-qualified name.
+
+    `packs/AGENTS.md` forbids putting a skill's `scripts/` on `sys.path` and
+    importing by bare stem: skills are independent, several may ship the same
+    filename, and a bare import binds whichever directory reached the path first
+    and then caches it for every later importer.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "packs_core_new_spec_explore_grounding", EXPLORER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _run(root: Path, *seeds: str, extra: list[str] | None = None) -> str:
     result = subprocess.run(
         [sys.executable, str(EXPLORER), "--root", str(root), *(extra or []), *seeds],
@@ -328,6 +345,28 @@ def test_the_phrase_cutoff_reports_a_derived_basis(root):
     out = _run(root, seed)
     line = next((l for l in out.splitlines() if "cutoff" in l), "")
     assert "p75 of" in line, f"the cutoff must report a derived basis:\n{out}"
+
+
+def test_a_floored_threshold_says_so_rather_than_claiming_a_percentile():
+    """A defaulted value must not be labelled as measured.
+
+    Both thresholds used to return `max(default, percentile)` while reporting
+    "p75 of N" / "p90 of N" either way, so on a repository whose distribution
+    sits below the floor -- the common case, since most sampled phrases match one
+    or two files -- the report named a basis that had not produced the value. The
+    assertion is on the pairing of value and basis, not on the label alone: a
+    check reading only the label cannot fail on this branch, which is why it
+    did not.
+    """
+    calibrate_cutoff = _subject().calibrate_cutoff
+
+    value, basis = calibrate_cutoff([1, 1, 1, 2, 1, 1, 2, 1, 1, 1], 200, 3)
+    assert value == 3 and basis.startswith("default of 3"), (value, basis)
+    assert "p75 of" not in basis.split("(")[0], f"the floor branch claims a percentile: {basis}"
+    assert "was 1" in basis, f"the basis must report the percentile it rejected: {basis}"
+
+    value, basis = calibrate_cutoff([1, 2, 3, 9, 9, 9, 9, 9, 9, 9], 200, 3)
+    assert value == 9 and basis == "p75 of 10 matched phrases", (value, basis)
 
 
 def test_the_co_occurrence_minimum_is_reported_in_every_phase(root):
