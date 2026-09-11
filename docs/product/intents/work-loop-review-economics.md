@@ -53,6 +53,36 @@ answer to "what mechanism should enforce this?" was that a rule already owned it
 and nothing re-read it. Each instance cost a round to discover. Checking the
 owner before designing a mechanism is cheaper than every mechanism considered.
 
+## Observed 2026-09-11 — the first cold round outperformed eleven warm ones
+
+The orchestrator stopped writing briefs and dispatched as the mechanics
+prescribe: spec path, diff range, mode. One round found five blockers on
+surfaces eleven warm rounds had never examined — the release surface, the
+delivery brief, a subsystem architecture page, and the corpus index.
+
+**The decisive find was only reachable cold.** The branch carried a pack version
+a peer had merged first, for different content. No warm brief had named
+`origin/main` as a surface, so no warm round compared against it. The same class
+had already cost an ADR renumber earlier in the same delivery, and the
+repository's own memory had recorded the rule — a version or ordinal taken from
+what was free when a branch started is a claim, not a reservation. Knowing the
+rule did not surface the instance; an unfenced reviewer did.
+
+**Refutations rose sharply, which is the mechanism working rather than failing.**
+Cold round 1: eight sustained, seven refuted. The warm rounds before it ran one
+refutation each. Owner decisions belong at the adjudicator, which tests a finding
+against authority and records the refutation; putting them in a reviewer brief
+suppresses the finding before it is made and discards the audit trail. Of the
+seven refuted, four were findings a recorded decision already answered and two
+rested on a measurement that was simply correct — a line count the reviewer
+called stale was exact.
+
+**A cold reviewer will also raise what a warm one was told to skip.** Two
+refuted findings asked for identifier-ordered presentation and an earlier
+changelog date, both of which a recorded convention already settles. That is the
+cost of the mechanism and it is small: a refutation is one adjudication entry,
+where a suppressed blocker is a merge failure.
+
 ## Boundary
 
 - Includes reviewer scope, blocking-severity evidence, finding adjudication, repair-triggered re-review, revision or byte-digest validity, stopping semantics, and review-stage wall-clock and token measurement.
