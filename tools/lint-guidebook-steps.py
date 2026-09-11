@@ -13,20 +13,24 @@ Each obligation is declared by its label opening a line.  One per line here,
 because a label wrapped across a newline stops being one token:
 
     position            **Step N of M — <title>**
-    prerequisite_cost   **You need:**  plus  *Skipping costs:*
+    what_changes        **What changes:**
+    prerequisite_cost   **What you need first:**  plus  *Skipping costs:*
     concept_resolved    **Concepts:**
     next_step           **Next:**
+    go_deeper           **Go deeper:**
     utterance           **You type:**
     attributed_response **Agent returns:**  then a blockquote
+    correction          **You push back:**  then a blockquote
     variability         **Output varies**
     decision            **You decide:**  or  **No decision gate at this step.**
     judgement_check     **Check (<kind>):**
-    failure_path        **If it fails:**
-    artifact_location   **You now hold:**
-    artifact_outline    **Expect these headings:**
+    failure_path        **Watch out for:**
+    artifact_location   **Where it lands:**  or  **Writes no artifact.**
+    artifact_outline    **Expect these headings:**  or  **Writes no artifact.**
 
-The last three, plus ``utterance``, are per-skill: they are declared inside a
-skill's own ``#### Run `<skill>` `` block and nowhere else.
+The nine per-skill obligations are declared inside a skill's own
+``#### Run `<skill>` `` block and nowhere else; the six step-level ones appear
+once on the page.
 
 ``--contract`` selects the contract file (default: ``guides/AGENTS.md``).
 The positional arguments select one or more guidebook directories.
@@ -53,6 +57,19 @@ VOCABULARY_HEADING = "### Prohibited vocabulary"
 RUN_HEADING = re.compile(r"^#### Run `([^`]+)`\s*$", re.M)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
+
+
+def _heading_name(text: str) -> str:
+    """A heading reduced to its name, for comparison.
+
+    Compares names, not decoration. An outline that reflowed a double space,
+    or dropped a template-internal annotation like "(… — traceability)", is not
+    drifting from its source; a renamed, missing or reordered heading is. So
+    everything from the first parenthesis or em-dash is discarded, internal
+    whitespace is collapsed, and case is ignored.
+    """
+    head = re.split(r"\s*[(—]", text, maxsplit=1)[0]
+    return " ".join(head.split()).strip("`").casefold()
 
 
 @dataclass(frozen=True)
@@ -205,10 +222,32 @@ def _skill_blocks(body: str) -> list[tuple[str, str]]:
     ]
 
 
+COMMENT = re.compile(r"^\s*<!--.*-->\s*$")
+
+
 def _following_nonblank(lines: list[str], index: int) -> str | None:
+    """The next line with content, skipping blanks and HTML comments.
+
+    Comments are skipped because provenance is recorded in one — a rung comment
+    sitting between a label and its blockquote must not break the structural
+    rule that the blockquote follows the label.
+    """
     for line in lines[index + 1 :]:
+        if COMMENT.match(line):
+            continue
         if line.strip():
             return line
+    return None
+
+
+def _rung(lines: list[str], index: int) -> str | None:
+    """The provenance rung declared after an obligation's label, if any."""
+    for line in lines[index + 1 :]:
+        match = re.match(r"^\s*<!--\s*rung:\s*(.+?)\s*-->\s*$", line)
+        if match:
+            return match.group(1)
+        if line.startswith("**"):
+            break
     return None
 
 
@@ -224,18 +263,30 @@ def _outline_lines(lines: list[str], index: int) -> list[str]:
 
 
 def _source_path(lines: list[str], index: int, step_path: Path) -> Path | None:
-    """Resolve a declared local outline source, or None for authored outlines."""
-    for line in lines[index + 1 :]:
-        if line.startswith("**") and "Source:" not in line:
-            break
-        match = re.search(r"\*Source:\*\s*`([^`]+)`", line)
-        if match:
-            value = match.group(1)
-            if value.casefold() == "authored":
-                return None
-            candidate = (step_path.parent / value).resolve()
-            return candidate
-    return Path("/missing-source")
+    """The outline's declared source, from its rung comment.
+
+    Provenance has one mechanism, not two. An earlier version looked for a
+    separate `*Source:*` line and returned a deliberately unresolvable path
+    when it found none — so an outline the contract permits to be *authored*
+    was reported as having a broken source. The rung is now the only
+    declaration: a repository-relative path is compared, `authored` is not, and
+    an absent rung is its own finding under AC-0006.
+    """
+    rung = _rung(lines, index)
+    if rung is None or rung.casefold().startswith("authored"):
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9_./-]+\.[A-Za-z0-9]+", rung):
+        # Prose, not a path — "the skill's asset template", or
+        # "analytical-design SKILL.md", which names a file without locating it.
+        # Only a bare path-shaped token is comparable; a rung with a space in
+        # it is a description.
+        return None
+    resolved = step_path.resolve()
+    for parent in resolved.parents:
+        if parent.name == "guides":
+            return (parent.parent / rung).resolve()
+    # Outside a `guides/` tree — a fixture. Resolve beside the step itself.
+    return (resolved.parent / rung).resolve()
 
 
 def _check_concepts(lines: list[str], index: int, step_path: Path) -> str | None:
@@ -304,13 +355,19 @@ def _check_obligation(
             findings.append(Finding(path, step, obligation, "missing `*Skipping costs:*`"))
         elif primary.startswith("**Agent returns:") and not (_following_nonblank(lines, index) or "").startswith(">"):
             findings.append(Finding(path, step, obligation, "must be followed by an attributed blockquote"))
+        elif primary.startswith("**You push back:") and not (_following_nonblank(lines, index) or "").startswith(">"):
+            # A step showing only a clean response teaches a reader to accept
+            # the first draft. The correction turn is quoted like any other.
+            findings.append(Finding(path, step, obligation, "must be followed by the corrected exchange as a blockquote"))
+        elif primary.startswith("**Go deeper:") and not re.search(r"`[^`]+`", line):
+            findings.append(Finding(path, step, obligation, "must point at a path, not prose"))
         elif primary.startswith("**Check ("):
             match = re.match(r"^\*\*Check \(([^)]+)\):\*\*", line)
             if match is None:
                 findings.append(Finding(path, step, obligation, "declares no judgement kind"))
             elif match.group(1) not in contract.judgement_kinds:
                 findings.append(Finding(path, step, obligation, f"kind `{match.group(1)}` is not in the closed set"))
-        elif primary.startswith("**You now hold:") and not re.search(r"`[^`]+`", line):
+        elif primary.startswith("**Where it lands:") and not re.search(r"`[^`]+`", line):
             findings.append(Finding(path, step, obligation, "must name a backticked artifact path"))
         elif primary.startswith("**Expect these headings:"):
             outline = _outline_lines(lines, index)
@@ -321,8 +378,8 @@ def _check_obligation(
                 if not source.is_file():
                     findings.append(Finding(path, step, obligation, "declared outline source does not resolve"))
                 else:
-                    actual = [item.strip().strip("`") for item in HEADING.findall(source.read_text(encoding="utf-8"))]
-                    if outline != actual:
+                    actual = [_heading_name(item) for item in HEADING.findall(source.read_text(encoding="utf-8"))]
+                    if [_heading_name(item) for item in outline] != actual:
                         findings.append(Finding(path, step, obligation, "expected headings diverge from declared source"))
         elif primary.startswith("**Concepts:"):
             detail = _check_concepts(lines, index, path)
@@ -371,7 +428,14 @@ def check_page(path: Path, step: str, body: str, contract: Contract) -> list[Fin
 
 
 def check_named_runnables(path: Path, step: str, body: str, skills: set[str]) -> list[Finding]:
-    """Every runnable a step names must be a published skill of its pack."""
+    """Every runnable a step names must be a published skill of its pack.
+
+    Inert when the skill set is empty — a guide outside a pack, or a fixture.
+    An earlier version reported every named runnable as unpublished in that
+    case, which is a check being wrong rather than absent.
+    """
+    if not skills:
+        return []
     findings: list[Finding] = []
     for name in sorted(set(re.findall(r"^#### Run `([a-z0-9-]+)`", body, re.M))):
         if name not in skills:

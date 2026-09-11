@@ -9,43 +9,54 @@ order: 5
 # Review independently
 
 **Step 5 of 5 — Review independently**
+<!-- rung: JOURNEY stage 5 -->
 
-Review the completed design work against its principles, quality floor, and concrete user task. Then request the independent reviewer described by the journey.
+**What changes:** The completed design set is checked against its principles, quality floor, user task, and grounded direction before it enters build planning.
+<!-- rung: JOURNEY stage 5 -->
 
-**You need:** a screen, flow, or design set and the user task it serves.
+**What you need first:** The screen, flow, or design set; the user task it serves; its principles; and its grounded aesthetic direction.
+<!-- rung: design-review SKILL.md -->
 
-*Skipping costs:* unresolved state, accessibility, or coherence gaps can enter build planning.
+*Skipping costs:* Missing states, accessibility failures, and cross-screen inconsistencies can enter build planning as untested assumptions.
+<!-- rung: JOURNEY stage 5 -->
 
 **Concepts:**
+<!-- rung: authored -->
 
 - [The experience thread](../explanation/the-experience-thread.md) explains the quality floor and why the independent reviewer reads artifacts cold.
 
 #### Run `design-review`
 
-**You type:** `Review this screen against the quality floor, heuristics, and grounded direction.`
-<!-- rung: SKILL.md description -->
+**You type:** `Review this design set against its user task, principles, quality floor, genre rubric, and grounded aesthetic direction.`
+<!-- rung: design-review SKILL.md -->
 
 **Agent returns:**
+<!-- rung: design-review SKILL.md -->
 
-> **Agent:** severity-rated findings tied to a principle, floor commitment, heuristic, or grounded aesthetic goal.
-<!-- rung: SKILL.md -->
+> **Agent:** Severity-rated findings tied to observed evidence and a principle, floor commitment, heuristic, genre rule, or grounded aesthetic goal.
 
-**Output varies** with the screen, its genre, and the evidence available for review.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: design-review SKILL.md -->
 
-**You decide:** act on blockers before design proceeds to build planning.
+> “You called the empty state clean, but the flow says a new account has no connected source and the screen offers no recovery action. Re-review that state against the user task.” The agent records the missing recovery as a finding and cites the observed state.
+
+**Output varies** with the review scope, screen genre, supplied states, and grounded evidence.
+<!-- rung: design-review SKILL.md -->
+
+**You decide:** Resolve blockers before the design enters build planning, then review the independently returned findings.
 <!-- rung: JOURNEY stage 5 -->
 
-**Check (falsifiable):** Can each finding name what was observed and the rule or commitment it violates?
-<!-- rung: authored -->
+**Check (falsifiable):** Ask what was observed and which rule or commitment each finding violates; this surfaces taste presented as a defect and findings with no evidence.
+<!-- rung: design-review SKILL.md -->
 
-**If it fails:** supply the screen state, user task, or missing design artifact and re-prompt.
-<!-- rung: authored -->
+**Watch out for:** A uniformly confident review may be guessing where states or source artifacts are absent. Notice findings that cite no observed screen state or grounded rule; supply the missing evidence, discard unsupported taste claims, and re-run the affected scope.
+<!-- rung: design-review SKILL.md -->
 
-**You now hold:** `<output_dir>/screens/<slug>-review.md`.
-<!-- rung: authored; SKILL.md specifies the review record but not its output path -->
+**Where it lands:** `<output_dir>/screens/<slug>-review.md`, with both bracketed segments replaced for this review.
+<!-- rung: authored; design-review SKILL.md declares the review record but not its path -->
 
 **Expect these headings:**
+<!-- rung: design-review SKILL.md -->
 
 - `Review scope`
 - `Findings by severity`
@@ -55,11 +66,10 @@ Review the completed design work against its principles, quality floor, and conc
 - `Taste findings`
 - `Director’s notes`
 
-*Source:* `authored`
-<!-- rung: SKILL.md defines the review record; no asset template exists -->
+The journey then invokes the read-only `experience-reviewer` in an independent context. It is a reviewer role, not a skill you type. Resolve its blockers before design feeds the build loop.
 
-The journey then calls `experience-reviewer`, the independently run, read-only reviewer. It returns findings rather than changing artifacts; act on its blockers before design feeds the build loop.
-<!-- rung: JOURNEY stage 5 -->
+**Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours), after the independent findings are resolved.
+<!-- rung: authored -->
 
-**Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours) — the `core` build loop takes the approved design set and ends at a merged change. Resolve the independent findings first.
+**Go deeper:** `packs/experience-design/.apm/skills/design-review/SKILL.md`
 <!-- rung: authored -->

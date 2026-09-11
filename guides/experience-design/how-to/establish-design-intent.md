@@ -9,76 +9,90 @@ order: 3
 # Establish design intent
 
 **Step 3 of 5 — Establish design intent**
+<!-- rung: JOURNEY stage 3 -->
 
-Set the decision rules and visual constraints that guide all screen work.
+**What changes:** Journey evidence becomes decision rules, a grounded aesthetic direction, and a token taxonomy that constrain screen work.
+<!-- rung: JOURNEY stage 3 -->
 
-**You need:** journey insights and a surface or product to direct.
+**What you need first:** Journey pains and peak moments, the target surface, and any stable persona, precedent, brand, or platform referents.
+<!-- rung: design-principles and creative-direction SKILL.md -->
 
-*Skipping costs:* later screen choices become local preferences rather than shared decisions.
+*Skipping costs:* Screen choices become local preferences with no shared way to resolve conflicts.
+<!-- rung: JOURNEY stage 3 -->
 
 **Concepts:**
+<!-- rung: authored -->
 
 - [The experience thread](../explanation/the-experience-thread.md) explains how principles, direction, and tokens constrain screen craft.
 
 #### Run `design-principles`
 
-**You type:** `Turn these journey pains into design principles.`
-<!-- rung: SKILL.md description -->
+**You type:** `Turn these journey pains and peak moments into three to five design principles.`
+<!-- rung: design-principles SKILL.md -->
 
 **Agent returns:**
+<!-- rung: design-principles SKILL.md -->
 
-> **Agent:** three to five named principles with rationale and arbitration tests.
-<!-- rung: SKILL.md -->
+> **Agent:** Named, ranked decision rules with rationale, arbitration tests, and known trade-offs.
 
-**Output varies** with the journey’s peak moments and opportunity pains.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: design-principles SKILL.md -->
 
-**You decide:** whether the principles can resolve the recurring screen decisions in this product.
-<!-- rung: authored -->
+> “ ‘Be trustworthy’ is a brand value, not a rule that distinguishes two screen choices. Derive a testable principle from the setup failure moment.” The agent replaces it with a product-specific rule and an opposing case.
 
-**Check (testable):** Can each principle distinguish between two plausible screen choices?
-<!-- rung: authored -->
+**Output varies** with the journey’s peak moments, highest-opportunity pains, and recurring disputes.
+<!-- rung: design-principles SKILL.md -->
 
-**If it fails:** bring a concrete disputed choice and re-prompt for a sharper principle.
-<!-- rung: authored -->
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 3 -->
 
-**You now hold:** `docs/design/principles/<slug>.md`.
-<!-- rung: SKILL.md -->
+**Check (testable):** Apply each principle to two plausible screen choices; this surfaces slogans and universal heuristics that cannot decide between them.
+<!-- rung: design-principles SKILL.md -->
+
+**Watch out for:** A polished principle set may be generic everywhere. Notice brand values, copied heuristics, or more than five rules; replace them with a smaller ranked set grounded in this journey.
+<!-- rung: design-principles SKILL.md -->
+
+**Where it lands:** `docs/design/principles/<slug>.md`, with `<slug>` replaced for this product.
+<!-- rung: design-principles SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: design-principles SKILL.md -->
 
-- `<Principle title>`
+- One heading for each `<Principle title>`
 - `Known tradeoffs`
-
-*Source:* `authored`
-<!-- rung: SKILL.md describes the document shape; no asset template exists -->
 
 #### Run `creative-direction`
 
-**You type:** `creative-direction` — describe the visual direction in persona, precedent, and platform terms.
+**You type:** `Set a visual direction for this surface from its audience, persona, precedents, and platform conventions.`
 <!-- rung: JOURNEY stage 3 -->
 
 **Agent returns:**
-
-> **Agent:** a named aesthetic direction grounded in referents and ready for token derivation.
-<!-- rung: JOURNEY stage 3, separately attributed from your request -->
-
-**Output varies** with the audience, referents, and target surface.
-<!-- rung: authored -->
-
-**You decide:** approve a specific direction; a generic description is not enough.
 <!-- rung: JOURNEY stage 3 -->
 
-**Check (grounded):** Does every named goal cite a persona, precedent, standard, or platform convention?
-<!-- rung: authored -->
+> **Agent:** A named, ranked aesthetic direction grounded in stable referents.
 
-**If it fails:** replace the unsupported goal with a named referent and re-prompt.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: creative-direction SKILL.md -->
 
-**You now hold:** `<output_dir>/aesthetic/<slug>.md`.
-<!-- rung: authored; SKILL.md specifies the record but not its output path -->
+> “ ‘Clean and modern’ could describe any product. Ground each goal in a named audience need or precedent quality, rank them, and say what you are not borrowing.” The agent replaces the generic direction with specific, bounded goals.
+
+**Output varies** with the audience, referents, target surface, and genre.
+<!-- rung: creative-direction SKILL.md -->
+
+**You decide:** Approve a specific aesthetic direction before screen design begins.
+<!-- rung: JOURNEY stage 3 -->
+
+**Check (grounded):** Ask what persona, precedent quality, standard, or platform convention supports each goal; this surfaces fresh opinion presented as direction.
+<!-- rung: creative-direction SKILL.md -->
+
+**Watch out for:** Confident aesthetic language can conceal guesses. Notice goals with no referent and lines borrowed from a general genre pattern; argue with those first, and reject any direction that conflicts with the quality floor.
+<!-- rung: creative-direction SKILL.md -->
+
+**Where it lands:** `<output_dir>/aesthetic/<slug>.md`, with both bracketed segments replaced for this project.
+<!-- rung: authored; creative-direction SKILL.md declares the record but not its path -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md -->
 
 - `Aesthetic direction: <surface or product name>`
 - `Surface`
@@ -87,35 +101,38 @@ Set the decision rules and visual constraints that guide all screen work.
 - `Dominant goal for arbitration`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/creative-direction/assets/creative-direction-template.md`
-<!-- rung: asset template -->
-
 #### Run `design-system`
 
-**You type:** `design-system` — derive the token taxonomy from this approved direction.
+**You type:** `Derive the semantic token and scale taxonomy from the approved aesthetic direction.`
 <!-- rung: JOURNEY stage 3 -->
 
 **Agent returns:**
-
-> **Agent:** a semantic token and scale taxonomy derived from the aesthetic direction.
-<!-- rung: JOURNEY stage 3, separately attributed from your request -->
-
-**Output varies** with the direction’s named goals and the surface’s needs.
-<!-- rung: authored -->
-
-**You decide:** approve the direction and resulting token taxonomy before screens are designed.
 <!-- rung: JOURNEY stage 3 -->
 
-**Check (grounded):** Can each token role be explained by a named aesthetic goal rather than its present appearance?
-<!-- rung: authored -->
+> **Agent:** A semantic token and scale taxonomy whose roles trace to the approved direction.
 
-**If it fails:** name the ungrounded role or goal and re-prompt for the missing rationale.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: design-system SKILL.md -->
 
-**You now hold:** `<output_dir>/aesthetic/<slug>-tokens.md`.
-<!-- rung: authored; SKILL.md specifies the taxonomy but not its output path -->
+> “The accent color appears as an isolated value with no semantic role. Replace it with a role derived from the direction, and keep implementation values out of this taxonomy.” The agent repairs the role and its rationale.
+
+**Output varies** with the direction’s named goals, surface needs, and accessibility constraints.
+<!-- rung: design-system SKILL.md -->
+
+**You decide:** Approve the direction and token taxonomy before screens are designed.
+<!-- rung: JOURNEY stage 3 -->
+
+**Check (grounded):** Ask which named aesthetic goal explains each token role; this surfaces arbitrary values and roles imported from a generic system.
+<!-- rung: design-system SKILL.md -->
+
+**Watch out for:** A complete-looking taxonomy may contain roles projected from general design-system patterns. Notice any role with no direction rationale or accessibility constraint; challenge those lines first and remove unsupported tokens.
+<!-- rung: design-system SKILL.md -->
+
+**Where it lands:** `<output_dir>/aesthetic/<slug>-tokens.md`, with both bracketed segments replaced for this project.
+<!-- rung: authored; design-system SKILL.md declares the taxonomy but not its path -->
 
 **Expect these headings:**
+<!-- rung: design-system SKILL.md -->
 
 - `Token taxonomy`
 - `Semantic roles`
@@ -123,8 +140,8 @@ Set the decision rules and visual constraints that guide all screen work.
 - `Accessibility constraints`
 - `Composition rules`
 
-*Source:* `authored`
-<!-- rung: SKILL.md specifies a taxonomy and rationale; no asset template exists -->
+**Next:** [Design each screen](design-each-screen.md).
+<!-- rung: authored -->
 
-**Next:** [design each screen](design-each-screen.md).
+**Go deeper:** `packs/experience-design/.apm/skills/creative-direction/SKILL.md`
 <!-- rung: authored -->

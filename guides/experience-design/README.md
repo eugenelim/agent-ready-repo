@@ -14,6 +14,38 @@ screens, and tell me which design decision comes next.” You receive durable
 design artifacts and an explicit next step; the pack does not write frontend
 code or choose the product bet for you.
 
+## Follow the five-step guidebook
+
+This guidebook is for a product designer, product engineer, or product team
+turning an understood user outcome into reviewed screen designs. It assumes you
+can name the user, their intended outcome, and the surface you are designing.
+Existing research, brand constraints, and design artifacts help, but each step
+says which inputs are required and which can be elicited.
+
+Type the requests shown in each step into an AI agent session with the
+`experience-design` pack installed. They are natural-language requests for the
+agent, not terminal commands.
+
+Artifact paths use two placeholders:
+
+- `<output_dir>` is the configured root directory for design artifacts.
+- `<slug>` is the short, project-specific name substituted into a file path,
+  such as `account-setup`.
+
+Every step uses the same layout: what changes, prerequisites and their cost,
+linked concepts, one run block per skill, the next step, and an authoritative
+source path. Each run block shows what you type, what the agent returns, a real
+correction turn, the decision and judgement point, failure diagnosis, and the
+artifact shape.
+
+Do these five steps in order:
+
+1. [Map the customer journey](how-to/map-the-customer-journey.md)
+2. [Derive the screen flow](how-to/derive-the-screen-flow.md)
+3. [Establish design intent](how-to/establish-design-intent.md)
+4. [Design each screen](how-to/design-each-screen.md)
+5. [Review independently](how-to/review-independently.md)
+
 ## Choose by job
 
 **Understand what happens.** Use `journey-mapping` for the customer's path,

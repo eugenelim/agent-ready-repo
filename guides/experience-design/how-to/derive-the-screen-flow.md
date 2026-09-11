@@ -9,46 +9,54 @@ order: 2
 # Derive the screen flow
 
 **Step 2 of 5 — Derive the screen flow**
+<!-- rung: JOURNEY stage 2 -->
 
-Turn the journey into screen-level intent and a flow that includes normal and failure routes.
+**What changes:** The journey becomes screen-level content intent, copy constraints, a sequenced flow, and briefs for every screen and state.
+<!-- rung: JOURNEY stage 2 -->
 
-**You need:** the journey’s key touchpoints; a content brief can be elicited when absent.
+**What you need first:** The journey’s key touchpoints; when a content brief or copy evidence is absent, the skills elicit it.
+<!-- rung: JOURNEY stage 2 -->
 
-*Skipping costs:* screen structure can drift away from the customer outcome.
+*Skipping costs:* Screen structure can drift away from the customer outcome, and failure routes can remain unnamed.
+<!-- rung: JOURNEY stage 2 -->
 
 **Concepts:**
+<!-- rung: authored -->
 
-- [The experience thread](../explanation/the-experience-thread.md) distinguishes macro flow across screens from behavior inside one screen.
-
-**No decision gate at this step.**
-<!-- rung: JOURNEY stage 2 -->
+- [The experience thread](../explanation/the-experience-thread.md) distinguishes flow across screens from behavior within one screen.
 
 #### Run `content-design`
 
-**You type:** `Define what this surface should say, for whom, and to what objective.`
-<!-- rung: SKILL.md description -->
+**You type:** `Define what this account-setup surface should say, for whom, and to what objective.`
+<!-- rung: content-design SKILL.md -->
 
 **Agent returns:**
+<!-- rung: content-design SKILL.md -->
 
-> **Agent:** a content brief for the surface.
-<!-- rung: SKILL.md -->
+> **Agent:** A content brief for this surface.
 
-**Output varies** with the audience, surface, and intended objective.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: content-design SKILL.md -->
+
+> “This brief covers setup, billing, and support as one surface. Keep setup here and split the other two into their own briefs.” The agent narrows the brief and records only setup’s reader, objective, and section jobs.
+
+**Output varies** with the audience, surface type, communication mode, and intended objective.
+<!-- rung: content-design SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
-**Check (sufficient-for-next):** Does the brief give a screen-flow author a clear reader, task, and content priority?
+**Check (sufficient-for-next):** Ask which reader, task, and content priority should constrain the flow; this surfaces a brief that is too broad to sequence.
 <!-- rung: authored -->
 
-**If it fails:** name the missing audience or surface objective and re-prompt.
-<!-- rung: authored -->
+**Watch out for:** A finished-looking brief can hide unresolved audience priority or combine several surfaces. Notice competing section jobs or more than one primary surface, then narrow the brief or split it before continuing.
+<!-- rung: content-design SKILL.md -->
 
-**You now hold:** `<output_dir>/content/<slug>.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/content/<slug>.md`, with both bracketed segments replaced for this project.
+<!-- rung: content-design SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/content-design/assets/content-brief-template.md -->
 
 - `Content brief: <surface name>`
 - `Surface objective`
@@ -64,35 +72,38 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Completion metric`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/content-design/assets/content-brief-template.md`
-<!-- rung: asset template -->
-
 #### Run `copy-direction`
 
-**You type:** `Name the copy goals for this acquisition surface.`
-<!-- rung: SKILL.md description -->
+**You type:** `Name the ranked copy goals for this account-setup surface.`
+<!-- rung: copy-direction SKILL.md -->
 
 **Agent returns:**
+<!-- rung: copy-direction SKILL.md -->
 
-> **Agent:** ranked per-surface copy goals and arbitration rules.
-<!-- rung: SKILL.md -->
+> **Agent:** Ranked per-surface copy goals, stable referents, and arbitration rules.
 
-**Output varies** with the surface, reader, and available brand register.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: copy-direction SKILL.md -->
+
+> “You wrote a headline instead of direction. Remove the finished copy and state the goal, its referent, and what wins when goals conflict.” The agent replaces the line with a ranked rule the later writing can apply.
+
+**Output varies** with the surface, reader language, and available brand register.
+<!-- rung: copy-direction SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
-**Check (grounded):** Are the goals tied to named reader language or another stable referent?
-<!-- rung: authored -->
+**Check (grounded):** Ask what reader language or stable referent supports each goal; this surfaces preferences presented as direction.
+<!-- rung: copy-direction SKILL.md -->
 
-**If it fails:** provide reader language or a referent and re-prompt.
-<!-- rung: authored -->
+**Watch out for:** Goals can sound authoritative while resting on a general copy pattern. Notice goals with no cited reader language, precedent quality, or standard; argue with those first and replace them with grounded referents.
+<!-- rung: copy-direction SKILL.md -->
 
-**You now hold:** `<output_dir>/copy/<slug>.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/copy/<slug>.md`, with both bracketed segments replaced for this surface.
+<!-- rung: copy-direction SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md -->
 
 - `Copy direction: <surface name>`
 - `Reader map`
@@ -103,35 +114,38 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Plain-language floor notes`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md`
-<!-- rung: asset template -->
-
 #### Run `tone-of-voice`
 
 **You type:** `Name the brand-level copy register for this product.`
-<!-- rung: SKILL.md description -->
+<!-- rung: tone-of-voice SKILL.md -->
 
 **Agent returns:**
+<!-- rung: tone-of-voice SKILL.md -->
 
-> **Agent:** a brand register with ranked copy goals and arbitration rules.
-<!-- rung: SKILL.md -->
+> **Agent:** A brand register with ranked copy goals, referents, and arbitration rules.
 
-**Output varies** with the brand, readers, and available evidence.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: tone-of-voice SKILL.md -->
+
+> “You made the register specific to the setup screen. Rewrite it as a cross-surface brand register and leave setup choices to `copy-direction`.” The agent removes per-surface decisions and keeps the shared register.
+
+**Output varies** with the brand, readers, voice-of-customer evidence, and stable referents.
+<!-- rung: tone-of-voice SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
-**Check (testable):** Can a copy conflict be resolved against the dominant goal?
-<!-- rung: authored -->
+**Check (testable):** Put two plausible copy choices in conflict and ask which ranked goal wins; this surfaces an unranked register that cannot arbitrate.
+<!-- rung: tone-of-voice SKILL.md -->
 
-**If it fails:** add a conflicting copy choice and re-prompt for arbitration.
-<!-- rung: authored -->
+**Watch out for:** Without voice-of-customer evidence, general-pattern goals can read like validated brand truth. Notice the “directional” marker, challenge those lines first, and supply reader language when available.
+<!-- rung: tone-of-voice SKILL.md -->
 
-**You now hold:** `<output_dir>/copy/brand-register.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/copy/brand-register.md`, with `<output_dir>` replaced for this project.
+<!-- rung: tone-of-voice SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md -->
 
 - `Brand register: <brand or product name>`
 - `Reader map`
@@ -141,53 +155,56 @@ Turn the journey into screen-level intent and a flow that includes normal and fa
 - `Plain-language floor notes`
 - `Open questions`
 
-*Source:* `../../../packs/experience-design/.apm/skills/tone-of-voice/assets/tone-of-voice-template.md`
-<!-- rung: asset template -->
-
 #### Run `user-flow`
 
-**You type:** `user-flow`.
+**You type:** `Turn the approved journey into screens, transitions, failure routes, and one brief per screen.`
 <!-- rung: JOURNEY stage 2 -->
 
 **Agent returns:**
+<!-- rung: JOURNEY stage 2 -->
 
-> **Agent:** a screen inventory, transitions, per-screen briefs, and a state matrix.
-<!-- rung: JOURNEY stage 2, separately attributed from your request -->
+> **Agent:** A screen inventory, sequenced transitions, a state matrix, and per-screen briefs.
 
-**Output varies** with the journey, surface, and genre.
-<!-- rung: authored -->
+**You push back:**
+<!-- rung: user-flow SKILL.md -->
+
+> “The connection failure has no destination, and the service-check step happens in parallel with the progress screen. Add the failure route and show the parallel work without inventing another screen.” The agent repairs the whole-flow walk and affected brief.
+
+**Output varies** with the journey, surface, navigation model, and genre.
+<!-- rung: user-flow SKILL.md -->
 
 **No decision gate at this step.**
 <!-- rung: JOURNEY stage 2 -->
 
-**Check (observable):** Can you follow every transition, including an error route, to a named screen or state?
-<!-- rung: authored -->
+**Check (observable):** Walk every action, including one failure, to a named screen or state; this surfaces dead ends, orphan screens, and missing recovery routes.
+<!-- rung: user-flow SKILL.md -->
 
-**If it fails:** give the failing action and its destination, then re-prompt.
-<!-- rung: authored -->
+**Watch out for:** A complete inventory is not a complete flow. Notice transitions with no destination, briefs with no journey action, or a confident happy path that omits errors; re-run with the failing action and required destination.
+<!-- rung: user-flow SKILL.md -->
 
-**You now hold:** `<output_dir>/screens/<slug>-flow.md` and `<output_dir>/screens/<slug>/<screen>.md`.
-<!-- rung: SKILL.md -->
+**Where it lands:** `<output_dir>/screens/<slug>-flow.md` and `<output_dir>/screens/<slug>/<screen>.md`; replace each bracketed segment.
+<!-- rung: user-flow SKILL.md -->
 
 **Expect these headings:**
+<!-- rung: packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md -->
 
 - Per-screen brief — the unit `user-flow` emits per screen
 - `Template`
-- `Screen brief: <screen-name>   ·   <product-slug>   ·   surface: <responsive-web | iOS | Android | cross-platform>`
+- `Screen brief: <screen-name> · <product-slug> · surface: <responsive-web | iOS | Android | cross-platform>`
 - `Place in the whole`
 - `Job`
-- `States  (defer to the shared quality floor — name which apply)`
-- `Data & actions  (each action names its backing service — traceability ↓)`
-- `Interaction & behavior  (from interaction-design — referenced, enriched there)`
-- `Copy  (from ux-writing; per state)`
+- `States (defer to the shared quality floor — name which apply)`
+- `Data & actions (each action names its backing service)`
+- `Interaction & behavior (from interaction-design — referenced, enriched there)`
+- `Copy (from ux-writing; per state)`
 - `Shared contract — REFERENCE, do not restate`
 - `Consistency invariants`
 - `Done`
 - `Genre-specific notes`
 - `How it fits the flow`
 
-*Source:* `../../../packs/experience-design/.apm/skills/user-flow/assets/screen-brief-template.md`
-<!-- rung: asset template -->
+**Next:** [Establish design intent](establish-design-intent.md).
+<!-- rung: authored -->
 
-**Next:** [establish design intent](establish-design-intent.md).
+**Go deeper:** `packs/experience-design/.apm/skills/user-flow/SKILL.md`
 <!-- rung: authored -->
