@@ -111,9 +111,9 @@ two recollections.
   shorter restatement is still a second home. Traces to: AC18.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
-  Traces to: AC21.
+  Traces to: AC20.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC22, AC26.
+  recorded exercise and the counts live in prose. Traces to: AC21, AC25.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -134,7 +134,7 @@ two recollections.
   probe found **zero** 7-word runs shared between a naturally-worded draft of
   the procedure and any of the three owned surfaces, so the single-homing
   collision is smaller than assumed and the ordering and count assertions carry
-  more of the weight. Traces to: AC16, AC19.
+  more of the weight. Traces to: AC16, AC18.
 
 ### Component / module decomposition
 
@@ -178,7 +178,7 @@ permitted shape is a percentile derived from the author's own corpus, used only
 to order scrutiny, and the percentile criterion requires one in the same span. A
 bare-numeral test therefore forbids what another criterion requires. A
 whole-file token deny-list is unavailable either way; see the probe under
-*Design decisions*. Traces to: AC17, AC19.
+*Design decisions*. Traces to: AC17, AC18.
 
 ## Tasks
 
@@ -205,7 +205,7 @@ whole-file token deny-list is unavailable either way; see the probe under
 - **AC1, AC2.** Two offset comparisons over the stage markers.
 - **AC3, AC5, AC10.** Both clauses of each criterion — requirement and
   consequence.
-- **AC16, AC19.** The count sentence records count and corpus position; the same
+- **AC16, AC18.** The count sentence records count and corpus position; the same
   span carries no rejection and states that a set above the p75 passes on its
   obligations alone.
 - **AC17.** **Constraint, local to this assertion:** the criterion's content is
@@ -214,7 +214,7 @@ whole-file token deny-list is unavailable either way; see the probe under
   reinstates the undefined band the criterion was repaired to remove. One
   threshold, both branches. Assert the percentile condition, the pairwise whole-set uniqueness re-run,
   the record-the-result instruction, and the below-p75 branch.
-- **AC17, AC19 together.** Slice the procedure span and assert the absence of a
+- **AC17, AC18 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
 - **Exact assertion wording is build-discovered.** The phrases, markers and
   offsets cannot be settled until the procedure prose exists.
@@ -282,7 +282,7 @@ can be missing both guide outcomes.
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   the per-case assertions below.
-- **AC20 and AC21** — one shape-and-seed test per case, following the precedent of
+- **AC19 and AC20** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
   the prompt, and each seeded item's survival. `stub: true` — the contract
@@ -307,11 +307,11 @@ can be missing both guide outcomes.
   the mutation — deleting any one seeded item from a case's prompt must red this
   module — which is why the pins are individual assertions rather than one
   aggregate membership check.
-- **AC22** — assert the whole scoring contract appears in each case's `expected_output`:
+- **AC21** — assert the whole scoring contract appears in each case's `expected_output`:
   recall first, non-criterion rejection second, count descriptive, **and** the
   rule that a smaller set obtained by losing a distinct obligation or guardrail
   is a failure. The ranks without that rule leave the failure condition
-  unstated, which is the half AC22 exists for.
+  unstated, which is the half AC21 exists for.
 
 **Approach:**
 - Author the three prompts as authoring frames, not review frames — the graded
@@ -329,7 +329,7 @@ entries landed and green after, and the full pack suite is green.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC26 and AC27** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
+- **AC25 and AC26** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -370,9 +370,9 @@ close this task, and the count closes nothing.
   carries the sweep below. Without this command the sweep has no closing
   oracle: it would be authored, never executed, and the task would still meet
   its gate.
-- **AC19 across every shipped surface, not just the procedure span.** T1's
+- **AC18 across every shipped surface, not just the procedure span.** T1's
   check slices `SKILL.md` because that is where the percentile trigger and the
-  prohibition must coexist. AC19 is wider: no shipped surface may make a
+  prohibition must coexist. AC18 is wider: no shipped surface may make a
   criterion count reject a spec or prove one well-shaped, and the Boundary
   forbids a fixed absolute count anywhere. Assert the prohibition over all three
   surfaces this slice ships — the procedure span, the new guide page, and the
@@ -383,7 +383,7 @@ close this task, and the count closes nothing.
   absolute criterion count. Mutation: add `keep specs under 20 criteria` to the
   guide page, outside `SKILL.md`. Expected failure: this check reds naming the
   guide. A check that stays green under that mutation is scoped to the wrong
-  surfaces and is not the guard AC19 needs. Restore by editing the sentence out,
+  surfaces and is not the guard AC18 needs. Restore by editing the sentence out,
   never by `git checkout`.
 - `python3 -m pytest tests/roster/test_security_checklists_okf_projection.py -q`
   — reuse, do not rebuild. Its
@@ -421,18 +421,18 @@ what went stale when one was added.
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
-- **AC23 — already shipped, asserted here.** The six plan-authoring rules
+- **AC22 — already shipped, asserted here.** The six plan-authoring rules
   landed in core 2.25.14 ahead of this contract; that was a recorded deviation,
   and this task closes it by bringing them under the spec rather than by
   re-shipping them. Each is already a pinned entry, so the assertion is that the
   pinned set still carries all six and the prose still reads as the criterion
   states. No new prose is written for this criterion.
-- **AC24.** The review step names all five responses to a sustained finding and
+- **AC23.** The review step names all five responses to a sustained finding and
   states that a sustained finding does not by itself require an edit.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
-- **AC25.** The earn-its-keep test is stated over every criterion rather than
+- **AC24.** The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial
