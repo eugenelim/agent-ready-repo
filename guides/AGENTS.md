@@ -60,8 +60,8 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | `decision` | `**You decide:**`, or `**No decision gate at this step.**` | per skill |
 | `judgement_check` | `**Check (<kind>):**` | per skill |
 | `failure_path` | `**If it fails:**` | per skill |
-| `artifact_location` | `**You now hold:**` with a backticked path | per skill |
-| `artifact_outline` | `**Expect these headings:**` | per skill |
+| `artifact_location` | `**You now hold:**` with a backticked path, or `**Writes no artifact.**` | per skill |
+| `artifact_outline` | `**Expect these headings:**`, or `**Writes no artifact.**` | per skill |
 
 A per-skill obligation is declared inside that skill's own `#### Run \`<skill>\``
 block and nowhere else. A step naming ten skills with one shared utterance

@@ -161,6 +161,21 @@ def _label_variants(label: str) -> tuple[str, ...]:
     return tuple(re.findall(r"`([^`]+)`", label))
 
 
+def _label_alternatives(label: str) -> tuple[str, ...]:
+    """Return only the labels that are *alternatives* to the primary one.
+
+    A label cell can hold two different relationships and expresses both the
+    same way. `decision` offers an alternative — "or `**No decision gate at
+    this step.**`" — while `prerequisite_cost` names a required companion —
+    "plus `*Skipping costs:*`". Treating a companion as an alternative made a
+    missing `**You need:**` pass by matching the companion line, which the
+    AC-0003 omission fixture caught. Only the text after " or " is alternative.
+    """
+    if " or " not in label:
+        return ()
+    return tuple(re.findall(r"`([^`]+)`", label.split(" or ", 1)[1]))
+
+
 def _line_with_label(lines: list[str], label: str) -> int | None:
     prefixes = _label_variants(label)
     for index, line in enumerate(lines):
@@ -269,6 +284,20 @@ def _check_obligation(
         line = lines[index]
         variants = _label_variants(label)
         primary = variants[0] if variants else label
+        # A label cell may offer an explicit alternative — `decision`'s "No
+        # decision gate at this step.", and `artifact_location`/
+        # `artifact_outline`'s "Writes no artifact." Those declare that the
+        # obligation does not apply here, so the primary form's semantic check
+        # must not then demand a path or an outline from them.
+        # An explicit alternative declares that the obligation does not apply
+        # here — `decision`'s "No decision gate at this step.", and
+        # `artifact_location`/`artifact_outline`'s "Writes no artifact." The
+        # primary form's semantic check must not then demand a path or an
+        # outline. A *companion* label is not an alternative and is excluded by
+        # `_label_alternatives`, or a missing primary label would pass by
+        # matching its companion.
+        if any(line.startswith(alt) for alt in _label_alternatives(label)):
+            continue
         if primary.startswith("**Step") and not re.match(r"^\*\*Step \d+ of \d+ — .+\*\*$", line):
             findings.append(Finding(path, step, obligation, "position label is malformed"))
         elif any("Skipping costs:" in variant for variant in variants) and not any(item.startswith("*Skipping costs:*") for item in lines[index + 1 :]):
