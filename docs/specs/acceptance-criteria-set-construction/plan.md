@@ -590,7 +590,10 @@ close this task, and the count closes nothing.
 - `python3 .agents/skills/author-delivery-brief/scripts/lint-brief-coverage.py
   --root .` resolves this spec under its brief.
 - `python3 .agents/skills/work-loop/scripts/lint-traceability.py --root .` exits
-  0. The 433 informational orphans are pre-existing.
+  0. Its informational structural orphans are pre-existing: compare the count
+  against the base ref rather than against a number recorded here, because a
+  literal decays between authoring and execution — this one moved from 433 to
+  435 during the delivery.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — every assertion the
   five skill-editing tasks landed. Re-run here because no required remote gate
   reaches this suite, so T5 is the last point at which a red is visible before
@@ -964,8 +967,10 @@ in the same commit
 - Reference in `plan.md` to an identifier no criterion carries → finding.
 - Criterion named by no plan entry → finding.
 - Criterion in two verification groups, and in none → a finding each.
-- Verification item whose identifier is derived from its criterion or task →
-  finding.
+- Verification item whose identifier mirrors its criterion → finding. Task
+  derivation and `VI-` uniqueness are **not** asserted: nothing relates an item
+  to a task number and the uniqueness rule reads criteria only. AC-0033 was
+  narrowed to match rather than claim an oracle the checker does not have.
 - **Mutation proof:** delete one criterion's label and confirm the partial case
   reds. A green run there means the checker keyed on the reference side only and
   never looked at the criteria.
@@ -1054,7 +1059,9 @@ in the same commit
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 
 **AC-0035.** Every bullet below is one of its cases. Every probe gets a positive
-case, a negative case, and a flood case.
+and a negative case; the result cap is shared through one emitter, so the suite
+carries one flood case rather than one per probe. Owner-approved 2026-09-11,
+after the stronger claim was found to describe a suite that did not exist.
 
 - **path refs** — a fixture naming the seed is found; a near-miss path is not;
   the seed is excluded from its own results.
@@ -1194,8 +1201,15 @@ leaves no drift.
   ADR-0037 D2 naming `grounding.toml`, and repository-context-anchoring already
   owning guidance discovery — came from seeding by surfaces, and both changed
   criteria.
-- 2026-09-10: pre-EXECUTE round 3 sustained eleven of fourteen findings; four
-  were refuted. AC-0032 was added for ADR-0107's confirmation state, which the
+- 2026-09-11: grounded-cycle round 3 raised fifteen findings — ten sustained,
+  four refuted on authority or existing handling, one indeterminate and then
+  settled by measuring. Rule 5's own entry scope reproduced the mention-anywhere
+  defect it exists to eliminate.
+- 2026-09-11: grounded-cycle round 2 raised fourteen findings, all fourteen
+  sustained — the first report of this delivery to survive adjudication intact,
+  because its claims were about code rather than prose.
+- 2026-09-10: pre-EXECUTE round 3 raised fourteen findings: eleven sustained and
+  three refuted. AC-0032 was added for ADR-0107's confirmation state, which the
   shipped checker falsifies on the commit that lands it.
 - 2026-09-10: pre-EXECUTE round 2 sustained eight of eleven findings; three were
   refuted, one of them because the reviewer's proposed fix contradicted T6.

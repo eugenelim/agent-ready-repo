@@ -237,7 +237,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       timing: it re-reads each touched criterion's construction test and
       verification entry against that criterion's current wording, because a
       text search cannot see a test that still describes the pre-repair claim,
-      and it completes in the same round before the round is reported. Residual
+      and it re-reads in the other direction too: every sentence citing a
+      criterion is checked against what that criterion now says, because a
+      citation can resolve and still name the wrong criterion, which no
+      mechanical check detects. It completes in the same round before the round
+      is reported. Residual
       freshness re-tests each recorded residual against current state rather
       than carrying it forward on its last wording.
 - [ ] **AC-0010.** The procedure defines coverage as satisfied for an Objective outcome or a
@@ -301,8 +305,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the design unless a task must implement or verify it; a `Done when` points
       at its own `Tests`; an obligation a completion gate must read belongs in
       `Tests` rather than `Approach`; a claim about a check names the comparison
-      its oracle performs; a `Tests`-outruns-`Approach` ratio is read before it
-      is cut; and a whole-plan walk precedes review.
+      its oracle performs; a `Done when` names every command its own `Tests`
+      calls load-bearing, since a closing condition that omits one closes green
+      while that command reds; a `Tests`-outruns-`Approach` ratio is read before
+      it is cut; and a whole-plan walk precedes review.
 - [ ] **AC-0023.** The skill's review step names the responses available to a sustained
       finding — repair the artifact, narrow the claim to what its check reaches,
       cut the item the finding is about, dismiss the finding with its reason
@@ -311,9 +317,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       out of scope and record a follow-on that names its new owner, or accept it
       with the reason it is proportionate recorded — and
       states that a sustained finding does not by itself require an edit.
-- [ ] **AC-0024.** Where a finding is that a claim reaches further than its check, the
-      procedure states both answers and how to choose: strengthen the check when
-      one can reach the stated obligation, narrow the claim when none can.
+- [ ] **AC-0024.** Where a finding is that a claim and its check disagree in reach, the
+      procedure states both directions and how to choose. A claim reaching
+      further than its check is strengthened when some check can reach the
+      stated obligation and narrowed when none can. A *check* reaching further
+      than any claim — shipped behaviour no criterion authorises — is brought
+      under a criterion or cut. The procedure states why the second direction
+      needs saying: the first shows up as a criterion nothing can verify, while
+      the second is invisible, because the artifact works and nothing is
+      missing from it.
 - [ ] **AC-0025.** Where a finding is that a criterion demands content the guidance
       governing its destination surface forbids, the procedure states that the
       criterion changes and the forbidden content is never authored to satisfy
@@ -393,8 +405,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       against the criteria at all — no item registry exists for it to resolve
       against, and claiming one would reach past every oracle here — every
       criterion is named by at least one plan entry and appears in exactly one
-      verification group, and a verification item's identifier is its own rather
-      than derived from the criterion or task it serves. A spec whose criteria
+      verification group, and a verification item's identifier does not mirror
+      the criterion it serves. Derivation from a *task* is not checked and this
+      criterion does not claim it: nothing relates an item to a task number, and
+      the uniqueness rule reads criteria only. Both are review obligations,
+      named so the criterion claims exactly what its oracle decides. A spec whose criteria
       carry no identifiers is skipped rather than failed, so the checker is
       adoptable against the existing corpus on the commit that introduces it.
 - [ ] **AC-0034.** The procedure requires each candidate's disposition to be recorded,
