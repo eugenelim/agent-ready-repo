@@ -83,7 +83,7 @@ two recollections.
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | User-facing promise → `guides/core/reference/acceptance-criteria-authoring.md` | T2 | The roster-level content check over the page body, plus `validate_guides.py`, `check-guide-index.py` and `lint-guide-titles.py` all OK | Page exists, is scoped to set construction, and cites the shape owner |
-| Reusable learning → `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | T4 | The recorded run's per-candidate disposition table | T4's `Done when`, which owns the passing condition |
+| Reusable learning → `notes/verification-ledger.md`, `notes/set-construction-self-application.md`, `docs/product/research/item-id-management-comparison-matrix.md` | T4 (graded run); T1 (matrix, cited by the architecture page) | The recorded run's per-candidate disposition table; the matrix's rejected alternatives | T4's `Done when` owns the run; the matrix is cited by ADR-0108 and the architecture page with no claim left unowned |
 | Release history → `docs/product/changelog.md` | T5 | Free-standing topmost `core` section at the bumped version | `test_core_version_and_okf_declaration_are_synchronized` green |
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
 | Decision rationale → `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
@@ -214,14 +214,18 @@ whole-file token deny-list is unavailable either way; see the probe under
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
 `docs/architecture/loop-contract.md` (exists), `docs/architecture/README.md`,
+`docs/architecture/reference.md` (exists),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
 **Tests:**
 - **The Current-architecture durable output, observed rather than tabled.** Assert
-  over `docs/architecture/loop-contract.md` that every rule it states cites an
-  owner by document and identifier, that it restates none, and that
-  `docs/architecture/README.md` links it. **Mutation:** restore a restated rule
+  over every architecture surface this slice touches — `loop-contract.md` and the
+  `reference.md` standards entry — that each rule stated cites an owner by
+  document and identifier, and that `docs/architecture/README.md` links the page.
+  **Constraint on scope:** the assertion iterates the surfaces the task's
+  `Touches` names rather than one path, because a rule restated on a surface the
+  assertion does not read is a home nothing catches. **Mutation:** restore a restated rule
   and the assertion must red; the durable-output table itself is read by no
   command, which is why the condition lives here.
 - `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
@@ -291,7 +295,7 @@ in the same commit
   these counts describe what this selection did, while the rubric's threshold
   describes the author's shipped corpus.
 - **A per-stage floor over the pinned set — a construction check, not a
-  criterion.** At least one pinned sentence falls in each of the five stage
+  criterion.** At least one pinned sentence falls in each of the stage
   intervals, the fifth closing at the end of the procedure span. This supports
   **AC-0001**; it is not a criterion of its own, because its failure would mean the
   tuple lacks a representative sentence rather than that the procedure lacks a
@@ -770,8 +774,8 @@ in the same commit
   every rule AC-0022 enumerates occurs inside the plan step, with a mutation
   moving one rule outside it that must fail; the existing owner test searches the
   whole skill file, so a rule moved out of the plan step would otherwise stay
-  green. The rules that landed in core 2.25.14 ahead of this contract are a
-  recorded deviation, and this task closes it by bringing them under the spec
+  green. The rules already located in the skill's plan step, which shipped ahead
+  of this contract, are a recorded deviation, and this task closes it by bringing them under the spec
   rather than re-shipping them. **What is owed is read, never counted:** every
   rule the criterion enumerates that has no prose in the plan step must be
   written, and every one with no pinned entry must gain one. This bullet has now
@@ -843,7 +847,7 @@ in the same commit
   step name `docs/product/intents/work-loop-review-economics.md` is one no
   implementation can satisfy — that owner is named here, in the contract, and
   the pack states the rule. **Constraint:** extend the step that shipped in
-  2.25.14 rather than adding a second one — that step already reports the trend
+  the step that already reports the trend rather than adding a second one — that step
   and each residual's consequence, so a parallel step would put two homes on one
   obligation. What is new is the options and their costs.
 - **AC-0027. The `deletion-pass` pin updates with the prose.** That sentence is
@@ -1529,7 +1533,7 @@ is evidence about the check.
   engine state existed. T8 and T9 are therefore restated to close the deviation
   rather than to create the files: their conditions are assertions and edits, not
   creations. Owner decision 2026-09-11, on the precedent T6 already uses for the
-  six plan rules that landed in core 2.25.14 ahead of their criterion. The cost
+  six plan rules already located in the skill's plan step ahead of their criterion. The cost
   of the ordering is recorded here because nothing else would show it: a plan
   frozen with a creation step for an existing file gives two tasks a gate that
   passes without the work.

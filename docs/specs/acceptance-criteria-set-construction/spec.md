@@ -70,7 +70,7 @@ uniqueness and necessity checks compare.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — adopters install the skill and need the procedure outside it | `guides/core/reference/acceptance-criteria-authoring.md` (new; the per-criterion section is a later slice's) | `author-product-docs` conventions | Page validates and publishes; `title` matches the leading H1 | Page exists, carries the set-construction section only, and passes the guide validators |
-| Reusable learning | Applicable — the delivery gate is a recorded exercise, not a suite | `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | This spec's owner | Recorded three-case run with per-candidate dispositions | Run recorded with candidate count, final count and every disposition |
+| Reusable learning | Applicable — the delivery gate is a recorded exercise, not a suite | `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` for the graded run; `notes/set-construction-self-application.md` for the procedure's own first use; [`docs/product/research/item-id-management-comparison-matrix.md`](../../product/research/item-id-management-comparison-matrix.md) for the identity evidence ADR-0108 and the architecture page both cite | This spec's owner | The graded run's per-candidate dispositions; the transcript's dated addenda; the matrix's alternatives and their rejection reasons | Each destination exists, is dated where it records a run, and nothing an architecture page or decision record cites is left without an owner |
 | Release history | Applicable — a `.apm/**` content change is a released pack change | `docs/product/changelog.md` (a pack keeps no `CHANGELOG.md` of its own; that convention is for published packages) | Pack release pipeline | Free-standing topmost `core` entry at the bumped version | Entry present at the version `pack.toml` and `plugin.json` both carry |
 | Current product truth | Applicable — the brief tracks slice delivery | `docs/product/briefs/agent-authoring-input-quality.md` § "Spec map" | `lint-brief-coverage` roll-up | Coverage roll-up resolves this spec through its `Brief:` back-link | Roll-up names this spec; no status hand-written into the brief |
 | Decision rationale | Applicable — this slice amends a decision record, and owner decisions taken during delivery are recorded rather than left in commit messages | [`docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`](../../adr/0108-opaque-append-only-loop-contract-identifiers.md) for the identifier decision; this plan's `## Changelog` for the delivery decisions | This spec's owner | ADR-0108's `Confirmation` names the shipped check and its `Revisit if` records the fired trigger, with the decision text unchanged; each delivery decision is dated in the plan's changelog | The ADR states no falsehood about current tooling, and no owner decision from this delivery is discoverable only from a commit message |
@@ -149,7 +149,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `packs/core/tests/` breaches the pack-test boundary. Both are named here so the
   declared placement matches where each check lands.
 - **The guide publishes the procedure (AC-0014):** goal-based check over the guide's
-  own content. The observation is that each of the five stage names appears on
+  own content. The observation is that each of the the stage names AC-0001 enumerates appears on
   the page. The guide validators establish publication, not content, so they do
   not discharge this criterion; the verification surface is a content check over
   the page.
@@ -306,7 +306,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       while asserting different outcomes. A criterion whose predicate is already
       enforced is merged, removed, or reduced to a citation of that owner.
 - [ ] **AC-0014.** `guides/core/reference/acceptance-criteria-authoring.md` publishes the
-      procedure's five stages.
+      procedure's stages AC-0001 enumerates.
 - [ ] **AC-0015.** That guide cites the criterion-shape owner by document name, and none of
       that owner's pinned rule sentences appears on the page.
 - [ ] **AC-0016.** The set-level pass states that a large irreducible set survives it, and
@@ -408,7 +408,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       states the protected-risk-class condition directly and enumerates no class
       list, because shipped pack content carries no citation to an internal
       record. The owner of that class set is
-      `docs/product/intents/work-loop-review-economics.md` § Guardrail, named
+      `docs/product/intents/work-loop-review-economics.md`, its `## Outcome`
+      section's **Guardrail** bullet, named
       here in the contract and deliberately not in the pack. The split is
       load-bearing for the stop decision: an undivided count cannot distinguish a
       contract still yielding defects from one whose remaining findings are
@@ -664,16 +665,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   no results file format (source:
   `docs/product/briefs/agent-authoring-input-quality.md` § "Author criteria
   from obligations, not from every check")
-- Process: this slice edits the brief's body in three places — the A6 row's
-  widened scope, the review-loop disposition section, and a section recording
-  that a criterion syntax was tested by rewriting and rejected. The first two
-  carry their authority on their own face. **The third records a measurement
-  taken during delivery and carries no owner agreement, so its sign-off against
-  the `Ask first` boundary is owed rather than recorded** — a residual for the
-  owner to close or to direct the section's removal. The § "Corpus" exclusion
-  rule already covers this spec generically, and the Spec map cell is the
-  roll-up's to write, not this slice's (source: owner decision 2026-09-10 in the
-  brief's A6 row; the third section's authority is unrecorded)
+- Process: this slice edits the brief in four places — the A6 row's widened
+  scope, the review-loop disposition section, a section recording that a
+  criterion syntax was tested by rewriting and rejected, and the Spec map cell.
+  The first two carry their authority on their own face. The fourth writes the
+  `<auto>` placeholder the roll-up resolves, which the Release-history row above
+  requires and which hand-writes no status. **The third and fourth are edits to
+  an `Ask first` file whose sign-off is owed rather than recorded** — one
+  residual covering both, for the owner to close or to direct their removal; the
+  cell is not reverted, because the durable-output row forbids leaving this spec
+  unresolvable through the brief. The § "Corpus" exclusion rule already covers
+  this spec generically (source: owner decision 2026-09-10 in the brief's A6
+  row; the third and fourth edits' authority is unrecorded)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
   when the procedure, the guide's set-construction section, the three frozen
   cases, their seed pinning and the recorded run exist (source: user

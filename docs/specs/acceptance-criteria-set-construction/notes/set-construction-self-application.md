@@ -600,3 +600,58 @@ missing field is visible on first use, where a missing seed in an evaluation
 case is invisible and degrades the gate silently. Self-revealing failures do not
 need mechanical oracles, and a fourth case would add roughly a third to the
 delivery gate to catch what the audience catches free.
+
+## Addendum 12 — the whole-set pass re-run over 40 criteria, 2026-09-11
+
+Owed since the set passed 20. AC-0017 requires the pairwise uniqueness check
+re-run across the whole set with its result recorded while the set is at or
+above the author's stated threshold, and AC-0027 scopes the earn-its-keep test
+to every criterion while rounds are still running. The last recorded pass
+(Addenda 4 and 5) covered 20; the set is now 40, so half carried no recorded
+verdict. Found by cold review round 3.
+
+### Pairwise uniqueness — 780 pairs, mechanical then adjudicated
+
+Distinctive-vocabulary overlap over all 780 pairs, stopwords removed, Jaccard
+floor 0.22. Two pairs cleared the floor; both were read and both are distinct.
+
+| Pair | Overlap | Verdict |
+| --- | --- | --- |
+| AC-0020 / AC-0029 | 0.318 | **distinct.** AC-0020 governs a frozen case's seeded *construction* — the detail, duplicate and example-only variant must be present. AC-0029 governs the *run's outcome* — none of them is admitted. Separate remedies: add a missing seed, versus a procedure that wrongly admits one. |
+| AC-0011 / AC-0012 | 0.242 | **distinct.** AC-0011 reads coverage from a criterion to its *observer* and fails on none or two. AC-0012 reads it to the *outcome it serves* and cuts a criterion serving nothing. Opposite directions, separate failures. |
+
+No uniqueness violation in the set. The floor is a pre-filter, not the oracle:
+a pair sharing little vocabulary can still duplicate a predicate, which is why
+the necessity pass below reads every criterion rather than only the flagged ones.
+
+### Necessity and earn-its-keep — the 20 criteria added since the recorded pass
+
+AC-0021 through AC-0040 were read against both halves of the earn-its-keep test:
+each names the outcome its failure would leave unmet, and no sibling criterion
+or existing repository control already enforces its predicate.
+
+- **AC-0021, AC-0028, AC-0029** — the graded run. Each names a distinct half:
+  the scoring order, objective retention, non-criterion rejection. Kept.
+- **AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027** — the authoring and
+  response protocol. Each names a move an author makes and a defect its absence
+  leaves. Kept; AC-0027's own conjunction is the test being applied here.
+- **AC-0030, AC-0031, AC-0032, AC-0034, AC-0036** — the template convention,
+  per-task grounding, the ADR's confirmation state, disposition recording and
+  the discovery pass. Each has a distinct destination surface. Kept.
+- **AC-0033, AC-0035, AC-0037** — the three shipped checkers, one per distinct
+  oracle. Kept.
+- **AC-0038, AC-0039, AC-0040** — the invocation rule and the two later checker
+  rules. Kept.
+
+**One finding, and it is structural rather than a duplicate.** AC-0009 carries
+thirteen separately remediable predicates under one checkbox, which the shape
+owner's split test breaks. That is what a whole-set pass exists to catch, and it
+went unfound for twenty rounds because the pass was never re-run. The
+decomposition proposal AC-0016 obliges is recorded beside this file at
+`ac-0009-decomposition-proposal.md`; the disposition is the owner's.
+
+**Residue.** The earn-its-keep test's second half — no *existing repository
+control* already enforces the predicate — was read per criterion rather than by
+searching the repository's whole control inventory for each. Earlier rounds
+found three instances of that class by grounded search, so the read is a floor
+and not an exhaustive answer.

@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exit non-zero on a finding, so they can stand in a gate, except for the
   reworded-criterion rule, which prints as "reported, not failing" and leaves
   the status alone because it over-reports on a prose edit.
-- `new-spec`: six plan-authoring rules in the plan step. A fact belongs in
+- `new-spec`: plan-authoring rules in the plan step. A fact belongs in
   `## Design (LLD)` unless a task must implement or verify it; `Done when`
   points at the task's own `Tests` and never restates them; an obligation a
   completion gate must read belongs in `Tests` rather than `Approach`, which no
