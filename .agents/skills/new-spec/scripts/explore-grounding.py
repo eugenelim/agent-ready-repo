@@ -20,14 +20,22 @@ are the seeds and their references are the question.
 
 Three rules hold for every probe.
 
-**It reports; it never decides.** The exit status is success unless the tool
-itself failed. Blocking on a heuristic is a different mechanism with a different
-failure mode, and a worse one.
+**It reports; it never decides.** Blocking on a heuristic is a different
+mechanism with a different failure mode, and a worse one.
 
-**Three outcomes, always distinguishable:** found, none found, and input
-unavailable. A probe that returns empty when its input is missing is
-indistinguishable from a clean result -- and the co-change probe has no fallback,
-so on a repository without history it must say so rather than say nothing.
+Exit codes: ``0`` always, including when every probe found nothing or an input
+was unavailable; ``2`` only when this tool could not run at all -- an unreadable
+seed, or a root the seed paths escape. There is no code for "found something",
+because a finding here is never a failure.
+
+**Outcomes are always distinguishable, but there are not always three.** A probe
+whose input can be missing has three -- found, none found, and input unavailable
+-- because a probe that returns empty when its input is missing is
+indistinguishable from a clean result, and co-change in particular has no
+fallback, so on a repository without history it must say so rather than say
+nothing. The two probes that read the tree itself, scoped rules and path refs,
+have two: their input cannot be absent, and claiming a third outcome they cannot
+reach would describe a set the code does not have.
 
 **Nothing about this repository is hardcoded.** Top-level names and the tracked
 set are derived at run time. A shipped allowlist of directories fails on an
@@ -67,6 +75,9 @@ BOILERPLATE_CUTOFF = 3
 # literature; both repository-dependent, which is why they are flags.
 CO_CHANGE_MIN = 3
 SWEEP_COMMIT_SIZE = 30
+# Below this a derived sweep threshold is not usable: a repository of two-file
+# commits would treat any three-file commit as a sweep and report nothing.
+FLOOR_SWEEP = 5
 # Per-probe result cap. Beyond it the remainder is counted, never listed: a probe
 # that floods its caller pushes the real finding below the fold.
 RESULT_CAP = 12
@@ -156,7 +167,13 @@ def calibrate_sweep(root: Path, default: int) -> tuple[int, str]:
         return default, f"default (only {len(sizes)} commits)"
     sizes.sort()
     p90 = sizes[int(len(sizes) * 0.9)]
-    return max(5, p90), f"p90 of {len(sizes)} commits"
+    # The floor wins on a repository whose commits are all small, and the basis
+    # has to say so: reporting "p90" for a value the percentile did not produce
+    # labels a default as measured, which is the mis-calibration the basis exists
+    # to make visible.
+    if p90 < FLOOR_SWEEP:
+        return FLOOR_SWEEP, f"floor of {FLOOR_SWEEP} (p90 of {len(sizes)} commits was {p90})"
+    return p90, f"p90 of {len(sizes)} commits"
 
 
 def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple[int, str]:
@@ -171,7 +188,9 @@ def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple
         return default, "default (too little signal)"
     ordered = sorted(per_phrase)
     p75 = ordered[int(len(ordered) * 0.75)]
-    return max(default, p75), f"p75 of {len(per_phrase)} matched phrases"
+    if p75 < default:
+        return default, f"default of {default} (p75 of {len(per_phrase)} matched phrases was {p75})"
+    return p75, f"p75 of {len(per_phrase)} matched phrases"
 
 
 def _git_raw(root: Path, *args: str) -> str | None:
@@ -542,8 +561,6 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     if tracked is None:
         print("git unavailable: tracked-set and co-change probes degrade")
 
-    # Derived only when something consumes it: the walk costs one git call per
-    # commit, and no phase but co-change reads the result.
     phrases = {s: distinctive_lines(root, s) for s in seeds}
     # One compiled alternation per seed, matched in a single C-level pass, in
     # place of len(phrases) Python-level substring checks per file. On this

@@ -25,6 +25,11 @@ catches the unreachable one, which is not.
 Usage:
     python lint-finding-coverage.py <subject.py> [<subject.py> ...] [--tests DIR]
     python lint-finding-coverage.py --discover <root>
+
+Exit codes: ``0`` no findings, including when every subject declared no
+catalogue and was skipped as not opted in; ``1`` at least one finding, which
+includes a discovery scan where no subject declared one at all; ``2`` the check
+could not run -- a subject path outside the invocation root.
 """
 
 from __future__ import annotations
