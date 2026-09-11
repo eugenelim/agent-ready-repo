@@ -20,7 +20,7 @@ The rules, all mechanical:
   9. given a base revision, no criterion was reworded while the assertion blocks
      naming it stayed put -- a criterion whose assertion did not follow it
 
-Rule 5 is scoped to task entries -- a task's ``Tests:`` and ``Done when:``
+Rule 5 is scoped to task entries -- a task's 'Tests:' and 'Done when:'
 blocks -- and not to the whole document. The weaker form, "does this identifier
 appear anywhere in plan.md", passes on a mention in prose, in a changelog, or in
 another task's rationale, so a criterion with no implementing bullet anywhere
@@ -30,10 +30,11 @@ Forward-only by construction: a spec whose criteria carry no identifiers is
 skipped entirely, so introducing this check does not fail a corpus authored
 before the convention existed.
 
-Exit codes: ``0`` no failing findings -- which includes a run where a reporting
+Exit codes: '0' no failing findings -- which includes a run where a reporting
 rule flagged something, since those are printed as "reported, not failing" and
-never set the status; ``1`` at least one failing finding; ``2`` the check could
-not run -- a missing spec directory, or a path outside the invocation root.
+never set the status; '1' at least one failing finding; '2' the check could
+not run, which is only a spec directory outside the invocation root; a directory
+with no 'spec.md' is a finding, not a refusal.
 
 Rule 9 is the reporting rule. It over-reports by construction, so a non-zero
 exit on it would fail a build for a prose edit.
@@ -48,12 +49,11 @@ import sys
 from pathlib import Path
 
 # Every distinct finding this checker can emit, keyed by rule. The catalogue is
-# here rather than in the suite so the two cannot drift: the messages below are
-# formatted from these fragments, and the suite asserts that each fragment is
-# exercised by some case. A rule whose fragment no test observes is a rule with
-# no red case, so its suite is green for a reason unrelated to whether the rule
-# works. It is a floor, not a derivation: a test could contain a fragment without
-# asserting on it, and only running the case proves the branch is reachable.
+# here rather than in the suite so the two cannot drift: every message below is
+# formatted from these fragments, so a rule's wording has one home. A rule whose
+# fragment no test observes is a rule with no red case, so its suite is green for
+# a reason unrelated to whether the rule works -- which is what the shipped
+# finding-coverage check reports when it is run over this file.
 FINDING_KINDS = {
     "unlabelled": "criterion carries no identifier",
     "duplicate": "is assigned twice",
@@ -65,6 +65,7 @@ FINDING_KINDS = {
     "derived-item": "mirrors",
     "unconfined": "refusing path outside root",
     "capped": "more finding(s) in",
+    "no-spec": "no spec.md",
     "broken-entry": "entry has an unterminated code span",
     "stale-assertion": "was reworded with no changed assertion in",
 }
@@ -82,7 +83,7 @@ FINDING_CAP = 20
 # partially applied rather than unapplied, and listing it would claim a rule ran
 # on nothing when half of it ran. A rule that silently runs on nothing is the
 # partial-read-as-clean failure this module exists to detect in other artifacts.
-PLAN_GATED = ("task-entry", "derived-item", "broken-entry")
+PLAN_GATED = ("no-task-entry", "derived-item", "broken-entry")
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
 CRITERION_LINE = re.compile(r"- \[[ x]\] \*\*(AC-\d{4})\.\*\* ")
@@ -303,7 +304,13 @@ def check(spec_dir: Path, root: Path | None = None,
     """
     spec_path, plan_path = spec_dir / "spec.md", spec_dir / "plan.md"
     if not spec_path.is_file():
-        return [f"{spec_dir}: no spec.md"], False, [], []
+        # Root-relative like every other finding: an absolute host path is wrong
+        # in a review, a commit message and an issue alike.
+        try:
+            where = spec_dir.relative_to(root).as_posix() if root else spec_dir.as_posix()
+        except ValueError:
+            where = spec_dir.as_posix()
+        return [f"{where}: {FINDING_KINDS['no-spec']}"], False, [], []
     spec = spec_path.read_text(encoding="utf-8")
     plan = plan_path.read_text(encoding="utf-8") if plan_path.is_file() else ""
 
@@ -406,8 +413,10 @@ def check(spec_dir: Path, root: Path | None = None,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path("."))
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--root", type=Path, default=Path("."),
+                        help="repository root every path is resolved and confined to")
     parser.add_argument("--verbose", action="store_true",
                         help="list every finding instead of capping the listing")
     parser.add_argument("--since", metavar="REF",
@@ -424,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
         p.parent for p in (root / "docs" / "specs").glob("*/spec.md")
     )
 
-    findings, ran, skipped, partial, reported = [], 0, 0, [], []
+    findings, ran, skipped, absent, partial, reported = [], 0, 0, 0, [], []
     for target in targets:
         if root not in target.parents and target != root:
             print(f"lint-contract-item-alignment: {FINDING_KINDS['unconfined']}: {target}")
@@ -433,7 +442,13 @@ def main(argv: list[str] | None = None) -> int:
         findings.extend(found)
         reported.extend(noted)
         ran += applied
-        skipped += not applied
+        # A directory with no spec.md is its own state. Folding it into
+        # "skipped as unlabelled" reports one state under another's label, which
+        # is the partial-read-as-clean conflation this module exists to detect.
+        if any(f.endswith(FINDING_KINDS["no-spec"]) for f in found):
+            absent += 1
+        else:
+            skipped += not applied
         if unapplied:
             partial.append(f"{target.name}: {', '.join(unapplied)}")
 
@@ -451,10 +466,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"lint-contract-item-alignment: and {len(rest) - 10} further spec(s)")
         print(f"lint-contract-item-alignment: {len(findings) - len(shown)} finding(s) "
               f"not listed; re-run with --verbose for the full list")
-    for note in reported:
+    # Bounded like the failing list, and for the same reason: this rule
+    # over-reports by design over a default target set of every spec, so an
+    # uncapped channel floods the reader with the cheaper findings.
+    shown_notes = reported if (args.verbose or len(reported) <= FINDING_CAP) \
+        else reported[:FINDING_CAP]
+    for note in shown_notes:
         print(f"lint-contract-item-alignment: reported, not failing: {note}")
+    if len(shown_notes) < len(reported):
+        print(f"lint-contract-item-alignment: {len(reported) - len(shown_notes)} "
+              f"further reported, not failing; re-run with --verbose")
     summary = (f"lint-contract-item-alignment: {len(findings)} finding(s); "
                f"{ran} spec(s) checked, {skipped} skipped as unlabelled")
+    if absent:
+        summary += f", {absent} with no spec.md"
     if reported:
         summary += f", {len(reported)} reported without failing"
     if partial:

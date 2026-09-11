@@ -330,11 +330,13 @@ in the same commit
   each ban must red on its own deletion, because one assertion over "the
   consistency member" is satisfied by prose carrying neither ban.
   **Constraint on the shape re-read:** assert that the member obliges the re-read
-  and identifies the rules by their pinned names, and assert separately that it
-  carries neither rule's wording — the spec's *Never do* forbids restating a rule
-  `assets/spec.md` owns. Reading for the pin names rather than the rule text is
-  also what keeps the assertion satisfiable: shipped prose may not cite this
-  catalogue's records, and the pin names are the pack's own. Deleting
+  and reaches the rules through the `assets/spec.md` section the skill already
+  names as their owner, and assert separately that it carries no rule's wording —
+  the spec's *Never do* forbids restating a rule that file owns. Where a pinned
+  name is used, assert the pack resolves it: `observable-outcome` is shipped
+  prose in the rubric, while `claim-minimality` exists only in a non-projected
+  suite, so naming the latter would demand shipped prose carry a token an adopter
+  cannot resolve — the unsatisfiable shape this task has already refused twice. Deleting
   that clause must red this assertion; without it the member reads as a
   criteria-only comparison, and the body statement that contradicted its own
   criteria survived three rounds because nothing looked there.
@@ -1086,11 +1088,11 @@ in the same commit
   observed here rather than left to the durable-output table, which no command
   reads.
 - **AC-0039, a structurally broken task entry.** Cases: a balanced entry is
-  clean; an entry truncated mid-clause is reported by task; and four legitimate
-  backtick shapes are clean, each case recording whether it breaks a naive count
-  — the two fence shapes do and therefore discriminate this predicate from
-  counting, while a doubled delimiter and a balanced pair are even under both
-  and guard without discriminating. **Constraint:** assert the *pairing* of
+  clean; an entry truncated mid-clause is reported by task; and the legitimate
+  backtick shapes the parametrization enumerates are clean, each case recording
+  whether it breaks a naive count — the fence shapes do and therefore
+  discriminate this predicate from counting, while the shapes even under both
+  guard without discriminating. **Constraint:** assert the *pairing* of
   value and rule — that the finding names the task — not merely that some
   finding was emitted, and do not let a non-discriminating case stand as
   evidence for the design. A rule an author learns to ignore is worse
@@ -1135,7 +1137,7 @@ in the same commit
   duplicating them here would put two homes on one obligation.
 - Skip-when-unlabelled is the first condition, not a late guard.
 
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the AC-0032 ADR edit is landed and asserted at repository level, the invocation is referenced from the skill, every mutation this task's `Tests` states is executed with its red recorded and then restored — by reference to that list, not an enumeration here, which is the same drift the command rule was written after — and `make build-self` leaves no drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and AC-0032's ADR state is asserted at repository level — the edit itself is landed, so the assertion is the only part not yet green — the invocation is referenced from the skill, every mutation this task's `Tests` states is executed with its red recorded and then restored — by reference to that list, not an enumeration here, which is the same drift the command rule was written after — and `make build-self` leaves no drift.
 
 ### T9: The skill ships its grounding explorer and its coverage check
 

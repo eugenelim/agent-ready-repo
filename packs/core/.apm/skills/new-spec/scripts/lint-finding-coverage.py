@@ -26,9 +26,9 @@ Usage:
     python lint-finding-coverage.py <subject.py> [<subject.py> ...] [--tests DIR]
     python lint-finding-coverage.py --discover <root>
 
-Exit codes: ``0`` no findings, including when every subject declared no
-catalogue and was skipped as not opted in; ``1`` at least one finding, which
-includes a discovery scan where no subject declared one at all; ``2`` the check
+Exit codes: '0' no findings, including when every subject declared no
+catalogue and was skipped as not opted in; '1' at least one finding, which
+includes a discovery scan where no subject declared one at all; '2' the check
 could not run -- a subject path outside the invocation root.
 """
 
@@ -121,10 +121,18 @@ def test_dirs(subject: Path, given: list[Path], root: Path) -> list[Path]:
 
 
 def sources(dirs: list[Path]) -> str:
+    """Every test module under these directories, by one shared shape.
+
+    `_is_test_file` decides what a test module is here too. Globbing
+    'test_*.py' while the subject exclusion also accepted a '_test' suffix meant
+    a repository using 'foo_test.py' had its suites excluded from being subjects
+    and never read as sources either, which turns every declared finding kind
+    into a false 'no test observes'.
+    """
     return "\n".join(
         path.read_text(encoding="utf-8", errors="replace")
         for directory in dirs
-        for path in sorted(directory.rglob("test_*.py"))
+        for path in sorted(p for p in directory.rglob("*.py") if _is_test_file(p))
     )
 
 

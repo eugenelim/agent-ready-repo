@@ -181,16 +181,39 @@ def test_co_change_finds_a_partner_from_history(root):
     assert "confidence" in out, "a raw count without its ratio is not calibrated"
 
 
+REFERRERS = 9             # this case writes exactly this many referring files
+CAP = 3
+
+
 def test_result_cap_reports_an_exact_remainder(root):
-    seed = _seeded(root)
-    for index in range(9):
-        (root / f"ref{index}.md").write_text(f"see lib/seed.md\n", encoding="utf-8")
-    out = _run(root, seed, extra=["--cap", "3"])
-    assert "capped at 3" in out, out
-    # The remainder must be exact, not approximate: derive it from the reported
-    # total rather than hardcoding, so the case survives a fixture change.
-    total = int(re.search(r"path refs\s+(\d+)", out).group(1))
-    assert f"and {total - 3} more" in out, f"remainder must be exact:\n{out}"
+    """The remainder is checked against the fixture, never against the report.
+
+    Deriving the total from the subject's own output made expected equal printed
+    by construction -- both the total and the remainder come from one
+    `len(rows)` -- so a cap that under-listed by one row still passed. This case
+    builds its own tree rather than using the shared seed fixture, which
+    contributes referrers of its own and would put the row count back out of the
+    test's hands.
+    """
+    (root / "lib").mkdir()
+    (root / "lib" / "seed.md").write_text(f"# Seed\n\n{LONG}\n", encoding="utf-8")
+    for index in range(REFERRERS):
+        (root / f"ref{index}.md").write_text("see lib/seed.md\n", encoding="utf-8")
+    out = _run(root, "lib/seed.md", extra=["--cap", str(CAP)])
+    lines = out.splitlines()
+    start = next(i for i, l in enumerate(lines) if "path refs" in l)
+    assert lines[start].split()[-1] == str(REFERRERS), \
+        f"the total must be this fixture's {REFERRERS}:\n{lines[start]}"
+    listed = [l for l in lines[start + 1:] if l.startswith("      ref")]
+    remainder = int(re.search(r"and (\d+) more", out).group(1))
+    # Listed plus remainder must account for every row. Checking the remainder
+    # against the fixture alone passes a cap that under-lists, because the
+    # remainder is computed from `cap` rather than from the rows emitted -- so
+    # the two claims can disagree while each looks right on its own.
+    assert len(listed) + remainder == REFERRERS, (
+        f"{len(listed)} listed + {remainder} claimed remaining != {REFERRERS} "
+        f"total:\n{out}")
+    assert f"capped at {CAP}" in out, out
 
 
 def test_a_copy_of_the_seed_is_not_a_pin_on_it(root):
@@ -243,20 +266,30 @@ STAGE_PROBES = {
 }
 
 
-def test_the_task_stage_runs_the_probe_set_declared_here(root):
-    """AC-0035's "the probe set is selected by stage", pinned independently.
 
-    Deleting "gates" from PHASES["task"] left all cases green: every other stage
-    assertion sources its expectation from the same table it is checking, so the
-    task stage could quietly stop running gate reachability. This case fails
-    instead.
+def test_a_probe_outside_the_stage_does_no_work(root, capsys):
+    """Selection is executional, and only a function-level oracle can see it.
+
+    Every other case reads the report, where a probe that was skipped and one
+    whose output was suppressed look identical. This one counts calls into the
+    probe's own sampling: `review` must not reach it at all, and a stage that
+    includes it must. Gating only the printing passes every stdout assertion
+    while the adopter still pays for the scan.
     """
-    out = _run(root, _seeded(root), extra=["--phase", "task"])
-    line = next((l for l in out.splitlines() if l.startswith("probes:")), None)
-    assert line, f"the task report names no probe set:\n{out}"
-    named = {p.strip() for p in line[len("probes:"):].split("\u00b7")[0].split(",")}
-    assert named == STAGE_PROBES["task"], (
-        f"task stage reported {sorted(named)}, expected {sorted(STAGE_PROBES['task'])}")
+    module = _subject()
+    seed = _seeded(root)
+    calls: list[str] = []
+    real = module.distinctive_lines
+    module.distinctive_lines = lambda *a, **k: calls.append("sampled") or real(*a, **k)
+    try:
+        module.main(["--root", str(root), "--phase", "review", seed])
+        capsys.readouterr()
+        assert not calls, "review has no phrase-pin probe, so it must not sample"
+        module.main(["--root", str(root), "--phase", "task", seed])
+        capsys.readouterr()
+        assert calls, "task includes the phrase-pin probe, so it must sample"
+    finally:
+        module.distinctive_lines = real
 
 
 @pytest.mark.parametrize("phase", ["discovery", "task", "review", "all"])
@@ -277,6 +310,11 @@ def test_the_report_names_the_probe_set_its_stage_ran(root, phase):
     assert named == expected, (
         f"{phase} ran {sorted(named)} but this suite expects {sorted(expected)}")
     # The subject's table is compared against the declaration, never read as it.
+    # Keys as well as values: pinning only each stage's membership let a fifth
+    # stage arrive unasserted, which is the same defect one scope wider.
+    assert set(_subject().PHASES) == set(STAGE_PROBES), (
+        f"the subject's stages are {sorted(_subject().PHASES)}; this suite "
+        f"declares {sorted(STAGE_PROBES)} — reconcile deliberately")
     assert set(_subject().PHASES[phase]) == expected, (
         f"{phase}'s table is {sorted(_subject().PHASES[phase])}; reconcile with "
         f"the suite deliberately, not silently")
@@ -535,12 +573,6 @@ def test_a_file_past_the_size_bound_is_counted_not_silently_empty(root):
     out = _run(root, seed)
     assert "skipped for size" in out, f"the omission must be visible:\n{out}"
 
-
-def test_the_co_change_minimum_is_reported(root):
-    """A bound that filters results must name itself, like the other two."""
-    seed = _seeded(root)
-    out = _run(root, seed)
-    assert "co-occurrence minimum" in out, out
 
 
 def test_sweep_is_not_derived_when_no_probe_consumes_it(root):

@@ -162,6 +162,41 @@ def test_the_searched_directory_list_is_capped(root):
     assert len(line) < 700, f"a capped line must actually be short:\n{len(line)}"
 
 
+def test_a_checker_whose_name_contains_test_is_still_a_subject(root):
+    """The named defect: exclusion matched a substring, not a test-file shape.
+
+    A checker called `lint-pack-test-boundary.py` was dropped from discovery --
+    neither checked, nor counted as skipped, nor named in the report -- which is
+    the silent omission this check exists to report in other suites.
+    """
+    scripts = root / "packs" / "demo" / ".apm" / "skills" / "widget" / "scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "lint-pack-test-boundary.py").write_text(SCRIPT, encoding="utf-8")
+    suite = root / "packs" / "demo" / "tests" / "skills" / "widget"
+    suite.mkdir(parents=True)
+    (suite / "test_widget.py").write_text(
+        'def test_a():\n    assert "the alpha rule fired" in out\n', encoding="utf-8")
+    result = _run(root, "--discover", str(root / "packs"))
+    assert "1 subject(s) checked" in result.stdout, (
+        "a checker whose name merely contains 'test' must be a subject:\n"
+        + result.stdout)
+    assert "can emit findings no test observes: beta" in result.stdout, result.stdout
+
+
+def test_a_suite_named_with_a_test_suffix_is_read_as_a_source(root):
+    """The two shapes must agree: excluded as a subject, read as a source."""
+    subject = _skill(root, "packs/demo/tests/skills/widget", "def placeholder():\n    pass\n")
+    suite = root / "packs" / "demo" / "tests" / "skills" / "widget"
+    (suite / "test_widget.py").unlink()
+    (suite / "widget_test.py").write_text(
+        'def test_a():\n    assert "the alpha rule fired" in out\n'
+        'def test_b():\n    assert "the beta rule fired" in out\n', encoding="utf-8")
+    result = _run(root, str(subject))
+    assert result.returncode == 0, (
+        "a `_test` suffix is excluded as a subject, so it must be read as a "
+        "source:\n" + result.stdout)
+
+
 def test_a_subject_outside_the_root_is_refused(root):
     _skill(root, "tests", "def test_a():\n    pass\n")
     result = _run(root, str(root.parent / "elsewhere.py"))

@@ -259,11 +259,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       delivery history, which the retcon discipline sends to the changelog, and a
       count standing beside the set it enumerates, which AC-0018 forbids. It also
       re-reads each criterion against the criterion-shape rules `assets/spec.md`
-      owns in its Acceptance Criteria guidance, identified by their pinned
-      names — `claim-minimality` and `observable-outcome` — and never restated
-      here. Each pin already carries a recorded mutation proof, so naming it
-      obliges the re-read as specifically as reproducing the rule would while
-      leaving one home for the wording. The member exists because a rule with an
+      owns in its `## Acceptance Criteria` section, which the skill already
+      names as their single owner, and never restates them here. Where a rule
+      carries a pinned name the pack itself resolves — `observable-outcome` —
+      the member names the pin, which obliges the re-read as specifically as
+      reproducing the rule would while leaving one home for the wording. The
+      remaining rules are reached through that section, because a pinned name
+      the pack does not define is a token an adopter cannot resolve. The member exists because a rule with an
       owner is read when a criterion is written and never again, which is how a
       criterion accretes rationale round over round —
       joint feasibility, coverage, propagation, and residual freshness. The
@@ -498,11 +500,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       one, which gates would run one, which quote a distinctive line from one,
       and which scoped guidance governs each, plus which paths a seed names that
       no longer resolve. The probe set is selected by stage rather than run
-      whole, and each stage's report names the probes it ran. Every probe reports
+      whole: a probe outside a stage's set does not execute, and each stage's
+      report names the probes it ran. Selection is executional rather than a
+      filter on the output, because a discarded result is work an adopter paid
+      for, and an oracle that reads only the report cannot tell a probe that was
+      skipped from one whose output was suppressed. Every probe reports
       and none decides. The thresholds whose right value is repository-shaped —
       the sweep-commit size and the phrase cutoff — derive from the adopter
       repository's own distribution, and the report names each value with what
-      produced it, so a defaulted value is not labelled as measured. The minimum
+      produced it — on every stage, whether or not that stage's probe set
+      consumes the value — so a defaulted value is not labelled as measured and
+      an absent line is not read as an absent derivation. The minimum
       co-occurrences before a partner is reported filters results rather than
       presenting them, so it is reported on every run though it is not derived;
       the remaining bounds are presentation limits with documented defaults and

@@ -70,17 +70,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `new-spec`: three checkers in the skill's own `scripts/`. The grounding
-  explorer never fails: it reports and exits zero whatever it finds. The two
-  linters exit non-zero on a finding, so they can stand in a gate, except for
-  the reworded-criterion rule, which prints as "reported, not failing" and
-  leaves the status alone because it over-reports on a prose edit. An
-  item-alignment check over a spec directory's identifiers,
-  references and coverage; a grounding explorer that answers what already
-  governs a set of paths, selected by stage and calibrated from the adopter
-  repository's own distribution; and a finding-coverage check that reports a
-  rule whose message no test observes. Each states its flags and its exit codes
-  in its own `--help`.
+- `new-spec`: three checkers in the skill's own `scripts/`. An item-alignment
+  check over a spec directory's identifiers, references and coverage; a
+  grounding explorer that answers what already governs a set of paths, selected
+  by stage and calibrated from the adopter repository's own distribution; and a
+  finding-coverage check that reports a rule whose message no test observes.
+  Each states its flags and its exit codes in its own `--help`. The explorer
+  never fails — it reports and exits zero whatever it finds. The two linters
+  exit non-zero on a finding, so they can stand in a gate, except for the
+  reworded-criterion rule, which prints as "reported, not failing" and leaves
+  the status alone because it over-reports on a prose edit.
 - `new-spec`: six plan-authoring rules in the plan step. A fact belongs in
   `## Design (LLD)` unless a task must implement or verify it; `Done when`
   points at the task's own `Tests` and never restates them; an obligation a

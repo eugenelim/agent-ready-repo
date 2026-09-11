@@ -222,6 +222,36 @@ def test_a_rule_that_cannot_run_is_skipped_not_reported_clean(root, label, ref, 
     assert "partial" in result.stdout, f"{label} must report a partial check:\n{result.stdout}"
 
 
+def test_a_failing_and_a_reported_finding_coexist_at_exit_one(root):
+    """The mixed state, which neither reporting case pinned.
+
+    Both rule-9 cases assert a clean failing set, so nothing established that a
+    reporting note does not mask a failing finding's exit status. A reader who
+    cannot tell the two apart gets the worst of both: a gate that passes on a
+    real break, or one that fails on a prose edit.
+    """
+    _repo(root)
+    d = root / "docs" / "specs" / "fixture"
+    # a reworded criterion with no changed assertion -> reported, not failing
+    (d / "spec.md").write_text(
+        SPEC.replace("The first thing holds.",
+                     "The first thing holds, and a new clause too."),
+        encoding="utf-8")
+    # and a criterion in no verification group -> a failing finding
+    (d / "spec.md").write_text(
+        (d / "spec.md").read_text(encoding="utf-8").replace(
+            "- **The second group (AC-0002):** TDD.\n", ""),
+        encoding="utf-8")
+    result = _since(root)
+    assert result.returncode == 1, (
+        "a failing finding must set the status even beside a reported note:\n"
+        + result.stdout)
+    assert "reported, not failing:" in result.stdout, result.stdout
+    assert "verification group" in result.stdout, result.stdout
+    assert "1 finding(s)" in result.stdout and "reported without failing" in result.stdout, \
+        result.stdout
+
+
 def test_a_changelog_mention_does_not_count_as_the_assertion_following(root):
     """Rule 9's silencing case: mention-anywhere, reappearing one rule later.
 
@@ -429,7 +459,32 @@ def test_a_correctly_retired_criterion_passes(root):
 # the value under test. A hand-list is the right shape at this one site: the
 # drift it used to cause is now caught by comparing it against the subject's own
 # tuple in the same case, which reads them as two independent statements.
-PLAN_GATED_RULES = {"task-entry", "derived-item", "broken-entry"}
+PLAN_GATED_RULES = {"no-task-entry", "derived-item", "broken-entry"}
+
+
+def test_a_directory_with_no_spec_is_its_own_state_and_root_relative(root):
+    """Two defects in one path: an absolute host path, and a mislabelled state.
+
+    The early return took the path before the root-relative form was computed,
+    against the rule stated ten lines below it, and the summary folded the
+    result into "skipped as unlabelled" — reporting one state under another's
+    label, which is the partial-read-as-clean conflation this module detects
+    elsewhere.
+    """
+    empty = root / "docs" / "specs" / "empty"
+    empty.mkdir(parents=True)
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(root), str(empty)],
+        capture_output=True, text=True, check=False)
+    assert "no spec.md" in result.stdout, result.stdout
+    assert "docs/specs/empty: no spec.md" in result.stdout, \
+        f"the finding must be root-relative:\n{result.stdout}"
+    assert str(root) not in result.stdout, \
+        f"an absolute host path leaked:\n{result.stdout}"
+    assert "1 with no spec.md" in result.stdout, \
+        f"a missing spec.md needs its own state:\n{result.stdout}"
+    assert "0 skipped as unlabelled" in result.stdout, \
+        f"it must not be counted as unlabelled:\n{result.stdout}"
 
 
 def test_a_plan_less_spec_is_reported_as_partial(root):
