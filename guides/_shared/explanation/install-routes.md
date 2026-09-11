@@ -11,10 +11,40 @@ Four ways to install a pack from this catalogue:
 
 | Route | Command | When it fits |
 | --- | --- | --- |
-| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. **Carries only packs whose `allowed-scopes` admits `user`** — see the note below. |
+| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You want one-line install with auto-update. These two commands are Claude Code's; the Claude apps install the same plugins through their own interface. **Carries only packs whose `allowed-scopes` admits `user`** — see the notes below. |
 | **APM** | `apm install <owner>/<catalogue>/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
 | **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
 | **Local clone** | `git clone … && python -m pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
+
+:::note
+**Which Claude surface?** `/plugin marketplace add` and `/plugin install` are
+Claude Code's commands. The Claude apps — Desktop's chat tab, web chat, and
+Cowork — take the same plugins through their own interface, with no terminal:
+
+**Customize › Plugins › Personal plugins › "+"**, which offers three things —
+add a marketplace (from a GitHub repository or git URL), upload a plugin you
+already have, or create one. Point it at this catalogue's repository, then
+install the packs you want. Any paid plan can do this and it needs no
+administrator.
+
+**Register once per surface.** Claude Code and the Claude apps keep separate
+plugin stores. Adding this catalogue in Claude Code does *not* make it appear in
+the chat tab, and the reverse is equally true — add it in each surface you work
+in, and upgrade it in each.
+
+For a whole team, an administrator pushes packs instead, through **Organization
+settings › Plugins** on Team and Enterprise plans. That path needs a **private
+or internal** repository, and lets an admin auto-install for some groups while
+hiding from others. Administrators can also restrict what a group installs for
+itself, so if the personal path is missing for you, ask them.
+
+**What works where.** A pack's skills work on every surface — type `/` or use
+the `+` button to reach them. Sub-agents run in Cowork only and appear greyed
+out in chat, so `product-engineering`, `desk-research`, and `experience-design`
+each lose their reviewer or retrieval sub-agents in the chat tab while keeping
+every skill. Desktop's **Code tab is Claude Code**, which reads `~/.claude/`
+directly and runs everything; the chat tab reads nothing from your filesystem.
+:::
 
 :::note
 **The plugin route is user-scope only.** A Claude plugin's code lives in your
