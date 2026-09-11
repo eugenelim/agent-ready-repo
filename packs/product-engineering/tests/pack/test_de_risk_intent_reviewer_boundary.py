@@ -30,14 +30,31 @@ def test_de_risk_intent_states_the_no_dispatch_boundary() -> None:
 
 
 def test_the_boundary_is_stated_once_and_carries_no_dispatch_instruction() -> None:
-    """One mention, and it is the refusal -- not a route into the reviewer."""
-    lines = [
-        line
-        for line in SKILL.read_text(encoding="utf-8").splitlines()
-        if "adversarial-reviewer" in line
-    ]
-    assert len(lines) == 1, lines
-    assert "never dispatches" in _flat(" ".join(lines)) or "Dispatching" in lines[0]
+    """One mention, and the bullet holding it refuses rather than routes.
+
+    An earlier form of this collected only the lines matching the agent name and
+    asserted `"never dispatches" in those lines or "Dispatching" in lines[0]`.
+    The refusal sits on the line *after* the agent name, so the first disjunct
+    was false and the whole assertion rested on the word `Dispatching` -- which
+    the sentence "Dispatching `adversarial-reviewer` when the risk is unclear"
+    contains just as happily. The test could not fail for the direction its own
+    name asserts. It now reads the whole bullet.
+    """
+    body = SKILL.read_text(encoding="utf-8")
+    mentions = [line for line in body.splitlines() if "adversarial-reviewer" in line]
+    assert len(mentions) == 1, mentions
+
+    start = body.index(mentions[0])
+    following = re.search(r"^- \*\*", body[start + len(mentions[0]) :], re.MULTILINE)
+    bullet = _flat(
+        body[start : start + len(mentions[0]) + following.start()]
+        if following
+        else body[start:]
+    )
+
+    assert "This skill never dispatches it." in bullet
+    for routing in ("dispatch it when", "ask the reviewer to", "have the reviewer"):
+        assert routing not in bullet.lower(), routing
 
 
 def test_the_eval_harness_covers_the_boundary() -> None:

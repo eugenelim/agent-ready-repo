@@ -388,8 +388,22 @@ def test_the_global_output_mandates_are_scoped_away_from_intent_mode() -> None:
         r"\s+", " ", _adversarial_section("Vague feedback is unhelpful feedback")
     ).strip()
 
-    for section in (report, referral, vague):
+    suppression = re.sub(
+        r"\s+", " ", _adversarial_section("What not to flag")
+    ).strip()
+    rationalizations = re.sub(
+        r"\s+", " ", _adversarial_section("Rationalizations we refuse")
+    ).strip()
+
+    for section in (report, referral, vague, suppression, rationalizations):
         assert "intent" in section.lower(), section[:80]
+
+    # These two carry the instructions that most directly contradict the intent
+    # branch: "surface it as a Concern" and "before returning `Clean — ready to
+    # commit.`". Their scoping sentence is the only thing keeping either out of
+    # a mode that forbids both.
+    assert "no severity bucket to surface a suppressed item into" in suppression
+    assert "Intent mode emits no sentinel" in rationalizations
 
     assert "Group by severity" in report
     assert "Clean — ready to commit." in report
@@ -482,3 +496,61 @@ def test_adversarial_intent_mode_binds_the_predicates_by_reference() -> None:
     )
     branch = re.sub(r"\s+", " ", _adversarial_section("Intent review mode")).strip()
     assert "Proposed mechanism binds to the validation hook" in branch
+
+
+def test_intent_mode_fails_closed_on_evidence_it_cannot_settle() -> None:
+    """Changed bytes. Absent evidence must emit a token, not pass quietly."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "A condition the packet cannot settle emits its token" in rubric
+    assert "absent evidence fails closed" in rubric
+    # The other half of the rule: an absence that blocks nothing is not a
+    # finding here, or the mode would emit a token for every unsupplied fact.
+    assert "An absence that blocks no condition is not consequential" in rubric
+
+
+def test_empty_intent_output_means_exactly_one_thing() -> None:
+    """Changed bytes. Empty is the pass, and only the pass."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "Emit nothing at all when all six conditions hold" in rubric
+    assert "That empty output is a complete result" in rubric
+    for confusable in ("not a refusal", "not a grounding gap"):
+        assert confusable in rubric, confusable
+    assert "The caller establishes that the dispatch completed from its own host" in rubric
+
+
+def test_intent_mode_refuses_an_out_of_scope_target_in_prose() -> None:
+    """Changed bytes. Silence would read as a pass, so a refusal must speak."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "Refuse a target that is not an intent in one sentence" in rubric
+    assert "A refusal is not a result value" in rubric
+    assert "silence would read as a pass" in rubric
+
+
+def test_the_failure_mode_table_does_not_reach_the_intent_rubric() -> None:
+    """Preservation control: no row title or column text in the rubric.
+
+    Green before and after -- the pre-change rubric carried none either. It is
+    declared preservation rather than red-first for that reason, and it catches
+    a future edit that pastes a row's judgement into the mechanical rubric.
+    """
+    rubric = _section("intent mode", level=3)
+    body = _agent_body()
+
+    # Data rows only. An earlier form of this matched the header cell too, and
+    # "Check" is the first word of the rubric's own opening sentence -- the
+    # extraction, not the contract, was what failed.
+    table = body[body.index("| Check | Tell | Fix shape |") :]
+    table = table[: table.index("\n\n")]
+    rows = [
+        line.split("|")[1].strip()
+        for line in table.splitlines()[2:]
+        if line.startswith("|")
+    ]
+    assert len(rows) >= 15, f"table not found or shrank unexpectedly: {len(rows)}"
+    for row_title in rows:
+        assert row_title.strip() not in rubric, row_title
+    for column_text in ("Tell", "Fix shape"):
+        assert column_text not in rubric, column_text
