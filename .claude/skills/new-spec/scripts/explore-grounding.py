@@ -23,19 +23,20 @@ Three rules hold for every probe.
 **It reports; it never decides.** Blocking on a heuristic is a different
 mechanism with a different failure mode, and a worse one.
 
-Exit codes: ``0`` always, including when every probe found nothing or an input
-was unavailable; ``2`` only when this tool could not run at all -- an unreadable
-seed, or a root the seed paths escape. There is no code for "found something",
-because a finding here is never a failure.
+Exit codes: '0' always, including when every probe found nothing or an input
+was unavailable -- an unreadable seed degrades to an 'unavailable' outcome, it
+does not fail the run; '2' only when a seed path escapes the invocation root,
+which is the one condition that stops the tool. There is no code for "found
+something", because a finding here is never a failure.
 
 **Outcomes are always distinguishable, but there are not always three.** A probe
 whose input can be missing has three -- found, none found, and input unavailable
 -- because a probe that returns empty when its input is missing is
 indistinguishable from a clean result, and co-change in particular has no
 fallback, so on a repository without history it must say so rather than say
-nothing. The two probes that read the tree itself, scoped rules and path refs,
-have two: their input cannot be absent, and claiming a third outcome they cannot
-reach would describe a set the code does not have.
+nothing. The probes that read the tree itself -- scoped rules, path refs and the
+surface inventory -- have two: their input cannot be absent, and claiming a third
+outcome they cannot reach would describe a set the code does not have.
 
 **Nothing about this repository is hardcoded.** Top-level names and the tracked
 set are derived at run time. A shipped allowlist of directories fails on an
@@ -97,9 +98,10 @@ PHASES = {
 }
 
 # Every distinct outcome this explorer can report, keyed by name. Declared here
-# so the repository-level catalogue check can verify that some case exercises
-# each one; a probe outcome no test observes has no red case. It is a floor, not
-# a derivation -- containing a fragment is not asserting on it.
+# so a probe's wording has one home, and so the shipped finding-coverage check
+# can report an outcome no test observes when it is run over this file; such an
+# outcome has no red case. It is a floor, not a derivation -- containing a
+# fragment is not asserting on it.
 FINDING_KINDS = {
     "none-found": "none found",
     "unavailable": "unavailable — input missing",
@@ -562,10 +564,19 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     if tracked is None:
         print("git unavailable: tracked-set and co-change probes degrade")
 
-    phrases = {s: distinctive_lines(root, s) for s in seeds}
+    # Selection is executional, not a filter on the output. A probe outside the
+    # stage's set does no work: its sampling is skipped, its matcher is never
+    # compiled, and the per-file loop does not test for it. Gating only the
+    # printing would make an adopter pay for a result that is then discarded,
+    # and would leave skipped and suppressed indistinguishable to any oracle
+    # reading the report.
+    want_pins = "pins" in probes
+    want_refs = "refs" in probes
+    want_gates = "gates" in probes
+
+    phrases = {s: distinctive_lines(root, s) for s in seeds} if want_pins else {}
     # One compiled alternation per seed, matched in a single C-level pass, in
-    # place of len(phrases) Python-level substring checks per file. On this
-    # repository that is 40 scans over 5,800 files replaced by one.
+    # place of len(phrases) Python-level substring checks per file.
     matchers = {
         seed: re.compile("|".join(re.escape(line) for line in lines))
         for seed, lines in phrases.items() if lines
@@ -574,27 +585,29 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     hits: dict[tuple[str, str], set[str]] = {}
     gates: dict[str, list[str]] = {s: [] for s in seeds}
 
-    for path in files:
-        rel = path.relative_to(root).as_posix()
-        if rel in seeds:
-            continue
-        text = _read(path)
-        if not text:
-            continue
-        for seed in seeds:
-            if seed in text:
-                refs[seed].append(rel)
-            # A runner reaches a file by naming any directory above it: a suite
-            # is invoked as `pytest <dir>/`, never file by file. Matching the
-            # exact path only would report a covered test as unreached, which
-            # inverts the probe -- its whole value is telling you when nothing
-            # runs a path.
-            if path in runners and any(p.search(text) for p in _runner_patterns(seed)):
-                gates[seed].append(rel)
-            matcher = matchers.get(seed)
-            if matcher is not None:
-                for found in set(matcher.findall(text)):
-                    hits.setdefault((seed, found), set()).add(rel)
+    runner_patterns = {s: _runner_patterns(s) for s in seeds} if want_gates else {}
+    if want_refs or want_gates or matchers:
+        for path in files:
+            rel = path.relative_to(root).as_posix()
+            if rel in seeds:
+                continue
+            text = _read(path)
+            if not text:
+                continue
+            for seed in seeds:
+                if want_refs and seed in text:
+                    refs[seed].append(rel)
+                # A runner reaches a file by naming any directory above it: a
+                # suite is invoked as `pytest <dir>/`, never file by file.
+                # Matching the exact path only would report a covered test as
+                # unreached, which inverts the probe.
+                if want_gates and path in runners \
+                        and any(p.search(text) for p in runner_patterns[seed]):
+                    gates[seed].append(rel)
+                matcher = matchers.get(seed)
+                if matcher is not None:
+                    for found in set(matcher.findall(text)):
+                        hits.setdefault((seed, found), set()).add(rel)
 
     for seed in seeds:
         # A phrase in many files is the shipped boilerplate every sibling carries.
@@ -611,8 +624,13 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         # fed seed N's derived value in as seed N+1's default, so the value was
         # order-dependent and a thin second seed printed the first seed's number
         # under the basis "default" -- which defeats the point of naming a basis.
-        seed_cutoff, cutoff_basis = calibrate_cutoff(
-            [len(w) for (o, _), w in hits.items() if o == seed], len(files), cutoff)
+        if want_pins:
+            seed_cutoff, cutoff_basis = calibrate_cutoff(
+                [len(w) for (o, _), w in hits.items() if o == seed], len(files), cutoff)
+        else:
+            # No sampling ran, so there is no distribution to derive from. The
+            # basis says that rather than naming a percentile over nothing.
+            seed_cutoff, cutoff_basis = cutoff, "default (no phrase probe in this phase)"
         per_file: Counter[str] = Counter()
         for (owner, _), where in hits.items():
             if owner == seed:
@@ -637,7 +655,10 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
         if "pins" in probes:
             _emit("phrase pins", pins_status, pins, cap)
-            print(f"                 cutoff {seed_cutoff} — {cutoff_basis}")
+        # Printed on every stage, like the sweep basis and for the same reason:
+        # a derived bound whose basis appears only where a probe consumes it
+        # leaves an absent line indistinguishable from an absent derivation.
+        print(f"                 cutoff {seed_cutoff} — {cutoff_basis}")
         if copies and "pins" in probes:
             _emit("copies of seed", "found", copies, cap)
         if "dead" in probes:
@@ -672,8 +693,10 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path("."))
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--root", type=Path, default=Path("."),
+                        help="repository root every seed is resolved and confined to")
     parser.add_argument("--guidance-file", default="AGENTS.md")
     parser.add_argument("--runner-glob", action="append", default=None)
     parser.add_argument("--cap", type=int, default=RESULT_CAP)
