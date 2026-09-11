@@ -193,15 +193,22 @@ whole-file token deny-list is unavailable either way; see the probe under
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below. Each bullet names its criteria and the observation; the
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
-- **AC18.** **Constraint, local to this assertion:** `RULES` is a hand-declared
-  tuple the suite iterates, so nothing here can notice a rule sentence nobody
-  pinned; whether a sentence states a rule is a judgement and is not
-  mechanizable. The floor bounds that incompleteness without closing it — do not
-  describe it as a derivation. Extend `RULES`, owner `skill`. Per-entry single-homing is the
-  pre-existing owner test's job and is no longer a criterion of this slice; what
-  this task adds is one assertion that the pinned set reaches each of the five
-  stage intervals, the fifth closing at the end of the procedure span. The set
-  is the spec's Testing Strategy goal-based group, inherited by reference.
+- **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
+  pinned entry per criterion in the spec's Testing Strategy goal-based group
+  over the skill file. For the eight criteria with no bullet of their own below,
+  whose whole claim is that a named sentence is present in the shipped
+  procedure, **presence of the pinned sentence is the oracle** and no further
+  assertion is owed. A reviewer has read this bullet as specifying nothing twice
+  now, so the mapping is stated rather than inherited.
+- **A per-stage floor over the pinned set — a construction check, not a
+  criterion.** At least one pinned sentence falls in each of the five stage
+  intervals, the fifth closing at the end of the procedure span. This supports
+  **AC1**; it is not a criterion of its own, because its failure would mean the
+  tuple lacks a representative sentence rather than that the procedure lacks a
+  stage. **Constraint:** `RULES` is a hand-declared tuple the suite iterates, so
+  nothing here notices a rule nobody pinned, and whether a sentence states a
+  rule is a judgement. The floor bounds that without closing it — do not
+  describe it as a derivation.
 - **AC1, AC2.** Two offset comparisons over the stage markers.
 - **AC3, AC5, AC10.** Both clauses of each criterion — requirement and
   consequence.
@@ -252,7 +259,11 @@ missing one of them does not close this task.
   name with no shape rule restated. The suite reads the guide by
   repository-relative path, the way
   `tests/roster/test_spec_authoring_rubric_brief_boundary.py` reaches across the
-  pack boundary.
+  pack boundary. **Constraint, local to this assertion:** assert one operative
+  sentence per stage as well as the stage name. A page listing five headings and
+  no instruction publishes nothing, and a name-only assertion passes on it; the
+  mutation that must fail is deleting a stage's instruction while leaving its
+  heading.
 - `python3 tools/validate_guides.py`, `python3 tools/check-guide-index.py` and
   `python3 tools/lint-guide-titles.py` all OK — publication, not content. The
   frontmatter keys the schema requires are `title`, `summary`, `pack`, `kind`;
@@ -352,7 +363,7 @@ close this task, and the count closes nothing.
 
 ### T5: The release surface closes
 
-**Depends on:** T1, T2, T3, T4
+**Depends on:** T1, T2, T3, T4, T6
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
@@ -378,6 +389,11 @@ close this task, and the count closes nothing.
   surfaces this slice ships — the procedure span, the new guide page, and the
   frozen eval entries — in one check that runs here, after the guide and the
   cases exist.
+
+  **The proxy is named, not implied.** This detects a fixed absolute count in
+  the forms the criterion lists — cap, ceiling, budget, refusal, pass/fail bar.
+  A differently worded policy with the same effect is outside it and is a review
+  obligation. The criterion was narrowed to match, so neither over-claims.
 
   **Mutation proof required.** Invariant: no shipped surface carries a fixed
   absolute criterion count. Mutation: add `keep specs under 20 criteria` to the
@@ -421,7 +437,11 @@ what went stale when one was added.
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
-- **AC22 — already shipped, asserted here.** The six plan-authoring rules
+- **AC22 — already shipped, asserted here. Two gaps close first:** the
+  whole-plan-walk rule has no pinned entry, so add one; and the existing owner
+  test searches the whole skill file, so a rule moved out of the plan step would
+  stay green. Add a span-scoped assertion that all six occur inside the plan
+  step, with a mutation moving one rule outside it that must fail. The six plan-authoring rules
   landed in core 2.25.14 ahead of this contract; that was a recorded deviation,
   and this task closes it by bringing them under the spec rather than by
   re-shipping them. Each is already a pinned entry, so the assertion is that the
@@ -471,8 +491,10 @@ what went stale when one was added.
 - **The single-homing oracle cannot see a paraphrase — named, not closed.** The
   suite compares exact sentences over a hand-listed tuple, so a restatement in
   different words is invisible to it. Per-entry single-homing belongs to the
-  suite's own owner test, and AC18 adds only the per-stage floor, so this slice
-  promises exactly what it delivers and no more.
+  suite's own owner test rather than to any criterion here, so this slice
+  promises exactly what it delivers. The guide criterion is scoped the same way:
+  a shape rule paraphrased onto the guide page is outside its oracle too, with
+  the same mitigation.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.
