@@ -171,6 +171,16 @@ route whose skills work.
   specified. This is `new-spec` step 5a's cheapest-disconfirming-evidence gate,
   and it is required because the load-bearing premise is third-party behaviour.
 
+  **Prepared, not run, 2026-09-11.** The steps, the pack choice and its
+  reasoning, the per-step pass condition, and the routing for each failure mode
+  are written up at
+  [`claude-apps-route-docs/notes/install-to-first-value-probe.md`](../../specs/claude-apps-route-docs/notes/install-to-first-value-probe.md).
+  It needs a human on a real Claude app; an agent cannot run it. The recommended
+  pack is `product-strategy`, because it is the only one of the four shipping
+  zero agents and therefore isolates the install-and-invoke question from the
+  known present-but-unrunnable sub-agent defect. **The probe remains
+  outstanding, and every claim it would settle is still unverified.**
+
 ## Opportunity
 
 **Functional job.** Get a working product-strategy, research, or design method

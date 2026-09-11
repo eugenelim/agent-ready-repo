@@ -130,12 +130,17 @@ the obligation to state that difference rather than publish the two as agreeing.
   not existence; AC-0021 and AC-0022 own existence, which is why AC-0020 is not
   load-bearing on its own.
 
-**Known verification risk.** `make bootstrap-sites` currently exits 0 locally
-without producing `build/docs/`, and four `web/` vitest cases already fail
-locally as a result. Every built-HTML criterion (AC-0001 to AC-0006) observes
-through that build. The plan's T1 diagnoses it before those criteria are
-trusted locally. CI is green, so this is a local-evidence risk, not a product
-defect.
+**Verification surface, checked 2026-09-11.** Every built-HTML criterion
+(AC-0001 to AC-0006, AC-0021) observes through the built site. The build command
+is `make site-build`, which writes `build/` then `build/docs/`; build order is
+load-bearing because the `web/` build cleans repository `build/`.
+
+An earlier note here recorded a "known risk" that `make bootstrap-sites` exits 0
+without emitting `build/docs/`, with four `web/` vitest cases failing as a
+result. **That was a false premise and is withdrawn.** `bootstrap-sites`
+installs npm dependencies only — its own help text says so — and was never the
+build. Run against a real `make site-build`, the suite is fully green: 18 files,
+148 tests, 39s. There is no bootstrap defect and no local-evidence gap.
 
 No TDD-mode outcome for the guide half: it changes prose, and a unit test over
 prose would assert its own fixture.

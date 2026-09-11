@@ -37,7 +37,7 @@ accessibility fixture suite.
 
 | # | Task | Criteria | Notes |
 | --- | --- | --- | --- |
-| T1 | **Diagnose and report** why `make bootstrap-sites` exits 0 without emitting `build/docs/` | — (verification enabler) | Four `web/` vitest cases already fail locally on this, and every built-HTML criterion observes through that build. **Diagnosis only.** Any repair is a separate decision with its own scope: CI is green, so this is not a product defect, and "fix it" here would authorize an unscoped mutation. Build order is load-bearing — `web/` cleans repository `build/` |
+| ~~T1~~ | ~~Diagnose the `bootstrap-sites` failure~~ — **closed 2026-09-11, no defect** | — | The premise was wrong. `make bootstrap-sites` installs npm dependencies only, as its help text states; it never emitted `build/docs/`. `make site-build` does. Against a real build the `web/` suite is green: 18 files, 148 tests. No task remains |
 | T2 | Regroup `web/src/pages/journeys/index.astro` into three collection-derived groups | AC-0001, AC-0002, AC-0003, AC-0005, AC-0006 | Start from the reconstructed sketch; keep its collection derivation, discard its CSS gaps. Resolve D1 and D2 here |
 | T3 | Write the sequence and handoff copy on the index | AC-0004, AC-0007, AC-0016, AC-0017, AC-0019 | Hand-authored page copy only. AC-0018 forbids reaching into generated journey content |
 | T4 | Add the construction tests on the `web/` vitest suite | AC-0001 – AC-0006, AC-0021 | `npm run test --prefix web`. AC-0005 compares slug multisets per D1; AC-0006 needs a fixture journey named in no group |
@@ -51,7 +51,7 @@ accessibility fixture suite.
 
 `docs/CONVENTIONS.md` places construction tests in `plan.md`, attached to each
 task's `Tests:` subsection, before Approach. Only T2, T4 and T5 carry
-construction tests; T1 and T6–T9 are execution and recording tasks whose
+construction tests; T6–T9 are execution and recording tasks whose
 evidence is the command output named in their row.
 
 ### T2 — Tests
@@ -107,6 +107,6 @@ would be a control that cannot fail.
 
 ## Sequencing
 
-T1 first; it gates T4's local evidence. T2 and T5 are independent of each other.
+T1 is closed as a non-defect, so T2 and T5 lead and are independent of each other.
 T3 depends on T2. T4 depends on T2 and T1. T6–T8 run after both surfaces exist.
 T9 last.

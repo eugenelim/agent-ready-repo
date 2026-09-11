@@ -66,4 +66,27 @@ never opens the reference still gets a silent pass.
 
 Open. No owner assigned. Not scheduled. Raised separately from
 `claude-apps-route-docs`, which documents the surface difference but cannot
-repair a degradation contract it does not own.
+repair a degradation contract it does not own. **Reviewed 2026-09-11 and
+deliberately parked.**
+
+**Why it stays parked.** No scheduled work can repair it. The contract being
+violated belongs to the three packs that ship agents — `product-engineering`
+(3), `desk-research` (2) and `experience-design` (1) — and repairing it means
+changing their degradation conditions, which is a released pack change across
+three packs. Every currently scheduled slice touching this area documents the
+difference rather than repairing it, which is the correct division and not an
+oversight.
+
+**What a fix must include, so a later attempt does not produce a control that
+cannot fail.** The existing fallbacks are keyed on the agent being *absent*, so
+they never fire where it is present-but-unrunnable, and the Shipped named-skip
+guarantee passes silently. Any fix therefore needs a mutation proof: remove the
+new present-but-unrunnable branch and a test must go red. A test that still
+passes with that branch removed is re-implementing the same defect one layer up.
+
+**What parking costs.** On the Claude apps chat surface, a reader using any of
+those three packs gets the thinner method with nothing telling them so at the
+point of use, and a Shipped guarantee that a missing reviewer is "a named skip,
+not a silent pass" is, on that surface, false. Disclosure through the capability
+reference is the only mitigation in force, and it reaches only readers who open
+it.

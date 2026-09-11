@@ -64,4 +64,23 @@ a change to it is small in code and wide in consequence.
 
 ## Status
 
-Open. No owner assigned. Not scheduled.
+Open. No owner assigned. Not scheduled. **Reviewed 2026-09-11 and deliberately
+parked.**
+
+**Why it stays parked.** It was checked against the one piece of work that could
+have forced it. Slice S6 of `sdlc-guide-uplift-and-learning-paths`
+(`four-discipline-sequence`) presents four disciplines as an ordered sequence,
+which is the kind of content that invites a diagram. Its AC-0016 forbids an
+image on either surface precisely so this defect is avoided rather than hit, and
+its construction record routes the diagram obligation here by name. So S6 does
+not put this on the critical path, and nothing else currently scheduled does.
+
+**What would unpark it.** The first guide that genuinely needs an image. At that
+point this is blocking, not deferred, and the blast radius above — one regular
+expression governing every link in 209 pages — is why it needs its own contract
+rather than being folded into that guide's change.
+
+**What parking costs.** Every guide is silently constrained to text-only. That
+constraint is invisible: nothing fails, no linter fires, and an author discovers
+it only by shipping a broken image. That cost is accepted here rather than
+unnoticed.
