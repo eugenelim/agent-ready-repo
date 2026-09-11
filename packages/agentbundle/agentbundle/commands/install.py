@@ -3265,7 +3265,15 @@ def _append_layout_section(
     written back as the original bytes plus one table — so comments, key order,
     quoting style and line endings all survive. The file's mode is carried
     across the atomic replace, which would otherwise hand it the temporary
-    file's private mode.
+    file's private mode. Only the mode is carried: the replace writes a fresh
+    inode, so group ownership, ACLs and extended attributes are not preserved
+    and a hard link to the layout file is broken.
+
+    The read and the write are separate syscalls with no lock between them, so
+    two installs racing on one layout file can lose the earlier append. The
+    window is small and the loss is a missing default rather than damaged
+    adopter content; `docs/specs/layout-install-sections` records it as an
+    accepted residual rather than taking the state lock.
     """
     import tomllib
 
@@ -3282,17 +3290,28 @@ def _append_layout_section(
     scope_table = pack_layout.get(scope) if isinstance(pack_layout, dict) else None
     section = scope_table.get("section") if isinstance(scope_table, dict) else None
     output_dir = scope_table.get("output_dir") if isinstance(scope_table, dict) else None
-    if not isinstance(section, str):
-        return
-    if not isinstance(output_dir, str) or not output_dir:
+    if not isinstance(section, str) or not isinstance(output_dir, str):
         return
 
     try:
         # ── 7 (partial). Locating the file can fail before it is read ───────
         if scope == "user":
-            state_path = safety.user_state_path(home=root)
-            layout_path = state_path.parent / "agentbundle-layout.toml"
             layout_relpath = ".agentbundle/agentbundle-layout.toml"
+            # Name the path before preparing the directory, so a failure here
+            # reports row 7 with the file named rather than falling through to
+            # the catch-all's placeholder. The location is derivable; only the
+            # 0o700 creation and its symlink probe can fail.
+            layout_path = root / ".agentbundle" / "agentbundle-layout.toml"
+            try:
+                state_path = safety.user_state_path(home=root)
+            except Exception as exc:
+                _report(
+                    f"cannot prepare the user state directory at "
+                    f"{root / '.agentbundle'} ({exc}); leaving {layout_path} "
+                    f"untouched (no [{section}] appended)"
+                )
+                return
+            layout_path = state_path.parent / "agentbundle-layout.toml"
         else:
             layout_path = root / "agentbundle-layout.toml"
             layout_relpath = "agentbundle-layout.toml"
@@ -3314,6 +3333,12 @@ def _append_layout_section(
         # trusts. Injection is structurally prevented by `_emit_basic_string`;
         # refusing here is the bell-rings-loud companion, and it also rejects a
         # well-formed name carrying `/` or `.` that no reader could match.
+        if not output_dir:
+            _report(
+                f"pack {pack_name} declares an empty output_dir; leaving "
+                f"{layout_path} untouched (no [{section}] appended)"
+            )
+            return
         if not _PACK_NAME_RE.fullmatch(section):
             _report(
                 f"pack {pack_name} declares layout section {section!r}, which "
@@ -3355,22 +3380,33 @@ def _append_layout_section(
             return
         # At user scope the root is the adopter's whole home, which is far
         # wider than anything the installer may write. Narrow it to the
-        # adapter's declared prefixes — the same surface `write_jailed`
-        # enforces — so a catalogue-sourced manifest cannot name `~/.aws` or
-        # `~/.claude`, where a later-written document would carry instruction
-        # authority into every session.
+        # adapter's declared prefixes by calling the same helper `write_jailed`
+        # uses, rather than re-implementing containment here — that helper owns
+        # the trailing-slash invariant that stops `.claude/` admitting
+        # `.claudefoo`, and a copy would not follow it if it tightened.
         if scope == "user" and allowed_prefixes is not None:
-            relative = resolved.relative_to(confine_root).as_posix()
-            if resolved == confine_root or not any(
-                relative == prefix.rstrip("/")
-                or relative.startswith(prefix)
-                for prefix in allowed_prefixes
-            ):
+            if resolved == confine_root:
+                _report(
+                    f"pack {pack_name} declares the user root itself as "
+                    f"output_dir; leaving {layout_path} untouched"
+                )
+                return
+            try:
+                # `output_dir` is a base, not a file, so ask the helper where a
+                # file written *under* it would land. Handing it the base
+                # itself would refuse a legitimate `~/.claude`, whose contents
+                # are in-zone even though the directory entry is the zone root.
+                probe = f"{resolved.relative_to(confine_root).as_posix()}/.probe"
+                safety.assert_projection_jailed(
+                    confine_root, [probe], allowed_prefixes,
+                    command="layout output_dir",
+                )
+            except safety.PathJailError as exc:
                 _report(
                     f"pack {pack_name} declares user-scope output_dir "
-                    f"{output_dir!r}, which resolves outside the prefixes this "
-                    f"install may write ({', '.join(allowed_prefixes)}); "
-                    f"leaving {layout_path} untouched"
+                    f"{output_dir!r}, which is outside the prefixes this "
+                    f"install may write ({exc}); leaving {layout_path} "
+                    f"untouched"
                 )
                 return
 

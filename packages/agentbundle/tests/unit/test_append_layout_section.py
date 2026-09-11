@@ -34,10 +34,14 @@ _SECTION = "design"
 _BASE = "docs/design"
 
 
-def _layout(**over) -> dict:
-    scope_table = {"section": _SECTION, "output_dir": _BASE}
-    scope_table.update(over.pop("scope_table", {}))
-    return {over.pop("scope", "repo"): scope_table}
+def _layout(scope: str = "repo") -> dict:
+    """A manifest keyed on the scope it will be installed at.
+
+    Keying it on "repo" regardless would make `_append(..., scope="user")`
+    hand the function a manifest with no `user` sub-table: a silent row-1
+    no-op that satisfies any assertion shaped "nothing happened".
+    """
+    return {scope: {"section": _SECTION, "output_dir": _BASE}}
 
 
 def _append(root: Path, *, scope: str = "repo", layout: dict | None = None) -> None:
@@ -45,7 +49,7 @@ def _append(root: Path, *, scope: str = "repo", layout: dict | None = None) -> N
         root,
         scope,
         pack_name="experience-design",
-        pack_layout=_layout() if layout is None else layout,
+        pack_layout=_layout(scope) if layout is None else layout,
         allowed_prefixes=None,
     )
 
@@ -188,6 +192,36 @@ def test_an_existing_section_is_not_replaced_and_says_nothing(
     assert captured.out == "" and captured.err == ""
 
 
+def test_a_manifest_fault_outranks_an_already_present_section(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Order: manifest faults are decided before the file's own state.
+
+    Without this the confinement and class guards can be moved below the
+    occupancy check and the whole suite stays green, while a misdeclared pack
+    goes silent on every re-install of an already-configured adopter.
+    """
+    original = b'[design]\noutput_dir = "the adopter\'s own choice"\n'
+    path = _seed(tmp_path, original)
+
+    _append(tmp_path, layout={"repo": {"section": _SECTION, "output_dir": "/etc"}})
+
+    assert path.read_bytes() == original
+    _assert_reported(capsys, "outside")
+
+
+def test_a_bad_class_outranks_an_already_present_section(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    original = b'[design]\noutput_dir = "mine"\n'
+    path = _seed(tmp_path, original)
+
+    _append(tmp_path, layout={"repo": {"section": "Bad/Name", "output_dir": _BASE}})
+
+    assert path.read_bytes() == original
+    _assert_reported(capsys, "Bad/Name")
+
+
 # ---------------------------------------------------------------------------
 # Rows 2, 4, 5, 6, 7, 8, 9, 11 — the reporting states (AC4)
 # ---------------------------------------------------------------------------
@@ -236,7 +270,7 @@ def test_a_dangling_symlink_reports_rather_than_reading_as_absent(
     _assert_reported(capsys, "symbolic link")
 
 
-@pytest.mark.parametrize("section", ["a/b", "Design", "with space", "-lead"])
+@pytest.mark.parametrize("section", ["a/b", "Design", "with space", "-lead", ""])
 def test_a_section_outside_the_character_class_is_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture, section: str
 ) -> None:
@@ -454,6 +488,23 @@ def test_a_user_scope_base_outside_the_write_prefixes_is_refused(
     _assert_reported(capsys, "outside the prefixes")
 
 
+def test_a_sibling_of_a_write_prefix_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """`.agentbundle/` must not admit `.agentbundlefoo`.
+
+    This is the trailing-slash invariant `safety` documents and owns. The
+    check routes through that module's helper rather than re-implementing
+    containment, so the two cannot drift apart.
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(tmp_path))
+    path = _user_scope_append(tmp_path, str(tmp_path / ".agentbundlefoo"))
+
+    assert path.read_bytes() == b'[research]\noutput_dir = "/already/set"\n'
+    _assert_reported(capsys, "outside the prefixes")
+
+
 def test_a_user_scope_base_inside_a_write_prefix_is_admitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -473,4 +524,93 @@ def test_the_home_root_itself_is_refused(
     path = _user_scope_append(tmp_path, str(tmp_path))
 
     assert path.read_bytes() == b'[research]\noutput_dir = "/already/set"\n'
-    _assert_reported(capsys, "outside the prefixes")
+    _assert_reported(capsys, "user root itself")
+
+
+def test_an_empty_output_dir_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Present-but-empty is malformed, not absent — the same verdict `section`
+    gets. Leaving this on the silent path gave two keys of identical shape
+    opposite verdicts."""
+    original = b'[research]\noutput_dir = "vault"\n'
+    path = _seed(tmp_path, original)
+
+    _append(tmp_path, layout={"repo": {"section": _SECTION, "output_dir": ""}})
+
+    assert path.read_bytes() == original
+    _assert_reported(capsys, "empty output_dir")
+
+
+def test_a_crlf_file_without_a_trailing_newline_gains_a_crlf_separator(
+    tmp_path: Path,
+) -> None:
+    """The separator must take the file's own style, not always LF.
+
+    Replacing the separator with an unconditional `b"\\n"` left every other
+    case green, because the only non-empty-separator fixture used LF.
+    """
+    original = b'[research]\r\noutput_dir = "vault"'
+    path = _seed(tmp_path, original)
+
+    _append(tmp_path)
+
+    assert path.read_bytes() == original + b"\r\n" + _table(b"\r\n")
+
+
+def test_a_file_with_no_terminator_at_all_gains_lf(tmp_path: Path) -> None:
+    """The `last_lf == -1` branch: a non-empty file carrying no line ending."""
+    original = b'x = "no terminator"'
+    path = _seed(tmp_path, original)
+
+    _append(tmp_path)
+
+    assert path.read_bytes() == original + b"\n" + _table()
+
+
+def test_a_failing_write_is_reported_and_the_install_continues(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """Row 12 — the write itself failing. Previously unexecuted."""
+    from agentbundle import safety
+
+    original = b'[research]\noutput_dir = "vault"\n'
+    path = _seed(tmp_path, original)
+
+    def _fail(*_args, **_kwargs):
+        raise safety.WriteError("simulated write failure")
+
+    # `safety` is imported inside the function under test, so the patch has to
+    # land on the module itself rather than on an attribute of `install`.
+    monkeypatch.setattr(safety, "write_jailed", _fail)
+
+    _append(tmp_path)  # must not raise
+
+    assert path.read_bytes() == original
+    _assert_reported(capsys, "cannot write")
+
+
+def test_an_unenumerated_failure_is_reported_and_the_function_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """Row 14 — the catch-all, which is the sole reason "no state raises" holds.
+
+    `write_jailed` raises `TypeError` when `scope="user"` and
+    `allowed_prefixes is None`, which row 12's `except (OSError, PathJailError)`
+    does not catch. Without the catch-all that escapes as a traceback after
+    the projection and marker are already on disk.
+    """
+    from agentbundle import safety
+
+    original = b'[research]\noutput_dir = "vault"\n'
+    path = _seed(tmp_path, original)
+
+    def _boom(*_args, **_kwargs):
+        raise TypeError("a failure none of rows 1-13 name")
+
+    monkeypatch.setattr(safety, "write_jailed", _boom)
+
+    _append(tmp_path)  # must not raise
+
+    assert path.read_bytes() == original
+    _assert_reported(capsys, "layout maintenance failed")

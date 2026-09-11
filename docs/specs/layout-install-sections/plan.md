@@ -417,6 +417,15 @@ One narrowing ships with the byte-preserving read: a file using lone-CR line
 endings parses today only because `read_text` translates them, and is refused as
 unparseable afterwards. It is reported, not silent.
 
+**Why the read-append-write is not locked.** The read and the write are
+separate syscalls, so two installs racing on one layout file can lose the
+earlier append. Taking `statelock` — which `install.py` already uses for
+`state.toml` — would close it. It is accepted instead: the loss is a missing
+default on a file that is never created and never overwritten, recoverable by
+re-running the install, and the window is one file read plus one atomic
+replace. The residual is stated in the function's own docstring so the next
+reader does not rediscover it.
+
 ## Risks
 
 - **A fix that appends raw bytes disarms the injection control.** The
@@ -451,3 +460,11 @@ unparseable afterwards. It is reported, not silent.
   shipped default appeared in no document. Both edits move from T4 to T3. T4
   keeps the comment-loss sentences, § 7.1, the backlog retirement, the single
   bump moment and the changelog. No criterion changed.
+- 2026-09-11 — amended during execution, second code-review round. An empty
+  `output_dir` now reports rather than returning silently: round 1 moved an
+  empty `section` to the character-class row and left the identical clause on
+  the other key, giving two values of the same shape opposite verdicts. A
+  failure preparing the user state directory reports as row 7 with the layout
+  path named, instead of falling through to the catch-all's placeholder. The
+  lost-update window is recorded above as an accepted residual. No criterion
+  changed.

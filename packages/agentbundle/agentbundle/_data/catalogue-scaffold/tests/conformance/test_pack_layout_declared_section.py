@@ -47,22 +47,29 @@ _PAIR = re.compile(
 )
 
 
-def _declaring_packs() -> list[tuple[str, str, str]]:
-    """(pack, section, output_dir) for every pack declaring a repo-scope layout."""
+def _declaring_packs() -> list[tuple[str, str, str, str]]:
+    """(pack, scope, section, output_dir) for every declared layout scope.
+
+    Both scopes, because the installer honours `[pack.layout.user]` too. No
+    shipped pack declares one today, but this file ships into adopter
+    catalogues where one could — and a user-scope pair no document describes
+    would otherwise pass unseen.
+    """
     found = []
     for manifest in sorted(PACKS_DIR.glob("*/pack.toml")):
         layout = (
             tomllib.loads(manifest.read_text(encoding="utf-8"))
             .get("pack", {})
             .get("layout", {})
-            .get("repo")
         )
-        if not layout:
-            continue
-        section, output_dir = layout.get("section"), layout.get("output_dir")
-        if section is None and output_dir is None:
-            continue
-        found.append((manifest.parent.name, section, output_dir))
+        for scope in ("repo", "user"):
+            table = layout.get(scope)
+            if not table:
+                continue
+            section, output_dir = table.get("section"), table.get("output_dir")
+            if section is None and output_dir is None:
+                continue
+            found.append((manifest.parent.name, scope, section, output_dir))
     return found
 
 
@@ -113,16 +120,43 @@ def test_a_populated_catalogue_declares_at_least_one_layout() -> None:
     assert _declaring_packs(), "packs are present but none declares a layout"
 
 
-@pytest.mark.parametrize("pack,section,output_dir", _declaring_packs())
-def test_declared_pair_is_documented_by_the_pack(  # noqa: D103
-    pack: str, section: str | None, output_dir: str | None
-) -> None:
-    assert section, f"{pack} declares a repo layout without a section"
-    assert output_dir, f"{pack} declares a repo layout without an output_dir"
+def _is_admitted(
+    section: str, output_dir: str, documented: set[tuple[str, str]]
+) -> bool:
+    """The admission decision, in one place.
 
-    documented = _documented_pairs(pack)
+    Both the tree-derived case and the discrimination proof call this, so a
+    weakening — to section membership alone, say — fails the proof instead of
+    passing it.
+    """
+    return (section, output_dir) in documented
+
+
+def test_the_admission_rule_rejects_a_crossed_declaration() -> None:
+    """A section from one documented pair, carried on another's base.
+
+    Asserted through `_is_admitted`, the same predicate the tree-derived case
+    uses. Weakening that predicate to section membership admits the crossing
+    and turns this red.
+    """
+    documented = {("alpha", "one/alpha"), ("beta", "two/beta")}
+
+    assert _is_admitted("alpha", "one/alpha", documented)
+    assert _is_admitted("beta", "two/beta", documented)
+    assert not _is_admitted("alpha", "two/beta", documented)
+    assert not _is_admitted("beta", "one/alpha", documented)
+
+
+@pytest.mark.parametrize("pack,scope,section,output_dir", _declaring_packs())
+def test_declared_pair_is_documented_by_the_pack(  # noqa: D103
+    pack: str, scope: str, section: str | None, output_dir: str | None
+) -> None:
+    assert section, f"{pack} declares a {scope} layout without a section"
+    assert output_dir, f"{pack} declares a {scope} layout without an output_dir"
+
+    documented = _documented_pairs(pack, repo_scope=scope == "repo")
     assert documented, f"{pack} declares a layout but documents no section"
-    assert (section, output_dir) in documented, (
+    assert _is_admitted(section, output_dir, documented), (
         f"{pack} declares ({section!r}, {output_dir!r}); its reference docs "
         f"document {sorted(documented)}. The installer writes the declared "
         f"pair, so a pair no document describes installs a default the pack's "
@@ -165,7 +199,7 @@ def test_a_repo_declaration_is_not_validated_by_a_user_scope_example() -> None:
     would pass while naming a path no reader of the repo file resolves.
     """
     checked = 0
-    for pack, _section, _base in _declaring_packs():
+    for pack, _scope, _section, _base in _declaring_packs():
         repo_pairs = _documented_pairs(pack, repo_scope=True)
         user_pairs = _documented_pairs(pack, repo_scope=False)
         for section, user_base in user_pairs:
@@ -184,9 +218,38 @@ def test_no_pack_documents_a_crossing_of_its_own_pairs() -> None:
     """The same property over the real tree, where there is one."""
     if not _catalogue_has_packs():
         pytest.skip("no packs in this catalogue")
-    for pack, _section, _base in _declaring_packs():
+    for pack, _scope, _section, _base in _declaring_packs():
         pairs = _documented_pairs(pack)
         assert not (_crossed_pairs(pairs) & pairs), (
             f"{pack} documents a pair and also a crossing of it, so the rule "
             "cannot discriminate for that pack"
         )
+
+
+def test_every_reference_doc_agrees_with_its_pack_on_the_base() -> None:
+    """AC6 admits a pair documented in *one* doc; this requires all of them.
+
+    A pack with several reference pages can otherwise regress one of them to a
+    base the installer does not write, and stay green — the adopter reading
+    that page gets a location nothing populates.
+    """
+    if not _catalogue_has_packs():
+        pytest.skip("no packs in this catalogue")
+    walked = 0
+    for pack, scope, section, output_dir in _declaring_packs():
+        if scope != "repo":
+            continue
+        for doc in sorted((PACKS_DIR / pack).rglob("references/agentbundle-layout.md")):
+            pairs = {
+                (s, b)
+                for s, b in _PAIR.findall(doc.read_text(encoding="utf-8"))
+                if s == section and _is_repo_scope_base(b)
+            }
+            if not pairs:
+                continue  # this page documents another section, or user scope
+            walked += 1
+            assert pairs == {(section, output_dir)}, (
+                f"{doc.relative_to(REPO_ROOT)} documents {sorted(pairs)} for "
+                f"[{section}] while {pack} declares {output_dir!r}"
+            )
+    assert walked, "no reference doc documented a declared repo-scope section"

@@ -7,9 +7,11 @@ would have aborted an install whose projected files were already on disk. The
 marker is different — uninstall and `adapt` read what it writes, so an install
 reporting success with no marker entry is worse than a failed install.
 
-The call site is now two statements, and these two cases are what stop them
-being re-merged: one relaxation covering both is green against either case
-alone, and red against the pair.
+The call site is now two statements. What these cases pin is the *verdict
+split*, not the nesting: re-merging the layout call into the marker's `try`
+leaves both green, and correctly so — the layout function absorbs everything,
+so nesting is behaviourally identical. The hazard is a widened `except`, and
+the marker case is what catches that.
 
 Unit tests call `_append_layout_section` directly and structurally cannot see
 an exit code or the projected tree, which is why this lives at integration
