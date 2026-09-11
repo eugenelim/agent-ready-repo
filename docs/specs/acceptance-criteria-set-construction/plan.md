@@ -26,11 +26,10 @@
 ## Approach
 
 Layered in dependency order, one layer per task in the `## Tasks` order below.
-The procedure lands as prose in the existing
-acceptance-criteria step of `packs/core/.apm/skills/new-spec/SKILL.md`; the
-adopter-facing guide follows it; three frozen cases and their seed pins land in
-the pack's eval register and pack-local suite; the recorded run discharges the
-delivery gate; the release surface closes last. Every task that edits `.apm/`
+The three checks land in `packs/core/.apm/skills/new-spec/scripts/` with their
+pack-local suites; each is named by a step of the skill's procedure with the
+form that invokes it; ADR-0108's confirmation state is held to the checker that
+enforces it; and the release surface closes last. Every task that edits `.apm/`
 regenerates its projections in the same commit, per the spec's `Always do`:
 `make build-self` takes `FORCE=1` on a dirty tree, so a single deferred run was
 never required and the earlier rationale claiming otherwise was wrong.
@@ -87,23 +86,6 @@ routed with the criteria that depended on it.
 
 ### Design decisions
 
-- **Extend the existing acceptance-criteria step rather than add a reference
-  file.** The rubric earned its own file because it is worked per defect and
-  re-read; a five-step selection procedure runs once, inline, before wording.
-  Rejected: a second `references/` file, which splits the AC step's reading
-  order across two files for no gain. Traces to: the procedure's stage set and order.
-- **The build-discovery destination reuses the plan template's existing
-  contract, and is not a new concept.** `assets/plan.md` already requires
-  `no stub (implementation-discovered)` plus a discovery predicate, constraint,
-  required outcome and verification mode for a seam the build must settle, and
-  `SKILL.md` already states that assertion wording is expected to be incomplete
-  at approval. What was missing is a *route*: the routing step named five
-  destinations and none of them was the build. Rejected: inventing a
-  `defer-to-build` disposition with its own fields, which would put a second
-  home on a contract that already exists. The four fields are what stop this
-  being a licence to under-specify — "we will figure it out" is worse than
-  either specifying or omitting, while a stated predicate is a hole of known
-  shape. Traces to: the routing table's build destination.
 - **Cite, never restate.** Every shape, diagnosis or repair question in the
   procedure resolves to `assets/spec.md` or the rubric by name. Rejected:
   summarising the conjunction test inline for the reader's convenience — a
@@ -114,37 +96,22 @@ routed with the criteria that depended on it.
   the whole decision, which is why the boundary is cited rather than a number.
 
 
-
-
 ### Component / module decomposition
 
 The surfaces are the ones each task's `Touches` names, which is the only current
-list; all existed before this slice except the guide page and the skill's own
-`scripts/` directory. Nothing new is a module or a dependency. The one new
+list; all existed before this slice except the skill's own `scripts/` directory. Nothing new is a module or a dependency. The one new
 directory is the checkers' `scripts/`, admitted by the owner carve-out in the
 spec's *Never do* rather than by this section.
 
 ### Behavior & rules
 
-**The procedure span, defined once.** Several assertions below slice the same
-region of `SKILL.md`, and naming its bound separately in each is how two of them
-came to disagree. The span runs from the **first stage marker** to the **end of
-the last stage's text** — not to the last marker, which would put the fifth
-stage's body outside the span and leave its interval empty. Every assertion that
-slices the procedure cites this definition instead of restating a bound.
-
-The procedure's admission test, routing destinations and set-level checks are
-the observable contract and live in `spec.md`. What follows is what the
-implementer cannot infer about the assertions that verify them. Each rule is
-stated once here; each prose-adding task's `Tests` cite it rather than repeating it.
-
-**Ordering is two comparisons, not one.** The hand-off's offset must fall
-between the routing marker and the set-level pass marker. Comparing against
-admission alone is too weak: routing and the pass both follow admission, so
-wording could land mid-procedure and still pass. Stage order is one ascending
-comparison across all five offsets, not pairwise against neighbours, because a
-pairwise walk stays green under a swap of two non-adjacent stages.
-Traces to: the procedure's stage set and order.
+What each check decides is the observable contract and lives in `spec.md`. What
+belongs here is only what an implementer cannot infer from it: that a rule
+reporting rather than blocking leaves the exit status alone, that a rule whose
+input is absent is named as having no input rather than counted as checked, and
+that a probe distinguishing "none found" from "input unavailable" needs a
+fixture for each. Each is stated once here; a task's `Tests` cite it rather than
+repeating it.
 
 ## Tasks
 
@@ -185,10 +152,11 @@ Traces to: the procedure's stage set and order.
   silently on a dropped paragraph, so the regeneration is a command here rather
   than a note under Grounding.
 - `python3 -m pytest packs/core/tests/pack packs/core/tests/skills/new-spec -q`
-  — every assertion the skill- and agent-editing tasks landed, whichever those
-  are in the task list rather than a count restated here. `tests/pack` is named
-  because this delivery ships reviewing-surface prose whose only guard lives
-  there, and no other task's `Tests` reaches it. Re-run here because no required remote gate
+  — every assertion the tasks in this plan landed, whichever those are in the
+  task list rather than a count restated here. `tests/pack` is named because this
+  delivery ships reviewing-surface prose that no task owns — it is registered
+  under `## Shipped ahead of a criterion, deliberately` — and its only guard
+  lives there, which no other task's `Tests` reaches. Re-run here because no required remote gate
   reaches this suite, so T5 is the last point at which a red is visible before
   release.
 
@@ -306,17 +274,7 @@ in the same commit
   by prose naming only the first, which is the direction that shows up on its
   own as a criterion nothing verifies; the second is invisible, because the
   artifact works and nothing is failing.
-- **Per-task grounding — shipped prose, no criterion here.** The criterion was
-  retired and routed; this assertion stays as a construction check, registered
-  in `## Shipped ahead of a criterion, deliberately`. The plan step requires
-  per-task grounding against the governing
-  set and requires the task to record what it resolved. **Constraint:** assert
-  the per-task scoping and the recording obligation separately, and assert that
-  the prose rules out a plan-level anchor list as sufficient. A rule that says
-  "ground the plan" is satisfied by the `Repository anchors:` field that already
-  exists and that this plan filled in — with three `AGENTS.md` files, a schema
-  and two analogues — while missing all three blockers. The mutation that must
-  fail is relaxing "each task" to "the plan".
+
 - **The surface-guidance finding class.** The review step states its finding class and its
   one answer: the criterion changes, and the forbidden content is never authored
   to satisfy it. **Constraint:** assert the prohibition as well as the class. A
@@ -470,17 +428,7 @@ in the same commit
   rubric reference and its "This section owns criterion shape" sentence. Add
   beside them; do not reflow the section.
 - `SKILL.md` and the rubric both already defer criterion shape to this asset, so
-  the convention goes in the asset and is not restated in either.
-- **A pinned sentence enumerates what that block owns, and identifiers are not in
-  it.** `RULES` carries, owner `skill`: "`assets/spec.md`'s `## Acceptance
-  Criteria` guidance owns the criterion-shape rules, including the independence
-  boundary, worked examples, limits, claim minimality, and the mechanism
-  give-away." Adding the identifier convention to that block widens what it owns
-  past its own stated enumeration, so the pin is extended in the same change —
-  the way T6 extends `deletion-pass` — and the assertion checks the enumeration
-  still matches the block's contents. Leaving them to diverge is the drift a
-  Shipped sibling spec, `spec-authoring-discipline`, holds criteria over: each
-  rule resolves to one owning file.
+  a rule about criterion shape belongs in the asset and is not restated in either.
 - **Two Shipped specs hold frozen criteria over this file.**
   `spec-authoring-discipline` owns the criterion-shape rules in this block;
   `doc-drift-prevention` owns its status-line comment at line 3, which this task
@@ -497,9 +445,9 @@ in the same commit
   `.claude-plugin/marketplace.json` carries no `core` entry, and
   `packs/core/README.md` inventories skills rather than their assets or scripts,
   so neither moves for this change.
-- `packs/AGENTS.md` — the asset cannot cite the ADR or any internal identifier,
-  which is why the convention is stated directly; and changing a shipped asset
-  bumps the core pack version.
+- `packs/AGENTS.md` — a shipped asset cites no internal record, which is why the
+  tier rule is stated directly; and changing a shipped asset bumps the core pack
+  version.
 
 **Approach:**
 - The identifier convention does not ship from this task. It was routed out with
@@ -711,8 +659,7 @@ in the same commit
 - **These two invocations are wired here, and this task owns the closing check.**
   T8 wires its own checker; the explorer and the coverage check had no named
   caller at all, which is the control-nobody-runs case on the same rationale.
-  The explorer is named at the discovery pass, the coverage check at the step
-  whose artifacts it reads. Because AC-0038 closes over every check the skill
+  Each is named by a step, with the form that invokes it. Because AC-0038 closes over every check the skill
   ships, the assertion can only run once T8's reference exists — which is why
   this task now depends on T8. The three references spend from the same line
   budget every prose-adding task draws on, counted together before any of them lands.
@@ -819,7 +766,7 @@ in the same commit
   a pack in a catalogue and a loose script sit at different distances from their
   tests, and guessing one finds nothing in the other two, silently.
 
-- **AC-0038, every shipped check names its consuming step.** Read the skill's own
+- **AC-0038, every shipped check is named by a step with its runnable form.** Read the skill's own
   `scripts/` directory and assert that each script in it is referenced by the
   procedure — not from a restated list of three, which would pass unchanged on a
   fourth script added later with no caller. Assert that a step names each
@@ -974,9 +921,6 @@ is evidence about the check.
   omission alongside a review-phrase defect in the same file T6 edits; its
   phrase claim no longer reproduces — the test passes today — but the gate
   omission does.
-- **A count assertion scoped too widely reds on correct text.** Measured, not
-  hypothesised — see the probe under *Design decisions*. Mitigation: the span
-  slice, and no assertion that reads the whole file for a bare token.
 - **Step renumbering strands a pointer.** The AC step carries pointers to step 9
   and step 5, and an existing test anchors both ordinals to their headings.
   Mitigation: do not renumber; if a step is inserted, move the pointer and the
@@ -1004,7 +948,7 @@ through AC-0045, which answers what governs a set of paths rather than obliging
 an author to assert that they resolved it.
 
 **What this leaves.** The skill ships three checks over its own artifacts, each
-named by its consuming step, under ADR-0108's identifier standard. Every
+named by a step with the form that invokes it, under ADR-0108's identifier standard. Every
 criterion the slice retains is decided by a suite over a fixture artifact.
 
 ## Shipped ahead of a criterion, deliberately
@@ -1036,15 +980,19 @@ criterion the slice retains is decided by a suite over a fixture artifact.
   Route: the same intent. Their protection is the `RULES` block T6 asserts
   against, which is why T6 ships them rather than holding them.
 - **The determinacy grading on the two code-facing reviewing surfaces**
-  (`adversarial-reviewer.md`, `finding-adjudicator.md`, and the spec template's
-  section tiers that feed it) is shipped behaviour with no criterion here.
+  (`adversarial-reviewer.md` and `finding-adjudicator.md`) is shipped behaviour
+  with no criterion here. The spec template's section tiers that feed it are a
+  separate entry below, with their own guard.
   Route: [review-response protocol across reviewer surfaces](../../product/intents/review-response-protocol-across-reviewer-surfaces.md),
   whose own `Boundary` previously excluded blocking and scoring behaviour and was
   amended on 2026-09-11 to record that this delivery shipped it. Owner decision
   the same day: a review loop fed by judgement calls has no fixed point, and the
   grading is what stops a wording objection blocking a merge. Its guard is
-  `packs/core/tests/pack/`, which T5's `Tests` now names — nine clauses pinned,
-  each mutation-proven — so none of it can be deleted silently.
+  `packs/core/tests/pack/`, which T5's `Tests` now names: the reviewer's
+  determinacy test, its Concern ceiling, the cannot-be-determinately-fixed rule
+  and the no-tiers default, plus the adjudicator's two predicate clauses and its
+  advisory-severity ceiling. Each is mutation-proven, so none can be deleted
+  silently.
 - **The spec template's section tiers** (`assets/spec.md`) ship under owner
   sign-off recorded in the spec's `## Assumptions`, the file being behind
   `Ask first`. Route: the same intent, since the tiers exist for the adjudicator
@@ -1071,6 +1019,19 @@ criterion the slice retains is decided by a suite over a fixture artifact.
 
 ## Changelog
 
+- 2026-09-11: **round 8 — the cut's propagation, finished.** Two blockers and
+  eleven lesser findings, against seven blockers in each of the two rounds
+  before; every one was a place the round-7 repair landed partially rather than a
+  new defect. The per-task-grounding assertion was relabelled when it should have
+  been removed — its subject is prose that was never written — and AC-0038's
+  narrowing had not reached Testing Strategy, two plan entries or the Assumption
+  the same round added. Also repaired: a risk citing a probe this delivery
+  deleted, an Approach and three design blocks specifying dropped tasks, the
+  section tiers registered twice with conflicting guards, a clause count beside
+  a set that this plan's own rule bans, and four places where the two intents
+  disagreed about who owns the frozen-case run, the eval register and AC-0030.
+  Formal adjudication was skipped by owner direction to close the loop; each
+  finding was verified against the tree before repair.
 - 2026-09-11: **round 7 — the first under determinacy grading, and its repairs.**
   The reviewer sent seven blockers; the adjudicator sustained three and
   downgraded four to concerns on the test of whether the fix is determined,

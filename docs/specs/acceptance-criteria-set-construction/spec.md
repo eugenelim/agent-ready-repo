@@ -85,7 +85,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Any change to `assets/spec.md` beyond adding a cross-reference, because that
   file owns criterion shape.
 - Any edit to `docs/product/briefs/agent-authoring-input-quality.md`.
-- Retiring, renaming or reordering an existing eval case.
 
 ### Never do
 
@@ -137,11 +136,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   cases record which backtick shapes break a naive count, so the predicate is
   distinguished from the one it replaced by the fixtures rather than by a quoted
   rate.
-- **Every shipped check names its consuming step (AC-0038):** goal-based check
-  over the authored skill file, on the pack-local suite. The surface is the
-  skill's procedure, not a gate list, and the check reads the skill's own
-  `scripts/` directory rather than a restated inventory, so a check added later
-  without a named caller fails rather than passing unnoticed.
+- **Every shipped check is named by a step, with the form that invokes it
+  (AC-0038):** goal-based check over the authored skill file, on the pack-local
+  suite. The surface is the skill's procedure, not a gate list, and the check
+  reads the skill's own `scripts/` directory rather than a restated inventory,
+  so a check added later without a named caller fails rather than passing
+  unnoticed. Both halves are observed: a script named nowhere fails, and a
+  procedure naming every script without the runnable form fails too.
 - **ADR-0108's confirmation state (AC-0032):** goal-based check over the ADR,
   at repository level. The ADR is not pack content, so the pack-local suite
   cannot read it.
@@ -353,9 +354,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   skill's `SKILL.md` step 4 "No Acceptance Criteria" bullet, with the
   criterion-shape deferral restated at the shaping-review step (source: file
   read, 2026-09-10)
-- Technical: an eval entry carries exactly `id`, `prompt`, `expected_output`
-  and `assertions`, with unique ids across the register (source:
-  `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`)
 - Technical: a new guide needs `title`, `summary`, `pack` and `kind`
   frontmatter with `title` equal to the leading H1, and no navigation-baseline
   row (source: `contracts/guide.schema.json`; `guides/AGENTS.md`)
@@ -399,7 +397,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   plan registers it as shipped without a criterion with its route (source: owner
   sign-off 2026-09-11)
 - Product: this serves spec authors invoking `new-spec`, and the slice ends
-  when the three checks over the skill's own artifacts exist, each named by the
-  step that runs it, under ADR-0108's identifier standard (source: user
+  when the three checks over the skill's own artifacts exist, each named by a
+  step with the form that invokes it, under ADR-0108's identifier standard (source: user
   confirmation 2026-09-10 for the audience; owner decision 2026-09-11 narrowing
   the end state, which supersedes the procedure-and-graded-run wording)

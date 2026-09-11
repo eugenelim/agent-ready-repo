@@ -90,18 +90,23 @@ itself, which an implementer corrects in place against those pins.
   AC-0006 (the governing set admission resolves against), AC-0011 (the set-level
   coverage read), AC-0018 (the count prohibition), AC-0031 (per-task grounding),
   and the frozen-case criteria AC-0019 through AC-0021 and AC-0028 through
-  AC-0029. All are retired in the delivering spec, so this intent is their only
-  owner.
+  AC-0029, and AC-0030 (the spec template carrying the identifier convention,
+  which returns when the procedure does). All are retired in the delivering
+  spec, so this intent is their only owner.
 - Includes building the frozen-case run, which the delivering spec no longer
   carries. The run is this intent's own gate, so the gate and the thing gated
   now sit with one owner rather than two.
-- Excludes the prose these criteria used to govern. It ships from
-  `acceptance-criteria-set-construction`'s own tasks, and each such rule is
-  listed in that plan's `## Shipped ahead of a criterion, deliberately` with its
-  route here.
+- Excludes the prose that *did* ship before its criterion was retired — the
+  plan-authoring rules and the review-response protocol in the skill's own
+  steps. Those ship from `acceptance-criteria-set-construction`'s tasks and are
+  listed in that plan's `## Shipped ahead of a criterion, deliberately` with
+  their route here. The criteria in the bullets above have no such prose: their
+  subject was never written, which is why they are included whole.
 - Excludes what the delivering spec retains and has an oracle for: the three
-  shipped checkers, their per-step invocation, ADR-0108's identifier standard
-  and its confirmation state, the release surface and the eval register.
+  shipped checkers, their invocation from a named step, and ADR-0108's
+  identifier standard with its confirmation state. The pack's eval register is
+  *not* excluded — the frozen cases land there, and they come with the run this
+  intent builds.
 - Excludes the mechanical half of grounding. The explorer ships from the
   delivering spec under AC-0041 through AC-0045; what is deferred is the
   obligation on an author to assert a resolution, never the tool that answers
