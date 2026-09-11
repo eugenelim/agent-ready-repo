@@ -899,6 +899,19 @@ open = [
   # influencer tier, name gatekeeper artifacts out of scope, ship the two-way
   # surfaces first; one-way items still withheld.
   {path = "docs/product/intents/cohort-orientation-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/design/discovery/team-orientation-build-handoff.md", revision = "sha256-bytes-v1:fb74c0f2034dd6a0422b958b56f89a8abec66b48ec15becdf46509b92c70eadc"}, summary = "An adoption champion can understand the operating model from the published surfaces and re-explain it to an engineer and a platform team; gatekeeper evidence (TCO, exit path, SBOM) is explicitly out of scope", needs = []},
+  # The claude-plugins route declares agent = native and the Claude Code
+  # adapter projects agent -> .claude/agents/, so sub-agents ship in the plugin.
+  # On the Claude apps chat surface they are present, listed and unrunnable.
+  # All three packs that ship them degrade only when the agent is ABSENT --
+  # product-engineering (3), desk-research (2), experience-design (1) -- so no
+  # fallback fires when it is present-but-unrunnable. experience-reviewer-work-
+  # loop-gate (Shipped) guarantees a missing reviewer is "a named skip, not a
+  # silent pass"; on that surface the trigger never fires and the user gets the
+  # silent pass. Contrast: Agent Plugins 1.0.0 supports only Skills and MCP, so
+  # the agent-plugin route drops agents and emits nothing for such packs -- one
+  # route refuses, the other ships degraded. Fix belongs to the packs'
+  # degradation contracts, not to documentation. Unblocks now; no dependency.
+  {path = "docs/specs/claude-plugin-route-scope/notes/subagent-present-but-unrunnable.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Sub-agent degradation fallbacks are keyed on the agent being absent, so none fires on a surface where it is present but unrunnable, letting a Shipped named-skip guarantee pass silently", needs = []},
   # guides/** is browsed on GitHub and projected into Starlight by
   # tools/build-site.py, so an image must resolve under two renderers from one
   # source. Neither syntax does: the rewriter regex cannot tell an image from a

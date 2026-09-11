@@ -33,12 +33,19 @@ the Claude apps, per-surface registration, the absence of filesystem access, and
 surface-specific degradation are represented — without duplicating those facts
 into guides.
 
-That decision is a hard predecessor, not a caveat.
+**Superseded reasoning, retained:**
 [`portfolio-pack-first-value-contract`](../../specs/portfolio-pack-first-value-contract/spec.md)
-requires `surfaces ⊆ [pack.install].allowed-adapters`, a closed set of adapter
-names, and all four discipline packs currently declare
-`surfaces = ["claude-code"]`. The Claude apps are not an adapter name, so no
-compliant Claude-apps first-value record can be written today.
+requires `surfaces ⊆ [pack.install].allowed-adapters`, and all four discipline
+packs declare `surfaces = ["claude-code"]`, so no compliant Claude-apps
+first-value record can be written today.
+
+**Narrowed 2026-09-10: that is not a predecessor.** Plugin reach is derivable
+from `[pack.install] allowed-scopes` plus the Claude-plugin route's user-scope
+admission (`claude-plugin-route-scope`, Shipped) and ADR-0107, so the
+vocabulary was never the gate. `surfaces` records *verified* first-value
+surfaces, and no pack can declare one for the Claude apps until a dated
+observation exists. **That observation is the real and only remaining
+dependency.**
 
 | Slice | Owns | Status |
 | --- | --- | --- |

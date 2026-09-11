@@ -60,15 +60,21 @@ route in no more steps than the baseline recorded before this work starts.
 
 ## Unresolved questions
 
-- **Can `[pack.first-value].surfaces` even name this surface?** The contract
-  requires `surfaces ⊆ [pack.install].allowed-adapters`, a closed set of adapter
-  names, and all four packs currently declare `surfaces = ["claude-code"]`. The
-  Claude apps are not an adapter. Until that vocabulary question is decided by
-  the contract's owner, no compliant Claude-apps first-value record can exist,
-  so **the method-to-artifact tutorial and any certified first-value claim
-  cannot reach a spec. It does not block the home-page doors or the
-  installation how-to**, which promise a route and a submitted install rather
-  than a completed method.
+- **Resolved — the `surfaces` vocabulary is not a blocker.**
+  **Narrowed 2026-09-10.** An earlier reading made the `surfaces` vocabulary a
+  hard predecessor for this whole intent. It is not, and the field was never the
+  right place to look. Plugin reach is already declared: `claude-plugin-route-scope`
+  (Shipped) settles that the Claude-plugin route is a **user-scope channel**, the
+  route's admission policy is `user-publishable-with-consent`, and the publish
+  workflow ships every pack whose `[pack.install] allowed-scopes` admits `user`.
+  ADR-0107 then establishes that plugins reach the Claude apps. Claude-apps reach
+  is therefore **derivable from fields we already declare**, and storing it again
+  in `surfaces` would recreate the drift `[pack.first-value]` exists to prevent.
+  
+  `surfaces` means *verified* first-value surfaces. No pack could honestly
+  declare the Claude apps there today regardless of vocabulary, because no dated
+  observation exists. **What actually remains blocked is one thing: a verified
+  first-value claim, which needs the observation — not a contract change.**
 - Which discipline supplies the walkthrough. `product-strategy` is the only one
   of the four that ships no sub-agents, so it is the only one whose method is
   unaffected by the chat surface's sub-agent gap — which makes it the cheapest

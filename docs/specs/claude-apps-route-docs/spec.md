@@ -88,10 +88,14 @@ observation that does not yet exist.
   baseline entry (`grep -c` over that file).
 - Technical: `guides/_shared/how-to/` and `guides/_shared/reference/` both
   already exist, so neither new page creates a quadrant (`ls` per quadrant).
-- Technical: `[pack.first-value].surfaces` must be a subset of
-  `[pack.install].allowed-adapters`, and all four discipline packs declare
-  `["claude-code"]` (`portfolio-pack-first-value-contract/spec.md:226`). The
-  Claude apps cannot be named there.
+- Technical: `[pack.first-value].surfaces` records *verified* first-value
+  surfaces and is subset-bound to `allowed-adapters`
+  (`portfolio-pack-first-value-contract/spec.md:226`). **This is not why this
+  spec avoids a first-value claim.** Plugin reach is already derivable from
+  `allowed-scopes` plus the route's user-scope admission, so the vocabulary was
+  never the blocker; what is missing is a dated observation that a pack
+  delivers first value in the Claude apps. AC12 fences the claim, not the
+  field.
 - Technical: `product-strategy` carries no sub-agents, while the other three
   discipline packs do (`find packs/*/.apm/agents`). This bounds what degrades
   in chat; it proves nothing about installability.
