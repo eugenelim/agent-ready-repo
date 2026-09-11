@@ -1,4 +1,4 @@
-# Plan: the four disciplines read as one sequence
+# Plan: the four disciplines are discoverable as one ordered sequence
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Done <!-- Drafting | Approved | Executing | Done -->

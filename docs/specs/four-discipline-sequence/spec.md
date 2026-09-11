@@ -1,6 +1,6 @@
-# Spec: the four disciplines read as one sequence
+# Spec: the four disciplines are discoverable as one ordered sequence
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -38,7 +38,16 @@ its own link into the same file.
 
 A first-time Claude Desktop user who has installed nothing can see, from the
 published surfaces alone, that **desk research → product strategy → experience
-design → product engineering** is one ordered sequence, and can walk it.
+design → product engineering** is one ordered sequence, and can find the entry
+point for each of the four.
+
+**Narrowed 2026-09-11, after the build.** This previously ended "and can walk
+it". No criterion in this set ever tested walkability, and the delivered
+surfaces do not provide it: no step shows a literal request, the guides path is
+reachable from nothing, and no surface routes a Claude Desktop reader to an
+install. Claiming the walk while testing only grouping, order and links was a
+claim reaching past its check, so the claim is narrowed rather than the check
+invented after the fact. **The walk is slice S7**, recorded in the brief.
 
 Three outcomes:
 
@@ -272,8 +281,9 @@ no links has no unresolved link. AC-0020 and AC-0021 supply the links whose
 existence it then verifies, so the pair cannot both be satisfied vacuously.
 *Coverage both ways:* Objective outcome 1 reaches AC-0001 to AC-0006 and AC-0020;
 outcome 2 reaches AC-0008, AC-0009, AC-0021 and AC-0022; outcome 3 reaches AC-0007,
-AC-0010 and AC-0011. The Objective's "and can walk it" reaches AC-0019, whose
-failure leaves a stated route unreachable even when every other criterion holds.
+AC-0010 and AC-0011. AC-0019 reaches the User-facing promise Durable Output: a
+surface whose emitted links do not resolve has not carried the sequence to a
+reader, whatever else holds.
 The five `Never do` rails reach AC-0017, AC-0015, AC-0016, AC-0018 and the
 routed repository-decision row respectively. The three applicable Durable
 Outputs reach AC-0008 and AC-0021, AC-0012 to AC-0014, and the ledger row, with
@@ -394,13 +404,16 @@ the artifact.
 
 ## Delivery
 
+**What this slice is, stated plainly:** discoverability, not procedure. It makes
+the four legible as an ordered sequence on both surfaces. It does **not** make
+the sequence walkable — see the Objective's narrowing above and slice S7.
+
 Built 2026-09-11. All 22 criteria are ticked against observed evidence, not
 against intent; every observation is recorded in
 [`notes/verification-ledger.md`](notes/verification-ledger.md), including the
 three mutation proofs, the resolved D1 count and D3 seam, the cold read, and the
 gate results.
 
-**Status stays `Implementing` rather than `Shipped` because the change is not
-merged.** It moves to `Shipped` on merge, which is also when the brief's
-coverage roll-up will derive that value — the Spec-map cell is `<auto>` and must
-not be hand-written.
+**Shipped 2026-09-11 by owner decision**, with the narrowed Objective above. The
+brief's Spec-map cell stays `<auto>`: the coverage roll-up derives that value
+and it must not be hand-written.

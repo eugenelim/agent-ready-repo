@@ -67,7 +67,7 @@ the ordered paths; a continuous install-to-ship walkthrough; the
 tutorials missing complete worked input-and-output examples; the sample-output
 gap for invocable-skill how-tos; and any path metadata or navigation needed to
 keep the route visible after generation. The delivered and open tables below
-are the current status: S3-S6 remain open.
+are the current status: S3-S5 and S7 remain open; S6 shipped 2026-09-11.
 
 **Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
 S6.** Presenting `desk-research → product-strategy → experience-design →
@@ -164,6 +164,7 @@ Spec map, or make this brief `Shipped`.
 
 | Shipped portion | Repository evidence |
 | --- | --- |
+| S6 — the four disciplines are discoverable as one ordered sequence | [`four-discipline-sequence`](../../specs/four-discipline-sequence/spec.md) is Shipped: the journeys index groups the four in a collection-derived ordered list and `guides/README.md` carries P7. Its Objective was narrowed on delivery to drop "and can walk it", which no criterion tested — the walk is S7 |
 | Shaping-to-build handover foundation | `hand-an-intent-to-build.md` exists; `architect` links to it; both governance guides name upstream shaping artifacts |
 | Optional journey chat input | `youType` is optional in the validator and schema, has tests and authoring guidance, and is present in the published `JOURNEY.md` contracts |
 | Completed shaping-guide affordances | The product-engineering how-tos have chat inputs and outcomes; the audit records the product-strategy and phrase-harvest improvements already present |
@@ -196,10 +197,10 @@ fourth adversarial round after repairing the third-round construction-gate
 finding. S4 passed a clean-room review after its earlier indeterminate review
 unit was closed and its gate and scope findings were repaired. S5 passed its
 shaping gate and three adversarial rounds. S6 was added by owner decision on
-2026-09-11 and has had three Sol review rounds plus a mechanical set-level
-sweep; its rounds restarted once when the owner routed it into this brief. No
-round has returned a clean verdict, so it is not review-clean. S3-S6 are
-registered below as Draft specs pending human approval.
+2026-09-11, took four Sol review rounds plus a mechanical set-level sweep, and
+shipped the same day; no round returned a clean verdict, and the owner shipped
+on the recorded review economics rather than on convergence. S3-S5 are
+registered below as Draft specs pending human approval. S7 has no spec yet.
 
 | Spec | Status |
 | --- | --- |
@@ -212,8 +213,9 @@ registered below as Draft specs pending human approval.
 
 ## Open delivery slices
 
-Review-clean S3-S5, and newly-routed S6, now appear in the Spec map as
-non-dispatchable Drafts.
+Review-clean S3-S5 appear in the Spec map as non-dispatchable Drafts. S6 has
+shipped and is recorded with the delivered work above. S7 is a candidate slice
+with no spec yet.
 Shipped S1 and S2 are recorded with the delivered work above rather than mixed
 into this table.
 
@@ -221,7 +223,7 @@ into this table.
 | --- | --- | --- | --- |
 | S3 | Raise invocation and outcome coverage — **confirmed 2026-09-09, review-clean and registered as Draft [`guide-invocation-outcome-coverage`](../../specs/guide-invocation-outcome-coverage/spec.md)** | Guides still lack literal chat inputs and stated outcomes, and user-invocable skill descriptions still lack quoted examples or `Triggers on` phrasing | Every current in-scope target identified by the audit gains its missing source-grounded invocation or outcome affordance; the accepted-base ledger proves positive movement without freezing corpus totals |
 | S4 | Complete the remaining tutorial examples — **confirmed 2026-09-09, review-clean and registered as Draft [`tutorial-worked-examples`](../../specs/tutorial-worked-examples/spec.md)** | Most tutorials describe a workflow without showing the supplied input and matching output used in the worked run | Every current in-scope tutorial target demonstrates its workflow input and keeps it paired with a representative output and the result shown; related-intent surfaces remain excluded |
-| S6 | Present the four disciplines as one sequence — **added 2026-09-11 by owner decision, registered as Draft [`four-discipline-sequence`](../../specs/four-discipline-sequence/spec.md)** | Nothing on either surface presents the four as a workflow: the journeys index renders one flat grid where they land at positions 2, 9, 10 and 19 of 20, and the six ordered paths are keyed to lifecycle stage, so `product-strategy` and `experience-design` appear in no path at all | The journeys index groups the four in the decided order with membership derived from the `journeys` collection, and `guides/README.md` gains a matching path in the existing P-path shape; generated journey content, images, and any first-value claim stay out |
+| S7 | Make the four-discipline sequence walkable, not just findable — **opened 2026-09-11** | S6 shipped discoverability only: no step shows a literal request, P7 is reachable from nothing, no surface routes a Claude Desktop reader to an install, and no worked example shows one artifact actually entering the next skill | A new team can execute the sequence end to end from the guides: every step states a literal request, its result, and its next link; the path is entered from P2 and the journeys index; one worked example carries a real artifact across all three handoffs; and every pack in the walk is operable for a reader who has not used the catalogue before |
 | S5 | Close the how-to sample-output gap — **confirmed 2026-09-09, review-clean and registered as Draft [`how-to-sample-output-coverage`](../../specs/how-to-sample-output-coverage/spec.md)** | Sample-output coverage did not move in the earlier uplift, and many invocable-skill how-tos still describe a result without showing a representative agent response | Every current in-scope how-to target shows a source-grounded representative response; reference and explanation pages and related-intent surfaces remain excluded |
 
 ## Rabbit holes

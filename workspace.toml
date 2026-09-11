@@ -383,8 +383,11 @@ queue   = [
   # into the brief. Round 3 found the order inverted the packs' own dependency
   # contracts -- desk-research declares "Upstream (none)" with product-strategy
   # downstream -- and the owner reordered to desk-research first. No round has
-  # returned clean. Draft, requires human approval before dispatch.
-  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:8a005b13e2faff603d4956298002bd810edac6972764682701c9d1dcfcf8040c", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Group the journeys index into a collection-derived ordered sequence and add the matching guides path, ordered desk-research first to match the packs' dependency contracts, with no adopter-outcome claim", needs = []},
+  # returned clean. **Shipped 2026-09-11** by owner decision on the recorded
+  # review economics rather than on convergence. Its Objective was narrowed on
+  # delivery to drop "and can walk it": no criterion tested walkability, and the
+  # delivered surfaces do not provide it. The walk is candidate slice S7.
+  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:0b25a9bb5aa42cb0c04fb87769b7c6590daaef5371d46dcd0768df47906bc1de", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Make the four disciplines discoverable as one ordered sequence on the journeys index and in guides/README.md P7, ordered desk-research first to match the packs' dependency contracts; Shipped 2026-09-11 with its Objective narrowed to drop walkability, which is slice S7", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
