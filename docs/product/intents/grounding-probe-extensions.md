@@ -80,6 +80,37 @@ This successor is a coverage-shaped probe over code, not an authoring probe over
 a contract, so it does not belong to the skill that owns the other probes
 without a decision first. Settle that before building.
 
+## Held for a later experiment, 2026-09-11 — the probes traverse paths, never claims
+
+Owner decision: recorded, not built, to stop adding scope mid-delivery.
+
+Every shipped probe is seeded by a path and answers a question of that shape —
+what governs it, what names it, what runs it, what moves with it, what it names
+that no longer resolves. None answers *what verifies this claim*. Measured on one
+review round of this contract, eight of twenty-two findings were exactly that
+traversal: a module header declaring an exit status its `main` cannot return, a
+header asserting that a suite checks something no suite checks, a criterion
+claiming a selection the code performs unconditionally while gating only the
+printing.
+
+Two halves of the idea already have owners and need nothing. A criterion's
+observer is owned at authoring time — every admitted criterion has exactly one
+observing surface — and the disagreement between a claim and its check is owned
+at response time, in both directions, including the invisible one where shipped
+behaviour no criterion authorises. The gap is exploration only.
+
+**The cheap subset, if this is picked up.** A module's claims about its own
+interface, checked against its own code: the exit statuses a header documents
+against the values `main` returns, and the flags it documents against the parser.
+That comparison is exact rather than heuristic, which is what the surface-to-
+verifier probe refused above could never be — that one matched paths against
+paths, and the signal was never in paths.
+
+**What to settle first.** A claim-seeded probe needs a claim extractor, and the
+claims here are prose. The interface subset avoids that because a header's
+exit-code list is structured enough to parse; a criterion's obligation is not.
+Deciding where the parseable boundary sits is prior to building anything.
+
 ## Boundary
 
 - Includes both probes, their calibration, and their fixtures.
