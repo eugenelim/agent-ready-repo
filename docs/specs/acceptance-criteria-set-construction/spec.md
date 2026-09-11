@@ -328,7 +328,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       record. The owner of that class set is
       `docs/product/intents/work-loop-review-economics.md` § Guardrail, named
       here in the contract and deliberately not in the pack.
-- [ ] **AC-0027.** The earn-its-keep test applies to every criterion in the set rather than
+- [ ] **AC-0027.** The procedure names the earn-its-keep test and states what it
+      is: the conjunction of the two checks its siblings define — a criterion
+      names the outcome its failure would leave unmet, and no sibling criterion
+      or existing repository control already enforces its predicate. Without the
+      name stated over both halves, this criterion scopes a test the contract
+      never establishes. That test applies to every criterion in the set rather than
       only to those added during review, and runs while rounds are still
       running rather than only after they converge.
 - [ ] **AC-0028.** The recorded three-case run retains every seeded objective and
@@ -384,8 +389,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       carries a well-formed identifier, identifiers are unique within the spec
       directory, none appears in the retired list, every identifier reference in
       `spec.md` and `plan.md` carrying the criterion class marker resolves to a
-      criterion that exists — an item-class identifier is resolved against the
-      items, not the criteria — every
+      criterion that exists, while an item-class identifier is not resolved
+      against the criteria at all — no item registry exists for it to resolve
+      against, and claiming one would reach past every oracle here — every
       criterion is named by at least one plan entry and appears in exactly one
       verification group, and a verification item's identifier is its own rather
       than derived from the criterion or task it serves. A spec whose criteria
@@ -402,7 +408,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       on no other skill, answering the mechanical half of AC-0031 from a seed set
       of touched paths: which files name a seed, which historically change with
       one, which gates would run one, which quote a distinctive line from one,
-      and which scoped guidance governs each. Every probe reports and none
+      and which scoped guidance governs each, plus which paths a seed names that
+      no longer resolve. The probe set is selected by stage rather than run
+      whole, because at discovery nothing is authored yet and a
+      dead-reference scan returns a reassuring empty result, while at review the
+      artifacts are the seeds and their references are the question; each stage's
+      report names the probes it ran. Every probe reports and none
       decides; the two thresholds whose right value is repository-shaped — the
       sweep-commit size and the phrase cutoff — derive from the adopter
       repository's own distribution rather than being fixed, and the report names
@@ -417,8 +428,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       resolutions, for the author to decide once and record. It reads no
       configuration file of its own, and an absent or thin grounding surface
       lowers the starting information and never fails the run. The report carries
-      a surface inventory saying which known grounding surfaces are present and
-      which carry content, so a degraded grounding is legible rather than silent.
+      a surface inventory, in the stages whose probe set includes it, saying
+      which known grounding surfaces are present and which carry content, so a
+      degraded grounding is legible rather than silent.
       Consuming those surfaces as probe input — a recorded value seeding a
       derivation, and a record the repository contradicts reported as drift — is
       named in the follow-on that owns it, not claimed here.

@@ -1099,7 +1099,11 @@ weak one. A mutation that does not red is evidence about the mutation before it
 is evidence about the check.
 
 **Approach:**
-- One tree walk shared by every probe; five scripts would scan five times.
+- One tree walk shared by every probe; five scripts would scan five times. The
+  probe set is selected by stage, and the report names which probes ran: at
+  discovery a dead-reference scan is a reassuring empty result because nothing is
+  authored yet, and at review the artifacts are the seeds. Assert each stage's
+  probe set and that the report names it.
 - Probes report; none decides. No exit code but success absent an operational
   error, and never a gate. A tool that blocks on a heuristic is the
   consequence-bound blocking this repository already measured and killed.
@@ -1148,7 +1152,9 @@ leaves no drift.
   suites and omits `packs/core/tests/skills/new-spec/`; `make test` walks the
   whole tree but reaches CI only through a manually dispatched workflow that the
   repository's own guidance calls partial evidence, never required. So T1, T3,
-  T6, T7 and T8 all close on a suite a merge can go green without. Mitigation:
+  T6, T7, T8 and T9 all close on a suite a merge can go green without, and the
+  roster-hosted AC-0032 assertion sits behind a separately dispatched workflow.
+  Mitigation:
   run it locally at every task boundary and again in T5, and read a green remote
   run as saying nothing about it. Widening the curated list is a separate change
   with its own owner and is not smuggled in here. An open backlog intent,
@@ -1194,7 +1200,7 @@ leaves no drift.
 - 2026-09-10: pre-EXECUTE round 2 sustained eight of eleven findings; three were
   refuted, one of them because the reviewer's proposed fix contradicted T6.
 - 2026-09-10: owner-approved — the skill ships its own alignment checker (T8,
-  AC-0032) rather than extending the repository's spec-status lint. Skills are
+  AC-0033) rather than extending the repository's spec-status lint. Skills are
   independent, and the two jobs differ: that lint decides spec state, this one
   decides item alignment. The `Never do` boundary was amended in the same
   decision to admit the `scripts/` directory it needs.
