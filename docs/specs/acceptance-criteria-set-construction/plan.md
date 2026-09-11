@@ -962,6 +962,19 @@ in the same commit
   walk, and the co-change probe, which has no fallback, reports unavailable.
 - `work-loop` grounds at its own PLAN step and cannot call this, because skills
   are independent. A second copy or a shared home follows; recorded as a revisit.
+- **ADR-0037 D2 forecloses the obvious design, by name.** It records "No new
+  top-level config file (no `grounding.toml`)", and states the posture the rest
+  must take: a recorded surface *seeds* discovery and never replaces it, every
+  read is if-present, absence lowers only the starting information, and no CI
+  gate enforces it. So whatever this explorer cannot derive at run time it reads
+  from surfaces the adopter already owns. Found by running the explorer on its
+  own skill: the accepted decision predates, and rules out, the design proposed
+  for it.
+- **`docs/specs/repository-context-anchoring/` is Shipped** and owns how an
+  adopter's real development guidance is identified, including the rubric reused
+  across `adapt-to-project`, authoring skills and focused review. The
+  scoped-guidance probe consumes that identification and cites it rather than
+  restating the rubric.
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 

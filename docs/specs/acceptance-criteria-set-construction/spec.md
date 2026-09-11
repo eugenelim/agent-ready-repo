@@ -405,7 +405,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       unavailable — because a probe that returns empty when its input is missing
       is indistinguishable from a clean result. Whatever the explorer cannot
       settle mechanically it emits as a named ambiguity with its candidate
-      resolutions, for the author to decide once and record.
+      resolutions, for the author to decide once and record. What it cannot
+      derive at run time it reads from surfaces the adopter already owns, if
+      present, and never from a configuration file of its own: an absent surface
+      lowers the starting information and never fails the run.
 
 ## Follow-ons
 
@@ -419,7 +422,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `shaping-reviewer` and the pack reviewer surfaces, and rule out relitigating a
   decision a brief records as settled. This spec owns the authoring side only;
   the receiving side names no legitimate answer to a finding, which is why a
-  sustained finding there reads as an instruction to edit.
+  sustained finding there reads as an instruction to edit. That intent also
+  carries the boundary with
+  [`spec-review-validation-guidance`](../../product/intents/spec-review-validation-guidance.md),
+  a Draft intent on marking a finding's origin and testing its facts before
+  repair: it shares this contract's guardrail of adding no lint and no
+  review-count limit, and the two must not both come to own how a finding is
+  answered.
 
 ## Assumptions
 
