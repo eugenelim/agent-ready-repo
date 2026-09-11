@@ -58,8 +58,16 @@ UNLABELLED = re.compile(r"^- \[[ x]\] (?!\*\*(?:AC|VI)-\d{4}\.\*\*)", re.M)
 CRITERION_REF = re.compile(r"\bAC-\d{4}\b")
 ITEM_REF = re.compile(r"\bVI-\d{4}\b")
 MALFORMED = re.compile(r"\b(?:AC|VI)-(?!\d{4}\b)[A-Za-z0-9]+\b")
-TASK = re.compile(r"^### (T\d+)\b(.*?)(?=^### T\d+\b|\Z)", re.M | re.S)
-ENTRY = re.compile(r"\*\*(?:Tests|Done when):\*\*(.*?)(?=\n\*\*[A-Z]|\Z)", re.S)
+# A task body ends at the next task *or the next level-two heading*. Running it
+# to end-of-file makes the last task's body swallow every section after it --
+# Rollout, Risks, the Changelog -- so a criterion named in the changelog is
+# credited to a task entry. That is the mention-anywhere form rule 5 exists to
+# eliminate, reappearing inside rule 5.
+TASK = re.compile(r"^### (T\d+)\b(.*?)(?=^### T\d+\b|^## |\Z)", re.M | re.S)
+# A field block ends at the next *field label* -- bold, capitalised, colon --
+# not at any bold capital. `**AC-0035.**` opens a case bullet, not a field, and
+# treating it as a boundary truncated a task's Tests block at its first bullet.
+ENTRY = re.compile(r"\*\*(?:Tests|Done when):\*\*(.*?)(?=\n\*\*[A-Z][A-Za-z ]*:\*\*|\Z)", re.S)
 GROUP_ITEM = re.compile(r"^- \*\*(.+?)\*\*", re.M | re.S)
 RETIRED_HEADING = re.compile(r"^## Retired identifiers\s*$", re.M)
 RETIRED_ENTRY = re.compile(r"^[-*]\s+`?((?:AC|VI)-\d{4})`?\s*$", re.M)
@@ -77,8 +85,9 @@ def retired(spec: str) -> set[str]:
     An absent heading is an empty list, not a finding: omitting it while nothing
     has been retired is the convention, so absence is the normal state.
     """
-    if not RETIRED_HEADING.search(spec):
-        return set()
+    # No heading check: `_section` returns "" for an absent heading and the entry
+    # pattern finds nothing in it, so a guard here changes no outcome for any
+    # input and no case can distinguish it.
     return set(RETIRED_ENTRY.findall(_section(spec, "Retired identifiers")))
 
 

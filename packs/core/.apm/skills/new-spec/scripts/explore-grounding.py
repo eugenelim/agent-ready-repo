@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Answer "what already governs these paths?" before a spec or plan is authored.
 
-Five probes, seeded by the paths a change will touch. The cost is bounded by the
+Seven probes, seeded by the paths a change will touch, selected by stage. The cost is bounded by the
 seed set and its references rather than by the repository, which is the whole
 difference from a repository map: a map's cost scales with the repository and its
 token budget truncates exactly the rare edge you needed.
@@ -11,6 +11,12 @@ token budget truncates exactly the rare edge you needed.
   phrase pins    which files quote a distinctive line from a seed file
   gates          which runners would execute a seed path
   co-change      which files historically move with a seed path
+  surfaces       which known grounding surfaces exist, and carry content
+  dead refs      which paths a seed names that no longer resolve
+
+`--phase` selects the set a stage needs: at discovery nothing is authored yet, so
+a dead-reference scan returns a reassuring empty result; at review the artifacts
+are the seeds and their references are the question.
 
 Three rules hold for every probe.
 
@@ -338,7 +344,9 @@ def _rooted(text: str) -> set[str]:
     return out
 
 
-def live_references(root: Path, seed: str, known: set[str] | None) -> tuple[list[str], list[str]]:
+def live_references(
+    root: Path, seed: str, known: set[str] | None
+) -> tuple[list[str] | None, list[str]]:
     """Paths a seed names that no longer resolve, split from ambiguous ones.
 
     A path resolving under some other root is a scope question no rule settles --
@@ -347,7 +355,11 @@ def live_references(root: Path, seed: str, known: set[str] | None) -> tuple[list
     """
     text = _read(root / seed)
     if not text:
-        return [], []
+        # None, not an empty list. A directory seed -- which every plan Touches
+        # field names -- an absent seed, and a file past the size bound all yield
+        # no text, and reporting any of them as "none found" is the conflation
+        # every other probe here was repaired to refuse.
+        return None, []
     created = declared_new(text)
     dead: list[str] = []
     ambiguous: list[str] = []
@@ -546,11 +558,19 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             _emit("copies of seed", "found", copies, cap)
         if "dead" in probes:
             dead, ambiguous = live_references(root, seed, tracked)
-            _emit("dead refs", "found" if dead else "none", dead, cap)
+            _emit("dead refs",
+                  "unavailable" if dead is None else ("found" if dead else "none"),
+                  dead or [], cap)
             if ambiguous:
                 _emit("ambiguous refs", "found", ambiguous, cap)
         if "gates" not in probes:
             pass
+        elif not runners:
+            # No runner file exists at all. Printing UNREACHED here renders
+            # missing input as the probe's positive finding, distinguishable only
+            # by reading a parenthetical zero.
+            print(f"  {'gates':<14} unavailable — input missing, not a clean result "
+                  f"(no runner file found)")
         elif gates[seed]:
             _emit("gates", "found", sorted(gates[seed]), cap)
         else:

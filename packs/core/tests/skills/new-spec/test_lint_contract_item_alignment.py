@@ -139,6 +139,36 @@ def test_task_entry_rule_is_stronger_than_a_mention(root):
     assert "mentioned in plan, but not in a task entry" in result.stdout
 
 
+def test_document_tail_after_the_last_task_is_not_a_task_entry(root):
+    """The killing case for rule 5's scope, which the fixture could not reach.
+
+    The last task's body ran to end-of-file, so a criterion named in Rollout, in
+    Risks or in the Changelog was credited to that task's entry — the
+    mention-anywhere form rule 5 exists to eliminate, reappearing inside rule 5.
+    The suite's own fixture plan ended at its last task, so nothing reached it.
+    """
+    plan = PLAN.replace("- **AC-0002.** Assert the second thing.", "- Assert the second thing.")
+    plan = plan.replace("**Done when:** the AC-0002 bullet lands.", "**Done when:** it lands.")
+    plan += "\n## Changelog\n\n- 2026-09-11: AC-0002 was discussed here.\n"
+    assert "AC-0002" in plan, "the mutation must leave the identifier in the document"
+    result = _run(_tree(root, plan=plan))
+    assert result.returncode == 1, result.stdout
+    assert "AC-0002 is named by no task entry" in result.stdout
+
+
+def test_a_case_bullet_does_not_truncate_its_own_tests_block(root):
+    """A bold-capital bullet is not a field label.
+
+    `ENTRY` stopped at any column-0 bold capital, so a task's Tests block ended
+    at its first `**AC-NNNN.**` bullet and every later bullet was invisible.
+    """
+    plan = PLAN.replace(
+        "**Tests:**\n- **AC-0001.** Assert the first thing.",
+        "**Tests:**\n- **Some heading.** Prose first.\n- **AC-0001.** Assert the first thing.")
+    result = _run(_tree(root, plan=plan))
+    assert result.returncode == 0, f"AC-0001 must still be found after a bold bullet:\n{result.stdout}"
+
+
 def test_partially_labelled_spec_names_the_unlabelled_criterion(root):
     """Rule 1's red case, and the branch `test_unlabelled_spec_is_skipped` inverts.
 

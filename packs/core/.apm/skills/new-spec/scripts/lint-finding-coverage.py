@@ -39,10 +39,12 @@ FINDING_KINDS = {
     "no-suite": "declares findings but no test source was found",
     "nobody-opted-in": "no subject declares FINDING_KINDS",
     "unconfined": "refusing path outside root",
+    "unreadable": "could not be parsed",
+    "searched": "searched",
 }
 
 
-def catalogue(subject: Path) -> dict[str, str]:
+def catalogue(subject: Path) -> dict[str, str] | None:
     """Read `FINDING_KINDS` from a subject without importing it.
 
     Parsed rather than imported: a subject with side effects at import must never
@@ -51,7 +53,10 @@ def catalogue(subject: Path) -> dict[str, str]:
     try:
         tree = ast.parse(subject.read_text(encoding="utf-8", errors="replace"))
     except (OSError, SyntaxError):
-        return {}
+        # None, not {}. A subject that cannot be read is not a subject that
+        # declares nothing, and counting the two together reports an unreadable
+        # file as a deliberate non-participant.
+        return None
     for node in tree.body:
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
             continue
@@ -82,12 +87,17 @@ def test_dirs(subject: Path, given: list[Path], root: Path) -> list[Path]:
         if here == root or here.parent == here:
             break
         here = here.parent
-    candidates.append(root / "tests")
     seen, out = set(), []
     for directory in candidates:
         if directory.is_dir() and directory not in seen:
             seen.add(directory)
             out.append(directory)
+    # The repository-wide tests tree is a *fallback*, taken only when nothing
+    # names this skill. Including it alongside a specific match means a fragment
+    # observed by an unrelated suite reads as covered — a false clean, and the
+    # one this check exists to prevent.
+    if not out and (root / "tests").is_dir():
+        out.append(root / "tests")
     return out
 
 
@@ -99,16 +109,23 @@ def sources(dirs: list[Path]) -> str:
     )
 
 
-def check(subjects: list[Path], given: list[Path], root: Path) -> tuple[list[str], int, int]:
+def check(subjects: list[Path], given: list[Path],
+          root: Path) -> tuple[list[str], int, int, int, list[str]]:
     findings: list[str] = []
-    participating = skipped = 0
+    participating = skipped = unreadable = 0
+    searched: list[str] = []
     for subject in subjects:
         kinds = catalogue(subject)
+        if kinds is None:
+            unreadable += 1
+            findings.append(f"{subject}: {FINDING_KINDS['unreadable']}")
+            continue
         if not kinds:
             skipped += 1
             continue
         participating += 1
         dirs = test_dirs(subject, given, root)
+        searched += [str(d) for d in dirs]
         body = sources(dirs)
         if not body:
             findings.append(
@@ -121,7 +138,7 @@ def check(subjects: list[Path], given: list[Path], root: Path) -> tuple[list[str
             findings.append(
                 f"{subject}: {FINDING_KINDS['uncovered']}: {', '.join(missing)}"
             )
-    return findings, participating, skipped
+    return findings, participating, skipped, unreadable, searched
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -149,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: {subject}")
             return 2
 
-    findings, participating, skipped = check(subjects, args.tests, root)
+    findings, participating, skipped, unreadable, searched = check(subjects, args.tests, root)
     for finding in findings:
         print(f"lint-finding-coverage: {finding}")
     if args.discover is not None and not participating:
@@ -161,8 +178,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-finding-coverage: {FINDING_KINDS['nobody-opted-in']} "
               f"({len(subjects)} subject(s) scanned under {args.discover})")
         return 1
+    # The searched set is named on every path, not only when nothing was found:
+    # a fragment observed by an unrelated suite reads as covered, and only the
+    # directory list makes that visible.
+    if searched:
+        print(f"lint-finding-coverage: {FINDING_KINDS['searched']} "
+              f"{', '.join(sorted(set(searched)))}")
     print(f"lint-finding-coverage: {len(findings)} finding(s); "
-          f"{participating} subject(s) checked, {skipped} skipped as not opted in.")
+          f"{participating} subject(s) checked, {skipped} skipped as not opted in, "
+          f"{unreadable} unreadable.")
     return 1 if findings else 0
 
 

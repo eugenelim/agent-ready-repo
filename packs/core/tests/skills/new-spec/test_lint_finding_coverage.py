@@ -153,13 +153,48 @@ def test_a_subject_outside_the_root_is_refused(root):
     assert "refusing path outside root" in result.stdout
 
 
-def test_a_subject_with_a_syntax_error_is_skipped_not_crashed(root):
-    """An adopter's tree may hold a file that does not parse."""
+def test_a_subject_that_cannot_be_parsed_is_reported_not_counted_as_a_skip(root):
+    """Cannot-read is not declares-none.
+
+    Both used to land in "skipped as not opted in", so an unreadable file read
+    as a deliberate non-participant — a silent gap in exactly the inventory this
+    check exists to make complete.
+    """
     subject = _skill(root, "tests", "def test_a():\n    pass\n",
                      script="def broken(:\n")
     result = _run(root, str(subject))
-    assert result.returncode == 0, result.stdout
+    assert result.returncode == 1, result.stdout
+    assert "could not be parsed" in result.stdout
+    assert "0 skipped as not opted in, 1 unreadable" in result.stdout
     assert "Traceback" not in result.stderr
+
+
+def test_the_searched_directories_are_named_on_a_clean_report(root):
+    """Silence about the candidate set is what turns a heuristic into a false clean."""
+    subject = _skill(
+        root, "packs/demo/tests/skills/widget",
+        'def test_a():\n    assert "the alpha rule fired" in out\n'
+        'def test_b():\n    assert "the beta rule fired" in out\n')
+    result = _run(root, str(subject))
+    assert result.returncode == 0, result.stdout
+    assert "searched" in result.stdout and "skills/widget" in result.stdout
+
+
+def test_the_repository_wide_tests_tree_is_only_a_fallback(root):
+    """A specific match must not be widened by an unrelated suite.
+
+    With both present, a fragment observed only by the repository-wide tree read
+    as covered. The specific directory wins, and the wide one is taken only when
+    nothing names the skill.
+    """
+    subject = _skill(root, "packs/demo/tests/skills/widget",
+                     'def test_a():\n    assert "the alpha rule fired" in out\n')
+    (root / "tests").mkdir(exist_ok=True)
+    (root / "tests" / "test_unrelated.py").write_text(
+        'def test_z():\n    assert "the beta rule fired" in out\n', encoding="utf-8")
+    result = _run(root, str(subject))
+    assert result.returncode == 1, "the unrelated suite must not cover beta"
+    assert "no test observes: beta" in result.stdout
 
 
 def test_the_catalogue_is_read_without_importing_the_subject(root):
