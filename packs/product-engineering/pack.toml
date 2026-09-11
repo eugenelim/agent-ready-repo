@@ -85,5 +85,5 @@ role      = "Optional intent shaping review"
 consumers = ["skill:frame-intent"]
 providers = ["agent:shaping-reviewer"]
 when      = "Core's shaping-reviewer is installed and a product intent is ready for independent cold review."
-purpose   = "Pass one attributed, untrusted evidence packet to shaping-reviewer in intent mode; frame-intent retains revision, finding-resolution, and lifecycle authority."
-fallback  = "If Core or shaping-reviewer is unavailable, report that the optional Core intent shaping review is unavailable and continue authoring without claiming Clean. A genuinely fresh context or an independent human reviewing the same evidence packet may provide the optional review; warm self-review is advisory."
+purpose   = "Pass one attributed, untrusted evidence packet to shaping-reviewer in intent mode, which returns one MALFORMED(field) token per failed well-formedness condition or nothing at all; frame-intent retains revision, token-resolution, and lifecycle authority."
+fallback  = "If Core or shaping-reviewer is unavailable, report that the optional Core intent shaping review is unavailable and continue authoring, claiming no review result. A genuinely fresh context or an independent human reviewing the same evidence packet may provide the optional review; warm self-review is advisory."
