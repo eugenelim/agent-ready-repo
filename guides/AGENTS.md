@@ -43,6 +43,36 @@ judgement kinds and prohibited vocabulary from this section.
 | `next_step` | What to run next, named and linked |
 | `concept_resolved` | Any concept the step depends on, named and linked to where it is explained |
 
+### How a step is written
+
+Each obligation is declared by a label opening its own line, so the lint parses
+rather than guesses. Prose that merely *mentions* a label does not declare it.
+
+| Obligation | Label | Scope |
+| --- | --- | --- |
+| `position` | `**Step N of M — <title>**` | step |
+| `prerequisite_cost` | `**You need:**` plus `*Skipping costs:*` | step |
+| `concept_resolved` | `**Concepts:**` with links | step |
+| `next_step` | `**Next:**` with a link | step |
+| `utterance` | `**You type:**` | per skill |
+| `attributed_response` | `**Agent returns:**` then a blockquote | per skill |
+| `variability` | `**Output varies**` | per skill |
+| `decision` | `**You decide:**`, or `**No decision gate at this step.**` | per skill |
+| `judgement_check` | `**Check (<kind>):**` | per skill |
+| `failure_path` | `**If it fails:**` | per skill |
+| `artifact_location` | `**You now hold:**` with a backticked path | per skill |
+| `artifact_outline` | `**Expect these headings:**` | per skill |
+
+A per-skill obligation is declared inside that skill's own `#### Run \`<skill>\``
+block and nowhere else. A step naming ten skills with one shared utterance
+satisfies nothing — a step-level value cannot be attributed to one of ten
+skills, which is the difference between a skill being mentioned and a reader
+being able to run it. Templated path segments are written `<slug>`, never as a
+literal.
+
+Worked examples of each label, and the exact parse, are in
+`python3 tools/lint-guidebook-steps.py --help`.
+
 Take each projected value from the highest rung of its ladder that exists — the
 pack's `JOURNEY.md` stage, then the skill's `SKILL.md`, then authored — and
 record which rung it came from. Authoring is permitted only where no higher rung
@@ -69,11 +99,22 @@ a reader who knows a tool is watching reads less carefully.
 
 ### Prohibited vocabulary
 
-No guidebook step may contain: `first value`, `time to value`, `faster
-adoption`, `adopt faster`, `completion rate`, `task success`, `productive
-sooner`, `reach value sooner`. A step must not claim the reader adopts faster or
-succeeds more often — no evidence supports it and the install-to-first-value
-probe is unrun.
+No guidebook step may contain any of these terms. One per line, because a
+backticked term wrapped across a newline stops being one token and is silently
+dropped by every parser that reads this section — which is how two of these
+went unenforced until a test noticed:
+
+- `first value`
+- `time to value`
+- `faster adoption`
+- `adopt faster`
+- `completion rate`
+- `task success`
+- `productive sooner`
+- `reach value sooner`
+
+A step must not claim the reader adopts faster or succeeds more often — no
+evidence supports it, and the install-to-first-value probe is unrun.
 
 No step may state that each discipline **hands a named artifact to the next**,
 or select a route on **how clear the problem is**. Both are retired claims: the
