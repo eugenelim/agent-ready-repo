@@ -67,6 +67,15 @@ ordered path covering the four disciplines, stated in the existing P-path shape
 with prerequisites and a first-value moment; and whatever the four journeys must
 each say about what they hand the next for the sequence to read as one.
 
+**Out — the journey content itself.** `web/src/content/journeys/*.md` carry
+`generated: true` and are projected by `tools/build-site.py --journeys-only`
+from `packs/*/JOURNEY.md`. Editing a tagline or adding a handoff sentence there
+is a **released pack change**, pulling in version bumps and changelog entries
+for four packs. The sequence's connective copy therefore lives in the
+hand-authored index page and the guides path, not in journey content. If a
+handoff genuinely cannot be stated without changing a pack's `JOURNEY.md`, that
+is a separate change with its own release surface, not a quiet addition here.
+
 **Out — the profile.** `profiles/digital-product.toml`, the persona journey
 page and the first-session profile workflow belong to
 [`digital-product-maker-profile`](digital-product-maker-profile.md), which names
@@ -146,14 +155,21 @@ before any membership claim is made.
 
 ## Unresolved questions
 
-1. **Is the order right, and who says so?** `product-strategy → desk-research →
-   experience-design → product-engineering` comes from the sketch and from
-   `digital-product-maker-profile`'s deps-first profile ordering. Neither is a
-   ratified sequence. `guides/README.md`'s existing P2 implies a different one
-   (research before shaping, no XD at all), and RFC-0071's chain is strategy →
-   PE → XD → FE, which puts product-engineering *second*, not fourth. Three
-   sources, three orders. This needs one owner's decision before the sequence
-   is published, because publishing it settles it in practice.
+1. **Closed 2026-09-10 — the owner chose the order.** `product-strategy →
+   desk-research → experience-design → product-engineering`: decide what to
+   build, find out what is true, design how it should feel, then shape the bet
+   and build it. Three sources had implied three orders — this one from the
+   sketch and from `digital-product-maker-profile`'s deps-first composition;
+   `guides/README.md`'s P2 gathers evidence *before* shaping and carries no XD
+   at all; RFC-0071's accepted chain is strategy → PE → XD → FE, placing
+   product-engineering second. The decision is the owner's, taken because
+   publishing any order settles it in practice.
+
+   **The conflict with P2 is not resolved by this decision and must not be
+   glossed.** A reader who walks both surfaces meets research before shaping in
+   P2 and shaping last in the new path. The spec must either reconcile the two
+   or state the difference where both are reachable; it may not publish them as
+   if they agreed.
 2. **Do the two lifecycles stay orthogonal?**
    `docs/design/discovery/team-orientation-decision-log.md:52` flags that
    orthogonality as "our assertion", not a finding. A four-discipline sequence

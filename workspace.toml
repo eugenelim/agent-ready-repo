@@ -959,6 +959,14 @@ open = [
   # the four. Blocked on one owner decision: three sources give three different
   # orders for the sequence.
   {path = "docs/product/intents/four-discipline-sequence-surfaces.md", kind = "intent", source = {mode = "chat-only", ref = "chat/team-sop", revision = "2026-09-10"}, summary = "A first-time Claude Desktop user can see the four disciplines as one ordered sequence on the journeys index and in the guides paths, and walk it stopping anywhere", needs = []},
+  # Delivers the whole of the intent directly above; not a slice. 19 criteria
+  # from 27 candidates, 8 routed to named owners. Order is the owner's decision
+  # of 2026-09-10 and conflicts with the shipped P2 step order, which AC-0009
+  # discloses rather than reconciles -- reconciling changes a shipped path and
+  # belongs to sdlc-guide-uplift. Its first task is local-evidence repair:
+  # `make bootstrap-sites` exits 0 without emitting build/docs/, and every
+  # built-HTML criterion observes through that build. Unblocks now.
+  {path = "docs/specs/four-discipline-sequence/spec.md", kind = "spec", source = {mode = "chat-only", ref = "chat/team-sop", revision = "2026-09-10", parent = "docs/product/intents/four-discipline-sequence-surfaces.md"}, summary = "Group the journeys index into a collection-derived ordered sequence and add the matching guides path, with the P2 order conflict disclosed and no first-value claim", needs = []},
 
 ]
 
