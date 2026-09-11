@@ -143,7 +143,11 @@ visual/manual QA; the one marketing edit is a link inside an existing section.
       whose text is `The install-to-ship walkthrough`.
 - [x] **AC2 — the walkthrough has five stages in this order.** The walkthrough's
       stages, in document order, are: adopt the catalogue, shape what to build,
-      build it, decide together, ship and report.
+      build it, decide together, ship and report. **A stage is a heading labelled
+      `P<n>` with a bare number** — see the 2026-09-11 amendment. A heading
+      labelled `P<n>b` is an alternative route, not a stage, and is excluded from
+      AC2's count, AC4's prerequisite chain, AC5's first-value uniqueness and
+      AC6's successor chain.
 - [x] **AC3 — the walkthrough covers the whole lifecycle.** Each of these eight
       activities is named in at least one walkthrough stage: installation,
       shaping, architecture, Core intake, build, governance, release, reporting.
@@ -262,3 +266,38 @@ visual/manual QA; the one marketing edit is a link inside an existing section.
   The owner admits it as an extension to S1 because the documentation home's own
   hero action sends readers to getting-started, so without it that funnel
   dead-ends (source: user confirmation 2026-09-08).
+
+## Amendment 2026-09-11 — "stage" is defined, so an alternative route can sit inside the section
+
+**What prompted it.** Slice S6 of `sdlc-guide-uplift-and-learning-paths` added
+`P2b`, a wider alternative to `P2`, placed directly after it so a reader sees
+both options at the moment they choose a shaping route. An independent design
+review endorsed that placement: `P2b` "is now discoverable exactly when P2 is
+evaluated."
+
+**What broke, and why it was the contract's fault rather than the content's.**
+This spec's test implemented "stage" as *every `h3` inside the walkthrough
+section*. `P2b` is an `h3` there, so AC2 counted six stages and AC6 tried to make
+`P2` link to `P2b` as its successor. Both failed.
+
+The first repair moved `P2b` out of the section to satisfy the test. That was
+wrong. **A Shipped spec records what was true at delivery; it does not bind the
+product's future shape.** When a shipped criterion blocks a change that is right,
+the criterion gets amended — with its owner's consent, which this has — rather
+than the content contorted to fit a snapshot. Reshaping the page to preserve an
+implementation detail of a test is how a historical record turns into an
+accidental design constraint.
+
+**What changed.** Nothing about the walkthrough's five stages, their order, their
+prerequisites, their first values, or their successor chain. Only the *definition*
+of what counts as a stage, which was previously implicit in a selector: a stage is
+`P<n>` with a bare number. `P<n>b` is an alternative route.
+
+**The guard is not weakened.** Before, any `h3` added to the section failed AC2 —
+including a legitimate alternative. Now a sixth *numbered* stage still fails it,
+which is the case the criterion exists to catch, while a labelled alternative does
+not. Verified by mutation: adding `### P6 · ...` inside the walkthrough section
+still fails AC2.
+
+**Ownership.** `P2b`'s content belongs to S6 and its walkability to S7. This
+amendment only defines the term this spec already used.

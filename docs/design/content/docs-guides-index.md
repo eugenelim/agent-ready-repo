@@ -108,23 +108,27 @@ takes the same idea through strategy and design as well. Same position in the
 reader's journey, different appetite.
 
 So it sits **adjacent to P2**, and P2 must name it. **Applied 2026-09-11**: it
-is `P2b`, in its own "The wider shaping route" section placed immediately after
-the walkthrough, with P2 carrying a "Wider alternative" pointer at the moment of
-choice. `P2b` follows the `10b` convention the marketing-home brief already uses
-for a variant at one position.
+is `P2b`, directly after `P2` and before `P3`, with `P2` carrying a "Wider
+alternative" pointer at the moment of choice. `P2b` follows the `10b` convention
+the marketing-home brief already uses for a variant at one position. The design
+review confirmed it: `P2b` "is now discoverable exactly when P2 is evaluated." A
+reader choosing a shaping route has to see both options at the moment they
+choose, or the wider one is invisible to everyone who does not scroll past the
+entire walkthrough.
 
-**It is deliberately *not* inside the walkthrough section.** A first attempt put
-it between P2 and P3, which broke a Shipped contract:
+**A shipped test briefly moved it, and that was the wrong response.**
 [`install-to-ship-walkthrough`](../../specs/install-to-ship-walkthrough/spec.md)
-pins the walkthrough to **five stages in contract order** with each stage linking
-to its successor, and its test counts every `h3` in that section as a stage. The
-test was right and the placement was wrong on the merits — P2b is an alternative
-route, not a sixth stage of a five-stage walkthrough. **The cross-link from P2,
-not physical adjacency, is what makes it discoverable at the moment of choice**;
-the design review confirmed P2b "is now discoverable exactly when P2 is
-evaluated" on that basis. A reader choosing a shaping
-route has to see both options at the moment they choose, or the wider one is
-invisible to everyone who does not scroll past the entire walkthrough.
+implemented "stage" as *every `h3` in the walkthrough section*, so `P2b` broke
+its five-stage count. The first repair moved `P2b` out of the section to satisfy
+that test, and reasoned backwards to justify it.
+
+**A Shipped spec records what was true at delivery; it does not bind the
+product's future shape.** Reshaping a page to preserve an implementation detail
+of a test turns a historical record into an accidental design constraint. When a
+shipped criterion blocks a change that is right, the criterion is amended with
+its owner's consent. That is what happened: "stage" now means a heading labelled
+`P<n>` with a bare number, `P<n>b` is an alternative route, and the guard was
+re-verified by mutation — a sixth *numbered* stage still fails AC2 and AC6.
 
 **What this does not authorise.** It does not restructure the hub's navigation
 model, which belongs to

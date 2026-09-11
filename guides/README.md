@@ -65,6 +65,34 @@ adds strategy and design to this step — about four hours instead of three.
 
 Next: [P3 · Build it](#p3--build-it--2-hours).
 
+### P2b · Take the wider route through the four disciplines — ~4 hours
+
+**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer.
+
+**An alternative to P2, not a step after it.** The two differ by *which
+disciplines the work needs*, not by how clear the problem is — P2's robust path
+already handles an unclear problem.
+
+Take **P2** when the work is a change to something that exists: you need a
+framed, evidenced bet and nothing else before build. Take **P2b** when the work
+needs a strategic choice and a designed surface as well — a new product area, a
+user-facing flow, anything where "what should we build" and "how should it feel"
+are still open questions rather than settled ones. P2b follows the order the
+packs themselves declare, so each step hands a named artifact to the next.
+
+1. [Find out what is true](desk-research/) — hands Product Strategy graded evidence, with a confidence level per finding
+2. [Decide what to build](product-strategy/) — hands Experience Design a committed strategy artifact naming the outcome and the bet behind it
+3. [Design how it should feel](experience-design/) — hands Product Engineering a per-screen state matrix, one cell per screen and state
+4. [Shape the bet and build it](product-engineering/) — you end with a shaped bet, and a change you approved before it merged
+
+You can stop after any step and still hold the artifact it produced.
+
+**First value:** graded evidence on the question you actually have, before
+anyone commits to an answer.
+**Ends at:** a shaped bet whose evidence, strategy, and design you can point to.
+
+Next: [P3 · Build it](#p3--build-it--2-hours).
+
 ### P3 · Build it — ~2 hours
 
 **Prerequisite:** P2, or an existing spec. **For:** engineer, agent.
@@ -108,36 +136,6 @@ This release and reporting stage takes the build through its human ship gate.
 
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.
-
-## The wider shaping route
-
-### P2b · Take the wider route through the four disciplines — ~4 hours
-
-**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer.
-
-**An alternative to P2, not a step after it.** The two differ by *which
-disciplines the work needs*, not by how clear the problem is — P2's robust path
-already handles an unclear problem.
-
-Take **P2** when the work is a change to something that exists: you need a
-framed, evidenced bet and nothing else before build. Take **P2b** when the work
-needs a strategic choice and a designed surface as well — a new product area, a
-user-facing flow, anything where "what should we build" and "how should it feel"
-are still open questions rather than settled ones. P2b follows the order the
-packs themselves declare, so each step hands a named artifact to the next.
-
-1. [Find out what is true](desk-research/) — hands Product Strategy graded evidence, with a confidence level per finding
-2. [Decide what to build](product-strategy/) — hands Experience Design a committed strategy artifact naming the outcome and the bet behind it
-3. [Design how it should feel](experience-design/) — hands Product Engineering a per-screen state matrix, one cell per screen and state
-4. [Shape the bet and build it](product-engineering/) — you end with a shaped bet, and a change you approved before it merged
-
-You can stop after any step and still hold the artifact it produced.
-
-**First value:** graded evidence on the question you actually have, before
-anyone commits to an answer.
-**Ends at:** a shaped bet whose evidence, strategy, and design you can point to.
-
-Next: [P3 · Build it](#p3--build-it--2-hours).
 
 ## A branch after the walkthrough: extend the catalogue
 
