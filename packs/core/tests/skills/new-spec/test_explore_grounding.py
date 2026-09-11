@@ -205,7 +205,7 @@ def test_phase_selects_the_probe_set(root):
     reassuring empty result, because nothing has been authored yet."""
     seed = _seeded(root)
     discovery = _run(root, seed, extra=["--phase", "discovery"])
-    assert "grounding surfaces:" in discovery, discovery
+    assert "surfaces present:" in discovery, discovery
     assert "dead refs" not in discovery, "discovery runs before anything is authored"
     review = _run(root, seed, extra=["--phase", "review"])
     assert "dead refs" in review, review
@@ -226,7 +226,7 @@ def test_calibration_differs_by_repository_and_names_its_basis(root):
     """The live-calibration claim, tested by making two repositories disagree."""
     seed = _seeded(root)
     thin = _run(root, seed)
-    assert "sweep-commit threshold" in thin and "default (no history)" in thin, thin
+    assert "sweep" in thin and "default (no history)" in thin, thin
 
     _git(root, "init", "-q")
     _git(root, "config", "user.email", "t@example.invalid")
@@ -335,7 +335,7 @@ def test_the_co_occurrence_minimum_is_reported_in_every_phase(root):
     seed = _seeded(root)
     for phase in ("discovery", "task", "review", "all"):
         out = _run(root, seed, extra=["--phase", phase])
-        assert "minimum co-occurrences" in out, f"{phase} omits the filtering bound:\n{out}"
+        assert "co-occurrence minimum" in out, f"{phase} omits the filtering bound:\n{out}"
 
 
 def test_calibration_does_not_carry_between_seeds(root):
@@ -431,7 +431,7 @@ def test_scanned_suffixes_follow_the_repository_not_a_builtin_list(root):
     _git(root, "add", "-A")
     _git(root, "commit", "-q", "-m", "seed")
     out = _run(root, seed)
-    assert "scanned suffixes" in out, "the considered set must be named"
+    assert "suffixes (" in out, "the considered set must be named"
     refs = out.split("path refs", 1)[1].split("phrase pins", 1)[0]
     assert "app.ts" in refs and "svc.go" in refs, f"non-Markdown sources unscanned:\n{out}"
 
@@ -441,21 +441,29 @@ def test_a_file_past_the_size_bound_is_counted_not_silently_empty(root):
     seed = _seeded(root)
     (root / "huge.md").write_text("x" * 2_100_000, encoding="utf-8")
     out = _run(root, seed)
-    assert "past the size bound" in out, f"the omission must be visible:\n{out}"
+    assert "skipped for size" in out, f"the omission must be visible:\n{out}"
 
 
 def test_the_co_change_minimum_is_reported(root):
     """A bound that filters results must name itself, like the other two."""
     seed = _seeded(root)
     out = _run(root, seed)
-    assert "minimum co-occurrences" in out, out
+    assert "co-occurrence minimum" in out, out
 
 
 def test_sweep_is_not_derived_when_no_probe_consumes_it(root):
-    """One git call per commit, for a value the discovery phase never reads."""
+    """The skip is stated, not inferred from an absent section.
+
+    The earlier version asserted that `co-change` was missing from the probe
+    list, which is fixed by PHASES and stays green with the laziness removed —
+    it read a constant, not the behaviour it was named for. The basis line now
+    prints in every phase, so the skipped walk is observable.
+    """
     seed = _seeded(root)
     out = _run(root, seed, extra=["--phase", "discovery"])
-    assert "co-change" not in out.split("phase probes")[1].split("\n")[0]
+    assert "not derived — no co-change probe" in out, f"the skip must be stated:\n{out}"
+    consuming = _run(root, seed, extra=["--phase", "review"])
+    assert "not derived" not in consuming, "a consuming phase must derive it"
 
 
 def test_seed_outside_the_root_is_refused(root):

@@ -76,7 +76,7 @@ uniqueness and necessity checks compare.
 | Release history | Applicable — a `.apm/**` content change is a released pack change | `docs/product/changelog.md` (a pack keeps no `CHANGELOG.md` of its own; that convention is for published packages) | Pack release pipeline | Free-standing topmost `core` entry at the bumped version | Entry present at the version `pack.toml` and `plugin.json` both carry |
 | Current product truth | Applicable — the brief tracks slice delivery | `docs/product/briefs/agent-authoring-input-quality.md` § "Spec map" | `lint-brief-coverage` roll-up | Coverage roll-up resolves this spec through its `Brief:` back-link | Roll-up names this spec; no status hand-written into the brief |
 | Decision rationale | Not applicable — no architectural choice is made or reversed; the owner decisions are already recorded in the brief's § "Constraints / Appetite" | none | — | — | — |
-| Interface compatibility | Not applicable — no published interface changes; the skill's step numbering is internal to the file | none | — | — | — |
+| Interface compatibility | Applicable, by owner decision 2026-09-11 — the scope widened after this row was written, and the slice now ships three command-line checkers that project into every installed adapter with their own flags, exit codes and output contract | each checker's own `--help` text, which is its docstring | This spec's owner | Each shipped script's header names its probe or rule set, its flags, and what its exit codes mean | An adopter reading `--help` learns every flag and every exit code the script can return, and no header describes a set the code does not have |
 
 ## Boundaries
 
@@ -233,7 +233,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       and verification mode.
 - [ ] **AC-0009.** The set-level pass runs over the loop contract as one set — the spec's
       criteria together with the plan entries that trace to them — rather than
-      over the criteria alone, and tests necessity, uniqueness, consistency,
+      over the criteria alone, and tests necessity, uniqueness, consistency —
+      which reads the body's own prose against the criteria, not only criterion
+      against criterion, because the Objective, the Boundaries and the durable
+      outputs all make claims a criterion can contradict and twice in this
+      delivery did —
       joint feasibility, coverage, propagation, and residual freshness. Three
       members carry a stated plan-side question: uniqueness asks whether a
       criterion and a construction test claim the same thing, coverage asks
@@ -327,7 +331,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       than the instance, route it to an owner that already covers it, bound it
       out of scope and record a follow-on that names its new owner, or accept it
       with the reason it is proportionate recorded — and
-      states that a sustained finding does not by itself require an edit.
+      states that a sustained finding does not by itself require an edit. Where
+      a sustained finding instantiates a rule the contract already carries, the
+      response includes a count of every other instance before any repair, and
+      the procedure says why: repairing the named instance leaves the class, and
+      a reviewer sees the instances it happened to look at rather than the set.
 - [ ] **AC-0024.** Where a finding is that a claim and its check disagree in reach, the
       procedure states both directions and how to choose. A claim reaching
       further than its check is strengthened when some check can reach the

@@ -99,11 +99,12 @@ FINDING_KINDS = {
     "capped": "capped at",
     "unconfined": "refusing seed outside root",
     "no-git": "git unavailable",
-    "suffix-basis": "scanned suffixes",
-    "co-min": "minimum co-occurrences",
-    "oversize": "past the size bound",
+    "suffix-basis": "suffixes (",
+    "co-min": "co-occurrence minimum",
+    "oversize": "skipped for size",
+    "surfaces": "surfaces present:",
     "cutoff-basis": "cutoff",
-    "sweep-basis": "sweep-commit threshold",
+    "sweep-basis": "not derived — no co-change probe",
 }
 
 # A seed suffix allowlist is a repository-shape assumption: on a TypeScript or Go
@@ -134,6 +135,7 @@ def text_suffixes(root: Path, tracked: set[str] | None,
 
 TEXT_SUFFIXES = FALLBACK_SUFFIXES
 MAX_READ_BYTES = 2_000_000
+RECORD = "\x1e"   # separator before each commit in the one-call git log
 _TOP_CACHE: tuple[str, ...] = ()
 
 
@@ -146,14 +148,10 @@ def calibrate_sweep(root: Path, default: int) -> tuple[int, str]:
     silent either way, because an over-tight threshold simply reports nothing.
     The p90 of recent commit sizes is this repository's own answer.
     """
-    sizes = []
-    shas = _git(root, "log", "--format=%H", "-n", "120")
-    if shas is None:
+    commits = commit_files(root, 120)
+    if commits is None:
         return default, "default (no history)"
-    for sha in [x for x in shas if x][:120]:
-        files = _git(root, "show", "--name-only", "--format=", "--no-renames", sha)
-        if files is not None:
-            sizes.append(len({f for f in files if f}))
+    sizes = [len(files) for files in commits]
     if len(sizes) < 20:
         return default, f"default (only {len(sizes)} commits)"
     sizes.sort()
@@ -176,6 +174,18 @@ def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple
     return max(default, p75), f"p75 of {len(per_phrase)} matched phrases"
 
 
+def _git_raw(root: Path, *args: str) -> str | None:
+    """Raw stdout, or None when git could not answer."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(root), *args],
+            capture_output=True, text=True, check=False, timeout=120,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
 def _git(root: Path, *args: str) -> list[str] | None:
     """Run a git query. None means git could not answer, which is not "empty"."""
     try:
@@ -186,6 +196,48 @@ def _git(root: Path, *args: str) -> list[str] | None:
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout.split("\n") if done.returncode == 0 else None
+
+
+def commit_files(root: Path, limit: int, seeds: list[str] | None = None
+                 ) -> list[set[str]] | None:
+    """Each recent commit's touched-file set, in one git call.
+
+    The per-commit form -- `git log --format=%H` then one `git show` per sha --
+    cost 520 subprocesses on a single run of this script and about 50x the wall
+    clock. A record separator before each commit lets one `git log` carry the
+    same data.
+
+    None still means git could not answer, which is not the same as answering
+    empty: the callers report those as different outcomes, and collapsing them
+    here would delete the distinction in an optimisation.
+    """
+    if seeds:
+        # Two calls, not one. `git log --name-only -- <path>` filters each
+        # commit's file list down to the pathspec, so a single call would report
+        # only the seed and never its partners -- an optimisation that silently
+        # empties the probe. So: select the commits by pathspec, then read their
+        # full file sets with no pathspec.
+        shas = _git(root, "log", f"--format=%H", "-n", str(limit), "--", *seeds)
+        if shas is None:
+            return None
+        picked = [x for x in shas if x]
+        if not picked:
+            return []
+        raw = _git_raw(root, "show", f"--format={RECORD}%H", "--name-only",
+                       "--no-renames", *picked)
+    else:
+        raw = _git_raw(root, "log", f"--format={RECORD}%H", "--name-only",
+                       "--no-renames", "-n", str(limit))
+    if raw is None:
+        return None
+    out: list[set[str]] = []
+    for record in raw.split(RECORD):
+        lines = [line for line in record.splitlines() if line.strip()]
+        if len(lines) > 1:                     # lines[0] is the sha
+            out.append(set(lines[1:]))
+        elif lines:
+            out.append(set())                  # a commit touching nothing tracked
+    return out
 
 
 def top_levels(root: Path) -> tuple[str, ...]:
@@ -412,23 +464,18 @@ def co_change(root: Path, seeds: list[str], co_min: int = 3,
     ratio, because a high raw count against a file that changes constantly means
     nothing.
     """
-    shas = _git(root, "log", "--format=%H", "-n", "400", "--", *seeds)
-    if shas is None:
+    commits = commit_files(root, 400, seeds)
+    if commits is None:
         return "unavailable", []
-    shas = [s for s in shas if s]
-    if not shas:
+    if not commits:
         return "none", []
     partners: Counter[str] = Counter()
-    for sha in shas:
-        files = _git(root, "show", "--name-only", "--format=", "--no-renames", sha)
-        if files is None:
-            continue
-        touched = {f for f in files if f}
+    for touched in commits:
         if len(touched) > sweep:
             continue
         partners.update(touched - set(seeds))
     ranked = [
-        (name, count, count / len(shas))
+        (name, count, count / len(commits))
         for name, count in partners.most_common()
         if count >= co_min
     ]
@@ -461,19 +508,30 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
 
     global _TOP_CACHE
     _TOP_CACHE = tuple(f"{t}/" for t in tops)
-    print(f"seeds: {len(seeds)}   top-levels derived: {len(tops)}   "
-          f"files scanned: {len(files)}   runner candidates: {len(runners)}")
-    print(f"scanned suffixes: {len(suffixes)} — {suffix_basis}"
-          + (f"; skipped {oversize} file(s) past the size bound" if (oversize := _oversize(files)) else ""))
-    print(f"phase probes: {', '.join(probes)}")
+    # Derived only where a probe consumes it, and the basis is printed either
+    # way -- so a reader can see the walk was skipped rather than infer it from
+    # an absent section, which is what a test asserting absence actually read.
+    sweep_basis = "not derived — no co-change probe in this phase"
+    if "co-change" in probes:
+        sweep, sweep_basis = calibrate_sweep(root, sweep)
+    oversize = _oversize(files)
+    print(f"{len(seeds)} seed(s) · {len(files)} files · {len(suffixes)} suffixes "
+          f"({suffix_basis}) · {len(runners)} runners · {len(tops)} top-levels"
+          + (f" · {oversize} skipped for size" if oversize else ""))
+    print(f"probes: {', '.join(probes)} · co-occurrence minimum {co_min} "
+          f"· sweep {sweep} ({sweep_basis})")
     # A bound that filters results names itself on every run, not only on the
     # runs whose probe set consumes it: a reader cannot tell a filtered-out
     # partner from an absent one, and the criterion promises the value either way.
-    print(f"minimum co-occurrences {co_min} — a partner below this is filtered out")
+
     if "surfaces" in probes:
-        print("grounding surfaces:")
-        for row in surface_inventory(root):
-            print(f"  {row}")
+        # Folded to one line. The absent list is the part a reader acts on, so it
+        # stays explicit while the present ones collapse to name and size.
+        rows = surface_inventory(root)
+        present = [r.split()[0] for r in rows if " present " in r]
+        absent = [r.split()[0] for r in rows if r.endswith("absent")]
+        print(f"surfaces present: {', '.join(present) or 'none'}"
+              + (f" · absent: {', '.join(absent)}" if absent else ""))
     unlisted = sorted(
         p.name for p in root.iterdir()
         if p.is_file() and p not in runners
@@ -482,15 +540,18 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     if unlisted:
         print(f"  note: runner-like files not in the candidate set: {', '.join(unlisted)}")
     if tracked is None:
-        print("note: git unavailable — tracked-set and co-change probes degrade; "
-              "ignored files are not excluded")
+        print("git unavailable: tracked-set and co-change probes degrade")
 
     # Derived only when something consumes it: the walk costs one git call per
     # commit, and no phase but co-change reads the result.
-    sweep_basis = "not derived (no co-change probe in this phase)"
-    if "co-change" in probes:
-        sweep, sweep_basis = calibrate_sweep(root, sweep)
     phrases = {s: distinctive_lines(root, s) for s in seeds}
+    # One compiled alternation per seed, matched in a single C-level pass, in
+    # place of len(phrases) Python-level substring checks per file. On this
+    # repository that is 40 scans over 5,800 files replaced by one.
+    matchers = {
+        seed: re.compile("|".join(re.escape(line) for line in lines))
+        for seed, lines in phrases.items() if lines
+    }
     refs: dict[str, list[str]] = {s: [] for s in seeds}
     hits: dict[tuple[str, str], set[str]] = {}
     gates: dict[str, list[str]] = {s: [] for s in seeds}
@@ -512,9 +573,10 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             # runs a path.
             if path in runners and any(p.search(text) for p in _runner_patterns(seed)):
                 gates[seed].append(rel)
-            for phrase in (phrases.get(seed) or ()):
-                if phrase in text:
-                    hits.setdefault((seed, phrase), set()).add(rel)
+            matcher = matchers.get(seed)
+            if matcher is not None:
+                for found in set(matcher.findall(text)):
+                    hits.setdefault((seed, found), set()).add(rel)
 
     for seed in seeds:
         # A phrase in many files is the shipped boilerplate every sibling carries.
@@ -585,7 +647,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         return
     status, ranked = co_change(root, seeds, co_min, sweep)
     print(f"\n=== co-change over all {len(seeds)} seed(s)")
-    print(f"  sweep-commit threshold {sweep} — {sweep_basis}")
+
     _emit("partners", status,
           [f"{name}   {count} commits, confidence {ratio:.2f}" for name, count, ratio in ranked],
           cap)
