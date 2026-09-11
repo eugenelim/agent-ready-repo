@@ -376,6 +376,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       response includes a count of every other instance before any repair, and
       the procedure says why: repairing the named instance leaves the class, and
       a reviewer sees the instances it happened to look at rather than the set.
+      Repair also carries its own rider: a repair sweeps whatever states a claim
+      about what it changed — a docstring describing the predicate, a count of
+      the set, a paragraph naming what remains — because prose next to the
+      change does not move with it, and the round after a repair is where that
+      prose is found contradicting the code it documents.
 - [ ] **AC-0024.** Where a finding is that a claim and its check disagree in reach, the
       procedure states both directions and how to choose. A claim reaching
       further than its check is strengthened when some check can reach the

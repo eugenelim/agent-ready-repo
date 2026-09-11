@@ -751,7 +751,12 @@ in the same commit
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
   **Constraint on the class-count clause:** assert that a finding instantiating
-  a contract rule triggers a count of every instance before any repair. Deleting
+  a contract rule triggers a count of every instance before any repair.
+  **Constraint on the repair rider:** assert separately that repair obliges a
+  sweep of whatever states a claim about what was changed. Deleting the rider
+  must red this assertion; without it the response list reads as complete while
+  the companion prose a repair strands is nobody's obligation, which is how a
+  docstring came to describe the opposite of the predicate beneath it. Deleting
   that clause must red this assertion. Repairing the reported instance alone is
   what left two further instances of one class standing in this cycle, and the
   walk that clause requires turned a two-instance finding into five.
