@@ -375,9 +375,12 @@ in the same commit
   both read them.
 - Keep every shape and diagnosis question as a citation.
 
-**Done when:** every Tests bullet above is landed as an assertion and
-`python3 -m pytest packs/core/tests/skills/new-spec -q` is green. A green suite
-missing one of them does not close this task.
+**Done when:** every Tests bullet above is landed as an assertion, and both
+`python3 -m pytest packs/core/tests/skills/new-spec -q` and
+`python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
+are green. The roster command is named here because this task's own `Tests` calls
+it load-bearing, and a closing condition that omits it closes green while it
+reds. A green suite missing one of the bullets does not close this task.
 
 ### T2: The guide publishes the set-construction section
 
@@ -403,8 +406,12 @@ missing one of them does not close this task.
   stage names is present, the criterion-shape owner is cited by document name,
   and no sentence from that owner's pinned rule collection appears in the guide
   body — an exact absence comparison against the named set, not a judgement
-  about restatement. **The set is obtained by importing the `spec`-owned entries
-  of `RULES` from the pack suite, never by re-declaring the phrases.** A
+  about restatement. **The set is loaded from the pack suite under a unique
+  pack-and-skill-qualified module name — `importlib.util.spec_from_file_location`
+  against the module's path, never a bare import — and never re-declared.** The
+  directory carries no package marker and `packs/AGENTS.md` forbids bare-name
+  loading of a pack module, so the seam is named here rather than left for the
+  build to guess. A
   re-declared copy in `tests/roster/` is protected by no test, drifts silently,
   and is exactly the second home this plan exists to avoid; `SOURCES` in that
   module covers the four pack files only, so nothing would catch the drift. Paraphrase is outside this assertion and is a review
@@ -581,8 +588,8 @@ close this task, and the count closes nothing.
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
-`docs/product/changelog.md`, `workspace.toml`,
-`.agents/`, `.claude/`
+`docs/product/changelog.md`, `web/src/lib/now-highlights.generated.json`,
+`workspace.toml`, `.agents/`, `.claude/`
 
 **Tests:**
 - `python3 .agents/skills/workspace-status/scripts/workspace_status.py reconcile
@@ -696,14 +703,16 @@ in the same commit
 - **AC-0022 — already shipped, asserted here. Two gaps close first:** the
   whole-plan-walk rule has no pinned entry, so add one; and the existing owner
   test searches the whole skill file, so a rule moved out of the plan step would
-  stay green. Add a span-scoped assertion that all six occur inside the plan
-  step, with a mutation moving one rule outside it that must fail. The six plan-authoring rules
-  landed in core 2.25.14 ahead of this contract; that was a recorded deviation,
-  and this task closes it by bringing them under the spec rather than by
-  re-shipping them. **Five are already pinned; the sixth, the whole-plan walk,
-  is added by this task.** The completed assertion inspects that six-entry
-  mapping, span-scoped to the plan step, and checks the prose still reads as the
-  criterion states. No new rule prose is written for this criterion.
+  stay green. Add a span-scoped assertion that every rule AC-0022 enumerates
+  occurs inside the plan step, with a mutation moving one rule outside it that
+  must fail. Six of them landed in core 2.25.14 ahead of this contract as a
+  recorded deviation, and this task closes that by bringing them under the spec
+  rather than re-shipping them. **Two need work here:** the whole-plan walk has
+  no pinned entry, and the `Done when`-names-its-load-bearing-commands rule has
+  no prose in `SKILL.md` at all — added to AC-0022 by an owner-approved tuning
+  on 2026-09-11, so it must be written, not merely pinned. The count is not
+  restated: the assertion iterates AC-0022's enumeration, so a rule added to the
+  criterion later cannot leave the assertion sized to a stale number.
 - **AC-0023.** The review step names all **eight** responses to a sustained finding
   — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
   bound-and-defer, accept-with-reason — one assertion per response so none can
@@ -781,8 +790,9 @@ in the same commit
   and its ordering; the two origin labels and the unresolved-origin stop rule.
   Editing this step reds them unless each is updated deliberately, exactly as
   this task already declares for the `deletion-pass` pin.
-- Five plan-authoring rules are individually pinned to `SKILL.md`; the sixth is
-  added here.
+- The rules already pinned to `SKILL.md` are a subset of AC-0022's enumeration;
+  the criterion is the one place that states the set, and this task reads it
+  rather than carrying a count of its own.
 - The same 500-warning / 1,000-error body-line ceiling applies, and T1 is
   spending from the same budget. The file is 660 lines today.
 - The existing plan step, review step and deletion pass are each already located
@@ -986,12 +996,14 @@ is landed and asserted at repository level, the invocation is referenced from th
 skill, the mutation proof is recorded and restored, and
 `make build-self` leaves no drift.
 
-### T9: The skill ships its grounding explorer
+### T9: The skill ships its grounding explorer and its coverage check
 
 **Depends on:** none
 
 **Touches:** `packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (new),
+`packs/core/.apm/skills/new-spec/scripts/lint-finding-coverage.py` (new),
 `packs/core/tests/skills/new-spec/test_explore_grounding.py` (new),
+`packs/core/tests/skills/new-spec/test_lint_finding_coverage.py` (new),
 `.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
 in the same commit
 
@@ -1058,10 +1070,14 @@ in the same commit
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 
-**AC-0035.** Every bullet below is one of its cases. Every probe gets a positive
-and a negative case; the result cap is shared through one emitter, so the suite
-carries one flood case rather than one per probe. Owner-approved 2026-09-11,
-after the stronger claim was found to describe a suite that did not exist.
+**AC-0035.** Every bullet below is one of its cases. Each probe that can fail
+open — one reading a seed's text, a runner set or history — gets a positive, a
+negative and an unavailable case. The two reading the tree itself, scoped
+guidance and path references, get a positive and a negative only, since their
+input cannot be missing. The result cap is shared through one emitter, so the
+suite carries one flood case rather than one per probe. Owner-approved
+2026-09-11, after two stronger claims were found to describe a suite that did
+not exist.
 
 - **path refs** — a fixture naming the seed is found; a near-miss path is not;
   the seed is excluded from its own results.
@@ -1118,9 +1134,24 @@ is evidence about the check.
   matches from twenty unrelated files and never found a real owner. Recorded as
   tried and cut, not as an oversight.
 
-**Done when:** every Tests bullet above passes for AC-0035, the phrase-cutoff and
-portability mutation proofs are recorded and restored, and `make build-self`
-leaves no drift.
+- **AC-0037, the finding-coverage check.** Assert each rule with a fixture skill
+  tree rather than this repository's layout: a covered subject is clean; an
+  unobserved rule is named; a subject declaring no catalogue is skipped and
+  counted; **a discovery scan finding no participant fails rather than passes**,
+  which is the vacuous-pass guard and the defect the check exists to detect one
+  level up; a catalogue with no suite is a finding naming the directories
+  considered; the searched directories are named on a clean report too; the
+  repository-wide tests tree is a fallback and not a widener, or a fragment
+  observed by an unrelated suite reads as covered; an unparseable subject is
+  reported rather than counted as a non-participant; and the catalogue is parsed
+  rather than imported, proven by a subject whose import would leave a marker.
+  **Constraint:** the suite is found at more than one depth. An installed skill,
+  a pack in a catalogue and a loose script sit at different distances from their
+  tests, and guessing one finds nothing in the other two, silently.
+
+**Done when:** every Tests bullet above passes for AC-0035 and AC-0037, the
+phrase-cutoff, portability and gates-unavailable mutation proofs are recorded and
+restored, and `make build-self` leaves no drift.
 
 ## Rollout
 
@@ -1201,6 +1232,14 @@ leaves no drift.
   ADR-0037 D2 naming `grounding.toml`, and repository-context-anchoring already
   owning guidance discovery — came from seeding by surfaces, and both changed
   criteria.
+- 2026-09-11: grounded-cycle round 4 raised thirteen findings — twelve sustained,
+  none refuted, one indeterminate only because the `/now/` projection was
+  regenerated while adjudication ran, so the adjudicator read the repaired file.
+  Three of the four blockers were the previous round's own tunings failing to
+  propagate: AC-0022 gained a seventh plan rule with no implementing work, the
+  Testing Strategy still stated six, and T1's `Done when` still omitted the
+  command the new rule is about. AC-0037 brings the finding-coverage check under
+  a criterion, which the newly bidirectional AC-0024 required.
 - 2026-09-11: grounded-cycle round 3 raised fifteen findings — ten sustained,
   four refuted on authority or existing handling, one indeterminate and then
   settled by measuring. Rule 5's own entry scope reproduced the mention-anywhere

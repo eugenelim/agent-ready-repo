@@ -112,7 +112,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   already exist. The one admitted addition is the alignment checker in
   AC-0033, owner-approved 2026-09-10: it takes a `scripts/` directory inside
   this skill, which is the catalogue's standard skill layout and is already how
-  seven sibling skills ship their own tooling.
+  seven sibling skills ship their own tooling. Three checkers ship there —
+  AC-0033's alignment check, AC-0035's grounding explorer and AC-0037's
+  finding-coverage check — and each is admitted by its own criterion rather than
+  by sitting beside one that was.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
   count orders how hard the set-level pass looks and settles nothing on its own;
   no check reaches this claim, so it is held here and read at review.
@@ -154,7 +157,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite. AC-0022 is the one place that states how many plan-authoring rules there are and what they say; no count is restated here or in the plan, because two counts of one set is how this contract came to claim six and seven at once.
+- **The finding-coverage check (AC-0037):** TDD. Its rules are functions over
+  fixture skill trees, and its cases compress into assertions.
 - **The discovery pass (AC-0036):** goal-based check over the authored skill
   file, on the pack-local suite. Its surface is the boundary between the
   durable-outputs step and the spec body, not the acceptance-criteria step.
@@ -284,9 +289,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       cap, ceiling, budget, refusal or pass/fail bar on how many criteria a spec
       may carry, and a set above the author's stated threshold passes on its
       obligations alone.
-      The surface set is the three this slice ships because that is what the
-      check reads; pre-existing shipped surfaces are a recorded residual, not
-      this criterion. The wider claim that count never proves quality is a
+      The surface set is the three surfaces this slice's count prose ships on,
+      because that is what the check reads. The spec template is deliberately
+      outside it: this slice authors identifier-convention prose there and no
+      count prose, so no text the check would look for lands in it. Surfaces
+      carrying older count prose are a recorded residual, not this criterion. The wider claim that count never proves quality is a
       non-waivable Boundary, not this criterion, because no check reaches it.
 - [ ] **AC-0019.** The skill's eval register carries three frozen cases, one per named
       shape: a small change, a large change, and an amendment to an existing
@@ -401,7 +408,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       carries a well-formed identifier, identifiers are unique within the spec
       directory, none appears in the retired list, every identifier reference in
       `spec.md` and `plan.md` carrying the criterion class marker resolves to a
-      criterion that exists, while an item-class identifier is not resolved
+      live criterion or to one the retired list records — a retired identifier is
+      a resolvable reference, since the convention keeps it recorded precisely so
+      a citation to it does not dangle — while an item-class identifier is not
+      resolved
       against the criteria at all — no item registry exists for it to resolve
       against, and claiming one would reach past every oracle here — every
       criterion is named by at least one plan entry and appears in exactly one
@@ -433,12 +443,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       sweep-commit size and the phrase cutoff — derive from the adopter
       repository's own distribution rather than being fixed, and the report names
       each value with what it was derived from, so a mis-calibration is visible
-      instead of silently narrowing the result; the remaining bounds are
-      presentation limits with documented defaults and flags; every probe carries
-      a bounded result; and
-      every probe distinguishes three outcomes — found, none found, and input
-      unavailable — because a probe that returns empty when its input is missing
-      is indistinguishable from a clean result. Whatever the explorer cannot
+      instead of silently narrowing the result. A third bound, the minimum
+      co-occurrences before a partner is reported, filters results rather than
+      presenting them, so it is reported with its value on every run even though
+      it is not derived; the remaining bounds are presentation limits with
+      documented defaults and flags. Every probe carries a bounded result; and
+      every probe whose input can be missing distinguishes three outcomes —
+      found, none found, and input unavailable — because a probe that returns
+      empty when its input is missing is indistinguishable from a clean result.
+      Those are the probes reading a seed's text, a runner set, or history. The
+      two that read the tree itself, scoped guidance and path references, cannot
+      have a missing input and report two outcomes; the criterion says which
+      rather than claiming a third outcome the code does not have. Whatever the explorer cannot
       settle mechanically it emits as a named ambiguity with its candidate
       resolutions, for the author to decide once and record. It reads no
       configuration file of its own, and an absent or thin grounding surface
@@ -459,6 +475,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       outputs there are no destinations to ground, and after the body is written
       the same facts arrive one criterion at a time, against a design they would
       have changed.
+- [ ] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
+      depending on no other skill, which reads a subject's declared catalogue of
+      the findings it can emit and reports any whose message no test in that
+      subject's suite observes. A rule whose message no test observes has no red
+      case, so its suite is green for a reason unrelated to whether the rule
+      works. Participation is by declaration, so introducing the check fails
+      nothing that has not opted in; a discovery scan finding no participant is
+      reported as a failure rather than a pass, since a check reporting success
+      over a tree it never examined is the defect it exists to detect; the
+      directories it searched are named on every report; and a subject it cannot
+      parse is reported rather than counted as a deliberate non-participant. It
+      is a floor and says so: a test source containing a message is not proof an
+      assertion fires, and only executing the case proves the branch is
+      reachable.
 
 ## Follow-ons
 

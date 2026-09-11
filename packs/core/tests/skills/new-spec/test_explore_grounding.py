@@ -92,6 +92,23 @@ def test_scoped_rules_walks_to_the_root_not_to_the_nearest(root):
     assert "lib/AGENTS.md" in block and "\n      AGENTS.md" in block, out
 
 
+def test_a_tree_with_no_runner_reports_unavailable_not_unreached(root):
+    """The branch every other fixture makes unreachable.
+
+    `_seeded` always writes a root Makefile, so `runners` was never empty in any
+    case and the repair could be deleted with the suite still green. With no
+    runner file at all, "nothing runs this path" is missing input, not the
+    probe's positive finding.
+    """
+    seed = _seeded(root)
+    (root / "Makefile").unlink()
+    out = _run(root, seed)
+    # Target the gates *line*: the phase-probes header also contains the word.
+    line = next((l for l in out.splitlines() if l.strip().startswith("gates")), "")
+    assert "unavailable" in line, f"no runner exists:\n{out}"
+    assert "UNREACHED" not in out, "missing input must not read as the positive finding"
+
+
 def test_gate_reachability_reports_unreached_as_the_finding(root):
     """A seed no runner names is the finding, not the absence of one."""
     seed = _seeded(root)
