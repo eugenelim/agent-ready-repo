@@ -1,7 +1,7 @@
 # Plan: acceptance-criteria set construction
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done (2026-09-11) <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` and `packs/core/AGENTS.md` for the
   `.apm/` export boundary and the version bump rule; `guides/AGENTS.md` and
   `contracts/guide.schema.json` for the guide surface. Analogous
@@ -117,7 +117,7 @@ repeating it.
 
 ### T5: The release surface closes
 
-**Depends on:** T6, T7, T8, T9
+**Depends on:** T7, T8, T9
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
 `docs/product/changelog.md`, `web/src/lib/now-highlights.generated.json`,
@@ -211,167 +211,6 @@ repeating it.
 **Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the cross-surface sweep
 its `Tests` names carries its mutation proof, recorded and restored, and
 `make build-self` leaves no drift.
-
-### T6: The review-response protocol ships, and the plan rules are pinned in place
-
-**Depends on:** none
-
-**Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
-`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
-in the same commit
-
-**Tests:**
-- `make lint-packs` — the CAT-S003 body-line ceiling, for the reason stated once
-  under *Approach*; the command stays in each prose-adding task's `Tests` because a
-  closing condition reads its own list, and only the rationale is referenced.
-- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
-  every assertion below.
-- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
-  — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
-  them, so without this command a red this task causes closes green under its own
-  `Done when`.
-- **The plan-authoring rules — shipped, pinned here.** Add a span-scoped assertion that
-  every rule the plan step states occurs inside that step, with a mutation
-  moving one rule outside it that must fail; the existing owner test searches the
-  whole skill file, so a rule moved out of the plan step would otherwise stay
-  green. The rules already located in the skill's plan step, which shipped ahead
-  of this contract, are a recorded deviation, and this task closes it by bringing them under the spec
-  rather than re-shipping them.
-  **What is owed is read, never counted:** every rule in the plan step with no
-  pinned entry must gain one. The obligation points at the shipped prose rather
-  than at a number, and the assertion iterates it for the same reason, so a rule
-  added later cannot leave the assertion sized to a stale total.
-- **The response set.** The review step names every response to a sustained finding
-  — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
-  bound-and-defer, accept-with-reason — one assertion per response so none can
-  be dropped silently, and
-  states that a sustained finding does not by itself require an edit.
-  **Constraint, local to this assertion:** assert the disclaimer as well as the
-  list. A list of options with no statement that repair is optional leaves
-  repair the default by omission, which is the present behaviour.
-  **Constraint on the class-count clause:** assert that a finding instantiating
-  a contract rule triggers a count of every instance before any repair. Deleting
-  that clause must red this assertion. Repairing the reported instance alone is
-  what left two further instances of one class standing in this cycle.
-  **Constraint on the repair rider:** assert separately that repair obliges a
-  sweep of the prose adjacent to a changed artifact outside the contract, and
-  that the shipped prose defers the re-read inside it to the set-level pass
-  **by condition, never by identifier** — shipped pack content may not cite this
-  catalogue's acceptance criteria, so an assertion demanding the text name a
-  criterion is one no implementation can satisfy. The set-level pass is named
-  here, in the plan. Deleting the rider must red this assertion; without it
-  the response list reads as complete while the companion prose a repair strands
-  is nobody's obligation.
-- **The claim-reaches-further response.** The review step states both answers to a claim-reaches-further
-  finding and the rule for choosing between them. **Constraint:** assert the
-  choosing rule, not just the pair. A pair of options with no basis for choosing
-  leaves the author picking by mood, which is the behaviour this criterion
-  replaces. **Constraint on the second direction:** assert separately that a
-  *check* reaching further than any claim — shipped behaviour no criterion
-  authorises — is brought under a criterion or cut, and assert the stated reason
-  that direction needs saying. One assertion over "both directions" is satisfied
-  by prose naming only the first, which is the direction that shows up on its
-  own as a criterion nothing verifies; the second is invisible, because the
-  artifact works and nothing is failing.
-
-- **The surface-guidance finding class.** The review step states its finding class and its
-  one answer: the criterion changes, and the forbidden content is never authored
-  to satisfy it. **Constraint:** assert the prohibition as well as the class. A
-  finding class named with no stated answer leaves the author choosing, and the
-  choice that reads as cheapest — write the content the criterion demands — is
-  the one this repository's round 6 actually produced.
-- **The stop-decision report.** The review step *instructs* it. The oracle is
-  the shipped instruction, because nothing in this task observes a produced
-  report; an assertion phrased over the report would claim a reach it does not
-  have. Assert the instructed fields — the finding trend by round, and per
-  residual its consequence, the responses available to it, and what each would
-  cost — and assert separately that the trend is instructed as a *split*, into
-  findings against settled text and findings against text the round changed.
-  Deleting the split must red this assertion: an undivided trend satisfies "the
-  finding trend by round" while losing the distinction the stop decision turns
-  on. Also assert that the step states the protected-risk-class
-  condition directly while enumerating no class list. **Constraint on the
-  citation:** the assertion reads for the condition, never for a document name.
-  `packs/AGENTS.md` forbids shipped pack content from citing this catalogue's
-  internal records or repository-only paths, so an assertion demanding that the
-  step name `docs/product/intents/work-loop-review-economics.md` is one no
-  implementation can satisfy — that owner is named here, in the contract, and
-  the pack states the rule. **Constraint:** extend the step
-  that already reports the finding trend rather than adding a second one. That
-  step already carries the trend and each residual's consequence, so a parallel
-  step would put two homes on one obligation. What is new is the options
-  available to each residual and their costs.
-- **The earn-its-keep test, and the `deletion-pass` pin that updates with it.** That sentence is
-  pinned verbatim in `RULES`, so rescoping it reds the existing entry; update
-  the entry in the same change, the way this task already declares the
-  whole-plan-walk pin addition, so the red reads as planned work rather than a
-  regression. The conjunction is asserted over each check its siblings define,
-  read from that set rather than from a count of it. The earn-its-keep test is
-  stated over every criterion rather than
-  only those added during review, and is stated to run during rounds rather than
-  only after convergence. Assert both scopings; the existing deletion pass
-  already reads as a post-convergence pass over review-added items, so a partial
-  edit leaves the old reading intact. **Constraint on the naming clause:** assert
-  that the prose names the earn-its-keep test *and* states it over both halves of
-  the conjunction its siblings define — a criterion names the outcome its failure
-  would leave unmet, and no sibling criterion or existing repository control
-  already enforces its predicate. Deleting either half must red this assertion:
-  named over one half only, the criterion scopes a test the contract never
-  establishes.
-- **Exact wording is build-discovered**, on the same predicate, constraint,
-  required outcome and verification mode the plan template requires of a
-  build-discovered seam.
-
-
-**Grounding:**
-- **The roster modules that read T6's own surfaces**, resolved against this
-  task's `Touches` rather than the plan's: `test_acceptance_criteria_discipline.py`,
-  which pins the review-step rules this task extends, and
-  `test_cognitive_load_repository_contract.py`, which compares the projections
-  this task's `SKILL.md` edit regenerates. A copy of another task's grounding
-  stood here for a round — the plan-level anchor list the per-task grounding rule
-  exists to rule out, in the task that ships that very rule. The mechanical search is
-  exhaustive over references-by-path; the semantic sweep that preceded it was
-  not, and missed all of them.
-- **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
-  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins six
-  exact phrases inside step 4 — the step this slice rewrites — and applies a
-  seven-phrase deny-list across the whole file;
-  `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
-  prose. A red in either is invisible to `pytest packs/core/tests/skills/new-spec`,
-  so the task's gate names both modules explicitly.
-- **The review step already carries exact content and order pins** in
-  `test_acceptance_criteria_discipline.py` — review persistence, clean-report
-  shape, dispatch order and the repair gateway; the executable adjudication path
-  and its ordering; the two origin labels and the unresolved-origin stop rule.
-  Editing this step reds them unless each is updated deliberately, exactly as
-  this task already declares for the `deletion-pass` pin.
-- The pinned plan-authoring block in `test_acceptance_criteria_discipline.py`
-  **also pins rules whose prose sits in the review step**,
-  `owner-gets-decision-facts` among them. So the assertion iterates the rules
-  stated in the plan step and matches each against the block, rather than
-  treating the block as the plan step's rule set — reading the block as the set
-  would credit a non-member and silently shrink what is checked.
-- The same 500-warning / 1,000-error body-line ceiling applies, and T6 is
-  spending from the same budget. The file is 660 lines today.
-- The existing plan step, review step and deletion pass are each already located
-  in `SKILL.md`; every one of this task's edits extends prose that exists rather
-  than adding a sibling home.
-
-**Approach:**
-- The plan-authoring rules and the response protocol this task ships have no
-  criterion in `spec.md`; they are carried by
-  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`,
-  and each entry in `## Shipped ahead of a criterion, deliberately` states the
-  route. The `RULES` assertions below stay, as construction checks over shipped
-  prose.
-- Extend the review step rather than adding a new one; the responses belong
-  where a finding is already being dispositioned.
-- Widen the existing deletion pass in place. A second pass beside it would put
-  two homes on one obligation.
-
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the task's own conditions hold, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
 
 ### T7: Both templates mark which of their sections and fields are contract
 
@@ -918,7 +757,7 @@ is evidence about the check.
   run as saying nothing about it. Widening the curated list is a separate change
   with its own owner and is not smuggled in here. An open backlog intent,
   `docs/product/intents/new-spec-review-phrase-contract.md`, already records this
-  omission alongside a review-phrase defect in the same file T6 edits; its
+  omission alongside a review-phrase defect in the same file this slice edits; its
   phrase claim no longer reproduces — the test passes today — but the gate
   omission does.
 - **Step renumbering strands a pointer.** The AC step carries pointers to step 9
@@ -940,6 +779,7 @@ their tasks are dropped rather than held.
 | --- | --- | --- |
 | T1, and AC-0006, AC-0011, AC-0018, AC-0031 | the five-stage selection procedure, the governing set, the set-level pass, the count prohibition, per-task grounding | [the authoring protocol measured before shipping](../../product/intents/spec-authoring-protocol-measured-before-shipping.md), which gates promoting any of it to a criterion on a frozen-case score |
 | T2 | the guide page publishing the procedure | the same intent: a guide for guidance that is not shipping |
+| T6, and AC-0023 through AC-0027 | the review-response protocol — the eight responses to a sustained finding, the claim-reaches-further pair, the surface-guidance class, the stop-decision report and the earn-its-keep test | the same intent. Recorded on close: the protocol was never written into `SKILL.md` — three of the eight responses appear nowhere in it — and this plan asserted twice that it had shipped. The keep test was applied to the criteria in round 7 and not to the task, which is how it survived the cut |
 | T3, T4, and AC-0019, AC-0020, AC-0021, AC-0028, AC-0029 | three frozen cases, their seeded integrity, the scoring order, and the graded run | the same intent, which owns building the run because its own gate is that score |
 | AC-0030 | the spec template carrying the identifier convention | ADR-0108 states the standard and AC-0032 holds the ADR to a confirmation state; the template edit returns with the procedure |
 
@@ -975,10 +815,12 @@ criterion the slice retains is decided by a suite over a fixture artifact.
   gained `RULES` entries — `criterion-needs-a-machine` and
   `intent-frozen-at-shaping` — in the same change that shipped them, so neither
   can be deleted silently while it waits for that measurement.
-- **The plan-authoring rules and the review-response protocol** (`SKILL.md` plan
-  step and review step) are shipped prose whose criteria this delivery retired.
-  Route: the same intent. Their protection is the `RULES` block T6 asserts
-  against, which is why T6 ships them rather than holding them.
+- **The plan-authoring rules** (`SKILL.md`) are shipped prose whose criteria this
+  delivery retired: a fact belongs in the design unless a task implements or
+  verifies it, `Done when` points at the task's own `Tests`, an obligation a
+  completion gate must read belongs in `Tests`, and the deletion pass. Route: the
+  authoring-protocol intent. Their protection is the `RULES` block in
+  `test_acceptance_criteria_discipline.py`, which pins each by name.
 - **The determinacy grading on the two code-facing reviewing surfaces**
   (`adversarial-reviewer.md` and `finding-adjudicator.md`) is shipped behaviour
   with no criterion here. The spec template's section tiers that feed it are a
@@ -1019,6 +861,18 @@ criterion the slice retains is decided by a suite over a fixture artifact.
 
 ## Changelog
 
+- 2026-09-11: **closed as Shipped, with T6 cut on the way out.** The eleven live
+  criteria are ticked: three checks over the skill's own artifacts, each named by
+  a step with the form that invokes it, under ADR-0108's identifier standard,
+  every one decided by a suite over a fixture artifact. T6 was cut at the close
+  for the same reason T1 through T4 were — its subject was never written. Three
+  of the eight responses to a sustained finding appear nowhere in `SKILL.md`,
+  and this plan had twice recorded the protocol as shipped prose; the keep test
+  was applied to criteria in round 7 and not to the tasks, which is how it
+  survived. `review-response-protocol-across-reviewer-surfaces` now owns
+  shipping it rather than carrying it from here, and the authoring-protocol
+  intent records that its verbatim copy is the only record of the definitions.
+  The workspace entry moves from `[ini-002].work.queue` to `.shipped`.
 - 2026-09-11: **round 8 — the cut's propagation, finished.** Two blockers and
   eleven lesser findings, against seven blockers in each of the two rounds
   before; every one was a place the round-7 repair landed partially rather than a

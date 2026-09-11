@@ -3,7 +3,7 @@
 - **Slug:** `agent-authoring-input-quality`
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Draft
+- **Status:** Executing
 
 ## Outcome
 

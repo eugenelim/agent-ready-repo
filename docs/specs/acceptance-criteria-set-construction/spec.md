@@ -1,6 +1,6 @@
 # Spec: acceptance-criteria set construction
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-09-11) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108
@@ -155,14 +155,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0032.** ADR-0108's `Revisit if` names a tool that enforces no-reuse for
+- [x] **AC-0032.** ADR-0108's `Revisit if` names a tool that enforces no-reuse for
       inline-Markdown items, and the checker below is that tool, so the trigger
       fires on delivery. The ADR's `Confirmation` moves from reviewer-checked to
       the shipped check and its `Revisit if` records that the trigger fired and
       the decision stands unchanged. A shipped decision record stating that no
       lint enforces it, on the commit that ships the lint, is the conflict the
       repository's own guidance forbids resolving silently.
-- [ ] **AC-0033.** The skill ships its own alignment checker, invoked from its own
+- [x] **AC-0033.** The skill ships its own alignment checker, invoked from its own
       `scripts/` directory and depending on no other skill. It decides the
       mechanical alignment of a loop contract's items: every acceptance criterion
       carries a well-formed identifier, identifiers are unique within the spec
@@ -182,7 +182,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       and the report distinguishes that state from a clean one — a partial check
       read as complete is the defect this checker exists to find elsewhere. A
       rule that still decides part of its subject is applied, not unapplied.
-- [ ] **AC-0041.** The skill ships a grounding explorer in its own `scripts/`,
+- [x] **AC-0041.** The skill ships a grounding explorer in its own `scripts/`,
       depending on no other skill, answering from a seed set of touched paths
       what already governs the surfaces that seed names: which files name a seed, which historically
       change with one, which gates would run one, which quote a distinctive line
@@ -190,13 +190,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       names that no longer resolve. It reads no configuration file of its own,
       and its own top-level expectations are the adopter repository's rather than
       this one's.
-- [ ] **AC-0042.** The probe set is selected by stage rather than run whole: a probe
+- [x] **AC-0042.** The probe set is selected by stage rather than run whole: a probe
       outside a stage's set does not execute, and each stage's report names the
       probes it ran. Selection is executional rather than a filter on the output,
       because a discarded result is work an adopter paid for, and an oracle that
       reads only the report cannot tell a probe that was skipped from one whose
       output was suppressed.
-- [ ] **AC-0043.** The thresholds whose right value is repository-shaped — the
+- [x] **AC-0043.** The thresholds whose right value is repository-shaped — the
       sweep-commit size and the phrase cutoff — derive from the adopter
       repository's own distribution, and the report names each value with what
       produced it, on every stage, whether or not that stage's probe set consumes
@@ -205,7 +205,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       a partner is reported filters results rather than presenting them, so it is
       reported on every run though it is not derived; the remaining bounds are
       presentation limits with documented defaults and flags.
-- [ ] **AC-0044.** Every probe reports and none decides, and every probe carries a
+- [x] **AC-0044.** Every probe reports and none decides, and every probe carries a
       bounded result. A probe whose input can be missing distinguishes found,
       none found, and input unavailable, since empty and unavailable are
       otherwise indistinguishable: those are the probes reading a seed's text, a
@@ -215,7 +215,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       distinguish found from none found. Both memberships are stated here so no
       probe is left without a declared case shape, and so no outcome is claimed
       that the code cannot reach.
-- [ ] **AC-0045.** What the explorer cannot settle mechanically it emits as a named
+- [x] **AC-0045.** What the explorer cannot settle mechanically it emits as a named
       ambiguity with its candidate resolutions, for the author to decide once and
       record. An absent or thin grounding surface lowers the starting information
       and never fails the run, and in the stages whose probe set includes it, the
@@ -224,7 +224,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       Consuming those surfaces as probe input — a recorded value seeding a
       derivation, and a record the repository contradicts reported as drift — is
       named in the follow-on that owns it, not claimed here.
-- [ ] **AC-0039.** The alignment checker reports a task entry whose text is
+- [x] **AC-0039.** The alignment checker reports a task entry whose text is
       structurally broken — a code span opened and never closed inside a `Tests`
       or `Done when` block. A multi-site edit that reshapes every entry at once
       can eat the head of a surviving clause, leaving a sentence that still reads
@@ -238,7 +238,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the run literal, so it renders as written. It reports, and it is scoped to task
       entries rather than the whole document, so prose elsewhere is not its
       business.
-- [ ] **AC-0040.** Given a base revision, the alignment checker reports each criterion
+- [x] **AC-0040.** Given a base revision, the alignment checker reports each criterion
       whose text changed since that revision while no line naming it in the plan
       changed with it — a criterion reworded without its implementing assertion
       following. This is a defect class that recurred while the propagation
@@ -261,7 +261,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       changelog entry or a rationale is not a criterion whose assertion
       followed, and reading the document as a whole silenced the rule wherever a
       changelog entry happened to name a criterion.
-- [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by a
+- [x] **AC-0038.** Every check the skill ships in its own `scripts/` is named by a
       step of the procedure, together with the runnable form that resolves in an
       installed tree, so no shipped control is one nobody runs and no named
       control is one a reader cannot invoke. The obligation is read from the
@@ -270,7 +270,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       Naming a check is not naming a required mechanism: a tool a session may
       not offer makes a rule unrunnable wherever it is absent, while a check
       shipped inside the skill is present wherever the skill is.
-- [ ] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
+- [x] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
       depending on no other skill, which reads a subject's declared catalogue of
       the findings it can emit and reports any whose message no test in that
       subject's suite observes. A rule whose message no test observes has no red
@@ -389,7 +389,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   not change the lint's exit status either way. The § "Corpus" exclusion rule
   already covers this spec generically (source: owner decision 2026-09-10 in the
   brief's A6 row for the first two; owner sign-off 2026-09-11 for the criterion-syntax
-  section and the Spec map cell)
+  section and the Spec map cell; and a fifth edit at close, advancing the brief's
+  lifecycle from `Draft` to `Executing` because `lint-brief-coverage` refuses a
+  `Draft` brief with a `Shipped` child — made under the owner's instruction to
+  ship and clear CI, and reversible by one token)
 - Process: this slice adds a tier blockquote to `assets/spec.md`, marking which
   sections a completion gate reads and which are working material an author
   corrects in place. That file is behind `Ask first` and the prose is not a

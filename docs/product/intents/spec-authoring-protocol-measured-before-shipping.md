@@ -91,8 +91,11 @@ itself, which an implementer corrects in place against those pins.
   coverage read), AC-0018 (the count prohibition), AC-0031 (per-task grounding),
   and the frozen-case criteria AC-0019 through AC-0021 and AC-0028 through
   AC-0029, and AC-0030 (the spec template carrying the identifier convention,
-  which returns when the procedure does). All are retired in the delivering
-  spec, so this intent is their only owner.
+  which returns when the procedure does). The review-response protocol joins
+  them on the delivering spec's close: AC-0023 through AC-0027 were retired in
+  the cut, and the prose was then found never to have been written, so the
+  definitions carried verbatim below are its only record. All are retired in the
+  delivering spec, so this intent is their only owner.
 - Includes building the frozen-case run, which the delivering spec no longer
   carries. The run is this intent's own gate, so the gate and the thing gated
   now sit with one owner rather than two.

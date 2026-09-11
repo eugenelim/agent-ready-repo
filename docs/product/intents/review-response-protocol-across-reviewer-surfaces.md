@@ -120,12 +120,16 @@ the protocol to the other surfaces.
   `quality-engineer`, `security-reviewer`, `design-reviewer`, the
   experience-design and discovery reviewers, and `finding-adjudicator` — and
   whichever of them the survey shows would change behaviour.
-- Excludes re-deriving the protocol. `new-spec`'s review step is where the eight
-  responses ship, delivered by `acceptance-criteria-set-construction`; the
-  criterion that used to define them is deferred to
-  [the authoring protocol measured before shipping](spec-authoring-protocol-measured-before-shipping.md),
-  which carries the definitions verbatim. This intent carries them from there
-  and never restates them into a second home.
+- **Includes shipping the protocol into `new-spec`'s review step, which no
+  longer arrives from elsewhere.** `acceptance-criteria-set-construction` was
+  expected to deliver it and did not: on close, 2026-09-11, three of the eight
+  responses appeared nowhere in the skill, its criteria were already retired,
+  and the task was cut with the rest of the unbuilt work. The definitions are
+  carried verbatim in
+  [the authoring protocol measured before shipping](spec-authoring-protocol-measured-before-shipping.md);
+  this intent takes them from there and never restates them into a second home.
+  Whether the authoring side ships before or with the reviewing surfaces is this
+  intent's sequencing call, not a dependency on a slice that has closed.
 - Excludes any blocking, scoring or refusal behaviour on any surface, **except
   the determinacy grading shipped on 2026-09-11** by
   `acceptance-criteria-set-construction`: `adversarial-reviewer` caps a
@@ -134,7 +138,9 @@ the protocol to the other surfaces.
   That exception is recorded rather than re-derived — this intent carries it and
   never restates it — and it narrows what may block rather than adding a new
   block, which is the direction this exclusion was written to guard.
-- Excludes `new-spec`, which A6 delivers.
+- Excludes `new-spec`'s own checkers, its acceptance-criteria step and its
+  templates, which `acceptance-criteria-set-construction` shipped. What is *not*
+  excluded is its review step, per the bullet above.
 
 ## Owner
 
