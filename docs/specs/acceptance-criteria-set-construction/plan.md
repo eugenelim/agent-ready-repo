@@ -197,8 +197,13 @@ whole-file token deny-list is unavailable either way; see the probe under
   pinned entry per criterion in the spec's Testing Strategy goal-based group
   over the skill file. For the eight criteria with no bullet of their own below,
   whose whole claim is that a named sentence is present in the shipped
-  procedure, **presence of the pinned sentence is the oracle** and no further
-  assertion is owed. A reviewer has read this bullet as specifying nothing twice
+  procedure, **presence of the pinned sentence inside the procedure span is the
+  oracle** and no further assertion is owed. The span matters: the owner test
+  searches the whole file, so a sentence moved out of the procedure stays green
+  under it, and the per-stage floor only places *some* pinned sentence in each
+  interval. Assert span membership for this exact eight-entry set; the mutation
+  that must fail is moving one of the eight outside the span while leaving it in
+  the file. A reviewer has read this bullet as specifying nothing twice
   now, so the mapping is stated rather than inherited.
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the five stage
@@ -255,8 +260,12 @@ missing one of them does not close this task.
 - **AC13 and AC14 — content check, in the pack-local suite.** The three guide validators are
   frontmatter and link gates and cannot observe content, so they do not verify
   this task's contract. Assert over the page body: each of the five procedure
-  stage names is present, and the criterion-shape owner is cited by document
-  name with no shape rule restated. The suite reads the guide by
+  stage names is present, the criterion-shape owner is cited by document name,
+  and no sentence from that owner's pinned rule collection appears in the guide
+  body — an exact absence comparison against the named set, not a judgement
+  about restatement. Paraphrase is outside this assertion and is a review
+  obligation; the criterion was narrowed to match, so test and criterion now
+  claim the same thing. The suite reads the guide by
   repository-relative path, the way
   `tests/roster/test_spec_authoring_rubric_brief_boundary.py` reaches across the
   pack boundary. **Constraint, local to this assertion:** assert one operative
@@ -444,9 +453,10 @@ what went stale when one was added.
   step, with a mutation moving one rule outside it that must fail. The six plan-authoring rules
   landed in core 2.25.14 ahead of this contract; that was a recorded deviation,
   and this task closes it by bringing them under the spec rather than by
-  re-shipping them. Each is already a pinned entry, so the assertion is that the
-  pinned set still carries all six and the prose still reads as the criterion
-  states. No new prose is written for this criterion.
+  re-shipping them. **Five are already pinned; the sixth, the whole-plan walk,
+  is added by this task.** The completed assertion inspects that six-entry
+  mapping, span-scoped to the plan step, and checks the prose still reads as the
+  criterion states. No new rule prose is written for this criterion.
 - **AC23.** The review step names all five responses to a sustained finding and
   states that a sustained finding does not by itself require an edit.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
