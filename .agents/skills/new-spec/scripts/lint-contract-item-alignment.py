@@ -357,20 +357,27 @@ def check(spec_dir: Path, root: Path | None = None,
         return [f"{where}: {FINDING_KINDS['no-spec']}"], False, [], []
     spec = _read_confined(spec_path, root)
     plan = _read_confined(plan_path, root) if plan_path.is_file() else ""
-    # Both sentinels are handled. Checking only the spec left `plan` as None and
-    # `MALFORMED.findall(None)` raised, so a refused or unreadable plan.md gave
-    # the operator a traceback instead of the refusal finding -- and abandoned
-    # every remaining spec directory with it.
-    if spec is None or plan is None:
-        which = "spec.md" if spec is None else "plan.md"
-        return ([f"{_rel(spec_dir, root)}/{which}: {FINDING_KINDS['unconfined']}"],
+    # A refused spec.md ends the directory: every rule reads it. A refused
+    # plan.md does not -- rules 1, 2, 3 and 6 decide their whole subject from
+    # spec.md alone, and returning one refusal for the directory reported them
+    # as neither run nor input-less, which is the partial-read-as-clean failure
+    # this module exists to detect in other artifacts. So the refusal is its own
+    # finding and the plan-reading rules go on the no-input list, exactly as an
+    # absent plan.md already does.
+    if spec is None:
+        return ([f"{_rel(spec_dir, root)}/spec.md: {FINDING_KINDS['unconfined']}"],
                 False, [], [])
+    plan_refusal = plan is None
+    if plan_refusal:
+        plan = ""
 
     criteria = CRITERION.findall(spec)
     if not criteria:
         return [], False, [], []              # forward-only: unlabelled specs are skipped
 
     findings: list[str] = []
+    if plan_refusal:
+        findings.append(f"{_rel(spec_dir, root)}/plan.md: {FINDING_KINDS['unconfined']}")
     reported: list[str] = []
     # Relative to the invocation root, not an absolute host path: a finding is
     # pasted into a review, a commit message and an issue, and an absolute path

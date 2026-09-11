@@ -253,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
 
     root = args.root.resolve()
     subjects = [s.resolve() for s in args.subject]
+    refused: list[Path] = []
     if args.discover:
         # Confined before the walk, not after it. Resolving and then reading
         # every `*.py` underneath before the containment loop meant an
@@ -271,8 +272,16 @@ def main(argv: list[str] | None = None) -> int:
         # word appears anywhere in its name: `lint-pack-test-boundary.py` is a
         # checker, and dropping it left it unchecked, uncounted and unnamed --
         # the silent omission this check exists to report in other suites.
+        # A refused candidate is named, never dropped. `confined` returns None
+        # for a link, an unresolvable path and a containment failure alike, and
+        # `continue` left all three in no list at all -- reported as neither
+        # checked, skipped nor unreadable, which is the same silent omission as
+        # the test-file filter above.
         for candidate in sorted(base.rglob("*.py")):
-            if _is_test_file(candidate) or confined(candidate, root) is None:
+            if _is_test_file(candidate):
+                continue
+            if confined(candidate, root) is None:
+                refused.append(candidate)
                 continue
             kinds = catalogue(candidate, root)
             if kinds is None or kinds:
@@ -292,7 +301,9 @@ def main(argv: list[str] | None = None) -> int:
     subjects = [s for s in subjects if s.exists()]
 
     findings, participating, skipped, unreadable, searched = check(subjects, args.tests, root)
-    findings = [f"{_rel(s, root)}: {FINDING_KINDS['missing']}" for s in missing] + findings
+    findings = ([f"{_rel(s, root)}: {FINDING_KINDS['unconfined']}" for s in refused]
+                + [f"{_rel(s, root)}: {FINDING_KINDS['missing']}" for s in missing]
+                + findings)
     for finding in findings:
         print(f"lint-finding-coverage: {finding}")
     if args.discover is not None and not participating:
