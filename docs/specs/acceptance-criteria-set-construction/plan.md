@@ -392,9 +392,12 @@ close this task, and the count closes nothing.
   its gate.
 - **AC18 across every shipped surface, not just the procedure span.** T1's
   check slices `SKILL.md` because that is where the percentile trigger and the
-  prohibition must coexist. AC18 is wider: no shipped surface may make a
-  criterion count reject a spec or prove one well-shaped, and the Boundary
-  forbids a fixed absolute count anywhere. Assert the prohibition over all three
+  prohibition must coexist. AC18 is wider only in *surface*, not in claim: no
+  shipped surface may state a fixed absolute count in the forms the criterion
+  lists. The broader statement that a count never proves quality is a
+  non-waivable Boundary read at review, and is deliberately **not** attributed
+  to this mechanical check — the criterion was narrowed away from it precisely
+  because no check reaches it. Assert the prohibition over all three
   surfaces this slice ships — the procedure span, the new guide page, and the
   frozen eval entries — in one check that runs here, after the guide and the
   cases exist.
@@ -457,7 +460,9 @@ what went stale when one was added.
   is added by this task.** The completed assertion inspects that six-entry
   mapping, span-scoped to the plan step, and checks the prose still reads as the
   criterion states. No new rule prose is written for this criterion.
-- **AC23.** The review step names all five responses to a sustained finding and
+- **AC23.** The review step names all **six** responses to a sustained finding —
+  repair, narrow, cut, dismiss-and-re-present, repair the generator, route — one
+  assertion per response so none can be dropped silently, and
   states that a sustained finding does not by itself require an edit.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
