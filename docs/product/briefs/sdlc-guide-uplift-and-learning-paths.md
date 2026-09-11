@@ -67,7 +67,7 @@ the ordered paths; a continuous install-to-ship walkthrough; the
 tutorials missing complete worked input-and-output examples; the sample-output
 gap for invocable-skill how-tos; and any path metadata or navigation needed to
 keep the route visible after generation. The delivered and open tables below
-are the current status: S3-S5 and S7 remain open; S6 shipped 2026-09-11.
+are the current status: S3-S5 and S7 remain open. S6 shipped 2026-09-11 and was **reopened the same day** to govern the website work its design pass produced; it is Implementing with one criterion awaiting an independent read.
 
 **Owner decision, 2026-09-11 — the four-discipline sequence joins this brief as
 S6.** Presenting `desk-research → product-strategy → experience-design →
@@ -164,7 +164,7 @@ Spec map, or make this brief `Shipped`.
 
 | Shipped portion | Repository evidence |
 | --- | --- |
-| S6 — the four disciplines are discoverable as one ordered sequence | [`four-discipline-sequence`](../../specs/four-discipline-sequence/spec.md) is Shipped: the journeys index groups the four in a collection-derived ordered list and `guides/README.md` carries the path as P2b, an alternative to P2 rather than a trailing seventh. Its Objective was narrowed on delivery to drop "and can walk it", which no criterion tested — the walk is S7 |
+| S6 — the four disciplines are discoverable as one ordered sequence — **reopened 2026-09-11**, see below | [`four-discipline-sequence`](../../specs/four-discipline-sequence/spec.md) is Shipped: the journeys index groups the four in a collection-derived ordered list and `guides/README.md` carries the path as P2b, an alternative to P2 rather than a trailing seventh. Its Objective was narrowed on delivery to drop "and can walk it", which no criterion tested — the walk is S7 |
 | Shaping-to-build handover foundation | `hand-an-intent-to-build.md` exists; `architect` links to it; both governance guides name upstream shaping artifacts |
 | Optional journey chat input | `youType` is optional in the validator and schema, has tests and authoring guidance, and is present in the published `JOURNEY.md` contracts |
 | Completed shaping-guide affordances | The product-engineering how-tos have chat inputs and outcomes; the audit records the product-strategy and phrase-harvest improvements already present |
