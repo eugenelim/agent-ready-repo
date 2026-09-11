@@ -64,8 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   riskiest assumption named, is the altitude consistent with the parent, do the
   children partition the parent, is the owner the artifact's own — and answers
   with one `MALFORMED(<field>)` token per failed question, or nothing at all.
-  The 17-row failure-mode table stays with `delivery-brief` and `spec` mode,
-  which review contracts.
+  The failure-mode table stays with `delivery-brief` and `spec` mode, which
+  review contracts.
 - `MALFORMED(owner)` is emitted alone and suppresses the other five tokens: a
   wrong owner outranks everything else, and the rest of the artifact is not the
   reviewer's to assess until it is settled.

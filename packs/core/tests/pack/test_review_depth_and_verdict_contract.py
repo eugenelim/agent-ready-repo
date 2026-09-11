@@ -21,7 +21,7 @@ WORK_LOOP_EVALS = APM_ROOT / "skills" / "work-loop" / "evals" / "evals.json"
 
 
 def test_rfc_mode_is_reconciled_with_the_three_code_facing_modes() -> None:
-    """The legacy framing says "three modes"; RFC mode is a fourth section.
+    """The framing counts the code-facing modes; RFC and intent are separate sections.
 
     Without a bridge the shipped agent contradicts itself, and the "infer the
     rest from what was actually changed in the diff" trailer reads as if it
@@ -31,12 +31,16 @@ def test_rfc_mode_is_reconciled_with_the_three_code_facing_modes() -> None:
     bridge = "Those three are the code-facing modes."
     assert bridge in text
     assert "RFC review mode below, which has no diff to infer from" in text
+    # The intent branch has no diff either, so the trailer must not reach it.
+    # This sentence is the only carrier of that, and of the enumeration's truth.
+    assert "An intent review uses" in text
+    assert "the intent review mode below, which has none either" in text
     # The bridge must follow the pinned legacy block, not edit it.
     assert text.index(LEGACY_REVIEW_MODES.rstrip("\n")) < text.index(bridge)
     assert text.index(bridge) < text.index("## RFC review mode")
 
 
-LEGACY_REVIEW_MODES = """You handle three modes — sometimes one, often more than one in the same PR:
+LEGACY_REVIEW_MODES = """You handle three code-facing modes — sometimes one, often more than one in the same PR:
 
 - **Spec / plan review** before any code is written. Two triggers route
   here, both first-class:

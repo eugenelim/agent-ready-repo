@@ -273,8 +273,22 @@ def test_intent_mode_is_a_closed_malformed_vocabulary() -> None:
         assert token in rubric, token
     assert "MALFORMED(owner)` is emitted alone" in rubric
 
-    for forbidden in ("Blocker", "Concern", "Nit", "Fix:", "`Clean`"):
-        assert forbidden not in rubric, forbidden
+    # Changed bytes: the rubric states the prohibition outright. The previous
+    # form of this check looked for the absence of "Fix:" and "`Clean`" in the
+    # rubric, which was green against the pre-change bytes too -- those words
+    # were simply absent there -- so it evidenced nothing about this criterion.
+    # A prohibition also names what it forbids, so word-absence is the wrong
+    # instrument for it either way.
+    flat = re.sub(r"\s+", " ", rubric)
+    assert (
+        "No severity label, no `Fix:` line, and no `Clean` result appears in "
+        "this mode's output."
+    ) in flat
+
+    # Preservation control: the output machinery itself never reaches the
+    # rubric. Green before and after.
+    for absent in ("## Blockers", "## Concerns", "## Nits", "Group by severity"):
+        assert absent not in rubric, absent
 
 
 def test_intent_mode_states_its_six_well_formedness_conditions() -> None:
@@ -386,9 +400,19 @@ def test_the_load_context_and_gate_mandates_are_scoped() -> None:
     load = re.sub(r"\s+", " ", _adversarial_section("Load context first")).strip()
     assert "intent" in load.lower()
 
-    text = ADVERSARIAL_REVIEWER.read_text(encoding="utf-8")
-    gate = re.sub(r"\s+", " ", text[text.index("adversarial-review-complete") - 400 :])
+    # Bounded to the section that carries the gate sentence. An earlier form of
+    # this assertion sliced from 400 characters before the literal to end of
+    # file, which made `literal in slice` true for any body containing it at
+    # all -- a control that could not fail, verifying the one criterion it was
+    # written for.
+    gate = re.sub(
+        r"\s+",
+        " ",
+        _adversarial_section("Project-knowledge evidence boundary"),
+    )
     assert "adversarial-review-complete" in gate
+    assert "That gate belongs to the code-facing and RFC modes" in gate
+    assert "intent mode emits no sentinel and satisfies no gate" in gate
 
 
 def test_the_adversarial_description_names_every_mode_it_routes() -> None:
@@ -402,3 +426,59 @@ def test_the_adversarial_description_names_every_mode_it_routes() -> None:
     assert description is not None
     assert "intent" in description.group(1)
     assert "modes that emit" in description.group(1)
+
+
+# The predicate list and its definitions live in `finding-adjudicator.md`. Both
+# intent modes must reference that source and state how the six bind in their
+# own vocabulary -- without reproducing a definition or the list as an
+# authoritative set, which would be a second home that can drift.
+PREDICATE_BINDINGS = (
+    "Observation and authority bind unchanged",
+    "Reachability binds to the artifact",
+    "Existing handling binds to the artifact's own text",
+    "Consequence binds to the consequence alone",
+    "Proposed mechanism",
+)
+
+# Verbatim from the owning source. If either branch starts reproducing a
+# definition, this is what catches it.
+ADJUDICATOR_DEFINITIONS = (
+    "Does the cited condition exist in the current supplied",
+    "Does the supplied governing rule actually apply",
+    "Can the claimed behavior or state be reached through the",
+    "Is the condition already prevented, handled, accepted, deferred",
+    "does it cause the claimed contract, security,",
+    "Test only the remedy mechanism stated by the source",
+)
+
+
+def _assert_predicate_binding_shape(branch: str, label: str) -> None:
+    flat = re.sub(r"\s+", " ", branch).strip()
+
+    assert "finding-adjudicator.md" in flat, label
+    assert "six-predicate self-check" in flat, label
+    for binding in PREDICATE_BINDINGS:
+        assert binding in flat, f"{label}: {binding}"
+    for definition in ADJUDICATOR_DEFINITIONS:
+        assert definition not in flat, f"{label}: copied a definition"
+    # The list as an authoritative set would read as a numbered enumeration of
+    # all six names; a binding statement names them inside prose instead.
+    assert not re.search(r"1\.\s+\*\*Observation\*\*", branch), label
+
+
+def test_shaping_intent_mode_binds_the_predicates_by_reference() -> None:
+    _assert_predicate_binding_shape(
+        _section("intent mode", level=3), "shaping-reviewer intent mode"
+    )
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+    # Vacuous-by-design is the owning source's own `absent` outcome, not a
+    # consumer-side narrowing.
+    assert "`absent` outcome" in rubric
+
+
+def test_adversarial_intent_mode_binds_the_predicates_by_reference() -> None:
+    _assert_predicate_binding_shape(
+        _adversarial_section("Intent review mode"), "adversarial intent mode"
+    )
+    branch = re.sub(r"\s+", " ", _adversarial_section("Intent review mode")).strip()
+    assert "Proposed mechanism binds to the validation hook" in branch

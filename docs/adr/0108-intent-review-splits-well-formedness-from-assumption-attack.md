@@ -24,7 +24,7 @@
 ## Context
 
 RFC-0099 § 5 gave `shaping-reviewer` one rubric shape across three modes and one result vocabulary,
-`Clean` | `Findings`, across all of them. The shipped implementation grew a 17-row failure-mode table
+`Clean` | `Findings`, across all of them. The shipped implementation grew a failure-mode table
 written against spec-shaped artifacts: derivable enumerations, floating citations, unframed
 quantities, one-sided contracts, decorative precision.
 
@@ -47,7 +47,7 @@ cannot express a rewrite.
 1. `shaping-reviewer` `intent` mode checks well-formedness, not quality, across six conditions: the
    statement is an outcome and not a solution; non-goals are present; the riskiest assumption is
    named; altitude is consistent with the parent; children partition the parent with no overlap and
-   no gap; the owner is the artifact's own. It does not run the 17-row table, which stays with
+   no gap; the owner is the artifact's own. It does not run that table, which stays with
    `delivery-brief` and `spec` mode unchanged. Wrong owner still outranks criterion craft: its token
    is emitted alone and suppresses the other five.
 2. Intent-mode output is `MALFORMED(<field>)` per failed condition, or nothing. No severity bucket,
