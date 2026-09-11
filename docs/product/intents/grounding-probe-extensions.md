@@ -39,6 +39,47 @@ the route, and the self-host run syncs none of the version surfaces.
 documents are parser interfaces, and authoring checks treat them as free prose.
 One task-heading pattern was discovered only after the plan had been hash-pinned.
 
+## Refuted by measurement, 2026-09-11 — the surface-to-verifier probe as a plan-text check
+
+A third probe was prototyped and **refused**: given a plan task's `Touches:`
+surfaces, report those no verifier reaches. It is recorded here because the
+refusal is the reusable part, and because the same idea will look cheap again.
+
+**It cannot work from plan text.** A plan states coverage as behavioural
+assertions, not as paths or test-file names. `adapter-support-accuracy` T1
+touches one guide page and checks that page's cells without ever repeating its
+path; `catalogue-pack-defaults` T5 asserts `PackState` field behaviour without
+naming the module or a test file. Any path-matching predicate scores both as
+uncovered.
+
+Two instrument designs, both hand-adjudicated against a deterministic sample of
+the 171 Shipped plans that declare `Touches:`:
+
+| Design | Reported | True | Precision |
+| --- | --- | --- | --- |
+| any touched path unreached by a verifier path | 37 over 2 specs | 2 | 5% |
+| code modules with no conventionally-named test in their verifier | 206 of 381 modules (54%) | 0 of 3 checked | ~0% |
+
+Two earlier whole-corpus runs disagreed with each other — 53% versus 7% of plans
+zero-gap, median 0 versus 8 — which was itself the finding: neither was
+measuring surface coverage, both were measuring whether verifier prose happens
+to repeat a path string. Three successive calibration attempts each hit a
+different noise source because the noise is the design, not a threshold.
+
+**The successor hypothesis, which does not read plan text at all.** Ask the
+repository instead: for a tracked module, does any test file name it? Measured
+over 477 tracked non-test modules against 775 test files, this reports 28 (6%),
+and the reports are meaningful rather than noisy — `route_agent_plugin.py`,
+`route_claude_plugins.py` and `version_ranges.py` are each reached only through
+a caller, so the finding is "no test names this module directly", which is a
+real gap worth an author's attention. The rest are one-off spike harnesses under
+`notes/` and generated projections, both of which a shipped probe would need to
+exclude by rule rather than by list.
+
+This successor is a coverage-shaped probe over code, not an authoring probe over
+a contract, so it does not belong to the skill that owns the other probes
+without a decision first. Settle that before building.
+
 ## Boundary
 
 - Includes both probes, their calibration, and their fixtures.
@@ -57,6 +98,9 @@ One task-heading pattern was discovered only after the plan had been hash-pinned
 
 ## Unresolved questions
 
+- Does the successor probe above belong to `new-spec` at all? It reads code and
+  tests, not a contract, so its natural owner may be a coverage surface rather
+  than an authoring skill. Deciding that is prior to building it.
 - Is a role in the closure graph assertable from two mechanical signals — a
   generator edge plus a matching relative path, or a manifest declaration plus
   content parity — or does it need judgment? The survey proposes two signals; it
