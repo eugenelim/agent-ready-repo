@@ -4,27 +4,53 @@ import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-// Leading order: three supervised loops first, then everything else alpha by
-// slug. The leading list names only the journeys that must come first; every
-// other journey is appended from the collection, so a new one can never be
-// silently missing. A fully hardcoded list previously dropped five, including
+// Three display groups, all derived from the `journeys` collection. Membership
+// is never a hardcoded whole-page list: anything not named in a group below
+// still renders under "Everything else", so a new journey cannot be silently
+// dropped. A fully hardcoded list previously dropped five, including
 // product-strategy.
-const leadingOrder = [
+//
+// The sequence order is the owner's decision of 2026-09-11 and follows the
+// packs' own dependency contracts: desk-research declares no upstream and names
+// product-strategy its downstream; product-strategy's UX-strategy work bridges
+// into experience-design; experience-design's per-screen state matrix is the
+// artifact product-engineering's copy skill consumes.
+const DISCIPLINE_SEQUENCE = [
+  {
+    slug: 'desk-research',
+    name: 'Desk Research',
+    hands: 'Hands Product Strategy: graded evidence, with a confidence level per finding.',
+  },
+  {
+    slug: 'product-strategy',
+    name: 'Product Strategy',
+    hands: 'Hands Experience Design: a committed strategy artifact naming the outcome and the bet behind it.',
+  },
+  {
+    slug: 'experience-design',
+    name: 'Experience Design',
+    hands: 'Hands Product Engineering: a per-screen state matrix, one cell per screen and state.',
+  },
+  {
+    slug: 'product-engineering',
+    name: 'Product Engineering',
+    hands: 'You end with: a shaped bet, and a change you approved before it merged.',
+  },
+];
+
+const SUPERVISED_LOOPS = [
   { slug: 'core', name: 'Core' },
-  { slug: 'product-engineering', name: 'Discovery (Product Engineering)' },
   { slug: 'release-engineering', name: 'Release Engineering' },
   { slug: 'architect', name: 'Architect' },
 ];
 
-// Display names for journeys not in the leading order. A slug with no entry
-// falls back to the slug itself rather than being dropped.
-const names = {
+// Display names for journeys in neither named group. A slug with no entry falls
+// back to the slug itself rather than being dropped.
+const NAMES = {
   atlassian: 'Atlassian',
   contracts: 'Contracts',
   converters: 'Converters',
   'credential-brokers': 'Credential Brokers',
-  'desk-research': 'Desk Research',
-  'experience-design': 'Experience Design',
   figma: 'Figma',
   'frontend-engineering': 'Frontend Engineering',
   github: 'GitHub',
@@ -33,7 +59,6 @@ const names = {
   linear: 'Linear',
   'monorepo-extras': 'Monorepo Extras',
   'product-documentation': 'Product Documentation',
-  'product-strategy': 'Product Strategy',
   'user-guide-diataxis': 'User Guide (Diátaxis)',
 };
 
@@ -42,14 +67,18 @@ const taglineMap = Object.fromEntries(
   allJourneys.map((j) => [j.id.replace(/\.md$/, ''), j.data.tagline])
 );
 
-const leadingSlugs = new Set(leadingOrder.map((j) => j.slug));
-const items = [
-  ...leadingOrder.filter((j) => j.slug in taglineMap),
-  ...Object.keys(taglineMap)
-    .filter((slug) => !leadingSlugs.has(slug))
-    .sort()
-    .map((slug) => ({ slug, name: names[slug] ?? slug })),
-].map((j) => ({ ...j, tagline: taglineMap[j.slug] ?? '' }));
+const withTagline = (j) => ({ ...j, tagline: taglineMap[j.slug] ?? '' });
+const named = new Set([
+  ...DISCIPLINE_SEQUENCE.map((j) => j.slug),
+  ...SUPERVISED_LOOPS.map((j) => j.slug),
+]);
+
+const sequence = DISCIPLINE_SEQUENCE.filter((j) => j.slug in taglineMap).map(withTagline);
+const loops = SUPERVISED_LOOPS.filter((j) => j.slug in taglineMap).map(withTagline);
+const rest = Object.keys(taglineMap)
+  .filter((slug) => !named.has(slug))
+  .sort()
+  .map((slug) => withTagline({ slug, name: NAMES[slug] ?? slug }));
 ---
 
 <SiteLayout
@@ -68,17 +97,73 @@ const items = [
     </div>
   </section>
 
-  <!-- ── Grid ──────────────────────────────────────────────────────────── -->
-  <Section tone="surface" labelledby="journeys-grid-heading">
-    <h2 id="journeys-grid-heading" class="visually-hidden">All journeys</h2>
+  <!-- ── The four disciplines, in order ─────────────────────────────────── -->
+  <Section tone="surface" labelledby="journeys-sequence-heading">
+    <h2 id="journeys-sequence-heading" class="journeys-group__heading">
+      Start here: the four disciplines, in order
+    </h2>
+    <p class="journeys-group__body">
+      A product idea moves through these four in sequence — find out what is true,
+      decide what to build, design how it should feel, then shape and build it.
+      Each one hands a named artifact to the next, so you can stop after any of
+      them and still know what you are holding.
+    </p>
+    <ol class="journeys-grid journeys-grid--ordered">
+      {sequence.map((j, i) => (
+        <li class="journey-card journey-card--step">
+          <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
+            <span class="journey-card__step" aria-hidden="true">{i + 1}</span>
+            <h3 class="journey-card__name">{j.name}</h3>
+            {j.tagline && <p class="journey-card__tagline">{j.tagline}</p>}
+            <p class="journey-card__hands">{j.hands}</p>
+            <span class="journey-card__cta" aria-hidden="true">See the journey →</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+    <p class="journeys-group__onward">
+      Ready to walk it? <a href={withBase('/docs/guides/#p2b--take-the-wider-route-through-the-four-disciplines--4-hours')}>The wider shaping route</a>
+      takes the same four in the same order, with what to run at each step.
+    </p>
+  </Section>
+
+  <!-- ── Supervised loops ───────────────────────────────────────────────── -->
+  <Section labelledby="journeys-loops-heading">
+    <h2 id="journeys-loops-heading" class="journeys-group__heading">
+      The supervised loops underneath
+    </h2>
+    <p class="journeys-group__body">
+      These run beneath the four disciplines — the plan, review, and merge gates
+      every piece of work passes through.
+    </p>
     <ul class="journeys-grid">
-      {items.map((j) => (
-        <li class="journey-card">
+      {loops.map((j) => (
+        <li class="journey-card journey-card--loop">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
             <h3 class="journey-card__name">{j.name}</h3>
-            {j.tagline && (
-              <p class="journey-card__tagline">{j.tagline}</p>
-            )}
+            {j.tagline && <p class="journey-card__tagline">{j.tagline}</p>}
+            <span class="journey-card__cta" aria-hidden="true">See the journey →</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  <!-- ── Everything else ────────────────────────────────────────────────── -->
+  <Section tone="surface" labelledby="journeys-rest-heading">
+    <h2 id="journeys-rest-heading" class="journeys-group__heading">
+      Add one when the work needs it
+    </h2>
+    <p class="journeys-group__body">
+      Optional additions. None of these is a step in the sequence — reach for one
+      when a particular piece of work calls for it.
+    </p>
+    <ul class="journeys-grid">
+      {rest.map((j) => (
+        <li class="journey-card journey-card--optional">
+          <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
+            <h3 class="journey-card__name">{j.name}</h3>
+            {j.tagline && <p class="journey-card__tagline">{j.tagline}</p>}
             <span class="journey-card__cta" aria-hidden="true">See the journey →</span>
           </a>
         </li>
@@ -139,12 +224,37 @@ const items = [
     border-width: 0;
   }
 
+  /* ── Group headings ─────────────────────────────────────────────────── */
+  .journeys-group__heading {
+    font-size: var(--ds-type-h2);
+    font-weight: var(--ds-weight-heavy);
+    letter-spacing: var(--ds-track-heading);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .journeys-group__body {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    max-width: 62ch;
+    margin-bottom: var(--ds-space-6);
+  }
+
   /* ── Grid ──────────────────────────────────────────────────────────── */
+  /* `list-style: none` is load-bearing on both the <ul> groups and the <ol>
+     sequence: the ordered group carries its order in the markup for assistive
+     technology, while the visible step number is the styled element below. */
   .journeys-grid {
     list-style: none;
+    padding-left: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--ds-space-5);
+  }
+
+  .journeys-grid--ordered {
+    counter-reset: none;
   }
 
   .journey-card {
@@ -185,6 +295,68 @@ const items = [
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-accent-deep);
+  }
+
+  /* ── Three relationships, three signatures ──────────────────────────── */
+  /* The groups previously shared one card treatment, so without their headings
+     they collapsed into a single collection. The left edge now carries the
+     relationship: an accent bar plus a numeral for the ordered sequence, a muted
+     bar for the loops that run underneath it, and no bar for optional
+     additions. */
+
+  .journey-card--loop {
+    border-left-color: var(--ds-on-surface-2);
+  }
+
+  .journey-card--optional {
+    border-left-width: 1px;
+    border-left-color: var(--ds-border);
+  }
+
+  .journey-card--optional:hover,
+  .journey-card--loop:hover {
+    border-color: var(--ds-accent);
+  }
+
+  /* ── Sequence step cards ────────────────────────────────────────────── */
+  .journey-card--step {
+    position: relative;
+  }
+
+  /* Decorative only: the <ol> already conveys position to assistive
+     technology, so announcing the numeral too would say it twice. */
+  .journey-card__step {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent-deep);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .journeys-group__onward {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    max-width: 62ch;
+    margin-top: var(--ds-space-6);
+  }
+
+  /* A link inside a block of text needs a non-colour distinguisher. The global
+     `a` rule sets `text-decoration: none` and relies on colour alone, which axe
+     flags as `link-in-text-block` (serious) against this paragraph's muted text.
+     Underlining satisfies the rule without depending on a contrast ratio
+     between two palette tokens. */
+  .journeys-group__onward a {
+    text-decoration: underline;
+  }
+
+  .journey-card__hands {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface);
+    line-height: var(--ds-lead-body);
+    margin-bottom: var(--ds-space-3);
   }
 
   @media (prefers-reduced-motion: reduce) {

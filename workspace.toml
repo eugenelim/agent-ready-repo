@@ -934,6 +934,40 @@ open = [
   # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
   # scoping the smallest guide consumer.
   {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10", parent = "docs/product/intents/nontechnical-pack-first-value-rollout.md"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}]},
+  # The Draft slice of the intent directly above, carrying 22 criteria and 6
+  # tasks. It was authored and reviewed but never registered, so nothing
+  # scheduled it and any amendment would have landed on an untracked spec.
+  # `needs` is empty although the parent's is not: the parent is blocked on
+  # portfolio-pack-first-value-contract only for a certified first-value claim,
+  # and states that the entry links and the install how-to are not blocked by
+  # that question because they promise a route and a submitted install rather
+  # than a completed method. This spec claims only that unblocked half, which is
+  # what its AC12 fences. No source.parent: the engine requires that field to
+  # resolve to a brief path, and this spec has no parent brief -- it is a slice
+  # of an intent, which its own Provenance section records. Unblocks now.
+  {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
+  # The catalogue declares sequences and surfaces them by hand. Canonical corpus:
+  # the 137 skills under packs/*/.apm/skills/*/SKILL.md (the literal tree holds
+  # 510; the rest are projections and fixtures). How many already name a successor
+  # is not yet knowable -- three predicates over the same corpus returned 1, 24 and
+  # 17, because the affordance is unstructured prose in whatever shape each author
+  # chose. Defining that inclusion rule is slice 1's first task. What survives any
+  # predicate: some skills carry it, hand-written against no shared source with
+  # nothing checking it still matches their pack's declared sequence, and most
+  # carry nothing, where silence means both "terminal" and "unrecorded".
+  # JOURNEY.md (14 packs, 62 ordered stages, youProvide/youReceive) supplies stage
+  # order and handoff vocabulary but does NOT encode edges -- skills are a flat
+  # inventory, stages are prose, and cross-pack edges are absent. Capability,
+  # sliced per pack plus a final cross-pack edge slice;
+  # experience-design first because it is the only pack declaring an internal craft
+  # sequence, all 20 of its skills are named in its own DESIGN.md, and it is the
+  # pack whose absence triggered this. One shaping review ran (Sol, NEEDS CHANGES,
+  # 1 blocking + 4 major; round 2 NEEDS CHANGES, 4 major + 1 minor, all five
+  # originating in round-1 repairs. All applied. Registered repo-origin: the engine's
+  # SOURCE_MODES admits only repo-origin and tracker-origin, so the document's
+  # own chat-only provenance lives in its Source block, not here -- the same
+  # shape the other chat-only intents use. Unblocks now; no dependency.
+  {path = "docs/product/intents/skill-sequence-wayfinding.md", kind = "intent", source = {mode = "repo-origin"}, summary = "A practitioner knows what to run next and where they are in the sequence, from the surface they are already on, agreeing with the sequence their pack declares", needs = []},
 
 ]
 

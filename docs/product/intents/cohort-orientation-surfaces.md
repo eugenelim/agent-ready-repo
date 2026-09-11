@@ -327,11 +327,16 @@ taxonomy's two homes governs pack membership (the taxonomy's owner).
    carry: the canvas may be viewed by a budget holder, but nothing here
    promises or tests that it serves their decision. The comprehension check
    covers champions, engineers, tech leads and platform teams only.
-   **Consequence for the measurement plan:** its M4 role-stratified audience and
-   its "Use one canvas for four audiences" kill condition still score budget
-   holders and respond to failure by adding role-specific collateral — which
-   Boundary now excludes. Both need the same influencer-only narrowing before
-   that plan is run.
+   **Consequence for the measurement plan — discharged 2026-09-10.** Both halves
+   are now narrowed to the influencer tier. M4's audience was narrowed in the
+   same pass that closed this question. The kill condition, now titled "Use one
+   canvas for the intended influencer roles", no longer scores a budget holder
+   and no longer responds to failure by adding role-specific collateral — a
+   response that prescribed exactly the gatekeeper artifacts Boundary excludes
+   and that no one owns. It now narrows the canvas's claim and routes the failed
+   role's question elsewhere. Both changes are recorded in
+   [the measurement plan](../../design/discovery/team-orientation-measurement-plan.md)
+   § "Kill conditions" with the superseded wording kept beside them.
 5. **Which of the five owed verifications gates delivery, and who runs each?**
    Three need execution rather than writing — diffing generated slugs, querying
    the live index, and measuring a read time — and one cannot be closed inside
