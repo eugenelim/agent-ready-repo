@@ -155,6 +155,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
 - **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The grounding explorer (AC-0035):** TDD. Each probe is a function over a
+  fixture tree, and its cases compress into assertions.
 - **The disposition record (AC-0034):** goal-based check over the authored skill
   file, on the pack-local suite. Grouped with the procedure, which is its surface.
 - **ADR-0107's confirmation state (AC-0032):** goal-based check over the ADR,
@@ -393,6 +395,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       selection did. That record is the procedure's own output — without it
       nothing distinguishes an obligation admitted from one routed to an owner,
       and the set-level pass has no list to read back against.
+- [ ] **AC-0035.** The skill ships a grounding explorer in its own `scripts/`, depending
+      on no other skill, answering the mechanical half of AC-0031 from a seed set
+      of touched paths: which files name a seed, which historically change with
+      one, which gates would run one, which quote a distinctive line from one,
+      and which scoped guidance governs each. Every probe reports and none
+      decides; every probe carries a boilerplate cutoff and a bounded result; and
+      every probe distinguishes three outcomes — found, none found, and input
+      unavailable — because a probe that returns empty when its input is missing
+      is indistinguishable from a clean result. Whatever the explorer cannot
+      settle mechanically it emits as a named ambiguity with its candidate
+      resolutions, for the author to decide once and record.
 
 ## Follow-ons
 

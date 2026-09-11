@@ -560,7 +560,7 @@ close this task, and the count closes nothing.
 
 ### T5: The release surface closes
 
-**Depends on:** T1, T2, T3, T4, T6, T7, T8
+**Depends on:** T1, T2, T3, T4, T6, T7, T8, T9
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
@@ -937,6 +937,83 @@ in the same commit
 **Done when:** every Tests bullet above passes for AC-0033, the AC-0032 ADR edit
 is landed and asserted, the mutation proof is recorded and restored, and
 `make build-self` leaves no drift.
+
+### T9: The skill ships its grounding explorer
+
+**Depends on:** none
+
+**Touches:** `packs/core/.apm/skills/new-spec/scripts/explore-grounding.py` (new),
+`packs/core/tests/skills/new-spec/test_explore_grounding.py` (new),
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
+
+**Grounding:**
+- Same skill-owned precedent and layout as T8; seven sibling core skills carry a
+  `scripts/` directory and `pack.toml` declares no script inventory.
+- `packs/AGENTS.md` — an `.apm/` script writing to stdout or stderr reconfigures
+  both streams to UTF-8 before its first print.
+- **`tools/lint-conformance-portability.py` already names this script's central
+  risk:** shipped code that reaches a repository-only directory fails on an
+  adopter's first run. Every top-level name, tracked-file set and ignore rule is
+  derived from the repository at run time, never hardcoded.
+- **The work-loop degrades without git rather than requiring it** —
+  `lint-spec-status.py` warns "no base ref resolvable" and continues. This
+  explorer matches that posture: git-derived probes fall back to a filesystem
+  walk, and the co-change probe, which has no fallback, reports unavailable.
+- `work-loop` grounds at its own PLAN step and cannot call this, because skills
+  are independent. A second copy or a shared home follows; recorded as a revisit.
+
+**Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
+
+**AC-0035.** Every bullet below is one of its cases. Every probe gets a positive
+case, a negative case, and a flood case.
+
+- **path refs** — a fixture naming the seed is found; a near-miss path is not;
+  the seed is excluded from its own results.
+- **co-change** — a fixture history where two files move together surfaces the
+  partner; **a repository with no history reports unavailable, distinguishable
+  in the output from "no partners found"**. Without that distinction the probe
+  is silently empty on a pre-git repository.
+- **gate reachability** — a seed named by a runner is reported with it; **a seed
+  no runner reaches is reported as unreached**, which is the finding, not its
+  absence.
+- **phrase pins** — a line quoted once is found; a line in more than the cutoff
+  number of files is excluded. **Mutation proof:** removing the cutoff must red
+  this case, with a fixture carrying shipped boilerplate across many files.
+- **scoped rules** — the walk returns every governing file from the seed's own
+  directory to the root, in order, not only the nearest.
+- **portability** — **a fixture repository whose top-level names differ from this
+  one's returns findings.** A suite that only ever runs against this layout
+  passes on a hardcoded allowlist and proves nothing about an adopter; the
+  prototype demonstrated exactly that, returning zero on a seeded dead path
+  under a top level its list omitted.
+- **bounded output** — a probe exceeding its cap emits the cap plus an exact
+  remainder count, never the full list.
+- **ambiguity** — a path resolving under a non-root prefix is emitted as an
+  ambiguity with its candidates, not asserted as dead.
+- **confinement** — a symlink escaping the root is rejected, not followed.
+
+**On writing the mutations.** Each killing mutation must remove the property from
+*every* place the check reads, not from the most obvious one. Prototyping this
+sweep took four attempts: two mutations left the identifier inside the scope
+being checked and the check stayed green, a third removed it everywhere so a
+weaker check would also have caught it, and only the fourth — present in the
+document but absent from the checked scope — separated the strong check from the
+weak one. A mutation that does not red is evidence about the mutation before it
+is evidence about the check.
+
+**Approach:**
+- One tree walk shared by every probe; five scripts would scan five times.
+- Probes report; none decides. No exit code but success absent an operational
+  error, and never a gate. A tool that blocks on a heuristic is the
+  consequence-bound blocking this repository already measured and killed.
+- Glob-owner matching is deliberately absent: the prototype returned bare `*`
+  matches from twenty unrelated files and never found a real owner. Recorded as
+  tried and cut, not as an oversight.
+
+**Done when:** every Tests bullet above passes for AC-0035, the phrase-cutoff and
+portability mutation proofs are recorded and restored, and `make build-self`
+leaves no drift.
 
 ## Rollout
 
