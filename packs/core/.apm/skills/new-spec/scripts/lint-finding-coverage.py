@@ -45,7 +45,10 @@ FINDING_KINDS = {
     "nobody-opted-in": "no subject declares FINDING_KINDS",
     "unconfined": "refusing path outside root",
     "unreadable": "could not be parsed",
-    "searched": "searched",
+    # Distinctive enough that a test's own function name cannot supply it: a bare
+    # common word was matched by `def test_..._searched...` and reported covered
+    # with both assertions deleted.
+    "searched": "directories searched",
 }
 
 

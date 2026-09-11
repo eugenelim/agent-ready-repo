@@ -14,11 +14,9 @@
 
 ## Objective
 
-**Scope, widened by owner decision on 2026-09-10, and again since.** This spec
-covers the authoring moves the criteria below deliver, not one. It states no
-count: the set has grown repeatedly during this delivery, and a numeral here
-becomes a second statement of what the criteria already say. The additions share
-one defect: the skill tells an author what a finished artifact
+**Scope.** This spec covers the authoring moves the criteria below deliver, and
+states no count of them. The moves share one defect: the skill tells an author
+what a finished artifact
 must look like and never what move to make, so an author selects by instinct,
 places facts by habit, and answers every finding by repairing it. The added
 moves are the plan-authoring rules, brought under contract here rather than
@@ -120,10 +118,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   already exist. The one admitted addition is the alignment checker in
   AC-0033, owner-approved 2026-09-10: it takes a `scripts/` directory inside
   this skill, which is the catalogue's standard skill layout and is already how
-  seven sibling skills ship their own tooling. Three checkers ship there —
+  sibling skills already ship their own tooling. The checkers that ship there are
   AC-0033's alignment check, AC-0035's grounding explorer and AC-0037's
-  finding-coverage check — and each is admitted by its own criterion rather than
-  by sitting beside one that was.
+  finding-coverage check, each admitted by its own criterion rather than by
+  sitting beside one that was.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
   count orders how hard the set-level pass looks and settles nothing on its own;
   no check reaches this claim, so it is held here and read at review.
@@ -165,7 +163,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite. AC-0022 is the one place that states how many plan-authoring rules there are and what they say; no count is restated here or in the plan, because two counts of one set is how this contract came to claim six and seven at once.
+- **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite. AC-0022 is the one place that states the plan-authoring rules; this group asserts the rules it enumerates, and no count of them is restated here or in the plan.
 - **The finding-coverage check (AC-0037):** TDD. Its rules are functions over
   fixture skill trees, and its cases compress into assertions.
 - **The discovery pass (AC-0036):** goal-based check over the authored skill
@@ -376,11 +374,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       response includes a count of every other instance before any repair, and
       the procedure says why: repairing the named instance leaves the class, and
       a reviewer sees the instances it happened to look at rather than the set.
-      Repair also carries its own rider: a repair sweeps whatever states a claim
-      about what it changed — a docstring describing the predicate, a count of
-      the set, a paragraph naming what remains — because prose next to the
-      change does not move with it, and the round after a repair is where that
-      prose is found contradicting the code it documents.
+      Repair also carries its own rider, scoped to what the set-level pass
+      cannot reach: a repair sweeps the prose adjacent to a changed artifact
+      outside the loop contract — a module docstring describing the predicate
+      beneath it, a header naming a set the code no longer has — because that
+      prose does not move with the change and the pass reads only the spec and
+      the plan. Inside the contract, AC-0009's propagation member owns the
+      re-read in both directions and this rider adds nothing to it.
 - [ ] **AC-0024.** Where a finding is that a claim and its check disagree in reach, the
       procedure states both directions and how to choose. A claim reaching
       further than its check is strengthened when some check can reach the
@@ -485,6 +485,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       named so the criterion claims exactly what its oracle decides. A spec whose criteria
       carry no identifiers is skipped rather than failed, so the checker is
       adoptable against the existing corpus on the commit that introduces it.
+      A rule whose input is absent is reported as having no input, named, rather
+      than counted as checked, and the report distinguishes that state from a
+      clean one: a partial check read as a complete one is the defect this
+      checker exists to find in other artifacts, and it would otherwise be the
+      checker's own output contract. A rule that still decides part of its
+      subject is applied, not unapplied — it is the absence of the whole input
+      that this reports.
 - [ ] **AC-0034.** The procedure requires each candidate's disposition to be recorded,
       and the candidate and final counts that follow from those dispositions. The
       rubric owns deriving a count threshold from the author's shipped corpus and

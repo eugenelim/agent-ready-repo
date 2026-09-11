@@ -157,7 +157,7 @@ def test_the_searched_directory_list_is_capped(root):
         directory.mkdir()
         (directory / "test_x.py").write_text("def t():\n    pass\n", encoding="utf-8")
     result = _run(root, str(subject), *[a for d in extra for a in ("--tests", str(d))])
-    line = next(l for l in result.stdout.splitlines() if "searched" in l)
+    line = next(l for l in result.stdout.splitlines() if "directories searched" in l)
     assert "more" in line, f"the list must be capped:\n{line}"
     assert len(line) < 700, f"a capped line must actually be short:\n{len(line)}"
 
@@ -211,7 +211,7 @@ def test_the_searched_directories_are_named_on_a_clean_report(root):
         'def test_b():\n    assert "the beta rule fired" in out\n')
     result = _run(root, str(subject))
     assert result.returncode == 0, result.stdout
-    assert "searched" in result.stdout and "skills/widget" in result.stdout
+    assert "directories searched" in result.stdout and "skills/widget" in result.stdout
 
 
 def test_the_repository_wide_tests_tree_is_only_a_fallback(root):

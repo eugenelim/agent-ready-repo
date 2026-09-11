@@ -418,6 +418,13 @@ def test_a_correctly_retired_criterion_passes(root):
     assert "resolves to no criterion" not in result.stdout
 
 
+# The plan-gated rules, written out here so the expectation does not originate in
+# the value under test. A hand-list is the right shape at this one site: the
+# drift it used to cause is now caught by comparing it against the subject's own
+# tuple in the same case, which reads them as two independent statements.
+PLAN_GATED_RULES = {"task-entry", "derived-item", "broken-entry"}
+
+
 def test_a_plan_less_spec_is_reported_as_partial(root):
     """Every plan-gated rule has no input without a plan; the summary says so.
 
@@ -437,8 +444,14 @@ def test_a_plan_less_spec_is_reported_as_partial(root):
 
     result = _run(_tree(root, plan=None))
     assert "partial (rules with no input:" in result.stdout, result.stdout
-    missing = [rule for rule in gated if rule not in result.stdout]
+    missing = [rule for rule in PLAN_GATED_RULES if rule not in result.stdout]
     assert not missing, f"plan-gated rules absent from the no-input list: {missing}"
+    # The subject's own tuple is checked *against* the literal above rather than
+    # used as the expectation. Reading it on both sides made one tuple compare to
+    # itself, so deleting a rule from it left this case green.
+    assert set(gated) == PLAN_GATED_RULES, (
+        f"the subject gates on {sorted(gated)}; this suite expects "
+        f"{sorted(PLAN_GATED_RULES)} — reconcile deliberately, not silently")
 
 
 def test_absent_retired_heading_is_an_empty_list(root):

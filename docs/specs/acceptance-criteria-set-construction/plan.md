@@ -312,15 +312,16 @@ in the same commit
 - **AC-0017, AC-0018 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
 - **AC-0009.** Assert the pass states its subject as the spec-and-plan pair, assert
-  all seven sweep members are named, then assert the plan-side question stated
-  for each of the three that carry one — uniqueness, coverage, propagation — and
+  every sweep member the criterion enumerates is named, then assert the
+  plan-side question stated for each member that carries one — uniqueness,
+  coverage, propagation — and
   the contract carried by propagation and residual freshness. **Constraint on
   the subject clause:** assert that both artifacts are named, not that the word
   "set" appears; a pass whose subject reads as the criteria alone is the one
-  that shipped through round 5. **Constraint on scope:** assert the three
-  plan-reading members by name and assert no plan-side operation for the other
-  four. Asserting a pair-wide reading over all seven would claim a reach the
-  prose does not have, which is the defect AC-0024 exists to answer.
+  that shipped through round 5. **Constraint on scope:** assert the plan-reading
+  members by name and assert no plan-side operation for the remaining members.
+  Asserting a pair-wide reading over every member would claim a reach the prose
+  does not have, which is the defect AC-0024 exists to answer.
   **Constraint on the consistency member:** assert that it reads the spec's own
   body prose against the criteria, not the criteria against each other, and
   assert separately that it tests the body for narrated delivery history and for
@@ -742,7 +743,7 @@ in the same commit
   the obligation points at the enumeration and the shipped prose rather than at a
   number. The assertion iterates the enumeration for the same reason, so a rule
   added later cannot leave it sized to a stale total.
-- **AC-0023.** The review step names all **eight** responses to a sustained finding
+- **AC-0023.** The review step names every response to a sustained finding
   — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
   bound-and-defer, accept-with-reason — one assertion per response so none can
   be dropped silently, and
@@ -751,9 +752,12 @@ in the same commit
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
   **Constraint on the class-count clause:** assert that a finding instantiating
-  a contract rule triggers a count of every instance before any repair.
+  a contract rule triggers a count of every instance before any repair. Deleting
+  that clause must red this assertion. Repairing the reported instance alone is
+  what left two further instances of one class standing in this cycle.
   **Constraint on the repair rider:** assert separately that repair obliges a
-  sweep of whatever states a claim about what was changed. Deleting the rider
+  sweep of the prose adjacent to a changed artifact outside the contract, and
+  that the rider cites AC-0009 for the re-read inside it. Deleting the rider
   must red this assertion; without it the response list reads as complete while
   the companion prose a repair strands is nobody's obligation, which is how a
   docstring came to describe the opposite of the predicate beneath it. Deleting
@@ -1082,6 +1086,14 @@ in the same commit
   than no rule, so the fixtures carry the shapes the predicate must not report
   rather than a quoted rate: a rate belongs to the prototyping that chose the
   predicate, not to the contract that ships it.
+- **AC-0033, the partial-report contract.** Assert that a spec with no `plan.md`
+  reports every plan-gated rule as having no input, by name, and that the
+  summary distinguishes that state from a clean run. **Constraint:** the
+  expectation is written in the suite and the subject's own rule set is compared
+  *against* it, never read as it — reading the subject on both sides made one
+  tuple compare to itself and left the case green when a rule was dropped from
+  it. Assert also that a rule still deciding part of its subject is not listed,
+  which is why rule 4 is absent from the set.
 - **AC-0033, the invariants.** One case per rule, each named below. Every bullet
   in this task traces to AC-0033; the criterion's own checker asserts that every
   criterion is named by at least one plan entry, so a task leaving its criterion
