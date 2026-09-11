@@ -34,8 +34,12 @@ used by this site. Do not edit generated inputs by hand.
 - Full Playwright runs rewrite tracked snapshots; stage files explicitly, never `git add -A`.
 - Run `python3 tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
   `allowScripts` entry or repin the dependency so it dedupes to a reviewed version.
-- Keep `web/package.json`'s `fsevents@2.3.3` override: Playwright pins 2.3.2 exactly;
-  the override collapses its nested copy so the `allowScripts` gate can be enforced.
+- Keep `web/package.json`'s `fsevents@2.3.3` override. It was added because Playwright
+  pinned `fsevents` to 2.3.2 exactly, and the override collapsed that nested copy.
+  Playwright stopped declaring `fsevents` at 1.63.0. Vite's `~2.3.3` is now the only
+  demand, and the lockfile already resolves 2.3.3, so the override changes nothing
+  today. It is kept for the next re-resolution: `allowScripts` reviews the exact pair
+  `fsevents@2.3.3`, and when 2.3.4 ships, `~2.3.3` takes it and fails that gate.
 - Under an agent, `astro dev` and `astro preview` fork a detached server and
   return at once with JSON output. The corollary is the reason this gets closed
   as "works for me": a human running the identical command in the identical
