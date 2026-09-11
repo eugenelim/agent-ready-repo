@@ -117,11 +117,40 @@ skill reads another skill's output for contradiction.
 That is a finding about the thread, not about this engagement, and it belongs in
 the pressure-test verdict.
 
-## Gate request
+## Gate request — **granted 2026-09-10**
 
-`review-experience-designs`: all six blockers fixed and verified, ten of sixteen
-majors fixed, six owed with named reasons, one verification (V1) owed before
-build. The canvas has been rebuilt and re-rendered.
+`review-experience-designs`: all six blockers fixed and verified, **fourteen of
+sixteen majors fixed, two owed** with named reasons (Major 1 / V1 and Minor 5).
+This paragraph previously said "ten of sixteen … six owed", repeating the same
+stale table the correction above retires; it is fixed here so the two readings
+cannot diverge again. The canvas has been rebuilt and re-rendered.
+
+**V1, 2026-09-10 — CLOSED.** Both halves are now tested.
+
+*Static:* with comments stripped the asset uses no `<style>`, `class`,
+`<script>`, `@import`, `var()`, `<animate>`, `foreignObject` or `xlink:href`.
+One correction to the composition note: it carries three ids, not two, and
+`omc-arrow` is functional — `marker-end="url(#omc-arrow)"` depends on it.
+
+*Render:* Probed 2026-09-10 (2026-09-11T00:53Z) via `gh api --method POST /markdown`, in both `markdown` and `gfm` modes with repository context — GitHub's own renderer, no push required. The `<img>` binding renders and is proxied through
+`camo.githubusercontent.com`, which serves `image/svg+xml`. **Inline embedding
+is removed outright** — zero `<svg>`, `<defs>`, `<marker>`, `<path>`, `<text>`
+or `<line>` survive in either mode, and the `<desc>` copy leaks into the page as
+visible prose.
+
+*What this retires.* The hedge assumed inline would survive in degraded form and
+that the risk was lost presentation. It is not a degradation: there is no
+element left to degrade, and the failure is louder than the record expected —
+a wall of description text where a diagram should be. The `<img>` binding was
+the right call and is now evidenced rather than reasoned.
+
+**Minor 5 — retired by the owner, 2026-09-10.** Not deferred: the champion
+interview it waited on has been retired as theatre, on the evidence in
+[the platform-adoption survey](../../product/research/platform-adoption-evaluation-survey.md).
+Enterprise adoption dynamics are well characterised, and a single interview
+cannot sample a two-tier estate where the veto sits with roles the champion is
+not. **Consequence accepted:** M2 has no pre-redesign baseline and never will,
+so a later score describes comprehension without demonstrating improvement.
 
 ---
 

@@ -77,15 +77,17 @@ exists today. `Manual` means a person must gather and assemble the evidence.
 - **Collection:** Ask the five questions in the comprehension check below from
   memory, keep the answer verbatim, and judge the decision or relationship
   expressed rather than internal gate codes.
-- **Collector:** The champion-interview facilitator before launch; a facilitator
-  who did not onboard the participant for the next-cohort check.
-- **Cadence:** Once against the current surfaces before launch, once with the
-  next cohort, and after any change to the canvas's model or vocabulary.
-- **Instrument:** Part 4 of the champion interview, reused unchanged for the
+- **Collector:** A facilitator administering the standalone questionnaire on the
+  release candidate and with the next cohort. No pre-launch collection exists.
+- **Cadence:** Once on the release candidate, once with the next cohort, and
+  after any material change to the canvas's model or vocabulary.
+- **Instrument:** Part 4 of the retired champion-interview guide, reused as a standalone questionnaire — the guide survives as an instrument even though the interview was retired 2026-09-10. Reused unchanged for the
   next-cohort check.
-- **Baseline:** **No score exists.** The interview guide is ready to run, but no
-  completed interview result is recorded. Without that pre-redesign score, a
-  later score describes comprehension but cannot show improvement.
+- **Baseline:** **None, and none will be taken.** The champion interview was
+  retired 2026-09-10 as theatre — see the platform-adoption survey. A later
+  score therefore describes comprehension without demonstrating improvement.
+  This is an accepted loss, not an outstanding action: do not re-open it as a
+  gate.
 
 ### M3. Contract comprehension — question 3
 
@@ -104,10 +106,10 @@ exists today. `Manual` means a person must gather and assemble the evidence.
   eleven appearances of internal gate codes at the model's visual entry point;
   that is a design observation, not a comprehension score.
 
-### M4. Role-stratified comprehension pattern — question 4
+### M4. Influencer-role comprehension pattern — question 4
 
 - **Status:** `manual`
-- **What it measures:** Whether failures cluster by role when all four audiences
+- **What it measures:** Whether failures cluster by intended influencer role when champions, engineers, tech leads and platform leads use the same canvas. Narrowed 2026-09-10: gatekeepers are outside the intent this serves. Do not combine roles into one average. Formerly read: whether failures cluster by role when all four audiences
   use the same canvas.
 - **Collection:** Record the participant's role with M2 and compare item-level
   results for champions, engineers, platform leads, and budget holders. Do not
@@ -360,7 +362,7 @@ Each condition names an observation that would make a design decision untenable.
 - **Response:** Remove nested detail from the acquisition surface and route it to
   documentation. Do not add a third disclosure level.
 
-### Use one canvas for four audiences
+### Use one canvas for the intended influencer roles
 
 - **Falsifying observation:** M4 shows a role-linked failure: a tested engineer,
   platform lead, or budget holder scores `absent` on the item that represents

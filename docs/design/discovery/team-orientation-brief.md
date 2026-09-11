@@ -24,7 +24,10 @@ decisions are already made.
 The published surfaces introduce a *tool*. A team adopting this needs to
 understand an *operating model*, and the person who has to do that understanding
 first is usually a champion who then has to transfer it to engineers, a platform
-team, and a budget holder.
+team, and a budget holder. **Narrowed 2026-09-10 on the de-risk:** the budget
+holder is a gatekeeper whose evidence needs — TCO, exit path, security
+artifacts — no explanatory surface carries, and is no longer part of the
+outcome. Retained here as the original engagement framing.
 
 The owner's diagnosis: *"it's not obvious from the landing page how everything
 maps together on one page… it's bigger than that. it starts from above the fold.
@@ -41,7 +44,7 @@ assemble the relationships unaided. The relationships are the product.
 
 1. A reader who scans above the fold understands that this is an operating model
    for a team, not an install for an individual.
-2. A champion can explain the model to a budget holder from what the page gives
+2. A champion can explain the model to an engineer or platform team from what the page gives
    them, without improvising.
 3. Two orthogonal lifecycles — what happens to one piece of work, and what
    happens to a team — coexist on one page without becoming two pages stapled
@@ -78,14 +81,14 @@ assemble the relationships unaided. The relationships are the product.
 | --- | --- |
 | Zero internal gate codes in adopter copy | Count of rendered `G0`/`G1.5`/`G2`/`G3`/`G4`/`G5` strings on both surfaces is 0. Baseline is 11 on the marketing home page. |
 | Two lifecycles, one page, no ambiguity | A reader can say which lifecycle any element belongs to. Judged by `experience-reviewer` and by the explain-it-back check. |
-| Champion can transfer it | Explain-it-back score improves against the pre-redesign baseline captured in the champion interview. |
+| Champion can transfer it | Explain-it-back score meets an absolute bar — every required model relationship expressed — in a role-stratified post-release check. **No pre-redesign baseline exists**: the champion interview was retired 2026-09-10, so improvement cannot be shown and is no longer claimed. |
 | Evidence honesty | Every claim either carries a verifiable artifact or is weakened. No invented proof, no assumption presented as grounded. |
 | Buildable without another design round | Composition, every label, responsive collapse, all states, and screen-reader equivalence are specified. Judged at `review-experience-designs`. |
 
 ## Evidence declaration
 
 The engagement offered three options. **Option 1 plus Option 2** was authorised:
-use the real behavioural evidence that exists, and run one champion interview.
+use the real behavioural evidence that exists. (The champion interview named here was retired 2026-09-10 — see the platform-adoption survey.)
 
 | Evidence class | Level | Source |
 | --- | --- | --- |

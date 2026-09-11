@@ -4,33 +4,52 @@ import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-// Display order: three supervised loops first, then alpha by slug.
-const displayOrder = [
+// Leading order: three supervised loops first, then everything else alpha by
+// slug. The leading list names only the journeys that must come first; every
+// other journey is appended from the collection, so a new one can never be
+// silently missing. A fully hardcoded list previously dropped five, including
+// product-strategy.
+const leadingOrder = [
   { slug: 'core', name: 'Core' },
   { slug: 'product-engineering', name: 'Discovery (Product Engineering)' },
   { slug: 'release-engineering', name: 'Release Engineering' },
   { slug: 'architect', name: 'Architect' },
-  { slug: 'atlassian', name: 'Atlassian' },
-  { slug: 'contracts', name: 'Contracts' },
-  { slug: 'converters', name: 'Converters' },
-  { slug: 'credential-brokers', name: 'Credential Brokers' },
-  { slug: 'experience-design', name: 'Experience Design' },
-  { slug: 'figma', name: 'Figma' },
-  { slug: 'governance-extras', name: 'Governance Extras' },
-  { slug: 'monorepo-extras', name: 'Monorepo Extras' },
-  { slug: 'desk-research', name: 'Desk Research' },
-  { slug: 'user-guide-diataxis', name: 'User Guide (Diátaxis)' },
 ];
+
+// Display names for journeys not in the leading order. A slug with no entry
+// falls back to the slug itself rather than being dropped.
+const names = {
+  atlassian: 'Atlassian',
+  contracts: 'Contracts',
+  converters: 'Converters',
+  'credential-brokers': 'Credential Brokers',
+  'desk-research': 'Desk Research',
+  'experience-design': 'Experience Design',
+  figma: 'Figma',
+  'frontend-engineering': 'Frontend Engineering',
+  github: 'GitHub',
+  'governance-extras': 'Governance Extras',
+  'iac-terraform': 'IaC (Terraform)',
+  linear: 'Linear',
+  'monorepo-extras': 'Monorepo Extras',
+  'product-documentation': 'Product Documentation',
+  'product-strategy': 'Product Strategy',
+  'user-guide-diataxis': 'User Guide (Diátaxis)',
+};
 
 const allJourneys = await getCollection('journeys');
 const taglineMap = Object.fromEntries(
   allJourneys.map((j) => [j.id.replace(/\.md$/, ''), j.data.tagline])
 );
 
-const items = displayOrder.map((j) => ({
-  ...j,
-  tagline: taglineMap[j.slug] ?? '',
-}));
+const leadingSlugs = new Set(leadingOrder.map((j) => j.slug));
+const items = [
+  ...leadingOrder.filter((j) => j.slug in taglineMap),
+  ...Object.keys(taglineMap)
+    .filter((slug) => !leadingSlugs.has(slug))
+    .sort()
+    .map((slug) => ({ slug, name: names[slug] ?? slug })),
+].map((j) => ({ ...j, tagline: taglineMap[j.slug] ?? '' }));
 ---
 
 <SiteLayout
@@ -122,6 +141,7 @@ const items = displayOrder.map((j) => ({
 
   /* ── Grid ──────────────────────────────────────────────────────────── */
   .journeys-grid {
+    list-style: none;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--ds-space-5);

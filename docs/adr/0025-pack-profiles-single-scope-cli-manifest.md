@@ -1,6 +1,6 @@
 # ADR-0025: Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted (superseded in part by [ADR-0107](0107-claude-plugin-route-serves-non-technical-adopters.md) — the **"CLI-route only" clause**, insofar as it deferred *pack* distribution on the Claude-plugin route: that route is now a supported surface for non-technical adopters, as individually installed per-pack plugins. Profiles themselves remain CLI-only and are still not surfaced as meta-plugins, so this ADR's actual decision — a profile is a single-scope, catalogue-owned, CLI-expanded manifest and **not** a meta-pack — and everything else stands) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-14
 - **Deciders:** eugenelim
 - **Supersedes:** none

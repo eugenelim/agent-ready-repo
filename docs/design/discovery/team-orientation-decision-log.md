@@ -4,8 +4,10 @@ slug: team-orientation-decision-log
 status: active
 gates_passed:
   - approve-journey (2026-09-04)
+  - approve-journey re-gate (2026-09-10) — Stage 2 surface-plural install
+  - review-experience-designs (2026-09-10) — V1 closed by probe, Minor 5 deferred
   - approve-aesthetic-direction (2026-09-04)
-updated: 2026-09-04
+updated: 2026-09-10
 ---
 
 # Decision log and design rationale
@@ -14,6 +16,18 @@ Every decision that would otherwise be re-litigated, with what decided it. No
 skill owns this artifact.
 
 ## The decisions
+
+### D-2026-09-10 — Stage 2's install affordance is surface-plural
+
+**Decided by:** the design lead, ratified at the `approve-journey` re-gate.
+
+Stage 2 assumed a terminal, and because Stage 2 must precede Stage 3, that one
+affordance blocked a no-terminal reader from the whole remainder of the
+lifecycle. The reader starts on a terminal or in the Claude apps, whichever they
+already use. The two paths are not capability-equivalent, and the map now says
+so rather than implying parity. **D1 is not reopened** — adoption still
+dominates, the work lifecycle stays nested in station two, and the dominant
+reader is still a champion whose job is transfer.
 
 ### D1 — Adoption dominates; work is nested inside station two
 
@@ -240,7 +254,7 @@ the page and cannot produce it.
 
 ## Still open
 
-1. **The champion interview has not run.** It is the only primary evidence in the
+1. **The champion interview will not run — retired 2026-09-10.** Retired as theatre by the owner: enterprise adoption dynamics are well characterised, and one interview cannot sample a two-tier estate whose veto sits outside the champion. See `docs/product/research/platform-adoption-evaluation-survey.md`. The M2 baseline dies with it permanently and is an accepted loss, not an outstanding action. It was the only primary evidence in the
    engagement and every emotion and pain stays assumption-based until it does.
 2. **Who writes the headline** (Gap J).
 3. **Who defines "pack" in plain words, and where** — unfamiliar product

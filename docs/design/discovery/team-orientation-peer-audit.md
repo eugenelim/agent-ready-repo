@@ -125,6 +125,14 @@ Either accept one canonical placement per area, or reach for faceting.
 
 ### F7. GitHub's Markdown sanitiser removes almost all SVG presentation `[high]`
 
+> **Measured 2026-09-10 and understated.** This finding was documentation-read.
+> A live probe against GitHub's own renderer (`gh api POST /markdown`, both
+> `markdown` and `gfm` modes) shows inline SVG is not stripped down to a
+> presentation-free skeleton — it is **removed outright**, with zero `<svg>`,
+> `<defs>`, `<marker>`, `<path>`, `<text>` or `<line>` in the output, and the
+> `<desc>` copy leaking into the page as visible prose. The conclusion this
+> finding drove — use the `<img>` binding — is unchanged and now evidenced.
+
 Stripped: `<script>`, inline `style=`, `class=` and `id=` on SVG elements,
 `<foreignObject>`, CSS `@import`, event attributes — and, critically, a `<style>`
 block **inside** the SVG is not reliably preserved. Surviving: basic shapes,
@@ -401,8 +409,9 @@ documentation journey Stage 5's pain, independently arrived at.
 - **Known-unknown:** which champion-enablement artifact actually converts
   enthusiasm into funded adoption? Would be closed by independent research; every
   located source has an incentive.
-- **Known-unknown:** does our own canvas survive GitHub's sanitiser? Would be
-  closed by rendering a probe SVG in a real README. Owed at build handoff.
+- **CLOSED 2026-09-10:** does our own canvas survive GitHub's sanitiser? Probed
+  against GitHub's own renderer. Inline is removed outright; the `<img>` binding
+  renders and is camo-proxied as `image/svg+xml`. No longer a known-unknown.
 - **Known-unknown:** how many simultaneous process models can a reader sustain on
   one page? Would be closed by primary research; NN/g's two-level disclosure
   ceiling is the nearest proxy and is about disclosure depth, not model count.
