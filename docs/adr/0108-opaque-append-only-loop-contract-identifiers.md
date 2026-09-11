@@ -1,4 +1,4 @@
-# ADR-0107: Identity for loop-contract items — opaque and append-only, not positional
+# ADR-0108: Identity for loop-contract items — opaque and append-only, not positional
 
 - **Status:** Accepted
 - **Date:** 2026-09-10

@@ -445,7 +445,7 @@ mechanical result.
 | **The single-homing oracle compares presence and absence of hand-declared exact phrases.** Three consequences from one root: a stage's second rule sentence can be unpinned and uncovered by the floor; a paraphrased second home is invisible; an occurrence repeated inside one file is never counted. | A rule could reach a second authoring surface, or be stated twice in one, without the suite noticing. Reachable at review by the rubric's first class, and by nothing mechanical. | No |
 
 Three earlier rows are retired rather than carried. Plan traceability by
-reference is **decided**, not residual: ADR-0107 settles identity and change
+reference is **decided**, not residual: ADR-0108 settles identity and change
 detection, leaving implementation rather than an open question. The
 `Tests:Approach` ratio row is **dissolved**: once a task's tests are identified
 verification items, a word-ratio instrument measures nothing, so the row was an

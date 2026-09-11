@@ -260,6 +260,11 @@ def test_a_truncated_task_entry_is_reported(root):
     ("label", "clause", "breaks_a_count"),
     [("bare inline fence", "Assert a fenced ```python example exists.", True),
      ("fence inside a pattern", "- `! grep -Eq '^\\s*```bash' file`", True),
+     # The shape the corpus measurement actually flagged: a fence token quoted
+     # with a wider delimiter. Eleven backticks, odd, so it breaks a count and
+     # therefore discriminates -- the doubled delimiter it replaced was even
+     # under both predicates and discriminated nothing.
+     ("quoted fence token", "marker inside a fenced ```` ``` ```` block is not collected", True),
      ("doubled delimiter", "the marker ``  `<adapt:name>`  `` is not collected", False),
      ("balanced pair", "both `a` and `b` hold", False)],
 )
@@ -414,14 +419,26 @@ def test_a_correctly_retired_criterion_passes(root):
 
 
 def test_a_plan_less_spec_is_reported_as_partial(root):
-    """Two rules have no input without a plan; the summary must say so.
+    """Every plan-gated rule has no input without a plan; the summary says so.
 
     Counting it under "checked" is the skipped-reads-as-clean failure this
-    module exists to detect in other artifacts.
+    module exists to detect in other artifacts. The expectation derives from the
+    subject's own list of plan-gated rules rather than a pair written out here:
+    the hand-listed form stayed green when a third plan-gated rule was added and
+    silently reported nothing.
     """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "packs_core_new_spec_lint_contract_item_alignment", CHECKER)
+    subject = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(subject)
+    gated = subject.PLAN_GATED
+
     result = _run(_tree(root, plan=None))
     assert "partial (rules with no input:" in result.stdout, result.stdout
-    assert "task-entry" in result.stdout and "derived-item" in result.stdout
+    missing = [rule for rule in gated if rule not in result.stdout]
+    assert not missing, f"plan-gated rules absent from the no-input list: {missing}"
 
 
 def test_absent_retired_heading_is_an_empty_list(root):
@@ -449,7 +466,7 @@ def test_criterion_in_two_verification_groups_is_a_finding(root):
 
 
 def test_verification_item_may_not_derive_its_identifier(root):
-    """Rule 7: VI-0001 mirroring AC-0001 is the derivation ADR-0107 forbids."""
+    """Rule 7: VI-0001 mirroring AC-0001 is the derivation ADR-0108 forbids."""
     plan = PLAN.replace("- **AC-0001.** Assert the first thing.",
                         "- **AC-0001.** Assert the first thing. **VI-0001** covers it.")
     result = _run(_tree(root, plan=plan))

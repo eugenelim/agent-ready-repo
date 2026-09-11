@@ -17,8 +17,8 @@ Nine rules, all mechanical:
   7. a verification item's identifier is its own, not derived from what it serves
   8. no task entry leaves a code span open, which is how a multi-site edit
      truncates a closing condition without making it look truncated
-  9. given a base revision, no criterion was reworded while every line naming it
-     in the plan stayed put -- a criterion whose assertion did not follow it
+  9. given a base revision, no criterion was reworded while the assertion blocks
+     naming it stayed put -- a criterion whose assertion did not follow it
 
 Rule 5 is scoped to task entries -- a task's ``Tests:`` and ``Done when:``
 blocks -- and not to the whole document. The weaker form, "does this identifier
@@ -72,6 +72,13 @@ FINDING_KINDS = {
 # counts stay exact and `--verbose` restores the full list, following the
 # repository's own convention for its spec-status lint.
 FINDING_CAP = 20
+
+# Every rule whose input is plan.md. Each reports itself as having no input when
+# no plan is present: a rule that silently runs on nothing is the
+# partial-read-as-clean failure this module exists to detect in other artifacts.
+# Module-level so the suite derives its expectation from this tuple -- the
+# hand-listed pair it used before stayed green when a third rule joined.
+PLAN_GATED = ("task-entry", "derived-item", "broken-entry")
 
 CRITERION = re.compile(r"^- \[[ x]\] \*\*(AC-\d{4})\.\*\* ", re.M)
 CRITERION_LINE = re.compile(r"- \[[ x]\] \*\*(AC-\d{4})\.\*\* ")
@@ -160,9 +167,7 @@ def unterminated(entry: str) -> bool:
     example") is the common case and is *not* a broken span: with no matching
     run of the same length the markup leaves it literal, so it renders exactly
     as written. Counting backticks reports it, and so did matching runs until an
-    inline fence token was removed first; that single shape was the only hit
-    either predicate produced over a 3681-entry corpus, and it was wrong both
-    times.
+    inline fence token was removed first.
     """
     return _spans_open(INLINE_FENCE.sub("", FENCE.sub("", entry)))
 
@@ -266,10 +271,11 @@ def stale_assertions(spec_dir: Path, root: Path, ref: str,
                      spec: str, plan: str) -> list[str] | None:
     """Criteria reworded since ``ref`` whose plan lines did not change with them.
 
-    The plan side deliberately reads *any* line naming the identifier, not only a
-    task entry: that is the predicate this rule was measured with, and narrowing
-    it to entries would report a criterion whose surrounding rationale was
-    rewritten instead.
+    The plan side reads only the task entries that carry assertions. Reading any
+    line naming the identifier lets a changelog bullet or a rationale count as
+    the assertion following, which is the mention-anywhere form rule 5 is scoped
+    to eliminate; narrowing the scope also raised this rule's recall, because the
+    wide form had been crediting exactly those non-assertion mentions.
     """
     spec_changed = _changed_lines(root, ref, spec_dir / "spec.md")
     plan_changed = _changed_lines(root, ref, spec_dir / "plan.md")
@@ -338,7 +344,7 @@ def check(spec_dir: Path, root: Path | None = None, since: str | None = None) ->
         for ref in sorted(set(CRITERION_REF.findall(text)) - resolvable):
             findings.append(f"{rel}/{name}: {ref} {FINDING_KINDS['unresolved']}")
 
-    unapplied: list[str] = [] if plan else ["task-entry", "derived-item"]
+    unapplied: list[str] = [] if plan else list(PLAN_GATED)
     if plan:                                                      # rule 5
         named = task_entries(plan)
         mentioned = set(CRITERION_REF.findall(plan))

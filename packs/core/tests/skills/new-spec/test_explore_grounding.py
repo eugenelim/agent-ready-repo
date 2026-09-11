@@ -229,6 +229,29 @@ def test_phase_selects_the_probe_set(root):
     assert "scoped rules" not in review, "review does not re-ask what governs the surface"
 
 
+# Declared here, not read from PHASES. The assertion below compares the report
+# against the table that also gates every probe branch, so deleting a probe from
+# a stage silently stops running it with the whole suite still green. One stage
+# stated literally is what makes a change to the table have to be made twice.
+TASK_PHASE_PROBES = {"scoped", "refs", "pins", "gates", "co-change"}
+
+
+def test_the_task_stage_runs_the_probe_set_declared_here(root):
+    """AC-0035's "the probe set is selected by stage", pinned independently.
+
+    Deleting "gates" from PHASES["task"] left all cases green: every other stage
+    assertion sources its expectation from the same table it is checking, so the
+    task stage could quietly stop running gate reachability. This case fails
+    instead.
+    """
+    out = _run(root, _seeded(root), extra=["--phase", "task"])
+    line = next((l for l in out.splitlines() if l.startswith("probes:")), None)
+    assert line, f"the task report names no probe set:\n{out}"
+    named = {p.strip() for p in line[len("probes:"):].split("\u00b7")[0].split(",")}
+    assert named == TASK_PHASE_PROBES, (
+        f"task stage reported {sorted(named)}, expected {sorted(TASK_PHASE_PROBES)}")
+
+
 @pytest.mark.parametrize("phase", ["discovery", "task", "review", "all"])
 def test_the_report_names_the_probe_set_its_stage_ran(root, phase):
     """The stage-report clause, which had no assertion that could fail.

@@ -9,7 +9,7 @@
 
 ## Outcome
 
-- **Steerable input:** Build the mechanism [ADR-0107](../../adr/0107-opaque-append-only-loop-contract-identifiers.md) and [the loop contract](../../architecture/loop-contract.md) §§ 3–4 decided and nothing implements: derive the single-homing pinned set from rule identifiers rather than a hand-declared tuple, fingerprint each identified item, and route a changed item's dependants into the next re-review's scope.
+- **Steerable input:** Build the mechanism [ADR-0108](../../adr/0108-opaque-append-only-loop-contract-identifiers.md) and [the loop contract](../../architecture/loop-contract.md) §§ 3–4 decided and nothing implements: derive the single-homing pinned set from rule identifiers rather than a hand-declared tuple, fingerprint each identified item, and route a changed item's dependants into the next re-review's scope.
 - **Lagging outcome:** A rule duplicated into a second authoring surface, or a criterion edited without its verifications following, is caught by a check rather than by whoever happens to read carefully.
 - **Guardrail:** The suspect flag scopes what a review looks at and never decides whether a change may proceed. Blocking on a derived signal rebuilds the consequence-bound blocking already measured and killed in [work-loop review economics](work-loop-review-economics.md).
 

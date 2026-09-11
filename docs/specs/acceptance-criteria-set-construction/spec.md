@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0107
+- **Constrained by:** ADR-0108
 - **Brief:** docs/product/briefs/agent-authoring-input-quality.md
 - **Discovery:** none
 - **Contract:** none
@@ -23,8 +23,7 @@ must look like and never what move to make, so an author selects by instinct,
 places facts by habit, and answers every finding by repairing it. The added
 moves are the plan-authoring rules, brought under contract here rather than
 left shipped without one, a review-response protocol the skill does not have
-today, and the mechanical checks the skill ships over its own artifacts — the
-moves that survived being written as prose and not followed.
+today, and the mechanical checks the skill ships over its own artifacts.
 
 An author using `new-spec` — human or agent — decides *which* contract
 obligations become acceptance criteria before wording any of them. The skill's
@@ -76,8 +75,8 @@ uniqueness and necessity checks compare.
 | Reusable learning | Applicable — the delivery gate is a recorded exercise, not a suite | `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | This spec's owner | Recorded three-case run with per-candidate dispositions | Run recorded with candidate count, final count and every disposition |
 | Release history | Applicable — a `.apm/**` content change is a released pack change | `docs/product/changelog.md` (a pack keeps no `CHANGELOG.md` of its own; that convention is for published packages) | Pack release pipeline | Free-standing topmost `core` entry at the bumped version | Entry present at the version `pack.toml` and `plugin.json` both carry |
 | Current product truth | Applicable — the brief tracks slice delivery | `docs/product/briefs/agent-authoring-input-quality.md` § "Spec map" | `lint-brief-coverage` roll-up | Coverage roll-up resolves this spec through its `Brief:` back-link | Roll-up names this spec; no status hand-written into the brief |
-| Decision rationale | Applicable, by the consistency pass of 2026-09-11 — the row's original claim that no decision record is touched became false when AC-0032 amended ADR-0107's confirmation state, and its claim that the owner decisions live in the brief became false as seven further decisions were recorded during delivery | [`docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`](../../adr/0107-opaque-append-only-loop-contract-identifiers.md) for the identifier decision; this plan's `## Changelog` for the delivery decisions | This spec's owner | ADR-0107's `Confirmation` names the shipped check and its `Revisit if` records the fired trigger, with the decision text unchanged; each delivery decision is dated in the plan's changelog | The ADR states no falsehood about current tooling, and no owner decision from this delivery is discoverable only from a commit message |
-| Interface compatibility | Applicable, by owner decision 2026-09-11 — the scope widened after this row was written, and the slice now ships three command-line checkers that project into every installed adapter with their own flags, exit codes and output contract | each checker's own `--help` text, which is its docstring | This spec's owner | Each shipped script's header names its probe or rule set, its flags, and what its exit codes mean | An adopter reading `--help` learns every flag and every exit code the script can return, and no header describes a set the code does not have |
+| Decision rationale | Applicable — this slice amends a decision record, and owner decisions taken during delivery are recorded rather than left in commit messages | [`docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`](../../adr/0108-opaque-append-only-loop-contract-identifiers.md) for the identifier decision; this plan's `## Changelog` for the delivery decisions | This spec's owner | ADR-0108's `Confirmation` names the shipped check and its `Revisit if` records the fired trigger, with the decision text unchanged; each delivery decision is dated in the plan's changelog | The ADR states no falsehood about current tooling, and no owner decision from this delivery is discoverable only from a commit message |
+| Interface compatibility | Applicable — the slice ships command-line checkers that project into every installed adapter, each with its own flags, exit codes and output contract | each checker's own `--help` text, which is its docstring | This spec's owner | Each shipped script's header names its probe or rule set, its flags, and what its exit codes mean | An adopter reading `--help` learns every flag and every exit code the script can return, and no header describes a set the code does not have |
 
 ## Boundaries
 
@@ -93,11 +92,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   document and identifier.
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to the
   same version, with core leading its own free-standing changelog entry. The
-  bump lands once, on the task that closes the release surface, and covers every
-  `.apm/` change in the delivery — not once per intermediate commit. Bumping per
-  commit would publish a version for each repair round and collide with any
-  unpushed peer bump at the same number; the rule is that the delivery does not
-  land without the bump, not that every commit carries one.
+  version is bumped when pack content first changes in the delivery, and while it
+  remains unreleased its changelog entry is amended as further content lands, so
+  one version string never describes two code states. Bumping again per repair
+  round would publish a version for each round and collide with an unpushed peer
+  bump at the same number. The task that closes the release surface owns the
+  final state of that entry, not a second bump.
 
 ### Ask first
 
@@ -175,20 +175,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   fixture tree, and its cases compress into assertions.
 - **A reworded criterion whose assertion did not follow (AC-0040):** TDD, on the
   pack-local suite, over fixture repositories with real history rather than this
-  repository's own. Measured over this contract's own cycle before shipping — on
-  nine reworded criteria it reported four of the five real gaps with no false
-  alarm — which is why it reports rather than blocks and why its under-reporting
-  is stated in the criterion. The figures, their method and their date are
-  recorded in `notes/checker-rule-measurements.md` with the harness that
-  reproduces them, because a rate quoted from a run that no longer exists cannot
-  be falsified.
+  repository's own. It reports rather than blocks, and it under-reports by
+  design; both are stated in the criterion.
 - **A structurally broken task entry (AC-0039):** TDD, on the pack-local suite.
   The predicate is a function over entry text, so its cases are assertions. Its
-  false-positive count over this repository's plan corpus — zero over 3681 task
-  entries, against three for the naive predicate it replaced — is recorded with
-  its method and date in `notes/checker-rule-measurements.md`, because a report
-  an author learns to ignore is worse than no report, and because a rate with no
-  recorded origin cannot be checked later.
+  cases record which backtick shapes break a naive count, so the predicate is
+  distinguished from the one it replaced by the fixtures rather than by a quoted
+  rate.
 - **Every shipped check names its consuming step (AC-0038):** goal-based check
   over the authored skill file, on the pack-local suite. The surface is the
   skill's procedure, not a gate list, and the check reads the skill's own
@@ -196,7 +189,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   without a named caller fails rather than passing unnoticed.
 - **The disposition record (AC-0034):** goal-based check over the authored skill
   file, on the pack-local suite. Grouped with the procedure, which is its surface.
-- **ADR-0107's confirmation state (AC-0032):** goal-based check over the ADR,
+- **ADR-0108's confirmation state (AC-0032):** goal-based check over the ADR,
   at repository level. The ADR is not pack content, so the pack-local suite
   cannot read it.
 - **The alignment checker (AC-0033):** TDD. The check is a pure function over a
@@ -446,7 +439,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       — a gate matching by glob or directory walk, and a rule that applies by
       content rather than by path — is the stated residue that review still
       owns.
-- [ ] **AC-0032.** ADR-0107's `Revisit if` names a tool that enforces no-reuse for
+- [ ] **AC-0032.** ADR-0108's `Revisit if` names a tool that enforces no-reuse for
       inline-Markdown items, and the checker below is that tool, so the trigger
       fires on delivery. The ADR's `Confirmation` moves from reviewer-checked to
       the shipped check and its `Revisit if` records that the trigger fired and
@@ -530,16 +523,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       structurally broken — a code span opened and never closed inside a `Tests`
       or `Done when` block. A multi-site edit that reshapes every entry at once
       can eat the head of a surviving clause, leaving a sentence that still reads
-      as prose while the artifact or command it closed on is gone; three of this
-      contract's own closing conditions were destroyed that way and survived a
-      reviewer's read. The check matches backtick runs the way the markup
+      as prose while the artifact or command it closed on is gone, which a
+      reviewer reading for meaning does not see. The check matches backtick runs
+      the way the markup
       delimits a span rather than counting backticks, and it discards a fence
       token written inline before matching: prose that mentions a fence, and a
       fence quoted inside a search pattern, both break a count and neither is a
       broken span — with no matching run of the same length the markup leaves
-      the run literal, so it renders as written. Those two shapes were the only
-      thing either predicate reported over this repository's plan corpus, and
-      reporting them was wrong both times. It reports, and it is scoped to task
+      the run literal, so it renders as written. It reports, and it is scoped to task
       entries rather than the whole document, so prose elsewhere is not its
       business.
 - [ ] **AC-0040.** Given a base revision, the alignment checker reports each criterion

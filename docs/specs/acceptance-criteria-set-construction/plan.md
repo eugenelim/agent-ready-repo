@@ -86,7 +86,7 @@ two recollections.
 | Reusable learning → `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | T4 | The recorded run's per-candidate disposition table | T4's `Done when`, which owns the passing condition |
 | Release history → `docs/product/changelog.md` | T5 | Free-standing topmost `core` section at the bumped version | `test_core_version_and_okf_declaration_are_synchronized` green |
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
-| Decision rationale → `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
+| Decision rationale → `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
 | Interface compatibility → the three checkers' `--help` and module headers | T8 (`lint-contract-item-alignment.py`); T9 (`explore-grounding.py`, `lint-finding-coverage.py`) | Each script's header states its flags and every exit code it can return, and the explorer states its per-probe outcome sets | A header describes no set the code does not have, asserted per script in the task that ships it |
 
 ## Design (LLD)
@@ -717,19 +717,20 @@ in the same commit
   — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
   them, so without this command a red this task causes closes green under its own
   `Done when`.
-- **AC-0022 — already shipped, asserted here. Two gaps close first:** the
-  whole-plan-walk rule has no pinned entry, so add one; and the existing owner
-  test searches the whole skill file, so a rule moved out of the plan step would
-  stay green. Add a span-scoped assertion that every rule AC-0022 enumerates
-  occurs inside the plan step, with a mutation moving one rule outside it that
-  must fail. Six of them landed in core 2.25.14 ahead of this contract as a
-  recorded deviation, and this task closes that by bringing them under the spec
-  rather than re-shipping them. **Two need work here:** the whole-plan walk has
-  no pinned entry, and the `Done when`-names-its-load-bearing-commands rule has
-  no prose in `SKILL.md` at all — added to AC-0022 by an owner-approved tuning
-  on 2026-09-11, so it must be written, not merely pinned. The count is not
-  restated: the assertion iterates AC-0022's enumeration, so a rule added to the
-  criterion later cannot leave the assertion sized to a stale number.
+- **AC-0022 — partly shipped, asserted here.** Add a span-scoped assertion that
+  every rule AC-0022 enumerates occurs inside the plan step, with a mutation
+  moving one rule outside it that must fail; the existing owner test searches the
+  whole skill file, so a rule moved out of the plan step would otherwise stay
+  green. The rules that landed in core 2.25.14 ahead of this contract are a
+  recorded deviation, and this task closes it by bringing them under the spec
+  rather than re-shipping them. **What is owed is read, never counted:** every
+  rule the criterion enumerates that has no prose in the plan step must be
+  written, and every one with no pinned entry must gain one. This bullet has now
+  twice carried a count of the gap that was false by the round that read it —
+  the criterion gained a seventh rule, then an eighth and a ninth — which is why
+  the obligation points at the enumeration and the shipped prose rather than at a
+  number. The assertion iterates the enumeration for the same reason, so a rule
+  added later cannot leave it sized to a stale total.
 - **AC-0023.** The review step names all **eight** responses to a sustained finding
   — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
   bound-and-defer, accept-with-reason — one assertion per response so none can
@@ -828,9 +829,13 @@ in the same commit
   and its ordering; the two origin labels and the unresolved-origin stop rule.
   Editing this step reds them unless each is updated deliberately, exactly as
   this task already declares for the `deletion-pass` pin.
-- The rules already pinned to `SKILL.md` are a subset of AC-0022's enumeration;
-  the criterion is the one place that states the set, and this task reads it
-  rather than carrying a count of its own.
+- The pinned plan-authoring block in `test_acceptance_criteria_discipline.py` is
+  **not** a subset of AC-0022's enumeration: it also pins rules whose prose sits
+  in the review step, `owner-gets-decision-facts` among them, which AC-0026
+  owns. So the assertion iterates AC-0022's enumeration and matches each rule
+  against the block, rather than treating the block as the criterion's rule set —
+  reading the block as the set would credit a non-member and silently shrink what
+  AC-0022 is checked against.
 - The same 500-warning / 1,000-error body-line ceiling applies, and T1 is
   spending from the same budget. The file is 660 lines today.
 - The existing plan step, review step and deletion pass are each already located
@@ -959,7 +964,7 @@ in the same commit
 
 **Depends on:** T2, T7
 
-**Touches:** `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md`,
+**Touches:** `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`,
 `tests/roster/test_acceptance_criteria_guide_boundary.py`,
 `packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (exists),
@@ -968,16 +973,12 @@ in the same commit
 in the same commit
 
 **Grounding:**
-- **The checker and its suite landed ahead of this contract, as a recorded
-  deviation.** They were built during the pre-EXECUTE review rounds, on direct
-  owner instruction, before the engine gates were fired — so this task does not
-  create them. It closes the deviation by bringing them under the spec, the same
-  way T6 closes the six plan rules that landed in core 2.25.14 ahead of their
-  criterion. What remains here is the work no commit has done: the assertions
-  AC-0033, AC-0039 and AC-0040 require, the ADR edit AC-0032 requires, and the
-  invocation reference. **A `Done when` that reads as "the file exists" closes
-  green on work already present, which is why every condition below is an
-  assertion or an edit, never a creation.**
+- **This task creates no file; it brings existing code under the spec.** Every
+  condition below is an assertion or an edit, because a `Done when` that reads as
+  "the file exists" closes green on work already present. What remains is
+  whatever of this task's `Tests` is not yet green — by reference, never
+  enumerated: an enumeration of residue is a fact no task verifies. The
+  deviation this closes is dated in `## Changelog`, which owns delivery history.
 - **The checker belongs to this skill and depends on no other.**
   `packs/AGENTS.md` states skills are independent. The precedent is
   `author-delivery-brief/scripts/lint-brief-coverage.py` with its test at
@@ -1021,7 +1022,7 @@ in the same commit
   above `packs/core`, which `pack-tests-stay-in-pack` rejects, so this assertion
   joins the roster module T2 and T5 already use and runs under
   `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`.
-  The AC-0033 cases stay pack-local. Assert `docs/adr/0107-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
+  The AC-0033 cases stay pack-local. Assert `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
   enforces the convention, that its `Confirmation` names the shipped check, and
   that its `Revisit if` records the trigger as fired with the decision unchanged.
   **Constraint:** this is a lifecycle edit to an accepted record, not a reversal
@@ -1056,11 +1057,10 @@ in the same commit
   and guard without discriminating. **Constraint:** assert the *pairing* of
   value and rule — that the finding names the task — not merely that some
   finding was emitted, and do not let a non-discriminating case stand as
-  evidence for the design. The false-positive count over this repository's plan
-  corpus is recorded, with its method and date and a harness that reproduces it,
-  in `notes/checker-rule-measurements.md` — not in the verification ledger,
-  which T4 owns for the graded run; a rule an author learns to ignore is worse
-  than no rule.
+  evidence for the design. A rule an author learns to ignore is worse
+  than no rule, so the fixtures carry the shapes the predicate must not report
+  rather than a quoted rate: a rate belongs to the prototyping that chose the
+  predicate, not to the contract that ships it.
 - **AC-0033, the invariants.** One case per rule, each named below. Every bullet
   in this task traces to AC-0033; the criterion's own checker asserts that every
   criterion is named by at least one plan entry, so a task leaving its criterion
@@ -1107,10 +1107,9 @@ in the same commit
 in the same commit
 
 **Grounding:**
-- **Both scripts and both suites landed ahead of this contract, on the same
-  recorded deviation as T8's.** This task does not create them. It brings them
-  under the spec and lands what no commit has: AC-0035's and AC-0037's
-  assertions, AC-0038's invocation references, and the stage-report constraint.
+- **This task creates no file either, on the same footing as T8.** What remains
+  is whatever of its `Tests` is not yet green, by reference for the reason T8
+  gives.
 - Same skill-owned precedent and layout as T8; seven sibling core skills carry a
   `scripts/` directory and `pack.toml` declares no script inventory.
 - **These two invocations are wired here, and this task owns the closing check.**
@@ -1181,7 +1180,9 @@ in the same commit
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 
-- `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q`
+- `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q` —
+  AC-0037's suite. Named here because `Tests` is what a completion gate reads and
+  `Approach` is not, which is this contract's own rule.
 - `python3 -m pytest packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py -q` —
   AC-0038's assertion reads the authored `SKILL.md`, so it belongs in the module
   that already asserts over this skill's prose rather than in either script
@@ -1197,19 +1198,12 @@ in the same commit
   this task edits `SKILL.md`, and both modules pin content in it. T1 and T6 name
   them for the same reason: a red this task causes closes green under its own
   `Done when` if the command is not named here.
-  — AC-0037's suite. Named here because `Tests` is what a completion gate reads
-  and `Approach` is not, which is this contract's own rule.
 
-- **The Interface-compatibility durable output, asserted per script.** Read each
-  script's module docstring and assert it names every flag the parser accepts and
-  every exit code the script can return, and that it claims no outcome the code
-  cannot reach. **Mutation:** add a fourth exit code to a header and the
-  assertion must red; remove a flag from the parser without touching the header
-  and it must red too, since the row's closeout is that a header describes no set
-  the code does not have — a one-directional check passes on a header that has
-  drifted behind the code. The row is the only home for this obligation; it is
-  observed here rather than left to the durable-output table, which no command
-  reads.
+- **The Interface-compatibility durable output** is asserted per script by the
+  bullet T8 states; this task's scripts are covered by that same assertion and
+  its mutations. Stated once there rather than copied here — two homes for one
+  condition is the drift the by-reference rule was written after, and this bullet
+  was a byte-identical second copy that claimed to be the only home.
 - **AC-0037, the finding-coverage check.** Assert each rule with a fixture skill
   tree rather than this repository's layout: a covered subject is clean; an
   unobserved rule is named; a subject declaring no catalogue is skipped and
@@ -1448,7 +1442,7 @@ is evidence about the check.
   sustained — the first report of this delivery to survive adjudication intact,
   because its claims were about code rather than prose.
 - 2026-09-10: pre-EXECUTE round 3 raised fourteen findings: eleven sustained and
-  three refuted. AC-0032 was added for ADR-0107's confirmation state, which the
+  three refuted. AC-0032 was added for ADR-0108's confirmation state, which the
   shipped checker falsifies on the commit that lands it.
 - 2026-09-10: pre-EXECUTE round 2 sustained eight of eleven findings; three were
   refuted, one of them because the reviewer's proposed fix contradicted T6.
