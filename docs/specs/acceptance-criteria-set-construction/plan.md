@@ -215,13 +215,17 @@ in the same commit
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below. Each bullet names its criteria and the observation; the
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
+- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
+  — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
+  them, so without this command a red this task causes closes green under its own
+  `Done when`.
 - **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
   pinned entry per criterion in the spec's Testing Strategy goal-based group
   over the skill file. Five criteria have no bullet of their own below —
   **AC-0004, AC-0007, AC-0008, AC-0010, AC-0016** — and their whole claim is that a
   named sentence is present in the shipped procedure, so **presence of the
   pinned sentence inside the procedure span is the oracle** and no further
-  assertion is owed. Each of the seven takes exactly one `RULES` entry keyed to
+  assertion is owed. Each of the five takes exactly one `RULES` entry keyed to
   its identifier; the sentence itself is build-discovered, but the mapping from
   identifier to entry is fixed here, so propagation can name the entry to
   re-read when one of these criteria changes. The span matters: the owner test
@@ -249,6 +253,14 @@ in the same commit
   the root `AGENTS.md` says stopping at the first hit skips the rest silently.
   The mutation that must fail is rewriting the walk as a nearest-file lookup
   while leaving the consequence clause intact.
+- **AC-0033.** Assert the procedure requires each candidate's disposition to be
+  recorded and the two counts that follow from it. **Constraint:** assert the
+  disposition record and the counts separately, and assert that the counts are
+  stated as following from the dispositions. A count obligation standing alone
+  is the corpus-threshold material the rubric owns, and restating it here is the
+  second home this contract's own Boundary forbids — the distinction is that
+  these counts describe what this selection did, while the rubric's threshold
+  describes the author's shipped corpus.
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the five stage
   intervals, the fifth closing at the end of the procedure span. This supports
@@ -308,6 +320,13 @@ in the same commit
 
 
 **Grounding:**
+- **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
+  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
+  exact phrases inside step 4 — the step this slice rewrites — and applies a
+  seven-phrase deny-list across the whole file;
+  `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
+  prose. A red in either is invisible to `pytest packs/core/tests/skills/new-spec`,
+  so the task's gate names both modules explicitly.
 - `skill_spec_lint.py` measures `SKILL.md` body length: **over 500 lines warns,
   over 1,000 errors.** The file is 660 lines today and T1 and T6 both add prose
   to it. Budget against the error ceiling, and treat the warning as already
@@ -474,7 +493,10 @@ in the same commit
 - Author the three prompts as authoring frames, not review frames — the graded
   actor is selecting candidates pre-seal.
 - Give the large case a genuinely irreducible obligation set, so a candidate
-  that compresses it fails on recall rather than on count.
+  that compresses it fails on recall rather than on count. **This is a review
+  obligation with no mechanical oracle**, and AC-0019 was narrowed to match:
+  nothing in `Tests` observes irreducibility, so the criterion no longer claims
+  it.
 
 **Done when:** every Tests bullet above passes, each having been red before the
 entries landed and green after, and the full pack suite is green.
@@ -521,10 +543,10 @@ close this task, and the count closes nothing.
 
 ### T5: The release surface closes
 
-**Depends on:** T1, T2, T3, T4, T6, T7
+**Depends on:** T1, T2, T3, T4, T6, T7, T8
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`tests/roster/test_acceptance_criteria_guide_boundary.py`,
 `docs/product/changelog.md`, `workspace.toml`,
 `.agents/`, `.claude/`
 
@@ -609,9 +631,10 @@ close this task, and the count closes nothing.
   `work-loop-delivery-efficiency` is `Accepted` and stays out of every
   collection: the reconciler rejects a terminal Accepted intent.
 
-**Done when:** every Tests bullet above passes, including the pack-local suite
-with the cross-surface sweep present and its mutation proof recorded and
-restored, and `make build-self` leaves no drift.
+**Done when:** every Tests bullet above passes, including
+`tests/roster/test_acceptance_criteria_guide_boundary.py` carrying the
+cross-surface sweep with its mutation proof recorded and restored, and
+`make build-self` leaves no drift.
 
 ### T6: The review-response protocol ships, and the plan rules come under contract
 
@@ -625,6 +648,10 @@ in the same commit
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
+- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
+  — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
+  them, so without this command a red this task causes closes green under its own
+  `Done when`.
 - **AC-0022 — already shipped, asserted here. Two gaps close first:** the
   whole-plan-walk rule has no pinned entry, so add one; and the existing owner
   test searches the whole skill file, so a rule moved out of the plan step would
@@ -693,6 +720,13 @@ in the same commit
 
 
 **Grounding:**
+- **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
+  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins five
+  exact phrases inside step 4 — the step this slice rewrites — and applies a
+  seven-phrase deny-list across the whole file;
+  `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
+  prose. A red in either is invisible to `pytest packs/core/tests/skills/new-spec`,
+  so the task's gate names both modules explicitly.
 - **The review step already carries exact content and order pins** in
   `test_acceptance_criteria_discipline.py` — review persistence, clean-report
   shape, dispatch order and the repair gateway; the executable adjudication path
@@ -766,11 +800,79 @@ in the same commit
   in the asset, beside the `- [ ]` / `- [x]` notation note it already carries.
   That block already owns notation, so the identifier form belongs to it rather
   than to a new section.
+- **Give the retired list a home the checker can read.** The convention names a
+  `## Retired identifiers` heading carrying one bare identifier per list item,
+  omitted entirely while nothing has been retired. T8's checker reads that
+  heading, so an undefined location leaves its input undetermined and T8 unable
+  to start; state the heading and its list shape in the template, not just the
+  obligation to keep one.
 - Adopt it forward-only. The 442 existing spec directories are not renumbered —
   the same basis on which ADR numbering was introduced here.
 
 **Done when:** every Tests bullet above passes and `make build-self` leaves no
 drift.
+
+### T8: The skill ships its own alignment checker
+
+**Depends on:** T7
+
+**Touches:** `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (new),
+`packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (new),
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
+
+**Grounding:**
+- **The checker belongs to this skill and depends on no other.**
+  `packs/AGENTS.md` states skills are independent. The precedent is
+  `author-delivery-brief/scripts/lint-brief-coverage.py` with its test at
+  `packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py`:
+  an authoring skill shipping a lint over the artifacts it authors. Six sibling
+  core skills carry a `scripts/` directory, so the layout is standard and
+  `CAT-S004` treats layout findings as warnings rather than errors.
+- **Its scope is not the spec-status lint's.** That lint decides spec *state* —
+  status vocabulary, criteria checked at a ship transition, deferral anchors,
+  contract traceability — and is owned by the skill that runs the gates. This one
+  decides *item alignment* and owns no lifecycle question. Neither invokes the
+  other; that is the point.
+- `pack.toml` declares no per-skill script inventory, so the script needs no
+  manifest entry. It ships by being inside the skill directory.
+- The script is projected to `.agents/` and `.claude/`; `.apm/` is the source,
+  and `test_cognitive_load_repository_contract.py` requires byte equality across
+  all three.
+- `packs/AGENTS.md` — any `.apm/` script writing to stdout or stderr reconfigures
+  both streams to UTF-8 before its first print.
+- Repository security rule: every read is confined and rejects links, reparse
+  points and non-regular files before opening.
+- **Do not add the invocation to `SKILL.md`'s gate list** without checking the
+  body-line budget first; T1 and T6 are already spending from it.
+
+**Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py -q`
+- Unlabelled spec → skipped, zero findings. The adoption case; without it the
+  commit that introduces the checker fails 442 existing specs.
+- Spec with no `## Retired identifiers` heading → treated as an empty retired
+  list, not as a finding. Absence is the normal state and is what this spec
+  itself carries.
+- Partially labelled spec → finding naming the unlabelled criterion.
+- Duplicate identifier → finding naming both line numbers.
+- Identifier present in the retired list → finding.
+- Malformed identifier → finding.
+- Reference in `plan.md` to an identifier no criterion carries → finding.
+- Criterion named by no plan entry → finding.
+- Criterion in two verification groups, and in none → a finding each.
+- Verification item whose identifier is derived from its criterion or task →
+  finding.
+- **Mutation proof:** delete one criterion's label and confirm the partial case
+  reds. A green run there means the checker keyed on the reference side only and
+  never looked at the criteria.
+
+**Approach:**
+- One pass over the spec directory returning findings; no lifecycle knowledge, no
+  `workspace.toml` read, no status parsing. Those belong to the state lint and
+  duplicating them here would put two homes on one obligation.
+- Skip-when-unlabelled is the first condition, not a late guard.
+
+**Done when:** every Tests bullet above passes, the mutation proof is recorded and
+restored, and `make build-self` leaves no drift.
 
 ## Rollout
 
@@ -829,6 +931,13 @@ drift.
   recorded under `**Grounding:**`, per AC-0031. The plan-level
   `Repository anchors:` field above was filled in and still missed all three
   pre-EXECUTE blockers, which is the evidence for making grounding per-task.
+- 2026-09-10: pre-EXECUTE round 2 sustained eight of eleven findings; three were
+  refuted, one of them because the reviewer's proposed fix contradicted T6.
+- 2026-09-10: owner-approved — the skill ships its own alignment checker (T8,
+  AC-0032) rather than extending the repository's spec-status lint. Skills are
+  independent, and the two jobs differ: that lint decides spec state, this one
+  decides item alignment. The `Never do` boundary was amended in the same
+  decision to admit the `scripts/` directory it needs.
 - 2026-09-10: owner-approved scope addition — T7 carries the identifier
   convention into the spec template, and this spec's own criteria are the first
   to be labelled. Identifiers assigned 2026-09-10 and frozen from that point;

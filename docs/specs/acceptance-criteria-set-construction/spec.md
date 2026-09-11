@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** none
+- **Constrained by:** ADR-0107
 - **Brief:** docs/product/briefs/agent-authoring-input-quality.md
 - **Discovery:** none
 - **Contract:** none
@@ -106,8 +106,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Restate a rule owned by `assets/spec.md`, `assets/plan.md` or
   `references/spec-authoring-rubric.md` into a second file.
 - Silence a pre-existing warn-only lint warning to make a gate read clean.
-- Introduce a new top-level directory, a new module boundary, or a new
-  dependency; the selection procedure is prose in files that already exist.
+- Introduce a new top-level directory or a new dependency. The selection
+  procedure, the plan rules and the response protocol are prose in files that
+  already exist. The one admitted addition is the alignment checker in
+  AC-0032, owner-approved 2026-09-10: it takes a `scripts/` directory inside
+  this skill, which is the catalogue's standard skill layout and is already how
+  six sibling skills ship their own tooling.
 - Claim, on any surface, that a criterion count proves a set well-shaped. The
   count orders how hard the set-level pass looks and settles nothing on its own;
   no check reaches this claim, so it is held here and read at review.
@@ -123,9 +127,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **The shipped procedure, its stage order, its admission grounds, its routing
   table, its composition hand-off, its set-level pass and the count policy
   (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0016,
-  AC-0017, AC-0018):** goal-based check over the authored skill file. The observation
+  AC-0017):** goal-based check over the authored skill file. The observation
   is the presence, relative order and scope of that prose; the verification
   surface is the pack-local suite.
+- **The count prohibition (AC-0018) — split surface.** The span check that the
+  procedure states no fixed absolute count is a goal-based check on the
+  pack-local suite. The sweep across all three shipped surfaces is a goal-based
+  check at repository level, because reading the guide page from
+  `packs/core/tests/` breaches the pack-test boundary. Both are named here so the
+  declared placement matches where each check lands.
 - **The guide publishes the procedure (AC-0014):** goal-based check over the guide's
   own content. The observation is that each of the five stage names appears on
   the page. The guide validators establish publication, not content, so they do
@@ -144,6 +154,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
 - **The plan rules, the response protocol and the earn-its-keep scope (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027):** goal-based check over the authored skill file, on the pack-local suite; five of the six plan rules are pinned there today and the sixth is added by the task that ships this.
+- **The disposition record (AC-0033):** goal-based check over the authored skill
+  file, on the pack-local suite. Grouped with the procedure, which is its surface.
+- **The alignment checker (AC-0032):** TDD. The check is a pure function over a
+  spec directory's two texts and its retired list, so its cases compress into
+  assertions. Its scope is deliberately distinct from the repository's
+  spec-status lint, which decides spec *state* — status vocabulary, criteria
+  checked at a ship transition, deferral anchors, contract traceability. This
+  one decides *item alignment* and owns no lifecycle question.
 - **Per-task grounding (AC-0031):** goal-based check over the authored skill
   file, on the pack-local suite. Grouped with the plan rules rather than the
   procedure, because the plan step is its surface.
@@ -253,8 +271,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       check reads; pre-existing shipped surfaces are a recorded residual, not
       this criterion. The wider claim that count never proves quality is a
       non-waivable Boundary, not this criterion, because no check reaches it.
-- [ ] **AC-0019.** The skill's eval register carries three frozen cases: a small change, a
-      legitimately large change, and an amendment to an existing contract.
+- [ ] **AC-0019.** The skill's eval register carries three frozen cases, one per named
+      shape: a small change, a large change, and an amendment to an existing
+      contract. Whether the large case's obligation set is genuinely irreducible
+      is a review obligation, not this criterion — no check reads it, and a
+      criterion claiming it would reach past its own oracle.
 - [ ] **AC-0020.** Each frozen case carries its full seeded set: at least one
       implementation detail, one duplicate claim and one example-only variant
       that must not become criteria, and every objective and non-waivable
@@ -306,8 +327,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       pack content carries no internal-record citation: every acceptance
       criterion and every verification item takes an opaque, append-only
       identifier scoped to its own spec directory — assigned once, never
-      renumbered on insertion or reorder, never reused after removal, and
-      removals recorded in the artifact's retired list — and the template's own
+      renumbered on insertion or reorder, never reused after removal, and each
+      removal recorded under a `## Retired identifiers` heading in the same
+      artifact, one bare identifier per list item, the heading omitted while
+      nothing has been retired — and the template's own
       criteria list shows the labelled form, so a criterion is cited without
       being counted.
 - [ ] **AC-0031.** The plan step requires each task to be grounded against the same
@@ -321,6 +344,24 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the session actually offers — a subagent, a worker, or a direct search —
       because a named tool makes the rule unrunnable wherever that tool is
       absent, and the obligation is the grounding, never the mechanism.
+- [ ] **AC-0032.** The skill ships its own alignment checker, invoked from its own
+      `scripts/` directory and depending on no other skill. It decides the
+      mechanical alignment of a loop contract's items: every acceptance criterion
+      carries a well-formed identifier, identifiers are unique within the spec
+      directory, none appears in the retired list, every identifier reference in
+      `spec.md` and `plan.md` resolves to a criterion that exists, every
+      criterion is named by at least one plan entry and appears in exactly one
+      verification group, and a verification item's identifier is its own rather
+      than derived from the criterion or task it serves. A spec whose criteria
+      carry no identifiers is skipped rather than failed, so the checker is
+      adoptable against the existing corpus on the commit that introduces it.
+- [ ] **AC-0033.** The procedure requires each candidate's disposition to be recorded,
+      and the candidate and final counts that follow from those dispositions. The
+      rubric owns deriving a count threshold from the author's shipped corpus and
+      what an above-threshold count means; it owns no record of what this
+      selection did. That record is the procedure's own output — without it
+      nothing distinguishes an obligation admitted from one routed to an owner,
+      and the set-level pass has no list to read back against.
 
 ## Follow-ons
 
