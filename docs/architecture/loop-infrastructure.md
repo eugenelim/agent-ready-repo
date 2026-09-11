@@ -76,20 +76,19 @@ Workspace MCP reads the event stream.
 
 `loop-engine transition` appends one JSON line per FSM transition to
 `.loop-run/events.jsonl` — repo-root-relative, gitignored, ephemeral. The line
-carries fourteen fields: the seven that identify the transition (`seq`,
-`run_id`, `spec`, `from`, `event`, `to`, `at`) and seven that describe it
-(`phase_started_at`, `phase_s`, `result`, `retry_state`, `awaiting_input`,
-`waived`, `budgets`).
+carries thirteen fields: the seven that identify the transition (`seq`,
+`run_id`, `spec`, `from`, `event`, `to`, `at`) and six that describe it
+(`phase_started_at`, `phase_s`, `result`, `awaiting_input`, `waived`,
+`budgets`).
 
 Three rules govern the shape.
 
 - **Absent means null, never missing.** A field the engine cannot determine is
   written as `null` and still present, because a key that disappears reads as
   zero to anything summing durations or comparing a counter with a cap.
-- **Outcome and reason are separate axes.** `result` records what a gate
-  decided; `retry_state` records why a failure sits where it does. One field
-  cannot carry both without giving a single value to "retrying" and to "out of
-  attempts".
+- **A decision, not a count.** `result` records what a gate decided. How many
+  attempts a run has taken is not on the line: counting the events answers it,
+  and a per-line count would be a second home for the same fact.
 - **`budgets` is a copy, not an authority.** `loop-cohort` owns the retry
   counters and moves them in a separate step, so the line reports a snapshot
   that lags by one round. The pack's `state-schema.md` states the reachability

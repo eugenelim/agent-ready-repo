@@ -150,7 +150,7 @@ without one, offsets live in memory only.
 
 > **Superseded in part, 2026-09-10.** The measurements below describe the
 > engine as it stood when this survey was written, and `core` 2.25.14 changed
-> it the same day: the transition line now carries fourteen fields, records the
+> it the same day: the transition line now carries thirteen fields, records the
 > override flag, and derives the first phase's start from the run's engine
 > state. Three findings in [§ What the pilot measured](#what-the-pilot-measured)
 > and one entry under [§ Known unknowns](#known-unknowns) are annotated inline
@@ -180,7 +180,7 @@ Walking all 15 against the eight gives:
 | Derived from another field | `gate-reached` | exact — a transition whose `to` is a gate state |
 | Derived from another field | `spec-started` | approximate — start time not recorded |
 | Needs an envelope change | `gate-waived` | none — *closed by core 2.25.14 (`waived`)* |
-| Needs an envelope change | `budget-exceeded` | none — *partly closed by core 2.25.14 (`budgets`, `retry_state`); see that release's reachability limits* |
+| Needs an envelope change | `budget-exceeded` | none — *partly closed by core 2.25.14 (`budgets`); the cap-reached half stays unreachable while `loop-cohort` owns the counters* |
 | Needs an envelope change | `spec-stalled` | none — *`phase_s` added in core 2.25.14; the terminal-stall blind spot below still stands* |
 
 **The retry counters are invisible to the event log.** Measured: after a real
@@ -270,13 +270,13 @@ repair. They share one root cause: **the engine writes the line, but
 `loop-cohort` owns the retry counters and moves them in a separate step**, so
 the line reports a lagging snapshot of state it does not control.
 
-1. **`retry_state` is half-reachable.** `max_attempts_reached` cannot occur on
-   the implementation axis at all — no override exists for `gates-failed` and
-   its guard refuses unconditionally at the cap — and on the review axis it
-   occurs only on an overridden line. Deciding this means choosing where the
-   counter is read, not editing the field. Options: read after the cohort
-   increments, have the engine own the counters, or narrow the field to the
-   one axis that can produce both values.
+1. **The counter-ownership split.** `loop-cohort` increments the retry
+   counters after the transition fires, so any line reports a budget that lags
+   by one round. A `retry_state` field was shipped against this and withdrawn
+   before release: on the implementation axis its cap value was unreachable
+   entirely, and counting the events answers the question anyway. Deciding this
+   means choosing where the counter is read, not adding a field.
+
 2. **`budgets` can contradict the enforced cap.** The guard resolves an absent
    or non-integer cap to its own default and enforces it; the snapshot reports
    `null`. A line can therefore show no cap for a run about to be refused.

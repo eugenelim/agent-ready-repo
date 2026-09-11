@@ -351,15 +351,14 @@ class TestBestEffortReadsCannotCostATransition:
             event="findings-remain", next_state="SPEC-PLAN-DRAFTING", waived=False,
         )
         assert fields["phase_s"] is None
-        assert fields["retry_state"] is None
         assert fields["result"] == "failure"
 
 
-class TestOutcomeAndReasonAxes:
-    """`result` says what a gate decided; `retry_state` says why a failure is there.
+class TestGateOutcome:
+    """`result` says what a gate decided, and nothing about attempt counts.
 
-    One field cannot carry both: the same value would have to mean "failed once,
-    retrying" and "out of attempts".
+    How many attempts a run has taken comes from counting the events; a
+    per-line count would be a second home for a fact this log already answers.
     """
 
     def _events(self, repo: Path) -> list[dict]:
@@ -392,45 +391,12 @@ class TestOutcomeAndReasonAxes:
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
         assert self._events(repo)[0]["result"] is None
 
-    def test_retry_state_is_in_progress_while_budget_remains(
-        self, tmp_path: pytest.TempDir
-    ) -> None:
-        repo = _init_git_repo(tmp_path)
-        spec_dir = _make_spec_dir(repo)
-        _engine_init(repo, spec_dir)
-        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
-        _run(_LOOP_ENGINE, "transition", str(spec_dir), "findings-remain", cwd=repo)
-        assert self._events(repo)[1]["retry_state"] == "in_progress"
-
     def _at_review_cap(self, repo: Path, spec_dir: Path) -> None:
         cohort_path = spec_dir / "state.json"
         cohort = json.loads(cohort_path.read_text())
         cohort["review_retry_count"] = cohort["max_review_retries"]
         cohort_path.write_text(json.dumps(cohort))
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
-
-    def test_retry_state_reports_the_cap_when_a_waiver_carries_past_it(
-        self, tmp_path: pytest.TempDir
-    ) -> None:
-        """The three axes together, on the only path that reaches the cap.
-
-        This is the distinction a single outcome field cannot express: the gate
-        failed, the budget was spent, and a human chose to continue anyway.
-        """
-        repo = _init_git_repo(tmp_path)
-        spec_dir = _make_spec_dir(repo)
-        _engine_init(repo, spec_dir)
-        self._at_review_cap(repo, spec_dir)
-        r = _run(
-            _LOOP_ENGINE, "transition", str(spec_dir), "findings-remain",
-            "--allow-retry-cap-override", cwd=repo,
-        )
-        assert r.returncode == 0, r.stderr
-        event = self._events(repo)[1]
-        assert event["retry_state"] == "max_attempts_reached"
-        assert event["waived"] is True
-        # The axes stay independent: the outcome is still just "failure".
-        assert event["result"] == "failure"
 
     def test_a_cap_reached_without_a_waiver_writes_no_line_at_all(
         self, tmp_path: pytest.TempDir
@@ -453,15 +419,6 @@ class TestOutcomeAndReasonAxes:
         assert r.returncode != 0, "the cap must refuse without a waiver"
         assert "retry cap reached" in r.stderr
         assert len(self._events(repo)) == before, "a refusal must not write an event"
-
-    def test_a_non_retry_transition_reports_no_retry_state(
-        self, tmp_path: pytest.TempDir
-    ) -> None:
-        repo = _init_git_repo(tmp_path)
-        spec_dir = _make_spec_dir(repo)
-        _engine_init(repo, spec_dir)
-        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
-        assert self._events(repo)[0]["retry_state"] is None
 
     def test_awaiting_input_marks_arrival_at_a_human_gate(
         self, tmp_path: pytest.TempDir

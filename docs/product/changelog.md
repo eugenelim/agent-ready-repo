@@ -77,11 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `loop-engine transition` writes seven additive fields on each
+- `loop-engine transition` writes six additive fields on each
   `.loop-run/events.jsonl` line: `phase_started_at`, `phase_s`, `result`,
-  `retry_state`, `awaiting_input`, `waived`, and `budgets`. The first seven
-  fields are unchanged in name, order, and value, so an existing reader is
-  unaffected.
+  `awaiting_input`, `waived`, and `budgets`. The first seven fields are
+  unchanged in name, order, and value, so an existing reader is unaffected.
 - `phase_s` is whole seconds and never negative, which keeps a backwards clock
   step from presenting as a measurement. A field that cannot be determined is
   written as `null` rather than omitted, because a key that disappears reads as
@@ -91,22 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `loop-cohort`, which remains their only writer.
 - `result` reports the gate decision as `success` or `failure`, using the
   OpenTelemetry CI/CD convention's result vocabulary rather than an invented
-  one. `retry_state` reports `in_progress` or `max_attempts_reached` for the
-  two events that draw down a retry budget. `awaiting_input` marks arrival at a
-  state waiting on a human. Each is `null` where it does not apply, so a
-  handoff never claims a decision it did not make.
-- Outcome and reason are separate fields on purpose. A single field would have
-  to give one value to both "failed once, retrying" and "failed and out of
-  attempts".
-- **`retry_state` reachability is narrower than the field suggests, and the
-  schema reference states the limits.** The counters are incremented by
-  `loop-cohort` *after* the transition is fired, so the round that spends the
-  last of a budget still reports `in_progress`. On the review axis
-  `max_attempts_reached` appears only on a line that carried the override; on
-  the implementation axis it cannot appear at all, because no override exists
-  for that event and the guard refuses unconditionally at the cap. Treat
-  `in_progress` as "the budget had room when this line was written", not as
-  "another attempt will be allowed".
+  one, and is `null` for a handoff or wave boundary that decides nothing.
+  `awaiting_input` marks arrival at a state waiting on a human.
+- No attempt count sits on the line. Counting the events answers how many
+  rounds a run has taken, and a per-line count would be a second home for a
+  fact the log already carries.
+
 - The work-loop `state-schema.md` reference gains the full field table for the
   event line, the whole-second resolution limit, the reachability note above,
   and a documented blind spot: a retry cap reached without an override is
