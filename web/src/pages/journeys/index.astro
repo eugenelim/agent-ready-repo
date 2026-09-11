@@ -134,7 +134,7 @@ const rest = Object.keys(taglineMap)
     </p>
     <ul class="journeys-grid">
       {loops.map((j) => (
-        <li class="journey-card">
+        <li class="journey-card journey-card--loop">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
             <h3 class="journey-card__name">{j.name}</h3>
             {j.tagline && <p class="journey-card__tagline">{j.tagline}</p>}
@@ -148,14 +148,15 @@ const rest = Object.keys(taglineMap)
   <!-- ── Everything else ────────────────────────────────────────────────── -->
   <Section tone="surface" labelledby="journeys-rest-heading">
     <h2 id="journeys-rest-heading" class="journeys-group__heading">
-      Everything else
+      Add one when the work needs it
     </h2>
     <p class="journeys-group__body">
-      Add these to any of the four when the work needs them.
+      Optional additions. None of these is a step in the sequence — reach for one
+      when a particular piece of work calls for it.
     </p>
     <ul class="journeys-grid">
       {rest.map((j) => (
-        <li class="journey-card">
+        <li class="journey-card journey-card--optional">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
             <h3 class="journey-card__name">{j.name}</h3>
             {j.tagline && <p class="journey-card__tagline">{j.tagline}</p>}
@@ -290,6 +291,27 @@ const rest = Object.keys(taglineMap)
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-accent-deep);
+  }
+
+  /* ── Three relationships, three signatures ──────────────────────────── */
+  /* The groups previously shared one card treatment, so without their headings
+     they collapsed into a single collection. The left edge now carries the
+     relationship: an accent bar plus a numeral for the ordered sequence, a muted
+     bar for the loops that run underneath it, and no bar for optional
+     additions. */
+
+  .journey-card--loop {
+    border-left-color: var(--ds-on-surface-2);
+  }
+
+  .journey-card--optional {
+    border-left-width: 1px;
+    border-left-color: var(--ds-border);
+  }
+
+  .journey-card--optional:hover,
+  .journey-card--loop:hover {
+    border-color: var(--ds-accent);
   }
 
   /* ── Sequence step cards ────────────────────────────────────────────── */
