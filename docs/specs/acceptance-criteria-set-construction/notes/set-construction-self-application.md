@@ -526,3 +526,42 @@ copy inside one file green. Nobody had said that out loud across fifteen rounds;
 it took an owner asking what the residuals actually were. A skill that reports
 the trend and each residue with its consequence surfaces that without the owner
 having to ask.
+
+## Addendum 11 — review counters reset, and what the next round is a spike for
+
+The scope widened on 2026-09-10 from acceptance-criteria set construction to
+loop-contract authoring: the same three moves an author makes, plus the
+plan-authoring rules brought under contract and a review-response protocol the
+skill does not have. The sixteen rounds behind us reviewed a different contract,
+so the counter resets and the next round is round 1 of a new cycle.
+
+It is also a spike, and predeclaring what would count as better is the only way
+that claim can fail.
+
+**Baseline, the old cycle.** Round 1 returned 8 findings over 14 criteria —
+0.57 per criterion. The whole cycle ran 16 rounds, raised 32 findings, sustained
+30, refuted 2, and 9 of the 30 (30%) were introduced by a previous round's
+repair. The dominant family was **a claim wider than its oracle**: a criterion
+asserting a scope its check could not reach.
+
+**Prediction for round 1 of the new cycle, over 27 criteria.**
+
+- **Primary:** at most **2** findings in the claim-wider-than-its-oracle family.
+  Three of the shipped moves aim at it directly — the contribution test, the
+  rule that a claim names the comparison its oracle performs, and the widened
+  earn-its-keep scope. If that family lands at its old share, those moves did
+  not bind.
+- **Secondary:** no blocker.
+- **Descriptive, not a bar:** total findings, and findings per criterion against
+  the old 0.57.
+
+**What a miss would mean, stated now rather than after.** If the families recur
+at the old rate, the honest reading is not that the guidance is wrong but that
+written guidance did not change what this author wrote — which is the activation
+question the brief assigns elsewhere, arriving as evidence from a case rather
+than as a claim. A miss is a result, not a failure to be explained away.
+
+**One confound recorded in advance.** The author of the artifact and the author
+of the guidance are the same, in one session, so this measures whether the rules
+bind *the person who wrote them*. That is the weakest form of the activation
+question and it cannot be strengthened from inside this session.

@@ -113,7 +113,7 @@ two recollections.
   then a shape test, which cannot fail on the commit that introduces it.
   Traces to: AC21.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC22, AC23.
+  recorded exercise and the counts live in prose. Traces to: AC22, AC26.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -329,7 +329,7 @@ entries landed and green after, and the full pack suite is green.
 **Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
 
 **Tests:**
-- **AC23** — manual QA. One fresh subagent per case, given only the shipped
+- **AC26 and AC27** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -410,6 +410,43 @@ close this task, and the count closes nothing.
 with the cross-surface sweep present and its mutation proof recorded and
 restored, and `make build-self` leaves no drift. Counting the commands here is
 what went stale when one was added.
+
+### T6: The review-response protocol ships, and the plan rules come under contract
+
+**Depends on:** T1
+
+**Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
+
+**Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
+  every assertion below.
+- **AC23 — already shipped, asserted here.** The six plan-authoring rules
+  landed in core 2.25.14 ahead of this contract; that was a recorded deviation,
+  and this task closes it by bringing them under the spec rather than by
+  re-shipping them. Each is already a pinned entry, so the assertion is that the
+  pinned set still carries all six and the prose still reads as the criterion
+  states. No new prose is written for this criterion.
+- **AC24.** The review step names all five responses to a sustained finding and
+  states that a sustained finding does not by itself require an edit.
+  **Constraint, local to this assertion:** assert the disclaimer as well as the
+  list. A list of options with no statement that repair is optional leaves
+  repair the default by omission, which is the present behaviour.
+- **AC25.** The earn-its-keep test is stated over every criterion rather than
+  only those added during review, and is stated to run during rounds rather than
+  only after convergence. Assert both scopings; the existing deletion pass
+  already reads as a post-convergence pass over review-added items, so a partial
+  edit leaves the old reading intact.
+- **Exact wording is build-discovered**, on the same predicate, constraint,
+  required outcome and verification mode as T1's.
+
+**Approach:**
+- Extend the review step rather than adding a new one; the responses belong
+  where a finding is already being dispositioned.
+- Widen the existing deletion pass in place. A second pass beside it would put
+  two homes on one obligation.
+
+**Done when:** every Tests bullet above passes.
 
 ## Rollout
 

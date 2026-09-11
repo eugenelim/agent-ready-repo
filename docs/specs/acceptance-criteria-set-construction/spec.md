@@ -14,6 +14,15 @@
 
 ## Objective
 
+**Scope, widened by owner decision on 2026-09-10.** This spec covers three
+authoring moves on the loop contract, not one. Two were added because the same
+defect produced all three: the skill tells an author what a finished artifact
+must look like and never what move to make, so an author selects by instinct,
+places facts by habit, and answers every finding by repairing it. The added
+moves are the plan-authoring rules, brought under contract here rather than
+left shipped without one, and a review-response protocol the skill does not
+have today.
+
 An author using `new-spec` — human or agent — decides *which* contract
 obligations become acceptance criteria before wording any of them. The skill's
 acceptance-criteria step carries an ordered selection procedure: name the
@@ -134,7 +143,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   every frozen case's stated scoring contract carries the three grading ranks
   and the losing-an-obligation failure rule; the verification surface is the
   pack-local suite.
-- **The recorded run, both graded ranks (AC23, AC24):** visual / manual QA. A model-in-the-loop
+- **The plan rules, the response protocol and the earn-its-keep scope (AC23, AC24, AC25):** goal-based check over the authored skill file, on the pack-local suite; the plan rules are already pinned there per entry.
+- **The recorded run, both graded ranks (AC26, AC27):** visual / manual QA. A model-in-the-loop
   measurement runs in-agent through one fresh subagent per case, and its recall
   verdict is read by a human from the recorded dispositions. No mechanical proxy
   substitutes for that reading.
@@ -220,6 +230,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       recall first, non-criterion rejection second, and count as a descriptive
       outcome only, and records that a smaller set obtained by losing a
       distinct obligation or guardrail is a failure.
+- [ ] The skill's plan step carries the plan-authoring rules: a fact belongs in
+      the design unless a task must implement or verify it; a `Done when` points
+      at its own `Tests`; an obligation a completion gate must read belongs in
+      `Tests` rather than `Approach`; a claim about a check names the comparison
+      its oracle performs; a `Tests`-outruns-`Approach` ratio is read before it
+      is cut; and a whole-plan walk precedes review.
+- [ ] The skill's review step names the responses available to a sustained
+      finding — repair the artifact, cut the item the finding is about, dismiss
+      the finding with its reason recorded, repair the generator rather than the
+      instance, or route it to an owner that already covers it — and states that
+      a sustained finding does not by itself require an edit.
+- [ ] The earn-its-keep test applies to every criterion in the set rather than
+      only to those added during review, and runs while rounds are still
+      running rather than only after they converge.
 - [ ] The recorded three-case run retains every seeded objective and
       non-waivable guardrail.
 - [ ] That run admits no seeded implementation detail, duplicate claim or
