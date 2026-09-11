@@ -447,6 +447,10 @@ open = [
   # kco-202609-3f7fc5a7b47a27460eb6d6f831de80119400924c8dd9b5d5fa09b2c88f863bc8
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
   {path = "docs/product/intents/projected-tree-planning-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"}, summary = "A planner can tell which guards read the compiled projection and which read authored sources, and places the recompile in the task that makes the last authored edit", needs = []},
+  # No `revision`: the pin would have to name a commit on this branch, which a
+  # squash merge does not preserve. Five sibling defect entries omit it for the
+  # same reason; the rest pin a commit already reachable from main.
+  {path = "docs/specs/loop-tooling-hygiene/notes/loop-cli-option-and-constant-hygiene.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-tooling-hygiene/spec.md"}, summary = "Name schema_version once instead of three bare literals, and correct schedule --plan's help text to the single path it accepts", needs = []},
   # Cut from spec/desk-research-build-handover on 2026-09-09 by owner scope
   # decision, not missed. That slice guards one pack's inline links at source;
   # this is the general, emitted-side control. It matters because

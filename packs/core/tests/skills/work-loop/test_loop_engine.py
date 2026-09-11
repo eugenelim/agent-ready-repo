@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import signal
 import stat
 import subprocess
@@ -87,18 +88,18 @@ def symlink_or_skip(
     return True
 
 
-def run_engine(*args) -> tuple[int, str, str]:
+def run_engine(*args, env: dict[str, str] | None = None) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, str(ENGINE)] + [str(a) for a in args],
-        capture_output=True, text=True, check=False,
+        capture_output=True, text=True, check=False, env=env,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def run_cohort(*args) -> tuple[int, str, str]:
+def run_cohort(*args, env: dict[str, str] | None = None) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, str(COHORT)] + [str(a) for a in args],
-        capture_output=True, text=True, check=False,
+        capture_output=True, text=True, check=False, env=env,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -1032,6 +1033,149 @@ def test_engine_state_reader_rejects_non_regular_path(tmp: Path) -> None:
         fail(name, f"failure did not identify the required file type: {out} {err}")
     else:
         ok(name)
+
+
+# The published contract is line-boundedness ("one line of explanation instead
+# of a stack trace"), so that is what this asserts. Checking only for the
+# absence of the word `Traceback` would pass a refusal that regrew to 30 lines,
+# and a traceback also prints absolute internal script paths.
+#
+# Exactly one, not a tolerance: `_diag` collapses whitespace in every `stop()`
+# reason, and all four tool x input combinations below measure 1 line. So the
+# ceiling can only ever fire on output that bypassed `stop()` — which is what a
+# traceback is. Slack here would silently admit the defect this pins.
+_MAX_REFUSAL_LINES = 1
+
+# Each tool prefixes its refusal with `loop-<tool>: stop — `. That prefix is the
+# part that legitimately differs, and it is also what tells a supervising agent
+# WHICH tool refused, so it is required rather than optionally stripped.
+_STOP_MARKER = "stop —"
+
+
+def _refusal_body(stream: str) -> str | None:
+    """The refusal after its `loop-<tool>: stop — ` prefix, or None if absent.
+
+    Returning None rather than the whole stream matters: `split(...)[-1]` yields
+    the input unchanged when the marker is missing, so two tools that had both
+    dropped their prefix would still compare equal.
+    """
+    if _STOP_MARKER not in stream:
+        return None
+    return stream.split(_STOP_MARKER, 1)[-1].strip()
+
+
+def _unresolvable_git_paths(tmp: Path) -> dict[str, Path]:
+    """Two PATH values that each break the `git` lookup a different way.
+
+    Both are an existing directory, never PATH="": an absent or empty PATH sends
+    subprocess to `os.defpath`, where a real /usr/bin/git satisfies the lookup
+    and every case below would pass without reaching the branch at all.
+
+    POSIX-scoped by construction. `unexecutable` relies on exec of a directory
+    failing with EACCES; Windows `CreateProcess` appends `.exe` to an
+    extensionless name, so there the directory is simply not found and this
+    input degenerates into `absent` rather than covering PermissionError. That
+    costs nothing today — this module runs only on ubuntu-latest (the
+    loop-engine gate in `.github/workflows/docs.yml`; the Windows matrix in
+    `build-check-windows.yml` covers agentbundle, credbroker and lock semantics,
+    not this file) — but the caller asserts each input's distinctness rather
+    than assuming it.
+    """
+    absent = tmp / "path-with-no-git"
+    absent.mkdir()
+    # A *directory* named `git` resolves on PATH and then fails to execute:
+    # PermissionError, not FileNotFoundError. Listing only the latter left this
+    # input reproducing the original 2,221-char traceback.
+    unexecutable = tmp / "path-with-unexecutable-git"
+    (unexecutable / "git").mkdir(parents=True)
+    return {"absent": absent, "unexecutable": unexecutable}
+
+
+def test_git_lookup_failure_refuses_boundedly_in_both_tools(tmp: Path) -> None:
+    """A `git` lookup failure is a bounded refusal, identically in both tools.
+
+    `_resolve_spec_dir` is the confinement check every verb passes through, and
+    it catches only ValueError; `main()` catches only GuardsUnavailable and
+    KeyboardInterrupt. So any other exception from `_get_repo_root` is a 33-line
+    traceback — more output than an entire successful run of the loop.
+
+    Two inputs, because the first fix closed one member of the exception class
+    (FileNotFoundError) and left the other (PermissionError) reproducing the
+    defect. Both tools are asserted, and their refusal TEXT is compared rather
+    than just their exit codes: the original defect was drift between two
+    duplicated copies of this helper, so a wording divergence in either
+    direction has to redden here.
+
+    The refusal must also still carry its underlying cause. Without that
+    assertion, collapsing the message to a bare `could not determine repo root`
+    satisfies every other check here while destroying the errno that made the
+    PermissionError input diagnosable at all.
+    """
+    name = "git-lookup-failure-refuses-boundedly-in-both-tools"
+    spec_dir = make_spec_dir(tmp, name)
+    run_engine("init", str(spec_dir), "--mode", "code")
+
+    # Positive control. Without it every assertion below is also satisfied by a
+    # `status` that is broken for some unrelated reason, on empty state or not.
+    rc_ok, _, err_ok = run_engine("status", str(spec_dir), "--json")
+    if rc_ok != 0:
+        fail(name, f"positive control failed — status is broken on its own: {err_ok}")
+        return
+
+    # Each input's OWN errno, so the two cases cannot silently collapse into one.
+    # If a platform ever makes `unexecutable` behave like `absent`, this reddens
+    # rather than quietly halving the coverage.
+    # Delimited, not a bare number: "Errno 2" is a prefix of "[Errno 20] Not a
+    # directory" and "[Errno 21] Is a directory", so an ENOTDIR/EISDIR variant of
+    # the absent case would satisfy the very assertion that exists to keep the
+    # two inputs distinct.
+    expected_cause = {"absent": "[Errno 2]", "unexecutable": "[Errno 13]"}
+
+    for label, bin_dir in _unresolvable_git_paths(tmp).items():
+        if shutil.which("git", path=str(bin_dir)) is not None:
+            fail(name, f"{label}: PATH still resolves an executable git")
+            return
+        env = {**os.environ, "PATH": str(bin_dir)}
+
+        bodies = {}
+        for tool, runner in (("engine", run_engine), ("cohort", run_cohort)):
+            rc, out, err = runner("status", str(spec_dir), env=env)
+            stream = out + err
+            if rc == 0:
+                fail(name, f"{label}/{tool}: accepted a spec-dir it could not confine")
+                return
+            lines = [ln for ln in stream.splitlines() if ln.strip()]
+            if len(lines) > _MAX_REFUSAL_LINES:
+                fail(name, f"{label}/{tool}: refusal grew to {len(lines)} lines: {stream}")
+                return
+            if "could not determine repo root" not in stream:
+                fail(name, f"{label}/{tool}: refusal did not name the failure: {stream!r}")
+                return
+            # The cause, not just the class. A bare `could not determine repo
+            # root` passes every other check here and is undiagnosable.
+            if expected_cause[label] not in stream:
+                fail(
+                    name,
+                    f"{label}/{tool}: refusal dropped its cause "
+                    f"({expected_cause[label]!r} absent): {stream!r}",
+                )
+                return
+            body = _refusal_body(stream)
+            if body is None:
+                fail(name, f"{label}/{tool}: refusal lost its `stop —` prefix: {stream!r}")
+                return
+            bodies[tool] = body
+
+        # The convergence claim, asserted rather than described.
+        if bodies["engine"] != bodies["cohort"]:
+            fail(
+                name,
+                f"{label}: the two copies no longer refuse identically — "
+                f"engine={bodies['engine']!r} cohort={bodies['cohort']!r}",
+            )
+            return
+
+    ok(name)
 
 
 def test_status_json_after_init(tmp: Path) -> None:

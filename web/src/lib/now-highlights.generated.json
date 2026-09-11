@@ -5,6 +5,72 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.13"
+        }
+      ],
+      "date": "2026-09-10",
+      "heading": "[core][2.25.13] — 2026-09-10",
+      "changelogAnchor": "core22513--2026-09-10",
+      "highlights": [
+        {
+          "source": "**A machine that cannot run `git` now gets one line of explanation instead of a stack trace.** Every `loop-engine` and `loop-cohort` command needs `git` to confirm the spec directory sits inside your repository. When `git` could not be run at all — not installed, or a `PATH` entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A machine that cannot run `git` now gets one line of explanation instead of a stack trace."
+            },
+            {
+              "type": "text",
+              "value": " Every "
+            },
+            {
+              "type": "code",
+              "value": "loop-engine"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "loop-cohort"
+            },
+            {
+              "type": "text",
+              "value": " command needs "
+            },
+            {
+              "type": "code",
+              "value": "git"
+            },
+            {
+              "type": "text",
+              "value": " to confirm the spec directory sits inside your repository. When "
+            },
+            {
+              "type": "code",
+              "value": "git"
+            },
+            {
+              "type": "text",
+              "value": " could not be run at all — not installed, or a "
+            },
+            {
+              "type": "code",
+              "value": "PATH"
+            },
+            {
+              "type": "text",
+              "value": " entry shadowing it with something unexecutable — the command ended in a 33-line Python trace that also printed internal file paths, more output than a whole successful run of the loop. Both tools now answer that situation the same way, in one line."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.12"
         }
       ],
