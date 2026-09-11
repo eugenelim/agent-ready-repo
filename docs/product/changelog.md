@@ -54,6 +54,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.18] — 2026-09-12
+
+### Changed
+
+- The shaping reviewer's `intent` mode now checks whether an intent is
+  well-formed instead of reviewing its craft. It asks six questions — is the
+  statement an outcome rather than a solution, are non-goals present, is the
+  riskiest assumption named, is the altitude consistent with the parent, do the
+  children partition the parent, is the owner the artifact's own — and answers
+  with one `MALFORMED(<field>)` token per failed question, or nothing at all.
+  The 17-row failure-mode table stays with `delivery-brief` and `spec` mode,
+  which review contracts.
+- `MALFORMED(owner)` is emitted alone and suppresses the other five tokens: a
+  wrong owner outranks everything else, and the rest of the artifact is not the
+  reviewer's to assess until it is settled.
+- A condition the supplied packet cannot settle emits its token rather than
+  passing quietly, so an intent whose parent was never supplied cannot pass the
+  altitude or children question by default.
+- The adversarial reviewer gains an optional `intent` mode that attacks a bet
+  instead of auditing an artifact. It returns an open question with a named
+  decider, or a validation hook — a kill condition plus the real-world activity
+  that would trigger it — and nothing else. Having nothing to say returns empty,
+  which is a complete answer here.
+- `intake-intent` now reads "no `MALFORMED` token" plus your explicit
+  confirmation as the gate for `Accepted`, and records the revision it
+  dispatched itself. A dispatch that starts and dies gets its own receipt
+  instead of borrowing the one that means no independent reviewer was available.
+
+### Highlights
+
+- Shaping an intent no longer draws spec-grade craft findings on a
+  four-paragraph artifact. The intent review answers one question — is this
+  well-formed enough to shape further — in a vocabulary that cannot express a
+  rewrite of your bet.
+- A second, optional read attacks the bet itself and may only hand back an open
+  question with a named decider or a kill condition with its real-world trigger.
+  It cannot ask you to reword anything, and an empty answer is a real answer.
+
+## [product-engineering][0.13.11] — 2026-09-11
+
+### Changed
+
+- `frame-intent` reads the intent review's `MALFORMED` tokens, owns the revision
+  binding an empty pass cannot carry, and may dispatch the adversarial reviewer's
+  `intent` mode as a second, advisory read that settles no status.
+- `de-risk-intent` states that it never dispatches the adversarial reviewer.
+  Naming the riskiest assumption and predeclaring its kill condition is the work
+  this skill is accountable for; a reviewer handing it a hook would leave it
+  marking that reviewer's homework rather than taking a verdict.
+
+### Highlights
+
+- After framing an intent, you can have the bet attacked rather than the wording
+  reviewed — and whatever comes back is advisory, so it never moves the intent's
+  status on its own.
+
 ## [core][2.25.17] — 2026-09-12
 
 ### Fixed
