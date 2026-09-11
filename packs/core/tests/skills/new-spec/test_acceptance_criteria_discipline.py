@@ -310,6 +310,30 @@ def test_spec_review_accepts_only_exact_clean_before_adjudication() -> None:
     assert "Reuse its reachability predicate; do not restate or reimplement it here" in body
 
 
+def test_a_later_review_round_is_bounded_to_the_delta() -> None:
+    """A review loop that re-presents unchanged text runs at a flat rate.
+
+    Measured on this repository's own contract: five rounds dispatched over the
+    same full diff each found a new slice of one static surface, and the raised
+    count never trended down. The bound is what makes the loop's input shrink,
+    so the rule is pinned rather than left to whoever dispatches.
+    """
+    body = flattened(SKILL)
+    step = body.split("7. Spec-mode adversarial review.", 1)[1].split(
+        "8. Update `docs/specs/README.md`", 1
+    )[0]
+    for clause in (
+        "bounded to the delta since the previous persisted report",
+        # the soundness condition, without which the bound hides defects
+        'sound exactly while the claim "the unchanged text was reviewed" is',
+        # repairs generate the next round's findings, so they are never exempt
+        "the delta includes the repair commits",
+        # and the fallback where no delta exists
+        "reduce the surface instead by naming the artifacts under review",
+    ):
+        assert clause in step, f"step 7 lost the delta bound: {clause!r}"
+
+
 def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
     """The gateway must supply the adjudicator's validated path inputs."""
     body = flattened(SKILL)

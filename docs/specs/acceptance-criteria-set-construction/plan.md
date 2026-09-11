@@ -783,7 +783,12 @@ in the same commit
   whole skill file, so a rule moved out of the plan step would otherwise stay
   green. The rules already located in the skill's plan step, which shipped ahead
   of this contract, are a recorded deviation, and this task closes it by bringing them under the spec
-  rather than re-shipping them. **What is owed is read, never counted:** every
+  rather than re-shipping them. **Constraint on the field-authority rule:** assert
+  that the plan step states which fields a completion gate reads *and* which are
+  working material, naming both sets — prose naming only the pinned half leaves
+  an implementer unable to tell whether correcting `Grounding` needs an
+  amendment, which is the question the rule exists to settle.
+  **What is owed is read, never counted:** every
   rule the criterion enumerates that has no prose in the plan step must be
   written, and every one with no pinned entry must gain one. This bullet has now
   twice carried a count of the gap that was false by the round that read it —
@@ -1500,6 +1505,18 @@ is evidence about the check.
 - **The recorded run is a small sample.** Three cases, one attempt each, is the
   gate the brief specifies and not a general claim. Mitigation: record it as
   three samples and make no portable claim in shipped text.
+
+## Shipped ahead of a criterion, deliberately
+
+- **The delta bound on a later review round** (`SKILL.md` step 7) is shipped
+  prose that no criterion in this spec authorises, and that is the correct
+  placement rather than an omission: the rule is about review dispatch
+  economics, which
+  [work-loop review economics](../../product/intents/work-loop-review-economics.md)
+  owns, not about acceptance-criteria set construction. It is recorded here
+  because AC-0024 requires shipped behaviour no criterion covers to be brought
+  under one or cut, and naming the owner is the third answer — routed, with the
+  route stated. A pin in the discipline suite stops it being deleted silently.
 
 ## Open decisions
 

@@ -163,6 +163,12 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         (
             "It may change substantively only while its Status is `Drafting`",
             "After approval, `spec.md` and `plan.md` are pinned in substance",
+            # The authority layering: only the gate-read fields are pinned, and
+            # the working-material fields are correctable without an amendment.
+            # Without this phrase the template can silently lose the distinction
+            # that keeps a review off prose no gate consumes.
+            "`Touches`, `Tests` and `Done when` are what a completion gate reads",
+            "`Grounding` stays *recorded*",
         ),
         (
             "execution observations belong in `docs/specs/<feature>/notes/verification-ledger.md`",

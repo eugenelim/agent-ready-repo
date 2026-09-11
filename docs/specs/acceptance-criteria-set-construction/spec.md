@@ -361,7 +361,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       since a closing condition that omits one closes green while that command
       reds — and a second copy of the list is itself the drift this rule was
       written after; a `Tests`-outruns-`Approach` ratio is read before
-      it is cut; a stated mutation is executed and its red recorded, because
+      it is cut; the fields a completion gate reads — `Touches`, `Tests`,
+      `Done when` — are contract while `Design`, `Approach`, `Grounding` and
+      `Risks` are working material an implementer corrects in place, because
+      treating every field as contract spends review rounds on prose no gate
+      consumes; a stated mutation is executed and its red recorded, because
       describing a mutation is not performing one and a criterion whose required
       mutation nobody ran stays green while the thing it pins is deleted; a task
       added after these rules landed is walked against all of them in the round
