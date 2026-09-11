@@ -300,11 +300,11 @@ def _runner_patterns(seed: str) -> list[re.Pattern[str]]:
     """How a runner might name this seed: itself, or a directory just above it.
 
     Two calibrations, both learned by getting it wrong. **Depth floor:** only
-    ancestors of three segments or more, because `docs` or `packs` appears in
-    every workflow and matching them reports nine gates for an architecture
-    document. **Right boundary:** an ancestor must not be followed by another
-    path character, or `packs/core/tests/skills` matches every sibling suite
-    under it.
+    ancestors of three segments or more, because a single top-level name appears
+    in every workflow and matching one reports every gate in the repository for
+    an ordinary document. **Right boundary:** an ancestor must not be followed
+    by another path character, or a three-segment prefix such as
+    `src/lib/tests` matches every sibling suite under it.
     """
     parts = seed.split("/")
     # The seed itself is always eligible however shallow it sits; the depth floor

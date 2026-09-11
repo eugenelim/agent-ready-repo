@@ -86,12 +86,18 @@ MALFORMED = re.compile(r"\b(?:AC|VI)-(?!\d{4}\b)[A-Za-z0-9]+\b")
 # eliminate, reappearing inside rule 5.
 TASK = re.compile(r"^### (T\d+)\b(.*?)(?=^### T\d+\b|^## |\Z)", re.M | re.S)
 # A field block ends at the next *field label* -- bold, capitalised, colon --
-# not at any bold capital. `**AC-0035.**` opens a case bullet, not a field, and
-# treating it as a boundary truncated a task's Tests block at its first bullet.
+# not at any bold capital. A bold identifier such as `**XX-0000.**` opens a case
+# bullet, not a field, and treating it as a boundary truncated a task's Tests
+# block at its first bullet.
 ENTRY = re.compile(r"\*\*(?:Tests|Done when):\*\*(.*?)(?=\n\*\*[A-Z][A-Za-z ]*:\*\*|\Z)", re.S)
 # Fenced blocks carry backticks whose count says nothing about the prose around
 # them, so they come out before a span is matched.
 FENCE = re.compile(r"^```.*?^```", re.M | re.S)
+# A run of three or more written inline is a fence *token* quoted in prose, not a
+# span delimiter: markup with no matching run of equal length renders it
+# literally. Removing it before matching is what separates "this entry is
+# broken" from "this entry mentions a fence".
+INLINE_FENCE = re.compile(r"`{3,}")
 RUN = re.compile(r"`+")
 GROUP_ITEM = re.compile(r"^- \*\*(.+?)\*\*", re.M | re.S)
 RETIRED_HEADING = re.compile(r"^## Retired identifiers\s*$", re.M)
@@ -149,12 +155,16 @@ def unterminated(entry: str) -> bool:
     """True when a code span in this entry is opened and never closed.
 
     Backtick *runs* are matched the way the markup delimits a span -- a span
-    opens on a run of N and closes on the next run of exactly N. Counting
-    backticks instead reports a doubled delimiter and a fence inside a search
-    pattern, both legitimate; measured over a real plan corpus, counting flagged
-    three valid entries for every genuine one.
+    opens on a run of N and closes on the next run of exactly N -- rather than
+    counted. A run of three written inline in prose ("a fenced ```python
+    example") is the common case and is *not* a broken span: with no matching
+    run of the same length the markup leaves it literal, so it renders exactly
+    as written. Counting backticks reports it, and so did matching runs until an
+    inline fence token was removed first; that single shape was the only hit
+    either predicate produced over a 3681-entry corpus, and it was wrong both
+    times.
     """
-    return _spans_open(FENCE.sub("", entry))
+    return _spans_open(INLINE_FENCE.sub("", FENCE.sub("", entry)))
 
 
 def _spans_open(text: str) -> bool:
@@ -204,18 +214,37 @@ def criterion_spans(spec: str) -> list[str | None]:
     return spans
 
 
+def _entry_lines(plan: str) -> set[int]:
+    """The 1-indexed lines inside a task's ``Tests:`` or ``Done when:`` block.
+
+    An assertion only ever lives in one of those two blocks. Crediting a change
+    anywhere in the document reproduces the mention-anywhere defect rule 5 was
+    scoped to eliminate: a changelog bullet naming a criterion silenced this
+    rule for eight of them on the contract it was written for.
+    """
+    inside: set[int] = set()
+    for task in TASK.finditer(plan):
+        body, base = task.group(2), plan[: task.start(2)].count("\n") + 1
+        for entry in ENTRY.finditer(body):
+            first = base + body[: entry.start()].count("\n")
+            inside.update(range(first, first + entry.group(0).count("\n") + 1))
+    return inside
+
+
 def _plan_owners(plan: str, changed: set[int]) -> set[str]:
-    """Which criteria the changed plan lines belong to.
+    """Which criteria the changed assertion lines belong to.
 
     A changed line is credited to the criteria named by the bullet it sits
     under, not only to the criteria spelled on the line itself. An added
     constraint is normally written beneath the bullet that already names the
     identifier, so reading the line alone reports a criterion whose assertion
     did in fact follow -- the false alarm this rule cannot afford, since its
-    whole value is that it never cries wolf.
+    whole value is that it never cries wolf. The scope is the assertion blocks,
+    for the reason ``_entry_lines`` records.
     """
     owners: set[str] = set()
     current: set[str] = set()
+    entries = _entry_lines(plan)
     for number, line in enumerate(plan.splitlines(), 1):
         stripped = line.lstrip()
         # Only a line-initial field label is a boundary. An *indented* bold
@@ -228,7 +257,7 @@ def _plan_owners(plan: str, changed: set[int]) -> set[str]:
             current = set(CRITERION_REF.findall(line))
         elif not stripped:
             current = set()
-        if number in changed:
+        if number in changed and number in entries:
             owners.update(current or CRITERION_REF.findall(line))
     return owners
 
