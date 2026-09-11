@@ -466,6 +466,10 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     print(f"scanned suffixes: {len(suffixes)} — {suffix_basis}"
           + (f"; skipped {oversize} file(s) past the size bound" if (oversize := _oversize(files)) else ""))
     print(f"phase probes: {', '.join(probes)}")
+    # A bound that filters results names itself on every run, not only on the
+    # runs whose probe set consumes it: a reader cannot tell a filtered-out
+    # partner from an absent one, and the criterion promises the value either way.
+    print(f"minimum co-occurrences {co_min} — a partner below this is filtered out")
     if "surfaces" in probes:
         print("grounding surfaces:")
         for row in surface_inventory(root):
@@ -582,7 +586,6 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     status, ranked = co_change(root, seeds, co_min, sweep)
     print(f"\n=== co-change over all {len(seeds)} seed(s)")
     print(f"  sweep-commit threshold {sweep} — {sweep_basis}")
-    print(f"  minimum co-occurrences {co_min} — a partner below this is filtered out")
     _emit("partners", status,
           [f"{name}   {count} commits, confidence {ratio:.2f}" for name, count, ratio in ranked],
           cap)

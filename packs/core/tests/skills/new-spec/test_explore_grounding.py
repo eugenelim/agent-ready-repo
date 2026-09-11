@@ -310,6 +310,34 @@ def test_confinement_holds_on_the_tracked_set_branch(root):
         outside.unlink(missing_ok=True)
 
 
+def test_the_phrase_cutoff_reports_a_derived_basis(root):
+    """The other half of AC-0035's derive-rather-than-fix claim.
+
+    Only `calibrate_sweep`'s p90 branch had a case; `calibrate_cutoff` could
+    return its default unconditionally with the suite still green, so one of the
+    two thresholds the criterion names was unverified. The fixture is sized to
+    enter the branch: 50+ scanned files and 8+ matched phrases.
+    """
+    seed = _seeded(root)
+    lines = [f"A sampled sentence number {i} that is comfortably long enough to matter."
+             for i in range(14)]
+    (root / seed).write_text("# Seed\n\n" + "\n".join(lines) + "\n", encoding="utf-8")
+    for index in range(60):
+        (root / f"n{index}.md").write_text("\n".join(lines[: 1 + index % 12]) + "\n",
+                                           encoding="utf-8")
+    out = _run(root, seed)
+    line = next((l for l in out.splitlines() if "cutoff" in l), "")
+    assert "p75 of" in line, f"the cutoff must report a derived basis:\n{out}"
+
+
+def test_the_co_occurrence_minimum_is_reported_in_every_phase(root):
+    """A bound that filters results names itself even where nothing consumes it."""
+    seed = _seeded(root)
+    for phase in ("discovery", "task", "review", "all"):
+        out = _run(root, seed, extra=["--phase", phase])
+        assert "minimum co-occurrences" in out, f"{phase} omits the filtering bound:\n{out}"
+
+
 def test_calibration_does_not_carry_between_seeds(root):
     """Regression: the cutoff was reassigned inside the per-seed loop.
 

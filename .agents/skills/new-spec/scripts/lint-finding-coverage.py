@@ -157,9 +157,15 @@ def main(argv: list[str] | None = None) -> int:
     subjects = [s.resolve() for s in args.subject]
     if args.discover:
         base = args.discover.resolve()
+        # `catalogue(p) is not None` admits a subject that declares a catalogue;
+        # `catalogue(p) is None` admits one that could not be read. Filtering on
+        # truthiness dropped the second silently, so the unreadable finding was
+        # unreachable in exactly the mode that scans a tree the caller has not
+        # inspected.
         subjects += sorted(
             p for p in base.rglob("*.py")
-            if not p.is_symlink() and "test" not in p.name and catalogue(p)
+            if not p.is_symlink() and "test" not in p.name
+            and (catalogue(p) is None or catalogue(p))
         )
     for subject in subjects:
         if root != subject and root not in subject.parents:

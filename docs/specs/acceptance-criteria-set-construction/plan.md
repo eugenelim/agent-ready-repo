@@ -375,12 +375,10 @@ in the same commit
   both read them.
 - Keep every shape and diagnosis question as a citation.
 
-**Done when:** every Tests bullet above is landed as an assertion, and both
-`python3 -m pytest packs/core/tests/skills/new-spec -q` and
-`python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and py tests/roster/test_rfc0099_activation_coverage.py -q`
 are green. The roster command is named here because this task's own `Tests` calls
 it load-bearing, and a closing condition that omits it closes green while it
-reds. A green suite missing one of the bullets does not close this task.
+reds. A green suite missing one of the bullets does not close this task, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
 
 ### T2: The guide publishes the set-construction section
 
@@ -462,7 +460,7 @@ reds. A green suite missing one of the bullets does not close this task.
 - No `guide-nav-baseline.toml` row: that registry is transitional and shrinking,
   and a page with `title:` frontmatter needs none.
 
-**Done when:** every Tests bullet above passes. The validators alone are not
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the validators alone are not
 sufficient — they are frontmatter and link gates, so a page passing only them
 can be missing both guide outcomes.
 
@@ -478,6 +476,9 @@ in the same commit
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   the per-case assertions below.
+- `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q`
+  — this task's Grounding records its byte-equality pin over the eval register
+  and both projections; without the command that pin is recorded and never run.
 - **AC-0019 and AC-0020** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
@@ -533,8 +534,7 @@ in the same commit
   nothing in `Tests` observes irreducibility, so the criterion no longer claims
   it.
 
-**Done when:** every Tests bullet above passes, each having been red before the
-entries landed and green after, and the full pack suite is green.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the task's own conditions hold, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
 
 ### T4: The recorded run discharges the delivery gate
 
@@ -576,8 +576,7 @@ entries landed and green after, and the full pack suite is green.
 - A smaller set obtained by losing a distinct obligation or guardrail is a
   failure, not a pass — record it as one and stop rather than re-running.
 
-**Done when:** every Tests bullet above is discharged for all three cases and
-recorded in `notes/verification-ledger.md` — the single home
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and md` — the single home
 `docs/CONVENTIONS.md` gives an execution-produced observation, so the run cannot
 land beside the ledger as a second copy — and all three pass. A pass on one graded rank does not
 close this task, and the count closes nothing.
@@ -601,6 +600,12 @@ close this task, and the count closes nothing.
   against the base ref rather than against a number recorded here, because a
   literal decays between authoring and execution — this one moved from 433 to
   435 during the delivery.
+- `python3 tools/build-site.py --journeys-only` then
+  `python3 -m pytest tools/test_build_site_routing.py -k now -q` — the `/now/`
+  projection this task's `Touches` names. `docs/product/AGENTS.md` requires both
+  in the same change as a `### Highlights` block, and the staleness check passes
+  silently on a dropped paragraph, so the regeneration is a command here rather
+  than a note under Grounding.
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — every assertion the
   five skill-editing tasks landed. Re-run here because no required remote gate
   reaches this suite, so T5 is the last point at which a red is visible before
@@ -679,8 +684,7 @@ close this task, and the count closes nothing.
   `work-loop-delivery-efficiency` is `Accepted` and stays out of every
   collection: the reconciler rejects a terminal Accepted intent.
 
-**Done when:** every Tests bullet above passes, including
-`tests/roster/test_acceptance_criteria_guide_boundary.py` carrying the
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and py` carrying the
 cross-surface sweep with its mutation proof recorded and restored, and
 `make build-self` leaves no drift.
 
@@ -805,7 +809,7 @@ in the same commit
 - Widen the existing deletion pass in place. A second pass beside it would put
   two homes on one obligation.
 
-**Done when:** every Tests bullet above passes.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the task's own conditions hold, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
 
 ### T7: The spec template emits identified criteria
 
@@ -821,6 +825,11 @@ in the same commit
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   the assertions below. The asset sits inside `packs/core`, so this check crosses
   no pack-test boundary and stays pack-local, unlike T2's and T5's.
+- `python3 -m pytest tests/roster/test_verification_ledger_contract.py -q` — that
+  module pins exact phrases inside `assets/plan.md`'s plan-contract, `Done when`
+  and changelog regions, and this task edits that file. The pack-local suite
+  cannot reach it, so a red this task causes would otherwise be invisible to its
+  own gate.
 - **AC-0030, the convention.** Assert `assets/spec.md` states each property
   separately — opaque, append-only, spec-directory scoped, assigned once, never
   renumbered on insertion or reorder, never reused after removal, removals
@@ -906,8 +915,7 @@ in the same commit
 - Adopt it forward-only. The 442 existing spec directories are not renumbered —
   the same basis on which ADR numbering was introduced here.
 
-**Done when:** every Tests bullet above passes and `make build-self` leaves no
-drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and `make build-self` leaves no drift.
 
 ### T8: The skill ships its own alignment checker
 
@@ -991,10 +999,7 @@ in the same commit
   duplicating them here would put two homes on one obligation.
 - Skip-when-unlabelled is the first condition, not a late guard.
 
-**Done when:** every Tests bullet above passes for AC-0033, the AC-0032 ADR edit
-is landed and asserted at repository level, the invocation is referenced from the
-skill, the mutation proof is recorded and restored, and
-`make build-self` leaves no drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the AC-0032 ADR edit is landed and asserted at repository level, the invocation is referenced from the skill, the mutation proof is recorded and restored, and `make build-self` leaves no drift.
 
 ### T9: The skill ships its grounding explorer and its coverage check
 
@@ -1070,6 +1075,25 @@ in the same commit
 
 **Tests:** `python3 -m pytest packs/core/tests/skills/new-spec/test_explore_grounding.py -q`
 
+- `python3 -m pytest packs/core/tests/skills/new-spec/test_lint_finding_coverage.py -q`
+  — AC-0037's suite. Named here because `Tests` is what a completion gate reads
+  and `Approach` is not, which is this contract's own rule.
+
+- **AC-0037, the finding-coverage check.** Assert each rule with a fixture skill
+  tree rather than this repository's layout: a covered subject is clean; an
+  unobserved rule is named; a subject declaring no catalogue is skipped and
+  counted; **a discovery scan finding no participant fails rather than passes**,
+  which is the vacuous-pass guard and the defect the check exists to detect one
+  level up; a catalogue with no suite is a finding naming the directories
+  considered; the searched directories are named on a clean report too; the
+  repository-wide tests tree is a fallback and not a widener, or a fragment
+  observed by an unrelated suite reads as covered; an unparseable subject is
+  reported rather than counted as a non-participant; and the catalogue is parsed
+  rather than imported, proven by a subject whose import would leave a marker.
+  **Constraint:** the suite is found at more than one depth. An installed skill,
+  a pack in a catalogue and a loose script sit at different distances from their
+  tests, and guessing one finds nothing in the other two, silently.
+
 **AC-0035.** Every bullet below is one of its cases. Each probe that can fail
 open — one reading a seed's text, a runner set or history — gets a positive, a
 negative and an unavailable case. The two reading the tree itself, scoped
@@ -1134,24 +1158,7 @@ is evidence about the check.
   matches from twenty unrelated files and never found a real owner. Recorded as
   tried and cut, not as an oversight.
 
-- **AC-0037, the finding-coverage check.** Assert each rule with a fixture skill
-  tree rather than this repository's layout: a covered subject is clean; an
-  unobserved rule is named; a subject declaring no catalogue is skipped and
-  counted; **a discovery scan finding no participant fails rather than passes**,
-  which is the vacuous-pass guard and the defect the check exists to detect one
-  level up; a catalogue with no suite is a finding naming the directories
-  considered; the searched directories are named on a clean report too; the
-  repository-wide tests tree is a fallback and not a widener, or a fragment
-  observed by an unrelated suite reads as covered; an unparseable subject is
-  reported rather than counted as a non-participant; and the catalogue is parsed
-  rather than imported, proven by a subject whose import would leave a marker.
-  **Constraint:** the suite is found at more than one depth. An installed skill,
-  a pack in a catalogue and a loose script sit at different distances from their
-  tests, and guessing one finds nothing in the other two, silently.
-
-**Done when:** every Tests bullet above passes for AC-0035 and AC-0037, the
-phrase-cutoff, portability and gates-unavailable mutation proofs are recorded and
-restored, and `make build-self` leaves no drift.
+**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the phrase-cutoff, portability, gates-unavailable and cutoff-derivation mutation proofs are recorded and restored, and `make build-self` leaves no drift.
 
 ## Rollout
 
@@ -1235,6 +1242,15 @@ restored, and `make build-self` leaves no drift.
   ADR-0037 D2 naming `grounding.toml`, and repository-context-anchoring already
   owning guidance discovery — came from seeding by surfaces, and both changed
   criteria.
+- 2026-09-11: grounded-cycle round 5 raised eleven findings — ten sustained,
+  none refuted, one indeterminate pending an owner decision on whether the three
+  scripts' invocation surface is a published interface. Four of the seven
+  blockers were one class: a `Done when` omitting a command its own `Tests`
+  calls load-bearing. Sweeping all nine tasks found **eight** of them affected
+  and seventeen missing commands, against the four the reviewer named — so the
+  response was repair-the-generator rather than four repairs. The rule now
+  admits a *reference* to the `Tests` list instead of a second copy of it,
+  because a duplicated list is the drift the rule was written after.
 - 2026-09-11: grounded-cycle round 4 raised thirteen findings — twelve sustained,
   none refuted, one indeterminate only because the `/now/` projection was
   regenerated while adjudication ran, so the adjudicator read the repaired file.

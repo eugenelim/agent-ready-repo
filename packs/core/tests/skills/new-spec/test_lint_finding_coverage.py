@@ -169,6 +169,24 @@ def test_a_subject_that_cannot_be_parsed_is_reported_not_counted_as_a_skip(root)
     assert "Traceback" not in result.stderr
 
 
+def test_discovery_mode_reports_an_unreadable_subject(root):
+    """The unreadable branch was unreachable in the mode that scans blind.
+
+    Discovery filtered candidates on a truthy catalogue, and an unparseable file
+    reads as falsy — so the one mode scanning a tree the caller has not inspected
+    was the one that could not report a file it could not read.
+    """
+    subject = _skill(
+        root, "packs/demo/tests/skills/widget",
+        'def test_a():\n    assert "the alpha rule fired" in out\n'
+        'def test_b():\n    assert "the beta rule fired" in out\n')
+    (subject.parent / "broken.py").write_text("def x(:\n", encoding="utf-8")
+    result = _run(root, "--discover", str(root / "packs"))
+    assert result.returncode == 1, result.stdout
+    assert "could not be parsed" in result.stdout
+    assert "1 unreadable" in result.stdout
+
+
 def test_the_searched_directories_are_named_on_a_clean_report(root):
     """Silence about the candidate set is what turns a heuristic into a false clean."""
     subject = _skill(

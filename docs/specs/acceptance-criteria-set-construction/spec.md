@@ -14,8 +14,10 @@
 
 ## Objective
 
-**Scope, widened by owner decision on 2026-09-10.** This spec covers three
-authoring moves on the loop contract, not one. Two were added because the same
+**Scope, widened by owner decision on 2026-09-10, and again since.** This spec
+covers the authoring moves the criteria below deliver, not one. It states no
+count: the set has grown four times during this delivery, and a numeral here
+becomes a second statement of what the criteria already say. Two were added because the same
 defect produced all three: the skill tells an author what a finished artifact
 must look like and never what move to make, so an author selects by instinct,
 places facts by habit, and answers every finding by repairing it. The added
@@ -31,8 +33,8 @@ blocks shipment *and* whose observing surface the author can name, attach one
 positive and one disconfirming scenario per admitted obligation, route every
 rejected candidate to a named owner — including, for an obligation whose
 content only the build can settle, a discovery predicate in the plan rather than
-an answer invented at approval time — then run a set-level necessity, uniqueness,
-consistency, joint-feasibility and coverage pass.
+an answer invented at approval time — then run the set-level pass whose members
+AC-0009 enumerates.
 
 The procedure is a **self-check the author runs while authoring**, not a gate
 another party applies afterwards. Its load-bearing move is that a criterion is
@@ -312,9 +314,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       the design unless a task must implement or verify it; a `Done when` points
       at its own `Tests`; an obligation a completion gate must read belongs in
       `Tests` rather than `Approach`; a claim about a check names the comparison
-      its oracle performs; a `Done when` names every command its own `Tests`
-      calls load-bearing, since a closing condition that omits one closes green
-      while that command reds; a `Tests`-outruns-`Approach` ratio is read before
+      its oracle performs; a `Done when` closes on every command its own
+      `Tests` names, by reference to that list rather than by restating it,
+      since a closing condition that omits one closes green while that command
+      reds — and a second copy of the list is itself the drift this rule was
+      written after; a `Tests`-outruns-`Approach` ratio is read before
       it is cut; and a whole-plan walk precedes review.
 - [ ] **AC-0023.** The skill's review step names the responses available to a sustained
       finding — repair the artifact, narrow the claim to what its check reaches,
