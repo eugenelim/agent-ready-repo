@@ -188,7 +188,65 @@ data classes: the host's attributes include `user.id`, `user.email`, and
 path and no identity at all. Combining them in one view combines their
 disclosure, so that is an operator's decision to make deliberately.
 
-### 7.4 How an exporter would be configured
+### 7.4 What these metrics can evaluate
+
+Evaluation in this repository happens at two times, and telemetry serves only
+one of them. Keeping them apart is the whole of this section.
+
+**Build-time evaluation** runs before anything ships, against fixtures whose
+answers are known. Activation sets ask whether a skill fires on the prompts it
+should and stays quiet on the ones it should not. Judge rubrics score output
+against a recorded expectation. Frozen cases grade a procedure against a
+prepared input. All of them share one property: **a reference answer exists**,
+which is what lets them return a verdict and gate a release.
+
+**Runtime evaluation** watches real runs, where no reference answer exists. A
+real delivery run has no expected output to compare against — if it did, the
+run would be unnecessary. This is the only kind telemetry can serve, and its
+questions are therefore about *populations and change*, never about whether one
+run was correct.
+
+Five runtime questions these signals can answer:
+
+| Question | Signals | Shape |
+| --- | --- | --- |
+| Is this run unlike the population? | `phase_s`, round counts | anomaly |
+| Has the loop degraded since a change? | the same, over time | regression |
+| Did an intervention work? | before/after on the same measures | effect |
+| Is a run in trouble right now? | `phase_s` past threshold, `budgets` near cap, `waived` | operational |
+| Where does elapsed time go? | `phase_s` split by `awaiting_input` | attribution |
+
+The fifth is the cost handle. Time in a state that waits on a human costs
+nothing; time in implementation or review costs tokens. `awaiting_input` is
+what separates the two, so elapsed-time-excluding-human-wait is a better cost
+proxy than elapsed time, and review rounds — the expensive unit — are counted
+exactly.
+
+**What runtime telemetry structurally cannot do.** It cannot say a run produced
+a good artifact. There is no oracle at runtime; correctness is established by
+build-time fixtures, by the gates, and by human review. A metric that appears
+to grade quality from runtime data alone is measuring a proxy and should name
+it as one.
+
+**On trajectory.** A trajectory evaluation scores an actual path against an
+expected one — which makes it build-time by construction, because the
+expectation is the reference. At runtime there is no expected path to compare
+against, and two further properties make the comparison unnecessary here: the
+state machine already refuses an illegal transition, so an invalid path cannot
+occur; and many legal paths are equally correct, because rework is a designed
+edge rather than a deviation. What runtime data supports is trajectory
+*description* — how often a run returns to drafting, how rounds distribute —
+which characterises a population and diagnoses an outlier. It does not grade a
+run, and calling it an evaluation would imply a pass mark that nothing here
+can issue.
+
+**Non-goal.** None of this is a tuning target. Under optimisation pressure an
+automated loop converges on the evaluation boundary rather than the task
+boundary, and this loop is agent-driven and can read its own measurement design
+from the repository. These signals exist to diagnose; the moment one becomes a
+target it stops measuring delivery and starts measuring compliance.
+
+### 7.5 How an exporter would be configured
 
 Configuration uses the mechanism this repository already has for adopter-owned
 pack settings; it does not need a new one.
@@ -252,4 +310,4 @@ a path reasoned about. Only the install-time append ever writes a layout file.
 
 ## 10. Last verified against commit
 
-`fd97e58c0`
+`831f8e92f`
