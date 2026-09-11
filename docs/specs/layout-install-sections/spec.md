@@ -74,20 +74,47 @@ declares, so the install and the skill agree on the first try.
 
 ## The append is best-effort maintenance
 
-One property governs every state below, and the criteria derive from it rather
-than each deciding it again.
+The append is optional maintenance on a file the adopter owns. It **never
+raises and never fails the install**: it returns, having written one table or
+nothing, and the install's exit status and projected files are the same either
+way. This is scoped to the layout append alone — `_append_install_marker`
+shares its call site and stays fatal, because it is what uninstall and `adapt`
+read.
 
-The append is optional maintenance on a file the adopter owns. It therefore
-**never raises and never fails the install**: it returns, having either written
-one table or written nothing, and the install's exit status and projected files
-are the same either way. When it declines, it says so on stderr — except for
-the three states that are the contract working, where a message would be noise
-on the majority of installs.
+Stating that property was not enough on its own: two review rounds produced
+states that claimed two verdicts, or none. So the reachable states are
+enumerated here, **evaluated in this order**, and every criterion below refers
+to this table rather than re-deciding a state.
 
-This is scoped to the layout append alone. `_append_install_marker` shares its
-call site and its `try`, and stays fatal: the marker is what uninstall and
-`adapt` read, so a swallowed marker failure reports success while leaving no
-record of the install.
+| # | State | Verdict |
+| --- | --- | --- |
+| 1 | No `agentbundle-layout.toml` at the scope | silent |
+| 2 | Pack declares neither, or only one, of `section` and `output_dir` | silent |
+| 3 | `section` is outside `^[a-z0-9][a-z0-9-]*$` | report |
+| 4 | `output_dir` resolves outside the scope's confinement root | report |
+| 5 | The layout path is a symbolic link | report |
+| 6 | The file or the user-state directory cannot be opened | report |
+| 7 | The file cannot be decoded as UTF-8 | report |
+| 8 | The file cannot be parsed as TOML | report |
+| 9 | The declared section is already present as a table | silent |
+| 10 | The declared name is present as a scalar or array of tables | report |
+| 11 | Otherwise: append. The write itself fails | report |
+| 12 | Otherwise: append succeeds | one table written |
+
+**Silent** means write nothing and emit no diagnostic. **Report** means write
+nothing and write one line to stderr naming the layout file's path and the
+section not written. No state raises.
+
+Order carries two decisions. Manifest faults (3, 4) precede file-state checks,
+so a pack whose declaration is wrong is reported even on a re-install where
+state 9 would otherwise be silent. And state 6 covers the read side, including
+`safety.user_state_path` failing before the file-existence check — today the
+call site's wide `except` absorbs that as a failed install, and narrowing it
+without state 6 would turn it into an uncaught traceback.
+
+The three silent states are the contract working: 1 and 2 on the majority of
+installs, 9 on every re-install of a configured pack. A diagnostic there is
+noise.
 
 ## Acceptance Criteria
 
@@ -109,36 +136,39 @@ record of the install.
   terminator, matching the style the file already uses, or `\n` when it carries
   none. The appended table's own line terminators match that same style, so a
   CRLF file does not end in mixed endings. The admitted styles are LF and CRLF;
-  a lone-CR file is refused under AC4 rather than appended to.
+  a lone-CR file is refused under AC4 rather than appended to. A file mixing
+  LF and CRLF takes the style of its last terminator, so the oracle is
+  derivable rather than chosen by the implementer.
 
-- [ ] **AC4 — Three error states refuse and report.** A file that cannot be
-  decoded as UTF-8, a file that cannot be parsed, and a top-level name already
-  taken by a scalar or an array of tables each leave the file byte-identical
-  and write a reason to stderr naming the layout file's path and the section
-  that was not written.
+- [ ] **AC4 — Every reporting state reports, and writes nothing.** Each state
+  the table marks *report* leaves the file byte-identical and writes one stderr
+  line naming the layout file's path and the section not written. The states
+  are exercised individually, so a handler covering one does not stand in for
+  another.
 
-- [ ] **AC5 — Every designed no-op is silent.** Three states write nothing and
-  emit no diagnostic: no `agentbundle-layout.toml` at the scope; the declared
-  section already present as a table; a pack declaring neither or only one of
-  `section` and `output_dir` for that scope. Each is the contract working — the
-  first and third on the majority of installs, the second on every re-install
-  of an already-configured pack — so a diagnostic there is noise, not
-  reporting.
+- [ ] **AC5 — Every silent state is silent.** Each state the table marks
+  *silent* writes nothing and emits no diagnostic on any stream. A state
+  reachable by two rows resolves to the earlier row's verdict, so a re-install
+  of a pack whose `output_dir` is out of root reports rather than staying
+  silent.
 
-- [ ] **AC6 — Each declared section is one the pack itself documents.** For
-  every pack declaring `[pack.layout.<scope>]`, the declared `section` appears
-  as a documented section in at least one `references/agentbundle-layout.md`
-  under that pack. Both sides derive from the repository, and the check asserts
-  the size of the set it walked, so an enumeration that finds nothing fails
-  rather than passes.
+- [ ] **AC6 — The declared section and base match one documented pair.** For
+  every pack declaring `[pack.layout.<scope>]`, the pair
+  (`section`, `output_dir`) equals a (section, base) pair documented together in
+  one `references/agentbundle-layout.md` under that pack. Both sides derive
+  from the repository, and the check asserts the size of the set it walked, so
+  an enumeration that finds nothing fails rather than passes.
 
-  The right-hand side is the sections documented by the skills that write *this
-  pack's own output*, which excludes a section the pack only reads from another
-  pack. Equality against every section a pack mentions is red on a correct
-  implementation — `product-engineering` names three — but the unrestricted
-  one-way form is too loose in the other direction: it would admit
-  `section = "discovery"` alongside `output_dir = "docs/product"`, installing a
-  default under a section whose consumers expect a different base.
+  Matching the pair, not the section alone, is what makes the criterion
+  discriminate. A pack may document more than one section for its own output —
+  `product-engineering`'s `discovery-loop` reference mints `[discovery]` with
+  base `docs/discovery` while `frame-intent` documents `[product]` with
+  `docs/product`. Section-membership alone admits `section = "discovery"`
+  carried on `output_dir = "docs/product"`: a pair no document describes, which
+  would install a default under a section whose readers expect another base.
+  Requiring equality against every section a pack mentions fails in the other
+  direction, since that pack legitimately names three.
+
 
 - [ ] **AC7 — A relative value is anchored, or refused, per scope.** A relative
   `output_dir` in the repo-scope file resolves against the repository root, not
@@ -165,13 +195,19 @@ record of the install.
   name. Byte-equality of the two copies is not restated here; the shipped
   contract-parity gate owns it.
 
-- [ ] **AC10 — The emitted table is injection-safe.** A declared `section` or
-  `output_dir` containing `"`, `]`, a newline, or `../` round-trips through
+- [ ] **AC10 — The emitted value is injection-safe.** A declared `output_dir`
+  containing `"`, `]`, a newline, or `../` round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
+  The observation is carried by `output_dir`, which the character class does
+  not constrain. Header emission stays routed through the same emitter as
+  defence in depth behind AC15, and this criterion makes no claim about it —
+  with the class guard in front, no hostile `section` reaches emission, so a
+  header-side assertion could not fail.
 
 - [ ] **AC11 — A layout failure never fails the install; a marker failure still
-  does.** When the layout append cannot write — read-only file, unwritable
-  directory, or a path the write jail refuses — `agentbundle install` completes
+  does.** For every state the table marks *report* — read-side and write-side
+  alike, including a layout path that is a directory, a `0o000` file, and a
+  user-state directory that cannot be prepared — `agentbundle install` completes
   with its normal exit status and its projected files intact, and the reason is
   reported. A failure from `_append_install_marker`, which shares the same
   `try`, still exits non-zero. The two share one `except` today, so an
@@ -193,8 +229,11 @@ record of the install.
 
 - [ ] **AC14 — A declared `output_dir` is confined to its scope's root.** A
   value that resolves — after `~` expansion and symlink resolution — outside
-  the repository at repo scope, or outside the user state root at user scope,
-  is refused: nothing is written and the reason is reported. The criterion is
+  the repository at repo scope, or outside the adopter's home directory at user
+  scope, is refused. The user-scope root is the home directory, not
+  `~/.agentbundle/`: the shipped reference docs recommend values such as
+  `~/Documents/MyVault/product`, and rooting at the state directory would
+  refuse every one of them: nothing is written and the reason is reported. The criterion is
   on the resolved path, not on the absence of `..`, so an absolute path and a
   `~`-anchored path are both covered. This is RFC-0040's security contract for
   a catalogue-sourced value, and this change is what first carries one to a

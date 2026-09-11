@@ -138,12 +138,17 @@ destroying what the adopter put there.
 
 **One refusal contract, not eight.** The spec's "best-effort maintenance"
 section owns this; the tasks derive from it rather than re-deciding per state.
-Operationally it means `_append_layout_section` never propagates an exception:
-the jail refusal that currently raises `PathJailError` out of the function
-becomes a report-and-return, and the call site's `except` narrows to the marker
-call so a marker failure keeps its fatal exit. Round 2 answered this question
-five times in five places and got five answers; this is the property those
-states are supposed to share.
+Operationally it means `_append_layout_section` never propagates an exception.
+The jail refusal that currently raises `PathJailError` becomes report-and-
+return; so does the read side, including `safety.user_state_path` raising
+before the file-existence check. Only then does the call-site `except` narrow
+to the marker call, which keeps its fatal exit — narrowing first would convert
+an absorbed failure into an uncaught traceback after files are projected.
+
+Rounds 2 and 3 each answered this question per-state and got a different answer
+each time, so the spec's table now fixes one verdict per state in evaluation
+order, and the tasks below implement that table rather than reasoning about
+states individually.
 
 **Why the designed no-ops stay silent.** Three states write nothing by
 contract: no layout file, the section already present as a table, and a pack
@@ -233,13 +238,19 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - A CRLF file stays CRLF; a file without a trailing newline gains exactly one
   in its own style; one with a trailing newline gains none; a file with no line
   ending gains `\n`. (AC3)
-- Undecodable, unparseable, and occupied-by-scalar/array each leave the file
-  byte-identical and report a reason naming the layout path and the section not
-  written. (AC4)
-- Three designed no-ops write nothing and print nothing: absent file, section
-  already present as a table, pack declaring only one of the two keys. (AC5)
-- A read-only layout file and a jail-refused path each leave `install`'s exit
-  status and projected files unaffected, and report. (AC11)
+- One case per *report* row of the spec's state table, exercised individually:
+  bad `section` class, out-of-root `output_dir`, symlinked path, unopenable
+  file and unpreparable user-state directory, undecodable, unparseable,
+  occupied by scalar or array, and a failing write. Each leaves the file
+  byte-identical and emits one stderr line. (AC4)
+- One case per *silent* row: absent file, section already present as a table,
+  pack declaring only one key. Nothing written, nothing printed. (AC5)
+- A state matching two rows takes the earlier verdict: a re-install whose
+  section is present *and* whose `output_dir` is out of root reports. (AC5)
+- Every reporting row leaves `install`'s exit status and projected files
+  unaffected — including the read-side rows, which today the wide `except`
+  absorbs as a failed install. A marker write failure still exits non-zero.
+  (AC11)
 - A group-readable layout file has the same stat mode after the append. (AC12)
 - A symlinked layout file is refused, still a symlink afterwards, with no
   exception escaping the function. (AC13)
@@ -259,8 +270,11 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Confine the resolved `output_dir` to the scope's root before writing, and
   refuse a `section` outside `^[a-z0-9][a-z0-9-]*$`.
 - Carry the target's existing mode across the atomic replace.
-- Catch the write failure at the call site so a layout problem reports and the
-  install continues.
+- Do not widen the call-site `except`. `_append_layout_section` handles every
+  reporting state internally and returns, so it never reaches that handler;
+  the handler then narrows to `_append_install_marker` alone, which keeps its
+  fatal exit. These are one mechanism, not two: the function absorbs, and the
+  call site stops catching for it.
 - Delete the section-rebuild loop and both drop-and-warn branches.
 - Source the table name from `section` and the value from `output_dir`,
   returning early when either is not a string.
@@ -283,16 +297,19 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 **Depends on:** T1, T5
 
 **Tests:**
-- Every pack declaring `[pack.layout.<scope>]` declares a `section` documented
-  by at least one `references/agentbundle-layout.md` under that pack, with the
-  walked set's size asserted. Derived from the repository, so it runs in
-  `tests/conformance/` where the catalogue is present. (AC6)
+- Every pack declaring `[pack.layout.<scope>]` declares a (`section`,
+  `output_dir`) pair that one `references/agentbundle-layout.md` under that
+  pack documents together, with the walked set's size asserted. Derived from
+  the repository, so it runs in `tests/conformance/` where the catalogue is
+  present. (AC6)
 
 **Approach:**
 - Add `section` to the five manifests: `architect` → `architecture`,
   `desk-research` → `research`, `experience-design` → `design`,
   `product-engineering` → `product`, `product-strategy` → `strategy`.
-- Bump each edited pack's `pack.toml` and `.claude-plugin/plugin.json`.
+- Do not bump here. T4 is the single bump moment for every pack this change
+  touches; `architect` is edited by both tasks, and bumping in each would
+  advance it twice and leave one version naming no released code state.
 
 **Done when:** the check passes and `agentbundle catalogue lint` is clean.
 
@@ -317,14 +334,22 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Replace `agentbundle.md` § 7.1 with shipped behaviour, describing both reader
   classes. Owned by the Durable outputs' current-architecture row.
 - Retire the `[backlog].open` entry at `workspace.toml:449`.
-- Bump every pack edited here and in T3, and `pyproject.toml` with
-  `agentbundle/version.py` together for the engine changes in T2 and T5.
-  Resolve each version against `origin/main` at the time this runs.
+- Bump every pack this change touches, once each — the five edited in T3 plus
+  any edited here — and `pyproject.toml` with `agentbundle/version.py` together
+  for the engine changes in T2 and T5. This is the only task that bumps.
+  Resolve each version against `origin/main` at the time it runs.
+- Write the changelog: one `agentbundle` entry and one per bumped pack. The
+  release-impact gate accepts a version bump *or* a changelog edit as its
+  indicator, so the bumps above satisfy it with no changelog at all — the entry
+  has to be its own completion condition. It states the adopter-visible
+  changes: byte preservation, the occupied-name refusal, the lone-CR
+  narrowing, and that the third-party `parent` data loss could already fire.
 - Record the probe outputs and the AC10 mutation-check result in
   `notes/verification-ledger.md`.
 
-**Done when:** AC8 passes, `make build-check` is green, and the backlog entry
-is gone.
+**Done when:** AC8 passes, `make build-check` is green, the backlog entry is
+gone, and `docs/product/changelog.md` carries an `agentbundle` entry plus one
+for each pack bumped by this change.
 
 ### T5: Anchor a repo-scope relative value, and refuse a relative user-scope one
 
@@ -378,9 +403,10 @@ unparseable afterwards. It is reported, not silent.
   and sources its manifest from the catalogue.
 - **A declared section drifts from what the skills read.** That is the defect
   this repairs, reintroduced. AC6 derives both sides from the repository, scoped
-  to the skills that write the pack's own output — wide enough not to go red on
-  `product-engineering`'s three named sections, narrow enough that declaring
-  `discovery` with `product`'s base still fails.
+  by matching the (section, base) pair against one documented pair — wide
+  enough not to go red on `product-engineering`'s three named sections, and
+  narrow enough that `discovery` carried on `product`'s base fails, because no
+  document describes that pair.
 - **A bump collides.** Peer sessions claim versions concurrently; this
   repository collided twice in one day. Resolve every version against
   `origin/main` when T4 runs.
