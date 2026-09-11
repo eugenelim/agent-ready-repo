@@ -39,7 +39,7 @@ judgement kinds and prohibited vocabulary from this section.
 | `judgement_check` | How to tell it worked — a declared judgement kind, never a structural check the lint performs |
 | `failure_path` | What to do when it does not: fix locally, re-prompt with the failing case, discard, step back, or escalate |
 | `artifact_location` | The deliverable named, with its path; templated segments marked as templated |
-| `artifact_outline` | The headings to expect inside it, with the source of that outline declared |
+| `artifact_preview` | An excerpt of the artifact itself, taken verbatim from the source that defines its shape |
 | `next_step` | What to run next, named and linked |
 | `concept_resolved` | Any concept the step depends on, named and linked to where it is explained |
 | `what_changes` | What this step makes different, and what it costs to skip it |
@@ -69,7 +69,7 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | `judgement_check` | `**Check (<kind>):**` | per skill |
 | `failure_path` | `**Watch out for:**` | per skill |
 | `artifact_location` | `**Where it lands:**` with a backticked path, or `**Writes no artifact.**` | per skill |
-| `artifact_outline` | `**Expect these headings:**`, or `**Writes no artifact.**` | per skill |
+| `artifact_preview` | `**What it looks like:**` then a fenced excerpt, or `**Writes no artifact.**` | per skill |
 
 A per-skill obligation is declared inside that skill's own `## Run \`<skill>\``
 block and nowhere else. A step naming ten skills with one shared utterance
@@ -128,9 +128,9 @@ record which rung it came from **in an HTML comment**, `<!-- rung: … -->`,
 anywhere inside that obligation's block.
 
 **Where the rung is a file, write its repository-relative path.** For
-`artifact_outline` this is load-bearing: the lint compares the stated headings
-against that file, so a rung naming a source without its path — "the skill's
-asset template" — makes the comparison silently do nothing. Write
+`artifact_preview` this is load-bearing: the lint compares the excerpt against
+that file, so a rung naming a source without its path — "the skill's asset
+template" — makes the comparison silently do nothing. Write
 `<!-- rung: packs/<pack>/.apm/skills/<skill>/assets/<file>.md -->`, or
 `<!-- rung: authored -->` when there is nothing to compare against. Authoring is permitted only where no higher rung
 exists.
@@ -150,6 +150,25 @@ forbids a persuasive before-and-after framing.
 
 `go_deeper` closes with a path, not prose. The pack's own files stay
 authoritative and each step is a projection of them.
+
+`artifact_preview` shows the reader the thing, not a description of it. A list
+of headings tells someone what sections exist; it does not tell them what the
+artifact *is* — whether a stage is a paragraph or a table, whether the frontmatter
+matters, how much they will be reading. A reader who has never seen the output
+cannot judge whether what they got back is right, which is the whole job the
+judgement check asks of them.
+
+The excerpt is **a contiguous run of lines copied verbatim from the declared
+rung source** — the lint looks for it there and a divergence is a finding. It is
+not required to be the source's opening, because a template does not always
+*be* the artifact: the screen brief opens with a page of rationale and carries
+the artifact in a nested block partway down. Excerpting rather than
+authoring is deliberate: an invented example that drifts from what the skill
+actually writes teaches the reader the wrong shape and nothing fails. Show
+enough to convey the form — through the first repeating unit is usually right —
+and caption it with what the reader should notice. Where a skill declares no
+template there is nothing to excerpt from, the preview is authored, and nothing
+verifies it; that is a known and recorded limit, not a licence to invent freely.
 
 Three further rules a lint enforces, each because a reader hit it:
 
@@ -214,7 +233,7 @@ and is caught by the cold read, not here.
 owns the evidence, the per-obligation confidence, and the known limitations —
 this section does not restate them. Four obligations are **house choices** the
 survey does not evidence and labels as such: `position`, `variability`'s
-wording, `next_step`, and `artifact_outline`'s authored fallback, which nothing
+wording, `next_step`, and `artifact_preview`'s authored fallback, which nothing
 independently verifies where a skill declares no shape.
 
 ## Essential commands

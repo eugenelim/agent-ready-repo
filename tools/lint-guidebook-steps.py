@@ -27,7 +27,7 @@ because a label wrapped across a newline stops being one token:
     judgement_check     **Check (<kind>):**
     failure_path        **Watch out for:**
     artifact_location   **Where it lands:**  or  **Writes no artifact.**
-    artifact_outline    **Expect these headings:**  or  **Writes no artifact.**
+    artifact_preview    **What it looks like:**  then a fenced excerpt
 
 The nine per-skill obligations are declared inside a skill's own
 ``## Run `<skill>` `` block and nowhere else; the step-level ones appear
@@ -349,12 +349,12 @@ def _check_obligation(
         primary = variants[0] if variants else label
         # A label cell may offer an explicit alternative — `decision`'s "No
         # decision gate at this step.", and `artifact_location`/
-        # `artifact_outline`'s "Writes no artifact." Those declare that the
+        # `artifact_preview`'s "Writes no artifact." Those declare that the
         # obligation does not apply here, so the primary form's semantic check
         # must not then demand a path or an outline from them.
         # An explicit alternative declares that the obligation does not apply
         # here — `decision`'s "No decision gate at this step.", and
-        # `artifact_location`/`artifact_outline`'s "Writes no artifact." The
+        # `artifact_location`/`artifact_preview`'s "Writes no artifact." The
         # primary form's semantic check must not then demand a path or an
         # outline. A *companion* label is not an alternative and is excluded by
         # `_label_alternatives`, or a missing primary label would pass by
@@ -381,18 +381,16 @@ def _check_obligation(
                 findings.append(Finding(path, step, obligation, f"kind `{match.group(1)}` is not in the closed set"))
         elif primary.startswith("**Where it lands:") and not re.search(r"`[^`]+`", line):
             findings.append(Finding(path, step, obligation, "must name a backticked artifact path"))
-        elif primary.startswith("**Expect these headings:"):
-            outline = _outline_lines(lines, index)
+        elif primary.startswith("**What it looks like:"):
+            excerpt = _fenced_block(lines, index)
             source = _source_path(lines, index, path)
-            if not outline:
-                findings.append(Finding(path, step, obligation, "lists no expected headings"))
+            if excerpt is None:
+                findings.append(Finding(path, step, obligation, "shows no fenced excerpt of the artifact"))
             elif source is not None:
                 if not source.is_file():
-                    findings.append(Finding(path, step, obligation, "declared outline source does not resolve"))
-                else:
-                    actual = [_heading_name(item) for item in HEADING.findall(source.read_text(encoding="utf-8"))]
-                    if [_heading_name(item) for item in outline] != actual:
-                        findings.append(Finding(path, step, obligation, "expected headings diverge from declared source"))
+                    findings.append(Finding(path, step, obligation, "declared preview source does not resolve"))
+                elif not _appears_verbatim_in(excerpt, source.read_text(encoding="utf-8")):
+                    findings.append(Finding(path, step, obligation, "excerpt does not appear verbatim in its declared source"))
         elif primary.startswith("**Concepts:"):
             detail = _check_concepts(lines, index, path)
             if detail:
@@ -435,6 +433,25 @@ def _check_step_map(body: str) -> str | None:
     return None
 
 
+
+def _outside_fences(body: str) -> str:
+    """The body with fenced blocks blanked out, line count preserved.
+
+    A preview of an artifact is fenced Markdown, and that artifact has its own
+    headings. Reading them as page structure made every previewed `##` a
+    skeleton finding -- the check was right to fire and wrong about where it
+    was looking.
+    """
+    lines, inside, kept = body.splitlines(), False, []
+    for line in lines:
+        if line.lstrip().startswith("```"):
+            inside = not inside
+            kept.append("")
+            continue
+        kept.append("" if inside else line)
+    return "\n".join(kept)
+
+
 SKELETON_TAIL = "## Where this leads"
 
 
@@ -444,7 +461,7 @@ def check_page_skeleton(path: Path, step: str, body: str) -> list[Finding]:
     The level is what makes the in-page table of contents work, so a step that
     drifts back to a deeper level publishes a page a reader cannot navigate.
     """
-    headings = re.findall(r"^## (.+?)\s*$", body, re.M)
+    headings = re.findall(r"^## (.+?)\s*$", _outside_fences(body), re.M)
     if not headings:
         return [Finding(path, step, "skeleton", "carries no `##` heading, so the page has no in-page navigation")]
     expected_first, expected_last = STEP_MAP_HEADING[3:], SKELETON_TAIL[3:]
@@ -462,6 +479,42 @@ def check_page_skeleton(path: Path, step: str, body: str) -> list[Finding]:
     if SKELETON_TAIL in body and "**Next:**" not in body.split(SKELETON_TAIL, 1)[1]:
         findings.append(Finding(path, step, "skeleton", f"`{expected_last}` carries no onward pointer"))
     return findings
+
+
+def _fenced_block(lines: list[str], index: int) -> list[str] | None:
+    """The lines inside the first fenced block after a label, or None."""
+    opened = None
+    for position in range(index + 1, len(lines)):
+        line = lines[position]
+        if opened is None:
+            if line.startswith("```"):
+                opened = position
+            elif line.strip() and not COMMENT.match(line):
+                return None
+        elif line.startswith("```"):
+            return lines[opened + 1 : position]
+    return None
+
+
+def _appears_verbatim_in(excerpt: list[str], source: str) -> bool:
+    """True when the excerpt is a contiguous verbatim run of the source's lines.
+
+    Contiguous rather than a prefix, because a template does not always *be* the
+    artifact -- the screen brief opens with a page of rationale and carries the
+    artifact in a nested block partway down, and a prefix rule would have shown
+    a reader the rationale instead of the thing. Contiguity still catches every
+    rename, reorder and reword inside the excerpted region, which is the drift
+    the check exists for. Trailing whitespace is ignored: an editor strips it
+    and that is not drift.
+    """
+    if not excerpt:
+        return False
+    actual = [line.rstrip() for line in source.splitlines()]
+    wanted = [line.rstrip() for line in excerpt]
+    return any(
+        actual[start : start + len(wanted)] == wanted
+        for start in range(len(actual) - len(wanted) + 1)
+    )
 
 
 PROVENANCE = re.compile(r"\*\(\s*Rung:", re.I)
