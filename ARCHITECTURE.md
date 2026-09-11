@@ -170,6 +170,7 @@ dependency of pack source or of a target runtime.
 - [Loop infrastructure](docs/architecture/loop-infrastructure.md) and
   [workspace MCP](docs/architecture/workspace-mcp/design.md)
 - [Knowledge capture](docs/architecture/knowledge-capture.md)
+- [Telemetry](docs/architecture/telemetry.md)
 - [Security architecture](docs/architecture/security.md)
 - [Documentation architecture index](docs/architecture/README.md)
 

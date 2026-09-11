@@ -5,9 +5,10 @@ candidate evidence. It does not control every architecture surface and is not a
 global semantic-surface registry. It is never shipped into a
 projected path; you create it by hand (or an `agentbundle install` step appends a
 default section to one you already have — **append-if-exists / never-create /
-never-overwrite**). On the rare append of a *missing* section, the installer
-re-emits the file and does **not** preserve freeform comments or off-schema keys;
-an existing section is left byte-identical. This page documents the `[architecture]`
+never-overwrite**). On the append of a *missing* section, the installer adds that one table
+and leaves every other byte of the file unchanged — comments, key order,
+quoting style and line endings included. An existing section is never
+replaced. This page documents the `[architecture]`
 section that Architect output skills may read.
 
 ## The `[architecture]` table
@@ -16,7 +17,7 @@ One key:
 
 ```toml
 [architecture]
-output_dir = "docs/design"   # a base directory; per-effort folders go *under* it
+output_dir = "docs/architecture"   # a base directory; per-effort folders go *under* it
 ```
 
 - **`output_dir` is a base, not the leaf.** Each design effort gets its own

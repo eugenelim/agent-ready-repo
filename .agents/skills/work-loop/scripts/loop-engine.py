@@ -180,6 +180,109 @@ def _events_pending_path(repo_root: Path) -> Path:
     return _loop_run_dir(repo_root) / "events.pending"
 
 
+# ── lifecycle fields on the event line ─────────────────────────────────────
+#
+# A consumer that reads only the event log cannot otherwise answer three
+# questions: how long the phase being left actually took, whether this
+# transition waived a retry cap, and how close the run is to its retry caps.
+# The retry counters live in the cohort state file and no transition moves
+# them, so they are read here and copied onto the line rather than inferred.
+#
+# Every helper below is best-effort by contract: a field it cannot determine
+# becomes `None`, and no failure here may cost a transition. The caller relies
+# on that, because the line is built before the write path's own guard.
+
+_BUDGET_FIELDS = (
+    "implementation_retry_count",
+    "max_implementation_retries",
+    "review_retry_count",
+    "max_review_retries",
+)
+
+# What the gate decided. How many attempts a run has taken is not recorded
+# here: counting the events already gives it, and a per-line count would be a
+# second home for a fact this log can already answer.
+#
+# The values are drawn from the OpenTelemetry CI/CD convention's result
+# vocabulary rather than invented, so a consumer that already reads pipeline
+# telemetry needs no translation for this field.
+_GATE_RESULTS = {
+    "reviewers-clean": "success",
+    "spec-approved": "success",
+    "plan-approved": "success",
+    "gates-clean": "success",
+    "done": "success",
+    "findings-remain": "failure",
+    "spec-rejected": "failure",
+    "plan-rejected": "failure",
+    "gates-failed": "failure",
+    "blocker-applied": "failure",
+}
+
+
+def _phase_duration_s(phase_started_at: str | None, now: str) -> int | None:
+    """Whole seconds between two engine timestamps, or None if either is unusable.
+
+    Never negative: a clock stepping backwards mid-run would otherwise emit a
+    duration that any summing consumer reads as a real measurement.
+    """
+    if not phase_started_at:
+        return None
+    try:
+        started = datetime.strptime(phase_started_at, "%Y-%m-%dT%H:%M:%SZ")
+        ended = datetime.strptime(now, "%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError):
+        return None
+    return max(int((ended - started).total_seconds()), 0)
+
+
+def _budget_snapshot(spec_dir: Path) -> dict:
+    """Copy the cohort retry counters and their caps, using None for anything absent.
+
+    Always returns all keys. A consumer checking whether a run is near its cap
+    must be able to tell "not recorded" from "zero", and a key that silently
+    disappears reads as the latter.
+    """
+    snapshot: dict[str, int | None] = dict.fromkeys(_BUDGET_FIELDS)
+    try:
+        cohort = _read_managed_json(spec_dir / "state.json", "state.json")
+    except Exception:
+        return snapshot
+    for field in _BUDGET_FIELDS:
+        value = cohort.get(field)
+        if isinstance(value, int) and not isinstance(value, bool):
+            snapshot[field] = value
+    return snapshot
+
+
+def _lifecycle_fields(
+    spec_dir: Path, state: dict, now: str, *, event: str, next_state: str, waived: bool
+) -> dict:
+    """Build the additive lifecycle fields for one event line. Never raises."""
+    try:
+        phase_started_at = state.get("last_transition_at")
+        budgets = _budget_snapshot(spec_dir)
+        return {
+            "phase_started_at": phase_started_at,
+            "phase_s": _phase_duration_s(phase_started_at, now),
+            "result": _GATE_RESULTS.get(event),
+            "awaiting_input": next_state in _HUMAN_WAIT_STATES,
+            "waived": bool(waived),
+            "budgets": budgets,
+        }
+    except Exception:
+        # A partial line is worse than an explicitly empty one: a consumer
+        # summing durations would treat missing keys as zero.
+        return {
+            "phase_started_at": None,
+            "phase_s": None,
+            "result": _GATE_RESULTS.get(event),
+            "awaiting_input": next_state in _HUMAN_WAIT_STATES,
+            "waived": bool(waived),
+            "budgets": dict.fromkeys(_BUDGET_FIELDS),
+        }
+
+
 def _read_managed_json(path: Path, label: str) -> dict:
     """Delegate to the shared bounded reader.
 
@@ -1510,6 +1613,13 @@ def cmd_transition(args: argparse.Namespace) -> int:
         "event": event,
         "to": next_state,
         "at": now,
+        # `state` is still the PRE-transition record here, so its
+        # `last_transition_at` is when the phase being left began. At the first
+        # transition that value is what `init` wrote, which is the run's start.
+        **_lifecycle_fields(
+            spec_dir, state, now,
+            event=event, next_state=next_state, waived=allow_retry_cap_override,
+        ),
     }
 
     # Outbox pre-flight: reuse repo root resolved at command start.

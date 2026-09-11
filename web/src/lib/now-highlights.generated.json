@@ -4,6 +4,113 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.44.0"
+        }
+      ],
+      "date": "2026-09-11",
+      "heading": "[agentbundle][0.44.0] — 2026-09-11",
+      "changelogAnchor": "agentbundle0440--2026-09-11",
+      "highlights": [
+        {
+          "source": "Installing a pack now sets up where its output goes, instead of quietly doing nothing.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Installing a pack now sets up where its output goes, instead of quietly doing nothing."
+            }
+          ]
+        },
+        {
+          "source": "Your `agentbundle-layout.toml` keeps its comments, formatting and permissions when a pack is installed.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Your "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle-layout.toml"
+            },
+            {
+              "type": "text",
+              "value": " keeps its comments, formatting and permissions when a pack is installed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.14"
+        }
+      ],
+      "date": "2026-09-10",
+      "heading": "[core][2.25.14] — 2026-09-10",
+      "changelogAnchor": "core22514--2026-09-10",
+      "highlights": [
+        {
+          "source": "**You can now measure how long each work-loop phase took, straight from the run log.** Every transition line in `.loop-run/events.jsonl` carries when its phase began and how many seconds it lasted, so time-in-phase needs no guesswork about what happened between two entries. The first line's start is the run's own start, so the opening phase is a real measurement rather than a lower bound.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can now measure how long each work-loop phase took, straight from the run log."
+            },
+            {
+              "type": "text",
+              "value": " Every transition line in "
+            },
+            {
+              "type": "code",
+              "value": ".loop-run/events.jsonl"
+            },
+            {
+              "type": "text",
+              "value": " carries when its phase began and how many seconds it lasted, so time-in-phase needs no guesswork about what happened between two entries. The first line's start is the run's own start, so the opening phase is a real measurement rather than a lower bound."
+            }
+          ]
+        },
+        {
+          "source": "**The retry budget is on the line, and so is the override flag.** Every line carries the implementation and review retry counters beside their caps, so you can watch a run approach a limit without opening the cohort state file. A transition that carried `--allow-retry-cap-override` records that it did — the flag as passed, which is not the same as a cap having been exercised.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The retry budget is on the line, and so is the override flag."
+            },
+            {
+              "type": "text",
+              "value": " Every line carries the implementation and review retry counters beside their caps, so you can watch a run approach a limit without opening the cohort state file. A transition that carried "
+            },
+            {
+              "type": "code",
+              "value": "--allow-retry-cap-override"
+            },
+            {
+              "type": "text",
+              "value": " records that it did — the flag as passed, which is not the same as a cap having been exercised."
+            }
+          ]
+        },
+        {
+          "source": "**A repair cycle no longer looks like a give-up.** Each line now says what the gate decided and, separately, whether the retry budget behind it still had room, so a routine repair round reads differently from a run continuing past a spent budget. Read the reachability note below before relying on the second case: on the ordinary path it does not arise.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A repair cycle no longer looks like a give-up."
+            },
+            {
+              "type": "text",
+              "value": " Each line now says what the gate decided and, separately, whether the retry budget behind it still had room, so a routine repair round reads differently from a run continuing past a spent budget. Read the reachability note below before relying on the second case: on the ordinary path it does not arise."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.25.13"
         }

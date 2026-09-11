@@ -248,7 +248,8 @@
               "properties": {
                 "parent": {"type": "string"},
                 "template": {"type": "string"},
-                "output_dir": {"type": "string"}
+                "output_dir": {"type": "string"},
+                "section": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
               }
             },
             "user": {
@@ -257,7 +258,8 @@
               "properties": {
                 "parent": {"type": "string"},
                 "template": {"type": "string"},
-                "output_dir": {"type": "string"}
+                "output_dir": {"type": "string"},
+                "section": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
               }
             }
           }

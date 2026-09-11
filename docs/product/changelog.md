@@ -54,6 +54,150 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.15] — 2026-09-11
+
+### Fixed
+
+- `workspace-status`'s reference page no longer says an install discards your
+  comments and unknown keys. It does not.
+
+## [agentbundle][0.44.0] — 2026-09-11
+
+### Fixed
+
+- Installing a pack now adds its default output location to an
+  `agentbundle-layout.toml` you already keep. The step has existed since
+  `agentbundle 0.7.0` and has never written anything: it looked for a manifest
+  key no pack declares, and named the table after the pack while every skill
+  reads a differently-named section.
+- The append no longer rebuilds your file. It adds one table and leaves every
+  other byte alone — comments, key order, quoting style, line endings, and any
+  key or section it has no model for. Previously it re-emitted the file from a
+  single key and discarded the rest, which would have deleted adopter content
+  the first time the step became reachable. A pack from an external catalogue
+  could already trigger that, so this is a live fix rather than a latent one.
+- Your file's permissions survive the write. The atomic replace handed the
+  target the temporary file's owner-only mode, so a group-readable layout file
+  became private on first append.
+- A layout file that is a symbolic link is left alone and reported, instead of
+  being replaced by a regular file and stranding what it pointed at.
+- A layout problem no longer fails the install. A read-only file, an
+  unwritable directory or a refused path is reported, and the install finishes
+  with its files in place. Marker failures stay fatal.
+
+### Changed
+
+- A pack declares the layout section it writes, as
+  `[pack.layout.<scope>].section`. The value carries the same character class
+  as a pack name, because it becomes a TOML table header.
+- A declared `output_dir` is confined to the directory the installer already
+  writes under, and a relative value is anchored there rather than to your
+  shell's working directory.
+- A configured `output_dir` in a repo-scope `agentbundle-layout.toml` resolves
+  against the repository root. It resolved against the process working
+  directory, so the same configuration meant different things depending on
+  where a tool was launched. A relative value in the user-scope file is
+  reported and ignored, as the reference docs already said it would be.
+- A layout file using lone-CR line endings is now reported as unparseable. It
+  previously parsed only because the file was read in text mode, which is the
+  same behaviour that silently rewrote CRLF files.
+
+### Highlights
+
+- Installing a pack now sets up where its output goes, instead of quietly
+  doing nothing.
+- Your `agentbundle-layout.toml` keeps its comments, formatting and
+  permissions when a pack is installed.
+
+## [architect][0.15.8] — 2026-09-11
+
+### Changed
+
+- Architecture output defaults to `docs/architecture` rather than
+  `docs/design`, matching where this repository documents architecture. The
+  two reference pages say so.
+- Declares `architecture` as its layout section, so installing the pack sets
+  that default up for you.
+
+## [desk-research][1.1.8] — 2026-09-11
+
+### Changed
+
+- Declares `research` as its layout section, so installing the pack sets that
+  default up for you.
+- The reference page shows the shipped repo-scope default,
+  `docs/product/research`. It previously documented only a personal-vault
+  path, so the value the installer writes appeared nowhere.
+
+## [experience-design][2.0.4] — 2026-09-11
+
+### Changed
+
+- Declares `design` as its layout section, so installing the pack sets that
+  default up for you.
+
+## [product-engineering][0.13.10] — 2026-09-11
+
+### Changed
+
+- Declares `product` as its layout section, so installing the pack sets that
+  default up for you.
+
+## [product-strategy][0.2.6] — 2026-09-11
+
+### Changed
+
+- Declares `strategy` as its layout section, so installing the pack sets that
+  default up for you.
+
+## [core][2.25.14] — 2026-09-10
+
+### Highlights
+
+- **You can now measure how long each work-loop phase took, straight from the
+  run log.** Every transition line in `.loop-run/events.jsonl` carries when its
+  phase began and how many seconds it lasted, so time-in-phase needs no
+  guesswork about what happened between two entries. The first line's start is
+  the run's own start, so the opening phase is a real measurement rather than a
+  lower bound.
+- **The retry budget is on the line, and so is the override flag.** Every line
+  carries the implementation and review retry counters beside their caps, so
+  you can watch a run approach a limit without opening the cohort state file.
+  A transition that carried `--allow-retry-cap-override` records that it did —
+  the flag as passed, which is not the same as a cap having been exercised.
+- **A repair cycle no longer looks like a give-up.** Each line now says what
+  the gate decided and, separately, whether the retry budget behind it still
+  had room, so a routine repair round reads differently from a run continuing
+  past a spent budget. Read the reachability note below before relying on the
+  second case: on the ordinary path it does not arise.
+
+### Added
+
+- `loop-engine transition` writes six additive fields on each
+  `.loop-run/events.jsonl` line: `phase_started_at`, `phase_s`, `result`,
+  `awaiting_input`, `waived`, and `budgets`. The first seven fields are
+  unchanged in name, order, and value, so an existing reader is unaffected.
+- `phase_s` is whole seconds and never negative, which keeps a backwards clock
+  step from presenting as a measurement. A field that cannot be determined is
+  written as `null` rather than omitted, because a key that disappears reads as
+  zero to anything summing durations or comparing a counter with its cap.
+- `budgets` copies the cohort retry counters and caps as they stood when the
+  line was written. It does not move them: counter authority stays with
+  `loop-cohort`, which remains their only writer.
+- `result` reports the gate decision as `success` or `failure`, using the
+  OpenTelemetry CI/CD convention's result vocabulary rather than an invented
+  one, and is `null` for a handoff or wave boundary that decides nothing.
+  `awaiting_input` marks arrival at a state waiting on a human.
+- No attempt count sits on the line. Counting the events answers how many
+  rounds a run has taken, and a per-line count would be a second home for a
+  fact the log already carries.
+
+- The work-loop `state-schema.md` reference gains the full field table for the
+  event line, the whole-second resolution limit, the reachability note above,
+  and a documented blind spot: a retry cap reached without an override is
+  refused by a guard, and a refused transition writes no line — so that case is
+  indistinguishable from a stall in this log alone.
+
 ## [core][2.25.13] — 2026-09-10
 
 ### Highlights

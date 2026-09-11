@@ -403,3 +403,52 @@ Filled on acceptance:
   test guarding an existing `[<pack>]` section against clobber.
 - **Convention** — note the `agentbundle-layout.toml` contract in `docs/CONVENTIONS.md` (the
   adopter-owned-config surface) if the Approver wants it discoverable there.
+
+## Errata
+
+- **2026-09-10 — the key is `output_dir`, not `parent`; two example section
+  names have moved with their packs; `architect`'s default base is
+  `docs/architecture`.** The section-naming rule this RFC sets — "a namespaced
+  TOML, one table per consuming pack" — is unchanged and is reaffirmed: a
+  section is named for the pack that owns it, with no derivation and no second
+  vocabulary. Three things beneath that rule have moved.
+
+  First, RFC-0067 renamed the single key from `parent` to `output_dir`. Every
+  shipped `pack.toml` declares `output_dir`; the installer's
+  `_append_layout_section` still reads `parent`, so the two disagree and the
+  append is inert for every pack in the catalogue. The repair is not yet
+  shipped.
+
+  Second, pack renames recorded in `docs/product/roadmap.md` M3 moved two of
+  this RFC's worked examples: `research` → `desk-research` (canonical
+  consulting/design-UX term) and `experience` → `experience-design` (canonical
+  agency term). The `[research]` table shown above is now `[desk-research]`.
+  Because a section is the pack name, a pack rename is a section rename.
+
+  Third, `architect`'s default base is `docs/architecture`, replacing
+  `efforts/architecture` and the `docs/design/→design/→architecture/→docs/`
+  scan chain. `docs/architecture/` is the repository's canonical architecture
+  home per the root `AGENTS.md` documentation table, and the scan chain
+  predates that. This also separates `architect` from `experience-design`,
+  which keeps `docs/design` — two packs, two sections, two paths, which is
+  what per-pack keying exists to make expressible.
+
+  **Mechanism.** Naming the section for the pack removes the central registry
+  for the common case: a skill reads the section named after its own pack, so
+  it needs no list of anyone else's sections and nothing to fall out of step
+  with. No manifest is available to derive from at read time — an installed
+  skill tree carries `SKILL.md`, `references/`, `scripts/`, and `evals/`, never
+  `pack.toml` — which is exactly why the name has to be something the skill
+  already knows about itself.
+
+  One table survives, in `workspace_mcp.py`: the cross-pack resolver that maps
+  a workspace *item type* to the pack owning it. That table changes when an
+  item type is added, not when a pack is, so it no longer drifts on pack
+  changes the way `_LAYOUT_TYPE_BASES` did.
+
+  A rename is the only correction that needs carrying, because an adopter's
+  `agentbundle-layout.toml` is outside this repository and can never be edited
+  by us. Each rename therefore ships a permanent alias row beside that
+  resolver — old name accepted on read, never written, current name winning
+  when both are present. No deprecation window: we cannot observe when the last
+  adopter file has moved. Approver: eugenelim.
