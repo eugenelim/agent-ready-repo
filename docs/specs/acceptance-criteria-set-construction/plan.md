@@ -29,8 +29,10 @@ Five layers, in dependency order. The procedure lands as prose in the existing
 acceptance-criteria step of `packs/core/.apm/skills/new-spec/SKILL.md`; the
 adopter-facing guide follows it; three frozen cases and their seed pins land in
 the pack's eval register and pack-local suite; the recorded run discharges the
-delivery gate; the release surface closes last, in one commit, because
-`make build-self` refuses a dirty tree.
+delivery gate; the release surface closes last. Every task that edits `.apm/`
+regenerates its projections in the same commit, per the spec's `Always do`:
+`make build-self` takes `FORCE=1` on a dirty tree, so a single deferred run was
+never required and the earlier rationale claiming otherwise was wrong.
 
 The riskiest part is calibrating the assertions, not writing the prose. The
 single-homing suite asserts each pinned rule sentence appears in exactly one of
@@ -79,8 +81,8 @@ two recollections.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| User-facing promise → `guides/core/reference/acceptance-criteria-authoring.md` | T2 | The content check over the page body, plus `validate_guides.py`, `check-guide-index.py` and `lint-guide-titles.py` all OK | Page exists, is scoped to set construction, and cites the shape owner |
-| Reusable learning → `docs/specs/acceptance-criteria-set-construction/notes/` | T4 | The recorded run's per-candidate disposition table | T4's `Done when`, which owns the passing condition |
+| User-facing promise → `guides/core/reference/acceptance-criteria-authoring.md` | T2 | The roster-level content check over the page body, plus `validate_guides.py`, `check-guide-index.py` and `lint-guide-titles.py` all OK | Page exists, is scoped to set construction, and cites the shape owner |
+| Reusable learning → `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md` | T4 | The recorded run's per-candidate disposition table | T4's `Done when`, which owns the passing condition |
 | Release history → `docs/product/changelog.md` | T5 | Free-standing topmost `core` section at the bumped version | `test_core_version_and_okf_declaration_are_synchronized` green |
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
 
@@ -92,7 +94,7 @@ two recollections.
   file.** The rubric earned its own file because it is worked per defect and
   re-read; a five-step selection procedure runs once, inline, before wording.
   Rejected: a second `references/` file, which splits the AC step's reading
-  order across two files for no gain. Traces to: AC1, AC2.
+  order across two files for no gain. Traces to: AC-0001, AC-0002.
 - **The build-discovery destination reuses the plan template's existing
   contract, and is not a new concept.** `assets/plan.md` already requires
   `no stub (implementation-discovered)` plus a discovery predicate, constraint,
@@ -104,20 +106,34 @@ two recollections.
   home on a contract that already exists. The four fields are what stop this
   being a licence to under-specify — "we will figure it out" is worse than
   either specifying or omitting, while a stated predicate is a hole of known
-  shape. Traces to: AC8.
+  shape. Traces to: AC-0008.
 - **Cite, never restate.** Every shape, diagnosis or repair question in the
   procedure resolves to `assets/spec.md` or the rubric by name. Rejected:
   summarising the conjunction test inline for the reader's convenience — a
   shorter restatement is still a second home. Traces to: the `Never do` boundary
   forbidding a rule owned by `assets/spec.md`, `assets/plan.md` or
   `references/spec-authoring-rubric.md` from being restated into a second file,
-  and to AC15 where that boundary reaches the guide page. No criterion states
+  and to AC-0015 where that boundary reaches the guide page. No criterion states
   the whole decision, which is why the boundary is cited rather than a number.
+- **The count threshold has an owner, and it is not this spec.**
+  `references/spec-authoring-rubric.md` § *What belongs here is the ordering and
+  the threshold* already owns deriving a threshold from the author's own shipped
+  corpus — a defined glob, a status predicate, a stated percentile, dated — and
+  owns treating an above-threshold count as a signal to stop and talk, never as
+  a refusal. The count-recording criterion was cut on that basis, owner-approved
+  2026-09-10; the procedure cites the rubric section instead. **The owner search
+  that missed it is the generator defect worth recording:** it read the six
+  files in `guides/core/reference/` and never opened the rubric's own threshold
+  section, three lines after naming the rubric as the diagnosis owner. The
+  single-homing suite could not have caught it either — it compares exact
+  sentences, and the duplicate was reworded. An owner search reads the surfaces
+  it already cites, not only the surfaces it expects to find an owner in.
+  Traces to: AC-0017, AC-0018.
 - **Pin seeds before authoring cases.** Rejected: adding the three cases and
   then a shape test, which cannot fail on the commit that introduces it.
-  Traces to: AC21.
+  Traces to: AC-0020.
 - **No scorer script.** The brief adds no durable run schema, so the run is a
-  recorded exercise and the counts live in prose. Traces to: AC22, AC29.
+  recorded exercise and the counts live in prose. Traces to: AC-0021, AC-0028.
 - **The observer is named at admission, not at Testing Strategy.** Choosing the
   observing surface later means the criterion enters the checklist before
   anything is known to show its failure, and the gap is then invisible because
@@ -128,7 +144,7 @@ two recollections.
   side: the shaping failure classes are all per-criterion, and 29148's
   set-level *able to be validated* has no counterpart in the guidance. Rejected:
   leaving the observer to Testing Strategy and adding a reviewer check, which
-  finds the gap one stage after it is cheap to fix. Traces to: AC5, AC11.
+  finds the gap one stage after it is cheap to fix. Traces to: AC-0005, AC-0011.
 - **The count assertion is span-scoped, not a whole-file token deny-list.** A
   pre-review probe on 2026-09-10 ran a candidate deny-list against the shipped
   `SKILL.md` and found `at most` already present in the output-rendering block
@@ -138,7 +154,7 @@ two recollections.
   probe found **zero** 7-word runs shared between a naturally-worded draft of
   the procedure and any of the three owned surfaces, so the single-homing
   collision is smaller than assumed and the ordering and count assertions carry
-  more of the weight. Traces to: AC17, AC19.
+  more of the weight. Traces to: AC-0018.
 
 ### Component / module decomposition
 
@@ -167,14 +183,14 @@ admission alone is too weak: routing and the pass both follow admission, so
 wording could land mid-procedure and still pass. Stage order is one ascending
 comparison across all five offsets, not pairwise against neighbours, because a
 pairwise walk stays green under a swap of two non-adjacent stages.
-Traces to: AC1, AC2.
+Traces to: AC-0001, AC-0002.
 
 **A requirement without its consequence reads as advice.** Three criteria pair a
 requirement with what happens when it is unmet — composition with
 compose-rather-than-check, the observing surface with stays-a-candidate,
 bidirectional coverage with the pass failing. Assert both clauses per criterion:
 the requirement alone is the form that leaves the existing habit in place.
-Traces to: AC3, AC5, AC11.
+Traces to: AC-0003, AC-0005, AC-0011.
 
 **The count prohibition must not key on a numeral.** The forbidden shape is a
 fixed absolute criterion count — a cap, ceiling, refusal or pass/fail bar. The
@@ -182,7 +198,7 @@ permitted shape is a percentile derived from the author's own corpus, used only
 to order scrutiny, and the percentile criterion requires one in the same span. A
 bare-numeral test therefore forbids what another criterion requires. A
 whole-file token deny-list is unavailable either way; see the probe under
-*Design decisions*. Traces to: AC18, AC19.
+*Design decisions*. Traces to: AC-0017, AC-0018.
 
 ## Tasks
 
@@ -191,7 +207,9 @@ whole-file token deny-list is unavailable either way; see the probe under
 **Depends on:** none
 
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
 
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
@@ -199,8 +217,8 @@ whole-file token deny-list is unavailable either way; see the probe under
   rules governing assertion shape are in *Behavior & rules*, cited not repeated.
 - **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
   pinned entry per criterion in the spec's Testing Strategy goal-based group
-  over the skill file. Seven criteria have no bullet of their own below —
-  **AC4, AC7, AC8, AC10, AC12, AC13, AC16** — and their whole claim is that a
+  over the skill file. Five criteria have no bullet of their own below —
+  **AC-0004, AC-0007, AC-0008, AC-0010, AC-0016** — and their whole claim is that a
   named sentence is present in the shipped procedure, so **presence of the
   pinned sentence inside the procedure span is the oracle** and no further
   assertion is owed. Each of the seven takes exactly one `RULES` entry keyed to
@@ -209,10 +227,15 @@ whole-file token deny-list is unavailable either way; see the probe under
   re-read when one of these criteria changes. The span matters: the owner test
   searches the whole file, so a sentence moved out of the procedure stays green
   under it, and the per-stage floor only places *some* pinned sentence in each
-  interval. Assert span membership for this exact seven-entry set; the mutation
-  that must fail is moving one of the seven outside the span while leaving it in
-  the file.
-- **AC6.** Assert the admission step names the surface-guidance walk and states
+  interval. Assert span membership for this exact five-entry set; the mutation
+  that must fail is moving one of the five outside the span while leaving it in
+  the file. **AC-0012 and AC-0013 are deliberately not in it:** each states its
+  requirement and its separately-failing consequence in *separate* sentences, so
+  one contiguous pin leaves the second clause undetectable under deletion,
+  against this task's own constraint that every assertion fails under deletion
+  of the clause it pins. They take both-clause assertions below. AC-0008 and AC-0016
+  stay, each being one contiguous sentence a whole-sentence pin does reach.
+- **AC-0006.** Assert the admission step names the surface-guidance walk and states
   the inadmissibility consequence. **Constraint:** assert that the prose reads as
   a walk from the surface's own directory up to the root — "each file found", not
   "the nearest" — and assert the consequence clause separately. A walk stated as
@@ -223,27 +246,28 @@ whole-file token deny-list is unavailable either way; see the probe under
 - **A per-stage floor over the pinned set — a construction check, not a
   criterion.** At least one pinned sentence falls in each of the five stage
   intervals, the fifth closing at the end of the procedure span. This supports
-  **AC1**; it is not a criterion of its own, because its failure would mean the
+  **AC-0001**; it is not a criterion of its own, because its failure would mean the
   tuple lacks a representative sentence rather than that the procedure lacks a
   stage. **Constraint:** `RULES` is a hand-declared tuple the suite iterates, so
   nothing here notices a rule nobody pinned, and whether a sentence states a
   rule is a judgement. The floor bounds that without closing it — do not
   describe it as a derivation.
-- **AC1, AC2.** Two offset comparisons over the stage markers.
-- **AC3, AC5, AC11.** Both clauses of each criterion — requirement and
-  consequence.
-- **AC17, AC19.** The count sentence records count and corpus position; the same
-  span carries no rejection and states that a set above the p75 passes on its
-  obligations alone.
-- **AC18.** **Constraint, local to this assertion:** the criterion's content is
+- **AC-0001, AC-0002.** Two offset comparisons over the stage markers.
+- **AC-0003, AC-0005, AC-0011, AC-0012, AC-0013.** Both clauses of each criterion — requirement
+  and consequence. For AC-0012 and AC-0013 the two clauses are in separate sentences,
+  so each takes two assertions rather than one spanning pin.
+- **AC-0018.** The procedure span carries no rejection and states that a set above
+  the p75 passes on its obligations alone. The count-recording obligation is the
+  rubric's, not this spec's — see the ownership note in *Design decisions*.
+- **AC-0017.** **Constraint, local to this assertion:** the criterion's content is
   the *difference* between its branches, so a high-branch assertion alone passes
   when the branch is unconditional, and naming a second lower threshold
   reinstates the undefined band the criterion was repaired to remove. One
   threshold, both branches. Assert the percentile condition, the pairwise whole-set uniqueness re-run,
   the record-the-result instruction, and the below-p75 branch.
-- **AC18, AC19 together.** Slice the procedure span and assert the absence of a
+- **AC-0017, AC-0018 together.** Slice the procedure span and assert the absence of a
   fixed absolute criterion count.
-- **AC9.** Assert the pass states its subject as the spec-and-plan pair, assert
+- **AC-0009.** Assert the pass states its subject as the spec-and-plan pair, assert
   all seven sweep members are named, then assert the plan-side question stated
   for each of the three that carry one — uniqueness, coverage, propagation — and
   the contract carried by propagation and residual freshness. **Constraint on
@@ -252,7 +276,7 @@ whole-file token deny-list is unavailable either way; see the probe under
   that shipped through round 5. **Constraint on scope:** assert the three
   plan-reading members by name and assert no plan-side operation for the other
   four. Asserting a pair-wide reading over all seven would claim a reach the
-  prose does not have, which is the defect AC25 exists to answer.
+  prose does not have, which is the defect AC-0024 exists to answer.
   **Propagation:** the
   sentence names the rubric's sibling check as its owner and adds only scope and
   timing — a re-read of each touched criterion's construction test and
@@ -292,12 +316,20 @@ missing one of them does not close this task.
 **Depends on:** T1
 
 **Touches:** `guides/core/reference/acceptance-criteria-authoring.md`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
+`tests/roster/test_acceptance_criteria_guide_boundary.py`
 
 **Tests:**
-- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
-  the content check below. Without it the check is authored and never executed.
-- **AC14 and AC15 — content check, in the pack-local suite.** The three guide validators are
+- `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
+  — the module carrying the content check below. Without it the check is
+  authored and never executed.
+- **AC-0014 and AC-0015 — content check, at repository level, not in the pack suite.**
+  This check relates a `guides/` page to a shipped `core` pack file, so it
+  crosses the pack boundary. `tools/lint-pack-test-boundary.py`'s
+  `pack-tests-stay-in-pack` case rejects a test under `packs/core/tests/` whose
+  resolved path climbs above `packs/core`, and the precedent this plan cites,
+  `tests/roster/test_spec_authoring_rubric_brief_boundary.py`, says so in its own
+  docstring: cross-boundary coverage "cannot live under `packs/core/tests/`".
+  A repository-level roster module is the established seam. The three guide validators are
   frontmatter and link gates and cannot observe content, so they do not verify
   this task's contract. Assert over the page body: each of the five procedure
   stage names is present, the criterion-shape owner is cited by document name,
@@ -337,12 +369,14 @@ can be missing both guide outcomes.
 **Depends on:** T1
 
 **Touches:** `packs/core/.apm/skills/new-spec/evals/evals.json`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
 
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   the per-case assertions below.
-- **AC20 and AC21** — one shape-and-seed test per case, following the precedent of
+- **AC-0019 and AC-0020** — one shape-and-seed test per case, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
   the prompt, and each seeded item's survival. `stub: true` — the contract
@@ -367,11 +401,11 @@ can be missing both guide outcomes.
   the mutation — deleting any one seeded item from a case's prompt must red this
   module — which is why the pins are individual assertions rather than one
   aggregate membership check.
-- **AC22** — assert the whole scoring contract appears in each case's `expected_output`:
+- **AC-0021** — assert the whole scoring contract appears in each case's `expected_output`:
   recall first, non-criterion rejection second, count descriptive, **and** the
   rule that a smaller set obtained by losing a distinct obligation or guardrail
   is a failure. The ranks without that rule leave the failure condition
-  unstated, which is the half AC22 exists for.
+  unstated, which is the half AC-0021 exists for.
 
 **Approach:**
 - Author the three prompts as authoring frames, not review frames — the graded
@@ -386,10 +420,10 @@ entries landed and green after, and the full pack suite is green.
 
 **Depends on:** T3
 
-**Touches:** `docs/specs/acceptance-criteria-set-construction/notes/`
+**Touches:** `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md`
 
 **Tests:**
-- **AC29 and AC30** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
+- **AC-0028 and AC-0029** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
   procedure and that case's prompt, returning its candidate set and
   dispositions.
 - Each recorded case carries an explicit candidate count, an explicit final
@@ -407,12 +441,14 @@ entries landed and green after, and the full pack suite is green.
   failure, not a pass — record it as one and stop rather than re-running.
 
 **Done when:** every Tests bullet above is discharged for all three cases and
-recorded in `notes/`, and all three pass. A pass on one graded rank does not
+recorded in `notes/verification-ledger.md` — the single home
+`docs/CONVENTIONS.md` gives an execution-produced observation, so the run cannot
+land beside the ledger as a second copy — and all three pass. A pass on one graded rank does not
 close this task, and the count closes nothing.
 
 ### T5: The release surface closes
 
-**Depends on:** T1, T2, T3, T4, T6
+**Depends on:** T1, T2, T3, T4, T6, T7
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
@@ -426,21 +462,23 @@ close this task, and the count closes nothing.
   --root .` resolves this spec under its brief.
 - `python3 .agents/skills/work-loop/scripts/lint-traceability.py --root .` exits
   0. The 433 informational orphans are pre-existing.
-- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite that
-  carries the sweep below. Without this command the sweep has no closing
-  oracle: it would be authored, never executed, and the task would still meet
-  its gate.
-- **AC19 across every shipped surface, not just the procedure span.** T1's
-  check slices `SKILL.md` because that is where the percentile trigger and the
-  prohibition must coexist. AC19 is wider only in *surface*, not in claim: no
-  shipped surface may state a fixed absolute count in the forms the criterion
-  lists. The broader statement that a count never proves quality is a
-  non-waivable Boundary read at review, and is deliberately **not** attributed
-  to this mechanical check — the criterion was narrowed away from it precisely
-  because no check reaches it. Assert the prohibition over all three
-  surfaces this slice ships — the procedure span, the new guide page, and the
-  frozen eval entries — in one check that runs here, after the guide and the
-  cases exist.
+- `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
+  — the module that carries the sweep below. Without this command the sweep has
+  no closing oracle: it would be authored, never executed, and the task would
+  still meet its gate.
+- **AC-0018 across the three surfaces this slice ships.** T1's check slices
+  `SKILL.md` because that is where the percentile trigger and the prohibition
+  must coexist. AC-0018 is wider only in *surface*, not in claim. Assert the
+  prohibition over the procedure span, the new guide page and the frozen eval
+  entries, in one check that runs here, after the guide and the cases exist.
+  **It lives in the same roster module as T2's check**, for the same reason:
+  reading the guide page from `packs/core/tests/` breaches
+  `pack-tests-stay-in-pack`. Pre-existing shipped surfaces — `assets/spec.md`,
+  the rubric, and `SKILL.md` outside the procedure span — are outside both the
+  check and the narrowed criterion, and are recorded as a residual under
+  *Risks*. The broader statement that a count never proves quality is a
+  non-waivable Boundary read at review, deliberately **not** attributed to this
+  mechanical check, because no check reaches it.
 
   **The proxy is named, not implied.** This detects a fixed absolute count in
   the forms the criterion lists — cap, ceiling, budget, refusal, pass/fail bar.
@@ -451,7 +489,7 @@ close this task, and the count closes nothing.
   absolute criterion count. Mutation: add `keep specs under 20 criteria` to the
   guide page, outside `SKILL.md`. Expected failure: this check reds naming the
   guide. A check that stays green under that mutation is scoped to the wrong
-  surfaces and is not the guard AC19 needs. Restore by editing the sentence out,
+  surfaces and is not the guard AC-0018 needs. Restore by editing the sentence out,
   never by `git checkout`.
 - `python3 -m pytest tests/roster/test_security_checklists_okf_projection.py -q`
   — reuse, do not rebuild. Its
@@ -469,10 +507,14 @@ close this task, and the count closes nothing.
 - Give core its own free-standing topmost changelog section. A combined heading
   with another guarded pack leaves that pack's topmost heading on an older
   release.
-- Register this spec in `workspace.toml`'s `["ini-002".work].active` with the
-  brief as `source.parent`. The parent intent `work-loop-delivery-efficiency` is
-  `Accepted` and stays out of every collection — the reconciler rejects a
-  terminal Accepted intent.
+- The `workspace.toml` entry already exists in `["ini-002".work].queue` with the
+  brief as `source.parent`; registration is not this task's work. What closes
+  here is the membership move that follows the spec's `Status`, since
+  `work.active` requires `Implementing` and `work.shipped` requires `Shipped` —
+  the reconciler returns `impossible_transition` on a mismatch. Move the entry
+  to `work.shipped` when the `Status` flip happens, not before. The parent intent
+  `work-loop-delivery-efficiency` is `Accepted` and stays out of every
+  collection: the reconciler rejects a terminal Accepted intent.
 
 **Done when:** every Tests bullet above passes, including the pack-local suite
 with the cross-surface sweep present and its mutation proof recorded and
@@ -483,12 +525,14 @@ restored, and `make build-self` leaves no drift.
 **Depends on:** T1
 
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
 
 **Tests:**
 - `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
   every assertion below.
-- **AC23 — already shipped, asserted here. Two gaps close first:** the
+- **AC-0022 — already shipped, asserted here. Two gaps close first:** the
   whole-plan-walk rule has no pinned entry, so add one; and the existing owner
   test searches the whole skill file, so a rule moved out of the plan step would
   stay green. Add a span-scoped assertion that all six occur inside the plan
@@ -499,7 +543,7 @@ restored, and `make build-self` leaves no drift.
   is added by this task.** The completed assertion inspects that six-entry
   mapping, span-scoped to the plan step, and checks the prose still reads as the
   criterion states. No new rule prose is written for this criterion.
-- **AC24.** The review step names all **eight** responses to a sustained finding
+- **AC-0023.** The review step names all **eight** responses to a sustained finding
   — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
   bound-and-defer, accept-with-reason — one assertion per response so none can
   be dropped silently, and
@@ -507,18 +551,18 @@ restored, and `make build-self` leaves no drift.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves
   repair the default by omission, which is the present behaviour.
-- **AC25.** The review step states both answers to a claim-reaches-further
+- **AC-0024.** The review step states both answers to a claim-reaches-further
   finding and the rule for choosing between them. **Constraint:** assert the
   choosing rule, not just the pair. A pair of options with no basis for choosing
   leaves the author picking by mood, which is the behaviour this criterion
   replaces.
-- **AC26.** The review step states the surface-guidance finding class and its
+- **AC-0025.** The review step states the surface-guidance finding class and its
   one answer: the criterion changes, and the forbidden content is never authored
   to satisfy it. **Constraint:** assert the prohibition as well as the class. A
   finding class named with no stated answer leaves the author choosing, and the
   choice that reads as cheapest — write the content the criterion demands — is
   the one this repository's round 6 actually produced.
-- **AC27.** The review step *instructs* the stop-decision report. The oracle is
+- **AC-0026.** The review step *instructs* the stop-decision report. The oracle is
   the shipped instruction, because nothing in this task observes a produced
   report; an assertion phrased over the report would claim a reach it does not
   have. Assert the instructed fields — the finding trend by round, and per
@@ -534,7 +578,11 @@ restored, and `make build-self` leaves no drift.
   2.25.14 rather than adding a second one — that step already reports the trend
   and each residual's consequence, so a parallel step would put two homes on one
   obligation. What is new is the options and their costs.
-- **AC28.** The earn-its-keep test is stated over every criterion rather than
+- **AC-0027. The `deletion-pass` pin updates with the prose.** That sentence is
+  pinned verbatim in `RULES`, so rescoping it reds the existing entry; update
+  the entry in the same change, the way this task already declares the
+  whole-plan-walk pin addition, so the red reads as planned work rather than a
+  regression. The earn-its-keep test is stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial
@@ -550,6 +598,49 @@ restored, and `make build-self` leaves no drift.
 
 **Done when:** every Tests bullet above passes.
 
+### T7: The spec template emits identified criteria
+
+**Depends on:** none
+
+**Touches:** `packs/core/.apm/skills/new-spec/assets/spec.md`,
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
+`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
+in the same commit
+
+**Tests:**
+- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
+  the assertions below. The asset sits inside `packs/core`, so this check crosses
+  no pack-test boundary and stays pack-local, unlike T2's and T5's.
+- **AC-0030, the convention.** Assert `assets/spec.md` states each property
+  separately — opaque, append-only, spec-directory scoped, assigned once, never
+  renumbered on insertion or reorder, never reused after removal, removals
+  recorded in a retired list — one assertion per property. **Constraint:** one
+  assertion per property, not a single pin over a paragraph. The properties fail
+  independently: a template that says "give each criterion an identifier" and
+  omits no-reuse ships a convention that silently permits the defect it exists
+  to prevent, and a paragraph-level pin stays green through that deletion.
+- **AC-0030, the emitted form.** Assert the template's own criteria list carries
+  labelled items, so an author copying it inherits the form rather than reading
+  about it. **Constraint:** assert the label shape on a template criterion, not
+  merely that the word "identifier" appears in the prose. A convention described
+  but not demonstrated is one the next author will not follow; this repository's
+  own 442 specs are the evidence.
+- **Constraint on the prose itself:** `packs/AGENTS.md` forbids shipped pack
+  content from citing this catalogue's internal records, so the template states
+  the rule directly and names no ADR. The assertion reads for the properties,
+  never for a record identifier.
+
+**Approach:**
+- State the convention inside the existing `## Acceptance Criteria` comment block
+  in the asset, beside the `- [ ]` / `- [x]` notation note it already carries.
+  That block already owns notation, so the identifier form belongs to it rather
+  than to a new section.
+- Adopt it forward-only. The 442 existing spec directories are not renumbered —
+  the same basis on which ADR numbering was introduced here.
+
+**Done when:** every Tests bullet above passes and `make build-self` leaves no
+drift.
+
 ## Rollout
 
 - **Delivery:** big bang, fully reversible. The change is prose, JSON entries
@@ -559,8 +650,10 @@ restored, and `make build-self` leaves no drift.
 - **External-system integration:** none. The eval workflow at
   `.github/workflows/pack-evals.yml` is schedule-and-dispatch-only and
   report-only, so it is not a precondition and is not this gate.
-- **Deployment sequencing:** the version bump and self-host run come last, in
-  one commit, because self-host refuses a dirty tree.
+- **Deployment sequencing:** the version bump comes last. Projection
+  regeneration does not: each `.apm/`-touching task runs `make build-self`
+  (`FORCE=1` on a dirty tree, per `docs/CONVENTIONS.md`) and commits source and
+  projections together, which is what the spec's `Always do` requires.
 
 ## Risks
 
@@ -580,6 +673,13 @@ restored, and `make build-self` leaves no drift.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.
+- **AC-0018's check reads three surfaces; older shipped surfaces go unread.**
+  `assets/spec.md`, the rubric, and `SKILL.md` outside the procedure span carry
+  no check for a fixed absolute criterion count. The criterion was narrowed to
+  the three surfaces this slice ships so it claims only what its oracle reaches;
+  the rest is a review obligation with no mechanical backing. Mitigation: none
+  available at proportionate cost — recorded so the gap is visible rather than
+  implied by a wider-sounding criterion.
 - **A count assertion scoped too widely reds on correct text.** Measured, not
   hypothesised — see the probe under *Design decisions*. Mitigation: the span
   slice in T1, and no assertion that reads the whole file for a bare token.
@@ -594,3 +694,12 @@ restored, and `make build-self` leaves no drift.
 ## Changelog
 
 - 2026-09-10: initial plan.
+- 2026-09-10: owner-approved scope addition — T7 carries the identifier
+  convention into the spec template, and this spec's own criteria are the first
+  to be labelled. Identifiers assigned 2026-09-10 and frozen from that point;
+  the renumbering before that date is history, not retirement, so the retired
+  list starts empty.
+- 2026-09-10: pre-EXECUTE adversarial review sustained nine findings. Cut the
+  count-recording criterion to the rubric that already owned it; moved the two
+  cross-boundary checks to `tests/roster/`; gave every `.apm/`-touching task its
+  own projection regeneration; bounded AC-0018 to the surfaces its check reads.
