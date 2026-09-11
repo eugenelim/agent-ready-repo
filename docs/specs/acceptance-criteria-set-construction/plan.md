@@ -460,9 +460,10 @@ what went stale when one was added.
   is added by this task.** The completed assertion inspects that six-entry
   mapping, span-scoped to the plan step, and checks the prose still reads as the
   criterion states. No new rule prose is written for this criterion.
-- **AC23.** The review step names all **six** responses to a sustained finding —
-  repair, narrow, cut, dismiss-and-re-present, repair the generator, route — one
-  assertion per response so none can be dropped silently, and
+- **AC23.** The review step names all **seven** responses to a sustained finding
+  — repair, narrow, cut, dismiss-and-re-present, repair the generator, route,
+  bound-and-defer — one assertion per response so none can be dropped silently,
+  and
   states that a sustained finding does not by itself require an edit.
   **Constraint, local to this assertion:** assert the disclaimer as well as the
   list. A list of options with no statement that repair is optional leaves

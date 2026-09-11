@@ -565,3 +565,32 @@ than as a claim. A miss is a result, not a failure to be explained away.
 of the guidance are the same, in one session, so this measures whether the rules
 bind *the person who wrote them*. That is the weakest form of the activation
 question and it cannot be strengthened from inside this session.
+
+## Addendum 12 — the four residuals, dispositioned
+
+**Bound and deferred (two).** The single-homing oracle's blind spots and the
+propagation sweep's missing mechanical backing are one root and one follow-on:
+[`loop-contract-item-identity-mechanism`](../../../product/intents/loop-contract-item-identity-mechanism.md).
+The test that settled it: the phrase-based oracle is how single-homing already
+works, so leaving it is declining to repair a pre-existing gap rather than
+shipping new debt, and everything this spec delivers works identically
+underneath it. The Boundary now says this spec does not build that mechanism.
+
+This produced a seventh response in the protocol. Routing assumes an owner
+exists; here none did, so the response is to bound the work out of scope and
+record a follow-on that names its new owner. Without that, the only honest
+options were to build it here — scope creep — or to leave the residue unowned.
+
+**Dismissed (one).** "Eight criteria are verified by presence alone" overstated
+the gap. The pins are *exact phrases*, so presence establishes that the
+procedure says precisely what was pinned. What it does not establish is that an
+author reading it acts on it, and that is the activation question the brief
+assigns elsewhere. The residue as written claimed a gap that is not there.
+
+**Accepted with its reason (one).** The stop-decision report is verified as an
+instruction in prose, not as a produced report. A fourth frozen evaluation case
+would close it and was declined: the report's reader *is* the owner, so a
+missing field is visible on first use, where a missing seed in an evaluation
+case is invisible and degrades the gate silently. Self-revealing failures do not
+need mechanical oracles, and a fourth case would add roughly a third to the
+delivery gate to catch what the audience catches free.

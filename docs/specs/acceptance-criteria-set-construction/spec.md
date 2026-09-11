@@ -109,6 +109,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   dependency; the selection procedure is prose in files that already exist.
 - Claim, in shipped text, that written guidance changes author behaviour in
   general. This slice's evaluation covers three frozen cases and nothing wider.
+- Build the identity or fingerprint mechanism beneath the single-homing check.
+  The phrase-based oracle is how that check already works; leaving it is
+  declining to repair a pre-existing gap, not shipping new debt, and everything
+  this spec delivers works the same underneath it.
 
 ## Testing Strategy
 
@@ -231,7 +235,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       finding — repair the artifact, narrow the claim to what its check reaches,
       cut the item the finding is about, dismiss the finding with its reason
       recorded and re-present it to the next round, repair the generator rather
-      than the instance, or route it to an owner that already covers it — and
+      than the instance, route it to an owner that already covers it, or bound
+      it out of scope and record a follow-on that names its new owner — and
       states that a sustained finding does not by itself require an edit.
 - [ ] Where a finding is that a claim reaches further than its check, the
       procedure states both answers and how to choose: strengthen the check when
@@ -249,6 +254,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       non-waivable guardrail.
 - [ ] That run admits no seeded implementation detail, duplicate claim or
       example-only variant as a criterion.
+
+## Follow-ons
+
+- eugenelim: [`docs/product/intents/loop-contract-item-identity-mechanism.md`](../../product/intents/loop-contract-item-identity-mechanism.md)
+  — derive the pinned set from rule identifiers, fingerprint each item, and route
+  a changed item's dependants into the next re-review's scope. Closes two of the
+  single-homing oracle's three blind spots and gives the propagation sweep a
+  mechanical backing; paraphrase detection stays out of scope there too.
 
 ## Assumptions
 
