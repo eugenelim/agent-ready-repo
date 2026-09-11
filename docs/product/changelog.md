@@ -70,6 +70,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `new-spec`: step 9 names every check the skill ships and the step that runs
+  it, with the runnable `<skill-dir>` form. A control nobody calls reports
+  nothing and is indistinguishable from one that found nothing, and the three
+  checkers shipped before any step referenced them. The pack suite reads the
+  `scripts/` directory rather than a restated list, so a check added later with
+  no caller fails instead of shipping unreferenced.
 - `new-spec`: three checkers in the skill's own `scripts/`. An item-alignment
   check over a spec directory's identifiers, references and coverage; a
   grounding explorer that answers what already governs a set of paths, selected

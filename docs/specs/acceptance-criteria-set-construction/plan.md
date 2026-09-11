@@ -35,19 +35,13 @@ regenerates its projections in the same commit, per the spec's `Always do`:
 `make build-self` takes `FORCE=1` on a dirty tree, so a single deferred run was
 never required and the earlier rationale claiming otherwise was wrong.
 
-The riskiest part is calibrating the assertions, not writing the prose. The
-single-homing suite asserts each pinned rule sentence appears in exactly one of
-four authoring surfaces, so any phrasing that echoes an owned rule reds it — but
-the 5a probe measured zero collisions for a naturally-worded draft, so that is a
-residual risk rather than the leading one. What the probe *did* find is that a
-count-threshold assertion scoped to the whole file reds on two lines of correct
-shipped text, so the count and ordering assertions need the span scoping T1
-carries. Extending the suite's pinned rule set in the same task as the prose is
-still what keeps citation honest: a later edit that pastes an owned rule into the
-procedure reds immediately rather than at review.
-
-The second risk is the eval register. It is a frozen case list that no CI job
-runs, so a case is only as good as the assertions pinning its seeded material.
+The riskiest part is that the three checkers this slice ships are invoked by no
+gate. Each is a pure function over an artifact with its own case suite, so the
+checks themselves are sound; what can fail silently is their reachability — a
+control nobody calls reports nothing and is indistinguishable from one that
+found nothing. AC-0038 is the answer, and it reads the skill's own `scripts/`
+directory rather than a restated inventory, so a check added later without a
+named caller fails rather than passing unnoticed.
 The seed pins go in before the cases, red, so a case that silently stops grading
 its gap cannot ship green.
 
@@ -74,21 +68,20 @@ its gap cannot ship green.
 commands the delivery uses are the repository's existing gates, listed under
 Rollout.
 
-**Manual verification:** the recorded three-case run in T4. One fresh subagent
-per case, so three runs are three independent samples rather than one sample and
-two recollections.
+**Manual verification:** none. Every criterion this slice carries is decided by
+a suite over a fixture artifact; the graded run that needed a human reading is
+routed with the criteria that depended on it.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| User-facing promise → `guides/core/reference/acceptance-criteria-authoring.md` | T2 | The roster-level content check over the page body, plus `validate_guides.py`, `check-guide-index.py` and `lint-guide-titles.py` all OK | Page exists, is scoped to set construction, and cites the shape owner |
-| Reusable learning → `notes/verification-ledger.md`, `notes/set-construction-self-application.md`, `docs/product/research/item-id-management-comparison-matrix.md` | T4 (graded run); T1 (matrix, cited by the architecture page) | The recorded run's per-candidate disposition table; the matrix's rejected alternatives | T4's `Done when` owns the run; the matrix is cited by ADR-0108 and the architecture page with no claim left unowned |
+| Reusable learning → `notes/set-construction-self-application.md`, `docs/product/research/item-id-management-comparison-matrix.md` | T8 (the matrix, cited by ADR-0108) | The matrix's rejected alternatives, cited rather than restated | The matrix is cited by ADR-0108 with no claim left unowned |
 | Release history → `docs/product/changelog.md` | T5 | Free-standing topmost `core` section at the bumped version | `test_core_version_and_okf_declaration_are_synchronized` green |
 | Current product truth → the brief's § "Spec map" | T5 | `lint-brief-coverage.py` resolves this spec through its `Brief:` header | Roll-up names this spec; nothing hand-written into the brief |
 | Decision rationale → `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` and this plan's `## Changelog` | T8 (the ADR); T5 (the changelog half) | T8's AC-0032 roster assertion over the ADR's `Confirmation` and `Revisit if`; each delivery decision dated in `## Changelog` | T8's `Done when` already closes the ADR half; the changelog half closes when no owner decision from this delivery is discoverable only from a commit message |
 | Interface compatibility → the three checkers' `--help` and module headers | T8 (`lint-contract-item-alignment.py`); T9 (`explore-grounding.py`, `lint-finding-coverage.py`) | Each script's header states its flags and every exit code it can return, and the explorer states its per-probe outcome sets | A header describes no set the code does not have, asserted per script in the task that ships it |
-| Current architecture → `docs/architecture/loop-contract.md` | T1 | The page cites ADR-0108 for item identity and the rubric for the shape rules, restating neither | A grep for a restated rule finds none, and the architecture index links the page |
+| Current architecture → `docs/architecture/loop-contract.md` | T8 | The page cites ADR-0108 for item identity and the rubric for the shape rules, restating neither | A grep for a restated rule finds none, and the architecture index links the page |
 
 ## Design (LLD)
 
@@ -208,441 +201,11 @@ whole-file token deny-list is unavailable either way; see the probe under
 
 ## Tasks
 
-### T1: The selection procedure ships and its rules are single-homed
-
-**Depends on:** none
-
-**Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
-`docs/architecture/loop-contract.md` (exists), `docs/architecture/README.md`,
-`docs/architecture/reference.md` (exists),
-`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
-in the same commit
-
-**Tests:**
-- **The Current-architecture durable output, observed rather than tabled.** Assert
-  over every architecture surface this slice touches — `loop-contract.md` and the
-  `reference.md` standards entry — that each rule stated cites an owner by
-  document and identifier, and that `docs/architecture/README.md` links the page.
-  **Constraint on scope:** the assertion iterates the surfaces the task's
-  `Touches` names rather than one path, because a rule restated on a surface the
-  assertion does not read is a home nothing catches. **Mutation:** restore a restated rule
-  and the assertion must red; the durable-output table itself is read by no
-  command, which is why the condition lives here.
-- `make lint-packs` — this task adds `SKILL.md` body prose, and that is the only
-  named command that runs `skill_spec_lint`, which carries the CAT-S003 body-line
-  ceiling. `make build-self` runs `catalogue self-host` and never the lint, so a
-  task that spends from the budget without naming this command closes green with
-  the ceiling unobserved. The tasks that add prose draw on one shared headroom,
-  so each names it rather than relying on a later task to discover the overrun.
-- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
-  every assertion below. Each bullet names its criteria and the observation; the
-  rules governing assertion shape are in *Behavior & rules*, cited not repeated.
-- `python3 -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py tests/roster/test_rfc0099_activation_coverage.py -q`
-  — the repository-level pins on `SKILL.md`. The pack-local suite cannot reach
-  them, so without this command a red this task causes closes green under its own
-  `Done when`.
-- **The pin, and what it establishes.** Extend `RULES`, owner `skill`, with one
-  pinned entry per criterion in the spec's Testing Strategy goal-based group
-  over the skill file, plus one per rule the shipped procedure states whose
-  criterion is deferred. For a rule whose whole claim is that a named sentence is
-  present, **presence of the pinned sentence inside the procedure span is the
-  oracle** and no further assertion is owed. The span matters: the owner test
-  searches the whole file, so a sentence moved out of the procedure stays green
-  under it, and the per-stage floor only places *some* pinned sentence in each
-  interval. Assert span membership for this exact five-entry set; the mutation
-  that must fail is moving one entry outside the span while leaving it in
-  the file. **A rule stated across two sentences takes a both-clause assertion,
-  never one contiguous pin:** a requirement and its separately-failing
-  consequence in *separate* sentences leave the second clause undetectable under
-  a single spanning pin, against this task's own constraint that every assertion
-  fails under deletion of the clause it pins. A rule that is one contiguous
-  sentence is reached by a whole-sentence pin.
-- **The discovery pass.** Assert it sits after the durable-outputs step and
-  before the spec body, that it is seeded by the resolved destinations, and that
-  it instructs the result to be recorded. **Constraint on the span:** this
-  assertion is scoped to the durable-outputs-to-body boundary, **not** to the
-  procedure span every other T1 assertion slices — the pass runs before the
-  acceptance-criteria step, so slicing the procedure span would look for it where
-  it is not. Assert its offset falls between the two step markers.
-  **Constraint on the framing:** assert the prose reads as discovery — what
-  already owns and governs these surfaces — and not as a check on a criterion.
-  A pass worded as validation reads as something to run after authoring, which
-  is the placement this criterion exists to move.
-- **AC-0006.** Assert the admission step names every member of the governing
-  set — scoped `AGENTS.md`, gates and linters, existing owner documents,
-  repository conventions — one assertion per member, iterating the set rather
-  than a count of it, then assert the inadmissibility consequence separately. **Constraint on the members:** one
-  assertion each, never one pin over the sentence. The members fail
-  independently, and the three non-`AGENTS.md` members are the ones that matter:
-  this plan's own pre-EXECUTE review sustained three blockers, and each rested on
-  a linter, an owner document, or a convention — none on a scoped `AGENTS.md`
-  file, all four of which the plan had already cited. **Constraint on the walk:**
-  assert the `AGENTS.md` member reads as a walk — "each file found", not "the
-  nearest" — because a nested scoped file does not replace the one above it and
-  the root `AGENTS.md` says stopping at the first hit skips the rest silently.
-  The mutation that must fail is rewriting the walk as a nearest-file lookup
-  while leaving the consequence clause intact.
-- **The disposition record.** Assert the procedure requires each candidate's disposition to be
-  recorded and the two counts that follow from it. **Constraint:** assert the
-  disposition record and the counts separately, and assert that the counts are
-  stated as following from the dispositions. A count obligation standing alone
-  is the corpus-threshold material the rubric owns, and restating it here is the
-  second home this contract's own Boundary forbids — the distinction is that
-  these counts describe what this selection did, while the rubric's threshold
-  describes the author's shipped corpus.
-- **A per-stage floor over the pinned set — a construction check, not a
-  criterion.** At least one pinned sentence falls in each of the stage
-  intervals, the fifth closing at the end of the procedure span. This supports the
-  stage-order prose; it is not a criterion of its own, because its failure would mean the
-  tuple lacks a representative sentence rather than that the procedure lacks a
-  stage. **Constraint:** `RULES` is a hand-declared tuple the suite iterates, so
-  nothing here notices a rule nobody pinned, and whether a sentence states a
-  rule is a judgement. The floor bounds that without closing it — do not
-  describe it as a derivation.
-- **The stage order.** Two offset comparisons over the stage markers.
-- **AC-0011, and the admission and hand-off rules.** Both clauses of each —
-  requirement and consequence. Where the two clauses sit in separate sentences,
-  each takes two assertions rather than one spanning pin.
-- **AC-0018.** The procedure span carries no rejection and states that a set above
-  the author's stated threshold passes on its obligations alone, **and states the
-  set-not-count authoring rule**: where a set is enumerated, the prose names the
-  set and never its cardinality, and no criterion carries a count of the
-  delivery's own history. Assert both halves — the rule and the
-  history-count prohibition — since prose naming only the first leaves a round
-  count admissible. **Constraint:**
-  assert against whatever threshold the procedure records, never a percentile
-  literal — the rubric that owns derivation says "derive the threshold rather
-  than inheriting a number", so pinning one here makes the shipped prose breach
-  its own owner. The count-recording obligation is the
-  rubric's, not this spec's — see the ownership note in *Design decisions*.
-- **The whole-set uniqueness re-run.** **Constraint, local to this assertion:** its content is
-  the *difference* between its branches, so a high-branch assertion alone passes
-  when the branch is unconditional, and naming a second lower threshold
-  reinstates an undefined band between them. One
-  threshold, both branches. Assert the at-or-above condition against the
-  procedure's recorded threshold, the pairwise whole-set uniqueness re-run, the
-  record-the-result instruction, and the below-threshold branch — no percentile
-  literal in any of the four.
-- **The re-run and AC-0018 together.** Slice the procedure span and assert the absence of a
-  fixed absolute criterion count.
-- **The set-level pass.** Assert it states its subject as the spec-and-plan pair, assert
-  every sweep member the criterion enumerates is named, then assert the
-  plan-side question stated for each member that carries one — uniqueness,
-  coverage, propagation — and
-  the contract carried by propagation and residual freshness. **Constraint on
-  the subject clause:** assert that both artifacts are named, not that the word
-  "set" appears; a pass whose subject reads as the criteria alone is the one
-  that shipped through round 5. **Constraint on scope:** assert the plan-reading
-  members by name and assert no plan-side operation for the remaining members.
-  Asserting a pair-wide reading over every member would claim a reach the prose
-  does not have, which is the defect the claim-reaches-further response answers.
-  **Constraint on the consistency member:** assert that it reads the spec's own
-  body prose against the criteria, not the criteria against each other, and
-  assert separately that it tests the body for narrated delivery history and for
-  a count standing beside the set it enumerates. Both decay with no edit at all,
-  so a member that reads only criterion-against-criterion never reaches them;
-  each ban must red on its own deletion, because one assertion over "the
-  consistency member" is satisfied by prose carrying neither ban.
-  **Constraint on the shape re-read:** assert that the member obliges the re-read
-  and reaches the rules through the `assets/spec.md` section the skill already
-  names as their owner, and assert separately that it carries no rule's wording —
-  the spec's *Never do* forbids restating a rule that file owns. Where a pinned
-  name is used, assert the pack resolves it: `observable-outcome` is shipped
-  prose in the rubric, while `claim-minimality` exists only in a non-projected
-  suite, so naming the latter would demand shipped prose carry a token an adopter
-  cannot resolve — the unsatisfiable shape this task has already refused twice. Deleting
-  that clause must red this assertion; without it the member reads as a
-  criteria-only comparison, and the body statement that contradicted its own
-  criteria survived three rounds because nothing looked there.
-  **Propagation:** the
-  sentence names the rubric's sibling check as its owner and adds only scope and
-  timing — a re-read of each touched criterion's construction test and
-  verification entry against that criterion's current wording, completing "in the
-  same round, before the round is reported". **Constraint:** assert the citation,
-  the read-back scope *and* the timing, never a restated propagation rule. A
-  text-search reading passes this spec's own round 5, where two plan tests still
-  described pre-repair criteria while every phrase grep came back clean;
-  restating the rule here
-  is the second home this spec's own Boundary forbids, and a propagation rule
-  with no timing leaves reconciliation to a later pass — four findings across
-  this cycle were exactly that later pass. **Residual freshness:** the sentence
-  requires each recorded residual to be re-tested against current state rather
-  than carried forward on its last wording. The mutation that must fail is
-  dropping either clause while leaving the member's name in the list.
-- **Exact assertion wording is build-discovered.** The phrases, markers and
-  offsets cannot be settled until the procedure prose exists.
-  **Discovery predicate:** each assertion is written against the shipped
-  sentence once `SKILL.md` is authored. **Constraint:** no assertion keys on a
-  bare numeral, and each fails under deletion of the clause it pins.
-  **Required outcome:** the suite is red before the prose lands, green after.
-  **Verification mode:** goal-based, pack-local suite.
-
-
-**Grounding:**
-- **The roster modules that read T1's own surfaces**, found by searching for the
-  paths this task touches rather than by asking which rules apply:
-  `test_spec_authoring_rubric_brief_boundary.py`, which reads the rubric this
-  task cites. Two modules named here in an earlier round —
-  `test_spec_review_adjudication_documentation.py` and
-  `test_verification_ledger_contract.py` — read guide pages and `assets/plan.md`
-  respectively and are T6's and T7's surfaces, not T1's; grounding resolved for
-  the plan as a whole rather than for a task's own work is what AC-0031 rules
-  out, and naming them here was that defect. The mechanical search is
-  exhaustive over references-by-path; the semantic sweep that preceded it was
-  not, and missed all of them.
-- **Two roster modules pin `SKILL.md` prose, and the pack-local suite cannot
-  reach them.** `tests/roster/test_tdd_stub_lifecycle_contract.py` pins six
-  exact phrases inside step 4 — the step this slice rewrites — and applies a
-  seven-phrase deny-list across the whole file;
-  `tests/roster/test_rfc0099_activation_coverage.py` pins further `SKILL.md`
-  prose. A red in either is invisible to `pytest packs/core/tests/skills/new-spec`,
-  so the task's gate names both modules explicitly.
-- `skill_spec_lint.py` measures `SKILL.md` body length: **over 500 lines warns,
-  over 1,000 errors.** The file is 660 lines today and T1 and T6 both add prose
-  to it. Budget against the error ceiling, and treat the warning as already
-  breached rather than as headroom.
-- `test_acceptance_criteria_discipline.py` `RULES` pins exact normalized prose to
-  one owner; `test_step_pointers_name_headings_that_still_exist` pins the step-5
-  and step-9 headings; `test_corpus_absence_rule_precedes_the_sign_off_gate` pins
-  a relative ordering. Any of the three reds on a careless edit to this step.
-- `tests/roster/test_cognitive_load_repository_contract.py` requires exactly one
-  rendering start/end marker pair per canonical skill and no internal routing
-  references inside that block.
-- Owners that must be cited, never restated: `assets/spec.md` (criterion shape),
-  the rubric (six failure classes; ordering and the count threshold),
-  `assets/plan.md` (construction-test placement).
-- `packs/AGENTS.md` — a non-cosmetic pack change also updates that pack's eval
-  harness, and shipped prose cites no internal record.
-
-**Approach:**
-- Rules this task ships whose criterion is deferred are measured under
-  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`.
-  The assertions above stay, as construction checks over shipped prose.
-- Rewrite the AC step's `No Acceptance Criteria` bullet into the numbered
-  procedure, keeping its existing pointers to step 9 and step 5 intact — the
-  `step-four-pointers` pin and `test_step_pointers_name_headings_that_still_exist`
-  both read them.
-- Keep every shape and diagnosis question as a citation.
-
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and every `Tests` bullet above is
-landed as its own assertion. A green suite that is missing one of those bullets
-does not close this task. `make build-self` also leaves no drift, since this task
-edits `.apm/` and the spec's `Always do` requires source and projections to land
-together.
-
-### T2: The guide publishes the set-construction section
-
-**Depends on:** T1
-
-**Touches:** `guides/core/reference/acceptance-criteria-authoring.md`,
-`tests/roster/test_acceptance_criteria_guide_boundary.py`
-
-**Tests:**
-- `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
-  — the module carrying the content check below. Without it the check is
-  authored and never executed.
-- **The guide content check — at repository level, not in the pack suite.**
-  This check relates a `guides/` page to a shipped `core` pack file, so it
-  crosses the pack boundary. `tools/lint-pack-test-boundary.py`'s
-  `pack-tests-stay-in-pack` case rejects a test under `packs/core/tests/` whose
-  resolved path climbs above `packs/core`, and the precedent this plan cites,
-  `tests/roster/test_spec_authoring_rubric_brief_boundary.py`, says so in its own
-  docstring: cross-boundary coverage "cannot live under `packs/core/tests/`".
-  A repository-level roster module is the established seam. The three guide validators are
-  frontmatter and link gates and cannot observe content, so they do not verify
-  this task's contract. Assert over the page body: each of the five procedure
-  stage names is present, the criterion-shape owner is cited by document name,
-  and no sentence from that owner's pinned rule collection appears in the guide
-  body — an exact absence comparison against the named set, not a judgement
-  about restatement. **The set is loaded from the pack suite under a unique
-  pack-and-skill-qualified module name — `importlib.util.spec_from_file_location`
-  against the module's path, never a bare import — and never re-declared.** The
-  directory carries no package marker and `packs/AGENTS.md` forbids bare-name
-  loading of a pack module, so the seam is named here rather than left for the
-  build to guess. A
-  re-declared copy in `tests/roster/` is protected by no test, drifts silently,
-  and is exactly the second home this plan exists to avoid; `SOURCES` in that
-  module covers the four pack files only, so nothing would catch the drift. Paraphrase is outside this assertion and is a review
-  obligation, so the assertion claims only what it reads. The suite reads the guide by
-  repository-relative path, the way
-  `tests/roster/test_spec_authoring_rubric_brief_boundary.py` reaches across the
-  pack boundary. **Constraint, local to this assertion:** assert one operative
-  sentence per stage as well as the stage name. A page listing five headings and
-  no instruction publishes nothing, and a name-only assertion passes on it; the
-  mutation that must fail is deleting a stage's instruction while leaving its
-  heading.
-- `python3 tools/validate_guides.py`, `python3 tools/check-guide-index.py` and
-  `python3 tools/lint-guide-titles.py` all OK — publication, not content. The
-  frontmatter keys the schema requires are `title`, `summary`, `pack`, `kind`;
-  `title` must equal the leading H1.
-- Every link target stays inside `guides/`. A link out renders as an off-site
-  GitHub blob URL.
-
-
-**Grounding:**
-- **`tools/lint-guides-no-repo-only-refs.py` rejects a guide that links a
-  governance path, carries an ADR or RFC token, or references a real
-  `docs/specs/<slug>` directory.** The page therefore cannot cite this spec, the
-  ADR behind the identifier convention, or any `docs/` path — it states its
-  rules directly. This is the single constraint most likely to be breached by an
-  author writing the page from the spec.
-- `.github/workflows/docs.yml` runs `validate_guides.py` over the real tree and
-  requires **0 errors and 0 warnings**; a warning is fatal there even though it
-  is not locally.
-- `contracts/guide.schema.json` requires `title`, `summary`, `pack`, `kind`,
-  rejects any undeclared field, and constrains `kind` to tutorial / how-to /
-  reference / explanation. `lint-guide-titles.py` requires the leading body H1 to
-  match `title`.
-- No registration is owed: `lint-guide-titles.py`, `build-site.py` and
-  `check-guide-index.py` all discover pages recursively, `check-guide-index.py`
-  checks pack-level links only, and `guide-nav-baseline.toml` is for deletes and
-  renames. A titled page needs no baseline row.
-- The new roster module is auto-collected by `make test` and `test-roster.yml`;
-  there is no roster manifest. Its basename must be unique across suites sharing
-  a process.
-
-**Approach:**
-- This task's two guide outcomes have no criterion in `spec.md`; they are
-  measured under
-  `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`.
-- Author the page as `kind: reference`, `pack: core`, scoped to selection,
-  scenario placement, routing and the set-level pass.
-- Leave the per-criterion failure-class section to the slice that owns it; do
-  not scaffold an empty heading for it, which would decay.
-- No `guide-nav-baseline.toml` row: that registry is transitional and shrinking,
-  and a page with `title:` frontmatter needs none.
-
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the validators alone are not
-sufficient — they are frontmatter and link gates, so a page passing only them
-can be missing both guide outcomes.
-
-### T3: Three frozen cases exist and cannot silently stop grading
-
-**Depends on:** T1
-
-**Touches:** `packs/core/.apm/skills/new-spec/evals/evals.json`,
-`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
-`.agents/skills/new-spec/`, `.claude/skills/new-spec/` — projections, regenerated
-in the same commit
-
-**Tests:**
-- `python3 -m pytest packs/core/tests/skills/new-spec -q` — the suite carrying
-  the per-case assertions below.
-- `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q`
-  — this task's Grounding records its byte-equality pin over the eval register
-  and both projections; without the command that pin is recorded and never run.
-- **AC-0019 and AC-0020** — one shape-and-seed test per case, iterating the named
-  failure classes rather than a case count, following the precedent of
-  `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
-  entry's key set, id uniqueness across the register, the authoring frame in
-  the prompt, and each seeded item's survival. `stub: true` — the contract
-  surface compiles and is red before the entries exist:
-
-  ```python
-  def test_set_construction_cases_are_frozen_and_seeded() -> None:
-      data = json.loads(EVALS.read_text(encoding="utf-8"))
-      by_id = {entry["id"]: entry for entry in data["evals"]}
-      assert len(by_id) == len(data["evals"])
-      for case in (
-          "ac-set-construction-small-change",
-          "ac-set-construction-large-irreducible-set",
-          "ac-set-construction-existing-contract-amendment",
-      ):
-          entry = by_id[case]
-          assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
-  ```
-- Extend that body per case with the seeded-item pins: one seeded
-  implementation detail, one duplicate claim, one example-only variant, and
-  every seeded objective and non-waivable guardrail. The construction test is
-  the mutation — deleting any one seeded item from a case's prompt must red this
-  module — which is why the pins are individual assertions rather than one
-  aggregate membership check.
-- **AC-0021** — assert the whole scoring contract appears in each case's `expected_output`:
-  recall first, non-criterion rejection second, count descriptive, **and** the
-  rule that a smaller set obtained by losing a distinct obligation or guardrail
-  is a failure. The ranks without that rule leave the failure condition
-  unstated, which is the half AC-0021 exists for.
-
-
-**Grounding:**
-- `skill_spec_lint.py` `_check_evals_json` requires a non-empty `skill_name`
-  matching the skill, a non-empty `evals` list, unique non-Boolean ids, and
-  non-empty string `prompt` and `expected_output`. **There is no id-format rule**
-  — the kebab-case ids this plan uses are a local convention, not a validated
-  one, so the construction test is their only guard.
-- No test fixes the total entry count, so three new entries break no count pin.
-- `tests/roster/test_cognitive_load_repository_contract.py` requires every
-  publishable pack to keep at least one pinned `cognitive-load-*` eval, and
-  requires the register to be byte-identical in both projections after
-  self-host.
-- `packs/AGENTS.md` — a non-cosmetic pack update updates the eval harness, which
-  is what this task is.
-
-**Approach:**
-- Author the three prompts as authoring frames, not review frames — the graded
-  actor is selecting candidates pre-seal.
-- Give the large case a genuinely irreducible obligation set, so a candidate
-  that compresses it fails on recall rather than on count. **This is a review
-  obligation with no mechanical oracle**, and AC-0019 was narrowed to match:
-  nothing in `Tests` observes irreducibility, so the criterion no longer claims
-  it.
-
-**Done when:** every command this task's `Tests` names is green — named there, not restated here, so the two cannot drift — and the task's own conditions hold, and `make build-self` leaves no drift, since this task edits `.apm/` and the spec's `Always do` requires source and projections to land together.
-
-### T4: The recorded run discharges the delivery gate
-
-**Depends on:** T3
-
-**Touches:** `docs/specs/acceptance-criteria-set-construction/notes/verification-ledger.md`
-
-**Tests:**
-- **AC-0028 and AC-0029** — manual QA, both graded ranks. One fresh subagent per case, given only the shipped
-  procedure and that case's prompt, returning its candidate set and
-  dispositions.
-- Each recorded case carries an explicit candidate count, an explicit final
-  count, and a disposition for every candidate. This is the durable output's
-  closeout condition, so it is observed here rather than left to Approach —
-  Approach is an instruction and no completion gate reads it.
-- Read the result against the scoring order: recall of every seeded objective
-  and non-waivable guardrail first, then rejection of the seeded
-  non-criterion material, then count as a description.
-
-
-**Grounding:**
-- `docs/CONVENTIONS.md` names `notes/verification-ledger.md` as the home for an
-  execution-produced observation and pins an approved spec directory in
-  substance, so the run is recorded there and never back into `spec.md` or
-  `plan.md`.
-- No automated validator reads this ledger path. The `Done when` above is its
-  only gate, which is why the per-case contents are stated in `Tests` rather
-  than left to `Approach`.
-
-**Approach:**
-- Record per case: candidate count, final count, and each candidate's
-  disposition **in the routing table's vocabulary** — admitted, or routed to the plan, to
-  Testing Strategy, to an existing owner named, to the body, out of the
-  contract, or to the plan as a discovery predicate. A collapsed `relocate`
-  loses which named owner a rejected candidate reached, and a disposition counts
-  as coverage only when it names that owner. This ledger is the sole
-  closeout evidence for the reusable-learning output and cannot be corrected back
-  into the pinned contract afterwards.
-- A smaller set obtained by losing a distinct obligation or guardrail is a
-  failure, not a pass — record it as one and stop rather than re-running.
-
-**Done when:** this task's `Tests` names no command — both its cases are manual QA —
-so what closes it is the record: every `Tests` bullet is discharged for all three
-cases and written to `notes/verification-ledger.md`, the single home
-`docs/CONVENTIONS.md` gives an execution-produced observation, so the run cannot
-land beside the ledger as a second copy. All three cases pass. A pass on one graded
-rank does not close this task, and the count closes nothing.
-
 ### T5: The release surface closes
 
-**Depends on:** T1, T2, T3, T4, T6, T7, T8, T9
+**Depends on:** T6, T7, T8, T9
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
-`tests/roster/test_acceptance_criteria_guide_boundary.py`,
 `docs/product/changelog.md`, `web/src/lib/now-highlights.generated.json`,
 `workspace.toml`, `.agents/`, `.claude/`
 
@@ -679,35 +242,7 @@ rank does not close this task, and the count closes nothing.
   count restated here. Re-run here because no required remote gate
   reaches this suite, so T5 is the last point at which a red is visible before
   release.
-- `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`
-  — the module that carries the sweep below. Without this command the sweep has
-  no closing oracle: it would be authored, never executed, and the task would
-  still meet its gate.
-- **AC-0018 across the surfaces this slice ships.** T1's check slices
-  `SKILL.md` because that is where the percentile trigger and the prohibition
-  must coexist. AC-0018 is wider only in *surface*, not in claim. Assert the
-  prohibition over the procedure span, the new guide page and the frozen eval
-  entries, in one check that runs here, after the guide and the cases exist.
-  **It lives in the same roster module as T2's check**, for the same reason:
-  reading the guide page from `packs/core/tests/` breaches
-  `pack-tests-stay-in-pack`. Pre-existing shipped surfaces — `assets/spec.md`,
-  the rubric, and `SKILL.md` outside the procedure span — are outside both the
-  check and the narrowed criterion, and are recorded as a residual under
-  *Risks*. The broader statement that a count never proves quality is a
-  non-waivable Boundary read at review, deliberately **not** attributed to this
-  mechanical check, because no check reaches it.
 
-  **The proxy is named, not implied.** This detects a fixed absolute count in
-  the forms the criterion lists — cap, ceiling, budget, refusal, pass/fail bar.
-  A differently worded policy with the same effect is outside it and is a review
-  obligation. The criterion was narrowed to match, so neither over-claims.
-
-  **Mutation proof required.** Invariant: no shipped surface carries a fixed
-  absolute criterion count. Mutation: add `keep specs under 20 criteria` to the
-  guide page, outside `SKILL.md`. Expected failure: this check reds naming the
-  guide. A check that stays green under that mutation is scoped to the wrong
-  surfaces and is not the guard AC-0018 needs. Restore by editing the sentence out,
-  never by `git checkout`.
 - `python3 -m pytest tests/roster/test_security_checklists_okf_projection.py -q`
   — reuse, do not rebuild. Its
   `test_core_version_and_okf_declaration_are_synchronized` already asserts
@@ -762,7 +297,7 @@ its `Tests` names carries its mutation proof, recorded and restored, and
 
 ### T6: The review-response protocol ships, and the plan rules are pinned in place
 
-**Depends on:** T1
+**Depends on:** none
 
 **Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py`,
@@ -1052,10 +587,10 @@ in the same commit
 
 ### T8: The skill ships its own alignment checker
 
-**Depends on:** T2, T7
+**Depends on:** T7
 
 **Touches:** `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md`,
-`tests/roster/test_acceptance_criteria_guide_boundary.py`,
+`tests/roster/test_loop_contract_identifier_adr.py`,
 `packs/core/.apm/skills/new-spec/SKILL.md`,
 `packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py` (exists),
 `packs/core/tests/skills/new-spec/test_lint_contract_item_alignment.py` (exists),
@@ -1121,8 +656,8 @@ in the same commit
   `Done when` if the command is not named here.
 - **AC-0032, the ADR — at repository level, not pack-local.** `docs/adr/` climbs
   above `packs/core`, which `pack-tests-stay-in-pack` rejects, so this assertion
-  joins the roster module T2 and T5 already use and runs under
-  `python3 -m pytest tests/roster/test_acceptance_criteria_guide_boundary.py -q`.
+  takes its own roster module and runs under
+  `python3 -m pytest tests/roster/test_loop_contract_identifier_adr.py -q`.
   The AC-0033 cases stay pack-local. Assert `docs/adr/0108-opaque-append-only-loop-contract-identifiers.md` no longer states that no lint
   enforces the convention, that its `Confirmation` names the shipped check, and
   that its `Revisit if` records the trigger as fired with the decision unchanged.
@@ -1354,8 +889,11 @@ in the same commit
 - **AC-0038, every shipped check names its consuming step.** Read the skill's own
   `scripts/` directory and assert that each script in it is referenced by the
   procedure — not from a restated list of three, which would pass unchanged on a
-  fourth script added later with no caller. Assert the discovery pass names the
-  explorer. **Constraint on the enumeration:** source scripts only, bytecode
+  fourth script added later with no caller. Assert that a step names each
+  script, and that the runnable `<skill-dir>` form is stated — a named script
+  with no invocable form leaves the reader guessing how it resolves in an
+  installed tree. **Walked against both mutations:** a new script with no caller
+  reds, and dropping one script's name from the procedure reds. **Constraint on the enumeration:** source scripts only, bytecode
   excluded. The pack suites import these scripts, which leaves `__pycache__`
   beside the source, and an unfiltered walk therefore reds in CI — where
   bytecode writing is on — while passing locally under
@@ -1524,6 +1062,28 @@ is evidence about the check.
   gate the brief specifies and not a general claim. Mitigation: record it as
   three samples and make no portable claim in shipped text.
 
+## Cut from this slice
+
+Owner decision 2026-09-11: a criterion stays only where its subject is built
+*and* something reds when the obligation is broken. Ten criteria met neither
+half — the prose they governed was never written — so they are retired and
+their tasks are dropped rather than held.
+
+| Cut | Was | Route |
+| --- | --- | --- |
+| T1, and AC-0006, AC-0011, AC-0018, AC-0031 | the five-stage selection procedure, the governing set, the set-level pass, the count prohibition, per-task grounding | [the authoring protocol measured before shipping](../../product/intents/spec-authoring-protocol-measured-before-shipping.md), which gates promoting any of it to a criterion on a frozen-case score |
+| T2 | the guide page publishing the procedure | the same intent: a guide for guidance that is not shipping |
+| T3, T4, and AC-0019, AC-0020, AC-0021, AC-0028, AC-0029 | three frozen cases, their seeded integrity, the scoring order, and the graded run | the same intent, which owns building the run because its own gate is that score |
+| AC-0030 | the spec template carrying the identifier convention | ADR-0108 states the standard and AC-0032 holds the ADR to a confirmation state; the template edit returns with the procedure |
+
+**The mechanical half of grounding is not cut.** It is the explorer, AC-0041
+through AC-0045, which answers what governs a set of paths rather than obliging
+an author to assert that they resolved it.
+
+**What this leaves.** The skill ships three checks over its own artifacts, each
+named by its consuming step, under ADR-0108's identifier standard. Every
+criterion the slice retains is decided by a suite over a fixture artifact.
+
 ## Shipped ahead of a criterion, deliberately
 
 - **The delta bound on a later review round** (`SKILL.md` step 7) is shipped
@@ -1574,6 +1134,17 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: **the keep test, applied.** A criterion stays only where its
+  subject is built and something reds when the obligation is broken. An
+  inventory against the tree found the selection procedure, the guide page, the
+  frozen cases, the graded run, the template's identifier convention and
+  AC-0038's check all unbuilt — eleven of twenty-one criteria described text
+  that was never written, which is what sixteen review rounds had been
+  adjudicating. Ten are retired and T1 through T4 are dropped; AC-0032 and
+  AC-0038 are kept because each is one small decidable check, and AC-0038 is
+  what stops the three shipped checkers being controls nothing invokes. The
+  Objective now states the three checks the slice delivers rather than the
+  procedure it does not.
 - 2026-09-11: **owner sign-off on the two `Ask first` brief edits, and AC-0035
   split into five.** The criterion-syntax section and the Spec map cell are
   signed off as written; the Assumption records the authority and replaces the

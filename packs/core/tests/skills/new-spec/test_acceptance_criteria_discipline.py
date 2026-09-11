@@ -11,6 +11,7 @@ SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
 RUBRIC = PACK_ROOT / ".apm/skills/new-spec/references/spec-authoring-rubric.md"
+SCRIPTS = PACK_ROOT / ".apm/skills/new-spec/scripts"
 
 # The rubric joins SOURCES so every pinned rule below also asserts its absence
 # there. The rubric points at the owning surface for criterion shape; a future
@@ -707,3 +708,27 @@ def test_rubric_eval_has_required_shape_and_behaviour() -> None:
     assert any("wrong-owner" in item and "before" in item for item in entry["assertions"])
     assert any("empty state" in item for item in entry["assertions"])
     assert any("word budget" in item for item in entry["assertions"])
+
+
+def test_every_shipped_check_is_named_by_a_step_that_runs_it() -> None:
+    """A control nobody calls reports nothing and looks like one that passed.
+
+    The set is read from the `scripts/` directory rather than from a list
+    restated here, so a check added later without a named caller fails this
+    test instead of shipping unreferenced. That is the whole point: the three
+    checkers shipped before any step named them, and nothing noticed.
+    """
+    shipped = sorted(p.name for p in SCRIPTS.glob("*.py"))
+    assert shipped, f"no checks found under {SCRIPTS}"
+
+    body = flattened(SKILL)
+    unnamed = [name for name in shipped if name not in body]
+    assert not unnamed, (
+        "every check under scripts/ must be named by the step that runs it; "
+        f"unreferenced: {unnamed}"
+    )
+
+    # Naming alone is not invocation: a step that mentions a script without a
+    # runnable form leaves the reader to guess how it resolves in an installed
+    # tree, which is the defect the skill-dir form exists to close.
+    assert "python '<skill-dir>/scripts/<name>.py'" in body

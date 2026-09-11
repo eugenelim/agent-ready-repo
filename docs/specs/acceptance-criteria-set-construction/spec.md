@@ -14,66 +14,37 @@
 
 ## Objective
 
-**Scope.** This spec ships the authoring moves below and states no count of
-them. The moves share one defect: the skill tells an author
-what a finished artifact
-must look like and never what move to make, so an author selects by instinct,
-places facts by habit, and answers every finding by repairing it.
+**The skill checks its own loop-contract artifacts.** `new-spec` ships three
+checks in its own `scripts/`, each reading artifacts the skill itself emits, and
+each named by the step of the procedure that consumes it, so no shipped control
+is one nobody runs:
 
-**What carries a criterion here, and what does not.** The criteria below are the
-obligations a machine decides: the governing set admission resolves against,
-the set-level coverage read, per-task grounding, the count prohibition, the
-frozen cases and their scoring, the identifier convention, and the checks the
-skill ships over its own artifacts. The selection procedure's remaining stages,
-the plan-authoring rules and the review-response protocol ship from this spec's
-tasks and carry no criterion here: their only check would be that a sentence
-exists, so they are routed to
+- an **item-alignment check** over a spec directory, deciding that every
+  criterion and verification item carries an identifier, that identifiers are
+  unique, that none is reused against the artifact's retired list, that every
+  criterion-class reference resolves, that a criterion is named by a task entry,
+  and — reporting rather than blocking — that a reworded criterion's assertion
+  followed it and that a task entry is not structurally broken;
+- a **grounding explorer** answering what already governs a set of touched
+  paths, its probe set selected by stage, its repository-shaped thresholds
+  derived from the adopter repository's own distribution and reported with what
+  produced them, every probe reporting and none deciding;
+- a **finding-coverage check** reporting a rule whose message no test observes.
+
+The identifier standard those checks enforce is ADR-0108's, and this spec holds
+the ADR to a confirmation state that names the check rather than claiming none
+exists.
+
+**What this spec does not carry.** The selection procedure, the set-level
+sweep, the plan-authoring rules, the review-response protocol and per-task
+grounding are authoring guidance whose only check would be that a sentence
+exists. They are routed to
 `docs/product/intents/spec-authoring-protocol-measured-before-shipping.md`,
-which gates promoting any of them back to a criterion on a frozen-case score.
-Each is listed once in the plan's `## Shipped ahead of a criterion,
-deliberately` with that route, and each is pinned by rule name in the pack
-suite, so routing loses the obligation and keeps the check.
-
-An author using `new-spec` — human or agent — decides *which* contract
-obligations become acceptance criteria before wording any of them. The skill's
-acceptance-criteria step carries an ordered selection procedure: name the
-changed contract obligations, admit only candidates whose failure independently
-blocks shipment *and* whose observing surface the author can name, attach one
-positive and one disconfirming scenario per admitted obligation, route every
-rejected candidate to a named owner — including, for an obligation whose
-content only the build can settle, a discovery predicate in the plan rather than
-an answer invented at approval time — then run the set-level pass the procedure defines.
-
-The procedure is a **self-check the author runs while authoring**, not a gate
-another party applies afterwards. Its load-bearing move is that a criterion is
-admissible only once something is named that would show its failure: an
-obligation whose observer cannot be named stays a candidate. The set-level pass, whose members the
-procedure enumerates once and nothing else restates, reads coverage in both
-directions — every obligation reaches a criterion or
-a routed owner, and every criterion has exactly one observer. Necessity is
-operational rather than a word in a list: each criterion names the input that
-makes it red, and a criterion whose red input a sibling already covers is
-merged or removed.
-
-The author records the candidate count, the final count, and each candidate's
-disposition. Success for that author is that a distinct obligation
-and a non-waivable guardrail always survive selection, while a seeded
-implementation detail, a duplicate claim and an example-only variant do not
-become criteria. Criterion count is a descriptive outcome that orders how hard
-the set-level pass looks; it never rejects a spec and never proves one is
-well-shaped, so a genuinely large irreducible set survives.
-
-Each criterion is then composed from the parts those steps already named — the
-obligation, the surface that observes its failure, and its disconfirming and
-positive cases — rather than written whole and tested afterwards. Composing
-from singular parts is what keeps one criterion to one predicate.
-
-Criterion *shape* — whether a given sentence is one criterion or two — stays
-owned by the skill's `assets/spec.md`. This spec owns which obligations reach
-that question at all, and where the hand-off to that owner sits: after routing,
-before the set-level pass. Selection finishes first, and the pass then reads a
-worded set together with the plan entries tracing to it — which is what its
-uniqueness and necessity checks compare.
+which gates promoting any of them to a criterion on a frozen-case score, and
+each rule already shipped is pinned by name in the pack suite. The mechanical
+half of grounding is not routed — it is the explorer above, which is how
+grounding gets an answer a machine produces rather than an obligation a reader
+grades.
 
 ## Durable Outputs
 
@@ -146,23 +117,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **The admission grounding and the set-level coverage read (AC-0006,
-  AC-0011):** goal-based check over the authored skill file. The observation
-  is the presence and scope of that prose; the verification surface is the
-  pack-local suite.
-- **The count prohibition (AC-0018) — split surface.** The span check that the
-  procedure states no fixed absolute count is a goal-based check on the
-  pack-local suite. The sweep across all three shipped surfaces is a goal-based
-  check at repository level, because reading the guide page from
-  `packs/core/tests/` breaches the pack-test boundary. Both are named here so the
-  declared placement matches where each check lands.
-- **The three frozen cases and their seeded integrity (AC-0019, AC-0020):** TDD. Each
-  case is data whose required shape and seeded material are compressible into
-  assertions.
-- **The frozen scoring order (AC-0021):** goal-based check. The observation is that
-  every frozen case's stated scoring contract carries the three grading ranks
-  and the losing-an-obligation failure rule; the verification surface is the
-  pack-local suite.
 - **The finding-coverage check (AC-0037):** TDD. Its rules are functions over
   fixture skill trees, and its cases compress into assertions.
 - **The grounding explorer, five criteria over one script (AC-0041, AC-0042,
@@ -196,109 +150,19 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   spec-status lint, which decides spec *state* — status vocabulary, criteria
   checked at a ship transition, deferral anchors, contract traceability. This
   one decides *item alignment* and owns no lifecycle question.
-- **Per-task grounding (AC-0031):** goal-based check over the authored skill
-  file, on the pack-local suite. The plan step is its surface, not the
-  acceptance-criteria step.
-- **The template carries the identifier convention (AC-0030):** goal-based check
-  over `assets/spec.md`, on the pack-local suite. The asset sits inside
-  `packs/core`, so no pack-test boundary is crossed.
-- **The recorded run, both graded ranks (AC-0028, AC-0029):** visual / manual QA. A model-in-the-loop
-  measurement runs in-agent through one fresh subagent per case, and its recall
-  verdict is read by a human from the recorded dispositions. No mechanical proxy
-  substitutes for that reading.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0006.** The procedure carries an admission step, and a candidate passes it only
-      once it is grounded in what already
-      governs the surface it demands content on. The procedure defines that
-      **governing set** once, and names its members: the scoped `AGENTS.md`
-      files, resolved by walking from the surface's own directory up to the
-      repository root and reading each file found; the gates and linters that run
-      against that surface; the documents that already own rules for it; and the
-      repository conventions that apply to it. A candidate demanding what any
-      member forbids is not admissible in that form. The `AGENTS.md` member is
-      stated as a walk, not a single lookup, because a nested file does not
-      replace the one above it and stopping at the first hit skips the rest
-      silently. The remaining members are named because guidance files are the
-      surfaces an author thinks to read, and a linter, an existing owner and a
-      convention are the ones that actually fail the work.
-- [ ] **AC-0011.** The procedure carries a pass over the set as a whole, after the
-      per-criterion work, and that pass reads coverage from the criteria back to
-      their observers: every admitted criterion has exactly one observing
-      surface, and a criterion with none, or with two, fails the pass. Both
-      halves are required of the prose: a procedure with no set-level pass
-      satisfies a coverage rule that assumes one.
-- [ ] **AC-0018.** No surface this slice ships — the procedure span, the guide page, or the
-      frozen eval entries — states a fixed absolute criterion count, meaning a
-      cap, ceiling, budget, refusal or pass/fail bar on how many criteria a spec
-      may carry, and a set above the author's stated threshold passes on its
-      obligations alone.
-      The surface set is the surfaces this slice's count prose ships on,
-      because that is what the check reads. The spec template is deliberately
-      outside it: this slice authors identifier-convention prose there and no
-      count prose, so no text the check would look for lands in it. Surfaces
-      carrying older count prose are a recorded residual, not this criterion. The wider claim that count never proves quality is a
-      non-waivable Boundary, not this criterion, because no check reaches it.
-      The procedure also states the authoring rule this follows from: where a set
-      is enumerated, name the set, never its cardinality, since a numeral beside
-      an enumeration is checkable only against the list it duplicates and goes
-      stale when a member is added. The same rule forbids a count of the
-      delivery's own history — rounds run, defects a class produced, rules landed
-      ahead of their criterion — which belongs to the changelog.
-- [ ] **AC-0019.** The skill's eval register carries one frozen case per named
-      shape: a small change, a large change, and an amendment to an existing
-      contract. Whether the large case's obligation set is genuinely irreducible
-      is a review obligation, not this criterion — no check reads it, and a
-      criterion claiming it would reach past its own oracle.
-- [ ] **AC-0020.** Each frozen case carries its full seeded set: at least one
-      implementation detail, one duplicate claim and one example-only variant
-      that must not become criteria, and every objective and non-waivable
-      guardrail that must remain represented.
-- [ ] **AC-0021.** The shipped scoring order grades obligation and protected-guardrail
-      recall first, non-criterion rejection second, and count as a descriptive
-      outcome only, and records that a smaller set obtained by losing a
-      distinct obligation or guardrail is a failure.
-- [ ] **AC-0028.** The recorded three-case run retains every seeded objective and
-      non-waivable guardrail.
-- [ ] **AC-0029.** That run admits no seeded implementation detail, duplicate claim or
-      example-only variant as a criterion.
-- [ ] **AC-0030.** The skill's bundled `assets/spec.md` carries the loop-contract
-      identifier convention, stated directly rather than cited because shipped
-      pack content carries no internal-record citation: every acceptance
-      criterion and every verification item takes an opaque, append-only
-      identifier scoped to its own spec directory, drawn from a class-marked
-      form — `AC-` for an acceptance criterion, `VI-` for a verification item —
-      so a reference names which class it resolves against and a derived
-      identifier is detectable rather than a matter of opinion. Each is assigned
-      once, never
-      renumbered on insertion or reorder, never reused after removal, and each
-      removal recorded under a `## Retired identifiers` heading in the same
-      artifact, one bare identifier per list item, the heading omitted while
-      nothing has been retired — and the template's own
-      criteria list shows the labelled form, so a criterion is cited without
-      being counted. The template also fixes the verification group's shape: a
-      Testing Strategy group is a list item whose leading bold segment names, in
-      parentheses, every criterion it covers. Without a stated shape the
-      one-group-per-criterion rule has nothing to read.
-- [ ] **AC-0031.** The plan step requires each task to be grounded against the same
-      governing set AC-0006 defines, resolved for the surfaces that task's own
-      work touches rather than for the plan as a whole, and to record what it
-      resolved. A plan-level anchor list is not sufficient and the procedure says
-      so: it is written once, against the surfaces the author expected to touch,
-      and a task added later inherits it without ever testing it. The procedure
-      names no tool for the resolving. It requires the recorded result and
-      instructs the author to pick the most token-efficient bounded exploration
-      the session actually offers — a subagent, a worker, or a direct search —
-      because a named tool makes the rule unrunnable wherever that tool is
-      absent, and the obligation is the grounding, never the mechanism. The
-      resolving runs mechanically first and semantically second: every file that
-      names a touched path is enumerated by search before any model is asked
-      which rules apply, because the search is exhaustive over
-      references-by-path while the question is not. What the search cannot reach
-      — a gate matching by glob or directory walk, and a rule that applies by
-      content rather than by path — is the stated residue that review still
-      owns.
+
+
+
+
+
+
+
+
+
+
 - [ ] **AC-0032.** ADR-0108's `Revisit if` names a tool that enforces no-reuse for
       inline-Markdown items, and the checker below is that tool, so the trigger
       fires on delivery. The ADR's `Confirmation` moves from reviewer-checked to
@@ -327,8 +191,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       read as complete is the defect this checker exists to find elsewhere. A
       rule that still decides part of its subject is applied, not unapplied.
 - [ ] **AC-0041.** The skill ships a grounding explorer in its own `scripts/`,
-      depending on no other skill, answering the mechanical half of AC-0031 from
-      a seed set of touched paths: which files name a seed, which historically
+      depending on no other skill, answering from a seed set of touched paths
+      what already governs the surfaces that seed names: which files name a seed, which historically
       change with one, which gates would run one, which quote a distinctive line
       from one, and which scoped guidance governs each, plus which paths a seed
       names that no longer resolve. It reads no configuration file of its own,
@@ -409,11 +273,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       step of the procedure that consumes it, so no shipped control is one
       nobody runs: the grounding explorer at the discovery pass,
       and the alignment and finding-coverage checks at the steps whose artifacts
-      they read. This does not reach AC-0031's prohibition on naming a tool for
-      the per-task resolving. That prohibition exists because a mechanism a
-      session may not offer makes a rule unrunnable wherever it is absent; a
-      check shipped inside the skill is present wherever the skill is, and the
-      obligation it carries is the invocation, not a choice of mechanism.
+      they read. Naming the check is not naming a required mechanism: a tool a
+      session may not offer makes a rule unrunnable wherever it is absent, while
+      a check shipped inside the skill is present wherever the skill is, so the
+      obligation here is the invocation rather than a choice of mechanism.
 - [ ] **AC-0037.** The skill ships a finding-coverage check in its own `scripts/`,
       depending on no other skill, which reads a subject's declared catalogue of
       the findings it can emit and reports any whose message no test in that
@@ -436,22 +299,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - AC-0003
 - AC-0004
 - AC-0005
+- AC-0006
 - AC-0007
 - AC-0008
 - AC-0009
 - AC-0010
+- AC-0011
 - AC-0012
 - AC-0013
 - AC-0014
 - AC-0015
 - AC-0016
 - AC-0017
+- AC-0018
+- AC-0019
+- AC-0020
+- AC-0021
 - AC-0022
 - AC-0023
 - AC-0024
 - AC-0025
 - AC-0026
 - AC-0027
+- AC-0028
+- AC-0029
+- AC-0030
+- AC-0031
 - AC-0034
 - AC-0035
 - AC-0036
