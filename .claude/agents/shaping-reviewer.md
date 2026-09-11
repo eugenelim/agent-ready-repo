@@ -36,6 +36,10 @@ Emit one token per failed condition and nothing else:
 `MALFORMED(riskiest-assumption)`, `MALFORMED(altitude)`,
 `MALFORMED(children)`, `MALFORMED(owner)`.
 
+No severity label, no `Fix:` line, and no `Clean` result appears in this mode's
+output. There is no gradient to rank and no remedy to propose: a condition
+either holds or it does not.
+
 `MALFORMED(owner)` is emitted alone and suppresses the other five: a wrong owner
 outranks every other observation, and the rest of the artifact is not yours to
 assess until it is settled.
