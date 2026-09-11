@@ -15,8 +15,8 @@ evidence_note: >-
   marked [researched] and cited to docs/design/discovery/team-orientation-peer-audit.md.
   Validation hooks are named per stage; this map is not a plan of record until
   they fire.
-gate_approved: approve-journey, 2026-09-04
-updated: 2026-09-04
+gate_approved: approve-journey, 2026-09-04; re-gated 2026-09-10 for the Stage 2 amendment
+updated: 2026-09-10
 ---
 
 # Journey: future state — the champion makes it the team's default
@@ -98,6 +98,44 @@ station, drawn here rather than restated as a third diagram.
 **Validation hook.** Explain-it-back question 4: *if your team uses Jira or
 Linear, which one is the source of truth?* A reader who cannot answer this has
 not received the one-way property, and the geometry has failed.
+
+## Amendment 2026-09-10 — Stage 2 has a terminal-only dependency that blocks stages 3-5
+
+**Status: ratified at `approve-journey`, 2026-09-10.** The finding below changes
+Stage 2's actions and adds a residual pain, so it was re-gated rather than
+folded in silently. D1 and the five-station spine were not reopened.
+
+Stage 2 reads "Copies the install command. Runs it on a real pending task", and
+the map states that "Stage 2 must precede Stage 3 rather than being optional".
+Those two sentences together mean a reader who cannot run a terminal command is
+blocked from Stage 3, Stage 4, and Stage 5 — the entire remainder of the
+adoption lifecycle — by a single affordance at one step.
+
+That class of reader is real and is the primary user of three of the four
+discipline packs. [The practitioner current-state map](claude-apps-practitioner-current-state.md)
+maps them: their journey ends at this exact step, and the deepest negative
+moment of their experience is the terminal block on the marketing home.
+
+**What changes.** Stage 2's install action becomes surface-plural: the reader
+starts on a terminal *or* in the Claude apps, whichever they already work in.
+The stage's meaning is unchanged — prove it on real work — and so is its
+position in the spine. Only the assumption that proving requires a shell is
+withdrawn.
+
+**New residual pain for Stage 2.** The two entry paths are not equivalent in
+capability. Sub-agents and hooks do not run on the Claude apps' chat surface,
+and that surface reads nothing from the filesystem, so a method whose value is
+a committed artifact behaves differently there. The stage is reachable for this
+reader; it is not identical.
+
+**New validation hook.** Given only the marketing home, can a reader who does
+not use a terminal state their next action? A reader who cannot has not reached
+Stage 2, and the four stages after it are unreachable regardless of how well
+they are designed.
+
+**What this does not change.** The five-station spine, the nesting decision, the
+canvas, the crossing invariants, and the handoff notes all stand. This is one
+dependency inside one stage, not a re-shaping.
 
 ## Stage 3: Win buy-in `[assumption-based]` — **the stage with no current surface**
 
@@ -236,7 +274,16 @@ behaviour. Three specific things could falsify it:
    collapse-the-duality route is better evidenced than subordination and the
    whole spine is wrong.
 
-None is settled. All three are recorded in the decision log.
+**Updated 2026-09-10 against
+[the platform-adoption survey](../../product/research/platform-adoption-evaluation-survey.md).**
+Falsifier 1 is **substantially triggered**: the top-ranked adoption blocker is
+organisational at 47%, and "cannot re-explain it" is documented nowhere. The
+canvas is not thereby worthless — documentation moves the evaluation stage for
+the influencer tier — but the claim that explanation is *the* blocker does not
+survive. Falsifier 2 resolves to a middle: one shared model with role-specific
+entry points serves influencers, and cannot serve gatekeepers, who demand a
+TCO, an exit path and an SBOM that no diagram carries. Falsifier 3 is
+untouched and still open. The decision log carries all three.
 
 ---
 

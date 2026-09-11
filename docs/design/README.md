@@ -13,7 +13,7 @@ governs every surface listed below and outlives any one piece of work.
 
 One engagement, 2026-09-04: redesigning the marketing home and the documentation
 guides index so a champion can explain the whole operating model to an engineer,
-a platform team, and a budget holder.
+and a platform team. (Narrowed 2026-09-10 on the de-risk; the budget holder is a gatekeeper needing evidence this packet does not carry.)
 
 **38 files, ~8,900 lines, one hand-authored SVG.** That is roughly six hours of
 reading end to end, which nobody should do. The tiers below exist so you can
@@ -70,7 +70,7 @@ Not for review. Whoever builds this reads these; the owner does not need to.
 Kept because the packet's claims trace to them. Nobody needs to read these to
 act.
 
-`discovery/team-orientation-peer-audit.md` (441) · `discovery/team-orientation-heuristic-baseline.md` (426) · `discovery/team-orientation-measurement-plan.md` (510) · `journeys/` (three maps, 641) · `discovery/team-orientation-personas.md` (155) · `discovery/team-orientation-champion-interview.md` (152) · `discovery/team-orientation-content-inventory.md` (67) · `discovery/team-orientation-brief.md` (279) · `discovery/team-orientation-screen-list.md` (125)
+`discovery/team-orientation-peer-audit.md` (441) · `discovery/team-orientation-heuristic-baseline.md` (426) · `discovery/team-orientation-measurement-plan.md` (510) · `journeys/` (four maps, 641 + the practitioner current-state map) · `discovery/team-orientation-personas.md` (155) · `discovery/team-orientation-champion-interview.md` (152) · `discovery/team-orientation-content-inventory.md` (67) · `discovery/team-orientation-brief.md` (279) · `discovery/team-orientation-screen-list.md` (125)
 
 ---
 
@@ -78,14 +78,16 @@ act.
 
 | | |
 | --- | --- |
-| `approve-journey` | passed 2026-09-04 |
+| `approve-journey` | passed 2026-09-04; **re-gated 2026-09-10** for the future-state map's Stage 2 amendment (the terminal-only dependency) |
 | `approve-aesthetic-direction` | passed 2026-09-04 |
-| `review-experience-designs` | **requested** — 6 blockers fixed, 10 of 16 majors fixed, 6 owed |
+| `review-experience-designs` | **passed 2026-09-10** — 6 blockers fixed, 14 of 16 majors fixed. Major 1/V1 closed by a live GitHub render probe. Minor 5 **retired**, not deferred: the champion interview it waited on was retired as theatre, so M2 carries no pre-redesign baseline and will not get one. |
 | Build intent | [`../product/intents/cohort-orientation-surfaces.md`](../product/intents/cohort-orientation-surfaces.md) — `Draft` |
-| Implemented | **nothing.** No file outside `docs/` was touched. |
+| Implemented | **nothing yet.** No file outside `docs/` has been touched; all three gates are now passed, so delivery is unblocked. |
 
 **One verification blocks build and cannot be closed by writing:** whether the
-canvas survives GitHub's Markdown sanitiser needs a probe in a real README.
+canvas survives GitHub's Markdown sanitiser was probed 2026-09-10 against
+GitHub's own renderer and is closed: the `<img>` binding works, inline embedding
+is removed outright.
 
 ## Two things to know before reading anything
 
