@@ -231,7 +231,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       rather than becoming a criterion.
 - [ ] **AC-0006.** Admission additionally requires grounding the criterion in what already
       governs the surface it demands content on. The procedure defines that
-      **governing set** once, and it has four members: the scoped `AGENTS.md`
+      **governing set** once, and names its members: the scoped `AGENTS.md`
       files, resolved by walking from the surface's own directory up to the
       repository root and reading each file found; the gates and linters that run
       against that surface; the documents that already own rules for it; and the
@@ -239,7 +239,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       member forbids is not admissible in that form. The `AGENTS.md` member is
       stated as a walk, not a single lookup, because a nested file does not
       replace the one above it and stopping at the first hit skips the rest
-      silently. The other three members are named because guidance files are the
+      silently. The remaining members are named because guidance files are the
       surfaces an author thinks to read, and a linter, an existing owner and a
       convention are the ones that actually fail the work.
 - [ ] **AC-0007.** Each admitted obligation carries one positive and one disconfirming
@@ -256,10 +256,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       over the criteria alone, and tests necessity, uniqueness, consistency —
       which reads the body's own prose against the criteria, not only criterion
       against criterion, because the Objective, the Boundaries and the durable
-      outputs all make claims a criterion can contradict and twice in this
-      delivery did —
-      joint feasibility, coverage, propagation, and residual freshness. Three
-      members carry a stated plan-side question: uniqueness asks whether a
+      outputs all make claims a criterion can contradict. Consistency also tests
+      the body for two claim kinds that decay with no edit at all: narrated
+      history of the delivery, which the retcon discipline sends to the
+      changelog, and a count standing beside the set it enumerates, which
+      AC-0018 forbids. Both are stale the moment the delivery moves, and a
+      reviewer who finds them spends a round on a number rather than on the
+      contract —
+      joint feasibility, coverage, propagation, and residual freshness. The
+      members carrying a stated plan-side question are named: uniqueness asks whether a
       criterion and a construction test claim the same thing, coverage asks
       whether every admitted criterion has a plan entry, and propagation asks
       whether a touched criterion's entry still matches it. The rest read the
@@ -315,13 +320,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       cap, ceiling, budget, refusal or pass/fail bar on how many criteria a spec
       may carry, and a set above the author's stated threshold passes on its
       obligations alone.
-      The surface set is the three surfaces this slice's count prose ships on,
+      The surface set is the surfaces this slice's count prose ships on,
       because that is what the check reads. The spec template is deliberately
       outside it: this slice authors identifier-convention prose there and no
       count prose, so no text the check would look for lands in it. Surfaces
       carrying older count prose are a recorded residual, not this criterion. The wider claim that count never proves quality is a
       non-waivable Boundary, not this criterion, because no check reaches it.
-- [ ] **AC-0019.** The skill's eval register carries three frozen cases, one per named
+      The procedure also states the authoring rule this follows from: where a set
+      is enumerated, name the set, never its cardinality. A numeral beside an
+      enumeration is a second statement of what the list already says, it goes
+      stale the moment a member is added, and it is checkable only against the
+      list it duplicates — so it generates review findings that cost a round each
+      and change nothing an implementer builds. The same rule forbids a count of
+      the delivery's own history: how many rounds ran, how many defects a class
+      produced, how many rules landed ahead of their criterion. Those belong to
+      the changelog, which owns history, and nowhere in a criterion.
+- [ ] **AC-0019.** The skill's eval register carries one frozen case per named
       shape: a small change, a large change, and an amendment to an existing
       contract. Whether the large case's obligation set is genuinely irreducible
       is a review obligation, not this criterion — no check reads it, and a
@@ -392,7 +406,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       churn the repairs themselves introduced, and those two states call for
       opposite decisions — keep reviewing, or stop and build.
 - [ ] **AC-0027.** The procedure names the earn-its-keep test and states what it
-      is: the conjunction of the two checks its siblings define — a criterion
+      is: the conjunction of the checks its siblings define — a criterion
       names the outcome its failure would leave unmet, and no sibling criterion
       or existing repository control already enforces its predicate. Without the
       name stated over both halves, this criterion scopes a test the contract
@@ -536,9 +550,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] **AC-0040.** Given a base revision, the alignment checker reports each criterion
       whose text changed since that revision while no line naming it in the plan
       changed with it — a criterion reworded without its implementing assertion
-      following. This is the defect class that recurred across three review
-      cycles of this contract and that the propagation obligation, stated in
-      prose, did not prevent. The check reports and never blocks. The base
+      following. This is a defect class that recurred while the propagation
+      obligation, stated in prose alone, did not prevent it. The check reports and never blocks. The base
       revision is supplied by the caller and the rule is skipped, not failed,
       when it is absent or the repository has no history, so the check stays
       usable where neither exists. It adds no obligation: the propagation
@@ -549,8 +562,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       requires is what closes the gap the rule cannot. Its scope is the task
       entries that carry assertions, not the whole plan: a criterion named in a
       changelog entry or a rationale is not a criterion whose assertion
-      followed, and reading the document as a whole silenced the rule for eight
-      criteria on this contract before the scope was narrowed.
+      followed, and reading the document as a whole silenced the rule wherever a
+      changelog entry happened to name a criterion.
 - [ ] **AC-0038.** Every check the skill ships in its own `scripts/` is named by the
       step of the procedure that consumes it, so no shipped control is one
       nobody runs: the grounding explorer at the discovery pass AC-0036 places,

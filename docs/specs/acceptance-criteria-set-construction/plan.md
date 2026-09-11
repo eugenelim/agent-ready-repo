@@ -254,10 +254,10 @@ in the same commit
   already owns and governs these surfaces — and not as a check on a criterion.
   A pass worded as validation reads as something to run after authoring, which
   is the placement this criterion exists to move.
-- **AC-0006.** Assert the admission step names all four members of the governing
+- **AC-0006.** Assert the admission step names every member of the governing
   set — scoped `AGENTS.md`, gates and linters, existing owner documents,
-  repository conventions — one assertion per member, then assert the
-  inadmissibility consequence separately. **Constraint on the members:** one
+  repository conventions — one assertion per member, iterating the set rather
+  than a count of it, then assert the inadmissibility consequence separately. **Constraint on the members:** one
   assertion each, never one pin over the sentence. The members fail
   independently, and the three non-`AGENTS.md` members are the ones that matter:
   this plan's own pre-EXECUTE review sustained three blockers, and each rested on
@@ -290,7 +290,12 @@ in the same commit
   and consequence. For AC-0012 and AC-0013 the two clauses are in separate sentences,
   so each takes two assertions rather than one spanning pin.
 - **AC-0018.** The procedure span carries no rejection and states that a set above
-  the author's stated threshold passes on its obligations alone. **Constraint:**
+  the author's stated threshold passes on its obligations alone, **and states the
+  set-not-count authoring rule**: where a set is enumerated, the prose names the
+  set and never its cardinality, and no criterion carries a count of the
+  delivery's own history. Assert both halves — the rule and the
+  history-count prohibition — since prose naming only the first leaves a round
+  count admissible. **Constraint:**
   assert against whatever threshold the procedure records, never a percentile
   literal — the rubric that owns derivation says "derive the threshold rather
   than inheriting a number", so pinning one here makes the shipped prose breach
@@ -317,7 +322,12 @@ in the same commit
   four. Asserting a pair-wide reading over all seven would claim a reach the
   prose does not have, which is the defect AC-0024 exists to answer.
   **Constraint on the consistency member:** assert that it reads the spec's own
-  body prose against the criteria, not the criteria against each other. Deleting
+  body prose against the criteria, not the criteria against each other, and
+  assert separately that it tests the body for narrated delivery history and for
+  a count standing beside the set it enumerates. Both decay with no edit at all,
+  so a member that reads only criterion-against-criterion never reaches them;
+  each ban must red on its own deletion, because one assertion over "the
+  consistency member" is satisfied by prose carrying neither ban. Deleting
   that clause must red this assertion; without it the member reads as a
   criteria-only comparison, and the body statement that contradicted its own
   criteria survived three rounds because nothing looked there.
@@ -489,7 +499,8 @@ in the same commit
 - `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py -q`
   — this task's Grounding records its byte-equality pin over the eval register
   and both projections; without the command that pin is recorded and never run.
-- **AC-0019 and AC-0020** — one shape-and-seed test per case, following the precedent of
+- **AC-0019 and AC-0020** — one shape-and-seed test per case, iterating the named
+  failure classes rather than a case count, following the precedent of
   `test_post_repair_eval_grades_the_four_gaps_the_rubric_gained`: assert the
   entry's key set, id uniqueness across the register, the authoring frame in
   the prompt, and each seeded item's survival. `stub: true` — the contract
@@ -627,7 +638,7 @@ rank does not close this task, and the count closes nothing.
   — the module that carries the sweep below. Without this command the sweep has
   no closing oracle: it would be authored, never executed, and the task would
   still meet its gate.
-- **AC-0018 across the three surfaces this slice ships.** T1's check slices
+- **AC-0018 across the surfaces this slice ships.** T1's check slices
   `SKILL.md` because that is where the percentile trigger and the prohibition
   must coexist. AC-0018 is wider only in *surface*, not in claim. Assert the
   prohibition over the procedure span, the new guide page and the frozen eval
@@ -793,7 +804,9 @@ in the same commit
   pinned verbatim in `RULES`, so rescoping it reds the existing entry; update
   the entry in the same change, the way this task already declares the
   whole-plan-walk pin addition, so the red reads as planned work rather than a
-  regression. The earn-its-keep test is stated over every criterion rather than
+  regression. The conjunction is asserted over each check its siblings define,
+  read from that set rather than from a count of it. The earn-its-keep test is
+  stated over every criterion rather than
   only those added during review, and is stated to run during rounds rather than
   only after convergence. Assert both scopings; the existing deletion pass
   already reads as a post-convergence pass over review-added items, so a partial
@@ -1034,11 +1047,14 @@ in the same commit
   a criterion reworded with a plan line naming it also changed is clean; the same
   rewording with the plan untouched is reported; an unresolvable base revision,
   a tree with no history and no `--since` at all are each *skipped* and counted
-  as a rule with no input, never reported as clean. **Constraint:** the
-  no-history and bad-ref cases must assert the partial count, not the exit code.
-  Returning "no findings" is what all three did before they were distinguished,
-  and a rule that cannot run reading as a rule that passed is the failure this
-  checker exists to detect elsewhere.
+  as a rule with no input, never reported as clean. **Constraint:** each skip
+  case asserts that the rule appears in the no-input list, not the exit code —
+  returning "no findings" is what every skip case did before they were
+  distinguished, and a rule that cannot run reading as a rule that passed is the
+  failure this checker exists to detect elsewhere. **Constraint on the scope:**
+  a case where the only line naming the criterion sits outside an assertion
+  block — a changelog entry — must still report, since reading the document as a
+  whole is what silenced the rule.
 - **The Interface-compatibility durable output, asserted per script.** Read each
   script's module docstring and assert it names every flag the parser accepts and
   every exit code the script can return, and that it claims no outcome the code
@@ -1375,6 +1391,20 @@ is evidence about the check.
 
 ## Changelog
 
+- 2026-09-11: owner-approved tuning — **state sets, never counts, and narrate no
+  delivery history.** AC-0018 gains the authoring rule (where a set is
+  enumerated, name the set and not its cardinality; no criterion carries a count
+  of the delivery's own history) and AC-0009's consistency member gains both as
+  sweep tests. The reason is measured rather than aesthetic: across three review
+  rounds, roughly eight of thirty-five sustained findings were number-accuracy
+  churn — a stale denominator, a wrong ratio, an enumeration that had outgrown
+  its count — and none of them changed what an implementer builds. A count
+  beside an enumeration is checkable only against the list it duplicates, so it
+  generates a finding per round and resolves nothing. Applied to this contract
+  in the same change: the counts standing beside enumerated sets were replaced
+  by their sets, and the assertions that read them now iterate the set. Rule 9
+  reported six criteria whose assertions had not followed, which is how the
+  propagation was found rather than remembered.
 - 2026-09-11: owner-approved tuning — the version-bump `Always do` now states
   its timing: the bump lands once, on the release task, covering every `.apm/`
   change in the delivery. As worded before, an unconditional `Always do` and the
