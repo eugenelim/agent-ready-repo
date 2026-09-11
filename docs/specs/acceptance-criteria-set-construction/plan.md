@@ -1185,7 +1185,7 @@ restored, and `make build-self` leaves no drift.
   The residue is real and accepted: paraphrased duplication is caught at review,
   by the rubric's first class, and by nothing mechanical. Widening the tuple on
   sight is the maintenance habit that keeps the gap small.
-- **No required remote gate runs the suite five tasks close on.**
+- **No required remote gate runs the suite six tasks close on.**
   `.github/workflows/catalogue-tooling-ci-gates.yml` runs a curated list of pack
   suites and omits `packs/core/tests/skills/new-spec/`; `make test` walks the
   whole tree but reaches CI only through a manually dispatched workflow that the
@@ -1200,9 +1200,12 @@ restored, and `make build-self` leaves no drift.
   omission alongside a review-phrase defect in the same file T6 edits; its
   phrase claim no longer reproduces — the test passes today — but the gate
   omission does.
-- **AC-0018's check reads three surfaces; older shipped surfaces go unread.**
+- **AC-0018's check reads three surfaces; the rest go unread.**
   `assets/spec.md`, the rubric, and `SKILL.md` outside the procedure span carry
-  no check for a fixed absolute criterion count. The criterion was narrowed to
+  no check for a fixed absolute criterion count. "Older" no longer describes the
+  set: T7 authors new identifier-convention prose into `assets/spec.md` in this
+  slice, so the unread set contains a file this delivery writes. It carries no
+  count prose, which is why it stays outside the check rather than inside it. The criterion was narrowed to
   the three surfaces this slice ships so it claims only what its oracle reaches;
   the rest is a review obligation with no mechanical backing. Mitigation: none
   available at proportionate cost — recorded so the gap is visible rather than
