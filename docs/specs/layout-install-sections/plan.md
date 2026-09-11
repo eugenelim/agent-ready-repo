@@ -164,6 +164,15 @@ because the write has never executed. Once it does, a read-only layout file
 would abort an install whose files are already projected — a total failure over
 an optional maintenance step. The append reports and yields instead.
 
+**Why the confinement root is the write jail's root.** A manifest-declared
+value is checked against the root the install is actually writing under, so the
+check and the write cannot disagree when `AGENTBUNDLE_USER_ROOT` is set. An
+earlier draft rooted user scope at the home directory, reasoning from the
+`~/Documents/...` values in the reference docs — but those are adopter-authored
+examples for the adopter's own file and never reach this check, and no shipped
+pack declares `[pack.layout.user]` at all. The wide root refused nothing real
+and admitted `~/.claude` from an external catalogue.
+
 **Why mode and symlinks need their own observations.** `write_jailed` creates
 its temp file privately and the atomic replace carries that mode onto the
 target, so an adopter's group-readable file silently becomes owner-only; and a
@@ -241,7 +250,9 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - One case per *report* row of the spec's state table, exercised individually:
   bad `section` class, out-of-root `output_dir`, symlinked path, unopenable
   file and unpreparable user-state directory, undecodable, unparseable,
-  occupied by scalar or array, and a failing write. Each leaves the file
+  occupied by scalar or array, and a failing write. Plus row 13: a failure the
+  rows above do not name — `expanduser` with no resolvable home is the
+  reachable one — still reports rather than escaping. Each leaves the file
   byte-identical and emits one stderr line. (AC4)
 - One case per *silent* row: absent file, section already present as a table,
   pack declaring only one key. Nothing written, nothing printed. (AC5)
@@ -267,8 +278,13 @@ sub-table takes today, so a pack that has not opted in is unaffected.
   the table case to the silent return while scalar and array report.
 - Refuse a symlinked target before writing, matching the resolver, reporting
   rather than raising.
-- Confine the resolved `output_dir` to the scope's root before writing, and
-  refuse a `section` outside `^[a-z0-9][a-z0-9-]*$`.
+- Confine the resolved `output_dir` to the same root `write_jailed` uses for
+  that scope — `plan.root`, which honours `AGENTBUNDLE_USER_ROOT` — anchoring a
+  relative value to that root rather than the process CWD. Refuse a `section`
+  outside `^[a-z0-9][a-z0-9-]*$`.
+- Wrap the body so any unenumerated failure takes row 13, before narrowing the
+  call-site handler. Narrowing first converts an absorbed failure into a
+  traceback.
 - Carry the target's existing mode across the atomic replace.
 - Do not widen the call-site `except`. `_append_layout_section` handles every
   reporting state internally and returns, so it never reaches that handler;

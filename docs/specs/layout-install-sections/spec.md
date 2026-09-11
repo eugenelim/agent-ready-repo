@@ -100,10 +100,20 @@ to this table rather than re-deciding a state.
 | 10 | The declared name is present as a scalar or array of tables | report |
 | 11 | Otherwise: append. The write itself fails | report |
 | 12 | Otherwise: append succeeds | one table written |
+| 13 | Any failure not enumerated above | report |
 
 **Silent** means write nothing and emit no diagnostic. **Report** means write
 nothing and write one line to stderr naming the layout file's path and the
 section not written. No state raises.
+
+Row 13 is what makes that last sentence true. Without it the property rests on
+this enumeration being exhaustive, and it is not: `Path.expanduser()` raises
+`RuntimeError` when no home can be determined — a case this repository already
+treats as real in corporate sandboxes and containers — and `write_jailed` can
+raise `TypeError`. Each would escape as an uncaught traceback once the
+call-site handler narrows, after the projection and the marker are already
+written. The catch-all is the control; the rows above it exist to give each
+common failure its own message.
 
 Order carries two decisions. Manifest faults (3, 4) precede file-state checks,
 so a pack whose declaration is wrong is reported even on a re-install where
@@ -196,13 +206,16 @@ noise.
   contract-parity gate owns it.
 
 - [ ] **AC10 — The emitted value is injection-safe.** A declared `output_dir`
-  containing `"`, `]`, a newline, or `../` round-trips through
+  containing `"`, `]`, or a newline — each of which resolves inside the root,
+  so the state table's row 4 does not refuse it first — round-trips through
   `tomllib` as one string in one table, landing no additional TOML structure.
   The observation is carried by `output_dir`, which the character class does
   not constrain. Header emission stays routed through the same emitter as
   defence in depth behind AC15, and this criterion makes no claim about it —
   with the class guard in front, no hostile `section` reaches emission, so a
-  header-side assertion could not fail.
+  header-side assertion could not fail. Traversal is not on this criterion's
+  input list: `../` is refused at row 4 before emission, so it would make the
+  observation vacuous and the mutation check green. It belongs to AC14.
 
 - [ ] **AC11 — A layout failure never fails the install; a marker failure still
   does.** For every state the table marks *report* — read-side and write-side
@@ -227,17 +240,29 @@ noise.
   stranding what the adopter pointed it at; an out-of-tree link is already
   refused by the write jail, and that refusal becomes a report too.
 
-- [ ] **AC14 — A declared `output_dir` is confined to its scope's root.** A
-  value that resolves — after `~` expansion and symlink resolution — outside
-  the repository at repo scope, or outside the adopter's home directory at user
-  scope, is refused. The user-scope root is the home directory, not
-  `~/.agentbundle/`: the shipped reference docs recommend values such as
-  `~/Documents/MyVault/product`, and rooting at the state directory would
-  refuse every one of them: nothing is written and the reason is reported. The criterion is
-  on the resolved path, not on the absence of `..`, so an absolute path and a
-  `~`-anchored path are both covered. This is RFC-0040's security contract for
-  a catalogue-sourced value, and this change is what first carries one to a
-  filesystem root.
+- [ ] **AC14 — A declared `output_dir` is confined to the root the install
+  itself writes under.** The value is refused — nothing written, reason
+  reported — unless it resolves inside that root: the repository at repo
+  scope, and at user scope the resolved user root the install is using, within
+  the adapter's `allowed-prefixes.user` surface. The root is the *same value*
+  the write jail uses for that scope, so the path checked and the file written
+  cannot be governed by different roots when `AGENTBUNDLE_USER_ROOT` is set —
+  which is adopter-facing remediation for sandboxes and containers, not a test
+  hook.
+
+  A relative value is anchored to that same root before resolution, never to
+  the process working directory; anchoring it to the CWD is the defect AC7
+  repairs one component over, and it would let `../../../.ssh` pass here while
+  AC7 resolves the same string somewhere else entirely.
+
+  The root is deliberately no wider than what the installer may already write.
+  No shipped pack declares `[pack.layout.user]`, and the `~/Documents/...`
+  values in the reference docs are adopter-authored examples for the adopter's
+  own file, which this criterion never sees — so a tight root refuses nothing
+  real. A home-wide root would admit a manifest declaring `~/.claude` or
+  `~/.aws`, reachable from an external catalogue, and a document landing in the
+  first of those carries instruction authority into every later session.
+
 
 - [ ] **AC15 — A declared `section` matches a bounded character class.** A
   `section` that is not `^[a-z0-9][a-z0-9-]*$` is refused at schema validation
