@@ -53,6 +53,19 @@ FINDING_KINDS = {
 }
 
 
+def _rel(path: Path, root: Path) -> str:
+    """A path as the caller's repository sees it.
+
+    Every emitted path goes through here. An absolute host path is wrong in a
+    review, a commit message and an issue alike -- and it carries the operator's
+    home directory into text an agent pastes elsewhere.
+    """
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _is_test_file(path: Path) -> bool:
     """Whether this is a test module rather than a subject.
 
@@ -146,25 +159,25 @@ def check(subjects: list[Path], given: list[Path],
         kinds = catalogue(subject)
         if kinds is None:
             unreadable += 1
-            findings.append(f"{subject}: {FINDING_KINDS['unreadable']}")
+            findings.append(f"{_rel(subject, root)}: {FINDING_KINDS['unreadable']}")
             continue
         if not kinds:
             skipped += 1
             continue
         participating += 1
         dirs = test_dirs(subject, given, root)
-        searched += [str(d) for d in dirs]
+        searched += [_rel(d, root) for d in dirs]
         body = sources(dirs)
         if not body:
             findings.append(
-                f"{subject}: {FINDING_KINDS['no-suite']} "
-                f"(looked in {', '.join(str(d) for d in dirs) or 'no candidate directory'})"
+                f"{_rel(subject, root)}: {FINDING_KINDS['no-suite']} "
+                f"(looked in {', '.join(_rel(d, root) for d in dirs) or 'no candidate directory'})"
             )
             continue
         missing = sorted(name for name, fragment in kinds.items() if fragment not in body)
         if missing:
             findings.append(
-                f"{subject}: {FINDING_KINDS['uncovered']}: {', '.join(missing)}"
+                f"{_rel(subject, root)}: {FINDING_KINDS['uncovered']}: {', '.join(missing)}"
             )
     return findings, participating, skipped, unreadable, searched
 
@@ -205,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     # reported as a typo instead of refused.
     for subject in subjects:
         if root != subject and root not in subject.parents:
-            print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: {subject}")
+            print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: {_rel(subject, root)}")
             return 2
     # Only then: a caller's path typo is not a malformed subject. Collapsing the
     # two reported an adopter's mistyped argument as "could not be parsed",
@@ -214,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     subjects = [s for s in subjects if s.exists()]
 
     findings, participating, skipped, unreadable, searched = check(subjects, args.tests, root)
-    findings = [f"{s}: {FINDING_KINDS['missing']}" for s in missing] + findings
+    findings = [f"{_rel(s, root)}: {FINDING_KINDS['missing']}" for s in missing] + findings
     for finding in findings:
         print(f"lint-finding-coverage: {finding}")
     if args.discover is not None and not participating:
