@@ -357,8 +357,14 @@ def check(spec_dir: Path, root: Path | None = None,
         return [f"{where}: {FINDING_KINDS['no-spec']}"], False, [], []
     spec = _read_confined(spec_path, root)
     plan = _read_confined(plan_path, root) if plan_path.is_file() else ""
-    if spec is None:
-        return [f"{_rel(spec_dir, root)}: {FINDING_KINDS['unconfined']}"], False, [], []
+    # Both sentinels are handled. Checking only the spec left `plan` as None and
+    # `MALFORMED.findall(None)` raised, so a refused or unreadable plan.md gave
+    # the operator a traceback instead of the refusal finding -- and abandoned
+    # every remaining spec directory with it.
+    if spec is None or plan is None:
+        which = "spec.md" if spec is None else "plan.md"
+        return ([f"{_rel(spec_dir, root)}/{which}: {FINDING_KINDS['unconfined']}"],
+                False, [], [])
 
     criteria = CRITERION.findall(spec)
     if not criteria:

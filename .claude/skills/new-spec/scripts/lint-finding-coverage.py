@@ -53,6 +53,42 @@ FINDING_KINDS = {
 }
 
 
+def confined(path: Path, root: Path) -> Path | None:
+    """The canonical path if it is a regular file inside ``root``, else None.
+
+    Canonicalise first and re-check containment on the *resolved* path: `~`
+    expansion and `..` rejection do not stop an in-boundary symlink pointing
+    out, which is the escape this repository's security rule names. A link, a
+    reparse point, or anything that is not a regular file is refused rather than
+    followed, because every path here arrives from a caller or is derived from
+    one.
+    """
+    try:
+        real = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    base = root.resolve()
+    if real != base and base not in real.parents:
+        return None
+    if path.is_symlink() or not real.is_file():
+        return None
+    return real
+
+
+def confined_dir(path: Path, root: Path) -> Path | None:
+    """The same contract for a directory a caller supplied or the walk derived."""
+    try:
+        real = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    base = root.resolve()
+    if real != base and base not in real.parents:
+        return None
+    if path.is_symlink() or not real.is_dir():
+        return None
+    return real
+
+
 def _rel(path: Path, root: Path) -> str:
     """A path as the caller's repository sees it.
 
@@ -77,14 +113,17 @@ def _is_test_file(path: Path) -> bool:
     return stem.startswith(("test_", "test-")) or stem.endswith(("_test", "-test"))
 
 
-def catalogue(subject: Path) -> dict[str, str] | None:
+def catalogue(subject: Path, root: Path | None = None) -> dict[str, str] | None:
     """Read `FINDING_KINDS` from a subject without importing it.
 
     Parsed rather than imported: a subject with side effects at import must never
     run merely because something checked its coverage.
     """
+    real = confined(subject, root) if root is not None else subject
+    if real is None:
+        return None
     try:
-        tree = ast.parse(subject.read_text(encoding="utf-8", errors="replace"))
+        tree = ast.parse(real.read_text(encoding="utf-8", errors="replace"))
     except (OSError, SyntaxError):
         # None, not {}. A subject that cannot be read is not a subject that
         # declares nothing, and counting the two together reports an unreadable
@@ -106,7 +145,10 @@ def catalogue(subject: Path) -> dict[str, str] | None:
 def test_dirs(subject: Path, given: list[Path], root: Path) -> list[Path]:
     """Where a subject's tests might live, without assuming a repository shape."""
     if given:
-        return [d for d in given if d.is_dir()]
+        # A caller-supplied directory is confined like everything else: an
+        # out-of-root tests tree could otherwise satisfy the coverage predicate
+        # with a file the repository does not contain.
+        return [d for d in (confined_dir(g, root) for g in given) if d is not None]
     skill = subject.parent.parent                      # <skill>/scripts/x.py
     # Walk upward looking for a tests tree that names this skill, rather than
     # assuming a fixed depth. An installed skill, a pack in a catalogue and a
@@ -115,13 +157,24 @@ def test_dirs(subject: Path, given: list[Path], root: Path) -> list[Path]:
     # this whole check exists to detect.
     candidates = [skill / "tests"]
     here = skill.parent
+    base = root.resolve()
     while True:
         candidates += [here / "tests" / "skills" / skill.name, here / "tests" / skill.name]
-        if here == root or here.parent == here:
+        # Terminate at the boundary at any depth. Stopping only on `here == root`
+        # let a subject at the root make `skill.parent` the root's parent, so the
+        # walk climbed past the boundary and offered ancestors above it.
+        try:
+            at_or_above = here.resolve() == base or base not in here.resolve().parents
+        except (OSError, RuntimeError):
+            break
+        if at_or_above or here.parent == here:
             break
         here = here.parent
     seen, out = set(), []
-    for directory in candidates:
+    for candidate in candidates:
+        directory = confined_dir(candidate, root)
+        if directory is None:
+            continue
         if directory.is_dir() and directory not in seen:
             seen.add(directory)
             out.append(directory)
@@ -134,7 +187,7 @@ def test_dirs(subject: Path, given: list[Path], root: Path) -> list[Path]:
     return out
 
 
-def sources(dirs: list[Path]) -> str:
+def sources(dirs: list[Path], root: Path) -> str:
     """Every test module under these directories, by one shared shape.
 
     `_is_test_file` decides what a test module is here too. Globbing
@@ -143,11 +196,14 @@ def sources(dirs: list[Path]) -> str:
     and never read as sources either, which turns every declared finding kind
     into a false 'no test observes'.
     """
-    return "\n".join(
-        path.read_text(encoding="utf-8", errors="replace")
-        for directory in dirs
-        for path in sorted(p for p in directory.rglob("*.py") if _is_test_file(p))
-    )
+    chunks = []
+    for directory in dirs:
+        for path in sorted(p for p in directory.rglob("*.py") if _is_test_file(p)):
+            real = confined(path, root)
+            if real is None:
+                continue
+            chunks.append(real.read_text(encoding="utf-8", errors="replace"))
+    return "\n".join(chunks)
 
 
 def check(subjects: list[Path], given: list[Path],
@@ -156,7 +212,7 @@ def check(subjects: list[Path], given: list[Path],
     participating = skipped = unreadable = 0
     searched: list[str] = []
     for subject in subjects:
-        kinds = catalogue(subject)
+        kinds = catalogue(subject, root)
         if kinds is None:
             unreadable += 1
             findings.append(f"{_rel(subject, root)}: {FINDING_KINDS['unreadable']}")
@@ -167,7 +223,7 @@ def check(subjects: list[Path], given: list[Path],
         participating += 1
         dirs = test_dirs(subject, given, root)
         searched += [_rel(d, root) for d in dirs]
-        body = sources(dirs)
+        body = sources(dirs, root)
         if not body:
             findings.append(
                 f"{_rel(subject, root)}: {FINDING_KINDS['no-suite']} "
@@ -198,7 +254,14 @@ def main(argv: list[str] | None = None) -> int:
     root = args.root.resolve()
     subjects = [s.resolve() for s in args.subject]
     if args.discover:
-        base = args.discover.resolve()
+        # Confined before the walk, not after it. Resolving and then reading
+        # every `*.py` underneath before the containment loop meant an
+        # out-of-root tree was fully read and parsed, and only then refused.
+        base = confined_dir(args.discover, root)
+        if base is None:
+            print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: "
+                  f"{_rel(args.discover.resolve(), root)}")
+            return 2
         # `catalogue(p) is not None` admits a subject that declares a catalogue;
         # `catalogue(p) is None` admits one that could not be read. Filtering on
         # truthiness dropped the second silently, so the unreadable finding was
@@ -209,9 +272,10 @@ def main(argv: list[str] | None = None) -> int:
         # checker, and dropping it left it unchecked, uncounted and unnamed --
         # the silent omission this check exists to report in other suites.
         for candidate in sorted(base.rglob("*.py")):
-            if candidate.is_symlink() or _is_test_file(candidate):
+            if _is_test_file(candidate) or confined(candidate, root) is None:
                 continue
-            if catalogue(candidate) is None or catalogue(candidate):
+            kinds = catalogue(candidate, root)
+            if kinds is None or kinds:
                 subjects.append(candidate)
     # Confinement first, on every supplied path, before anything reads or
     # classifies it: a path outside the root is refused whether or not it
