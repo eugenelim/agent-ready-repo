@@ -1,7 +1,7 @@
 # Plan: Catalogue install writes a layout section the skills read
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/agentbundle.md` § 7.1 records the
   measured drift, and names both reader classes — `workspace_mcp.py` and the
   skills. The `[backlog].open` entry at `workspace.toml:449` owns the defect and
@@ -327,9 +327,14 @@ sub-table takes today, so a pack that has not opted in is unaffected.
 - Add `section` to the five manifests: `architect` → `architecture`,
   `desk-research` → `research`, `experience-design` → `design`,
   `product-engineering` → `product`, `product-strategy` → `strategy`.
+- Move `architect`'s `output_dir` to `docs/architecture` and both of its
+  reference docs' documented value with it, and add the repo-scope example to
+  `desk-research`'s reference doc. AC6 is this task's criterion and cannot pass
+  without them: `architect` would declare a pair its docs contradict, and
+  `desk-research`'s shipped default appears in no document at all.
 - Do not bump here. T4 is the single bump moment for every pack this change
-  touches; `architect` is edited by both tasks, and bumping in each would
-  advance it twice and leave one version naming no released code state.
+  touches, and bumping in each task would advance a pack twice and leave one
+  version naming no released code state.
 
 **Done when:** the check passes and `agentbundle catalogue lint` is clean.
 
@@ -344,13 +349,8 @@ sub-table takes today, so a pack that has not opted in is unaffected.
   must survive. (AC8)
 
 **Approach:**
-- Change `architect`'s `output_dir` and the two reference docs' documented
-  value.
-- Add the repo-scope example to `desk-research`'s reference doc, which today
-  documents `[research]` only against `~/research-projects` and an absolute
-  path, so the shipped default `docs/product/research` appears nowhere as a
-  documented pair and AC6 cannot pass for that pack. An added example is not a
-  section rename, so it stays inside the spec's Boundaries.
+- The `architect` base and the `desk-research` example moved to T3 — see this
+  plan's Changelog.
 - Remove the comment-loss sentence from every `references/agentbundle-layout.md`
   that carries it, file set derived; regenerate the `workspace-status`
   projections rather than editing them, and run `make build-self` so the
@@ -445,3 +445,9 @@ unparseable afterwards. It is reported, not silent.
   prose instruction and cannot consult an alias table — which makes a declared
   `section` the only route that repairs the install without moving the
   vocabulary. The vocabulary move is logged as separate work.
+- 2026-09-11 — amended during execution. T3 owns AC6, but AC6 could not pass
+  from T3's own edits: `architect` would declare `architecture`/`docs/architecture`
+  while its reference docs still said `docs/design`, and `desk-research`'s
+  shipped default appeared in no document. Both edits move from T4 to T3. T4
+  keeps the comment-loss sentences, § 7.1, the backlog retirement, the single
+  bump moment and the changelog. No criterion changed.

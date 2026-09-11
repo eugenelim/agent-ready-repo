@@ -16,7 +16,7 @@ One key:
 
 ```toml
 [architecture]
-output_dir = "docs/design"   # a base directory; per-effort folders go *under* it
+output_dir = "docs/architecture"   # a base directory; per-effort folders go *under* it
 ```
 
 - **`output_dir` is a base, not the leaf.** Each design effort gets its own

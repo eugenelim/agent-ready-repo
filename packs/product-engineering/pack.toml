@@ -32,6 +32,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # a no-op (adopters write a user `[product]` section by hand; see
 # the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
+section    = "product"
 output_dir = "docs/product"
 
 # Pack activation evals:

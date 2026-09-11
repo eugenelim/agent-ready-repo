@@ -31,6 +31,7 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 # Each skill ships references/agentbundle-layout.md documenting the adopter-
 # owned [strategy] section of their agentbundle-layout.toml.
 [pack.layout.repo]
+section    = "strategy"
 output_dir = "docs/product/shaping"
 
 # Pack activation evals: all 9 skills are user-triggered

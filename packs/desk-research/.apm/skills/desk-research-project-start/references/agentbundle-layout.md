@@ -15,8 +15,18 @@ section that `desk-research-project-start` reads.
 One key:
 
 ```toml
+# ./agentbundle-layout.toml  (repo scope — the installed default)
 [research]
-output_dir = "~/research-projects"   # a base directory; project folders go *under* it
+output_dir = "docs/product/research"   # a base directory; project folders go *under* it
+```
+
+The same key at user scope takes an absolute path, since one profile serves
+many repositories:
+
+```toml
+# ~/.agentbundle/agentbundle-layout.toml  (user scope)
+[research]
+output_dir = "~/research-projects"
 ```
 
 - **`output_dir` is a base, not the leaf.** Each project gets its own topic-named
