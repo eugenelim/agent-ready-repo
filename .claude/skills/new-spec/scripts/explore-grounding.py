@@ -84,6 +84,45 @@ MAX_READ_BYTES = 2_000_000
 _TOP_CACHE: tuple[str, ...] = ()
 
 
+def calibrate_sweep(root: Path, default: int) -> tuple[int, str]:
+    """Derive the sweep-commit threshold from this repository's own commit sizes.
+
+    A fixed number is a guess about someone else's repository. A monorepo's
+    ordinary commit touches more files than a small library's, so the same
+    constant is too tight in one and too loose in the other -- and being wrong is
+    silent either way, because an over-tight threshold simply reports nothing.
+    The p90 of recent commit sizes is this repository's own answer.
+    """
+    sizes = []
+    shas = _git(root, "log", "--format=%H", "-n", "120")
+    if shas is None:
+        return default, "default (no history)"
+    for sha in [x for x in shas if x][:120]:
+        files = _git(root, "show", "--name-only", "--format=", "--no-renames", sha)
+        if files is not None:
+            sizes.append(len({f for f in files if f}))
+    if len(sizes) < 20:
+        return default, f"default (only {len(sizes)} commits)"
+    sizes.sort()
+    p90 = sizes[int(len(sizes) * 0.9)]
+    return max(5, p90), f"p90 of {len(sizes)} commits"
+
+
+def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple[int, str]:
+    """Derive the boilerplate cutoff from the observed match distribution.
+
+    Shipped boilerplate is not "three files" -- that was this repository's shape.
+    It is a phrase appearing in a share of the corpus no genuine pin ever reaches.
+    Absent enough signal the default stands, and the report says which was used so
+    a mis-calibration is visible rather than silently narrowing the results.
+    """
+    if scanned < 50 or len(per_phrase) < 8:
+        return default, "default (too little signal)"
+    ordered = sorted(per_phrase)
+    p75 = ordered[int(len(ordered) * 0.75)]
+    return max(default, p75), f"p75 of {len(per_phrase)} matched phrases"
+
+
 def _git(root: Path, *args: str) -> list[str] | None:
     """Run a git query. None means git could not answer, which is not "empty"."""
     try:
@@ -130,6 +169,27 @@ def confined_files(root: Path, tracked: set[str] | None) -> list[Path]:
             if stat.S_ISREG(info.st_mode) and path.suffix.lower() in TEXT_SUFFIXES:
                 out.append(path)
     return out
+
+
+def _runner_patterns(seed: str) -> list[re.Pattern[str]]:
+    """How a runner might name this seed: itself, or a directory just above it.
+
+    Two calibrations, both learned by getting it wrong. **Depth floor:** only
+    ancestors of three segments or more, because `docs` or `packs` appears in
+    every workflow and matching them reports nine gates for an architecture
+    document. **Right boundary:** an ancestor must not be followed by another
+    path character, or `packs/core/tests/skills` matches every sibling suite
+    under it.
+    """
+    parts = seed.split("/")
+    # The seed itself is always eligible however shallow it sits; the depth floor
+    # governs only its ancestors, which are where the over-matching comes from.
+    ancestors = ["/".join(parts[:i]) for i in (len(parts) - 1, len(parts) - 2)]
+    candidates = [seed] + [a for a in ancestors if a and a.count("/") >= 2]
+    return [
+        re.compile(re.escape(c) + r"/?(?=[\s'\"\\]|$)")
+        for c in dict.fromkeys(candidates)
+    ]
 
 
 def _read(path: Path) -> str:
@@ -336,6 +396,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         print("note: git unavailable — tracked-set and co-change probes degrade; "
               "ignored files are not excluded")
 
+    sweep, sweep_basis = calibrate_sweep(root, sweep)
     phrases = {s: distinctive_lines(root, s) for s in seeds}
     refs: dict[str, list[str]] = {s: [] for s in seeds}
     hits: dict[tuple[str, str], set[str]] = {}
@@ -351,8 +412,13 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         for seed in seeds:
             if seed in text:
                 refs[seed].append(rel)
-                if path in runners:
-                    gates[seed].append(rel)
+            # A runner reaches a file by naming any directory above it: a suite
+            # is invoked as `pytest <dir>/`, never file by file. Matching the
+            # exact path only would report a covered test as unreached, which
+            # inverts the probe -- its whole value is telling you when nothing
+            # runs a path.
+            if path in runners and any(p.search(text) for p in _runner_patterns(seed)):
+                gates[seed].append(rel)
             for phrase in phrases.get(seed, ()):
                 if phrase in text:
                     hits.setdefault((seed, phrase), set()).add(rel)
@@ -368,6 +434,8 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         # without the floor every pin is misread as a copy.
         sampled = max(1, len(phrases.get(seed, ())))
         copy_threshold = max(2, sampled // 2)
+        cutoff, cutoff_basis = calibrate_cutoff(
+            [len(w) for (o, _), w in hits.items() if o == seed], len(files), cutoff)
         per_file: Counter[str] = Counter()
         for (owner, _), where in hits.items():
             if owner == seed:
@@ -387,6 +455,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
             _emit("path refs", "found" if refs[seed] else "none", sorted(refs[seed]), cap)
         if "pins" in probes:
             _emit("phrase pins", "found" if pins else "none", pins, cap)
+            print(f"                 cutoff {cutoff} — {cutoff_basis}")
         if copies and "pins" in probes:
             _emit("copies of seed", "found", copies, cap)
         if "dead" in probes:
@@ -406,6 +475,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
         return
     status, ranked = co_change(root, seeds, co_min, sweep)
     print(f"\n=== co-change over all {len(seeds)} seed(s)")
+    print(f"  sweep-commit threshold {sweep} — {sweep_basis}")
     _emit("partners", status,
           [f"{name}   {count} commits, confidence {ratio:.2f}" for name, count, ratio in ranked],
           cap)
