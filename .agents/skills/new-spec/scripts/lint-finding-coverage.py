@@ -52,6 +52,17 @@ FINDING_KINDS = {
 }
 
 
+def _is_test_file(path: Path) -> bool:
+    """Whether this is a test module rather than a subject.
+
+    Matched on the test-file shapes a runner collects -- a ``test_``/``test-``
+    prefix or a ``_test`` suffix -- not on the substring, which excluded any
+    checker whose name happens to contain the word.
+    """
+    stem = path.stem
+    return stem.startswith(("test_", "test-")) or stem.endswith(("_test", "-test"))
+
+
 def catalogue(subject: Path) -> dict[str, str] | None:
     """Read `FINDING_KINDS` from a subject without importing it.
 
@@ -170,11 +181,15 @@ def main(argv: list[str] | None = None) -> int:
         # truthiness dropped the second silently, so the unreadable finding was
         # unreachable in exactly the mode that scans a tree the caller has not
         # inspected.
-        subjects += sorted(
-            p for p in base.rglob("*.py")
-            if not p.is_symlink() and "test" not in p.name
-            and (catalogue(p) is None or catalogue(p))
-        )
+        # A subject is excluded only if it looks like a test *file*, not if the
+        # word appears anywhere in its name: `lint-pack-test-boundary.py` is a
+        # checker, and dropping it left it unchecked, uncounted and unnamed --
+        # the silent omission this check exists to report in other suites.
+        for candidate in sorted(base.rglob("*.py")):
+            if candidate.is_symlink() or _is_test_file(candidate):
+                continue
+            if catalogue(candidate) is None or catalogue(candidate):
+                subjects.append(candidate)
     for subject in subjects:
         if root != subject and root not in subject.parents:
             print(f"lint-finding-coverage: {FINDING_KINDS['unconfined']}: {subject}")

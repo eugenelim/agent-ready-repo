@@ -179,7 +179,8 @@ def calibrate_sweep(root: Path, default: int) -> tuple[int, str]:
 def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple[int, str]:
     """Derive the boilerplate cutoff from the observed match distribution.
 
-    Shipped boilerplate is not "three files" -- that was this repository's shape.
+    Shipped boilerplate is not a fixed file count: any such number encodes one
+    repository's shape rather than a property of boilerplate.
     It is a phrase appearing in a share of the corpus no genuine pin ever reaches.
     Absent enough signal the default stands, and the report says which was used so
     a mis-calibration is visible rather than silently narrowing the results.
