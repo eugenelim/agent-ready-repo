@@ -121,7 +121,7 @@ def test_a_tree_with_no_runner_reports_unavailable_not_unreached(root):
     (root / "Makefile").unlink()
     out = _run(root, seed)
     # Target the gates *line*: the phase-probes header also contains the word.
-    line = next((l for l in out.splitlines() if l.strip().startswith("gates")), "")
+    line = next((line for line in out.splitlines() if line.strip().startswith("gates")), "")
     assert "unavailable" in line, f"no runner exists:\n{out}"
     assert "UNREACHED" not in out, "missing input must not read as the positive finding"
 
@@ -201,10 +201,10 @@ def test_result_cap_reports_an_exact_remainder(root):
         (root / f"ref{index}.md").write_text("see lib/seed.md\n", encoding="utf-8")
     out = _run(root, "lib/seed.md", extra=["--cap", str(CAP)])
     lines = out.splitlines()
-    start = next(i for i, l in enumerate(lines) if "path refs" in l)
+    start = next(i for i, line in enumerate(lines) if "path refs" in line)
     assert lines[start].split()[-1] == str(REFERRERS), \
         f"the total must be this fixture's {REFERRERS}:\n{lines[start]}"
-    listed = [l for l in lines[start + 1:] if l.startswith("      ref")]
+    listed = [line for line in lines[start + 1:] if line.startswith("      ref")]
     remainder = int(re.search(r"and (\d+) more", out).group(1))
     # Listed plus remainder must account for every row. Checking the remainder
     # against the fixture alone passes a cap that under-lists, because the
@@ -266,7 +266,6 @@ STAGE_PROBES = {
 }
 
 
-
 def test_a_probe_outside_the_stage_does_no_work(root, capsys):
     """Selection is executional, and only a function-level oracle can see it.
 
@@ -304,7 +303,7 @@ def test_the_report_names_the_probe_set_its_stage_ran(root, phase):
     """
     expected = STAGE_PROBES[phase]
     out = _run(root, _seeded(root), extra=["--phase", phase])
-    line = next((l for l in out.splitlines() if l.startswith("probes:")), None)
+    line = next((line for line in out.splitlines() if line.startswith("probes:")), None)
     assert line, f"the {phase} report names no probe set:\n{out}"
     named = {p.strip() for p in line[len("probes:"):].split("\u00b7")[0].split(",")}
     assert named == expected, (
@@ -434,7 +433,7 @@ def test_the_phrase_cutoff_reports_a_derived_basis(root):
         (root / f"n{index}.md").write_text("\n".join(lines[: 1 + index % 12]) + "\n",
                                            encoding="utf-8")
     out = _run(root, seed)
-    line = next((l for l in out.splitlines() if "cutoff" in l), "")
+    line = next((line for line in out.splitlines() if "cutoff" in line), "")
     assert "p75 of" in line, f"the cutoff must report a derived basis:\n{out}"
 
 
@@ -512,7 +511,7 @@ def test_an_empty_seed_file_yields_no_phantom_phrases(root):
     seed = _seeded(root)
     (root / seed).write_text("", encoding="utf-8")
     out = _run(root, seed)
-    pins = [l for l in out.splitlines() if "phrase pins" in l]
+    pins = [line for line in out.splitlines() if "phrase pins" in line]
     assert pins and "none found" in pins[0], f"an empty seed samples no phrases:\n{out}"
 
 
@@ -572,7 +571,6 @@ def test_a_file_past_the_size_bound_is_counted_not_silently_empty(root):
     (root / "huge.md").write_text("x" * 2_100_000, encoding="utf-8")
     out = _run(root, seed)
     assert "skipped for size" in out, f"the omission must be visible:\n{out}"
-
 
 
 def test_sweep_is_not_derived_when_no_probe_consumes_it(root):

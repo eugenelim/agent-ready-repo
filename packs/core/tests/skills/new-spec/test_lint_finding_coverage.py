@@ -157,7 +157,7 @@ def test_the_searched_directory_list_is_capped(root):
         directory.mkdir()
         (directory / "test_x.py").write_text("def t():\n    pass\n", encoding="utf-8")
     result = _run(root, str(subject), *[a for d in extra for a in ("--tests", str(d))])
-    line = next(l for l in result.stdout.splitlines() if "directories searched" in l)
+    line = next(line for line in result.stdout.splitlines() if "directories searched" in line)
     assert "more" in line, f"the list must be capped:\n{line}"
     assert len(line) < 700, f"a capped line must actually be short:\n{len(line)}"
 
@@ -211,8 +211,8 @@ def test_no_emitted_line_carries_an_absolute_host_path(root):
     (root / "unrelated" / "test_widget.py").unlink()
     result = _run(root, str(subject))
     assert result.returncode == 1, result.stdout
-    leaked = [l for l in result.stdout.splitlines() if str(root) in l]
-    assert not leaked, f"absolute host paths emitted:\n" + "\n".join(leaked)
+    leaked = [line for line in result.stdout.splitlines() if str(root) in line]
+    assert not leaked, "absolute host paths emitted:\n" + "\n".join(leaked)
     assert "packs/demo" in result.stdout, \
         f"the finding must still name the subject, relatively:\n{result.stdout}"
 

@@ -799,8 +799,9 @@ def test_capping_the_listing_does_not_change_the_count(root):
     verbose = subprocess.run(
         [sys.executable, str(CHECKER), "--root", str(tree), "--verbose"],
         capture_output=True, text=True, check=False)
+
     def total(out: str) -> str:
-        return next(l for l in out.splitlines() if "finding(s);" in l)
+        return next(line for line in out.splitlines() if "finding(s);" in line)
     assert total(capped.stdout) == total(verbose.stdout), (
         f"the exact total must survive capping:\n{total(capped.stdout)}\n"
         f"{total(verbose.stdout)}")
