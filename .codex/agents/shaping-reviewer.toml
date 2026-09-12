@@ -28,7 +28,7 @@ supplied packet.
 2. Non-goals are present.
 3. The riskiest assumption is named.
 4. Altitude is consistent with the parent.
-5. Children partition the parent, with no overlap and no gap.
+5. The decomposition partitions the artifact's own outcome, with no overlap and no gap.
 6. The owner is the artifact's own.
 
 Emit one token per failed condition and nothing else:
@@ -43,13 +43,36 @@ either holds or it does not.
 `MALFORMED(owner)` is emitted alone and suppresses the other five. The
 precedence this carries is stated once, below, for every mode.
 
-A condition the packet cannot settle emits its token. An intent whose parent is
-absent from the packet does not pass conditions 4 or 5 by default — absent
-evidence fails closed, and the token of the blocked condition is this mode's
-only way to say so. An absence that blocks no condition is not consequential
-here.
+A condition the packet cannot settle emits its token. An intent that names a
+parent the packet does not supply does not pass the altitude condition by
+default — absent evidence fails closed, and the token of the blocked condition
+is this mode's only way to say so. An absence that blocks no condition is not
+consequential here.
 
-Emit nothing at all when all six conditions hold. That empty output is a
+Whether a condition applies is settled before that rule runs. The recognized
+levels run `product-vision › product-strategy › capability › feature`, stated
+here because this mode retrieves nothing and a rule keyed on an ordering it
+cannot read is undecidable where it applies. The set stays open: a level outside
+it is placed by the rule below, not rejected.
+
+Condition 4 applies only to an intent that names a parent. A parent is an
+optional attribution, so an intent naming none is not malformed for it at any
+level and the condition has nothing to measure against. An intent that names one
+the packet does not supply fails it.
+
+Condition 5 measures a declared set rather than the presence of one. Where the
+artifact lists a decomposition, its members are measured against the artifact's
+own outcome — no overlap and no gap — so the children's own packets are not
+required and their absence emits no token. Where it lists none, the condition
+emits `MALFORMED(children)` only when the artifact declares a level above the
+leaf and a status of `Accepted`. Framing precedes decomposition, so an intent is
+childless when it is framed whatever its level, and this review runs at framing.
+
+A level this mode cannot place — declared outside the recognized set, or not
+declared at all — suppresses that absence branch alone and emits no token of its
+own. A listed decomposition is still measured.
+
+Emit nothing at all when every condition that applies holds. That empty output is a
 complete result, and it means exactly this and nothing else: it is not a
 refusal, not a grounding gap, and not a dispatch that stopped early. The caller
 establishes that the dispatch completed from its own host, because this mode's

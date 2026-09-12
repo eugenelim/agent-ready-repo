@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.16"
+          "version": "2.25.17"
         }
       ],
-      "date": "2026-09-11",
-      "heading": "[core][2.25.16] — 2026-09-11",
-      "changelogAnchor": "core22516--2026-09-11",
+      "date": "2026-09-12",
+      "heading": "[core][2.25.17] — 2026-09-12",
+      "changelogAnchor": "core22517--2026-09-12",
       "highlights": [
         {
           "source": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet.",
@@ -39,9 +39,9 @@
           "version": "0.13.12"
         }
       ],
-      "date": "2026-09-11",
-      "heading": "[product-engineering][0.13.12] — 2026-09-11",
-      "changelogAnchor": "product-engineering01312--2026-09-11",
+      "date": "2026-09-12",
+      "heading": "[product-engineering][0.13.12] — 2026-09-12",
+      "changelogAnchor": "product-engineering01312--2026-09-12",
       "highlights": [
         {
           "source": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own.",
@@ -49,6 +49,32 @@
             {
               "type": "text",
               "value": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.16"
+        }
+      ],
+      "date": "2026-09-11",
+      "heading": "[core][2.25.16] — 2026-09-11",
+      "changelogAnchor": "core22516--2026-09-11",
+      "highlights": [
+        {
+          "source": "**`new-spec` now tells you where a fact belongs, and hands you the facts to decide with.** Plans kept accumulating design reasoning inside task lists — why an assertion had to take a particular shape — where it went stale against everything else and generated review findings of its own. The rule is now explicit: a fact belongs in the design unless a task must implement or verify it, because tasks are jobs to be done rather than containers for facts. And when a spec reaches you for approval, the skill reports the finding trend and every remaining concern with its consequence, rather than a verdict you cannot check.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`new-spec` now tells you where a fact belongs, and hands you the facts to decide with."
+            },
+            {
+              "type": "text",
+              "value": " Plans kept accumulating design reasoning inside task lists — why an assertion had to take a particular shape — where it went stale against everything else and generated review findings of its own. The rule is now explicit: a fact belongs in the design unless a task must implement or verify it, because tasks are jobs to be done rather than containers for facts. And when a spec reaches you for approval, the skill reports the finding trend and every remaining concern with its consequence, rather than a verdict you cannot check."
             }
           ]
         }
