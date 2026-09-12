@@ -5,7 +5,7 @@ Usage:
     python3 tools/lint-guidebook-steps.py [--contract PATH] GUIDEBOOK [GUIDEBOOK ...]
 
 Each guide page with ``order:`` frontmatter is a step.  The contract at
-``guides/AGENTS.md`` supplies the obligation identifiers, their labels, the
+``docs/guides/guidebook-step-contract.md`` supplies the obligation identifiers, their labels, the
 closed judgement kinds, and the prohibited vocabulary; this program
 deliberately copies none of those lists.
 
@@ -39,7 +39,8 @@ nothing else at that level.  That level is what the docs site builds its
 in-page table of contents from, so a deeper heading publishes a page a reader
 cannot navigate.
 
-``--contract`` selects the contract file (default: ``guides/AGENTS.md``).
+``--contract`` selects the contract file
+(default: ``docs/guides/guidebook-step-contract.md``).
 The positional arguments select one or more guidebook directories.
 
 Exit 0 means no findings.  Exit 1 means one or more step findings.  Exit 2
@@ -58,7 +59,9 @@ from typing import Callable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SECTION_HEADING = "## The guidebook step contract"
+# The contract file leads with its own H1 and the obligations follow, so the
+# section marker is the file itself rather than a heading inside a larger one.
+SECTION_HEADING = "# The guidebook step contract"
 JUDGEMENT_HEADING = "### Judgement kinds"
 VOCABULARY_HEADING = "### Prohibited vocabulary"
 # One constant, so the suite builds its fixture at the level the lint reads.
@@ -109,10 +112,16 @@ class Finding:
 
 
 def contract_section(text: str) -> str:
-    """Return the contract section, stopping before the next level-two heading."""
+    """Return the contract body — everything after its title.
+
+    The contract owns a whole file, so it does not stop at the next `##`: the
+    obligation table, the label table, the judgement kinds and the prohibited
+    vocabulary are all `##` or `###` sections of it. Truncating at the first one
+    silently hid the last three from every parser that read this.
+    """
     if SECTION_HEADING not in text:
-        raise ValueError(f"contract carries no {SECTION_HEADING!r} section")
-    return text.split(SECTION_HEADING, 1)[1].split("\n## ", 1)[0]
+        raise ValueError(f"contract carries no {SECTION_HEADING!r} title")
+    return text.split(SECTION_HEADING, 1)[1]
 
 
 def obligation_ids_from_contract(text: str) -> tuple[str, ...]:
@@ -183,6 +192,42 @@ def _frontmatter_body(text: str) -> tuple[str, str]:
 
 def _has_order(frontmatter: str) -> bool:
     return bool(re.search(r"^order:\s*[^\s#]+", frontmatter, re.M))
+
+
+STEP_DECLARATION = re.compile(r"^\*\*Step \d+ of \d+ — ", re.M)
+
+
+def is_guidebook(directory: Path) -> bool:
+    """True when any page under `directory` declares itself a guidebook step.
+
+    The discriminator is at directory level, not page level, and both halves
+    matter.
+
+    It cannot be `order:` alone: that frontmatter carries two different things,
+    the steps of a guidebook and a cross-kind reading thread whose members are
+    a tutorial, a how-to, a reference and an explanation. Those are not steps,
+    have no skill to run, and holding them to the step contract reported four
+    findings against a pack that had done nothing wrong.
+
+    It cannot be the page's own declaration either, because `position` is one
+    of the obligations: a page that dropped it would stop being a step and its
+    omission would go unreported -- the check disappearing exactly when it was
+    needed. A sibling's declaration is what keeps the directory in scope.
+    """
+    for path in sorted(directory.rglob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if not text.startswith("---\n"):
+            continue
+        try:
+            frontmatter, body = _frontmatter_body(text)
+        except ValueError:
+            continue
+        if _has_order(frontmatter) and STEP_DECLARATION.search(body):
+            return True
+    return False
 
 
 def _label_variants(label: str) -> tuple[str, ...]:
@@ -617,6 +662,8 @@ def lint(directories: list[Path], contract: Contract) -> list[Finding]:
     """Lint all ordered Markdown steps under the selected directories."""
     findings: list[Finding] = []
     for directory in directories:
+        if not is_guidebook(directory):
+            continue
         for path in sorted(directory.rglob("*.md")):
             findings.extend(check_step(path, contract))
     return findings
@@ -627,7 +674,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--contract", type=Path, default=REPO_ROOT / "guides" / "AGENTS.md")
+    parser.add_argument("--contract", type=Path, default=REPO_ROOT / "docs" / "guides" / "guidebook-step-contract.md")
     parser.add_argument("guidebooks", nargs="+", type=Path)
     args = parser.parse_args(argv)
     missing = [str(path) for path in args.guidebooks if not path.is_dir()]

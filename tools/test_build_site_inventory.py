@@ -25,6 +25,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LAYER1_KEYS = {
     "source_path", "pack", "kind", "order", "title", "slug",
     "is_index", "nav_eligible",
+    # `step` is the page's own "**Step N of M**" declaration, read from the
+    # body. It is what numbers the sidebar and names the position in the
+    # right-hand rail, and it is deliberately separate from `order`: `order`
+    # also carries a cross-kind reading thread whose members are not steps.
+    "step",
 }
 
 

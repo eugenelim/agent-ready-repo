@@ -35,9 +35,12 @@ BASE = "/site/docs"
 def _page(slug: str, title: str, step: int, total: int, walk: list[tuple[int, str, str]],
           onward: str | None) -> str:
     """One rendered step, carrying every surface the sweep reads."""
+    # The current marker is built outside the f-string: a backslash inside an
+    # f-string expression is a syntax error before Python 3.12, and the repo's
+    # gates run on a version that rejects it.
+    current = ' aria-current="page"'
     items = "\n".join(
-        f'<li><a href="{BASE}/{s}/"'
-        f'{" aria-current=\"page\"" if s == slug else ""}>'
+        f'<li><a href="{BASE}/{s}/"{current if s == slug else ""}>'
         f"<span>{n}</span><span>{t}</span></a></li>"
         for n, s, t in walk
     )
