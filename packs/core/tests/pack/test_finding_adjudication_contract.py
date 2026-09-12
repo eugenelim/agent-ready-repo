@@ -91,6 +91,19 @@ def test_finding_adjudicator_source_contract() -> None:
         "Proposed mechanism",
     ):
         assert predicate in body
+    # A finding against a surface nothing gates has no contract consequence.
+    # Without these two clauses the fifth predicate read "at the stated
+    # severity" as the reviewer's word, so prose-versus-prose disagreement
+    # sustained as a blocker and a review round was spent on text no completion
+    # gate reads. Both must survive: the predicate decides the tier and the
+    # verdict applies the ceiling, and either alone leaves the other undone.
+    for authority_tier_rule in (
+        "is the fix fully determined",
+        "the consequence is advisory however the finding is worded",
+        "whose fix is not fully determined",
+        "sustains at advisory severity",
+    ):
+        assert authority_tier_rule in flat(body), authority_tier_rule
     # The strict consumer rejects a multi-anchor sustained entry and stops the
     # loop, so the producer must state the constraint rather than leave it to
     # be inferred from the template.

@@ -14,7 +14,7 @@
 - `packages/credbroker/` is also Python standard-library-only and is the only
   credential path. Credentialed primitives use its public API and never read
   credential stores directly.
-- `web/` uses Astro 7.2.9; `docs-site/` uses Astro 7.2.9 with Starlight
+- `web/` uses Astro 7.3.1; `docs-site/` uses Astro 7.2.9 with Starlight
   0.41.10.
 - Portable contracts are TOML plus JSON Schema in `contracts/`; compatible
   changes preserve both the contract declaration and its schema validation.
@@ -89,3 +89,7 @@ depend on build internals.
   generated projection; a projection is never an authoring dependency.
 - Default to no new dependency. Before adding one, record it in the owning
   package instructions or an ADR.
+- Identify an acceptance criterion and a verification item opaquely and
+  append-only, scoped to its own spec directory; a verification item's
+  identifier is never derived from what it verifies.
+  [Loop contract](loop-contract.md) § 3 owns the rule and its evidence.

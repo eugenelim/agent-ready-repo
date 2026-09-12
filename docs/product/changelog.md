@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.16] — 2026-09-11
+## [core][2.25.17] — 2026-09-12
 
 ### Fixed
 
@@ -63,6 +63,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `loop-cohort identity --help` states the schema version the command actually
   verifies, instead of a hard-coded number that a later schema bump would have
   left stale.
+
+## [core][2.25.16] — 2026-09-11
+
+### Highlights
+
+- **`new-spec` now tells you where a fact belongs, and hands you the facts to
+  decide with.** Plans kept accumulating design reasoning inside task lists —
+  why an assertion had to take a particular shape — where it went stale against
+  everything else and generated review findings of its own. The rule is now
+  explicit: a fact belongs in the design unless a task must implement or verify
+  it, because tasks are jobs to be done rather than containers for facts. And
+  when a spec reaches you for approval, the skill reports the finding trend and
+  every remaining concern with its consequence, rather than a verdict you cannot
+  check.
+
+### Added
+
+- `new-spec`: step 9 names every check the skill ships and the step that runs
+  it, with the runnable `<skill-dir>` form. A control nobody calls reports
+  nothing and is indistinguishable from one that found nothing, and the three
+  checkers shipped before any step referenced them. The pack suite reads the
+  `scripts/` directory rather than a restated list, so a check added later with
+  no caller fails instead of shipping unreferenced.
+- `new-spec`: three checkers in the skill's own `scripts/`. An item-alignment
+  check over a spec directory's identifiers, references and coverage; a
+  grounding explorer that answers what already governs a set of paths, selected
+  by stage and calibrated from the adopter repository's own distribution; and a
+  finding-coverage check that reports a rule whose message no test observes.
+  Each states its flags and its exit codes in its own `--help`. The explorer
+  never fails — it reports and exits zero whatever it finds. The two linters
+  exit non-zero on a finding, so they can stand in a gate, except for the
+  reworded-criterion rule, which prints as "reported, not failing" and leaves
+  the status alone because it over-reports on a prose edit.
+- `new-spec`: plan-authoring rules in the plan step. A fact belongs in
+  `## Design (LLD)` unless a task must implement or verify it; `Done when`
+  points at the task's own `Tests` and never restates them; an obligation a
+  completion gate must read belongs in `Tests` rather than `Approach`, which no
+  gate observes; a claim about what a check proves names the comparison its
+  oracle performs, or names the proxy where it cannot; a `Tests`-outruns-
+  `Approach` ratio is read before it is cut, because the same ratio means
+  either misplaced design (relocate) or surplus detail (reduce); and a
+  whole-plan walk before review checks construction evidence both ways, each
+  `Done when` against its own `Tests`, one home per condition, and one
+  definition per shared bound.
+- `new-spec`: a step before human approval that reports the finding trend by
+  round, every residual concern with its consequence, and what the residue
+  implies — and refuses to seek acceptance for a residue in a protected risk
+  class. A round count is not a fact an owner can act on.
+
+### Changed
+
+- **A review finding whose fix is not determined can no longer block.** Both
+  code-facing reviewing surfaces now grade on one decidable test — *is the fix
+  fully determined?* A mechanical finding, fixed by the code, a test, a lint, a
+  schema, a resolvable reference or a stated constraint, takes whatever severity
+  its consequence earns. A judgement finding — a tradeoff, a risk acceptance, or
+  a wording, framing or emphasis preference — is a Concern at most in
+  `adversarial-reviewer` and sustains at advisory severity at most in
+  `finding-adjudicator`, which applies the test as the first half of its
+  consequence predicate. Both still flag it; neither may block on it, because
+  nothing external decides it and repairing one produces the next. Where the
+  target marks a section or field as working material rather than contract, such
+  a finding drops again to a Nit; where a target marks no tiers, every surface
+  is reviewed as contract and the determinacy test still applies. Measured
+  cause: in one round on a spec pair, eight of thirteen findings were judgement
+  calls against prose no completion gate reads, six sustained as blockers, and
+  the round was spent reconciling text nothing reads.
+- `new-spec`: the spec template marks its own tiers, the way the plan template
+  already does. `Boundaries`, `Testing Strategy` and `Acceptance Criteria` are
+  what a completion gate reads; `Objective`, `Durable Outputs`, `Follow-ons` and
+  `Assumptions` are working material an author corrects in place. Marking the
+  tiers is the template's job; honouring them is the reviewing surface's.
+- `new-spec`: a later review round reviews what changed, not the whole diff. The
+  first round is dispatched over the artifacts entire; each round after it is
+  bounded to the delta since the previous persisted report, whose revision that
+  report records, and the delta includes the repair commits. A prior round's
+  result stays valid for text that has not changed, so re-presenting that text
+  only re-finds a different slice of it — which is how a review loop runs at a
+  flat finding rate instead of converging. Where no delta can be computed, the
+  surface is reduced by naming the artifacts under review instead.
+- `new-spec`: the plan template states which of its fields are contract.
+  `Touches`, `Tests` and `Done when` are what a completion gate reads and are
+  pinned; `Design`, `Approach`, `Grounding` and `Risks` are working material an
+  implementer corrects in place. `Grounding` stays recorded — a per-task
+  resolution nobody wrote is not grounding — but stops being a claim a reviewer
+  holds the plan to.
+- `new-spec`: an obligation whose only check is that a sentence exists is not a
+  criterion. The test is what would red if the obligation were violated: a
+  machine makes it a criterion, "a reader would object" makes it design material
+  protected by a content pin. A contract made mostly of the second kind does not
+  converge, because each review round produces fresh plausible objections at
+  about the rate the last round's are resolved.
+- `new-spec`: whatever `Brief:` or `Discovery:` points at is frozen once shaping
+  closes, and the spec cites it rather than restating it. An intent still moving
+  is the one input no amount of criterion work compensates for.
+
+### Fixed
+
+- `new-spec`: `lint-contract-item-alignment.py` no longer drops a whole spec
+  directory when `plan.md` is refused. The refusal is its own finding, the
+  plan-reading rules are named as having no input, and the rules that decide
+  their subject from `spec.md` alone are applied and reported — the same route an
+  absent `plan.md` already took. Previously a refused plan reported four rules as
+  neither run nor input-less, which is the partial-read-as-clean failure the
+  checker exists to detect elsewhere.
+- `new-spec`: `lint-finding-coverage.py` names a discovery candidate it refuses.
+  A link, an unresolvable path or a containment failure all left the candidate in
+  no list at all — neither checked, skipped nor unreadable — so a subject the
+  walk could not read was indistinguishable from one that opted out.
 
 ## [core][2.25.15] — 2026-09-11
 

@@ -3,7 +3,7 @@
 - **Slug:** `agent-authoring-input-quality`
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Draft
+- **Status:** Executing
 
 ## Outcome
 
@@ -362,6 +362,76 @@ and the one gap it opens: every class here is per-criterion, and 29148's
 set-level characteristics have no counterpart in our authoring guidance. EARS
 carries no controlled defect-reduction evidence in sixteen years, so it ships
 as an optional aid and never as a gate.
+
+### Where the review-loop findings went, and what this brief declined
+
+Recorded here because a 15-round shaping loop on A6's own contract produced
+material this brief must **not** absorb. Its non-goals exclude changing the
+review lens or how findings are adjudicated, so the value of this entry is the
+routing, not the content. Dispositions owner-agreed 2026-09-10.
+
+| Finding | Disposition |
+| --- | --- |
+| Replace reviewer-assigned severity with evidence tiers, so a finding's force comes from the evidence it cites | **Dropped.** This is consequence-bound blocking, which a paired six-case spike ran and killed on 2026-09-09: it missed three sustained findings carrying protected consequences. The owner's recut disposition says it does not carry forward, and the surviving sibling names it unsafe. |
+| Repair-origin rate as a live signal that another round will subtract, plus an ablation on whether supplying a finding's exact location worsens the repair | **Routed** to the repair-correctness branch, which the killed spike itself created for better repair inputs, smaller repair scope and targeted verification. |
+| A stop rule keyed on two consecutive rounds of findings in one family | **Routed** as a candidate to the focused-re-review branch. It scopes re-review rather than changing what blocks, so it sits outside the killed clause, and it needs its own predeclared kill condition. |
+| External prior art on how other frameworks terminate a review loop | **Retained** as commissioned research; see § "Provenance". No framework surveyed ships an iteration cap, an escalation route, or a deferral-with-record. |
+
+**What this brief keeps** is the half the parent intent already assigns it:
+upstream contract quality. Two moves came out of the loop and belong to A6's own
+slice rather than to any review branch — naming the surface that observes a
+criterion's failure as a condition of admitting it, and routing an obligation
+whose content only the build can settle to a discovery predicate instead of an
+answer invented at approval time.
+
+**One finding is measured and unowned.** A third of the killed spike's sustained
+findings were unmet repository conventions, split evenly across both arms, so no
+amount of review scheduling reaches them. That is upstream quality by
+elimination, and this brief is the named owner.
+
+### A criterion syntax was tested by rewriting, and rejected
+
+**Measured 2026-09-10 by attempting the rewrite rather than reasoning about
+it.** Two samples: 72 shipped criteria drawn from 36 distinct shipped specs at
+most two per spec, and the 21 criteria of a spec drafted that day. Each
+criterion was sorted into one of three buckets — an EARS pattern applies and
+exposes a clause that was missing or implicit; a pattern applies but the
+sentence gains only a modal verb; or no pattern applies without inventing a
+trigger or an actor. Shipped sample: 3, 53, 16. Drafted spec: 0, 18, 3. These
+are dated figures behind a settled decision, and nothing recomputes them.
+
+**Why the fit is poor here, and it is not about rewrite cost.** The five
+templates assume a thing that acts when something happens to it, which is the
+domain they were built for. A large part of what this repository accepts is a
+different kind of claim: what a document holds, that a piece of work was
+carried out, a verdict already measured, or a property held across several
+surfaces at once. A modal verb turns a record of completed work into a standing
+promise, which is a change of meaning rather than of style.
+
+**The uniformity argument does not survive its own test.** Applying the
+templates would touch 56 of the 72 and 18 of the 21, and in 53 and 18 of those
+the only change is the modal. Everything else keeps the prose it has. Mixed
+shapes across one checklist read as less uniform than the single rule already
+in force, that a criterion names an outcome someone can observe.
+
+**What it did earn.** Attempting one state-driven rewrite exposed a real defect:
+a criterion naming two separate thresholds, with the band between them left
+undecided. One diagnostic hit in 21. That is the value of reaching for a
+template when a criterion reads oddly, and it is the use already shipped.
+
+**Decision: keep the local vernacular; do not fork the published one.** A
+house extension forfeits the only advantage adoption offered, because a reader
+who already knows the published form would then have to learn where ours
+departs, and it leaves us maintaining a dialect. Suggest a shape, never require
+one.
+
+**A closed list of criterion forms is not reachable, and class 4 says why.** A
+hand-kept catalogue of forms owes a completeness nobody can pay, and the next
+unfamiliar kind of artifact breaks it — the same objection that class raises
+against any parallel list kept by hand. What works instead is a few worked
+exemplars, marked plainly as an open set, which is how the surface owning
+criterion shape already teaches its boundary. Enumerating the forms is the
+fool's errand; exhibiting some of them is not.
 
 ### External binding
 
@@ -930,7 +1000,7 @@ contract, not used as a global target or gate.
 | # | Slice | Owning surface | Verification | Guide | Sizing check | Gating |
 | --- | --- | --- | --- | --- | --- | --- |
 | A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric class | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | per-criterion failure classes; no count target | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
-| A6 | Acceptance-criteria set construction: select distinct contract obligations, attach scenarios, route non-AC material and run the set-level pass described above | `packs/core/.apm/skills/new-spec/SKILL.md`'s acceptance-criteria procedure, with criterion shape remaining owned by `assets/spec.md` | frozen small, legitimately large and existing-contract amendment cases; candidate-to-final dispositions scored for obligation/guardrail recall and non-criterion rejection | `guides/core/reference/acceptance-criteria-authoring.md` | candidate and final counts reported; no fixed ceiling | no M or completed-A1 dependency; the shipped rubric candidate is the input and A6's own evaluation is the delivery gate |
+| A6 | Loop-contract authoring: select distinct contract obligations, attach scenarios, route non-AC material, run the set-level pass described above, place a fact in the design unless a task must implement or verify it, and answer a sustained finding with a named response rather than a reflex repair — **scope widened by owner decision 2026-09-10**, absorbing the plan-authoring rules and a review-response protocol because one defect produced all three | `packs/core/.apm/skills/new-spec/SKILL.md`'s acceptance-criteria procedure, with criterion shape remaining owned by `assets/spec.md` | frozen small, legitimately large and existing-contract amendment cases; candidate-to-final dispositions scored for obligation/guardrail recall and non-criterion rejection | `guides/core/reference/acceptance-criteria-authoring.md` | candidate and final counts reported; no fixed ceiling | no M or completed-A1 dependency; the shipped rubric candidate is the input and A6's own evaluation is the delivery gate |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | one primary surface | after A1 |
 | A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | one primary surface | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | named at confirmation | **conditional** — after M, and only if the kill conditions above do not fire |
@@ -1123,7 +1193,7 @@ should not attempt it before the gate. A2 is withdrawn and its number is not reu
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| `acceptance-criteria-set-construction` | <auto> |
 
 ## Provenance
 

@@ -71,6 +71,10 @@ backlog = [
 # table here is not coerced: the engine accepts only a str or a list, so a table
 # raises invalid_workspace, which then stamps every canonical entry in the file.
 executing = [
+  # Advanced from draft on 2026-09-11 when slice A6 shipped: a Draft brief
+  # with a Shipped child is refused by lint-brief-coverage, and an Executing
+  # brief in the draft collection is an impossible_transition.
+  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   # Executing 2026-09-09. Ready -> Executing when its first mapped spec,
   # install-to-ship-walkthrough (slice S1), reached Shipped; a brief with a
   # Shipped child is Executing, not Shipped. S2 is Shipped; S3-S5 are
@@ -189,7 +193,6 @@ draft     = [
   #      the same invocation. Killing A4 leaves B's spike intact. Keep the two
   #      consistent in shape when either is specified; never cut them as one
   #      slice. B now owns the full statement of this; A points at it.
-  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   #
   # B -- `needs` is deliberately empty. B1, the declared-shape gate, never
   # depended on the activation measurement and can start in parallel with M
@@ -230,6 +233,12 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
+  # criteria over the three checks the skill runs on its own artifacts; the
+  # selection procedure, its guide page, the frozen-case run and the
+  # review-response protocol were cut unbuilt and routed to
+  # docs/product/intents/spec-authoring-protocol-measured-before-shipping.md.
+  {path = "docs/specs/acceptance-criteria-set-construction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:2e2eb308e8e5a51b95ba264be4b2bb4ccfd9a5ea3bdb1276d7b919f96b776e66", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Author a loop contract from obligations rather than from every check: a five-stage selection procedure, a set-level sweep over the spec and plan as one set, and a review-response protocol naming eight answers to a sustained finding", needs = []},
   # Slice S2 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and shipped the same day after five spec-review rounds. Scope was
   # trimmed by owner decision mid-review: the handover entry plus the six broken
@@ -429,6 +438,21 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The two probes the grounding survey ranks second and third, held back because
+  # neither was cheap the way live-references was. Registered rather than folded
+  # into A6: that slice ships the explorer and its calibration, and a task added
+  # there now would widen a contract whose criteria set is already the largest in the corpus. The document-contract
+  # probe carries a security question -- it would execute a consumer's parse mode --
+  # that is settled before building, not during.
+  {path = "docs/product/intents/grounding-probe-extensions.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/repository-grounding-probes-survey.md"}, summary = "Add authority-and-projection closure and the executable document-contract check to the grounding explorer", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
+  # Registered rather than folded into A6 because the surfaces are different and
+  # the protocol must not gain a second home: A6 owns the eight responses and
+  # ships them into new-spec, the authoring side. shaping-reviewer and the pack
+  # reviewers are the receiving side and carry none of it, so a sustained finding
+  # reads as an instruction to edit. Carries a second, reviewer-side obligation
+  # A6 does not own: a reviewer must not relitigate a decision the brief records
+  # as settled, which is distinct from raising a real pre-existing defect late.
+  {path = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Carry the eight-response review protocol and the grounding probes out to shaping-reviewer, the pack reviewer surfaces, and the upstream brief and intent stages", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
   # The layout section vocabulary is not the pack vocabulary. Packs were
   # deliberately renamed to canonical names (`research` -> `desk-research`,
   # `experience` -> `experience-design`; roadmap M3), but the sections their

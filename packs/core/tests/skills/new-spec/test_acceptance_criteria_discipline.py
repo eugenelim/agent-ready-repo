@@ -11,6 +11,7 @@ SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
 RUBRIC = PACK_ROOT / ".apm/skills/new-spec/references/spec-authoring-rubric.md"
+SCRIPTS = PACK_ROOT / ".apm/skills/new-spec/scripts"
 
 # The rubric joins SOURCES so every pinned rule below also asserts its absence
 # there. The rubric points at the owning surface for criterion shape; a future
@@ -119,6 +120,61 @@ RULES = (
         "disconfirming-evidence",
         "skill",
         "Take the cheapest disconfirming evidence before review.",
+    ),
+    # Plan-authoring rules. A fact written into a task instead of the design
+    # supplied most of the late review findings on the slice that added these,
+    # so each is pinned to one owner rather than left to convention.
+    (
+        "facts-belong-to-design",
+        "skill",
+        "Tasks are jobs to be done, not fact containers",
+    ),
+    (
+        "done-when-is-a-pointer",
+        "skill",
+        "points at the task's own `Tests` and never restates them",
+    ),
+    (
+        "gate-read-obligation-in-tests",
+        "skill",
+        "An obligation a completion gate must read belongs in `Tests`",
+    ),
+    (
+        "claim-matches-its-oracle",
+        "skill",
+        "names the comparison its oracle performs",
+    ),
+    (
+        "relocate-before-reducing",
+        "skill",
+        "One ratio, two causes, opposite remedies.",
+    ),
+    (
+        "owner-gets-decision-facts",
+        "skill",
+        "A round count is not a fact anyone can act on",
+    ),
+    (
+        "criterion-needs-a-machine",
+        "skill",
+        "An obligation whose only check is that a sentence exists is not a",
+    ),
+    (
+        "intent-frozen-at-shaping",
+        "skill",
+        "frozen once shaping closes, and this",
+    ),
+    (
+        "spec-field-authority",
+        "spec",
+        "Not every section is contract.",
+    ),
+    (
+        "advisory-against-working-material",
+        "spec",
+        # Within one line: `flattened` keeps the blockquote's `>` markers as
+        # tokens, so a pin crossing a line break fails on a correct file.
+        "working material is advisory \u2014 it cannot block",
     ),
 )
 EXAMPLES = (
@@ -275,6 +331,30 @@ def test_spec_review_accepts_only_exact_clean_before_adjudication() -> None:
     )
     assert "Revise the spec or plan only from sustained findings" in body
     assert "Reuse its reachability predicate; do not restate or reimplement it here" in body
+
+
+def test_a_later_review_round_is_bounded_to_the_delta() -> None:
+    """A review loop that re-presents unchanged text runs at a flat rate.
+
+    Measured on this repository's own contract: five rounds dispatched over the
+    same full diff each found a new slice of one static surface, and the raised
+    count never trended down. The bound is what makes the loop's input shrink,
+    so the rule is pinned rather than left to whoever dispatches.
+    """
+    body = flattened(SKILL)
+    step = body.split("7. Spec-mode adversarial review.", 1)[1].split(
+        "8. Update `docs/specs/README.md`", 1
+    )[0]
+    for clause in (
+        "bounded to the delta since the previous persisted report",
+        # the soundness condition, without which the bound hides defects
+        'sound exactly while the claim "the unchanged text was reviewed" is',
+        # repairs generate the next round's findings, so they are never exempt
+        "the delta includes the repair commits",
+        # and the fallback where no delta exists
+        "reduce the surface instead by naming the artifacts under review",
+    ):
+        assert clause in step, f"step 7 lost the delta bound: {clause!r}"
 
 
 def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
@@ -628,3 +708,27 @@ def test_rubric_eval_has_required_shape_and_behaviour() -> None:
     assert any("wrong-owner" in item and "before" in item for item in entry["assertions"])
     assert any("empty state" in item for item in entry["assertions"])
     assert any("word budget" in item for item in entry["assertions"])
+
+
+def test_every_shipped_check_is_named_by_a_step_that_runs_it() -> None:
+    """A control nobody calls reports nothing and looks like one that passed.
+
+    The set is read from the `scripts/` directory rather than from a list
+    restated here, so a check added later without a named caller fails this
+    test instead of shipping unreferenced. That is the whole point: the three
+    checkers shipped before any step named them, and nothing noticed.
+    """
+    shipped = sorted(p.name for p in SCRIPTS.glob("*.py"))
+    assert shipped, f"no checks found under {SCRIPTS}"
+
+    body = flattened(SKILL)
+    unnamed = [name for name in shipped if name not in body]
+    assert not unnamed, (
+        "every check under scripts/ must be named by the step that runs it; "
+        f"unreferenced: {unnamed}"
+    )
+
+    # Naming alone is not invocation: a step that mentions a script without a
+    # runnable form leaves the reader to guess how it resolves in an installed
+    # tree, which is the defect the skill-dir form exists to close.
+    assert "python '<skill-dir>/scripts/<name>.py'" in body
