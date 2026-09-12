@@ -1,0 +1,65 @@
+---
+// Override of Starlight's MobileTableOfContents.
+//
+// The right-hand rail is hidden below Starlight's `lg` breakpoint, so on a
+// narrow window the desktop override's walk panel is not rendered at all and a
+// reader mid-guidebook lost every signal of where they were. This puts the
+// position back, in the one bar that surface does show.
+//
+// Deliberately just the position and a link onward, not the whole walk: that
+// bar is a single fixed row above the content, and the full step list belongs
+// in the dropdown the reader opens, not in permanent chrome.
+import Default from '@astrojs/starlight/components/MobileTableOfContents.astro';
+import { guidebookWalk } from './guidebook-walk';
+
+const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
+const next = walk?.items.find((item) => item.step === walk.step + 1);
+---
+
+{
+  walk && (
+    <p class="guidebook-position">
+      <strong>
+        Step {walk.step} of {walk.steps}
+      </strong>
+      <span class="walk-name">
+        <code>{walk.name}</code> guidebook
+      </span>
+      {next && (
+        <a href={next.href}>
+          Next: {next.title}
+        </a>
+      )}
+    </p>
+  )
+}
+<Default />
+
+<style>
+  .guidebook-position {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    align-items: baseline;
+    margin: 0 0 0.75rem;
+    font-size: var(--sl-text-xs);
+    line-height: 1.4;
+    color: var(--sl-color-gray-3);
+  }
+
+  .guidebook-position strong {
+    color: var(--sl-color-white);
+  }
+
+  .walk-name code {
+    font-size: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  .guidebook-position a {
+    color: var(--sl-color-text-accent);
+  }
+</style>
