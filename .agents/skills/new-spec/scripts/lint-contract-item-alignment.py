@@ -423,7 +423,8 @@ def check(spec_dir: Path, root: Path | None = None,
         mentioned = set(CRITERION_REF.findall(plan))
         for ident in criteria:
             if ident not in named:
-                hint = " (mentioned in plan, but not in a task entry)" if ident in mentioned else ""
+                hint = (" (mentioned in plan, but not in a task entry)"
+                        if ident in mentioned else "")
                 findings.append(f"{rel}/plan.md: {ident} {FINDING_KINDS['no-task-entry']}{hint}")
 
     groups = verification_groups(spec)                            # rule 6
@@ -465,7 +466,8 @@ def check(spec_dir: Path, root: Path | None = None,
         digits = item.split("-")[1]
         if f"AC-{digits}" in seen:
             findings.append(
-                f"{rel}/plan.md: {item} {FINDING_KINDS['derived-item']} AC-{digits}; a verification "
+                f"{rel}/plan.md: {item} {FINDING_KINDS['derived-item']} AC-{digits}; "
+                f"a verification "
                 f"item's identifier is its own, never derived from what it serves"
             )
     return findings, True, unapplied, reported
@@ -474,7 +476,7 @@ def check(spec_dir: Path, root: Path | None = None,
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--root", type=Path, default=Path("."),
+    parser.add_argument("--root", type=Path, default=Path(),
                         help="repository root every path is resolved and confined to")
     parser.add_argument("--verbose", action="store_true",
                         help="list every finding instead of capping the listing")

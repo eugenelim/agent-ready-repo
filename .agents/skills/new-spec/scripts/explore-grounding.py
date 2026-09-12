@@ -192,7 +192,8 @@ def calibrate_cutoff(per_phrase: list[int], scanned: int, default: int) -> tuple
     ordered = sorted(per_phrase)
     p75 = ordered[int(len(ordered) * 0.75)]
     if p75 < default:
-        return default, f"default of {default} (p75 of {len(per_phrase)} matched phrases was {p75})"
+        return default, (f"default of {default} (p75 of {len(per_phrase)} "
+                         f"matched phrases was {p75})")
     return p75, f"p75 of {len(per_phrase)} matched phrases"
 
 
@@ -239,7 +240,7 @@ def commit_files(root: Path, limit: int, seeds: list[str] | None = None
         # only the seed and never its partners -- an optimisation that silently
         # empties the probe. So: select the commits by pathspec, then read their
         # full file sets with no pathspec.
-        shas = _git(root, "log", f"--format=%H", "-n", str(limit), "--", *seeds)
+        shas = _git(root, "log", "--format=%H", "-n", str(limit), "--", *seeds)
         if shas is None:
             return None
         picked = [x for x in shas if x]
@@ -386,7 +387,8 @@ def declared_new(text: str) -> set[str]:
 
     Read from a plan's Touches declarations, a spec's durable-output map, and any
     explicit `(new)` marker. The two artifacts declare creation differently, and
-    reading only one of them makes the other's intentional absences look dead. Without this every task that creates a file reads as a dead
+    reading only one of them makes the other's intentional absences look dead.
+    Without this every task that creates a file reads as a dead
     reference, which is the false-positive class that dominates on a plan.
     """
     out: set[str] = set()
@@ -557,7 +559,9 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
     unlisted = sorted(
         p.name for p in root.iterdir()
         if p.is_file() and p not in runners
-        and re.search(r"(?i)^(justfile|taskfile|noxfile|tox\.ini|.*\.mk|dagger\.json|earthfile)$", p.name)
+        and re.search(
+            r"(?i)^(justfile|taskfile|noxfile|tox\.ini|.*\.mk|dagger\.json|earthfile)$",
+            p.name)
     )
     if unlisted:
         print(f"  note: runner-like files not in the candidate set: {', '.join(unlisted)}")
@@ -695,7 +699,7 @@ def explore(root: Path, seeds: list[str], guidance: str, globs: tuple[str, ...],
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--root", type=Path, default=Path("."),
+    parser.add_argument("--root", type=Path, default=Path(),
                         help="repository root every seed is resolved and confined to")
     parser.add_argument("--guidance-file", default="AGENTS.md")
     parser.add_argument("--runner-glob", action="append", default=None)

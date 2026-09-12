@@ -136,7 +136,7 @@ def catalogue(subject: Path, root: Path | None = None) -> dict[str, str] | None:
             continue
         return {
             str(k.value): str(v.value)
-            for k, v in zip(node.value.keys, node.value.values)
+            for k, v in zip(node.value.keys, node.value.values, strict=False)
             if isinstance(k, ast.Constant) and isinstance(v, ast.Constant)
         }
     return {}
@@ -245,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tests", action="append", type=Path, default=[])
     parser.add_argument("--discover", type=Path, default=None,
                         help="find subjects under a root, any layout")
-    parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--root", type=Path, default=Path())
     args = parser.parse_args(argv)
 
     sys.stdout.reconfigure(encoding="utf-8")
