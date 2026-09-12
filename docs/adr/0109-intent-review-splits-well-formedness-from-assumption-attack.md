@@ -46,8 +46,15 @@ cannot express a rewrite.
 
 1. `shaping-reviewer` `intent` mode checks well-formedness, not quality, across six conditions: the
    statement is an outcome and not a solution; non-goals are present; the riskiest assumption is
-   named; altitude is consistent with the parent; children partition the parent with no overlap and
-   no gap; the owner is the artifact's own. It does not run that table, which stays with
+   named; altitude is consistent with the parent it names; the decomposition partitions the
+   artifact's own outcome with no overlap and no gap; the owner is the artifact's own. Two of the
+   six are conditional on what the artifact declares, because an artifact that cannot have a
+   relation is not malformed for lacking it: the altitude condition applies only to an intent that
+   names a parent, a parent being an optional attribution at every level; and where an intent lists
+   no decomposition, the children condition fires only above the leaf of the recognized level set
+   at `Status: Accepted`, since framing precedes decomposition and this review runs at framing. A
+   level the mode cannot place suppresses that absence branch alone. It does not run that table,
+   which stays with
    `delivery-brief` and `spec` mode unchanged. Wrong owner still outranks criterion craft: its token
    is emitted alone and suppresses the other five.
 2. Intent-mode output is `MALFORMED(<field>)` per failed condition, or nothing. No severity bucket,
