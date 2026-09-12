@@ -60,7 +60,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Keep each mode's rubric readable on its own, so a reader inside one mode never
   has to decide whether another mode's rule reaches them.
 - Reference the source that owns a rule instead of restating it, so no fact
-  gains a second home that can drift.
+  gains a second home that can drift. One bounded exception: a rule the reviewer
+  applies must be decidable from the body and the supplied packet, because the
+  reviewer preloads and retrieves nothing, so the recognized level ordering is
+  stated in the body. The exception covers the ordering alone, cites no internal
+  record, and leaves the open set open.
 - Say what a rule's failing state is. A rule with no failing state is guidance,
   and belongs in the plan or a guide rather than in this contract.
 
@@ -184,6 +188,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   refusal, a grounding gap, or a failed dispatch. The shipped body states the
   same reading in the same words, so a reader of either never has to reconcile
   a count with an applicability rule.
+- [ ] The `core` changelog entry states the applicability rule in its own
+  bullet. When a consumer receives `MALFORMED(children)` changes with this
+  amendment, so the entry is that change's home, and an entry that merely stops
+  contradicting the body leaves the rule unannounced.
 - [ ] The pass a caller reads is the absence of a `MALFORMED` token on a
   completed dispatch, not an empty byte sequence. Byte-emptiness is what the
   reviewer aims at and what its own text asks for; token absence is what decides

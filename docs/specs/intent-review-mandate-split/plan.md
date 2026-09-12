@@ -496,13 +496,24 @@ dispatched, the observed output, and whether it matched the contract.
 `packs/core/tests/pack/test_shaping_review_contract.py`
 
 **Tests:**
-- One assertion that the body keys applicability on the declared level rather
-  than on an absent section. Changed bytes: today's paragraph states only the
-  fail-closed half, so the assertion reds first.
-- One assertion that the body states the level at which each condition stops
-  applying, and one that it states the level at which each keeps its failing
-  state. Changed bytes; the second is what stops the repair from replacing a
-  condition that cannot pass with one that cannot fire.
+- **Condition 4, asserted alone.** One assertion that the body applies the
+  altitude condition only to an intent that names a parent, and one that an
+  intent naming none is not malformed at any level. Changed bytes. Condition 4
+  has no level trigger at all, so an assertion phrased in level terms here would
+  force a false rule into the body.
+- **Condition 5, asserted alone.** One assertion that the absence branch is
+  keyed on level together with status, and one that it keeps its failing state
+  above the leaf at `Accepted`. Changed bytes; the second is what stops the
+  repair from replacing a condition that cannot pass with one that cannot fire.
+- **The ordering, asserted literally.** One assertion pinning all four
+  recognized rung names in the body. Changed bytes. Without it, prose reading
+  "above the leaf" with no rungs named satisfies every other assertion, which is
+  precisely the draft this round replaced, so the repair would be revertible to
+  its own error with the suite green.
+- **The suppression branch, asserted.** One assertion that a level the mode
+  cannot place suppresses the absence branch and emits no token. Changed bytes.
+  T12 observes it end to end, but a manual observation is not the standing
+  control, and this criterion changes body bytes like any other.
 - One assertion that the children condition measures the artifact's own
   decomposition against its own outcome. Changed bytes.
 - **Preservation control.** `test_shaping_review_contract.py:504-505` pins
@@ -549,11 +560,40 @@ dispatched, the observed output, and whether it matched the contract.
   settle — a scope line narrow enough to ship a body contradicting itself.
 
 **Done when:** the new assertions are green, the two preservation-control
-assertions are unchanged and green, and the body states a failing state for
-conditions 4 and 5 at every level that can have the relation. End-to-end
+assertions are unchanged and green, the body names all four recognized rungs,
+and each condition states its own trigger — a named parent for condition 4, and
+level with status for condition 5's absence branch. End-to-end
 evidence is T12's, not this task's: nothing in this task's dependency set
 rebuilds a projection, and a host dispatches from the projection rather than
 from `.apm/`.
+
+### T13: the governing record states the rule the body ships
+
+**Depends on:** T10
+
+**Touches:** `docs/adr/0109-intent-review-splits-well-formedness-from-assumption-attack.md`
+
+**Tests:**
+- Goal-based. Read decision item 1 against the amended criteria: every condition
+  it enumerates must state the same trigger and the same referent the shipped
+  body states.
+
+**Approach:**
+- Rewrite decision item 1's enumeration only. Condition 4 applies to an intent
+  that names a parent; condition 5 measures the artifact's own decomposition
+  against its own outcome, with the absence branch keyed on level together with
+  status. The other four conditions are untouched.
+- Editing an Accepted record's body is `Ask first` in this spec's Boundaries.
+  The owner approved this edit on 2026-09-12, on the ground that the record is
+  branch-local and has never been pushed, so nothing published is being
+  rewritten — the same ground on which round 1 corrected this ADR before commit.
+- Do not touch `Status`, `Date`, or any other decision item. A record that is
+  wrong only where this change made it wrong needs a correction, not a rewrite.
+
+**Done when:** decision item 1 states condition 4's named-parent trigger and
+condition 5's own-outcome referent with its level-and-status absence branch, no
+other decision item differs, and the spec's `Constrained by:` resolves to a
+record that agrees with the body.
 
 ### T11: the amendment carries its own release leg
 
@@ -578,9 +618,11 @@ marketplace manifest, and `web/src/lib/now-highlights.generated.json`
   `2.25.17`, so no consumer-visible version is reused and the harm the rule
   names does not arise. `origin/main` carries `2.25.16` and this branch has
   never been pushed, so nothing has published `2.25.17` to contradict.
-- The bullet stating that an unsupplied parent fails both the altitude and
-  children questions describes behavior this amendment removes before anyone
-  runs it. It is corrected in place rather than left standing with a retraction
+- Two bullets carry the reversed rules, not one. The enumeration bullet asking
+  "do the children partition the parent" keeps the referent T10 corrects, and
+  reads as condition 4's parent rather than the artifact's own outcome. The
+  bullet stating that an unsupplied parent fails both the altitude and children
+  questions describes behavior this amendment removes before anyone runs it. It is corrected in place rather than left standing with a retraction
   below it, because one release cannot both promise and withdraw a behavior.
 - Keep the single `2.25.17` patch bump. The amendment is content change inside
   an unreleased version, not a second release.
@@ -782,8 +824,11 @@ observations are recorded against the amended revision.
   an absent section, it made condition 4 fail open for the 117 of 124 corpus
   intents that name no parent, and made condition 5 unfailable, because
   `frame-intent` tells an author to leave `Decomposition` empty and only 9
-  intents carry one. Keying on the declared level fixes both, and the corpus is
-  what showed it — the first draft was checked against the probe that found the
+  intents carry one. The settled rule is a split, not one mechanism: condition 4
+  keys on whether a parent is named, which ADR-0033 and the intent template make
+  optional at every level, so an intent naming none is not malformed; condition
+  5's absence branch keys on level together with status. The corpus is what
+  showed it — the first draft was checked against the probe that found the
   defect rather than against the artifacts the callers actually dispatch. The
   three T8 observations are re-run under T12 rather than carried forward: they
   were correct about the bytes they read, and those bytes change here.
