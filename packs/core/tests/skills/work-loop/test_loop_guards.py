@@ -2340,7 +2340,7 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         "UnreadableArtifact", "read_md_status", "assert_status_legal",
         "validate_run_id",
         # retry caps
-        "DEFAULTS",
+        "DEFAULTS", "SCHEMA_VERSION",
         # the six read-only guards
         "check_identity", "check_plan_current", "check_schedule_current",
         "check_phase", "check_wave", "check_artifact_status",
