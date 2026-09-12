@@ -96,6 +96,29 @@ If any of these checks fail, push back rather than proceeding.
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
+   The number it prints is free across the working tree and the remote default
+   branch it can see — a snapshot, not a reservation. **Re-derive it immediately
+   before you open the pull request, not when the branch starts.** A branch that
+   sits in review long enough will find its number taken by whoever merged first,
+   and that collision exists only against the default branch: it is invisible
+   inside your branch, so no amount of review will find it. If the number moved,
+   rename the file and update every citation, including any bare ordinal column
+   in the index — a substitution on `ADR-NNNN` or on the filename fixes the link
+   and leaves that column wrong.
+
+   Check the destination for an ordinal already held by two records:
+
+   ```bash
+   python3 scripts/next-ordinal.py --check <resolved-decision-record-directory>
+   ```
+
+   It exits non-zero when two records share an ordinal, and also when it cannot
+   inspect the directory at all, so a mistyped path never reports clean. A
+   companion never counts: a `NNNN-notes/` directory or a
+   `NNNN-<slug>-research.md` sibling shares its record's ordinal by design. Wire
+   it into the check your project runs before a change merges — that, rather
+   than the allocator, is what keeps ordinals unique.
+
 3. Pick a kebab-case filename title from the user's description. Keep it
    short and declarative — `0007-primary-store-postgres-over-dynamodb.md`,
    not `0007-decision-about-the-database.md`. The H1 title inside the file
