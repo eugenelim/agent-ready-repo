@@ -198,7 +198,16 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      discovery loop's G3 hand-off). Set it to that artifact's stable id;
      leave it blank or `none` otherwise. It is the discovery-side sibling
      of `Brief:` — the spec→discovery up-edge a traceability check walks
-     — additive, and a spec without it stays valid. This is format-only
+     — additive, and a spec without it stays valid.
+
+     **Whatever those headers point at is frozen once shaping closes, and this
+     spec cites it rather than restating it.** The upstream artifact carries the
+     outcome the work is for; the spec carries the obligations that deliver it.
+     Restating the intent gives it two homes that drift, and the upstream
+     outcome is the layer that holds still while criteria churn, so the stable
+     layer is already upstream and only needs to be left alone. If shaping has not closed, the
+     spec is not ready to author: an intent still moving is the one input no
+     amount of criterion work compensates for. This is format-only
      metadata; follow the repository's mapped workflow guidance when it
      defines a stricter rule.
 
@@ -274,6 +283,17 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      an obligation authored where an owner already exists — outranks every
      criterion-craft question below it.
      See step 9 for citation discipline and step 5 for the corpus obligation.
+   - **An obligation whose only check is that a sentence exists is not a
+     criterion.** Ask what would red if the obligation were violated. If the
+     answer is a machine — a test, a lint, a parse, a scored run over a frozen
+     case — the obligation is a criterion. If the answer is "a reader would
+     object", it is design material: it belongs in the plan's living design,
+     where an implementer corrects it without an amendment, and its protection
+     is a content pin in the suite rather than a checkbox in the contract. A
+     contract made mostly of the second kind does not converge, because each
+     review round produces fresh plausible objections at about the rate the last
+     round's are resolved and nothing external decides between them. Prefer a
+     smaller set that can red over a larger one that can only be argued.
    - **Body narrates history or the future.** Write the spec in the
      present tense, as if the feature already exists and always worked
      this way — the *retcon* discipline. No "will be implemented", no
@@ -460,6 +480,25 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      and assertion wording are expected to be incomplete at approval when code
      does not yet exist. Name paths and symbols where known; do not ask the
      approval gate to bless detail it cannot yet decide.
+   - **A fact belongs in `## Design (LLD)` unless a task must implement or
+     verify it.** Tasks are jobs to be done, not fact containers: a task says
+     what to do and what to observe, and cites the design for why it takes that
+     shape. Re-cut the task list to check — a fact still true afterwards was
+     never task information.
+   - **`Done when` points at the task's own `Tests` and never restates them.** A
+     copy is narrower than its target the moment either one moves.
+   - **An obligation a completion gate must read belongs in `Tests`.** Approach
+     is instruction, and no gate observes it.
+   - **A claim about what a check proves names the comparison its oracle
+     performs.** Where the oracle cannot perform it, name the proxy instead of
+     claiming the stronger property.
+   - **When `Tests:` outruns `Approach:`, read the excess before cutting it.**
+     Prose explaining why an assertion takes its shape is design: relocate it.
+     Reduce only genuine surplus. One ratio, two causes, opposite remedies.
+   - **Walk the whole plan once before review.** Every criterion has
+     construction evidence and every `Tests` bullet traces to a criterion; every
+     `Done when` observes what its own `Tests` require; no condition has two
+     homes; every shared bound is defined once.
    - **Restating an acceptance criterion.** The criteria are the checklist. A
      `Tests:` bullet names a mechanism the implementer cannot infer: the suite
      and its location, the fixture carrying a join key, or a shipped assertion
@@ -531,6 +570,19 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    paths. Its finding-adjudication gateway owns the shared adjudication
    semantics. Classify and act only on the paired adjudication artifact; never
    use raw report prose as verdict-bearing input.
+   **A later round reviews what changed, not the whole diff.** The first round
+   is dispatched over the artifacts entire; each round after it is bounded to the
+   delta since the previous persisted report, whose revision the report records.
+   A prior round's result stays valid for text that has not changed since it
+   ran, so re-presenting that text only re-finds a different slice of it — which
+   is how a review loop runs at a flat finding rate instead of converging. The
+   bound is sound exactly while the claim "the unchanged text was reviewed" is
+   true, so the reviewed revision is recorded rather than assumed, and the delta
+   includes the repair commits: a repair is the highest-yield part of the range,
+   never an exempt part. Where a delta cannot be computed — no revision control,
+   or a first round — reduce the surface instead by naming the artifacts under
+   review rather than handing over everything the change touched.
+
    Revise the spec or plan only from sustained findings; keep refuted findings
    in the audit, and stop on an indeterminate result. `finding-adjudicator`
    already tests authority, reachability, existing handling, consequence, and
@@ -575,6 +627,13 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    criterion at all. Take the cuts to the human with conformance fixes separated
    from scope calls.
 
+   Then give the owner the facts the decision needs rather than a verdict:
+   the finding trend by round, every residual concern that remains with its
+   consequence, and what that residue implies for the work. A round count is not
+   a fact anyone can act on; a named residue with a named consequence is. Where
+   a residue falls in a protected risk class, say so and do not seek acceptance
+   for it.
+
 8. Update `docs/specs/README.md` to add the feature to the active list. Do not
    index before both review gates are clean.
 
@@ -594,6 +653,27 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    identifier rather than restating it. When one rule is found stated in two
    places, record which statement is the owner and reduce the other to a
    cross-reference.
+
+   **The checks this skill ships, and where each is run.** Every check in this
+   skill's own `scripts/` is invoked by a named step, because a control nobody
+   calls reports nothing and is indistinguishable from one that found nothing.
+   Run them from the repository root as
+   `python '<skill-dir>/scripts/<name>.py'`, and read each one's `--help` for
+   its flags and exit codes.
+
+   - `lint-contract-item-alignment.py` — run here, at step 9, over the spec
+     directory. It decides that every criterion and verification item carries
+     an identifier, that identifiers are unique, that none is reused against the
+     artifact's retired list, that every item reference resolves, and that a
+     criterion is named by a task entry. It reports rather than blocks on a
+     reworded criterion whose assertion did not follow.
+   - `explore-grounding.py` — run at step 3, when resolving what already governs
+     the surfaces the work touches. It answers from a seed set of paths and
+     reports; it decides nothing and never fails a run.
+   - `lint-finding-coverage.py` — run at step 4, over a check whose findings a
+     criterion is about to rest on. It reports a rule whose message no test
+     observes, which is the shape that makes a criterion look verified by a
+     control that cannot fail.
 
 ## Project-knowledge non-gate
 

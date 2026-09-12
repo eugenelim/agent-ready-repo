@@ -120,7 +120,18 @@ For each source finding, test all six predicates independently:
 4. **Existing handling** — Is the condition already prevented, handled,
    accepted, deferred, or superseded by a more specific authority?
 5. **Consequence** — If reached, does it cause the claimed contract, security,
-   reliability, or maintainability consequence at the stated severity?
+   reliability, or maintainability consequence at the stated severity? Two tests,
+   in order. First, is the fix fully determined — one correct resolution, fixed
+   by the code, a test, a lint, a schema, a resolvable reference or a stated
+   constraint, with nothing left to choose? If resolving it means picking among
+   defensible options, including a wording or framing preference, the
+   consequence is advisory however the finding is worded: it may be true, and it
+   cannot sustain at blocking severity, because nothing external decides it and
+   the next round will raise another. Second, and only for a consequence that
+   survives the first test, measure it against what reads the cited surface:
+   where the target marks a field, section or path as working material rather
+   than contract, or nothing gates it, the consequence is advisory on that
+   ground too. Say which test applied and which surface supplied the tier.
 6. **Proposed mechanism** — Test only the remedy mechanism stated by the source
    finding and record exactly one outcome: `adequate` when it can resolve the
    defect within current authority; `over-broad` when it can resolve the defect
@@ -145,7 +156,10 @@ Each source finding receives exactly one of:
   is reachable and material, and existing handling does not resolve it. A
   `wrong`, `over-broad`, or `absent` proposed mechanism does not refute that
   established defect. Retain the reviewer's severity unless changing it is
-  necessary to avoid a false disposition; a disposition-changing severity
+  necessary to avoid a false disposition, or unless the fifth predicate found
+  the consequence advisory — a finding whose fix is not fully determined, or
+  whose every cited surface is working material, sustains at advisory severity
+  at most, however the reviewer graded it; a disposition-changing severity
   conflict is `indeterminate` for owner direction. State the proposed-mechanism
   outcome and the smallest adequate fix only when a current seam establishes
   it; otherwise state the required repair outcome and constraints.
