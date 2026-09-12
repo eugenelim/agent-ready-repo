@@ -3,7 +3,7 @@
 - **Status:** Shipped (2026-06-25) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0047 (Decision 6), ADR-0037 (D4), ADR-0021 (pack-manifest source of truth + contract-version rule), RFC-0002 (the placeholder-only seed contract)
+- **Constrained by:** RFC-0100 (Decision 6), ADR-0037 (D4), ADR-0021 (pack-manifest source of truth + contract-version rule), RFC-0002 (the placeholder-only seed contract)
 - **Shape:** mixed <!-- tooling + manifest + CI change -->
 - **Contract:** none <!-- repo-internal catalogue tooling; the new pack.toml field's manifest-contract impact is an explicit AC, not a published API surface -->
 
@@ -64,4 +64,4 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Technical: `pack.toml` is the metadata source of truth, projected lossily per tool (ADR-0021); a catalogue-internal field with no projection mapping does not reach `plugin.json`/`marketplace.json`. (source: ADR-0021; `feedback_nonprojected_pack_bump_drifts_marketplace` memory — version aggregates, an unmapped field does not)
 - Process: this lint is a CI/pre-pr gate, **not** part of `make build-check`; the regression tests for the gating behavior need explicit wiring or they never gate. (source: `reference_ci_package_tests_explicit_wiring`, `reference_loop_cohort_state_schema_selftest` memory)
 - Process: a user-visible CI-step rename is a `docs/product/changelog.md` `[Unreleased]` entry in the implementing PR. (source: `feedback_changelog_for_skill_changes` memory)
-- Product: an org pack omitting the flag and being unenforced by construction is the desired behavior, not a gap. (source: RFC-0047 Decision 6; user direction 2026-06-25)
+- Product: an org pack omitting the flag and being unenforced by construction is the desired behavior, not a gap. (source: RFC-0100 Decision 6; user direction 2026-06-25)

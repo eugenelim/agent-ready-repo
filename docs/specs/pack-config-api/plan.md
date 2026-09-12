@@ -14,7 +14,7 @@ Security-reviewer pass runs after gates (lint/typecheck/tests) pass, before merg
 
 ## Constraints
 
-- RFC-0074: `pack_name` slug validation, reserved slugs, `user-dir` home-confinement, `_MAX_ENTRY = 4096` practical cap (not PIPE_BUF).
+- RFC-0101: `pack_name` slug validation, reserved slugs, `user-dir` home-confinement, `_MAX_ENTRY = 4096` practical cap (not PIPE_BUF).
 - ADR-0058: `pack_dir` resolution order: (1) `home=` kwarg, (2) state rows, (3) `user_state_path(home).parent` fallback.
 - ADR-0059: `load_pack_config` shallow-merges baked layer + user layer; malformed user layer → warning + baked layer only.
 - `oplog clear` always requires `--yes` — no TTY exception.

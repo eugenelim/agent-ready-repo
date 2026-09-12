@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-28
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0074](../rfc/0074-pack-config-and-oplog.md), [RFC-0046 convenient-install-defaults](../rfc/0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md)
+- **Related:** [RFC-0101](../rfc/0101-pack-config-and-oplog.md), [RFC-0046 convenient-install-defaults](../rfc/0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md)
 
 ## Decision summary
 

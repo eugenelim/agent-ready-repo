@@ -6384,7 +6384,7 @@ project page and the swept docstrings actually reach installers.
   the work-loop's framework-grounding detect target, and a repo-scope profile
   that installs the org's forked `core` first — distributed from a detached fork
   the organization owns via the editable-install path, with no upstream
-  dependency. No new machinery. (RFC-0047 Decision 5, ADR-0037 D3.)
+  dependency. No new machinery. (RFC-0100 Decision 5, ADR-0037 D3.)
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`
@@ -6471,7 +6471,7 @@ project page and the swept docstrings actually reach installers.
   organization pack that intentionally ships filled-in *instance* content — omits
   the flag and is unenforced by construction, with no edit to the lint or any
   central pack list. The flag is catalogue-internal metadata and is not projected
-  to `plugin.json` / `marketplace.json`. (RFC-0047 Decision 6 / ADR-0037 D4.)
+  to `plugin.json` / `marketplace.json`. (RFC-0100 Decision 6 / ADR-0037 D4.)
 - **The work-loop's EXECUTE contract-grounding gate now fires on unfamiliar
   frameworks and libraries, not just infrastructure.** Before generating code
   against an unfamiliar internal framework or third-party library whose contract

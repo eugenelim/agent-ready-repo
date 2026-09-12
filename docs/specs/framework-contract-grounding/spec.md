@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0047 (Decisions 1, 2; § Errata 2026-06-25 — full-protocol broadening), ADR-0037 (D1), ADR-0034 (Principle 1)
+- **Constrained by:** RFC-0100 (Decisions 1, 2; § Errata 2026-06-25 — full-protocol broadening), ADR-0037 (D1), ADR-0034 (Principle 1)
 - **Contract:** none <!-- prose + routing change to an existing skill; no API surface -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -13,7 +13,7 @@
 
 When an agent in the work-loop is about to generate code against an **unfamiliar internal framework or third-party library** — one whose *behavioral* contract (versioned signature, deprecation, call-order constraint) it does not already hold — it should be grounded the same way it already is for infrastructure: detect whether a contract source is available this session, consult and cite it if so, and surface the gap as a decision if not — never silently guess. Today the EXECUTE contract-grounding gate (`packs/core/.apm/skills/work-loop/SKILL.md:388`) calls itself *"the infra generalization of AGENTS.md's 'Grep to verify a function exists before importing it'"* yet fires only on infra surfaces; for software the agent falls back to the bare grep rule, which confirms a symbol *exists* but never its behavioral contract. Success: the **one existing gate** widens to cover the software case it was abstracted from, routing to the **same tiered protocol** in `contract-acquisition` — as **prose + routing on the existing gate and skill**, with **no new skill** and **no bundled per-library data**.
 
-> **Scope broadened post-acceptance (RFC-0047 § Errata 2026-06-25).** The spec
+> **Scope broadened post-acceptance (RFC-0100 § Errata 2026-06-25).** The spec
 > as accepted mirrored only `contract-acquisition`'s **T2** (the
 > supplied-not-bundled detect-and-recommend tier). On implementation that proved
 > necessary-but-not-sufficient: the infra side's robustness comes from its
@@ -72,14 +72,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] `quality-engineer`'s REVIEW pass re-derives the cited framework/library contract slice independently, symmetric with its infra re-derivation.
 - [x] The gate's universality is preserved: it remains stated as **universal across light and full mode** (it already is for the infra case).
 - [x] `make build-self` projects the edited source to every adapter and the tree is clean afterward (self-host drift gate green); `lint-spec-status.py` is clean.
-- [x] The software surface rides the **whole** protocol, not just T2: `contract-acquisition/SKILL.md` names a software treatment for **T0** (detect the library + installed version), **T1** (the type checker / compiler against the call site **plus** an API-surface extract of the installed package — the deterministic signature oracle), **T3** (versioned docs / changelog), and the **runtime invoke-and-observe probe**, alongside the existing T2 curated-skill tier. (RFC-0047 § Errata broadening)
+- [x] The software surface rides the **whole** protocol, not just T2: `contract-acquisition/SKILL.md` names a software treatment for **T0** (detect the library + installed version), **T1** (the type checker / compiler against the call site **plus** an API-surface extract of the installed package — the deterministic signature oracle), **T3** (versioned docs / changelog), and the **runtime invoke-and-observe probe**, alongside the existing T2 curated-skill tier. (RFC-0100 § Errata broadening)
 - [x] **Software oracle-tier honesty** is stated: strong (typed / stub-equipped → compiler/type-checker machine-verifiable) / medium (untyped-but-introspectable) / weak (dynamic / C-extension / no-stubs → runtime probe primary), parallel to the infra rows; the protocol is explicitly robust by landing on the strongest *available* oracle and declaring confidence, not by any single oracle covering all software.
 - [x] `references/oracle-table.md` carries a **per-ecosystem software** section (Python / TypeScript / Go / Rust / Java) giving the concrete T0 version-detect, T1 type-checker/compiler oracle, API-surface extract, and runtime probe commands — the reference instance, with the prose staying tool-neutral; known oracle gaps (C-extension introspection, `cargo-semver-checks` type-level, `Any`-defaulted stubgen, behavioral-contract-not-in-types) are named, not papered over.
-- [x] The scope broadening beyond ADR-0037 D1's "mirror T2 exactly" is recorded in **RFC-0047 § Errata** (Approver-signed), reversing no decision; the frozen ADR-0037 body is left intact per the ADR-immutability convention.
+- [x] The scope broadening beyond ADR-0037 D1's "mirror T2 exactly" is recorded in **RFC-0100 § Errata** (Approver-signed), reversing no decision; the frozen ADR-0037 body is left intact per the ADR-immutability convention.
 
 ## Assumptions
 
-- Technical: The EXECUTE gate lives in `packs/core/.apm/skills/work-loop/SKILL.md` (the source projected to `.claude/skills/…`); the infra T2 detect-and-recommend tier is in `contract-acquisition/SKILL.md`. (source: RFC-0047 § Evidence repo precedent; verified `work-loop/SKILL.md:388`, `contract-acquisition/SKILL.md:85,89` 2026-06-25)
+- Technical: The EXECUTE gate lives in `packs/core/.apm/skills/work-loop/SKILL.md` (the source projected to `.claude/skills/…`); the infra T2 detect-and-recommend tier is in `contract-acquisition/SKILL.md`. (source: RFC-0100 § Evidence repo precedent; verified `work-loop/SKILL.md:388`, `contract-acquisition/SKILL.md:85,89` 2026-06-25)
 - Technical: The 3-tier dependency policy (Tier-1 detect-and-stop / Tier-2 gated install / Tier-3 banned) governs the MCP/retrieval surface and is reviewer-enforced. (source: `project_skill_prereq_pattern` memory; CONVENTIONS)
 - Process: This is a `core`-pack skill-prose change → `make build-self` is the projection gate, and a user-visible skill-behavior change → a `docs/product/changelog.md` `[Unreleased]` entry lands in the **implementing** PR. (source: `feedback_changelog_for_skill_changes`, `feedback_self_host_projection` memory)
-- Product: Extending the gate adds value the bare grep rule does not — confirmed in RFC-0047's de-risk spike (grep captures existence, not versioned behavior). (source: RFC-0047 § Evidence; user direction 2026-06-25)
+- Product: Extending the gate adds value the bare grep rule does not — confirmed in RFC-0100's de-risk spike (grep captures existence, not versioned behavior). (source: RFC-0100 § Evidence; user direction 2026-06-25)

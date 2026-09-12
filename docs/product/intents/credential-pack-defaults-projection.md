@@ -18,16 +18,16 @@ Credential-pack catalogue defaults reach standard-library-only skill scripts thr
 
 ## Unresolved questions
 
-- Accept an RFC-0074 addendum authorizing the projection and its trust boundary.
+- Accept an RFC-0101 addendum authorizing the projection and its trust boundary.
 - Record an ADR extending ADR-0059 with the projected file location, precedence, provenance, and update behavior.
 
 ## Projection
 
-- An RFC-0074 addendum and ADR-0059 extension followed by one focused implementation specification for installer projection and credential-pack consumption.
+- An RFC-0101 addendum and ADR-0059 extension followed by one focused implementation specification for installer projection and credential-pack consumption.
 
 ## Opportunity
 
-This intent absorbs pack-config-catalogue-sso-defaults. RFC-0074 shipped the catalogue cascade, but its baked AgentBundle layer is unreachable from standard-library-only skill scripts and no safe installer projection exists.
+This intent absorbs pack-config-catalogue-sso-defaults. RFC-0101 shipped the catalogue cascade, but its baked AgentBundle layer is unreachable from standard-library-only skill scripts and no safe installer projection exists.
 
 ## Assumptions
 

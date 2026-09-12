@@ -1,10 +1,11 @@
-# RFC-0074: Pack config and operation log
+# RFC-0101: Pack config and operation log
 
 - **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-27
 - **Date closed:** 2026-07-28
+- **Renumbered:** issued as RFC-0074 and moved to RFC-0101 on 2026-09-12. Two proposals had been accepted under 0074 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its proposal text is unaltered.
 - **Decision weight:** standard — additive public API; `PackState` (the per-pack state record in `state.toml`) schema addition is costly to reverse; the `make_pack_dir` function crosses file-I/O and path-confinement security boundaries, which routes the `pack-config-api` spec to full mode with a `security-reviewer` pass
 - **Related:** [RFC-0046 convenient-install-defaults](0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](../adr/0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md), [`docs/specs/agentbundle-config-subcommand/`](../specs/agentbundle-config-subcommand/) (existing adapter/source config — different key space, no overlap)
 

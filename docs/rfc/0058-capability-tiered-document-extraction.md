@@ -6,7 +6,7 @@
 - **Date opened:** 2026-06-30
 - **Date closed:** 2026-06-30
 - **Decision weight:** standard
-- **Related:** RFC-0007 (the converters pack this changes); [RFC-0047 adopter-and-org-supplied-grounding](0047-adopter-and-org-supplied-grounding.md) + ADR-0037 (the presence-checked "detect-and-degrade" grounding doctrine this applies — *grounding* = the platform/framework/verification context an agent is given; that doctrine has the tool detect what context is actually supplied and degrade gracefully when a layer is absent); ADR-0034 (the no-bundled-per-vendor-knowledge-base rule this respects); `docs/specs/converters-pack/`, `docs/specs/converters-extraction-fixes/` (PR #471, the bug-fix slice that preceded this); notes: [`0058-notes/`](0058-notes/)
+- **Related:** RFC-0007 (the converters pack this changes); [RFC-0100 adopter-and-org-supplied-grounding](0100-adopter-and-org-supplied-grounding.md) + ADR-0037 (the presence-checked "detect-and-degrade" grounding doctrine this applies — *grounding* = the platform/framework/verification context an agent is given; that doctrine has the tool detect what context is actually supplied and degrade gracefully when a layer is absent); ADR-0034 (the no-bundled-per-vendor-knowledge-base rule this respects); `docs/specs/converters-pack/`, `docs/specs/converters-extraction-fixes/` (PR #471, the bug-fix slice that preceded this); notes: [`0058-notes/`](0058-notes/)
 
 ## Reviewer brief
 
@@ -73,7 +73,7 @@ Re-architect `file-to-markdown` around **capability tiers**. The skill detects w
 | **2 — approved ML** | Docling (today's branch) | Docling + its downloaded models | best-fidelity full pipeline, enrichment (D5), chunking (D6) | ML-model approval required |
 | **3 — managed API** | Outsourced OCR | egress + an approved vendor | high-volume / specialized OCR | cloud egress + vendor approval |
 
-**D1 — tiering & graceful degradation.** The skill picks the highest available tier for the input class and degrades down when a tier is unavailable, surfacing which tier ran. This mirrors ADR-0037/RFC-0047's presence-checked "every layer free to be absent; degrade to today's behavior" doctrine, applied to extraction capability instead of grounding context. **Exception:** Tier 3 (managed API) is never reached by automatic degradation *or upgrade* — even when configured, it requires explicit selection (see D5).
+**D1 — tiering & graceful degradation.** The skill picks the highest available tier for the input class and degrades down when a tier is unavailable, surfacing which tier ran. This mirrors ADR-0037/RFC-0100's presence-checked "every layer free to be absent; degrade to today's behavior" doctrine, applied to extraction capability instead of grounding context. **Exception:** Tier 3 (managed API) is never reached by automatic degradation *or upgrade* — even when configured, it requires explicit selection (see D5).
 
 **D2 — Tier-0 floor (honest cost).** Digital (text-layer) PDFs go through `pypdf`, a **new** ordinary dependency. Office extraction is **net-new code**: `file-to-markdown` imports only Docling today, so reading `.docx`/`.xlsx`/`.pptx` → text is new work — it can use `python-docx`/`openpyxl`/`python-pptx` (which are already in the pack's *adopter footprint* because the sibling **rendering** skills `markdown-to-docx`/`-xlsx`/`-pptx` ask adopters to `pip install` them on demand — but they are *not* current `file-to-markdown` deps and the extraction direction is a different API surface), degrading to pure-stdlib `zipfile`+XML if even those libraries are unapproved. When Tier 0 can't serve an input (a scanned/image-only PDF has no text layer, or `pypdf` returns only sparse/low-confidence text), the skill escalates to Tier 1 rather than emitting silent low-quality output (see the misclassification drawback).
 
@@ -109,7 +109,7 @@ Tier 1 agent-vision (subject to the egress nuance above) needs no new *model* ap
 | **Two fixed modes, adopter-selected (no auto-detection)** | Ship a no-ML floor *and* keep Docling; the adopter picks by config; no runtime capability-detection/degradation machinery | Adapts to capability without D1's detection complexity (the real cost driver); but pushes the "which tier" decision onto every adopter, and can't degrade automatically when a configured tier turns out unavailable at runtime | Viable; rejected in favor of detection because the target users (locked-down orgs) often *don't know* their own tier boundaries, and auto-degradation is the feature that makes "just run it" work — but the machinery cost is real and is the main thing to weigh |
 | **Capability-tiered (recommended)** | Detect + degrade across 4 tiers | Best fidelity per environment; honest approval posture; cost is the tiering machinery + new deps (`pypdf`, a rasterizer) | **Recommended** — the only option that serves both locked-down and cloud-permitted orgs without per-adopter configuration |
 
-Prior art for the shape: this is the same **detect-and-recommend, presence-checked, free-to-be-absent** pattern ADR-0037/RFC-0047 chose for grounding context, and the "route by input class" consensus across the document-extraction field (notes: survey finding F1).
+Prior art for the shape: this is the same **detect-and-recommend, presence-checked, free-to-be-absent** pattern ADR-0037/RFC-0100 chose for grounding context, and the "route by input class" consensus across the document-extraction field (notes: survey finding F1).
 
 ## Risks & what would make this wrong
 
@@ -136,7 +136,7 @@ Prior art for the shape: this is the same **detect-and-recommend, presence-check
 
 **Repo precedent.**
 - **RFC-0007 §Drawbacks** — explicitly predicted the locked-down-Docling hazard and judged it acceptable *because conversion is opt-in per skill*; this RFC reverses that judgment for the locked-down segment. On acceptance, RFC-0007 gets an erratum recording that its drawback is now addressed.
-- **[RFC-0047 adopter-and-org-supplied-grounding](0047-adopter-and-org-supplied-grounding.md) / ADR-0037** — the presence-checked, detect-and-degrade, "every layer free to be absent" doctrine that D1 applies to extraction capability. (Note: two RFCs share the number 0047; the intended one is the grounding RFC linked here.)
+- **[RFC-0100 adopter-and-org-supplied-grounding](0100-adopter-and-org-supplied-grounding.md) / ADR-0037** — the presence-checked, detect-and-degrade, "every layer free to be absent" doctrine that D1 applies to extraction capability. (Note: two RFCs share the number 0047; the intended one is the grounding RFC linked here.)
 - **ADR-0034** — "ship awareness and doctrine, never bundled per-vendor data"; the higher tiers are adopter-provisioned, keeping this rule intact.
 - **`converters` pack** — `python-docx`/`python-pptx`/`openpyxl` are used by the sibling **rendering** skills (`markdown-to-*`) via pip-on-demand, *not* by `file-to-markdown`; Tier-0 Office extraction is new code (see D2).
 - **PR #471 / `converters-extraction-fixes`** — the bug-fix slice (reconciler data-loss + honesty fixes); the frontmatter emitter it refined (originally from #63) is the seed D3 generalizes.

@@ -119,7 +119,7 @@ Sample reads, to calibrate the boundary:
   default → discover-by-marker; default `docs/design`, paralleling `docs/product`). Never
   hardcode a path; the three-tier rule is the standing answer (RFC-0040).
 - "How do I rename a *pack* with no alias field?" → **resolve** (referent: the *actual*
-  `infra-contract-acquisition → contract-acquisition` rename, RFC-0047 § Errata — rename
+  `infra-contract-acquisition → contract-acquisition` rename, RFC-0100 § Errata — rename
   the live surface, bridge frozen governance in one new record, ship no alias). The tell:
   reach for the precedent that already shipped, not a new mechanism. *(RFC-0048 originally
   framed the rename mechanism as OQ1; the precedent resolved it.)*

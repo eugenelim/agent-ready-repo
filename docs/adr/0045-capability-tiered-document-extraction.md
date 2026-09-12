@@ -33,7 +33,7 @@ that OCRs to garbage passes silently), and the image branch serves only diagrams
 not the common "read this screenshot/scan/table image" case.
 
 The repo already chose a **presence-checked, detect-and-degrade** doctrine for
-*grounding context* in ADR-0037/RFC-0047 ("every layer is free to be absent;
+*grounding context* in ADR-0037/RFC-0100 ("every layer is free to be absent;
 degrade to today's behavior"). Extraction *capability* is the same shape at a
 different layer.
 
