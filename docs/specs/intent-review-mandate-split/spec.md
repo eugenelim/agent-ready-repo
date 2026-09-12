@@ -169,6 +169,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   token of its own. The result set stays at six, so no unplaceable level is
   reported as if it were a failed altitude or children condition, and a listed
   decomposition is still measured for overlap and gap.
+- [ ] The body states the level ordering it keys on — `product-vision ›
+  product-strategy › capability › feature` — so applicability is decidable from
+  the body and the supplied packet alone. The reviewer preloads nothing and
+  retrieves nothing, so a rule keyed on a ladder stated only elsewhere is
+  undecidable at the moment it is applied. Stating it here is a deliberate
+  second statement of an ordering core already seeds, accepted because the
+  alternative is a rule the reviewer cannot resolve; it names the ordering only,
+  cites no internal record, and leaves the open set open.
 - [ ] `intent` mode emits no severity label, no `Fix:` line, and no `Clean`
   result.
 - [ ] Empty `intent`-mode output means exactly one thing: every condition that
@@ -366,9 +374,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   the authoring pipeline produces and must pass; the third is the condition's
   reachable failing state. A run whose cases produce the same output settles
   nothing, because the repair is the difference between them.
-- [ ] A recorded manual-QA run observes that an intent declaring no level, and
-  one declaring a level outside the recognized set, each draw no token for that
-  fact alone.
+- [ ] A recorded manual-QA run observes the unplaceable-level cases against
+  fixtures that satisfy every other trigger of the absence branch — no listed
+  decomposition, and `Status: Accepted` — one declaring no level and one
+  declaring a level outside the recognized set. Neither emits
+  `MALFORMED(children)`, and because each fixture differs from the firing case
+  in the level alone, the missing token is attributable to the suppression and
+  to nothing else. A fixture that would pass with the suppression removed does
+  not close this criterion.
 
 ## Follow-ons
 

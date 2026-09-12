@@ -536,9 +536,13 @@ dispatched, the observed output, and whether it matched the contract.
     reads the parent.
   - **Added:** the level-keyed applicability rule, and the sentence naming what
     the children condition measures coverage against.
-- Write the rule as portable prose that names levels by their role in the
-  recognized set — root and leaf — so the body states the rule directly and
-  cites no acceptance criterion, as the pack boundary requires.
+- **Changed bytes.** The body gains the level ordering it keys on, named
+  literally — `product-vision › product-strategy › capability › feature`.
+  Writing the rule in role terms alone ("root and leaf") was the earlier draft's
+  error: `capability` and `product-strategy` are neither, so a compliant body
+  could not decide the trigger for them. Core already seeds this ordering in its
+  own `docs/CONVENTIONS.md`, so the body restates core content rather than
+  importing a downstream pack's rule, and it cites no internal record.
 - Touch conditions 4 and 5 and the two sentences named above, and nothing else.
   The earlier draft of this task said "touch no other condition", which read as
   forbidding the condition-5 restatement that the applicability rule exists to
@@ -584,9 +588,16 @@ marketplace manifest, and `web/src/lib/now-highlights.generated.json`
   source.
 - Date both entries the day they ship, not the day they were drafted.
 
+- The `core` entry must also **state** the applicability rule, not merely stop
+  contradicting it. When a consumer receives `MALFORMED(children)` changes with
+  this amendment, and the entry is that change's home.
+
 **Done when:** version parity holds, the regenerated tree is clean on a second
-`make build-self`, both changelog entries carry the ship date at `##` level, and
-no changelog bullet describes behavior the shipped body does not have.
+`make build-self`, both changelog entries carry the ship date at `##` level, no
+changelog bullet describes behavior the shipped body does not have, and the
+`core` entry states the applicability rule in its own bullet. The last two are
+separate observables on purpose: the first reads the entry for false clauses and
+cannot see an omission, which is how the rule would otherwise ship unannounced.
 
 ### T12: the repair is observed against the rebuilt projection
 
@@ -608,8 +619,11 @@ no changelog bullet describes behavior the shipped body does not have.
   distinguish a repair from a removal, and the first two are the states the
   authoring pipeline actually produces, so a rule that fires on them is a rule
   that blocks the pipeline.
-- Run the two unplaceable-level cases: no level declared, and a level outside
-  the recognized set. Neither draws a token for that fact alone.
+- Run the two unplaceable-level cases against fixtures that satisfy every other
+  trigger of the absence branch — no listed decomposition, `Status: Accepted` —
+  so each differs from the firing case in the level alone. A fixture left at
+  `Draft`, or carrying members, passes whether the suppression works or not, and
+  proves nothing.
 - Re-run the three T8 dispatches against the amended bytes and record the new
   revision and projection hashes beside the originals. The earlier run stays in
   the ledger as the before-state — it was correct about the bytes it read, and
