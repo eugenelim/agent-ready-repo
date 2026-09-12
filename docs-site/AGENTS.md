@@ -30,21 +30,17 @@ npm run build --prefix docs-site
   both themes, and reduced-motion behavior.
 - Run `python3 tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
   `allowScripts` entry or repin the dependency so it dedupes to a reviewed version.
-- `astro.config.ts` imports `@astrojs/markdown-remark` directly — it builds the
-  site's Markdown processor with `unified({...})` and passes it as
-  `markdown.processor`. Astro and Starlight both carry the package as an
-  *optional* peer, so npm neither installs it nor warns when the versions
-  drift, and the build once worked only because npm hoisted `@astrojs/mdx`'s
-  transitive copy to the root. When npm later placed that copy under
-  `@astrojs/mdx/node_modules/` instead, `astro build` exited 1: config
-  validation fails when the package is unresolvable from the root. The
-  declaration in `package.json` is what makes root placement a requirement
-  rather than a hoisting accident. Two duties come with it — keep the pin equal
-  to astro's exact optional-peer version, which
-  `tools/test_browser_gate_subset.py` refuses from `gate-main` when the
-  manifest, the lockfile and that peer disagree or when Starlight's declared
-  range stops accepting the pin; and expect an astro major to arrive alone and
-  need both moved together.
+- `astro.config.ts` imports `@astrojs/markdown-remark` directly to build the
+  site's Markdown processor with `unified({...})` as `markdown.processor`. Astro
+  and Starlight carry it as an *optional* peer, so npm neither installs it nor
+  warns on drift: the build once worked only because npm hoisted `@astrojs/mdx`'s
+  transitive copy to the root, and exited 1 once npm nested that copy instead.
+  The `package.json` declaration is what makes root placement a requirement
+  rather than a hoisting accident. Keep the pin exact and equal across the
+  manifest and the lockfile's two copies, and satisfying the peer astro and
+  Starlight each declare; `tools/test_browser_gate_subset.py` refuses the lot
+  from `gate-main`. Astro declared that peer exactly until 7.2.9 and as a caret
+  from 7.2.10 — expect the shape to change, not just the number.
 - The remark plugin that turns ```mermaid fences into placeholders is registered
   through that processor, and it has silently no-opped before. Nothing caught
   it, because no published page carried a fence. `getting-started/three-loops`
@@ -58,7 +54,11 @@ npm run build --prefix docs-site
   --root docs-site`. `--root` is load-bearing — astro resolves the project from the
   working directory, not `--prefix`; without it the command reports nothing running.
 - After a Starlight upgrade, re-verify integration contracts against the vendored
-  components.
+  components. 0.42 swapped `<starlight-menu-button>` and its `aria-expanded` for
+  the native popover API, silently breaking `PageFrame.astro`'s CSS reveal and
+  every selector keyed to the old markup. That pane is `popover="manual"`, not
+  `auto`, because an auto popover light-dismisses on the Product summary, which
+  `site-shared-chrome` forbids; manual costs UA Escape, restored in that component.
 - Starlight's `print:hidden` does **not** suppress an element whose own component
   `<style>` sets `display`, and it fails silently: both compile unlayered at
   `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links
