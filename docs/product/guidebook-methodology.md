@@ -122,6 +122,27 @@ one:
 | Present a subagent or a reviewer role as something to run | A reader cannot type it. Describe it instead |
 | Publish a step for a skill that writes nothing without saying so | Use the explicit writes-nothing declaration; silence is ambiguous |
 
+## The pack walk
+
+A lint reads one file. Every ordering and navigation defect the first pack
+shipped was invisible to all of them, because each surface was internally
+consistent and wrong only against something in another file — a step running
+skills in an order its own skill contradicted, two pages of one guidebook
+declaring different chains, a rail that named a position no other surface
+agreed with.
+
+So before a guidebook is done, someone walks it page by page and skill by skill
+as a first-time reader, against the rendered pages rather than the Markdown, and
+records what they found. [`pack-walks/`](pack-walks/README.md) owns the seven
+dimensions, the owner routing, and one record per pack.
+
+The part worth repeating here: **a walk finding is not automatically a guide
+defect.** Route it first. The guide is a projection and cannot be more correct
+than its source — but authoring it is the first time anyone reads the pack in
+run order, which is why it finds source defects the source's own tests cannot.
+When the walk and the source disagree the source wins; when the source is
+silent, that silence is the finding.
+
 ## How to iterate on this
 
 Add a rule when a reader fails without it, and record the failure in the
@@ -137,6 +158,10 @@ not a gate.
 
 ## Changelog
 
+- 2026-09-11 — Added the pack walk, after it found two run-order defects a lint
+  structurally could not: a step whose skill order its own skill contradicted,
+  and two pages of one guidebook declaring different chains. Both traced to the
+  journey contract having no field for run order.
 - 2026-09-11 — First version. Written while building the first pack guidebook,
   from the survey's evidence plus the patterns a first-reader failure exposed:
   reader-facing section names, the correction turn, judgement paired with its

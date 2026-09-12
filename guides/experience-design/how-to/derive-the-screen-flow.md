@@ -27,12 +27,12 @@ order: 2
 
 ## What you will run
 
-| Skill | What it produces | Needed? |
-| --- | --- | --- |
-| `content-design` | A content brief: what the surface says, to whom, in what form. | Required |
-| `copy-direction` | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
-| `tone-of-voice` | The cross-surface voice all per-surface copy decisions reference. | Optional |
-| `user-flow` | The screen inventory, the state each screen handles, and the transitions. | Required |
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `content-design` | The surface and its audience | A content brief: what the surface says, to whom, in what form. | Required |
+| `tone-of-voice` | Voice-of-customer evidence, if you have it | The cross-surface voice all per-surface copy decisions reference. | Optional |
+| `copy-direction` | The content brief; the brand register if it exists | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
+| `user-flow` | The journey map from step 1 | The screen inventory, the state each screen handles, and the transitions. | Required |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
@@ -53,12 +53,14 @@ Define what this account-setup surface should say, for whom, and to what objecti
 **Agent returns:**
 <!-- rung: content-design SKILL.md -->
 
-> **Agent:** A content brief for this surface.
+> **Agent:** Done — I've written a content brief for this surface to `<output_dir>/content/<slug>.md`.
 
 **You push back:**
 <!-- rung: content-design SKILL.md -->
 
-> “This brief covers setup, billing, and support as one surface. Keep setup here and split the other two into their own briefs.” The agent narrows the brief and records only setup’s reader, objective, and section jobs.
+> **You:** This brief covers setup, billing, and support as one surface. Keep setup here and split the other two into their own briefs.
+>
+> **Agent:** I narrowed the brief and recorded only setup’s reader, objective, and section jobs.
 
 **Output varies** with the audience, surface type, communication mode, and intended objective.
 <!-- rung: content-design SKILL.md -->
@@ -109,74 +111,6 @@ date: <YYYY-MM-DD>
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
-## Run `copy-direction` — copy goals for one surface
-
-**You type:**
-<!-- rung: copy-direction SKILL.md -->
-
-```
-Name the ranked copy goals for this account-setup surface.
-```
-
-**Agent returns:**
-<!-- rung: copy-direction SKILL.md -->
-
-> **Agent:** Ranked per-surface copy goals, stable referents, and arbitration rules.
-
-**You push back:**
-<!-- rung: copy-direction SKILL.md -->
-
-> “You wrote a headline instead of direction. Remove the finished copy and state the goal, its referent, and what wins when goals conflict.” The agent replaces the line with a ranked rule the later writing can apply.
-
-**Output varies** with the surface, reader language, and available brand register.
-<!-- rung: copy-direction SKILL.md -->
-
-**No decision gate at this step.**
-<!-- rung: JOURNEY stage 2 -->
-
-**Check (grounded):** Ask what reader language or stable referent supports each goal; this surfaces preferences presented as direction.
-<!-- rung: copy-direction SKILL.md -->
-
-**Watch out for:** Goals can sound authoritative while resting on a general copy pattern. Notice goals with no cited reader language, precedent quality, or standard; argue with those first and replace them with grounded referents.
-<!-- rung: copy-direction SKILL.md -->
-
-**Where it lands:** `<output_dir>/copy/<slug>.md`.
-<!-- rung: copy-direction SKILL.md -->
-
-**What it looks like:**
-<!-- rung: packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md -->
-
-```markdown
----
-type: copy-direction
-surface-slug: <kebab-case surface name — e.g. landing-page, pricing-page, onboarding-hero>
-date: <YYYY-MM-DD>
----
-
-# Copy direction: <surface name>
-
-<!--
-  Written by the `copy-direction` skill. Fill the angle-bracket prompts and
-  delete this comment. This doc names *copy direction* for one specific surface —
-  the goals and arbitration rules that steer every copy choice here. It holds NO
-  finished copy, formula tables, or pre-written strings. Keep it short enough
-  that a writer picks up direction in two minutes.
--->
-
-## Reader map
-
-| Reader type | Copy JTBD sentence | Rank |
-|---|---|---|
-| <reader type — role + context on this surface> | When [situation on this surface], I want to [action with this copy], so that [goal]. | Primary |
-| <reader type> | When [situation], I want to [action], so that [goal]. | Secondary |
-
-## Named copy goals (ranked)
-
-<!-- 3–5 goals, each a noun phrase a non-designer can recall. Ranked: #1 is
-```
-
-*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
-
 ## Run `tone-of-voice` — the brand copy register
 
 **You type:**
@@ -189,12 +123,14 @@ Name the brand-level copy register for this product.
 **Agent returns:**
 <!-- rung: tone-of-voice SKILL.md -->
 
-> **Agent:** A brand register with ranked copy goals, referents, and arbitration rules.
+> **Agent:** Done — I've written a brand register with ranked copy goals, referents, and arbitration rules to `<output_dir>/copy/brand-register.md`.
 
 **You push back:**
 <!-- rung: tone-of-voice SKILL.md -->
 
-> “You made the register specific to the setup screen. Rewrite it as a cross-surface brand register and leave setup choices to `copy-direction`.” The agent removes per-surface decisions and keeps the shared register.
+> **You:** You made the register specific to the setup screen. Rewrite it as a cross-surface brand register and leave setup choices to `copy-direction`.
+>
+> **Agent:** I removed per-surface decisions and kept the shared register.
 
 **Output varies** with the brand, readers, voice-of-customer evidence, and stable referents.
 <!-- rung: tone-of-voice SKILL.md -->
@@ -245,6 +181,76 @@ date: <YYYY-MM-DD>
 
 *The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
 
+## Run `copy-direction` — copy goals for one surface
+
+**You type:**
+<!-- rung: copy-direction SKILL.md -->
+
+```
+Name the ranked copy goals for this account-setup surface.
+```
+
+**Agent returns:**
+<!-- rung: copy-direction SKILL.md -->
+
+> **Agent:** Done — I've written ranked per-surface copy goals, stable referents, and arbitration rules to `<output_dir>/copy/<slug>.md`.
+
+**You push back:**
+<!-- rung: copy-direction SKILL.md -->
+
+> **You:** You wrote a headline instead of direction. Remove the finished copy and state the goal, its referent, and what wins when goals conflict.
+>
+> **Agent:** I replaced the line with a ranked rule the later writing can apply.
+
+**Output varies** with the surface, reader language, and available brand register.
+<!-- rung: copy-direction SKILL.md -->
+
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 2 -->
+
+**Check (grounded):** Ask what reader language or stable referent supports each goal; this surfaces preferences presented as direction.
+<!-- rung: copy-direction SKILL.md -->
+
+**Watch out for:** Goals can sound authoritative while resting on a general copy pattern. Notice goals with no cited reader language, precedent quality, or standard; argue with those first and replace them with grounded referents.
+<!-- rung: copy-direction SKILL.md -->
+
+**Where it lands:** `<output_dir>/copy/<slug>.md`.
+<!-- rung: copy-direction SKILL.md -->
+
+**What it looks like:**
+<!-- rung: packs/experience-design/.apm/skills/copy-direction/assets/copy-direction-template.md -->
+
+```markdown
+---
+type: copy-direction
+surface-slug: <kebab-case surface name — e.g. landing-page, pricing-page, onboarding-hero>
+date: <YYYY-MM-DD>
+---
+
+# Copy direction: <surface name>
+
+<!--
+  Written by the `copy-direction` skill. Fill the angle-bracket prompts and
+  delete this comment. This doc names *copy direction* for one specific surface —
+  the goals and arbitration rules that steer every copy choice here. It holds NO
+  finished copy, formula tables, or pre-written strings. Keep it short enough
+  that a writer picks up direction in two minutes.
+-->
+
+## Reader map
+
+| Reader type | Copy JTBD sentence | Rank |
+|---|---|---|
+| <reader type — role + context on this surface> | When [situation on this surface], I want to [action with this copy], so that [goal]. | Primary |
+| <reader type> | When [situation], I want to [action], so that [goal]. | Secondary |
+
+## Named copy goals (ranked)
+
+<!-- 3–5 goals, each a noun phrase a non-designer can recall. Ranked: #1 is
+```
+
+*The agent replaces every `<…>`. This is the opening of the template the skill writes from; the artifact continues in the same shape.*
+
 ## Run `user-flow` — the screen inventory
 
 **You type:**
@@ -257,12 +263,14 @@ Turn the approved journey into screens, transitions, failure routes, and one bri
 **Agent returns:**
 <!-- rung: JOURNEY stage 2 -->
 
-> **Agent:** A screen inventory, sequenced transitions, a state matrix, and per-screen briefs.
+> **Agent:** Done — I've written a screen inventory, sequenced transitions, a state matrix, and per-screen briefs to `<output_dir>/screens/<slug>-flow.md`.
 
 **You push back:**
 <!-- rung: user-flow SKILL.md -->
 
-> “The connection failure has no destination, and the service-check step happens in parallel with the progress screen. Add the failure route and show the parallel work without inventing another screen.” The agent repairs the whole-flow walk and affected brief.
+> **You:** The connection failure has no destination, and the service-check step happens in parallel with the progress screen. Add the failure route and show the parallel work without inventing another screen.
+>
+> **Agent:** I repaired the whole-flow walk and affected brief.
 
 **Output varies** with the journey, surface, navigation model, and genre.
 <!-- rung: user-flow SKILL.md -->
@@ -312,6 +320,11 @@ surface-genre: <marketing | documentation | informational | analytical | transac
 *One of these per screen. The agent replaces every `<…>`; the shared design contract is referenced, never copied into each brief.*
 
 ## Where this leads
+
+**Done with this step:** You can move on when every action, including at least one failure, reaches a named screen or state, and every screen has a brief.
+<!-- rung: authored -->
+
+Stage 2 of five. The briefs produced here are what every later step reads.
 
 **Next:** [Establish design intent](establish-design-intent.md).
 <!-- rung: authored -->

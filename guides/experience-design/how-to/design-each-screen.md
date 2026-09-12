@@ -29,16 +29,16 @@ Choose `information-architecture` for the general structure pass, or one genre-s
 
 ## What you will run
 
-| Skill | What it produces | Needed? |
-| --- | --- | --- |
-| `information-architecture` | Layout zones and information hierarchy for one screen. | Required |
-| `analytical-design` | Dashboard IA, widget hierarchy, and role-based views. | Choose one |
-| `conversion-design` | Above-fold contract, scroll story, and social-proof architecture. | Choose one |
-| `documentation-design` | Content hierarchy and navigation strategy from Diátaxis typing. | Choose one |
-| `informational-design` | Typographic hierarchy, reading-pattern calibration, and editorial grid. | Choose one |
-| `marketplace-design` | Listing card IA, filter and facet architecture, and the transaction bridge. | Choose one |
-| `workspace-design` | Context persistence, attention zones, and interrupt design. | Choose one |
-| `interaction-design` | States, transitions, and feedback patterns against WCAG 2.2 AA. | Required |
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `analytical-design` | The per-screen brief, genre `analytical` | Dashboard IA, widget hierarchy, and role-based views. | Choose one |
+| `conversion-design` | The per-screen brief, genre `marketing` | Above-fold contract, scroll story, and social-proof architecture. | Choose one |
+| `documentation-design` | The per-screen brief, genre `documentation` | Content hierarchy and navigation strategy from Diátaxis typing. | Choose one |
+| `informational-design` | The per-screen brief, genre `informational` | Typographic hierarchy, reading-pattern calibration, and editorial grid. | Choose one |
+| `marketplace-design` | The per-screen brief, genre `marketplace` | Listing card IA, filter and facet architecture, and the transaction bridge. | Choose one |
+| `workspace-design` | The per-screen brief, genre `workspace` | Context persistence, attention zones, and interrupt design. | Choose one |
+| `information-architecture` | The genre skill's output, above | Layout zones and information hierarchy for one screen. | Required |
+| `interaction-design` | The screen's structure and state matrix | States, transitions, and feedback patterns against WCAG 2.2 AA. | Required |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
@@ -46,54 +46,6 @@ this pack is configured to write to, and `<slug>` is the short name you give
 this piece of work.
 
 <!-- rung: packs/experience-design/JOURNEY.md -->
-
-## Run `information-architecture` — layout zones and hierarchy
-
-**You type:**
-<!-- rung: JOURNEY stage 4 -->
-
-```
-Organize this screen around its primary task, content rank, recovery paths, and wayfinding.
-```
-
-**Agent returns:**
-<!-- rung: information-architecture SKILL.md -->
-
-> **Agent:** A hierarchy, reading flow, disclosure plan, navigation, wayfinding, and per-state layout rationale.
-
-**You push back:**
-<!-- rung: information-architecture SKILL.md -->
-
-> “You designed only the default state. Add the empty, loading, and error layouts, and preserve a route back to the wider product.” The agent extends the same hierarchy across those states.
-
-**Output varies** with the screen’s job, audience, content, surface, and genre.
-<!-- rung: information-architecture SKILL.md -->
-
-**No decision gate at this step.**
-<!-- rung: JOURNEY stage 4 -->
-
-**Check (sufficient-for-next):** Ask how the hierarchy changes in an empty or error state; this surfaces structure that works only for representative content.
-<!-- rung: information-architecture SKILL.md -->
-
-**Watch out for:** A confident layout can guess at content rank. Notice prominence with no link to the screen job or representative content; challenge those general-pattern choices first, then supply real content and re-run.
-<!-- rung: information-architecture SKILL.md -->
-
-**Where it lands:** `<output_dir>/screens/<slug>-ia.md`.
-<!-- rung: authored; information-architecture SKILL.md declares the record but not its path -->
-
-**What it looks like:**
-<!-- rung: authored -->
-
-```markdown
-# Screen framing
-## Content rank
-## Reading pattern
-## Progressive disclosure
-## Navigation and wayfinding
-## Per-state layout notes
-```
-
-*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Run `analytical-design` — dashboard structure
 
@@ -107,12 +59,14 @@ Design this dashboard around the named business questions and domain model.
 **Agent returns:**
 <!-- rung: analytical-design SKILL.md -->
 
-> **Agent:** A widget hierarchy, spatial layout grammar, role-based views, and per-widget state handling.
+> **Agent:** Done — I've written a widget hierarchy, spatial layout grammar, role-based views, and per-widget state handling to `<output_dir>/screens/<slug>-analytical.md`.
 
 **You push back:**
 <!-- rung: analytical-design SKILL.md -->
 
-> “You chose charts before naming the questions they answer. Remove the orphan widgets, state three to five role-and-action questions, then rebuild the hierarchy.” The agent reverses the sequence and traces each widget to a question.
+> **You:** You chose charts before naming the questions they answer. Remove the orphan widgets, state three to five role-and-action questions, then rebuild the hierarchy.
+>
+> **Agent:** I reversed the sequence and traced each widget to a question.
 
 **Output varies** with the business questions, roles, domain objects, and actions.
 <!-- rung: analytical-design SKILL.md -->
@@ -155,12 +109,14 @@ Structure this acquisition surface around its content brief and design principle
 **Agent returns:**
 <!-- rung: conversion-design SKILL.md -->
 
-> **Agent:** A hero approach, above-fold contract, scroll story, and social-proof architecture.
+> **Agent:** Done — I've written a hero approach, above-fold contract, scroll story, and social-proof architecture to `<output_dir>/screens/<slug>-conversion.md`.
 
 **You push back:**
 <!-- rung: conversion-design SKILL.md -->
 
-> “The hero opens with our product and a feature list. Lead with the reader’s evidenced pain or goal, then move features to the point where they answer a reader question.” The agent resequences the surface.
+> **You:** The hero opens with our product and a feature list. Lead with the reader’s evidenced pain or goal, then move features to the point where they answer a reader question.
+>
+> **Agent:** I resequenced the surface.
 
 **Output varies** with visitor awareness, the offer, the content brief, and available evidence.
 <!-- rung: conversion-design SKILL.md -->
@@ -201,12 +157,14 @@ Design the hierarchy and navigation for this documentation surface and its reade
 **Agent returns:**
 <!-- rung: documentation-design SKILL.md -->
 
-> **Agent:** A content hierarchy, navigation strategy, reading route, and documentation architecture.
+> **Agent:** Done — I've written a content hierarchy, navigation strategy, reading route, and documentation architecture to `<output_dir>/screens/<slug>-documentation.md`.
 
 **You push back:**
 <!-- rung: documentation-design SKILL.md -->
 
-> “You mixed tutorial steps into the reference path. Separate the page types, then give the reader a visible route between them.” The agent corrects the architecture around reader posture.
+> **You:** You mixed tutorial steps into the reference path. Separate the page types, then give the reader a visible route between them.
+>
+> **Agent:** I corrected the architecture around reader posture.
 
 **Output varies** with the reading goal, content types, entry routes, and documentation set.
 <!-- rung: documentation-design SKILL.md -->
@@ -247,12 +205,14 @@ Design the reading hierarchy and editorial grid for this informational surface.
 **Agent returns:**
 <!-- rung: informational-design SKILL.md -->
 
-> **Agent:** A typographic hierarchy, calibrated reading pattern, editorial grid, and onward reading route.
+> **Agent:** Done — I've written a typographic hierarchy, calibrated reading pattern, editorial grid, and onward reading route to `<output_dir>/screens/<slug>-informational.md`.
 
 **You push back:**
 <!-- rung: informational-design SKILL.md -->
 
-> “The grid treats every section as equal, but readers scan for the reported finding first. Re-rank the hierarchy around that reading goal.” The agent changes the typographic emphasis and sequence.
+> **You:** The grid treats every section as equal, but readers scan for the reported finding first. Re-rank the hierarchy around that reading goal.
+>
+> **Agent:** I changed the typographic emphasis and sequence.
 
 **Output varies** with the editorial structure, content length, and reader goal.
 <!-- rung: informational-design SKILL.md -->
@@ -293,12 +253,14 @@ Design the listing, filter, comparison, and transaction structure for this marke
 **Agent returns:**
 <!-- rung: marketplace-design SKILL.md -->
 
-> **Agent:** Listing-card hierarchy, filter architecture, comparison affordances, and a transaction bridge.
+> **Agent:** Done — I've written listing-card hierarchy, filter architecture, comparison affordances, and a transaction bridge to `<output_dir>/screens/<slug>-marketplace.md`.
 
 **You push back:**
 <!-- rung: marketplace-design SKILL.md -->
 
-> “A buyer must open every card to see the deciding attribute, and zero results has no recovery. Move qualification data onto the card and add clear-filter or partial-match routes.” The agent repairs both browse and failure states.
+> **You:** A buyer must open every card to see the deciding attribute, and zero results has no recovery. Move qualification data onto the card and add clear-filter or partial-match routes.
+>
+> **Agent:** I repaired both browse and failure states.
 
 **Output varies** with buyer behavior, the listing model, and whether discovery is browse-first or search-first.
 <!-- rung: marketplace-design SKILL.md -->
@@ -339,12 +301,14 @@ Design the context, attention, and interruption structure for this workspace sur
 **Agent returns:**
 <!-- rung: workspace-design SKILL.md -->
 
-> **Agent:** A session arc, context-persistence architecture, attention zones, and interrupt design.
+> **Agent:** Done — I've written a session arc, context-persistence architecture, attention zones, and interrupt design to `<output_dir>/screens/<slug>-workspace.md`.
 
 **You push back:**
 <!-- rung: workspace-design SKILL.md -->
 
-> “The draft preserves the open document but loses the active task and selection when the user returns. Carry all three through the session arc.” The agent adds the missing working context.
+> **You:** The draft preserves the open document but loses the active task and selection when the user returns. Carry all three through the session arc.
+>
+> **Agent:** I added the missing working context.
 
 **Output varies** with the session arc, collaboration model, roles, and interruption cost.
 <!-- rung: workspace-design SKILL.md -->
@@ -373,6 +337,56 @@ Design the context, attention, and interruption structure for this workspace sur
 
 *Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
+## Run `information-architecture` — layout zones and hierarchy
+
+**You type:**
+<!-- rung: JOURNEY stage 4 -->
+
+```
+Organize this screen around its primary task, content rank, recovery paths, and wayfinding.
+```
+
+**Agent returns:**
+<!-- rung: information-architecture SKILL.md -->
+
+> **Agent:** Done — I've written a hierarchy, reading flow, disclosure plan, navigation, wayfinding, and per-state layout rationale to `<output_dir>/screens/<slug>-ia.md`.
+
+**You push back:**
+<!-- rung: information-architecture SKILL.md -->
+
+> **You:** You designed only the default state. Add the empty, loading, and error layouts, and preserve a route back to the wider product.
+>
+> **Agent:** I extended the same hierarchy across those states.
+
+**Output varies** with the screen’s job, audience, content, surface, and genre.
+<!-- rung: information-architecture SKILL.md -->
+
+**No decision gate at this step.**
+<!-- rung: JOURNEY stage 4 -->
+
+**Check (sufficient-for-next):** Ask how the hierarchy changes in an empty or error state; this surfaces structure that works only for representative content.
+<!-- rung: information-architecture SKILL.md -->
+
+**Watch out for:** A confident layout can guess at content rank. Notice prominence with no link to the screen job or representative content; challenge those general-pattern choices first, then supply real content and re-run.
+<!-- rung: information-architecture SKILL.md -->
+
+**Where it lands:** `<output_dir>/screens/<slug>-ia.md`.
+<!-- rung: authored; information-architecture SKILL.md declares the record but not its path -->
+
+**What it looks like:**
+<!-- rung: authored -->
+
+```markdown
+# Screen framing
+## Content rank
+## Reading pattern
+## Progressive disclosure
+## Navigation and wayfinding
+## Per-state layout notes
+```
+
+*Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
+
 ## Run `interaction-design` — states and behaviours
 
 **You type:**
@@ -385,12 +399,14 @@ Design the behavior for <screen>, including feedback, validation, recovery, and 
 **Agent returns:**
 <!-- rung: JOURNEY stage 4 -->
 
-> **Agent:** The per-screen brief enriched with an in-component state machine, feedback timing, validation flow, motion rationale, and accessibility constraints.
+> **Agent:** Done — I've written the per-screen brief enriched with an in-component state machine, feedback timing, validation flow, motion rationale, and accessibility constraints to `<output_dir>/screens/<slug>.md`.
 
 **You push back:**
 <!-- rung: interaction-design SKILL.md -->
 
-> “You routed an error to another screen and redefined the state list here. Keep cross-screen routing in `user-flow`, reference the quality floor, and design only the in-screen transition and recovery.” The agent restores the boundary.
+> **You:** You routed an error to another screen and redefined the state list here. Keep cross-screen routing in `user-flow`, reference the quality floor, and design only the in-screen transition and recovery.
+>
+> **Agent:** I restored the boundary.
 
 **Output varies** with the screen’s state matrix, platform, actions, and interaction constraints.
 <!-- rung: interaction-design SKILL.md -->
@@ -420,6 +436,11 @@ Design the behavior for <screen>, including feedback, validation, recovery, and 
 *Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Where this leads
+
+**Done with this step:** You can move on when every screen handles its empty, loading, error and success states, and each has both structure and behaviour.
+<!-- rung: authored -->
+
+Stage 4 of five. The next step is the last inside this pack.
 
 **Next:** [Review independently](review-independently.md).
 <!-- rung: authored -->
