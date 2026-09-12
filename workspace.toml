@@ -71,6 +71,10 @@ backlog = [
 # table here is not coerced: the engine accepts only a str or a list, so a table
 # raises invalid_workspace, which then stamps every canonical entry in the file.
 executing = [
+  # Advanced from draft on 2026-09-11 when slice A6 shipped: a Draft brief
+  # with a Shipped child is refused by lint-brief-coverage, and an Executing
+  # brief in the draft collection is an impossible_transition.
+  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   # Executing 2026-09-09. Ready -> Executing when its first mapped spec,
   # install-to-ship-walkthrough (slice S1), reached Shipped; a brief with a
   # Shipped child is Executing, not Shipped. S2 is Shipped; S3-S5 are
@@ -189,7 +193,6 @@ draft     = [
   #      the same invocation. Killing A4 leaves B's spike intact. Keep the two
   #      consistent in shape when either is specified; never cut them as one
   #      slice. B now owns the full statement of this; A points at it.
-  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   #
   # B -- `needs` is deliberately empty. B1, the declared-shape gate, never
   # depended on the activation measurement and can start in parallel with M
