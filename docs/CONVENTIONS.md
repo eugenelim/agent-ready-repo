@@ -276,21 +276,7 @@ text stays. This is the difference between an ADR and documentation: ADRs are
 history.
 
 **Filename:** `NNNN-kebab-case-title.md`, e.g. `0007-use-postgres-for-primary-store.md`.
-Numbers are sequential and never reused. An ordinal belongs to one record.
-
-**Collision repair is the one sanctioned edit to an Accepted record.** Two
-branches can each claim a free ordinal and both merge, because the collision
-exists only against the default branch and never within either branch. When that
-happens, the record that reached the default branch first keeps the ordinal and
-the later one is renumbered — read the merge order from history, not from the
-`Date:` field, which records when a decision was made and can invert the order in
-which the numbers were actually claimed. This is an edit to a record's
-*identity*, not to its content: the decision text is never touched, and the moved
-record carries a `Renumbered:` line naming its former ordinal. Every citation is
-attributed before it is rewritten, because both members of a collided pair are
-cited as `ADR-NNNN` and a blind substitution corrupts the one that keeps its
-number. `next-ordinal.py --check <dir>` reports a collision and is wired into
-this repository's gate chain, so a new one fails before it merges.
+Numbers are sequential and never reused.
 
 **Status values:** `Proposed` → `Accepted` or `Rejected`. An `Accepted` ADR may
 later become `Deprecated` (the decision no longer applies and nothing replaces
@@ -353,11 +339,6 @@ After follow-ons exist, the RFC's job is done. It stays in the repo as history.
 sketches, evidence, a distilled research brief lifted from a sustained
 investigation — mirroring the optional `notes/` folder a spec carries (§4). It
 is optional and informal; the RFC body remains the contract.
-
-A single promoted research file may instead sit beside the RFC as
-`NNNN-<slug>-research.md`. Both forms are companions and neither is a second
-RFC, so sharing the RFC's ordinal is correct rather than a collision; the
-duplicate-ordinal check recognises both and counts neither as a record.
 
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 

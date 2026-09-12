@@ -160,6 +160,18 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "Before I open this RFC's pull request, is the number I picked still safe to use?",
+      "expected_output": "Explains that the number is a snapshot rather than a reservation and re-derives it immediately before the PR opens, using the bundled helper, rather than reusing the value chosen at branch start. Runs the helper with `--check` against the RFC directory to report any ordinal already held by two records. Notes that the collision exists only against the default branch and is therefore invisible to review inside the branch.",
+      "assertions": [
+        "Re-derives the ordinal immediately before the pull request opens rather than reusing the branch-start value",
+        "Runs the bundled helper with `--check` against the RFC directory",
+        "Explains that the collision exists only against the default branch and is invisible to review within the branch",
+        "Treats a `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling as a companion sharing its RFC's ordinal, not a collision",
+        "Does not claim the helper reserves or holds a number"
+      ]
     }
   ]
 }

@@ -255,6 +255,25 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "work-loop", "scripts", "lint-spec-status.py",
             args=("--all",),
         ),
+        # Decision-record ordinal uniqueness. A duplicate ordinal is invisible
+        # inside the branch that creates it — it exists only against the default
+        # branch — so no review round can catch it and this gate is the control.
+        # Runs the projected copy, which is the artifact adopters also run.
+        _pytest_step(
+            "test-next-ordinal",
+            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "test_next_ordinal.py",
+        ),
+        _script_step(
+            "check-adr-ordinals",
+            ".claude", "skills", "new-adr", "scripts", "next-ordinal.py",
+            args=("--check", "docs/adr"),
+        ),
+        _script_step(
+            "check-rfc-ordinals",
+            ".claude", "skills", "new-rfc", "scripts", "next-ordinal.py",
+            args=("--check", "docs/rfc"),
+        ),
         _pytest_step(
             "test-lint-brief-coverage",
             "packs",

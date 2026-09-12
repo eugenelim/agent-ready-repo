@@ -150,6 +150,18 @@
         "Performs no ordinal, index, directory, configuration, or artifact effect",
         "Routes the handoff to compatible Core for confinement"
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "I'm about to open the PR for an ADR I drafted last week. Anything I should re-check first?",
+      "expected_output": "Names the ordinal as the thing to re-derive, and does it now rather than trusting the number chosen when the branch started, because a record that merged upstream since then has taken it and the resulting collision exists only against the default branch — invisible inside the branch, so review cannot catch it. Re-runs the bundled helper for the next ordinal and runs it with `--check` against the decision-record directory. If the number moved, renames the file and updates every citation including any bare ordinal column in the index, noting that a substitution on the `ADR-NNNN` form or on the filename fixes the link and leaves that column wrong. Does not claim the helper reserves a number.",
+      "assertions": [
+        "Re-derives the ordinal immediately before the pull request opens rather than reusing the branch-start value",
+        "Runs the bundled helper with `--check` against the decision-record directory",
+        "Explains that the collision exists only against the default branch and is invisible to review within the branch",
+        "On a moved number, updates the bare ordinal column in the index as well as the link and the filename",
+        "Does not claim the helper reserves or holds a number"
+      ]
     }
   ]
 }
