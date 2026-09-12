@@ -61,8 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The shaping reviewer's `intent` mode now checks whether an intent is
   well-formed instead of reviewing its craft. It asks six questions — is the
   statement an outcome rather than a solution, are non-goals present, is the
-  riskiest assumption named, is the altitude consistent with the parent, do the
-  children partition the parent, is the owner the artifact's own — and answers
+  riskiest assumption named, is the altitude consistent with the parent it
+  names, does the decomposition partition the artifact's own outcome, is the
+  owner the artifact's own — and answers
   with one `MALFORMED(<field>)` token per failed question, or nothing at all.
   The failure-mode table stays with `delivery-brief` and `spec` mode, which
   review contracts.
@@ -70,8 +71,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wrong owner outranks everything else, and the rest of the artifact is not the
   reviewer's to assess until it is settled.
 - A condition the supplied packet cannot settle emits its token rather than
-  passing quietly, so an intent whose parent was never supplied cannot pass the
-  altitude or children question by default.
+  passing quietly, so an intent that names a parent the packet never supplied
+  cannot pass the altitude question by default.
+- Two of the six questions are asked only when the artifact can answer them, so
+  a thing that cannot have a relation is not malformed for lacking it. The
+  altitude question is asked only of an intent that names a parent — naming none
+  is not a fault at any level. Where an intent lists no decomposition, the
+  children question is asked only above the leaf of the recognized ladder
+  (`product-vision › product-strategy › capability › feature`) once the intent
+  is `Accepted`: you frame an intent before you decompose it, and this review
+  runs at framing, so an empty decomposition at that point is a stage and not a
+  defect. A level the reviewer cannot place on that ladder skips the question
+  rather than guessing.
 - The adversarial reviewer gains an optional `intent` mode that attacks a bet
   instead of auditing an artifact. It returns an open question with a named
   decider, or a validation hook — a kill condition plus the real-world activity
@@ -92,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   question with a named decider or a kill condition with its real-world trigger.
   It cannot ask you to reword anything, and an empty answer is a real answer.
 
-## [product-engineering][0.13.12] — 2026-09-11
+## [product-engineering][0.13.12] — 2026-09-12
 
 ### Changed
 
