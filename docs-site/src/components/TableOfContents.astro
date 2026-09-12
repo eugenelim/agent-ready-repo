@@ -15,13 +15,17 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
 
 {
   walk && (
-    <nav class="guidebook-walk" aria-labelledby="guidebook-walk-heading">
+    <nav
+      class="guidebook-walk"
+      aria-label={`${walk.name} guidebook, step ${walk.step} of ${walk.steps}`}
+    >
+      {/* The visible eyebrow names the walk; the accessible name above repeats
+          it, because `aria-labelledby` pointing at "Step 4 of 5" alone told a
+          screen-reader user their position in something unnamed. */}
       <p class="walk-name">
         <code>{walk.name}</code> guidebook
       </p>
-      <h2 id="guidebook-walk-heading">
-        Step {walk.step} of {walk.steps}
-      </h2>
+      <h2 class="walk-heading">Step {walk.step} of {walk.steps}</h2>
       <ol>
         {walk.items.map((item) => (
           <li>
@@ -42,8 +46,17 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
     margin-bottom: 1.5rem;
   }
 
+  .walk-heading {
+    margin: 0 0 0.5rem;
+    font-size: var(--sl-text-h5);
+    line-height: 1.3;
+    color: var(--sl-color-white);
+  }
+
   .walk-name {
     margin: 0 0 0.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     font-size: var(--sl-text-xs);
     line-height: 1.3;
     color: var(--sl-color-gray-3);
