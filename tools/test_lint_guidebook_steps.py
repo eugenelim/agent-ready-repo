@@ -1,6 +1,6 @@
 """Construction tests for the guidebook step contract and its lint.
 
-The contract lives in `guides/AGENTS.md` § The guidebook step contract. That
+The contract lives in `docs/guides/guidebook-step-contract.md`. That
 file is the single source of the obligation identifiers, the closed set of
 judgement kinds, and the prohibited vocabulary — this module never restates
 them, because a check that carries its own copy of what it checks cannot
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = REPO_ROOT / "guides" / "AGENTS.md"
+CONTRACT = REPO_ROOT / "docs" / "guides" / "guidebook-step-contract.md"
 
 _LINT_SPEC = importlib.util.spec_from_file_location(
     "lint_guidebook_steps", REPO_ROOT / "tools" / "lint-guidebook-steps.py"
@@ -31,7 +31,10 @@ lint_guidebook_steps = importlib.util.module_from_spec(_LINT_SPEC)
 sys.modules[_LINT_SPEC.name] = lint_guidebook_steps
 _LINT_SPEC.loader.exec_module(lint_guidebook_steps)
 
-SECTION_HEADING = "## The guidebook step contract"
+# Read from the module rather than restated here. A duplicated copy meant that
+# moving the contract to its own file left the suite looking for a heading that
+# no longer existed, and three cases went red for the wrong reason.
+SECTION_HEADING = lint_guidebook_steps.SECTION_HEADING
 
 # The normative sentence makes the list binding rather than merely present.
 # Matched on its load-bearing clause, not on exact prose, so an editorial
@@ -43,13 +46,11 @@ VOCABULARY_HEADING = "### Prohibited vocabulary"
 
 
 def _contract_section() -> str:
-    """The contract section's text, or "" when the section is absent."""
+    """The contract body, or "" when its title is absent."""
     text = CONTRACT.read_text(encoding="utf-8")
     if SECTION_HEADING not in text:
         return ""
-    body = text.split(SECTION_HEADING, 1)[1]
-    # Ends at the next same-level heading.
-    return body.split("\n## ", 1)[0]
+    return text.split(SECTION_HEADING, 1)[1]
 
 
 def obligation_ids() -> tuple[str, ...]:
@@ -207,6 +208,18 @@ def _complete_step(tmp_path: Path) -> tuple[Path, object]:
         lines += _emit(contract, obligation)
     step = guidebook / "step.md"
     step.write_text("\n".join(lines), encoding="utf-8")
+    # A complete sibling step, so the directory stays a guidebook when a
+    # mutation
+    # removes the page's own `position` label. Without it, dropping `position`
+    # took the whole directory out of scope and the omission went unreported --
+    # the check vanishing exactly when it was needed.
+    sibling = guidebook / "sibling.md"
+    sibling.write_text(
+        "\n".join(lines).replace("order: 1", "order: 2").replace(
+            "**Step 1 of 1 — Fixture**", "**Step 2 of 2 — Sibling**"
+        ),
+        encoding="utf-8",
+    )
     return step, contract
 
 
