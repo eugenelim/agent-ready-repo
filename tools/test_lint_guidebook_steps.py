@@ -152,7 +152,7 @@ def _emit(contract, obligation: str) -> list[str]:
     if obligation == "next_step":
         return [f"{label} [Continue](concept.md)"]
     if obligation == "go_deeper":
-        return [f"{label} `packs/fixture/.apm/skills/fixture-skill/SKILL.md`"]
+        return [f"{label} [the fixture reference](concept.md)"]
     if obligation in ("attributed_response", "correction"):
         return [label, "> The fixture exchange."]
     if obligation == "variability":

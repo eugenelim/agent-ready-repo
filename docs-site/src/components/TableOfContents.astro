@@ -22,10 +22,20 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
       {/* The visible eyebrow names the walk; the accessible name above repeats
           it, because `aria-labelledby` pointing at "Step 4 of 5" alone told a
           screen-reader user their position in something unnamed. */}
-      <p class="walk-name">
-        <code>{walk.name}</code> guidebook
-      </p>
-      <h2 class="walk-heading">Step {walk.step} of {walk.steps}</h2>
+      {/* Pinned, because the rail is a fixed 100vh scroll container: on a
+          short viewport the eight-skill step overflows it by 145px, and
+          scrolling the rail took the reader's only orientation off the top
+          first. The step list below scrolls under this. */}
+      <div class="walk-header">
+        <span class="walk-numeral" aria-hidden="true">{walk.step}</span>
+        <span class="walk-label">
+          <span class="walk-position">Step {walk.step} of {walk.steps}</span>
+          <span class="walk-title">{walk.items.find((item) => item.current)?.title}</span>
+          <span class="walk-name">
+            <code>{walk.name}</code> guidebook
+          </span>
+        </span>
+      </div>
       <ol>
         {walk.items.map((item) => (
           <li>
@@ -46,18 +56,63 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
     margin-bottom: 1.5rem;
   }
 
-  .walk-heading {
-    margin: 0 0 0.5rem;
-    font-size: var(--sl-text-h5);
-    line-height: 1.3;
+  .walk-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.7rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--sl-color-hairline-light);
+    border-radius: 8px;
+    background: var(--sl-color-bg-sidebar, var(--sl-color-bg));
+  }
+
+  /* The numeral is the fastest thing to read in the rail, so it carries the
+     position and the words beside it carry the meaning. Hidden from assistive
+     technology because "Step 3 of 5" below already says it -- announcing a
+     bare "3" first would be noise. */
+  .walk-numeral {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--sl-color-accent) 18%, transparent);
+    color: var(--sl-color-text-accent);
+    font-size: var(--sl-text-h4);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .walk-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .walk-position {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--sl-color-gray-3);
+  }
+
+  .walk-title {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    line-height: 1.25;
     color: var(--sl-color-white);
+    text-wrap: balance;
   }
 
   .walk-name {
-    margin: 0 0 0.15rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: var(--sl-text-xs);
+    font-size: 0.65rem;
     line-height: 1.3;
     color: var(--sl-color-gray-3);
   }

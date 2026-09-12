@@ -688,3 +688,92 @@ main h1 {
   --ds-state-neutral-fg: #2b3444;
   --ds-state-neutral-border: #c4c9d2;
 }
+
+/* ---------------------------------------------------------------------------
+ * Guidebook chat exchanges
+ *
+ * A step shows what the reader types and what the agent replies. Both are
+ * blockquotes, so they rendered as one slab behind a single left rule and the
+ * turn boundary -- the only thing making the block a conversation rather than a
+ * quotation -- was invisible.
+ *
+ * `rehype-chat-turns` tags each paragraph with its speaker at build time, from
+ * the `**You:**` / `**Agent:**` lead the step contract already requires. The
+ * source stays plain Markdown because `guides/` also renders on GitHub, where
+ * this degrades to an ordinary blockquote with bold speaker labels.
+ *
+ * Speakers are separated by indent and rule colour, not colour alone: the two
+ * turns must stay distinguishable without colour vision, and the accent rule is
+ * the reader's own turn because that is the line they act on.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content blockquote.chat-exchange {
+  border-inline-start: none;
+  padding-inline-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sl-markdown-content .chat-turn {
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border-inline-start: 3px solid var(--sl-color-gray-5);
+  border-radius: 0 6px 6px 0;
+  background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+}
+
+.sl-markdown-content .chat-turn--you {
+  border-inline-start-color: var(--sl-color-accent);
+  background: color-mix(in srgb, var(--sl-color-accent) 8%, transparent);
+}
+
+.sl-markdown-content .chat-turn--agent {
+  /* Indented, so the reply reads as a response to the turn above it rather
+     than as a second statement at the same level. */
+  margin-inline-start: 1.25rem;
+}
+
+.sl-markdown-content .chat-turn > strong:first-child {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: var(--sl-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sl-color-gray-3);
+}
+
+.sl-markdown-content .chat-turn--you > strong:first-child {
+  color: var(--sl-color-text-accent);
+}
+
+@media (prefers-contrast: more) {
+  .sl-markdown-content .chat-turn {
+    border-inline-start-width: 4px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Guidebook code blocks wrap
+ *
+ * A guidebook's code blocks are not source: they are the prompt a reader types
+ * and an excerpt of the artifact they get back. Unwrapped they scrolled
+ * horizontally, and the longest prompt ran 1,775px past the edge of its own
+ * block -- so the end of the sentence the reader is meant to copy verbatim was
+ * off screen, in the one place the guide asks them to copy something exactly.
+ *
+ * Written here rather than through Expressive Code's `defaultProps: { wrap }`,
+ * which emitted byte-identical markup with and without it in this
+ * configuration -- a setting that silently does nothing is worse than no
+ * setting, because it reads as covered.
+ *
+ * `overflow-wrap: anywhere` rather than `break-word`: a templated path like
+ * `<output_dir>/screens/<slug>-informational.md` is one unbroken token and is
+ * the specific case that overflowed furthest.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content .expressive-code pre,
+.sl-markdown-content .expressive-code .ec-line .code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

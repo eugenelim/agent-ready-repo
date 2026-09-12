@@ -216,5 +216,5 @@ Stage 3 of five, and the pack's second human gate. Nothing below this point shou
 **Next:** [Design each screen](design-each-screen.md).
 <!-- rung: authored -->
 
-**Go deeper:** `packs/experience-design/.apm/skills/creative-direction/SKILL.md`
+**Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.
 <!-- rung: authored -->

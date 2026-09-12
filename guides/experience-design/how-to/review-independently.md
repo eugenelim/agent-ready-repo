@@ -101,5 +101,5 @@ This closes the `experience-design` thread. The reviewed design set is the input
 **Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours), after the independent findings are resolved.
 <!-- rung: authored -->
 
-**Go deeper:** `packs/experience-design/.apm/skills/design-review/SKILL.md`
+**Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.
 <!-- rung: authored -->
