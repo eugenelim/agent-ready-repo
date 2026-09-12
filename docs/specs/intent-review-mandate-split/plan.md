@@ -1,7 +1,7 @@
 # Plan: Intent review mandate split
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, version
   bump rule, portability rule), `packs/AGENTS.local.md` (projection ownership
   table, release pipeline), `docs/CONVENTIONS.md` § *Superseding a frozen
@@ -488,6 +488,38 @@ output observed and the projected agent revision it ran against.
 **Done when:** the ledger records each dispatch, the projected revision
 dispatched, the observed output, and whether it matched the contract.
 
+### T10: a relation the artifact cannot have is not absent evidence
+
+**Depends on:** T1, T8
+
+**Touches:** `packs/core/.apm/agents/shaping-reviewer.md`,
+`packs/core/tests/pack/test_shaping_review_contract.py`
+
+**Tests:**
+- One assertion that the body distinguishes a relation the artifact cannot have
+  from a relation it names and the packet omits. Changed bytes: the current
+  paragraph states only the fail-closed half, so the assertion reds first.
+- One assertion that the children condition is settled from the listed
+  decomposition members. Changed bytes.
+- The existing fail-closed assertion is a preservation control: an intent that
+  names an unsupplied parent must still fail condition 4, and the repair must
+  not turn absent evidence into a pass.
+
+**Approach:**
+- Amend the one paragraph that carries the fail-closed rule, at the source that
+  owns it. Keep its first half exactly as it binds today, then state the case it
+  does not reach: a root has no parent and a leaf has no children by
+  construction, so conditions 4 and 5 do not apply to them.
+- State that a listed decomposition settles condition 5 from its own members, so
+  the children's packets are not required and their absence emits no token.
+- Touch no other condition and no other mode. T8's probes located the defect in
+  one paragraph; widening the edit past it would put the repair beyond the
+  evidence that justified it.
+
+**Done when:** the two new assertions are green, the fail-closed preservation
+control is unchanged and green, and a leaf intent with no decomposition emits no
+`MALFORMED(children)` token when dispatched against the rebuilt projection.
+
 ## Rollout
 
 - **Delivery:** one PR, no flag. Both reviewers are invoked per-dispatch, so the
@@ -624,6 +656,15 @@ dispatched, the observed output, and whether it matched the contract.
   owning rule rather than fixed at minor; and the adversarial observation gained
   a positive path so it can fail. ADR-0109 was corrected to six conditions
   before commit so the governing record does not ship false.
+- 2026-09-11 — T8's observed run found a condition that cannot pass. A leaf
+  intent has no decomposition to supply, so condition 5 fired with no evidence
+  gap to close; the isolating probe supplied the parent, so altitude passed and
+  the single token named children alone. Condition 4 already treats a root's
+  absent parent as inapplicable, so one contract handled structural absence two
+  ways. The owner chose repair before ship, which reopened the criteria set
+  through the controlled amendment rather than an edit to a sealed contract.
+  T10 carries the repair; the three T8 criteria stay matched, because the
+  observation was correct about what the contract said.
 - 2026-09-11 — A throwaway probe over the reviewer body disconfirmed the first
   test design: the existing mode-slicing helper made the table-scoping assertion
   unfailable and the severity assertion tail-satisfied. T1 now adds a

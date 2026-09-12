@@ -1,6 +1,6 @@
 # Spec: Intent review mandate split
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0109, RFC-0099
@@ -141,8 +141,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   failed condition.
 - [ ] `MALFORMED(owner)` is emitted alone and suppresses the other five tokens.
 - [ ] A condition the supplied packet cannot settle emits its own token, so an
-  intent whose parent is not in the packet cannot pass the altitude or children
+  intent that names a parent the packet does not supply cannot pass the altitude
   condition by default.
+- [ ] A relation the artifact cannot have is not absent evidence and emits no
+  token: condition 4 does not apply to an intent that names no parent, and
+  condition 5 does not apply to an intent that lists no decomposition. A root
+  has no parent and a leaf has no children by construction, so neither is
+  malformed for lacking one.
+- [ ] Where a decomposition is listed, the children condition is settled from
+  those members alone, so the children's own packets are not required and their
+  absence emits no token.
 - [ ] `intent` mode emits no severity label, no `Fix:` line, and no `Clean`
   result.
 - [ ] Empty `intent`-mode output means exactly one thing: all six conditions
