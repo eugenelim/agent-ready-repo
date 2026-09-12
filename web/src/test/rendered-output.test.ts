@@ -771,8 +771,13 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     );
     const overrides = [...componentsBlock.matchAll(/(\w+):\s*'\.\//g)].map((m) => m[1]);
     expect(overrides.length, 'docs component overrides were not parsed').toBeGreaterThan(0);
+    // `TableOfContents` and `MobileTableOfContents` are additive wrappers, not
+    // replacements: both render Starlight's own component and prepend the
+    // guidebook walk above it, which is why `starlight-toc` and
+    // `mobile-starlight-toc` are still asserted present above. A replacement
+    // would fail those assertions first.
     expect(new Set(overrides), 'docs may override only the approved Starlight seams').toEqual(
-      new Set(['Footer', 'PageFrame', 'PageTitle'])
+      new Set(['Footer', 'PageFrame', 'PageTitle', 'TableOfContents', 'MobileTableOfContents'])
     );
 
     // Edit control and pagination are Starlight-owned and singular on the nested
