@@ -91,9 +91,25 @@ def test_frame_intent_review_contract_preserves_independence_and_authority() -> 
     )
 
 
+def _section(title: str) -> str:
+    """One `##` section of the skill, bounded by the next `##` heading.
+
+    Whole-file scope cannot see a section boundary. Deleting the heading below
+    merged this advisory branch into the lifecycle-bearing shaping-review
+    section above it -- so "establishes nothing" would have read as governing
+    the review that *does* block a handoff -- and every assertion here stayed
+    green. The bound is the control.
+    """
+    body = _skill_text()
+    start = body.index(f"## {title}")
+    following = re.search(r"^## ", body[start + len(title) + 3 :], re.MULTILINE)
+    end = start + len(title) + 3 + following.start() if following else len(body)
+    return body[start:end]
+
+
 def test_frame_intent_may_dispatch_the_adversarial_intent_read() -> None:
     """The optional second read is advisory and owns no lifecycle effect."""
-    text = _flat(_skill_text())
+    text = _flat(_section("Optional adversarial read of the bet"))
 
     assert "`adversarial-reviewer` in `intent` mode" in text
     assert "riskiest assumption" in text and "non-goals" in text

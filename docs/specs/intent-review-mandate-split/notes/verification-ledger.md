@@ -116,28 +116,37 @@ malformed intent, recreated from the description above, and
 supplied parent. Until that run is recorded here, the three observed-behavior
 criteria stay unchecked and `spec.md` stays `Implementing`.
 
-## Concurrent-editing incident, 2026-09-11
+## Concurrent-editing incident, 2026-09-11 — diagnosed
 
-Two load-bearing paragraphs were deleted from this change's files by an edit
-this session did not make, while the session was between commits.
+Paragraphs disappeared from this change's files three times while the session
+was between commits, and one transient state reached a commit.
 
-| # | File | Removed | How it surfaced |
-| --- | --- | --- | --- |
-| 1 | `packs/core/.apm/skills/intake-intent/SKILL.md` | 8 lines: the `MALFORMED`-token revision rule, the `Draft`-blocking rule, the materiality list, and the nonmaterial-correction carve-out | A host file-change notice; two pack tests then failed on exactly that paragraph |
-| 2 | `packs/product-engineering/.apm/skills/frame-intent/SKILL.md` | 5 lines: the independence fallback and the `unavailable` receipt | Committed by mistake, then caught by `test_frame_intent_review_contract_preserves_independence_and_authority` |
+**Cause: this session's own `quality-engineer` subagent, running mutation
+tests.** That reviewer holds `Bash`, and the brief it was given described the
+session's own mutation technique — remove the sentence a control pins, run the
+suite, restore. Each observed "deletion" was the middle of that cycle. It was
+confirmed by watching one paragraph restore itself while a different one
+disappeared, a rolling sequence through exactly the paragraphs this change's
+assertions pin. An earlier entry here attributed the edits to an unknown writer;
+that was wrong, and the attribution is now established.
 
-Both were restored from the preceding commit and verified green. The second was
-swept in by a `git add -A` issued before checking `git status`, and the commit
-was amended so no broken state remains in history.
+| # | File | Transient state observed |
+| --- | --- | --- |
+| 1 | `packs/core/.apm/skills/intake-intent/SKILL.md` | the `MALFORMED`-token revision rule, `Draft`-blocking rule, materiality list, and nonmaterial carve-out |
+| 2 | `packs/product-engineering/.apm/skills/frame-intent/SKILL.md` | the independence fallback and `unavailable` receipt |
+| 3 | `packs/product-engineering/.apm/skills/frame-intent/SKILL.md` | the `## Optional adversarial read` heading, then its advisory paragraph |
 
-**What held.** The pack tests are load-bearing rather than decorative: each
-deletion failed the assertion that pins it, and the first was confirmed failing
-*before* restoring rather than assumed. This is the value the session's four
-repaired unfailable controls did not have.
+**The real defect was mine.** A `git add -A` issued before reading `git status`
+staged transient state #2 into a commit. The commit was amended after
+`test_frame_intent_review_contract_preserves_independence_and_authority` failed,
+so no broken state remains in history.
 
-**What did not.** A clean working tree was assumed rather than checked. This
-worktree is shared, its stash stack is shared, and peer sessions were active
-throughout. `git add -A` is unsafe here; stage named paths, and read
-`git status` before every commit rather than after.
+**What this establishes about the tests.** Every transient deletion failed the
+assertion pinning it — three for three, across two packs. That is independent
+evidence the pins are load-bearing, obtained by a reviewer probing them rather
+than by the author asserting they work.
 
-No attribution is recorded. The edits are established; their author is not.
+**Operating rule while a `Bash`-holding reviewer is running.** Do not commit.
+The tree is not yours alone; a mid-mutation read looks exactly like corruption,
+and `git add -A` will capture it. Stage named paths, read `git status` first,
+and wait for the reviewer to finish before creating any commit.

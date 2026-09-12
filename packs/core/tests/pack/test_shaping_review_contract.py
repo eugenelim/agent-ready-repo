@@ -72,20 +72,6 @@ def _normalized_agent_body() -> str:
     return re.sub(r"\s+", " ", _agent_body()).strip()
 
 
-def _mode_bodies() -> dict[str, str]:
-    """Return the reviewer body keyed by its declared review mode."""
-    body = _agent_body()
-    headings = list(re.finditer(r"^### ([a-z-]+) mode$", body, re.MULTILINE))
-    return {
-        heading.group(1): body[
-            heading.end() : headings[index + 1].start()
-            if index + 1 < len(headings)
-            else len(body)
-        ]
-        for index, heading in enumerate(headings)
-    }
-
-
 def _heading_bound(text: str, start: int, level: int) -> int:
     """Index of the next heading at or above `level`, ignoring fenced blocks.
 
@@ -105,15 +91,21 @@ def _heading_bound(text: str, start: int, level: int) -> int:
             if 0 < hashes <= level and line[hashes : hashes + 1] == " ":
                 return offset
         offset += len(line)
+    if fenced:
+        raise AssertionError(
+            f"unbalanced code fence while bounding a level-{level} section; "
+            "the slice would run to end of file and any assertion on it could "
+            "be satisfied by unrelated text"
+        )
     return len(text)
 
 
 def _section(title: str, level: int) -> str:
     """Return one section's body, bounded by the next heading at or above `level`.
 
-    Granularity is load-bearing, not cosmetic. `_mode_bodies()` slices only
-    between `### <name> mode` headings, so its last slice runs to end of file and
-    swallows every shared section: an assertion attached there is satisfied by
+    Granularity is load-bearing, not cosmetic. A slicer bounded only at the next
+    heading *of the same kind* runs its last slice to end of file and swallows
+    every shared section: an assertion attached there is satisfied by
     tail text rather than by the mode's own scope. Bounding a slice at the next
     heading of equal-or-shallower depth is what makes an assertion fail for the
     reason it names -- a `###` rubric cannot be satisfied by a sibling rubric,
@@ -188,9 +180,16 @@ def test_shaping_reviewer_contract_shape() -> None:
     assert "pre-seal nonmaterial" in contract
 
 
-def test_shaping_spec_mode_owns_the_five_contract_shape_checks() -> None:
-    """The spec rubric retains every check moved from adversarial review."""
-    body = re.sub(r"\s+", " ", _mode_bodies()["spec"]).strip()
+def test_shaping_spec_mode_owns_its_contract_shape_checks() -> None:
+    """The spec rubric retains every check moved from adversarial review.
+
+    Bounded at `###`. A same-kind slicer ends its last slice at end of body, so
+    the spec slice measured 5,869 characters against a 452-character section
+    and swallowed five shared sections -- none of the literals below happened to
+    be satisfiable from that tail, so the control worked by coincidence rather
+    than by construction.
+    """
+    body = re.sub(r"\s+", " ", _section("spec mode", level=3)).strip()
 
     for check in (
         "objective",
@@ -552,8 +551,18 @@ def test_the_failure_mode_table_does_not_reach_the_intent_rubric() -> None:
     assert len(rows) >= 15, f"table not found or shrank unexpectedly: {len(rows)}"
     for row_title in rows:
         assert row_title.strip() not in rubric, row_title
-    for column_text in ("Tell", "Fix shape"):
-        assert column_text not in rubric, column_text
+    # Cells, not the header words: a bare `"Tell" not in rubric` fires on any
+    # future sentence containing Tell, Teller, or Telling.
+    cells = [
+        cell.strip()
+        for line in table.splitlines()[2:]
+        if line.startswith("|")
+        for cell in line.split("|")[2:4]
+        if cell.strip()
+    ]
+    assert len(cells) >= 30, f"expected two cells per row, got {len(cells)}"
+    for cell in cells:
+        assert cell not in rubric, cell
 
 
 def test_each_mode_agnostic_rule_has_one_named_home() -> None:

@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   question with a named decider or a kill condition with its real-world trigger.
   It cannot ask you to reword anything, and an empty answer is a real answer.
 
-## [product-engineering][0.13.11] — 2026-09-11
+## [product-engineering][0.13.12] — 2026-09-11
 
 ### Changed
 
