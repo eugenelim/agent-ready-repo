@@ -3,7 +3,9 @@
 import importlib.util
 import os
 import pathlib
+import subprocess
 import sys
+import time
 
 import pytest
 
@@ -21,6 +23,79 @@ ADR_SCRIPT = SCRIPTS.parents[1] / "new-adr/scripts/next-ordinal.py"
 def run_check(directory: pathlib.Path) -> int:
     """Run the check mode without adding another module loader."""
     return MODULE.main(["--check", os.fspath(directory)])
+
+
+def run_git(arguments: list[str | pathlib.Path], directory: pathlib.Path) -> None:
+    """Run a local Git setup command for an integration fixture."""
+    subprocess.run(
+        ["git", *arguments],
+        cwd=directory,
+        check=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+    )
+
+
+def remote_checkout(tmp_path: pathlib.Path, directory_name: str = "records") -> pathlib.Path:
+    """Build a clone whose fetched remote has a newer record than its tree.
+
+    Defaults to a SUBDIRECTORY, not the repository root. Git resolves a
+    pathspec relative to the current directory, so a root-only fixture passes
+    against an implementation that looks for the directory nested under
+    itself and matches nothing — which is how every real caller is shaped.
+    """
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    run_git(["init"], origin)
+    origin_directory = origin / directory_name
+    origin_directory.mkdir(exist_ok=True)
+    (origin_directory / "0001-a.md").touch()
+    run_git(["add", "--all"], origin)
+    run_git(
+        [
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-m",
+            "seed",
+        ],
+        origin,
+    )
+
+    checkout = tmp_path / "checkout"
+    run_git(["clone", os.fspath(origin), os.fspath(checkout)], tmp_path)
+    (origin_directory / "0009-b.md").touch()
+    run_git(["add", "--all"], origin)
+    run_git(
+        [
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-m",
+            "remote record",
+        ],
+        origin,
+    )
+    run_git(["fetch", "origin"], checkout)
+
+    checkout_directory = checkout / directory_name
+    (checkout_directory / "0001-a.md").unlink()
+    return checkout_directory
+
+
+def assert_next_output(
+    directory: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Assert the command-style interface reports the remote-inclusive result."""
+    assert MODULE.main([os.fspath(directory)]) == 0
+    assert capsys.readouterr().out == "0010\n"
 
 
 @pytest.mark.parametrize(
@@ -48,6 +123,135 @@ def test_next_ordinal_from_existing_names(
 def test_missing_directory_starts_at_one(tmp_path: pathlib.Path) -> None:
     """A directory that does not yet exist starts at ordinal one."""
     assert MODULE.next_ordinal(tmp_path / "does-not-exist") == 1
+
+
+def test_next_ordinal_unions_working_tree_and_remote_default_branch(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A fetched remote record remains reserved after local deletion."""
+    assert_next_output(remote_checkout(tmp_path), capsys)
+
+
+@pytest.mark.parametrize(
+    "case", ["not-repository", "no-remote", "unset-remote-head"]
+)
+def test_next_ordinal_git_metadata_fallbacks_keep_successful_local_answer(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str], case: str
+) -> None:
+    """Unavailable remote metadata leaves the command successful and local."""
+    if case == "not-repository":
+        directory = tmp_path / "records"
+        directory.mkdir()
+    else:
+        repository = tmp_path / "repository"
+        repository.mkdir()
+        run_git(["init"], repository)
+        directory = repository / "records"
+        directory.mkdir()
+        if case == "unset-remote-head":
+            run_git(
+                ["remote", "add", "origin", "https://example.invalid/origin.git"],
+                repository,
+            )
+    (directory / "0002-local.md").touch()
+
+    assert MODULE.main([os.fspath(directory)]) == 0
+    assert capsys.readouterr().out == "0003\n"
+
+
+def test_next_ordinal_without_git_keeps_successful_local_answer(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing Git executable is a local-only allocation, not a command failure."""
+    (tmp_path / "0002-local.md").touch()
+    monkeypatch.setenv("PATH", "")
+
+    assert MODULE.main([os.fspath(tmp_path)]) == 0
+    assert capsys.readouterr().out == "0003\n"
+
+
+def test_next_ordinal_times_out_blocking_git_and_keeps_local_answer(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A Git process that never responds cannot block allocation indefinitely."""
+    blocking_bin = tmp_path / "bin"
+    blocking_bin.mkdir()
+    blocking_git = blocking_bin / "git"
+    blocking_git.write_text("#!/bin/sh\nexec /bin/sleep 30\n", encoding="utf-8")
+    blocking_git.chmod(0o755)
+    (tmp_path / "0002-local.md").touch()
+    monkeypatch.setenv("PATH", os.fspath(blocking_bin))
+
+    started = time.monotonic()
+    assert MODULE.main([os.fspath(tmp_path)]) == 0
+    elapsed = time.monotonic() - started
+    assert elapsed < MODULE._GIT_TIMEOUT_SECONDS + 1
+    assert capsys.readouterr().out == "0003\n"
+
+
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_COMMON_DIR",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    ],
+)
+def test_next_ordinal_ignores_git_redirect_environment(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    variable: str,
+) -> None:
+    """Repository-routing variables cannot redirect the remote record lookup."""
+    directory = remote_checkout(tmp_path)
+    decoy = tmp_path / "decoy"
+    decoy.mkdir()
+    run_git(["init"], decoy)
+    (decoy / "9999-decoy.md").touch()
+    run_git(["add", "--all"], decoy)
+    run_git(
+        [
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-m",
+            "decoy",
+        ],
+        decoy,
+    )
+    values = {
+        "GIT_DIR": decoy / ".git",
+        "GIT_WORK_TREE": decoy,
+        "GIT_COMMON_DIR": decoy / ".git",
+        "GIT_OBJECT_DIRECTORY": decoy / ".git/objects",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES": decoy / ".git/objects",
+    }
+    monkeypatch.setenv(variable, os.fspath(values[variable]))
+
+    assert_next_output(directory, capsys)
+
+
+def test_next_ordinal_unions_remote_when_records_sit_at_the_repository_root(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Records kept at the repository root union the same way."""
+    assert_next_output(remote_checkout(tmp_path, "."), capsys)
+
+
+def test_next_ordinal_treats_pathspec_magic_directory_name_literally(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A record directory named like a Git pathspec still selects itself only."""
+    assert_next_output(remote_checkout(tmp_path, ":(glob)records"), capsys)
 
 
 def test_check_seeded_collision_is_red_before_clean_cases(

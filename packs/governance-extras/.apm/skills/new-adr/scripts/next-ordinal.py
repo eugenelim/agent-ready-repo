@@ -14,20 +14,32 @@ record's ordinal by design.
 
 Scans <dir> for filenames whose prefix is a run of 4 or more digits
 terminated by `-` or `.` (e.g. `0042-foo.md`, `00099-bar.md`), parses
-the digit run as an integer, prints (max + 1) zero-padded to 4 digits.
-Prints `0001` if the directory is missing or contains no matching
-entries.
+the digit run as an integer, and unions them with records in the default
+`origin` branch when its Git metadata is available. It prints (max + 1)
+zero-padded to 4 digits. Prints `0001` if the directory is missing or
+contains no matching entries.
 
 The match is strict on purpose: bare `0042.md` counts, `README.md`
 does not, and `12345-foo.md` parses as 12345 (not 1234) so 5-digit
 prefixes don't silently collide with 4-digit ones.
 """
 import argparse
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 _PREFIX = re.compile(r"^(\d{4,})[-.]")
+_GIT_TIMEOUT_SECONDS = 5
+_GIT_REDIRECT_VARIABLES = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_COMMON_DIR",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+)
+_ORIGIN_REMOTE_REF_PREFIX = "refs/remotes/origin/"
 
 
 def _record_ordinal(entry: Path) -> int | None:
@@ -36,6 +48,74 @@ def _record_ordinal(entry: Path) -> int | None:
         return None
     match = _PREFIX.match(entry.name)
     return int(match.group(1)) if match else None
+
+
+def _git_output(directory: Path, arguments: list[str]) -> str | None:
+    """Return successful Git output without letting Git failures escape."""
+    environment = os.environ.copy()
+    for variable in _GIT_REDIRECT_VARIABLES:
+        environment.pop(variable, None)
+    try:
+        result = subprocess.run(
+            ["git", "--literal-pathspecs", *arguments],
+            cwd=directory,
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+            shell=False,
+            text=True,
+            encoding="utf-8",
+            timeout=_GIT_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError, UnicodeError):
+        return None
+    return result.stdout
+
+
+def _remote_ordinals(directory: Path) -> set[int]:
+    """Return record ordinals from the checked-out repository's default remote."""
+    repository_root = _git_output(directory, ["rev-parse", "--show-toplevel"])
+    if repository_root is None:
+        return set()
+
+    remote_ref = _git_output(
+        directory, ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"]
+    )
+    if remote_ref is None:
+        return set()
+    ref = remote_ref.strip()
+    if (
+        not ref.startswith(_ORIGIN_REMOTE_REF_PREFIX)
+        or ref == _ORIGIN_REMOTE_REF_PREFIX
+    ):
+        return set()
+
+    try:
+        relative_directory = directory.resolve().relative_to(
+            Path(repository_root.strip()).resolve()
+        )
+    except (OSError, ValueError):
+        return set()
+    pathspec = (
+        f"{relative_directory.as_posix()}/" if relative_directory.parts else "."
+    )
+    # Run from the repository root, not the target directory: Git resolves a
+    # pathspec relative to the current directory, so a root-relative pathspec
+    # issued from inside the directory looks for it nested under itself and
+    # quietly matches nothing.
+    names = _git_output(
+        Path(repository_root.strip()), ["ls-tree", "--name-only", ref, "--", pathspec]
+    )
+    if names is None:
+        return set()
+
+    return {
+        int(match.group(1))
+        for name in names.splitlines()
+        if (match := _PREFIX.match(Path(name).name))
+    }
 
 
 def duplicate_ordinals(dirpath: str | Path) -> dict[int, list[str]]:
@@ -76,11 +156,11 @@ def next_ordinal(dirpath: str) -> int:
     p = Path(dirpath)
     if not p.is_dir():
         return 1
-    nums = []
+    nums = _remote_ordinals(p)
     for name in (entry.name for entry in p.iterdir()):
         m = _PREFIX.match(name)
         if m:
-            nums.append(int(m.group(1)))
+            nums.add(int(m.group(1)))
     return (max(nums) + 1) if nums else 1
 
 
