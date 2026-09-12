@@ -12,6 +12,13 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
+> **An open amendment reverts this status.** While a controlled amendment is
+> open, this spec reads `Draft` and its plan reads `Drafting`, which is what the
+> work-loop's amendment path instructs. It does not mean the implementation is
+> unwritten — committed tasks stay committed, and their sections cannot be
+> edited. Both statuses return to `Implementing` and `Approved` when the
+> amended baseline is sealed, before the change ships.
+
 ## Objective
 
 An author shaping an intent gets two narrow reviews instead of one broad one. The
@@ -120,8 +127,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] `shaping-reviewer` `intent` mode states exactly six well-formedness
   conditions: the statement is an outcome and not a solution; non-goals are
   present; the riskiest assumption is named; altitude is consistent with the
-  parent; children partition the parent with no overlap and no gap; the owner is
-  the artifact's own.
+  parent it names; the decomposition partitions the artifact's own outcome with
+  no overlap and no gap; the owner is the artifact's own.
 - [ ] The failure-mode table states the modes it governs, and `intent` is not
   among them.
 - [ ] The `intent` mode section contains no row title from that table and no
@@ -143,27 +150,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] A condition the supplied packet cannot settle emits its own token, so an
   intent that names a parent the packet does not supply cannot pass the altitude
   condition by default.
-- [ ] Applicability is keyed on the artifact's declared level, which is a packet
-  observable, and never on whether a section is absent. An absent section is how
-  an artifact looks before its author has written it, so it cannot distinguish a
-  relation that cannot exist from one that is merely unwritten.
-- [ ] Condition 4 does not apply at the root of the recognized level set, where
-  no parent can exist. At every other level a parent exists by taxonomy, so an
-  intent that names none, or names one the packet does not supply, still emits
-  `MALFORMED(altitude)`.
-- [ ] Condition 5 does not apply at the leaf of the recognized level set, where
-  no children can exist. At every other level the condition keeps a reachable
-  failing state, so an intent at one of those levels that lists no decomposition
-  emits `MALFORMED(children)`.
-- [ ] The children condition measures the artifact's own listed decomposition
-  against that artifact's own outcome, not against its parent. Both halves —
-  no overlap and no gap — are settled from the listed members, so the children's
-  own packets are not required and their absence emits no token.
+- [ ] Condition 4 applies only to an intent that names a parent. A parent is an
+  optional attribution, so an intent naming none is not malformed for it at any
+  level, and the condition has nothing to measure against. An intent that names
+  one the packet does not supply still emits `MALFORMED(altitude)`.
+- [ ] Condition 5 measures a declared set, not the presence of one. Where the
+  artifact lists a decomposition, both halves — no overlap and no gap — are
+  settled from those members against the artifact's own outcome, so the
+  children's own packets are not required and their absence emits no token.
+- [ ] Where the artifact lists no decomposition, condition 5 emits
+  `MALFORMED(children)` only when the artifact declares a level above the leaf
+  of the recognized set and a status of `Accepted`. Below that, an empty
+  decomposition is a lifecycle stage rather than a malformation: framing
+  precedes de-risking, which precedes decomposition, so an intent is childless
+  when it is framed whatever its level, and the review runs at framing.
+- [ ] A level the mode cannot place in the recognized set — declared outside it,
+  or not declared at all — suppresses only that absence branch, and emits no
+  token of its own. The result set stays at six, so no unplaceable level is
+  reported as if it were a failed altitude or children condition, and a listed
+  decomposition is still measured for overlap and gap.
 - [ ] `intent` mode emits no severity label, no `Fix:` line, and no `Clean`
   result.
-- [ ] Empty `intent`-mode output means exactly one thing: all six applicable
-  conditions hold. It is not the reviewer's expression of a refusal, a grounding
-  gap, or a failed dispatch.
+- [ ] Empty `intent`-mode output means exactly one thing: every condition that
+  applies to this artifact holds. It is not the reviewer's expression of a
+  refusal, a grounding gap, or a failed dispatch. The shipped body states the
+  same reading in the same words, so a reader of either never has to reconcile
+  a count with an applicability rule.
 - [ ] The pass a caller reads is the absence of a `MALFORMED` token on a
   completed dispatch, not an empty byte sequence. Byte-emptiness is what the
   reviewer aims at and what its own text asks for; token absence is what decides
@@ -347,12 +359,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   hook carrying both a kill condition and its triggering activity.
 - [ ] A recorded manual-QA run observes that the same mode emits no Blocker,
   Concern, Nit, rewrite, or "consider also" item on that dispatch.
-- [ ] A recorded manual-QA run dispatches, against the rebuilt projection, one
-  intent at the leaf level carrying no decomposition and one intent above the
-  leaf level carrying no decomposition, and observes that the first emits no
-  `MALFORMED(children)` token and the second emits one. A run whose two cases
-  produce the same token settles nothing, because the repair is the difference
-  between them.
+- [ ] A recorded manual-QA run dispatches three intents against the rebuilt
+  projection, each carrying no decomposition, and observes that only the third
+  emits `MALFORMED(children)`: one at the leaf level, one above the leaf at
+  `Draft`, and one above the leaf at `Accepted`. The first two are the states
+  the authoring pipeline produces and must pass; the third is the condition's
+  reachable failing state. A run whose cases produce the same output settles
+  nothing, because the repair is the difference between them.
+- [ ] A recorded manual-QA run observes that an intent declaring no level, and
+  one declaring a level outside the recognized set, each draw no token for that
+  fact alone.
 
 ## Follow-ons
 

@@ -168,7 +168,7 @@ earned a red. Each bullet says which it is.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale — `docs/adr/0108-…md` | none (pre-existing) | ADR Accepted and indexed | this spec's `Constrained by:` resolves |
+| Decision rationale — `docs/adr/0109-…md` | none (pre-existing) | ADR Accepted and indexed | this spec's `Constrained by:` resolves |
 | User-facing promise — three guide passages | T6 | a read of each changed passage plus the `! grep -q` absence check; the roster documentation suite covers `core-pack.md` only | every changed passage reads true against shipped agents |
 | Interface compatibility — `core-intent-shaping-review` entry | T3 | `test_frame_intent_shaping_review.py` whole-dict comparison | entry names no `Clean` |
 | Release history — `docs/product/changelog.md` | T7 | free-standing `##` entry per pack | versions match the shipped manifests |
@@ -508,8 +508,21 @@ dispatched, the observed output, and whether it matched the contract.
 - **Preservation control.** `test_shaping_review_contract.py:504-505` pins
   `"A condition the packet cannot settle emits its token"` and
   `"absent evidence fails closed"`. Both sentences survive this edit verbatim,
-  so both assertions stay green: an intent at a level that has a parent, naming
-  one the packet does not supply, must still fail condition 4.
+  so both assertions stay green: an intent naming a parent the packet does not
+  supply must still fail condition 4.
+- **Changed bytes, named because a pin sits on them.**
+  `packs/core/.apm/agents/shaping-reviewer.md:54` reads "Emit nothing at all when
+  all six conditions hold" and is pinned verbatim at
+  `test_shaping_review_contract.py:515`. Once a condition can be inapplicable,
+  a fixed count is false at the root and the leaf, so the sentence and its
+  assertion both move to the applicability reading. An unnamed pin is how the
+  earlier rounds of this change kept manufacturing false reds.
+- **Changed bytes.** The condition-5 enumeration at
+  `packs/core/.apm/agents/shaping-reviewer.md:33` reads "Children partition the
+  parent", where "the parent" is the artifact under review — the opposite
+  referent from condition 4's parent. It is restated to name the artifact's own
+  outcome, in the same words the applicability rule uses, because a reader meets
+  the enumeration before the rule.
 
 **Approach:**
 - Amend the one paragraph that carries the fail-closed rule, at the source that
@@ -526,9 +539,10 @@ dispatched, the observed output, and whether it matched the contract.
 - Write the rule as portable prose that names levels by their role in the
   recognized set — root and leaf — so the body states the rule directly and
   cites no acceptance criterion, as the pack boundary requires.
-- Touch no other condition and no other mode. T8's probes located the defect in
-  one paragraph; widening the edit past it would put the repair beyond the
-  evidence that justified it.
+- Touch conditions 4 and 5 and the two sentences named above, and nothing else.
+  The earlier draft of this task said "touch no other condition", which read as
+  forbidding the condition-5 restatement that the applicability rule exists to
+  settle — a scope line narrow enough to ship a body contradicting itself.
 
 **Done when:** the new assertions are green, the two preservation-control
 assertions are unchanged and green, and the body states a failing state for
@@ -554,13 +568,16 @@ marketplace manifest, and `web/src/lib/now-highlights.generated.json`
   publishes.
 
 **Approach:**
-- Correct the `core` entry rather than adding a second one, and say why here so
-  a later reader does not read it as an edit to published history: `2.25.17` is
-  unreleased. `origin/main` carries `2.25.16`, this branch has never been
-  pushed, and no consumer has seen `2.25.17`. The bullet stating that an
-  unsupplied parent fails both the altitude and children questions describes
-  behavior this amendment removes before anyone runs it, so leaving it and
-  appending a correction below would publish a contradiction in one release.
+- Correct the `core` entry rather than adding a second one. The bump rule's
+  prohibition is on borrowing an unreleased version *from another change*; this
+  amendment is content inside the same unshipped delivery that produced
+  `2.25.17`, so no consumer-visible version is reused and the harm the rule
+  names does not arise. `origin/main` carries `2.25.16` and this branch has
+  never been pushed, so nothing has published `2.25.17` to contradict.
+- The bullet stating that an unsupplied parent fails both the altitude and
+  children questions describes behavior this amendment removes before anyone
+  runs it. It is corrected in place rather than left standing with a retraction
+  below it, because one release cannot both promise and withdraw a behavior.
 - Keep the single `2.25.17` patch bump. The amendment is content change inside
   an unreleased version, not a second release.
 - Regenerate every projection rather than editing one; `.apm/` is the only
@@ -585,9 +602,14 @@ no changelog bullet describes behavior the shipped body does not have.
 - Dispatch from a session that loads the rebuilt projection. A host serves the
   agent body it read at session start, so a session that edited the body cannot
   observe it — the reason T8 was blocked once already.
-- Run the two-case pair the criterion names: one intent at the leaf level with
-  no decomposition, one above the leaf level with no decomposition. The pair is
-  the evidence; a single case cannot distinguish a repair from a removal.
+- Run the three cases the criterion names, all carrying no decomposition: leaf
+  level, above-leaf at `Draft`, above-leaf at `Accepted`. Only the third emits
+  `MALFORMED(children)`. The set is the evidence — a single case cannot
+  distinguish a repair from a removal, and the first two are the states the
+  authoring pipeline actually produces, so a rule that fires on them is a rule
+  that blocks the pipeline.
+- Run the two unplaceable-level cases: no level declared, and a level outside
+  the recognized set. Neither draws a token for that fact alone.
 - Re-run the three T8 dispatches against the amended bytes and record the new
   revision and projection hashes beside the originals. The earlier run stays in
   the ledger as the before-state — it was correct about the bytes it read, and
