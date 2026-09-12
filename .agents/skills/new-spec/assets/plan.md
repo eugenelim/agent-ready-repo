@@ -12,6 +12,15 @@
 > only lifecycle bookkeeping is permitted, and execution observations belong in
 > `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
 > equivalent). A genuine artifact error follows the controlled-amendment path.
+>
+> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
+> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
+> and `Risks` are working material: an implementer corrects them in place as the
+> work teaches, without an amendment and without a review round. Treating them as
+> contract is how a review spends a round on prose no gate consumes — the
+> measured share is over half the plan's lines. `Grounding` stays *recorded*,
+> because a per-task resolution that nobody wrote is not grounding; what it stops
+> being is a claim a reviewer holds the plan to.
 
 <!-- Existing plans without this field remain valid. Treat its absence as a
 named assurance gap during structural review, not a universal lint failure. -->
