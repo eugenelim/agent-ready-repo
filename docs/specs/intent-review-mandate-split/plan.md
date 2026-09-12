@@ -171,7 +171,7 @@ earned a red. Each bullet says which it is.
 | Decision rationale — `docs/adr/0109-…md` | T13 | decision item 1 read against the amended criteria | the record states condition 4's named-parent trigger and condition 5's own-outcome referent with its level-and-status absence branch |
 | User-facing promise — three guide passages | T6 | a read of each changed passage plus the `! grep -q` absence check; the roster documentation suite covers `core-pack.md` only | every changed passage reads true against shipped agents |
 | Interface compatibility — `core-intent-shaping-review` entry | T3 | `test_frame_intent_shaping_review.py` whole-dict comparison | entry names no `Clean` |
-| Release history — `docs/product/changelog.md` | T7 | free-standing `##` entry per pack | versions match the shipped manifests |
+| Release history — `docs/product/changelog.md`, `web/src/lib/now-highlights.generated.json` | T7, T11 | free-standing `##` entry per pack, read for the applicability rule's presence and for any bullet the shipped body contradicts, plus the regenerated `/now/` projection | versions match the shipped manifests, the `core` entry states the applicability rule, no bullet describes behaviour the body lacks, and the committed projection matches its changelog source |
 | Frozen-record navigation — superseded spec, plan, RFC | T5 | `git diff` shows only `Status` lines | pointers resolve to ADR-0109 |
 
 ## Design (LLD)
@@ -514,6 +514,16 @@ dispatched, the observed output, and whether it matched the contract.
   cannot place suppresses the absence branch and emits no token. Changed bytes.
   T12 observes it end to end, but a manual observation is not the standing
   control, and this criterion changes body bytes like any other.
+- **The deleted clause, asserted by its absence.** One assertion over the
+  `###`-level `intent mode` slice whose failing state is the surviving
+  `conditions 4 or 5` reading: the replacement sentence present, and the phrase
+  binding an unsupplied parent to the children condition absent. Changed bytes.
+  Every other assertion in this list is a positive substring check on prose the
+  task adds, so all eight stay green on a body that adds everything asked of it
+  and leaves `or 5` standing — a body asserting that an unsupplied parent fails
+  the children condition beside a rule saying that condition never reads the
+  parent. Deleting a clause needs a control that fails while it survives;
+  nothing in the repository pins this one today.
 - One assertion that the children condition measures the artifact's own
   decomposition against its own outcome. Changed bytes.
 - **Preservation control.** `test_shaping_review_contract.py:504-505` pins
