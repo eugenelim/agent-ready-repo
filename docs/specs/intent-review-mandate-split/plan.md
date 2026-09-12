@@ -1,7 +1,7 @@
 # Plan: Intent review mandate split
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, version
   bump rule, portability rule), `packs/AGENTS.local.md` (projection ownership
   table, release pipeline), `docs/CONVENTIONS.md` § *Superseding a frozen
