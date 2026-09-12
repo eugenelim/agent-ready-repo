@@ -27,11 +27,11 @@ order: 3
 
 ## What you will run
 
-| Skill | What it produces | Needed? |
-| --- | --- | --- |
-| `design-principles` | 3–5 named principles, each grounded in a journey moment. | Optional |
-| `creative-direction` | Named emotional and brand goals grounded in stable referents. | Required |
-| `design-system` | Primitive and semantic tokens derived from the aesthetic direction. | Optional |
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
+| `creative-direction` | The audience and any brand or precedent referents | Named emotional and brand goals grounded in stable referents. | Required |
+| `design-system` | The approved aesthetic direction | Primitive and semantic tokens derived from the aesthetic direction. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
@@ -52,12 +52,14 @@ Turn these journey pains and peak moments into three to five design principles.
 **Agent returns:**
 <!-- rung: design-principles SKILL.md -->
 
-> **Agent:** Named, ranked decision rules with rationale, arbitration tests, and known trade-offs.
+> **Agent:** Done — I've written named, ranked decision rules with rationale, arbitration tests, and known trade-offs to `docs/design/principles/<slug>.md`.
 
 **You push back:**
 <!-- rung: design-principles SKILL.md -->
 
-> “ ‘Be trustworthy’ is a brand value, not a rule that distinguishes two screen choices. Derive a testable principle from the setup failure moment.” The agent replaces it with a product-specific rule and an opposing case.
+> **You:** ‘Be trustworthy’ is a brand value, not a rule that distinguishes two screen choices. Derive a testable principle from the setup failure moment.
+>
+> **Agent:** I replaced it with a product-specific rule and an opposing case.
 
 **Output varies** with the journey’s peak moments, highest-opportunity pains, and recurring disputes.
 <!-- rung: design-principles SKILL.md -->
@@ -97,17 +99,19 @@ Set a visual direction for this surface from its audience, persona, precedents, 
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
 
-> **Agent:** A named, ranked aesthetic direction grounded in stable referents.
+> **Agent:** Done — I've written a named, ranked aesthetic direction grounded in stable referents to `<output_dir>/aesthetic/<slug>.md`.
 
 **You push back:**
 <!-- rung: creative-direction SKILL.md -->
 
-> “ ‘Clean and modern’ could describe any product. Ground each goal in a named audience need or precedent quality, rank them, and say what you are not borrowing.” The agent replaces the generic direction with specific, bounded goals.
+> **You:** ‘Clean and modern’ could describe any product. Ground each goal in a named audience need or precedent quality, rank them, and say what you are not borrowing.
+>
+> **Agent:** I replaced the generic direction with specific, bounded goals.
 
 **Output varies** with the audience, referents, target surface, and genre.
 <!-- rung: creative-direction SKILL.md -->
 
-**You decide:** Approve a specific aesthetic direction before screen design begins.
+**You decide:** Approve a specific aesthetic direction before screen design begins. This is the pack's `approve-aesthetic-direction` gate, and it covers the token set below too — one decision, not two.
 <!-- rung: JOURNEY stage 3 -->
 
 **Check (grounded):** Ask what persona, precedent quality, standard, or platform convention supports each goal; this surfaces fresh opinion presented as direction.
@@ -165,17 +169,19 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 **Agent returns:**
 <!-- rung: JOURNEY stage 3 -->
 
-> **Agent:** A semantic token and scale taxonomy whose roles trace to the approved direction.
+> **Agent:** Done — I've written a semantic token and scale taxonomy whose roles trace to the approved direction to `<output_dir>/aesthetic/<slug>-tokens.md`.
 
 **You push back:**
 <!-- rung: design-system SKILL.md -->
 
-> “The accent color appears as an isolated value with no semantic role. Replace it with a role derived from the direction, and keep implementation values out of this taxonomy.” The agent repairs the role and its rationale.
+> **You:** The accent color appears as an isolated value with no semantic role. Replace it with a role derived from the direction, and keep implementation values out of this taxonomy.
+>
+> **Agent:** I repaired the role and its rationale.
 
 **Output varies** with the direction’s named goals, surface needs, and accessibility constraints.
 <!-- rung: design-system SKILL.md -->
 
-**You decide:** Approve the direction and token taxonomy before screens are designed.
+**You decide:** The same `approve-aesthetic-direction` gate as above closes here, once the token roles trace to the direction you approved.
 <!-- rung: JOURNEY stage 3 -->
 
 **Check (grounded):** Ask which named aesthetic goal explains each token role; this surfaces arbitrary values and roles imported from a generic system.
@@ -201,6 +207,11 @@ Derive the semantic token and scale taxonomy from the approved aesthetic directi
 *Section shape only. This skill ships no output template, so the guide cannot show you real content here — confirm the shape against what you get back.*
 
 ## Where this leads
+
+**Done with this step:** You can move on when each principle decides between two real screen choices and each token role traces to a named aesthetic goal.
+<!-- rung: authored -->
+
+Stage 3 of five, and the pack's second human gate. Nothing below this point should be re-litigating the direction.
 
 **Next:** [Design each screen](design-each-screen.md).
 <!-- rung: authored -->

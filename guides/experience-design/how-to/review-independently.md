@@ -27,9 +27,9 @@ order: 5
 
 ## What you will run
 
-| Skill | What it produces | Needed? |
-| --- | --- | --- |
-| `design-review` | Findings against the quality floor before the independent review. | Required |
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `design-review` | The finished screens, plus the principles and direction | Findings against the quality floor before the independent review. | Required |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In every path below, `<output_dir>` is the design output directory
@@ -50,17 +50,19 @@ Review this design set against its user task, principles, quality floor, genre r
 **Agent returns:**
 <!-- rung: design-review SKILL.md -->
 
-> **Agent:** Severity-rated findings tied to observed evidence and a principle, floor commitment, heuristic, genre rule, or grounded aesthetic goal.
+> **Agent:** Done — I've written severity-rated findings tied to observed evidence and a principle, floor commitment, heuristic, genre rule, or grounded aesthetic goal to `<output_dir>/screens/<slug>-review.md`.
 
 **You push back:**
 <!-- rung: design-review SKILL.md -->
 
-> “You called the empty state clean, but the flow says a new account has no connected source and the screen offers no recovery action. Re-review that state against the user task.” The agent records the missing recovery as a finding and cites the observed state.
+> **You:** You called the empty state clean, but the flow says a new account has no connected source and the screen offers no recovery action. Re-review that state against the user task.
+>
+> **Agent:** I recorded the missing recovery as a finding and cited the observed state.
 
 **Output varies** with the review scope, screen genre, supplied states, and grounded evidence.
 <!-- rung: design-review SKILL.md -->
 
-**You decide:** Resolve blockers before the design enters build planning, then review the independently returned findings.
+**You decide:** Resolve blockers before the design enters build planning, then review the independently returned findings — the pack's `review-experience-designs` gate.
 <!-- rung: JOURNEY stage 5 -->
 
 **Check (falsifiable):** Ask what was observed and which rule or commitment each finding violates; this surfaces taste presented as a defect and findings with no evidence.
@@ -90,6 +92,11 @@ Review this design set against its user task, principles, quality floor, genre r
 The journey then invokes the read-only `experience-reviewer` in an independent context. It is a reviewer role, not a skill you type. Resolve its blockers before design feeds the build loop.
 
 ## Where this leads
+
+**Done with this step:** You are done when every blocker is resolved and the remaining findings are ones you have consciously accepted.
+<!-- rung: authored -->
+
+This closes the `experience-design` thread. The reviewed design set is the input to the build loop — where engineering picks it up.
 
 **Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours), after the independent findings are resolved.
 <!-- rung: authored -->
