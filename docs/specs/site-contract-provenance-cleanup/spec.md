@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md), [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md)
+- **Constrained by:** [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md), [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md)
 - **Brief:** docs/product/briefs/tech-site-completion.md
 - **Discovery:** none
 - **Contract:** none
@@ -61,13 +61,13 @@ contains no duplicate or already-shipped site debt.
 
 ## Acceptance Criteria
 
-- [x] The Phase 4b product-docs spec Status names ADR-0055 as the standing
+- [x] The Phase 4b product-docs spec Status names ADR-0109 as the standing
   authority for the corrected docs URL instruction and names the spec that
   applied the correction, identifies only that scope, states plainly that it is
-  not a supersession of a decision made in that spec (ADR-0055 was already
+  not a supersession of a decision made in that spec (ADR-0109 was already
   Accepted when it shipped, so the instruction was contrary to it rather than
   superseded by it), and leaves every other frozen body byte unchanged.
-- [x] After RFC-0089's follow-on palette ADR exists, ADR-0055's Status points
+- [x] After RFC-0089's follow-on palette ADR exists, ADR-0109's Status points
   forward to that ADR for only the superseded token-sharing rationale, and the
   frozen `starlight-migration` spec Status points to it for only the amber
   palette/token assertions; every frozen body byte remains unchanged.
@@ -100,9 +100,9 @@ contains no duplicate or already-shipped site debt.
 
 - Technical: combined page and fragment checking already runs after both site
   builds (source: `.github/workflows/pages.yml` and `Makefile`).
-- Technical: ADR-0055 is the accepted authority for the Starlight docs boundary
+- Technical: ADR-0109 is the accepted authority for the Starlight docs boundary
   and build order, while RFC-0089 D2 owns the evidence-backed palette
-  reconciliation (source: ADR-0055, RFC-0089, and the shipped
+  reconciliation (source: ADR-0109, RFC-0089, and the shipped
   `docs-site-design-refresh` spec).
 - Product: stale items close without reopening shipped behavior (source: user
   confirmation 2026-08-17).

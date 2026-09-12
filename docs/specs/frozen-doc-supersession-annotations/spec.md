@@ -20,7 +20,7 @@ slug: frozen-doc-supersession-annotations
   [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md),
   [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md),
   [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) and
-  [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md)
+  [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md)
   (the four supersessions found **not** to warrant a spec-end annotation)
 - **Contract:** none
 - **Shape:** service
@@ -259,8 +259,8 @@ survey never scanned, disposed of here rather than left unexamined:
 
 - **ADR-0001 → ADR-0020.** No spec cites ADR-0001 in `Constrained by:`. Nothing
   to annotate.
-- **ADR-0050 → ADR-0055.** One spec cites it: `marketing-docs-link-repair`,
-  whose `Constrained by:` names **ADR-0055 on the very next line**, with the
+- **ADR-0050 → ADR-0109.** One spec cites it: `marketing-docs-link-repair`,
+  whose `Constrained by:` names **ADR-0109 on the very next line**, with the
   clause that makes the new target correct. The reader is forwarded inside the
   field they are already reading, so no annotation. (`frontend-engineering-skill`
   has the same property for ADR-0023 → ADR-0042 — see § Decision 3.)
@@ -372,7 +372,7 @@ remainder, and 11 + 8 = 19 closes:
 | `sast-sca-tooling` | ADR-0017 | — | Not missed: already annotated by `frozen-spec-supersession` itself, so its § Survey listed the fix, not the gap |
 
 **2. The survey scanned three chains; there are five.** ADR-0001 → ADR-0020 and
-ADR-0050 → ADR-0055 were never named. § Decision 6 disposes of both.
+ADR-0050 → ADR-0109 were never named. § Decision 6 disposes of both.
 
 **3. The header scan is not the population at all.** § Decision 4's body grep
 found `distribution-adapters/spec.md` — a normative projection table teaching a
@@ -466,7 +466,7 @@ already covers the thing a machine can check — that the token still parses.
   ADR-0017 pass for the suppression form, because both are literal strings.
   **Two chains have no such string and rest on the header scan alone:**
   ADR-0023's superseded *framing* (a reviewer-ceiling argument has no fixed
-  spelling), and ADR-0050 → ADR-0055 (a body survey there means reading the
+  spelling), and ADR-0050 → ADR-0109 (a body survey there means reading the
   whole MkDocs → Starlight migration — registered as
   `adr-0050-supersession-body-survey`, with a live counterexample already found
   in `platform-site/spec.md`). A document stating either superseded decision

@@ -60,8 +60,7 @@
 | 0052 | [Nine experience-pack skill renames — live surface renamed, frozen governance bridged, no install-time alias](0052-nine-experience-pack-skill-renames.md) | Accepted |
 | 0053 | [product-strategy pack — scope and discipline boundaries](0053-product-strategy-pack-scope-and-discipline-boundaries.md) | Accepted |
 | 0054 | [Session-arc verb taxonomy and pack-type classification for skill naming](0054-session-arc-verb-taxonomy-and-pack-type-classification.md) | Accepted |
-| 0055a | [Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline](0055-starlight-replaces-mkdocs-for-reference-docs.md) | Accepted |
-| 0055b | [Wave 1 docs restructure — lift contracts/ and guides/ to repo root](0055-wave1-docs-restructure-contracts-and-guides-to-repo-root.md) | Accepted |
+| 0055 | [Wave 1 docs restructure — lift contracts/ and guides/ to repo root](0055-wave1-docs-restructure-contracts-and-guides-to-repo-root.md) | Accepted |
 | 0056 | [catalogue\_tooling as the portable catalogue engine module](0056-catalogue-tooling-as-portable-engine-module.md) | Accepted |
 | 0057 | [Promote `frontend-engineering` to first-class pack; delete core resident to resolve footprint conflict](0057-frontend-engineering-pack-promotion-and-resident-deletion.md) | Accepted |
 | 0058 | [Per-pack config root (`user-root`) stored as an optional field on `PackState` adapter rows in user-scope `state.toml`](0058-per-pack-config-root-in-packstate-adapter-rows.md) | Accepted |
@@ -112,10 +111,11 @@
 | 0103 | [The completion receipt carries a delivery outcome, not an artifact disposition, and rides on the citing dependency edge](0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md) | Accepted |
 | 0104 | [Light mode's review stops on divergence, not on a round budget](0104-light-mode-review-stops-on-divergence.md) | Proposed |
 | 0105 | [Retained lifecycle records may terminate as Reclassified](0105-retained-lifecycle-records-may-terminate-as-reclassified.md) | Accepted |
-| 0106 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
-| 0106 | [Direct skill identity and upgrade revision route](0106-direct-skill-identity-and-upgrade-revision-route.md) — shares the 0106 ordinal with the row above; both were accepted independently and neither is renumbered, because an accepted ADR's identifier is cited elsewhere | Accepted |
+| 0106 | [Direct skill identity and upgrade revision route](0106-direct-skill-identity-and-upgrade-revision-route.md) | Accepted |
 | 0107 | [The Claude-plugin route serves non-technical adopters, as individual per-pack plugins](0107-claude-plugin-route-serves-non-technical-adopters.md) | Accepted |
 | 0108 | [Identity for loop-contract items — opaque and append-only, not positional](0108-opaque-append-only-loop-contract-identifiers.md) | Accepted |
+| 0109 | [Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline](0109-starlight-replaces-mkdocs-for-reference-docs.md) | Accepted |
+| 0110 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
 
 ## Adding a new ADR
 

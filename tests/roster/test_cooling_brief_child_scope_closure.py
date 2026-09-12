@@ -2,7 +2,7 @@
 
 Governing contract: `docs/specs/cooling-brief-child-scope-closure/spec.md`.
 The decision and its accepted limitation are recorded in
-`docs/adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md`.
+`docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md`.
 
 Fixtures are named, not numbered, and match the spec's shared-fixture table:
 **Declared**, **Empty** and **Absent** differ only in the child entry's raw

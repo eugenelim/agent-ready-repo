@@ -16,7 +16,7 @@ pass.
 
 ## Constraints
 
-- Follow RFC-0089, ADR-0055, ADR-0085, and the
+- Follow RFC-0089, ADR-0109, ADR-0085, and the
   frozen-document supersession rules in `docs/CONVENTIONS.md`.
 - Preserve the provenance blocks registered in `workspace.toml`.
 - Do not change routes, navigation, or checker behavior.
@@ -39,7 +39,7 @@ current operational instruction. Traces to: all acceptance criteria.
 
 ### Dependencies & integration
 
-The frozen Phase 4b spec points upward to ADR-0055. The earlier ADR and frozen
+The frozen Phase 4b spec points upward to ADR-0109. The earlier ADR and frozen
 Starlight migration spec point to RFC-0089's follow-on ADR (ADR-0085, Accepted
 2026-08-17) for only their superseded palette/token scope. Living guidance points
 to the existing combined checker. Traces to: AC1-AC8.
@@ -77,13 +77,13 @@ term is never quoted in a tracked file, commit, or PR body. Traces to: AC9-AC10.
 
 **Depends on:** none
 
-**Touches:** docs/specs/phase4b-product-docs-completion/spec.md, docs/adr/0055-starlight-replaces-mkdocs-for-reference-docs.md, docs/specs/starlight-migration/spec.md, guides/AGENTS.md, docs-site/AGENTS.md, Makefile
+**Touches:** docs/specs/phase4b-product-docs-completion/spec.md, docs/adr/0109-starlight-replaces-mkdocs-for-reference-docs.md, docs/specs/starlight-migration/spec.md, guides/AGENTS.md, docs-site/AGENTS.md, Makefile
 
 **Tests:**
 - Goal-based: the three frozen documents each show exactly one changed line
   (`git diff --numstat`), and each annotation carries the licensed carrier for
   its document type — the spec parenthetical for the two specs, the ADR
-  `partially amended` house form for ADR-0055 (AC1-AC2).
+  `partially amended` house form for ADR-0109 (AC1-AC2).
 - Goal-based: no living-guidance file claims the repository has no link checker
   or that the two generation sequences are identical, and each names the
   canonical checker entry point (AC3).
@@ -106,7 +106,7 @@ report no stale claim.
 
 **Depends on:** T1
 
-**Touches:** docs/specs/phase4b-product-docs-completion/spec.md, docs/adr/0055-starlight-replaces-mkdocs-for-reference-docs.md, docs/specs/starlight-migration/spec.md, guides/AGENTS.md, docs-site/AGENTS.md, Makefile
+**Touches:** docs/specs/phase4b-product-docs-completion/spec.md, docs/adr/0109-starlight-replaces-mkdocs-for-reference-docs.md, docs/specs/starlight-migration/spec.md, guides/AGENTS.md, docs-site/AGENTS.md, Makefile
 
 **Tests:**
 - Goal-based: run the T1 checks (AC1-AC3).
@@ -115,9 +115,9 @@ report no stale claim.
 **Approach:**
 - Amend only the Phase 4b Status line — line 3, spelled `**Status:** Shipped`
   inside the leading fence rather than as a `- **Status:**` list item.
-- ADR-0085 already exists and carries the backward `Supersedes: ADR-0055 in
+- ADR-0085 already exists and carries the backward `Supersedes: ADR-0109 in
   part` pointer, so the forward pointer completes the both-ends rule; amend only
-  ADR-0055's and the Starlight migration spec's Status lines, each scoped to the
+  ADR-0109's and the Starlight migration spec's Status lines, each scoped to the
   palette/design-token assertions alone.
 - Replace obsolete link-check guidance with the two-build ordering and checker
   reference, documenting CI's split generation stages separately from the local
