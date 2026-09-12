@@ -309,5 +309,5 @@ This is stage 1 of the `experience-design` thread. Four steps remain before the 
 **Next:** [Derive the screen flow](derive-the-screen-flow.md).
 <!-- rung: authored -->
 
-**Go deeper:** `packs/experience-design/.apm/skills/journey-mapping/SKILL.md`
+**Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.
 <!-- rung: authored -->

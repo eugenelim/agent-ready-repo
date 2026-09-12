@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
 import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
+import { rehypeChatTurns } from './src/plugins/rehype-chat-turns';
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
@@ -52,7 +53,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [remarkMermaid],
-      rehypePlugins: [rehypeScrollableTables],
+      rehypePlugins: [rehypeScrollableTables, rehypeChatTurns],
     }),
   },
   integrations: [

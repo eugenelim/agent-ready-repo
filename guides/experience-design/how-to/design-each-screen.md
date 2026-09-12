@@ -445,5 +445,5 @@ Stage 4 of five. The next step is the last inside this pack.
 **Next:** [Review independently](review-independently.md).
 <!-- rung: authored -->
 
-**Go deeper:** `packs/experience-design/.apm/skills/interaction-design/SKILL.md`
+**Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.
 <!-- rung: authored -->

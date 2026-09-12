@@ -329,5 +329,5 @@ Stage 2 of five. The briefs produced here are what every later step reads.
 **Next:** [Establish design intent](establish-design-intent.md).
 <!-- rung: authored -->
 
-**Go deeper:** `packs/experience-design/.apm/skills/user-flow/SKILL.md`
+**Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.
 <!-- rung: authored -->

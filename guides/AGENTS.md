@@ -60,7 +60,7 @@ rather than guesses. Prose that merely *mentions* a label does not declare it.
 | `concept_resolved` | `**Concepts:**` with links | step |
 | `step_map` | `## What you will run` then a table | step |
 | `next_step` | `**Next:**` with a link | step |
-| `go_deeper` | `**Go deeper:**` with a path | step |
+| `go_deeper` | `**Go deeper:**` with a resolving link | step |
 | `utterance` | `**You type:**` then a fenced block | per skill |
 | `attributed_response` | `**Agent returns:**` then a blockquote | per skill |
 | `correction` | `**You push back:**` then a blockquote | per skill |
@@ -148,8 +148,13 @@ models disagreement is a demo.
 purpose reads as ceremony. Keep it factual: this surface's content brief
 forbids a persuasive before-and-after framing.
 
-`go_deeper` closes with a path, not prose. The pack's own files stay
-authoritative and each step is a projection of them.
+`go_deeper` closes with a link a reader can follow, and it must cover the whole
+step. A step running eight skills that pointed at one skill's `SKILL.md` was
+wrong twice over: the skill was chosen arbitrarily, and a `SKILL.md` is an
+instruction file written for an agent, not reference written for an adopter.
+Point at the pack's own reader-facing reference, which covers every skill the
+step runs. Where a step runs exactly one skill, that skill's entry in the same
+reference is the right depth.
 
 `artifact_preview` shows the reader the thing, not a description of it. A list
 of headings tells someone what sections exist; it does not tell them what the

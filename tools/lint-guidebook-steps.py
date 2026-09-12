@@ -18,7 +18,7 @@ because a label wrapped across a newline stops being one token:
     concept_resolved    **Concepts:**
     step_map            ## What you will run  then a table
     next_step           **Next:**
-    go_deeper           **Go deeper:**
+    go_deeper           **Go deeper:**  with a resolving link
     utterance           **You type:**  then a fenced block
     attributed_response **Agent returns:**  then a blockquote
     correction          **You push back:**  then a blockquote
@@ -371,8 +371,11 @@ def _check_obligation(
             # A step showing only a clean response teaches a reader to accept
             # the first draft. The correction turn is quoted like any other.
             findings.append(Finding(path, step, obligation, "must be followed by the corrected exchange as a blockquote"))
-        elif primary.startswith("**Go deeper:") and not re.search(r"`[^`]+`", line):
-            findings.append(Finding(path, step, obligation, "must point at a path, not prose"))
+        elif primary.startswith("**Go deeper:") and not re.search(r"\]\([^)]+\)", line):
+            # A backticked repository path was accepted before, which let a
+            # reader-facing step close by naming a file only a maintainer can
+            # open. Depth has to be reachable from the page.
+            findings.append(Finding(path, step, obligation, "must carry a resolving link a reader can follow"))
         elif primary.startswith("**Check ("):
             match = re.match(r"^\*\*Check \(([^)]+)\):\*\*", line)
             if match is None:
