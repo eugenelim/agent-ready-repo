@@ -316,6 +316,23 @@ prose requires it, so a later reading could go the other way.
 Raised for the owner. Neither is recorded as a reviewer defect against T8: the
 three T8 criteria are observed above and matched.
 
+### Owner decision, 2026-09-11 — condition 5 is repaired before this ships
+
+The scope owner was shown probe B and the two-row disposition table above, and
+chose to repair condition 5 before merge rather than ship it and follow on. The
+decision was taken on the measured finding, not on a general caution: a leaf
+intent is the modal shape this reviewer sees, and no packet a leaf can present
+makes condition 5 pass.
+
+Condition 4 is repaired in the same change, for the opposite reason. The
+reviewer already treats a root's absent parent as inapplicable, so nothing about
+its behavior changes; what changes is that the contract now says so, which is
+what stops a later reading from going the other way.
+
+This decision amends the approved acceptance-criteria set, so it runs through
+the controlled amendment path rather than an edit to a sealed contract. This
+section is the authority reference that transition cites.
+
 ## Concurrent-editing incident, 2026-09-11 — diagnosed
 
 Paragraphs disappeared from this change's files three times while the session
