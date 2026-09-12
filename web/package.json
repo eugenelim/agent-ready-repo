@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
-    "@vitest/ui": "4.1.11",
+    "@vitest/ui": "5.0.0",
     "axe-core": "4.13.0",
     "jsdom": "30.0.1",
     "vitest": "4.1.11"
