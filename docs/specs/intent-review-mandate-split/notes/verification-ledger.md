@@ -107,6 +107,19 @@ named decider, raised on an accepted boundary that five shaping rounds and three
 adversarial rounds over the same artifacts had not surfaced, answered by its
 decider in one exchange, and closed without a code change.
 
+### A Codex route was investigated and does not work
+
+`codex exec` (codex-cli 0.153.4) cannot dispatch a projected agent: it has no
+`--agent` flag, `codex agents` only browses sessions, and `.codex/config.toml`
+treats `.codex/agents` as a write path for authoring rather than a dispatch
+registry. Those `.toml` definitions are consumed by the interactive TUI and the
+app-server. The projection carrying the new contract and Codex being
+authenticated were both confirmed; neither establishes that a headless run can
+name the agent, and that third fact is the one the route depended on.
+
+Passing the agent's `developer_instructions` as a prompt preamble was rejected:
+it exercises a different runtime and is not evidence about the shipped agent.
+
 ### Route to closing these three criteria
 
 A session started after `8d20edb9a` loads the new definitions. The three
