@@ -110,6 +110,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Eval harnesses — goal-based check.** A grep over the three harnesses:
   no intent-mode `Clean` expectation survives in the two dispatching callers,
   and `de-risk-intent`'s carries its boundary and no intent vocabulary.
+- **Governing-record correction — goal-based check.** ADR-0109 is this spec's
+  `Constrained by:` record and is corrected in body, not by a `Status` pointer,
+  because it is branch-local and has never shipped. The check is a read of
+  decision item 1 against the criteria it governs; a record that still states a
+  superseded trigger fails it.
 - **Frozen-record pointers — goal-based check.** `git diff` over the three
   records shows only `Status` lines changed, and the spec-status lint accepts the
   annotated tokens.
@@ -188,6 +193,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   refusal, a grounding gap, or a failed dispatch. The shipped body states the
   same reading in the same words, so a reader of either never has to reconcile
   a count with an applicability rule.
+- [ ] ADR-0109's decision item 1 states the rule the body ships: condition 4
+  applies to an intent that names a parent, and condition 5 measures the
+  artifact's own decomposition against its own outcome with the absence branch
+  keyed on level together with status. The criterion fails while the record
+  enumerates the conditions unconditionally or names the parent as what the
+  children partition.
 - [ ] The `core` changelog entry states the applicability rule in its own
   bullet. When a consumer receives `MALFORMED(children)` changes with this
   amendment, so the entry is that change's home, and an entry that merely stops

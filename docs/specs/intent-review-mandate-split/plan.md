@@ -168,7 +168,7 @@ earned a red. Each bullet says which it is.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale — `docs/adr/0109-…md` | none (pre-existing) | ADR Accepted and indexed | this spec's `Constrained by:` resolves |
+| Decision rationale — `docs/adr/0109-…md` | T13 | decision item 1 read against the amended criteria | the record states condition 4's named-parent trigger and condition 5's own-outcome referent with its level-and-status absence branch |
 | User-facing promise — three guide passages | T6 | a read of each changed passage plus the `! grep -q` absence check; the roster documentation suite covers `core-pack.md` only | every changed passage reads true against shipped agents |
 | Interface compatibility — `core-intent-shaping-review` entry | T3 | `test_frame_intent_shaping_review.py` whole-dict comparison | entry names no `Clean` |
 | Release history — `docs/product/changelog.md` | T7 | free-standing `##` entry per pack | versions match the shipped manifests |
@@ -671,10 +671,22 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
   the ledger as the before-state — it was correct about the bytes it read, and
   the hashes are what make that legible.
 
-**Done when:** the ledger records both structural-absence cases with their
-observed output and the revision that produced them, the leaf case emits no
-`MALFORMED(children)`, the non-leaf case emits one, and the three re-run T8
-observations are recorded against the amended revision.
+**Done when:** the ledger records all five observations with their observed
+output and the revision that produced them, and each matches:
+
+| Fixture | Expected |
+| --- | --- |
+| leaf level, no decomposition | no token |
+| above the leaf, `Draft`, no decomposition | no token |
+| above the leaf, `Accepted`, no decomposition | `MALFORMED(children)` |
+| no level declared, `Accepted`, no decomposition | no token |
+| level outside the recognized set, `Accepted`, no decomposition | no token |
+
+The three re-run T8 observations are recorded against the amended revision
+alongside them. The two `Draft`-versus-`Accepted` rows are the pair that
+establishes the trigger, and the last two differ from the firing row in the
+level alone, so a run that collapses any of those three distinctions closes
+nothing.
 
 ## Rollout
 
