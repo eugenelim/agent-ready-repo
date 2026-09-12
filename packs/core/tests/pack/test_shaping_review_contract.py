@@ -508,11 +508,68 @@ def test_intent_mode_fails_closed_on_evidence_it_cannot_settle() -> None:
     assert "An absence that blocks no condition is not consequential" in rubric
 
 
+def test_condition_four_applies_only_to_an_intent_that_names_a_parent() -> None:
+    """Changed bytes. A parent is an optional attribution at every level."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "only to an intent that names a parent" in rubric
+    assert "is not malformed for it at any level" in rubric
+    # Condition 4 carries no level rule at all. An assertion phrased in level
+    # terms here would force a false rule into the body, because the taxonomy
+    # makes a parent optional rather than implied by altitude.
+    assert "names one the packet does not supply" in rubric
+
+
+def test_condition_five_absence_branch_is_keyed_on_level_and_status() -> None:
+    """Changed bytes. The absence branch must keep a reachable failing state."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "above the leaf" in rubric
+    assert "Accepted" in rubric
+    # Without the firing half, the repair would replace a condition that cannot
+    # pass with one that cannot fire -- the defect this rule exists to avoid.
+    assert "emits `MALFORMED(children)`" in rubric
+    assert "measured against the artifact's own outcome" in rubric
+
+
+def test_intent_mode_states_the_level_ordering_it_keys_on() -> None:
+    """Changed bytes. The reviewer preloads and retrieves nothing, so a rule
+    keyed on an ordering stated only elsewhere is undecidable where it applies."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    for rung in ("product-vision", "product-strategy", "capability", "feature"):
+        assert rung in rubric, rung
+
+
+def test_an_unplaceable_level_suppresses_only_the_absence_branch() -> None:
+    """Changed bytes. An open level set reaches this mode by design."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "cannot place" in rubric
+    assert "emits no token of its own" in rubric
+
+
+def test_the_unsupplied_parent_no_longer_binds_the_children_condition() -> None:
+    """Changed bytes, asserted by absence.
+
+    Every other assertion here is a positive substring check on prose this
+    change adds, so all of them stay green on a body that adds everything asked
+    of it and leaves the superseded clause standing. That body would say an
+    unsupplied parent fails the children condition beside a rule saying the
+    children condition never reads the parent. Deleting a clause needs a control
+    that fails while the clause survives.
+    """
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "does not pass conditions 4 or 5" not in rubric
+    assert "does not pass the altitude condition" in rubric
+
+
 def test_empty_intent_output_means_exactly_one_thing() -> None:
     """Changed bytes. Empty is the pass, and only the pass."""
     rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
 
-    assert "Emit nothing at all when all six conditions hold" in rubric
+    assert "Emit nothing at all when every condition that applies holds" in rubric
     assert "That empty output is a complete result" in rubric
     for confusable in ("not a refusal", "not a grounding gap"):
         assert confusable in rubric, confusable
