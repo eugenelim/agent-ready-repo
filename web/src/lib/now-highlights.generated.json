@@ -36,12 +36,12 @@
       "packages": [
         {
           "name": "product-engineering",
-          "version": "0.13.11"
+          "version": "0.13.12"
         }
       ],
       "date": "2026-09-11",
-      "heading": "[product-engineering][0.13.11] — 2026-09-11",
-      "changelogAnchor": "product-engineering01311--2026-09-11",
+      "heading": "[product-engineering][0.13.12] — 2026-09-11",
+      "changelogAnchor": "product-engineering01312--2026-09-11",
       "highlights": [
         {
           "source": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own.",
