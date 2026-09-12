@@ -355,11 +355,27 @@ dispatches ran against, so the two sets can be diffed across the amendment rathe
 than read as competing assertions.
 
 **The `adversarial-reviewer` body is not the one T8 dispatched.** T8 ran
-`8c1ee9b4…` at `2ddede5ed`; seven commits touched that agent between there and
-here, including `922e82a48` which gave it its narrowed `intent` mode. Re-run 3
-below therefore confirms the output shapes survive those edits — it is not a
-byte-identical repeat, and the `shaping-reviewer` comparison is the one that
-isolates this amendment.
+`8c1ee9b4…` at `2ddede5ed`.
+
+**Measure that boundary by content, not by commits.** `2ddede5ed` is not an
+ancestor of `077d7d64f` — `git merge-base --is-ancestor 2ddede5ed HEAD` exits 1,
+because the rebase onto `95754ea45` rewrote those commits. A `git log` range
+across the boundary therefore counts rebased copies of unchanged content as new
+edits, and a later rebase would give a different number again. Blob-to-blob
+survives it:
+
+| Body | `2ddede5ed` → `077d7d64f` |
+| --- | --- |
+| `.claude/agents/shaping-reviewer.md` | +31 −8 |
+| `.claude/agents/adversarial-reviewer.md` | +20 −0 |
+
+The adversarial delta is pure addition — zero deletion lines — and it is the
+determinacy severity rule arriving from `origin/main` in the rebase, not a change
+to the `intent` mode and not part of this branch. So re-run 3 below is not one
+body observed twice; it brackets an upstream merge, and the output shapes holding
+across an addition from an unrelated change is a slightly stronger result than a
+repeat would have been. The `shaping-reviewer` pair is what isolates this
+amendment: its +31 −8 falls inside the sections the amendment touches.
 
 **Definition source is established, not assumed.** The freshness grep for
 `product-vision › product-strategy › capability › feature` returns 1 in
