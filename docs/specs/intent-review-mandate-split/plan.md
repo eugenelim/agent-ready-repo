@@ -25,7 +25,7 @@ changelog) run last, once the sources have stopped moving.
 
 ## Constraints
 
-- `packs/` content may not cite ADR-0108, RFC-0099, an acceptance criterion, or
+- `packs/` content may not cite ADR-0109, RFC-0099, an acceptance criterion, or
   an internal `docs/` path; the portability grep in `packs/AGENTS.local.md:53`
   is the check.
 - `.apm/` is the only source; `.claude/agents/`, `.codex/agents/`, and every
@@ -172,7 +172,7 @@ earned a red. Each bullet says which it is.
 | User-facing promise — three guide passages | T6 | a read of each changed passage plus the `! grep -q` absence check; the roster documentation suite covers `core-pack.md` only | every changed passage reads true against shipped agents |
 | Interface compatibility — `core-intent-shaping-review` entry | T3 | `test_frame_intent_shaping_review.py` whole-dict comparison | entry names no `Clean` |
 | Release history — `docs/product/changelog.md` | T7 | free-standing `##` entry per pack | versions match the shipped manifests |
-| Frozen-record navigation — superseded spec, plan, RFC | T5 | `git diff` shows only `Status` lines | pointers resolve to ADR-0108 |
+| Frozen-record navigation — superseded spec, plan, RFC | T5 | `git diff` shows only `Status` lines | pointers resolve to ADR-0109 |
 
 ## Design (LLD)
 
@@ -613,7 +613,7 @@ dispatched, the observed output, and whether it matched the contract.
   the ADR template contradicts — `Supersedes:` carries ADR ordinals only, and the
   ADR already points at the superseded RFC section through `Related:` and
   `References` — so the durable-output row states the one-way convention instead.
-- 2026-09-11 — Plan drafted from ADR-0108 with the caller, guide, and release
+- 2026-09-11 — Plan drafted from ADR-0109 with the caller, guide, and release
   tasks separated from the two contract tasks, so the two agent bodies can land
   and be reviewed before anything depends on their new vocabulary.
 - 2026-09-11 — Shaping review round 1 returned three blockers and eight
@@ -622,7 +622,7 @@ dispatched, the observed output, and whether it matched the contract.
   passing; the three eval harnesses entered scope; `MALFORMED(owner)` suppresses
   the other tokens rather than joining them; the bump level is derived from the
   owning rule rather than fixed at minor; and the adversarial observation gained
-  a positive path so it can fail. ADR-0108 was corrected to six conditions
+  a positive path so it can fail. ADR-0109 was corrected to six conditions
   before commit so the governing record does not ship false.
 - 2026-09-11 — A throwaway probe over the reviewer body disconfirmed the first
   test design: the existing mode-slicing helper made the table-scoping assertion
