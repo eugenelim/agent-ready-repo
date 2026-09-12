@@ -95,6 +95,7 @@ export default defineConfig({
         PageFrame: './src/components/PageFrame.astro',
         PageTitle: './src/components/PageTitle.astro',
         TableOfContents: './src/components/TableOfContents.astro',
+        MobileTableOfContents: './src/components/MobileTableOfContents.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in
       // Footer.astro's client script — no runtime CDN calls.
