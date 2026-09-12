@@ -5,6 +5,12 @@ Execution observations. Not a second requirements record: the contract is
 
 ## T8 — observed reviewer behavior
 
+> **Discharged 2026-09-11 by the run recorded below.** The blockage described in
+> this section was real and is kept as the record of why: a host serves the agent
+> definition loaded at session start, so the session that wrote the change could
+> not observe it. A later session did. Read this section as history and the
+> `## T8 — observed reviewer behavior, 2026-09-11` section as the current state.
+
 **Blocked in this session.** The three observed-behavior criteria cannot be
 satisfied here, for a reason outside the contract.
 
@@ -128,6 +134,187 @@ malformed intent, recreated from the description above, and
 `docs/product/intents/cut-before-adding-solution-ladder.md` with RFC-0099 as its
 supplied parent. Until that run is recorded here, the three observed-behavior
 criteria stay unchecked and `spec.md` stays `Implementing`.
+
+## T8 — observed reviewer behavior, 2026-09-11
+
+The three criteria left open above are now observed against the shipped
+definitions, from a session started after `05962652e`. Four further probes were
+run to interpret the results.
+
+### What was dispatched
+
+| Field | Value |
+| --- | --- |
+| Revision | `2ddede5ed` |
+| `.claude/agents/shaping-reviewer.md` | `f515419b02a3d1ea8b0c45b5cf999600a134c3b241fdf56e9521bc36ab88d3d8` |
+| `.claude/agents/adversarial-reviewer.md` | `8c1ee9b4e1bc449b96db7a053580726460ae6f96962d8cf3d3e2857245f47a63` |
+| Dispatched | 2026-09-11, from a session whose definitions load at `2ddede5ed` |
+
+**Definition source is established, not assumed.** No reply cites
+`least-artifact projection`, `core-only viability`, or a "Children question" —
+the three phrases this change deleted, and the phrases that voided the earlier
+attempt. Every observation below runs the shipped contract.
+
+### Observation 1 — malformed intent, `shaping-reviewer` `intent` mode
+
+Target: a scratch intent recreated from the description in the earlier T8
+section, not the byte-identical file that section dispatched. Its exact shape:
+a solution as the outcome, an opportunity that is a complaint ("Reviews feel
+slow"), `Owner: the team`, assumptions listed but none named as riskiest, and
+two children overlapping on briefs. It carries no non-goals section.
+
+**Expected:** `MALFORMED(owner)` alone.
+
+**Observed**, entire output:
+
+```
+MALFORMED(owner)
+```
+
+**Match.** One token, not five: the owner token suppresses the other five as the
+contract requires. No severity, no `Fix:`, no clean sentinel.
+
+### Observation 2 — well-formed intent, `shaping-reviewer` `intent` mode
+
+Target: `docs/product/intents/cut-before-adding-solution-ladder.md`, with
+RFC-0099 supplied as its parent.
+
+**Expected:** empty output.
+
+**Observed**, entire output:
+
+```
+MALFORMED(owner)
+```
+
+**Mismatch — caused by fixture selection, not by the contract.** That intent
+carries no owner attribution in its header: lines 1-6 are the title, then
+`Status`, `Level`, `Scale`, `Maturity`. A case-insensitive search for `owner`
+over the file hits only body prose — lines 11, 38, 87, 123-124, 153, 174, 187,
+phrases like "one correct owner" and "existing review owners" — and never a
+header attribution. The token is what the shipped condition should emit. The
+target was not a well-formed intent.
+
+Corroboration from a second, independently dispatched agent: observation 3's
+adversarial run wrote, unprompted, "Decider: the intent owner — which the intent
+does not name". Two reviewers read the same absence.
+
+A conforming fixture was then run as observation 2b.
+
+### Observation 2b — well-formed intent built to the six conditions
+
+Target: a scratch `feature` intent — owner named, outcome not a solution,
+non-goals present, riskiest assumption named, two children partitioning its
+parent's two members with no overlap and no gap — with its `capability` parent
+supplied in the same packet. Conditions 4 and 5 are exercised positively rather
+than vacuously.
+
+**Expected:** empty output.
+
+**Observed**, entire output:
+
+```
+(no tokens emitted — all six conditions hold)
+```
+
+**Pass on substance.** No `MALFORMED` token, so the contract held on a packet
+built to satisfy all six conditions. See the conformance question below for what
+this output is not.
+
+### Conformance question — "nothing at all" is not defined
+
+The observation 2b output is not empty. It is a parenthetical sentence asserting
+emptiness, emitted under a dispatch instruction that said to return empty if the
+contract said empty.
+
+This parses correctly today: both callers gate on token absence, not on
+byte-emptiness, and `intake-intent` treats a completed dispatch carrying no
+`MALFORMED` token as the pass. What is undefined is whether a gloss conforms.
+The reviewer's own contract says "emit nothing at all", the observed behavior
+deviates from that text, and nothing tells a future caller which reading binds.
+
+Recorded as a conformance question, not as a pass and not as a failure. Decider:
+the spec owner.
+
+### Observation 3 — `adversarial-reviewer` `intent` mode
+
+Target: `docs/product/intents/cut-before-adding-solution-ladder.md` with
+RFC-0099 supplied as its parent; no diff and no spec.
+
+**Expected:** an open question with a named decider, or a validation hook
+carrying a kill condition and its triggering activity, or nothing.
+
+**Observed:** exactly those shapes and nothing else — two open questions, each
+naming its decider, and one validation hook. The first question asks what
+re-opens the routing study waived on 2026-08-31, deciding at the first eligible
+release under RFC-0099 §10. The second asks what instrument reads the lagging
+outcome, observing that the intent names no baseline or counter for
+artifacts-per-outcome while the bet itself adds an agent, a skill, two aliases,
+and a delivery transition. The hook binds its kill condition to `invoked_alias`
+receipts from real adopter traffic at the removal gate, not to fixtures.
+
+**Match.** No Blockers, no severity labels, no `Fix:`.
+
+### Structural absence is handled two ways, and one of them blocks real work
+
+A condition the packet cannot settle emits its token, so absent evidence fails
+closed. That is right for a missing packet. It is a different thing from an
+absence that is structural: a root intent has no parent by construction, and a
+leaf intent has no children. Three probes separate the two readings.
+
+**Probe on a `capability` with no parent supplied** — two tokens,
+`MALFORMED(altitude)` and `MALFORMED(children)`. Indeterminate, and recorded
+only as a datapoint: a capability legitimately has a parent, and the fixture
+named two children while supplying neither, so both tokens are equally explained
+by missing evidence. This probe cannot separate the readings, which is why the
+two below were built.
+
+**Probe A — root.** A `product-vision` with no `Parent intent:` field at all, two
+decomposition members, neither supplied. Observed, entire output:
+
+```
+MALFORMED(children)
+```
+
+No altitude token. On a root whose parent cannot exist, the reviewer reads the
+structural absence as inapplicable and condition 4 passes. The children token is
+the named-but-unsupplied evidence gap, so this probe does not test the leaf.
+
+*Instrument disclosure: this dispatch said to emit zero characters rather than a
+sentence describing emptiness, so it cannot speak to the conformance question
+above. That question rests on observation 2b alone.*
+
+**Probe B — leaf.** A `feature` with its parent named **and supplied in the
+packet**, and no Decomposition section at all. Observed, entire output:
+
+```
+MALFORMED(children)
+```
+
+**One token, not two: altitude passed on the supplied parent.** That is what
+makes this an isolation rather than another conflated result — the only
+unsettled condition was children, and there was no evidence gap to close,
+because a leaf has no decomposition to supply. The token still fired.
+
+*Instrument disclosure: same zero-characters instruction as probe A; it cannot
+speak to the conformance question either.*
+
+**What the three establish.** One contract handles structural absence two
+different ways:
+
+| Condition | Structural absence | Result | What it needs |
+| --- | --- | --- | --- |
+| 4, parent | root has no parent by construction | read as inapplicable — passes | a sentence: the text does not require what the reviewer already does |
+| 5, children | leaf has no children by construction | read as a failure — cannot pass | a fix before ship: every leaf intent is permanently malformed |
+
+Condition 5 is a defect that blocks real work: under the current text there is no
+packet a leaf can present that makes it pass, and a leaf feature intent is the
+most common shape the reviewer will see. Condition 4 is correct behavior on
+ambiguous text — the reviewer already does the right thing, but nothing in the
+prose requires it, so a later reading could go the other way.
+
+Raised for the owner. Neither is recorded as a reviewer defect against T8: the
+three T8 criteria are observed above and matched.
 
 ## Concurrent-editing incident, 2026-09-11 — diagnosed
 
