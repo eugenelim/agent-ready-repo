@@ -496,29 +496,107 @@ dispatched, the observed output, and whether it matched the contract.
 `packs/core/tests/pack/test_shaping_review_contract.py`
 
 **Tests:**
-- One assertion that the body distinguishes a relation the artifact cannot have
-  from a relation it names and the packet omits. Changed bytes: the current
-  paragraph states only the fail-closed half, so the assertion reds first.
-- One assertion that the children condition is settled from the listed
-  decomposition members. Changed bytes.
-- The existing fail-closed assertion is a preservation control: an intent that
-  names an unsupplied parent must still fail condition 4, and the repair must
-  not turn absent evidence into a pass.
+- One assertion that the body keys applicability on the declared level rather
+  than on an absent section. Changed bytes: today's paragraph states only the
+  fail-closed half, so the assertion reds first.
+- One assertion that the body states the level at which each condition stops
+  applying, and one that it states the level at which each keeps its failing
+  state. Changed bytes; the second is what stops the repair from replacing a
+  condition that cannot pass with one that cannot fire.
+- One assertion that the children condition measures the artifact's own
+  decomposition against its own outcome. Changed bytes.
+- **Preservation control.** `test_shaping_review_contract.py:504-505` pins
+  `"A condition the packet cannot settle emits its token"` and
+  `"absent evidence fails closed"`. Both sentences survive this edit verbatim,
+  so both assertions stay green: an intent at a level that has a parent, naming
+  one the packet does not supply, must still fail condition 4.
 
 **Approach:**
 - Amend the one paragraph that carries the fail-closed rule, at the source that
-  owns it. Keep its first half exactly as it binds today, then state the case it
-  does not reach: a root has no parent and a leaf has no children by
-  construction, so conditions 4 and 5 do not apply to them.
-- State that a listed decomposition settles condition 5 from its own members, so
-  the children's packets are not required and their absence emits no token.
+  owns it. Two clauses move and one does not, and the task states which is
+  which, because the task's preservation control is only checkable if the
+  boundary is named:
+  - **Preserved, verbatim:** "A condition the packet cannot settle emits its
+    token" and "absent evidence fails closed".
+  - **Changed:** "does not pass conditions 4 or 5 by default" — the unsupplied
+    parent settles condition 4 alone, because the children condition no longer
+    reads the parent.
+  - **Added:** the level-keyed applicability rule, and the sentence naming what
+    the children condition measures coverage against.
+- Write the rule as portable prose that names levels by their role in the
+  recognized set — root and leaf — so the body states the rule directly and
+  cites no acceptance criterion, as the pack boundary requires.
 - Touch no other condition and no other mode. T8's probes located the defect in
   one paragraph; widening the edit past it would put the repair beyond the
   evidence that justified it.
 
-**Done when:** the two new assertions are green, the fail-closed preservation
-control is unchanged and green, and a leaf intent with no decomposition emits no
-`MALFORMED(children)` token when dispatched against the rebuilt projection.
+**Done when:** the new assertions are green, the two preservation-control
+assertions are unchanged and green, and the body states a failing state for
+conditions 4 and 5 at every level that can have the relation. End-to-end
+evidence is T12's, not this task's: nothing in this task's dependency set
+rebuilds a projection, and a host dispatches from the projection rather than
+from `.apm/`.
+
+### T11: the amendment carries its own release leg
+
+**Depends on:** T10
+
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
+`docs/product/changelog.md`, the regenerated adapter projections, the
+marketplace manifest, and `web/src/lib/now-highlights.generated.json`
+
+**Tests:**
+- Goal-based. Version parity between `pack.toml` and `plugin.json`; a clean
+  `make build-self` diff after regeneration; the `/now/` projection's own
+  shipped suite.
+- The changelog assertion reads the heading level directly, because a versioned
+  entry nested under another heading passes every other gate and still never
+  publishes.
+
+**Approach:**
+- Correct the `core` entry rather than adding a second one, and say why here so
+  a later reader does not read it as an edit to published history: `2.25.17` is
+  unreleased. `origin/main` carries `2.25.16`, this branch has never been
+  pushed, and no consumer has seen `2.25.17`. The bullet stating that an
+  unsupplied parent fails both the altitude and children questions describes
+  behavior this amendment removes before anyone runs it, so leaving it and
+  appending a correction below would publish a contradiction in one release.
+- Keep the single `2.25.17` patch bump. The amendment is content change inside
+  an unreleased version, not a second release.
+- Regenerate every projection rather than editing one; `.apm/` is the only
+  source.
+- Date both entries the day they ship, not the day they were drafted.
+
+**Done when:** version parity holds, the regenerated tree is clean on a second
+`make build-self`, both changelog entries carry the ship date at `##` level, and
+no changelog bullet describes behavior the shipped body does not have.
+
+### T12: the repair is observed against the rebuilt projection
+
+**Depends on:** T11
+
+**Touches:** `docs/specs/intent-review-mandate-split/notes/verification-ledger.md`
+
+**Tests:**
+- Visual / manual QA. This is the mode's evidence obligation: the defect T10
+  repairs was found by dispatch and not by prose, so prose cannot close it.
+
+**Approach:**
+- Dispatch from a session that loads the rebuilt projection. A host serves the
+  agent body it read at session start, so a session that edited the body cannot
+  observe it — the reason T8 was blocked once already.
+- Run the two-case pair the criterion names: one intent at the leaf level with
+  no decomposition, one above the leaf level with no decomposition. The pair is
+  the evidence; a single case cannot distinguish a repair from a removal.
+- Re-run the three T8 dispatches against the amended bytes and record the new
+  revision and projection hashes beside the originals. The earlier run stays in
+  the ledger as the before-state — it was correct about the bytes it read, and
+  the hashes are what make that legible.
+
+**Done when:** the ledger records both structural-absence cases with their
+observed output and the revision that produced them, the leaf case emits no
+`MALFORMED(children)`, the non-leaf case emits one, and the three re-run T8
+observations are recorded against the amended revision.
 
 ## Rollout
 
@@ -663,8 +741,16 @@ control is unchanged and green, and a leaf intent with no decomposition emits no
   absent parent as inapplicable, so one contract handled structural absence two
   ways. The owner chose repair before ship, which reopened the criteria set
   through the controlled amendment rather than an edit to a sealed contract.
-  T10 carries the repair; the three T8 criteria stay matched, because the
-  observation was correct about what the contract said.
+  T10 carries the repair, T11 its release leg, and T12 the observation that
+  closes it. The first amendment draft was wrong in the same way twice: keyed on
+  an absent section, it made condition 4 fail open for the 117 of 124 corpus
+  intents that name no parent, and made condition 5 unfailable, because
+  `frame-intent` tells an author to leave `Decomposition` empty and only 9
+  intents carry one. Keying on the declared level fixes both, and the corpus is
+  what showed it — the first draft was checked against the probe that found the
+  defect rather than against the artifacts the callers actually dispatch. The
+  three T8 observations are re-run under T12 rather than carried forward: they
+  were correct about the bytes they read, and those bytes change here.
 - 2026-09-11 — A throwaway probe over the reviewer body disconfirmed the first
   test design: the existing mode-slicing helper made the table-scoping assertion
   unfailable and the severity assertion tail-satisfied. T1 now adds a

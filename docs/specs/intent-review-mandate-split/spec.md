@@ -143,19 +143,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] A condition the supplied packet cannot settle emits its own token, so an
   intent that names a parent the packet does not supply cannot pass the altitude
   condition by default.
-- [ ] A relation the artifact cannot have is not absent evidence and emits no
-  token: condition 4 does not apply to an intent that names no parent, and
-  condition 5 does not apply to an intent that lists no decomposition. A root
-  has no parent and a leaf has no children by construction, so neither is
-  malformed for lacking one.
-- [ ] Where a decomposition is listed, the children condition is settled from
-  those members alone, so the children's own packets are not required and their
-  absence emits no token.
+- [ ] Applicability is keyed on the artifact's declared level, which is a packet
+  observable, and never on whether a section is absent. An absent section is how
+  an artifact looks before its author has written it, so it cannot distinguish a
+  relation that cannot exist from one that is merely unwritten.
+- [ ] Condition 4 does not apply at the root of the recognized level set, where
+  no parent can exist. At every other level a parent exists by taxonomy, so an
+  intent that names none, or names one the packet does not supply, still emits
+  `MALFORMED(altitude)`.
+- [ ] Condition 5 does not apply at the leaf of the recognized level set, where
+  no children can exist. At every other level the condition keeps a reachable
+  failing state, so an intent at one of those levels that lists no decomposition
+  emits `MALFORMED(children)`.
+- [ ] The children condition measures the artifact's own listed decomposition
+  against that artifact's own outcome, not against its parent. Both halves —
+  no overlap and no gap — are settled from the listed members, so the children's
+  own packets are not required and their absence emits no token.
 - [ ] `intent` mode emits no severity label, no `Fix:` line, and no `Clean`
   result.
-- [ ] Empty `intent`-mode output means exactly one thing: all six conditions
-  hold. It is not the reviewer's expression of a refusal, a grounding gap, or a
-  failed dispatch.
+- [ ] Empty `intent`-mode output means exactly one thing: all six applicable
+  conditions hold. It is not the reviewer's expression of a refusal, a grounding
+  gap, or a failed dispatch.
+- [ ] The pass a caller reads is the absence of a `MALFORMED` token on a
+  completed dispatch, not an empty byte sequence. Byte-emptiness is what the
+  reviewer aims at and what its own text asks for; token absence is what decides
+  the gate, so a reply that says it found nothing is a pass rather than a parse
+  failure.
 - [ ] `intent` mode refuses an out-of-scope target in prose that names the
   target and why it is not an intent, and that refusal is not a result value.
 - [ ] `intent` mode's fail-closed expression for a consequential absence is the
@@ -334,6 +347,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   hook carrying both a kill condition and its triggering activity.
 - [ ] A recorded manual-QA run observes that the same mode emits no Blocker,
   Concern, Nit, rewrite, or "consider also" item on that dispatch.
+- [ ] A recorded manual-QA run dispatches, against the rebuilt projection, one
+  intent at the leaf level carrying no decomposition and one intent above the
+  leaf level carrying no decomposition, and observes that the first emits no
+  `MALFORMED(children)` token and the second emits one. A run whose two cases
+  produce the same token settles nothing, because the repair is the difference
+  between them.
 
 ## Follow-ons
 
