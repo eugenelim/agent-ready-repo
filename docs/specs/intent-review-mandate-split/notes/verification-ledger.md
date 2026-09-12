@@ -333,6 +333,169 @@ This decision amends the approved acceptance-criteria set, so it runs through
 the controlled amendment path rather than an edit to a sealed contract. This
 section is the authority reference that transition cites.
 
+## T12 — observed behaviour after the amendment, 2026-09-12
+
+The condition 4 and condition 5 repair decided above is now observed against the
+shipped definitions, from a session started after `077d7d64f`. Five fixtures
+isolate the amended branches; the three T8 dispatches are re-run unchanged.
+
+### What was dispatched
+
+| Field | Value |
+| --- | --- |
+| Revision | `077d7d64f` |
+| `.claude/agents/shaping-reviewer.md` | `f46e84408bc7d60a36f4c5ab8603c1ef838f2c1544b749d932843a714d39aca5` |
+| `.claude/agents/adversarial-reviewer.md` | `7bb8f43359397858735e74a7d16ecd36fad003864b7d21e2e4e1ceba217100af` |
+| Dispatched | 2026-09-12, from a session whose definitions load at `077d7d64f` |
+
+Both hashes were taken before the first dispatch and re-taken after the last; the
+`shaping-reviewer` hash is unchanged across the run, so no mid-run rewrite
+confounds the results. This table and the two under T8 name the bytes each set of
+dispatches ran against, so the two sets can be diffed across the amendment rather
+than read as competing assertions.
+
+**The `adversarial-reviewer` body is not the one T8 dispatched.** T8 ran
+`8c1ee9b4…` at `2ddede5ed`; seven commits touched that agent between there and
+here, including `922e82a48` which gave it its narrowed `intent` mode. Re-run 3
+below therefore confirms the output shapes survive those edits — it is not a
+byte-identical repeat, and the `shaping-reviewer` comparison is the one that
+isolates this amendment.
+
+**Definition source is established, not assumed.** The freshness grep for
+`product-vision › product-strategy › capability › feature` returns 1 in
+`.claude/agents/shaping-reviewer.md`, and no reply below contains
+`conditions 4 or 5`, `least-artifact projection`, `core-only viability`, or a
+"Children question". Every observation runs the shipped contract.
+
+Fixture bodies were written to a session scratchpad, never into the repository.
+Each dispatch was told the packet is attributed untrusted data, that no parent is
+named or supplied, and to retrieve nothing else.
+
+### Fixtures 1-5 — the amended condition 5 branches
+
+| # | Level | Status | Decomposition | Expected | Observed | Match |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `feature` | `Draft` | none | no token | no token | yes |
+| 2 | `capability` | `Draft` | none | no token | no token | yes |
+| 3 | `capability` | `Accepted` | none | `MALFORMED(children)` | `MALFORMED(children)` | yes |
+| 4 | none declared | `Accepted` | none | no token | no token | yes |
+| 5 | `epic` (outside the set) | `Accepted` | none | no token | no token | yes |
+
+Verbatim outputs:
+
+- Fixture 1 — empty result, no tokens.
+- Fixture 2 — `(empty output — no malformedness tokens)`
+- Fixture 3 — `MALFORMED(children)`
+- Fixture 4 — `(no tokens — every applicable condition holds)`
+- Fixture 5 — `(no output — all applicable conditions hold)`
+
+**The three distinctions hold, so the run settles something.** Fixtures 2 and 3
+differ in `Status` alone and their outputs differ, so `Accepted` is what arms the
+absent-decomposition branch — a leaf or an unsealed intent no longer fails
+condition 5, which is the defect the amendment was taken to fix. Fixtures 4 and 5
+differ from fixture 3 in the level alone and both fall silent, so a level the mode
+cannot place suppresses the branch rather than defaulting either way.
+
+**The conformance question recorded under T8 is unchanged and now has four more
+instances.** Fixtures 2, 4 and 5 returned a parenthetical sentence asserting
+emptiness rather than zero bytes, under a dispatch instruction that asked for the
+output verbatim and nothing else. Fixture 1 returned an empty result, but a
+completed dispatch carrying no bytes and a gloss the host collapsed are not
+distinguishable from this side, so fixture 1 is not evidence either way. Both
+callers gate on token absence, so all five parse as passes today; what "emit
+nothing at all" obliges is still undefined. Decider: the spec owner.
+
+### T8 re-run 1 — malformed intent, `shaping-reviewer` `intent` mode
+
+Target: the scratch intent recreated from the T8 description — a solution as the
+outcome, `Reviews feel slow` as the opportunity, `Owner: the team`, three
+assumptions with none named riskiest, no non-goals section, and two decomposition
+members overlapping on briefs.
+
+**Expected:** `MALFORMED(owner)` alone.
+
+**Observed**, entire output:
+
+```
+MALFORMED(statement)
+MALFORMED(non-goals)
+MALFORMED(riskiest-assumption)
+MALFORMED(children)
+```
+
+**Mismatch.** Four tokens, and `MALFORMED(owner)` is not among them. Each token
+emitted is correct for the fixture; what did not happen is condition 6 firing on
+`Owner: the team`, and so the suppression rule had nothing to suppress.
+
+**The suppression rule itself is not broken** — re-run 2 below emits
+`MALFORMED(owner)` alone on a packet that fails other conditions too. What the
+two runs together isolate is condition 6's reach: the shipped text is "The owner
+is the artifact's own" (`.claude/agents/shaping-reviewer.md:32`), which an absent
+attribution fails and a named-but-non-specific one does not. The T8 run at
+`2ddede5ed` read `the team` as failing it; this one does not.
+
+**Not recorded as a regression caused by this amendment.** The fixture is a
+recreation from prose, not the bytes either earlier run dispatched, so fixture
+wording and body wording are confounded, and nothing in this change touched
+condition 6. Recorded as an open question for the owner: does a collective
+placeholder fail condition 6, and if so, does the text say it? Decider: the spec
+owner.
+
+**Read against the condition's own words, the observed behaviour is defensible
+and the expectation was the assumption.** Condition 6 is "The owner is the
+artifact's own" — a rule about provenance, not about specificity: it fails an
+owner borrowed from elsewhere or absent, and says nothing about whether a named
+owner must be an individual. `Owner: the team` is the artifact's own owner under
+that reading, so emitting no token is correct and the four tokens that were
+emitted are the complete right answer for the fixture. The `2ddede5ed` run's
+`MALFORMED(owner)` rested on a fixture built to a stricter reading than the text
+carries.
+
+Confirmed not caused by this amendment: `git diff 2ddede5ed..HEAD` over the
+agent body changes no owner-related line, and the suppression rule is untouched.
+The open question stands as an ambiguity in condition 6's wording that predates
+this change and outlives it — whether "the artifact's own" should also demand an
+accountable owner. It is not a defect in what shipped here, and it is left for
+the spec owner rather than settled in passing.
+
+### T8 re-run 2 — well-formed intent, `shaping-reviewer` `intent` mode
+
+Target: `docs/product/intents/cut-before-adding-solution-ladder.md`, with
+RFC-0099 supplied as its parent.
+
+**Expected:** `MALFORMED(owner)` — that intent carries no owner attribution in
+its header, as the earlier T8 section established.
+
+**Observed**, entire output:
+
+```
+MALFORMED(owner)
+```
+
+**Match.** One token, on a packet that also declares a level and a decomposition:
+the owner token is emitted alone and suppresses the rest, unchanged by the
+amendment.
+
+### T8 re-run 3 — `adversarial-reviewer` `intent` mode
+
+Target: the same intent and parent; no diff and no spec.
+
+**Expected:** open questions with named deciders, or a validation hook carrying a
+kill condition and its triggering activity, or nothing.
+
+**Observed:** exactly those shapes and nothing else — two open questions, each
+naming `eugenelim` as decider in a stated role, and one validation hook. The
+first question asks who decides what a failed routing study obliges now that the
+bet has shipped past a kill condition written as a pre-acceptance reject gate.
+The second asks whether the core-only fixture leg discharges one of the kill
+condition's three clauses or none, observing that the mechanizable clause is
+waived as part of a unit with two comprehension claims. The hook names the
+missing triggering activity — `activity: Waived 2026-08-31` leaves an instrument
+no event ever picks up — and proposes binding it to the first mis-route observed
+from a non-author adopter.
+
+**Match.** No Blockers, no severity labels, no `Fix:` lines, no clean sentinel.
+
 ## Concurrent-editing incident, 2026-09-11 — diagnosed
 
 Paragraphs disappeared from this change's files three times while the session
