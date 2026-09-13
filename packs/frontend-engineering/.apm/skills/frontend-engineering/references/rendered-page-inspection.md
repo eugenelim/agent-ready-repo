@@ -233,7 +233,7 @@ Make the call knowing what a capture carries to the judge:
 | --- | --- |
 | The page as rendered | Every value on screen — names, email addresses, order and payment details, message contents, internal figures |
 | The route, minus query string and fragment | The path itself, which can identify a customer, an account or an internal system |
-| Viewport width and height, and scroll position | The browser state, which carries nothing about the viewer |
+| Viewport width and height, scroll position, and whether the page scrolls | The browser state, which carries nothing about the viewer |
 
 If the judge is a remote service, that content leaves the adopter's environment.
 Capturing a signed-out or seeded-data view instead costs nothing here: the step

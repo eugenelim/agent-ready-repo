@@ -29,11 +29,21 @@ sequence after re-init re-seals the identical baseline. It is not a fresh
 approval of different content, and it reopens neither the scope decision nor the
 build-strategy decision.
 
-The spec hash covers the Acceptance Criteria section only
-(`sha256_canonical_contract` passes `ac_section_only=True` for `spec.md`), so
-moving the spec's `**Status:**` from `Approved` to `Implementing` before the
-first code change does not disturb it. Ticking acceptance criteria at ship time
-does, as intended.
+Moving the spec's `**Status:**` from `Approved` to `Implementing` before the
+first code change does not disturb the hash, because `canonical_contract`
+normalizes the preamble status token to a placeholder. Ticking acceptance
+criteria at ship time does disturb it, as intended, because it normalizes only
+the *bracket contents* of a checkbox in the Acceptance Criteria section.
+
+**Corrected 2026-09-13.** An earlier version of this paragraph said the hash
+"covers the Acceptance Criteria section only". That is wrong, and it is the kind
+of wrong that licenses a bad edit. `ac_section_only=True`
+(`_loop_guards.py:739-795`) selects only *which checkboxes count as bookkeeping*
+— a spec's progress marks live under Acceptance Criteria, whereas a checkbox
+under `## Boundaries` is a `Never do` item the pin must protect. The hash itself
+covers the **whole normalized file**. Any edit anywhere in `spec.md` moves it,
+Testing Strategy included; that was proven by making such an edit and watching
+the hash move off the sealed value.
 
 **Authorisation.** The owner authorised the destructive reset pair
 (`loop-cohort reset`, then `loop-engine reset`) and the re-init under
@@ -770,6 +780,73 @@ New values: standalone `8f32abf234db…`, composed `de0cadbf5e92…`.
 guards run alongside it were already green: `test_pack_test_compatibility.py`,
 `test_pack_test_class_characterization.py` and `test_build_gate_chain.py`, 95
 passed with 28 subtests across the batch.
+
+## 2026-09-13 — Review round 2: 5 findings, 2 sustained, 3 refuted
+
+Three were refuted with reasons worth keeping:
+
+- **Completeness does not consult record usability.** True as an observation —
+  `evaluate_capture_set` never calls `evaluate_record` — but no criterion folds
+  the two together. The capture-set criterion is scoped to the height-and-scroll
+  combinations; usability is a separate axis already tested parametrically over
+  every required field, and `unusable-capture` is its own result state.
+- **The measurement configuration contradicts the run.** The table sits under
+  "The configuration this was measured with" and states the *requested* offsets,
+  which is true of the run; the attained state is recorded eleven lines later,
+  naming all 17 captures that could not reach a non-zero position. Nothing
+  reports 400 as attained.
+- **Tautologies remain.** Both cited assertions are genuinely incapable of
+  failing, but each sits immediately beside one that carries the criterion and
+  can. No criterion rests on them, and no rule prohibits a redundant assertion
+  next to a load-bearing one.
+
+### The rate guard: SHRINK, after two rounds of opposite complaints
+
+Round 1 said the guard was too loose. Round 2 said it was simultaneously too
+loose (`4%—the false-positive rate` missed) and too tight (`The false-positive
+rate uses 4 known-clean fixtures.` falsely rejected). Both were true by
+construction.
+
+A control drawing opposite complaints in consecutive rounds is measuring
+something its medium cannot decide: a regex over prose cannot separate a
+published rate from an ordinary count. The adjudicator was asked to rule
+KEEP / SHRINK / CUT and ruled **SHRINK**, which is what was applied:
+
+- `_GAP_BEFORE` now uses the same punctuation class `_GAP_AFTER` already had, so
+  *which punctuation* sits between a number and its term stops deciding the
+  outcome. That is one character-class change at an existing seam.
+- `_GAP_AFTER` was deliberately **not** hardened. Constraining it to
+  "rate-bearing syntax" would ask the regex to make the same semantic judgement
+  from the other side, which is how the oscillation started.
+- The word budget before a term stays at two, because widening it is what made
+  the shipped "Known-clean fixtures — 4" heading read as a rate.
+
+Verified: the three punctuation-separated forms are now caught, all six round-1
+forms are still caught, and four legitimate count-bearing sentences — including
+the exact shipped heading that caused the earlier false positive — still pass.
+
+**The claim was narrowed in the test module, not in the spec.** The
+adjudicator's `Fix:` also directed stating the reach in the spec's Testing
+Strategy bullet. That edit was made, and then reverted, because it moved
+`approved_spec_hash` off its sealed value: the hash covers the whole normalized
+spec file, not just its criteria (see the correction at the top of this ledger).
+Narrowing an approved contract is the owner's call and the controlled-amendment
+path's job, not a repair to slip in during a review round. The narrowed reach is
+fully stated in
+`packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_shipped_content_limits.py`,
+which is the artifact a reviewer actually inspects. **Surfaced to the owner as an
+open decision.**
+
+### The disclosure fix
+
+`page-scrollable` is transmitted to the judge but was absent from the
+`Carried to the judge` enumeration, which the prose presents as complete. The
+browser-state row now names it. The minimal fix was taken; the finding's
+suggested completeness assertion against `judgement_request_fields` was declined
+as over-broad, on the adjudicator's own reading.
+
+**Suite:** 176 passed. Deep lint exit 0 (`CAT-S003` 830 lines, 170 of headroom).
+`catalogue verify` ok.
 
 ## 2026-09-13 — workspace registration
 

@@ -5,6 +5,17 @@ that makes it checkable — and thereby makes its own blind spot visible. Neithe
 guard is stronger than the list it searches for, and the lists are here, in the
 open, rather than implied.
 
+The rate guard's reach is its vocabulary **at the adjacency form below**: a
+listed term with a number within a bounded window either side. A rate phrased
+outside the vocabulary, or further from its number than that window, is not
+caught. That is the accepted blind spot, and it is a property of asking a regex
+to read prose — not a defect to tighten away. Two consecutive review rounds
+attacked this control from opposite sides, one for being too loose and one for
+being both too loose and too tight, which is the signal that the medium cannot
+decide rate-versus-count. The window is therefore fixed and documented rather
+than tuned again; widening it is how the shipped "Known-clean fixtures — 4"
+heading started reading as a published rate.
+
 A bounded search for an existing guard to reuse came back empty:
 `tools/lint-conformance-portability.py` covers `tests/conformance/**` only, and
 `tools/lint-plugin-route-docs.py` covers named documentation files for route
@@ -79,11 +90,15 @@ _NUMBER = r"\d+(?:\.\d+)?\s*%?"
 # clause between it and its number can be long — "the false-positive rate,
 # measured locally, is 4%".
 _GAP_AFTER = r"[\s,;:()\[\]—–-]*(?:[\w-]+[\s,;:()\[\]—–-]+){0,6}"
-# Before a term, it stays tight. "4% false-positive rate" is a rate, but
-# widening this direction makes an ordinary count collide with a term further
-# down the page — the shipped "Known-clean fixtures — 4" heading sits six words
-# above "the false-positive rate is measured over", and that 4 is a count.
-_GAP_BEFORE = r"\s+(?:\w+\s+){0,2}"
+# Before a term, the word budget stays tight — widening it makes an ordinary
+# count collide with a term further down the page, which is what the shipped
+# "Known-clean fixtures — 4" heading did six words above "the false-positive
+# rate is measured over". But the SEPARATOR is the same punctuation class used
+# after a term, so "4%—the false-positive rate" is caught. Which punctuation
+# sits between a number and its term is not a signal about whether the sentence
+# publishes a rate, and letting it decide the outcome is what produced opposite
+# complaints in two consecutive review rounds.
+_GAP_BEFORE = r"[\s,;:()\[\]—–-]+(?:[\w-]+[\s,;:()\[\]—–-]+){0,2}"
 
 
 def test_the_rate_vocabulary_matches_what_the_pack_states() -> None:
@@ -141,8 +156,11 @@ def test_the_rate_guard_catches_a_planted_rate(tmp_path: Path) -> None:
         "Detection rate: 92%.",
         "The false-positive rate — across every clean fixture — is 4%.",
         "In our environment the false-positive rate came out at about 4%.",
-        # Number-first, which the tight before-window still has to catch.
+        # Number-first, which the before-window still has to catch — both
+        # space-separated and punctuation-separated.
         "A 4% false-positive rate.",
+        "4%—the false-positive rate.",
+        "4% (the false-positive rate).",
     ):
         planted.write_text(bad, encoding="utf-8")
         with pytest.raises(AssertionError, match="states a rate"):
