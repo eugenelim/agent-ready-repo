@@ -54,6 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.17] — 2026-09-12
+
+### Fixed
+
+- `loop-cohort schedule --plan` now states that it accepts only the canonical
+  `<spec-dir>/plan.md` path, matching the command's existing refusal behavior.
+- `loop-cohort identity --help` states the schema version the command actually
+  verifies, instead of a hard-coded number that a later schema bump would have
+  left stale.
+
 ## [core][2.25.16] — 2026-09-11
 
 ### Highlights
@@ -162,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A link, an unresolvable path or a containment failure all left the candidate in
   no list at all — neither checked, skipped nor unreadable — so a subject the
   walk could not read was indistinguishable from one that opted out.
+
 ## [core][2.25.15] — 2026-09-11
 
 ### Fixed
