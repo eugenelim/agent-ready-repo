@@ -338,16 +338,15 @@ test.describe('docs search and theme controls are keyboard-operable', () => {
       // that menu first. Measured, not assumed — the first version of this case
       // failed at 360 for exactly this reason.
       await gotoSettled(page, withDocsBase('/'), ctx);
-      const menuButton = page.locator('starlight-menu-button button').first();
+      const menuButton = page.locator('button.sl-menu-button').first();
       if (await menuButton.isVisible()) {
-        await tabToAndAssertFocus(page, 'starlight-menu-button button', ctx, 30);
+        await tabToAndAssertFocus(page, 'button.sl-menu-button', ctx, 30);
         await page.keyboard.press('Enter');
-        // Asserted on the OBSERVABLE state, not on `aria-expanded`. Measured:
-        // Starlight's menu button opens on Enter but leaves `aria-expanded="false"`,
-        // so asserting the attribute fails on a menu that did open. That is pinned
-        // framework behaviour, recorded as an observation in the tap-target audit
-        // rather than worked around here — and the thing a keyboard user needs is
-        // that the control becomes reachable, which is what this asserts.
+        // Asserted on the OBSERVABLE state, not on an expansion attribute. Starlight
+        // 0.42 drives this menu through the popover API, so there is no DOM
+        // `aria-expanded` to read at all — the invoker's expanded state lives only in
+        // the accessibility tree. The thing a keyboard user needs is that the control
+        // becomes reachable, which is what this asserts.
       }
       const select = page.locator('starlight-theme-select select').locator('visible=true').first();
       await expect(
@@ -488,7 +487,7 @@ async function expectDocsChromeIsKeyboardOperable(
   // The Docs menu trigger is Starlight's and must remain keyboard-operable too.
   // It is a phone affordance, so on a phone width its absence is a failure rather
   // than a reason to skip.
-  const docsMenu = page.locator('starlight-menu-button button');
+  const docsMenu = page.locator('button.sl-menu-button');
   const docsMenuVisible = await docsMenu.isVisible();
   if (isPhone) {
     expect(docsMenuVisible, `${where}: the Docs menu trigger must render at phone widths`).toBe(
@@ -496,14 +495,17 @@ async function expectDocsChromeIsKeyboardOperable(
     );
   }
   if (docsMenuVisible) {
-    await tabToAndAssertFocus(page, 'starlight-menu-button button', ctx, 'derive');
+    await tabToAndAssertFocus(page, 'button.sl-menu-button', ctx, 'derive');
     await expect(docsMenu, `${where}: Docs menu trigger takes focus`).toBeFocused();
     await expectVisibleFocusIndicator(page, ctx);
     await page.keyboard.press('Enter');
+    // Starlight 0.42 opens this menu as a popover, so read the PANE's popover state.
+    // There is no `aria-expanded` attribute on the invoker any more, and
+    // `getAttribute` would return null and make this assert nothing.
     expect(
-      await page.locator('starlight-menu-button').getAttribute('aria-expanded'),
+      await page.locator('#starlight__sidebar').evaluate((el) => el.matches(':popover-open')),
       `${where}: Enter opens the Docs menu`
-    ).toBe('true');
+    ).toBe(true);
     await page.keyboard.press('Enter');
   }
 }
@@ -539,9 +541,9 @@ async function expectDocsChromeIsWellPlaced(
       headerPosition: frameHeader ? getComputedStyle(frameHeader).position : null,
       nativeHeaders: document.querySelectorAll('header.header > div.header').length,
       menuButtons: document.querySelectorAll(
-        'starlight-menu-button button[aria-controls="starlight__sidebar"]'
+        'button.sl-menu-button[popovertarget="starlight__sidebar"]'
       ).length,
-      sidebars: document.querySelectorAll('#starlight__sidebar').length,
+      sidebars: document.querySelectorAll('#starlight__sidebar[popover]').length,
       productNavs: document.querySelectorAll('nav[aria-label="Product navigation"]').length,
       // A direct link as the trigger is explicitly forbidden.
       productTriggerIsLink: !!document.querySelector(
@@ -716,27 +718,26 @@ test.describe('docs Product and Docs disclosures stay independent', () => {
 
       const productDetails = page.locator('nav[aria-label="Product navigation"] details');
       const docsMenuButton = page.locator(
-        'starlight-menu-button button[aria-controls="starlight__sidebar"]'
+        'button.sl-menu-button[popovertarget="starlight__sidebar"]'
       );
-      // Read expansion off the CUSTOM ELEMENT, not the button. Starlight's
-      // `setExpanded` does `this.setAttribute('aria-expanded', …)` on
-      // `<starlight-menu-button>`; the inner button's `aria-expanded="false"` is
-      // static markup that never changes, so reading the button reports the menu
-      // permanently closed and makes this whole test assert nothing.
-      const docsMenuHost = page.locator('starlight-menu-button');
+      // Read expansion off the PANE's popover state. Starlight 0.42 replaced the
+      // `<starlight-menu-button>` custom element and its `aria-expanded` bookkeeping
+      // with the native popover API, so the open/closed state now lives on the pane
+      // and there is no expansion attribute anywhere in the DOM to read.
+      const docsPane = page.locator('#starlight__sidebar');
       const productOpen = () => productDetails.evaluate((el: HTMLDetailsElement) => el.open);
-      const docsOpen = async () =>
-        (await docsMenuHost.getAttribute('aria-expanded')) === 'true';
+      const docsOpen = () => docsPane.evaluate((el) => el.matches(':popover-open'));
       const triggerText = () =>
         page.locator('nav[aria-label="Product navigation"] summary').innerText();
-      // Not just the attribute: the requirement is that the Docs MENU does not
-      // open. Starlight reveals it by CSS keyed off the menu button, so assert
-      // the pane's computed visibility as well — an attribute-only check would
-      // miss a selector change that reveals the sidebar without touching state.
+      // Not just the state: the requirement is that the Docs MENU does not open, so
+      // assert what the user can see as well. Read `display`, NOT `visibility` — a
+      // closed popover is `display: none` and its computed `visibility` stays
+      // `visible`, so the old visibility predicate would report every closed menu as
+      // shown and invert this test's meaning.
       const docsSidebarShown = () =>
         page
           .locator('#starlight__sidebar')
-          .evaluate((el) => getComputedStyle(el).visibility === 'visible');
+          .evaluate((el) => getComputedStyle(el).display !== 'none');
 
       await expect(productDetails).toHaveCount(1);
       await expect(docsMenuButton).toHaveCount(1);
@@ -774,6 +775,48 @@ test.describe('docs Product and Docs disclosures stay independent', () => {
       await docsMenuButton.click();
       expect(await docsOpen(), `${label(ctx)}: Docs closed`).toBe(false);
       expect(await productOpen(), `${label(ctx)}: closing Docs must not open Product`).toBe(false);
+    });
+
+    test(`/docs/ Escape closes the Docs menu and returns focus @${width}`, async ({ page }) => {
+      // The pane is `popover="manual"` so that closing the Product disclosure cannot
+      // light-dismiss it (spec/site-shared-chrome's isolated-disclosure-state rule).
+      // A manual popover gets NO Escape handling from the user agent, so docs-site's
+      // PageFrame override restores it — that handler is docs-local code, and without
+      // this case nothing exercises it. Starlight 0.41 closed on Escape and returned
+      // focus to the trigger; both halves are asserted, because a close that strands
+      // focus inside an inert pane is its own defect.
+      const ctx = { route: '/', width };
+      await page.setViewportSize({ width, height: 900 });
+      await gotoSettled(page, withDocsBase('/'), ctx);
+
+      const trigger = page.locator('button.sl-menu-button[popovertarget="starlight__sidebar"]');
+      const pane = page.locator('#starlight__sidebar');
+      const paneOpen = () => pane.evaluate((el) => el.matches(':popover-open'));
+
+      await trigger.click();
+      expect(await paneOpen(), `${label(ctx)}: the Docs menu opened`).toBe(true);
+
+      await page.keyboard.press('Escape');
+      expect(await paneOpen(), `${label(ctx)}: Escape closes the Docs menu`).toBe(false);
+      await expect(trigger, `${label(ctx)}: Escape returns focus to the trigger`).toBeFocused();
+
+      // Escape must still reach from the HEADER. The focus trap inerts only
+      // `.main-frame` and `.sl-skip-link`, so Starlight's title, search and theme
+      // controls stay tabbable while the menu is open. A listener scoped to the
+      // sidebar nav — which is what Starlight 0.41 used — never sees this Escape,
+      // and a keyboard user who tabs into the header is stranded in an open menu.
+      await trigger.click();
+      expect(await paneOpen(), `${label(ctx)}: the Docs menu reopened`).toBe(true);
+      await page.locator('header a.site-title').focus();
+      await expect(
+        page.locator('header a.site-title'),
+        `${label(ctx)}: the header stays reachable while the menu is open`
+      ).toBeFocused();
+      await page.keyboard.press('Escape');
+      expect(
+        await paneOpen(),
+        `${label(ctx)}: Escape closes the Docs menu from the header too`
+      ).toBe(false);
     });
   }
 });

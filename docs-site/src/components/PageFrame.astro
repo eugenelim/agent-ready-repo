@@ -65,11 +65,56 @@ if (!productLabel) {
           </details>
         </nav>
         <MobileMenuToggle />
-        <div id="starlight__sidebar" class="sidebar-pane">
+        <script>
+          // Follows Starlight 0.42's own PageFrame, which moved this menu to the
+          // popover API, and contributes the same focus trapping and resize-close.
+          // Overriding PageFrame means Starlight's copy never renders, so its
+          // `sl-sidebar-pane` definition never runs — this is the only one on the page.
+          class StarlightSidebarPane extends HTMLElement {
+            constructor() {
+              super();
+              matchMedia('(min-width: 50em)').addEventListener('change', () => this.hidePopover());
+              this.addEventListener('toggle', ({ newState }) => this.trapFocus(newState === 'open'));
+              // Escape-to-close, which `popover="manual"` costs us — an `auto` popover
+              // gets this from the user agent at document scope. See the attribute's
+              // comment below for why manual is deliberate.
+              //
+              // Bound on `document`, NOT on the sidebar nav the way Starlight 0.41 was.
+              // The focus trap below only inerts `.main-frame` and `.sl-skip-link`, so
+              // the header's title, search and theme controls stay reachable by Tab
+              // while the menu is open. A nav-scoped listener never sees Escape once
+              // focus lands on one of them, which strands a keyboard user in an open
+              // menu. 0.41 had that gap too; manual popovers are what make it ours.
+              document.addEventListener('keyup', (event) => {
+                if (event.code !== 'Escape' || !this.matches(':popover-open')) return;
+                this.hidePopover();
+                this.closest('nav')?.querySelector<HTMLElement>('button.sl-menu-button')?.focus();
+              });
+            }
+            /** Trap keyboard focus inside the header and menu while the menu is open. */
+            trapFocus(shouldTrap: boolean) {
+              document.querySelectorAll<HTMLElement>('.main-frame, .sl-skip-link').forEach((el) => {
+                el.toggleAttribute('inert', shouldTrap);
+              });
+            }
+          }
+          customElements.define('sl-sidebar-pane', StarlightSidebarPane);
+        </script>
+        {/*
+          `manual`, not Starlight's default `auto`, and the difference is the whole
+          reason this override exists. An `auto` popover light-dismisses on any
+          outside click — including a click on the Product disclosure's own summary,
+          which would close the Docs menu as a side effect. `site-shared-chrome`
+          requires the two disclosures to keep isolated state: "Opening or closing it
+          does not open, close, rename, or replace Starlight's Docs menu." `manual`
+          reproduces Starlight 0.41's interaction model, which had no light dismiss.
+          The cost is Escape handling, restored in the script above.
+        */}
+        <sl-sidebar-pane popover="manual" id="starlight__sidebar" class="sidebar-pane">
           <div class="sidebar-content sl-flex">
             <slot name="sidebar" />
           </div>
-        </div>
+        </sl-sidebar-pane>
       </nav>
     )
   }
@@ -131,7 +176,15 @@ if (!productLabel) {
   }
 
   .sidebar-pane {
-    visibility: var(--docs-sidebar-visibility, hidden);
+    /* The pane is a popover as of Starlight 0.42, so the UA hides it until the
+       menu button opens it and there is no `aria-expanded` selector to key off.
+       These four resets drop the opinionated default popover styling, exactly as
+       Starlight's own PageFrame does. */
+    border: unset;
+    padding: unset;
+    height: unset;
+    color: unset;
+
     position: fixed;
     z-index: var(--sl-z-index-menu);
     inset-block: var(--sl-nav-height) 0;
@@ -140,10 +193,6 @@ if (!productLabel) {
     background-color: var(--sl-color-black);
     overflow-y: auto;
     scrollbar-gutter: stable;
-  }
-
-  :global(starlight-menu-button[aria-expanded='true']) ~ .sidebar-pane {
-    --docs-sidebar-visibility: visible;
   }
 
   .sidebar-content {
@@ -216,7 +265,9 @@ if (!productLabel) {
     }
     .docs-product-disclosure { display: none; }
     .sidebar-pane {
-      --docs-sidebar-visibility: visible;
+      /* Show the sidebar outright at desktop widths instead of deferring to
+         popover state, which is what Starlight's own PageFrame does here. */
+      display: block;
       width: var(--sl-sidebar-width);
       background-color: var(--sl-color-bg-sidebar);
       border-inline-end: 1px solid var(--sl-color-hairline-shade);
