@@ -54,6 +54,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.22] — 2026-09-13
+
+### Highlights
+
+- **A frontend review now gets the pictures, not just the diff.** When a surface
+  has been inspected, the work-loop hands `frontend-reviewer` the capture set and
+  what was observed in it, alongside the diff. A reviewer that only ever saw a
+  diff could not see one element covering another, which is the class of defect
+  it was most often asked about.
+
+### Changed
+
+- `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
+  capture set, its recorded observations, and the adopter-named routes, and names
+  the reviewer's reader-visible-layout lens.
+
 ## [core][2.25.21] — 2026-09-13
 
 ### Added
@@ -127,6 +143,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ship with a procedure for measuring the false-positive rate in your own
   environment. The pack publishes no rate of its own, because the rate moves with
   the judge and the viewport sizes and does not transfer.
+- **A visible defect now costs something.** A run that took every capture and
+  found a banner covering the heading reports that it *ran* and that it did not
+  *pass* — two answers, because "the browser would not start" and "the page is
+  broken" need different fixes. The surface does not complete over an unresolved
+  blocking finding.
+- **The independent reviewer can finally see the page.** `frontend-reviewer` is
+  handed the captures, reads them, and can take its own when the ones it was
+  given do not cover what the diff makes it suspicious of. Until now it read the
+  diff, and no diff shows one element covering another.
 
 ### Added
 
@@ -150,6 +175,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   discarded, including when it disagrees.
 - The query string and fragment are cut from a route before it is recorded and
   before it is stated to the judge.
+- The request sent to a judge declares the capture untrusted evidence carrying
+  no instruction authority. The skill already said so, but a judge you route
+  captures to may never read the skill.
+- A failure fitting more than one finding class takes the most severe, so which
+  class a judge happens to name cannot lower the result.
+- A viewport height captured beyond the two required bands carries the same
+  at-rest and scrolled requirement. This was enforced before it was written
+  down; it is now stated in the reference the checks read.
+- `frontend-reviewer` gains a sixth lens for reader-visible layout failure,
+  taking severity from the pack's finding-class table, and states that it does
+  not write to the repository under review.
 
 ### Fixed
 

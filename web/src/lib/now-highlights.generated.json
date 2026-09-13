@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.22"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.22] — 2026-09-13",
+      "changelogAnchor": "core22522--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A frontend review now gets the pictures, not just the diff.** When a surface has been inspected, the work-loop hands `frontend-reviewer` the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A frontend review now gets the pictures, not just the diff."
+            },
+            {
+              "type": "text",
+              "value": " When a surface has been inspected, the work-loop hands "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.20"
         }
       ],
@@ -90,6 +124,40 @@
             {
               "type": "text",
               "value": " Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer."
+            }
+          ]
+        },
+        {
+          "source": "**A visible defect now costs something.** A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A visible defect now costs something."
+            },
+            {
+              "type": "text",
+              "value": " A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding."
+            }
+          ]
+        },
+        {
+          "source": "**The independent reviewer can finally see the page.** `frontend-reviewer` is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The independent reviewer can finally see the page."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another."
             }
           ]
         }
