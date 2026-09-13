@@ -157,12 +157,18 @@ changes lifecycle status.
 An intent's parts are not equal, and where a finding lands decides what may be
 done about it.
 
-**Contract** — `Outcome`, `Boundary`, `Owner`, `Projection`, and `Source`. Each
-decides something: what the intent is for, what it admits, who answers for it,
-where it goes next, and what authorises it.
+**Deciding sections** — `Outcome`, `Boundary`, `Owner`, `Projection`, and
+`Source`. Each decides something: what the intent is for, what it admits, who
+answers for it, where it goes next, and what authorises it.
 
-**Working material** — `Opportunity`, `Unresolved questions`, and `Assumptions`.
-These carry the ground, the open matters, and what is being taken on trust.
+**Recording sections** — `Opportunity`, `Unresolved questions`, and
+`Assumptions`. These carry the ground, the open matters, and what is being taken
+on trust.
+
+Both labels are local to choosing a demotion destination. They are not the
+contract and working-material tiers a spec carries, and nothing reads them to
+grade a finding: every condition this skill's shaping review checks blocks
+exactly as it did.
 
 The answers available to a sustained finding are stated once, in the `work-loop`
 skill's DECIDE step. They are not restated here. Some of them land differently on
