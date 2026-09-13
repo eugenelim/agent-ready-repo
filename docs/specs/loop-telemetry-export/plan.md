@@ -70,11 +70,13 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
 
 ### T1: The work-loop mapping profile
 
-**Depends on:** T6 — T1's pinned assertion compares the profile's `allowlist`
-against the keys of a line the engine emits, and T6 adds `schema` to that
-envelope. Run first, T1 ships a profile one field short and its own assertion
-turns red the moment T6 lands. The package's profile interface is a published
-contract and imposes no ordering; the envelope does.
+**Depends on:** T6 (this task's pinned assertion compares the profile's
+`allowlist` against the keys of a line the engine emits, and T6 adds `schema` to
+that envelope. Run first, it ships a profile one field short and its own
+assertion turns red the moment T6 lands. The package's profile interface is a
+published contract and imposes no ordering; the envelope does. The rationale sits
+inside parentheses deliberately: the scheduler reads task identifiers out of the
+prose before the first `(`, so an identifier named there becomes a dependency.)
 
 **Touches:** `packs/core/.apm/skills/work-loop/profiles/work-loop.toml`,
 `packs/core/tests/skills/work-loop/test_work_loop_profile.py`
@@ -324,9 +326,10 @@ returns equal parsed results for the legacy and versioned records.
 
 ### T5: Records, architecture and disclosure
 
-**Depends on:** T1, T2, T3, T4, T6, T7 — T6 creates the `schema` key that AC-0051's
-field count measures, and T7 records the corpus the count is read from, so running
-T5 first would pin § 5.1 to a field count one short of what ships.
+**Depends on:** T1, T2, T3, T4, T6, T7 (T6 creates the `schema` key that
+AC-0051's field count measures, and T7 records the corpus the count is read from,
+so running this task first would pin § 5.1 to a field count one short of what
+ships.)
 
 **Touches:** `docs/architecture/telemetry.md`, `guides/core/how-to/export-loop-telemetry.md`, `docs/specs/README.md`, `docs/product/changelog.md`
 
