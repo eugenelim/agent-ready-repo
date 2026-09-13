@@ -6,7 +6,7 @@
 > work teaches, without an amendment and without a review round.
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/pack.toml` (where the optional dependency is
   declared); `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`
   (the dormant `[[pack.runtime-dependencies]]` shape this activates);

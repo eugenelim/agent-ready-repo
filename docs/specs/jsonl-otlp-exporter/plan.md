@@ -6,7 +6,7 @@
 > work teaches, without an amendment and without a review round.
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packages/credbroker/` (distribution shape: pyproject,
   package dir, tests, own CHANGELOG, README-pypi, AGENTS.md — and the precedent
   that a published package's public contract lives in its README rather than in
