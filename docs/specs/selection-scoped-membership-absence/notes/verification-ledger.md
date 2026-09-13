@@ -87,3 +87,23 @@ Type errors in pack engine code cannot surface before `make build-self` runs:
 mypy checks typed packages, `packs/` is not one, and the engine reaches mypy
 only through its generated copy under `packages/agentbundle/`. Both mypy
 findings cited the generated copy, never the file that was edited.
+
+## Correction, 2026-09-13 (after merging main)
+
+main retired the spec index while this branch was in flight:
+`docs/specs/README.md` now states the directory convention and carries no
+table. That made the erratum's carve-out predicate — reference-free AND absent
+from the index — half vacuous, because every spec is now absent from an index
+that no longer exists. As written it would have licensed 112 specs where 84
+were measured and intended.
+
+The erratum had not yet reached the default branch, so it was corrected in
+place rather than by a second entry. It now anchors the carve-out to the
+measured reference-free set instead of to a predicate a later change can make
+vacuous, and records that no index-derived count is reproducible.
+
+Re-measured on the merged tree: 453 spec directories, 285 carrying no
+`workspace.toml` entry, and 112 with no inbound reference from any searched
+surface. The 112 are a strict subset of the 285. The carve-out takes the
+narrower set, and it licenses where deletion is mechanically safe — never that
+a spec should be deleted.

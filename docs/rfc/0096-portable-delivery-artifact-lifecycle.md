@@ -502,23 +502,30 @@ record. Corrections are appended here, Approver-signed.
   The 2026-09-03 measurement of 426 spec directories, with 211 (49%) absent
   from `docs/specs/README.md`, is superseded
   (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:441-447`). Measured on
-  2026-09-13, this checkout has 446 spec directories. The README has 212 table
-  data rows, defined as lines beginning `| [`. Literal slug or path mentions
-  anywhere in the README name 247 distinct spec directories, leaving 199 of
-  the 446 with no README mention. A substantial unindexed subset remains.
+  2026-09-13, this checkout has 453 spec directories.
 
-  The recorded literal-string search found 112 spec directories with no
-  inbound literal reference from `workspace.toml` or the enumerated searched
-  surfaces: `tools/`, `packages/`, `packs/`, `docs/knowledge/`, `docs/adr/`,
-  `docs/rfc/`, `docs/product/`, `guides/`, `docs-site/`, and every other spec.
-  The measured 84 are the intersection of those 112 reference-free directories
-  and the 199 directories with no README mention. This search cannot exclude
-  constructed, indirect, alias-based, or unsearched-file references.
+  That earlier measurement counted a spec index this repository no longer
+  keeps. `docs/specs/README.md` now states the spec directory convention and
+  carries no index table, and specs are discovered by listing the directory.
+  No index-derived count is therefore reproducible, and no such count is used
+  below. The corpus volume the Wave 7d objective names is unchanged by that
+  retirement.
 
-  The Wave 7d carve-out permits only that measured entry-less and
-  reference-free intersection. Before any of the 84 is deleted, its entry-less
-  and reference-free status must be re-verified by a mechanical check rather
-  than relied upon from the literal-string search recorded here. This
+  A literal-string search found 285 spec directories carrying no
+  `workspace.toml` entry, and within them 112 with no inbound literal
+  reference from any enumerated searched surface: `workspace.toml`, `tools/`,
+  `packages/`, `packs/`, `docs/knowledge/`, `docs/adr/`, `docs/rfc/`,
+  `docs/product/`, `guides/`, `docs-site/`, and every other spec. The
+  reference-free 112 are a strict subset of the entry-less 285. This search
+  cannot exclude constructed, indirect, alias-based, or unsearched-file
+  references, so it establishes where deletion is mechanically safe and never
+  that a spec should be deleted.
+
+  The Wave 7d carve-out permits only the narrower reference-free 112, not the
+  entry-less 285, and is anchored to that measured set rather than to a
+  predicate a later change can make vacuous. Before any of the 112 is deleted,
+  its entry-less and reference-free status must be re-verified by a mechanical
+  check rather than relied upon from the literal-string search recorded here. This
   verification is a condition on the carve-out; it does not select or constrain
   the route by which Wave 7c satisfies the entry-removal precondition. Wave 7c
   still gates every spec carrying a `workspace.toml` entry
