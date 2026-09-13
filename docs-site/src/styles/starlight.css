@@ -828,6 +828,11 @@ main h1 {
      unreadable `var()` makes the whole `calc()` invalid — so the padding that
      depended on it silently became 0 instead of erroring. */
   --docs-orientation-band-height: 2.25rem;
+  /* The band's own bottom rule. It sits outside the declared band height, so a
+     clearance calculated from the height alone is one pixel short -- which is
+     exactly how much of the rail stayed covered, and what CI caught after this
+     looked right locally. */
+  --docs-orientation-band-rule: 1px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -851,5 +856,5 @@ main h1 {
  * ------------------------------------------------------------------------- */
 
 .right-sidebar {
-  padding-top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height));
+  padding-top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height) + var(--docs-orientation-band-rule));
 }

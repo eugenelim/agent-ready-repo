@@ -63,7 +63,7 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
        the condensed height left this hidden behind the header in the one state
        that combines both: page at the top, rail scrolled. Pinning to the tall
        height costs a band of space in the other states and is never hidden. */
-    top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height));
+    top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height) + var(--docs-orientation-band-rule));
     z-index: 1;
     margin-bottom: 0.6rem;
     padding: 0.5rem 0.7rem;
