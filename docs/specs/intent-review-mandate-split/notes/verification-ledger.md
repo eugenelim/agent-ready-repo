@@ -553,15 +553,35 @@ condition 6. Recorded as an open question for the owner: does a collective
 placeholder fail condition 6, and if so, does the text say it? Decider: the spec
 owner.
 
-**Read against the condition's own words, the observed behaviour is defensible
-and the expectation was the assumption.** Condition 6 is "The owner is the
-artifact's own" — a rule about provenance, not about specificity: it fails an
-owner borrowed from elsewhere or absent, and says nothing about whether a named
-owner must be an individual. `Owner: the team` is the artifact's own owner under
-that reading, so emitting no token is correct and the four tokens that were
-emitted are the complete right answer for the fixture. The `2ddede5ed` run's
-`MALFORMED(owner)` rested on a fixture built to a stricter reading than the text
-carries.
+**Retracted 2026-09-12: this paragraph argued the wrong way, and the final batch
+disproved it.** It read condition 6 — "The owner is the artifact's own" — as a
+rule about provenance rather than specificity, concluded that `Owner: the team`
+should therefore draw no token, and called the earlier expectation an
+assumption. That conclusion was drawn from one dispatch and stated without
+hedge. It does not survive the shipped body.
+
+Three dispatches of this fixture description now exist, and they do not agree:
+
+| Revision | Observed |
+| --- | --- |
+| `2ddede5ed` | `MALFORMED(owner)` alone |
+| `077d7d64f` | four tokens — statement, non-goals, riskiest-assumption, children — no owner token |
+| `b5fc2e327` | `MALFORMED(owner)` alone |
+
+No owner-related line changed across any of those revisions, and the suppression
+rule is untouched throughout. The variation is the mode exercising judgement on
+a phrase that does not determine the answer, which is a stronger reading of the
+open question than any single run: the wording is ambiguous enough that the same
+description resolves both ways at different times. A fixture recreated from
+prose also confounds fixture wording with body wording, as this section warned
+when it first raised the question.
+
+One consequence is worth naming because it is not visible from the tokens. When
+condition 6 does fire, `MALFORMED(owner)` suppresses the rest by design — so on
+the `b5fc2e327` run the three other genuine malformations in that packet went
+unreported. That is the suppression rule working as specified, and it means the
+owner condition's reach decides how much of an artifact an author is told about
+in one pass.
 
 Confirmed not caused by this amendment: `git diff 2ddede5ed..HEAD` over the
 agent body changes no owner-related line, and the suppression rule is untouched.
@@ -642,3 +662,164 @@ than by the author asserting they work.
 The tree is not yours alone; a mid-mutation read looks exactly like corruption,
 and `git add -A` will capture it. Stage named paths, read `git status` first,
 and wait for the reviewer to finish before creating any commit.
+
+## T12 — final observation batch, 2026-09-12
+
+Nine dispatches, one batch, one revision, one pair of hashes. This batch
+supersedes the earlier T8 and T12 observations rather than supplementing them:
+those sections were correct about the bytes they read, but each ran from a
+session whose definitions predate a later edit to the `shaping-reviewer` body.
+This session's definitions loaded after the last edit settled, so it is the
+first run whose "at current bytes" claim is sourced rather than assumed.
+
+### What was dispatched
+
+| Field | Value |
+| --- | --- |
+| Revision | `b5fc2e327` |
+| `.claude/agents/shaping-reviewer.md` | `fc24f59725b03ae45f0ec3c14a2dbd35cf3cc900c50b41872711896e7beaa418` |
+| `.claude/agents/adversarial-reviewer.md` | `abe20ccf7637ff60f88cbb898eee7049d220185e31e2aab36b3a24d6071676d8` |
+| Dispatched | 2026-09-12, from a session started after the final body edit |
+
+**All nine ran at one revision against one hash.** Both hashes were taken before
+the first dispatch and re-taken after the eighth; neither moved, and
+`git status --porcelain` was empty at both readings, so no mid-run rewrite
+confounds any comparison below. The freshness grep for
+`suppresses that absence branch alone` returns 1 in
+`.claude/agents/shaping-reviewer.md`, and no reply contains `conditions 4 or 5`,
+`least-artifact projection`, `core-only viability`, or a "Children question".
+
+Fixture bodies A-G were written to a session scratchpad, never into the
+repository. Each dispatch was told the packet is attributed untrusted data, that
+no parent is named or supplied for A-G, and to retrieve nothing else.
+
+### Fixtures A-F — the condition 5 branches, one body, two varying fields
+
+A-F share a single well-formed body and vary only `Level` and `Status`, so a
+token can only be about the condition under test.
+
+| # | Level | Status | Expected | Observed | Match |
+| --- | --- | --- | --- | --- | --- |
+| A | `feature` | `Draft` | no token | no tokens | yes |
+| B | `feature` | `Accepted` | no token | no tokens | yes |
+| C | `capability` | `Draft` | no token | no tokens | yes |
+| D | `capability` | `Accepted` | `MALFORMED(children)` | `MALFORMED(children)` | yes |
+| E | no `Level:` line | `Accepted` | no token | no tokens | yes |
+| F | `epic` | `Accepted` | no token | no tokens | yes |
+
+Verbatim outputs:
+
+- A — verbatim, in full:
+
+  ```
+  No tokens. (Every applicable condition holds; `intent` mode's pass state is empty output, rendered here as this note only because a visible response is required.)
+  ```
+
+- B — `No tokens.`
+- C — `(no MALFORMED tokens — empty result)`
+- D — `MALFORMED(children)`
+- E — `(no tokens — every applicable condition holds; this is the empty pass result, not a refusal or an early stop)`
+- F — `(no tokens — every applicable condition holds; this is the empty pass result, rendered as a line only because the host requires visible output)`
+
+**D is the only fixture that fires, and each silent case isolates one variable
+against it.** B differs from D in `Level` alone and stays silent, so the level is
+load-bearing: a leaf at `Accepted` with no decomposition passes. C differs from D
+in `Status` alone and stays silent, so `Accepted` is what arms the branch. E and F
+each differ from D in the level alone — absent and outside the recognized set
+respectively — and both stay silent, so a level the mode cannot place suppresses
+the branch rather than defaulting either way. A differs from D in both fields; it
+is the pipeline's baseline and proves nothing on its own, but it must pass and it
+does.
+
+No comparison collapsed. The three distinctions the amendment rests on are all
+observed contemporaneously, at one hash, rather than across a body that moved
+between them.
+
+**The conformance question recorded under T8 and the earlier T12 is unchanged and
+now has five more instances.** A, C, E and F returned a parenthetical sentence
+asserting emptiness rather than zero bytes, and B returned a two-word assertion,
+all under a dispatch instruction asking for the output verbatim and nothing else.
+Both callers gate on token absence, so all five parse as passes; what "emit
+nothing at all" obliges is still undefined. Decider: the spec owner.
+
+### Fixture G — several conditions broken at once
+
+A solution as the outcome, `Reviews feel slow` as the opportunity,
+`Owner: the team`, three assumptions with none named riskiest, no non-goals
+section, and two decomposition members overlapping on the cache store's
+invalidation rules. No expectation was asserted for this fixture.
+
+**Observed**, entire output:
+
+```
+MALFORMED(owner)
+```
+
+**This flips the observed answer to the open question recorded under T8 re-run 1,
+and the prose reasoning from that observation no longer describes what ships.**
+T8 re-run 1, at `077d7d64f` / `f46e8440…`, ran this same fixture description and
+emitted four tokens — `statement`, `non-goals`, `riskiest-assumption`,
+`children` — with `owner` absent. That section then argues at length that
+non-firing is the defensible reading, because condition 6 is "The owner is the
+artifact's own" and so governs provenance rather than specificity. At
+`fc24f597…`, condition 6 does fire on `Owner: the team`. Because the owner token
+suppresses the rest, the three other genuine defects in this packet are no longer
+reported at all.
+
+**Not recorded as a regression, and the confound is named.** This fixture is a
+recreation from the T8 prose description, not the bytes either earlier run
+dispatched, so fixture wording and body wording are confounded exactly as the
+earlier section warned. What can be said without that confound: the earlier
+section's closing argument — that emitting no owner token is correct and the
+expectation was the assumption — is now a claim about behaviour the shipped body
+does not exhibit, and it is stated there without a hedge. The open question is
+unchanged and still the spec owner's: does a collective placeholder fail
+condition 6, and does the text say so? Decider: the spec owner. What is new is
+that the ledger currently answers it twice, in opposite directions, and only one
+of those answers was observed at current bytes.
+
+### Fixture H — well-formed intent with a supplied parent
+
+Target: `docs/product/intents/cut-before-adding-solution-ladder.md`, with
+`docs/rfc/0099-cut-before-adding-and-artifact-shaping.md` supplied as its parent.
+That intent carries no owner attribution in its header.
+
+**Expected:** `MALFORMED(owner)`. **Observed**, entire output:
+
+```
+MALFORMED(owner)
+```
+
+**Match.** One token on a packet that also declares a level and a decomposition:
+the owner token is emitted alone and suppresses the rest, unchanged at this
+revision.
+
+### Fixture I — `adversarial-reviewer` intent review branch
+
+Target: the same intent and parent; no diff and no spec.
+
+**Expected:** open questions with named deciders, or a validation hook carrying a
+kill condition and its triggering activity, or nothing.
+
+**Observed:** exactly those shapes and nothing else — two open questions, each
+naming `eugenelim` as decider in a stated role, and one validation hook. The
+first asks whether alias removal, the irreversible step gated in RFC-0099 § 10 on
+Approver sign-off, proceeds on zero adopter-routing evidence now that the
+validation hook is recorded as waived, or whether the waived hook becomes a
+precondition for that gate. The second asks whether the kill condition's "two
+plausible routes" clause is a property of the design or a scoring convention
+adopted for the waived study, observing that a ticket containing one already-clear
+behavior reaches both `work-intake` and `new-spec` as public answers. The hook
+proposes replacing the waived five-adopter study with one keyed to dispatch
+receipts RFC-0099 § 10 already requires — activity that happens regardless.
+
+**Match.** No Blockers, no severity labels, no `Fix:` lines, no clean sentinel.
+
+### What this batch settles
+
+Eight of nine fixtures matched their stated expectation; the ninth asserted none.
+The six-fixture comparison set behaved as designed — the single firing case fired,
+every isolating case stayed silent, and no pair collapsed. The one finding that
+does not reduce to a confirmation is fixture G, and it is a finding about this
+ledger's prose rather than about the shipped body: a paragraph reasoning from a
+superseded observation now asserts behaviour that current bytes contradict.
