@@ -10,8 +10,9 @@ the windows that yield no candidate actually contain.
 - **Base:** `e45f7c355`
 - **Verdict:** a bullet shares much more content-word vocabulary with its own
   release window than with a size-matched control, and the typical bullet was not
-  copied wholesale from a single commit — but **no generator of any kind was
-  run**, so which implementations survive is untested. See [Verdict](#verdict).
+  copied wholesale from a single commit. **No generator was implemented**; two
+  entries were drafted by hand-invoked model assistance and previewed (Result 4),
+  which is an illustration, not an evaluation. See [Verdict](#verdict).
 - **Scope:** evidence only. No production code was written; the prototype is
   throwaway and lives outside the repository.
 
@@ -20,10 +21,14 @@ the windows that yield no candidate actually contain.
 It measures **word overlap** between a shipped changelog bullet and the commits
 in its release window, under two metrics, against a size-matched control.
 
-It does **not** measure generability. No generator — mechanical, templated, or
-model-assisted — was built or run, and no draft was compared against what
-shipped. Every statement below is about overlap. Where overlap licenses an
-inference about implementations, that is marked `[inference]` and kept narrow.
+It does **not** measure generability. No generator was built, and Results 1–3
+compare no draft against anything; every statement in them is about overlap, with
+any inference about implementations marked `[inference]` and kept narrow.
+
+Result 4 is different in kind and is bounded accordingly: two entries were
+drafted by hand-invoked model assistance from collector output and compared as
+rendered previews. Two cases illustrate failure modes. They measure no rate, and
+they evaluate no implementation.
 
 ## Method and evidence
 
@@ -185,6 +190,50 @@ vocabulary, never checked against a human judgement of which releases owed an
 entry, and a misclassified commit is still dropped silently. The 5 of 166 (3%)
 residual is a **no-commit rate**, not a measured true-failure rate.
 
+## Result 4 — a rendered preview is both the review surface and the instrument
+
+Per-bullet adjudication was rejected as a measurement: it imposes exactly the
+review overhead a generator exists to remove. The substitute is a **rendered
+preview of the entry**, judged whole. It costs one glance, and in these two cases
+it exposed distinctions an overlap score cannot represent at all — which is a
+statement about what the two instruments can express, not a ranking established
+at this sample size.
+
+Two entries were drafted from collector output alone — the admitted commits'
+full messages, with the shipped entry deliberately not in view — then compared.
+
+**`desk-research` 1.1.8 — close.** Two bullets, correct group, no invented
+content. The shipped text is shorter and addresses the reader ("sets that
+default up for you"); the draft explains the mechanism instead.
+
+**`architect` 0.15.8 — three distinct failures, all visible at a glance:**
+
+| Failure | Draft | Shipped |
+| --- | --- | --- |
+| **Over-publication** | invented a `Highlights` block | none — the maintainer chose not to publish to `/now/` |
+| **Over-inclusion** | added a `Fixed` bullet on instruction ordering | omitted; judged not user-visible |
+| **Missing prior value** | "output base is `docs/architecture`" | "defaults to `docs/architecture` **rather than `docs/design`**" |
+
+The third is worth watching, and it held in **one of the two cases**. The
+`architect` commit gave the new base without the prior `docs/design`, and said a
+section was declared without naming `architecture`; both appear in the shipped
+bullet. The `desk-research` commit, by contrast, *did* state its prior
+documentation state, and the draft carried it through.
+
+So the pattern is "a commit may state what changed without stating what it
+changed from", and where it does not, no collector recovers the before-value from
+the message — it comes from the diff or the author. How often that happens needs
+a larger sample.
+
+The first two are an over-emphasis failure mode: given material, this drafter
+published it. The header's rule that a release may correctly carry *no*
+`Highlights` is a judgement the commit record does not contain, and getting it
+wrong pushes copy onto a public page that the maintainer withheld. Whether some
+other generator could make that call was not tested.
+
+**This is a two-case observation, not a rate.** It says the failure modes are
+real and preview-visible; it does not say how often they occur.
+
 ## What this means for the design
 
 The three parts separate along the line this spike measured — with the caveat
@@ -194,7 +243,7 @@ that only the first two were measured:
 | --- | --- | --- |
 | **Collector** — which commits are candidates | **Yes** | boundary, path filter, squash split; deterministic and verifiable, and confirmed by the paired margin above |
 | **Exclusion** — dropping non-user-impacting work | **Partly** | change type is recorded data, but type ≠ impact; the list is reviewable policy needing validation |
-| **Emphasis** — which change matters and how to say it | **Untested** | output shares few tokens with its source; no generator of any kind was run |
+| **Emphasis** — which change matters and how to say it | **Untested** | output shares few tokens with its source; no generator was implemented, and the two previewed drafts over-published |
 
 `changelog.md`'s header constrains where a model may sit. It forbids one **in the
 automation path** — "no model runs in CI, release automation, or site
@@ -223,9 +272,10 @@ what a generator could produce. The one inference they carry is that the typical
 whole bullet was not copied wholesale from one commit.
 
 Whether extraction, templating, or a model-assisted step can do that is **not
-determined here**, because no generator of any kind was built or run. An overlap
-statistic cannot answer it; the next measurement is a draft compared against what
-shipped.
+determined here**, because no generator was implemented. The two hand-invoked
+drafts in Result 4 illustrate failure modes at n=2; they do not evaluate an
+implementation. An overlap statistic cannot answer it either — the next
+measurement is a set of rendered drafts compared against what shipped.
 
 Nothing here decides between generation and fragmentation. The
 [fragmentation spike](changelog-fragmentation-spike.md)'s three-way decision
@@ -244,10 +294,15 @@ stands.
 
 ## Known unknowns
 
-- **Known-unknown:** Would a model-assisted draft be accepted or rewritten?
-  Would be closed by: drafting the last 10 entries from only the collected
-  commits, then having the owner mark each bullet accept / edit / reject. This is
-  now the cheapest decision-relevant measurement available.
+- **Known-unknown:** How often does a drafted entry need correcting, and how
+  badly? Would be closed by: drafting the last 10 entries from collector output
+  and diffing each **rendered entry** against what shipped. Per-bullet
+  accept/edit/reject was considered and rejected — it imposes the review overhead
+  the tool exists to remove. Result 4 ran this at n=2.
+- **Known-unknown:** Can the before-value be recovered mechanically? Would be
+  closed by: checking whether the diff of the release commit yields the prior
+  value for the kind of setting a changelog bullet cites, since the commit
+  message does not.
 - **Known-unknown:** Does an exclusion list drop user-impacting work? Would be
   closed by: labelling by hand which of the measured releases owed an entry, and
   scoring the list against that labelling rather than against itself.
