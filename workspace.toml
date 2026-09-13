@@ -458,6 +458,7 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  {slug = "pre-existing-gitattributes-merge-driver-path-leak", summary = "tools/test_gitattributes_merge_driver.py:30 inserts packages/agentbundle on sys.path at import time, which tools/test_import_time_path_leaks.py forbids; landed on main in 5c96716d8 after the last green test-corpus run on 2026-09-08, so main is latently red and PR #1286 is the first run to surface it", source = "pre-flight/2026-09-13"},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
