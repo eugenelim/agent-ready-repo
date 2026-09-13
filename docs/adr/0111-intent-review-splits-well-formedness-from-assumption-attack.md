@@ -1,4 +1,4 @@
-# ADR-0109: Intent review splits into a mechanical well-formedness check and a narrowed assumption attack
+# ADR-0111: Intent review splits into a mechanical well-formedness check and a narrowed assumption attack
 
 - **Status:** Accepted
 - **Date:** 2026-09-11

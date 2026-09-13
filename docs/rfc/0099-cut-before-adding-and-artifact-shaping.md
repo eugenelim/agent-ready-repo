@@ -1,6 +1,6 @@
 # RFC-0099: Cut before adding and artifact shaping
 
-- **Status:** Accepted (superseded in part by ADR-0109 — § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands)
+- **Status:** Accepted (superseded in part by ADR-0111 — § 5's intent-mode rubric and its single `Clean` | `Findings` result vocabulary; everything else stands)
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-08-27

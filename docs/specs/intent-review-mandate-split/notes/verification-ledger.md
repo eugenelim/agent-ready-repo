@@ -53,7 +53,7 @@ indistinguishable from its reply. What is established is that a mid-session
 projection rewrite is not reliably what a dispatched subagent runs.
 
 **What the observation does establish:** the pre-change contract behaves exactly
-as ADR-0109 describes it, which is why the decision was taken. Ten findings and
+as ADR-0111 describes it, which is why the decision was taken. Ten findings and
 ten `Fix:` lines on a 24-line intent, including a request to add a boundary
 section and unresolved-questions section to an artifact whose only job was to
 name a bet, is the failure mode the split exists to end.
@@ -105,7 +105,7 @@ the RFC-0099 approver.
 **Resolved 2026-09-11 by the named decider: mode-scoped.** The boundary means
 what it says, the optional advisory read gates nothing, and the boundary after
 it already admits the adversarial reviewer as an extra read. The reading is
-recorded in ADR-0109 § Consequences so a later author does not re-derive it. No
+recorded in ADR-0111 § Consequences so a later author does not re-derive it. No
 change to this spec or its implementation followed.
 
 This is the mode's first real output, and it worked: an open question with a

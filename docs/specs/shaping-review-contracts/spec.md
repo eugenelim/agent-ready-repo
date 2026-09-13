@@ -1,6 +1,6 @@
 # Spec: Shaping review contracts
 
-- **Status:** Shipped (superseded in part by ADR-0109 — intent mode's rubric and its result vocabulary; everything else stands)
+- **Status:** Shipped (superseded in part by ADR-0111 — intent mode's rubric and its result vocabulary; everything else stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099; ADR-0099; ADR-0042

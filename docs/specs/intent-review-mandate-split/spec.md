@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0109, RFC-0099
+- **Constrained by:** ADR-0111, RFC-0099
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -40,11 +40,11 @@ findings on a thin artifact, and that neither reviewer can propose a different b
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable; the split reverses part of an accepted design | `docs/adr/0109-intent-review-splits-well-formedness-from-assumption-attack.md` | maintainer | ADR Accepted, indexed in `docs/adr/README.md` | ADR exists and this spec cites it |
+| Decision rationale | Applicable; the split reverses part of an accepted design | `docs/adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md` | maintainer | ADR Accepted, indexed in `docs/adr/README.md` | ADR exists and this spec cites it |
 | User-facing promise | Applicable; three guide passages state a vocabulary this change moves | `guides/product-engineering/how-to/shape-a-feature-intent.md`, `guides/core/how-to/start-or-remember-work.md`, `guides/core/explanation/core-pack.md` | maintainer | a read of each changed passage plus an absence check for the retired vocabulary; the per-guide split of the adversarial output types is owned by the criteria | every changed passage reads true against the shipped agents |
 | Interface compatibility | Applicable; the intent review is a declared cross-pack integration | `packs/product-engineering/pack.toml` `core-intent-shaping-review` entry | pack maintainer | integration entry and its pack test agree on the new vocabulary | entry names no `Clean` for intent mode |
 | Release history | Applicable; both packs ship a consumer-visible contract change | `docs/product/changelog.md`, and `web/src/lib/now-highlights.generated.json` when a `Highlights` block ships | pack maintainer | one free-standing entry per pack with an explicit `Highlights` disposition, plus the regenerated public projection | entries exist at `##` level with the shipped versions, and the committed projection matches the changelog source |
-| Frozen-record navigation | Applicable; a reader starting at the superseded records must reach the new rule | `docs/specs/shaping-review-contracts/spec.md`, its `plan.md`, `docs/rfc/0099-cut-before-adding-and-artifact-shaping.md` | maintainer | one-way `Status`-line pointer to ADR-0109 naming the superseded part | pointers present, bodies unedited |
+| Frozen-record navigation | Applicable; a reader starting at the superseded records must reach the new rule | `docs/specs/shaping-review-contracts/spec.md`, its `plan.md`, `docs/rfc/0099-cut-before-adding-and-artifact-shaping.md` | maintainer | one-way `Status`-line pointer to ADR-0111 naming the superseded part | pointers present, bodies unedited |
 | Current architecture | Not applicable | — | — | — | the change adds no module, boundary, or dependency; the reviewer roster and its ownership split are unchanged |
 | Operations | Not applicable | — | — | — | no runtime, deployment, or operational surface is involved |
 | Reusable learning | Not applicable | — | — | — | the only generalizable material is the ADR's own rationale |
@@ -110,7 +110,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Eval harnesses — goal-based check.** A grep over the three harnesses:
   no intent-mode `Clean` expectation survives in the two dispatching callers,
   and `de-risk-intent`'s carries its boundary and no intent vocabulary.
-- **Governing-record correction — goal-based check.** ADR-0109 is this spec's
+- **Governing-record correction — goal-based check.** ADR-0111 is this spec's
   `Constrained by:` record and is corrected in body, not by a `Status` pointer,
   because it is branch-local and has never shipped. The check is a read of
   decision item 1 against the criteria it governs; a record that still states a
@@ -193,7 +193,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   refusal, a grounding gap, or a failed dispatch. The shipped body states the
   same reading in the same words, so a reader of either never has to reconcile
   a count with an applicability rule.
-- [x] ADR-0109's decision item 1 states the rule the body ships: condition 4
+- [x] ADR-0111's decision item 1 states the rule the body ships: condition 4
   applies to an intent that names a parent, and condition 5 measures the
   artifact's own decomposition against its own outcome with the absence branch
   keyed on level together with status. The criterion fails while the record
@@ -342,7 +342,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - [x] `docs/specs/shaping-review-contracts/spec.md`, its `plan.md`, and
   `docs/rfc/0099-cut-before-adding-and-artifact-shaping.md` each carry a one-way
-  `Status`-line pointer to ADR-0109 naming the superseded intent part, with no
+  `Status`-line pointer to ADR-0111 naming the superseded intent part, with no
   other line changed.
 - [x] `core` and `product-engineering` each ship the bump level the owning
   version-bump rule yields for changed pack content, matched between `pack.toml`
@@ -480,4 +480,4 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   2026-09-11).
 - Process: the `MALFORMED` field tokens are a closed set, extended from five to
   six so a wrong owner surfaces as `MALFORMED(owner)` rather than as prose
-  (source: user confirmation 2026-09-11; ADR-0109 decision item 1).
+  (source: user confirmation 2026-09-11; ADR-0111 decision item 1).

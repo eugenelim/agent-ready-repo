@@ -25,7 +25,7 @@ changelog) run last, once the sources have stopped moving.
 
 ## Constraints
 
-- `packs/` content may not cite ADR-0109, RFC-0099, an acceptance criterion, or
+- `packs/` content may not cite ADR-0111, RFC-0099, an acceptance criterion, or
   an internal `docs/` path; the portability grep in `packs/AGENTS.local.md:53`
   is the check.
 - `.apm/` is the only source; `.claude/agents/`, `.codex/agents/`, and every
@@ -172,7 +172,7 @@ earned a red. Each bullet says which it is.
 | User-facing promise — three guide passages | T6 | a read of each changed passage plus the `! grep -q` absence check; the roster documentation suite covers `core-pack.md` only | every changed passage reads true against shipped agents |
 | Interface compatibility — `core-intent-shaping-review` entry | T3 | `test_frame_intent_shaping_review.py` whole-dict comparison | entry names no `Clean` |
 | Release history — `docs/product/changelog.md`, `web/src/lib/now-highlights.generated.json` | T7, T11 | free-standing `##` entry per pack, read for the applicability rule's presence and for any bullet the shipped body contradicts, plus the regenerated `/now/` projection | versions match the shipped manifests, the `core` entry states the applicability rule, no bullet describes behaviour the body lacks, and the committed projection matches its changelog source |
-| Frozen-record navigation — superseded spec, plan, RFC | T5 | `git diff` shows only `Status` lines | pointers resolve to ADR-0109 |
+| Frozen-record navigation — superseded spec, plan, RFC | T5 | `git diff` shows only `Status` lines | pointers resolve to ADR-0111 |
 
 ## Design (LLD)
 
@@ -581,7 +581,7 @@ from `.apm/`.
 
 **Depends on:** T10
 
-**Touches:** `docs/adr/0109-intent-review-splits-well-formedness-from-assumption-attack.md`
+**Touches:** `docs/adr/0111-intent-review-splits-well-formedness-from-assumption-attack.md`
 
 **Tests:**
 - Goal-based. Read decision item 1 against the amended criteria: every condition
@@ -870,7 +870,7 @@ match their sealed content byte for byte, and the shipped versions are
   the ADR template contradicts — `Supersedes:` carries ADR ordinals only, and the
   ADR already points at the superseded RFC section through `Related:` and
   `References` — so the durable-output row states the one-way convention instead.
-- 2026-09-11 — Plan drafted from ADR-0109 with the caller, guide, and release
+- 2026-09-11 — Plan drafted from ADR-0111 with the caller, guide, and release
   tasks separated from the two contract tasks, so the two agent bodies can land
   and be reviewed before anything depends on their new vocabulary.
 - 2026-09-11 — Shaping review round 1 returned three blockers and eight
@@ -879,7 +879,7 @@ match their sealed content byte for byte, and the shipped versions are
   passing; the three eval harnesses entered scope; `MALFORMED(owner)` suppresses
   the other tokens rather than joining them; the bump level is derived from the
   owning rule rather than fixed at minor; and the adversarial observation gained
-  a positive path so it can fail. ADR-0109 was corrected to six conditions
+  a positive path so it can fail. ADR-0111 was corrected to six conditions
   before commit so the governing record does not ship false.
 - 2026-09-11 — T8's observed run found a condition that cannot pass. A leaf
   intent has no decomposition to supply, so condition 5 fired with no evidence

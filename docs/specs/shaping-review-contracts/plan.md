@@ -1,7 +1,7 @@
 # Plan: Shaping review contracts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done (superseded in part by ADR-0109 — intent mode's rubric and its result vocabulary; everything else stands)
+- **Status:** Done (superseded in part by ADR-0111 — intent mode's rubric and its result vocabulary; everything else stands)
 - **Repository anchors:** `ARCHITECTURE.md`,
   `docs/architecture/skill-and-pack-format.md`, and
   `docs/architecture/pack-layout.md`; analogous
