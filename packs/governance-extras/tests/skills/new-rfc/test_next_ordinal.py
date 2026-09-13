@@ -39,7 +39,11 @@ def run_git(arguments: list[str | pathlib.Path], directory: pathlib.Path) -> Non
     )
 
 
-def remote_checkout(tmp_path: pathlib.Path, directory_name: str = "records") -> pathlib.Path:
+def remote_checkout(
+    tmp_path: pathlib.Path,
+    directory_name: str = "records",
+    remote_record: str = "0009-b.md",
+) -> pathlib.Path:
     """Build a clone whose fetched remote has a newer record than its tree.
 
     Defaults to a SUBDIRECTORY, not the repository root. Git resolves a
@@ -69,7 +73,7 @@ def remote_checkout(tmp_path: pathlib.Path, directory_name: str = "records") -> 
 
     checkout = tmp_path / "checkout"
     run_git(["clone", os.fspath(origin), os.fspath(checkout)], tmp_path)
-    (origin_directory / "0009-b.md").touch()
+    (origin_directory / remote_record).touch()
     run_git(["add", "--all"], origin)
     run_git(
         [
@@ -359,22 +363,55 @@ def test_check_refuses_record_looking_symlink(
 
 def test_check_refuses_entry_that_cannot_be_classified(
     tmp_path: pathlib.Path,
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """An entry classification error cannot produce a clean result."""
-    target = tmp_path / "0001-uninspectable.md"
-    target.touch()
-    original_is_symlink = MODULE.Path.is_symlink
+    """A real classification failure cannot produce a clean result.
 
-    def raise_for_target(path: pathlib.Path) -> bool:
-        if path == target:
-            raise OSError("classification denied")
-        return original_is_symlink(path)
+    The directory is readable but not searchable, so listing it succeeds while
+    stat-ing what it lists fails. This is driven through the filesystem rather
+    than by patching the classifier: `Path.is_symlink` and `Path.is_file` return
+    False on any OSError instead of raising, so a test that patched them to
+    raise would prove the handler and leave the real predicate unexercised.
+    """
+    records = tmp_path / "records"
+    records.mkdir()
+    (records / "0001-a.md").touch()
+    os.chmod(records, 0o600)
+    try:
+        assert run_check(records) == 1
+        assert "cannot classify entry" in capsys.readouterr().err
+    finally:
+        os.chmod(records, 0o700)
 
-    monkeypatch.setattr(MODULE.Path, "is_symlink", raise_for_target)
+
+def test_check_refuses_a_dangling_record_symlink(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A record-shaped symlink to nothing is an integrity error, not a skip.
+
+    `Path.is_file()` answers False for a dangling link, so classifying by it
+    drops the entry silently: two record-shaped links could then share an
+    ordinal while the check stayed green.
+    """
+    (tmp_path / "0001-real.md").touch()
+    (tmp_path / "0001-dangling.md").symlink_to(tmp_path / "absent.md")
+
     assert run_check(tmp_path) == 1
-    assert "cannot classify entry" in capsys.readouterr().err
+    assert "record-looking symlink" in capsys.readouterr().err
+
+
+def test_next_ordinal_sees_a_non_ascii_remote_record(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A remote record whose name is not ASCII still occupies its ordinal.
+
+    Without NUL-delimited output Git renders such a name in quoted C-string
+    form, which begins with a quote and never matches the ordinal prefix — the
+    record reads as absent and its number is handed out a second time.
+    """
+    checkout = remote_checkout(tmp_path, "records", remote_record="0009-caf\u00e9-na\u00efve.md")
+    assert MODULE.main([os.fspath(checkout)]) == 0
+    assert capsys.readouterr().out == "0010\n"
 
 
 def test_shipped_adr_and_rfc_scripts_are_byte_identical() -> None:

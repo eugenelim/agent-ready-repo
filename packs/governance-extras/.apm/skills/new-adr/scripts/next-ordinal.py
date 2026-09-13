@@ -26,6 +26,7 @@ prefixes don't silently collide with 4-digit ones.
 import argparse
 import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -92,11 +93,14 @@ def _remote_ordinals(directory: Path) -> set[int]:
     ):
         return set()
 
+    # ValueError only: a directory outside the repository root is a legitimate
+    # "no remote answer". A filesystem failure is not, and must not be absorbed
+    # by the Git-degradation path.
     try:
         relative_directory = directory.resolve().relative_to(
             Path(repository_root.strip()).resolve()
         )
-    except (OSError, ValueError):
+    except ValueError:
         return set()
     pathspec = (
         f"{relative_directory.as_posix()}/" if relative_directory.parts else "."
@@ -105,16 +109,20 @@ def _remote_ordinals(directory: Path) -> set[int]:
     # pathspec relative to the current directory, so a root-relative pathspec
     # issued from inside the directory looks for it nested under itself and
     # quietly matches nothing.
+    # -z: without it Git renders a name containing non-ASCII bytes in quoted
+    # C-string form, which begins with a quote and so never matches the ordinal
+    # prefix — the record would be invisible and its ordinal handed out again.
     names = _git_output(
-        Path(repository_root.strip()), ["ls-tree", "--name-only", ref, "--", pathspec]
+        Path(repository_root.strip()),
+        ["ls-tree", "-z", "--name-only", ref, "--", pathspec],
     )
     if names is None:
         return set()
 
     return {
         int(match.group(1))
-        for name in names.splitlines()
-        if (match := _PREFIX.match(Path(name).name))
+        for name in names.split("\0")
+        if name and (match := _PREFIX.match(Path(name).name))
     }
 
 
@@ -136,13 +144,17 @@ def duplicate_ordinals(dirpath: str | Path) -> dict[int, list[str]]:
         ordinal = _record_ordinal(entry)
         if ordinal is None:
             continue
+        # One lstat, not is_symlink()/is_file(): those return False on any
+        # OSError, so an entry removed between listing and classification is
+        # silently dropped and the scan reports clean without having seen it.
         try:
-            if entry.is_symlink():
-                raise ValueError(f"record-looking symlink: {entry}")
-            if not entry.is_file():
-                continue
+            mode = entry.lstat().st_mode
         except OSError as error:
             raise OSError(f"cannot classify entry {entry}: {error}") from error
+        if stat.S_ISLNK(mode):
+            raise ValueError(f"record-looking symlink: {entry}")
+        if not stat.S_ISREG(mode):
+            continue
         records.setdefault(ordinal, []).append(entry.name)
 
     return {
