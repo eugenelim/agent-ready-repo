@@ -291,8 +291,7 @@ about it.
 against one of them bears on whether the brief can become `Ready`.
 
 **Working material** — every other section the brief carries, including `Rabbit
-holes`, `Design artifacts`, and `Ready gaps`. A finding against working material
-is advisory.
+holes`, `Design artifacts`, and `Ready gaps`.
 
 The answers available to a sustained finding are stated once, in the `work-loop`
 skill's DECIDE step. They are not restated here. `demote-the-claim` lands
@@ -304,9 +303,8 @@ holes`; provenance that only informed the brief goes to `Design artifacts`.
 demoting into it is deletion with a delay. Where neither destination fits, the
 assertion had no work left to do and the answer was `drop-the-claim`.
 
-Demotion here needs no new pin: both destinations sit inside the artifact the
-review already binds to. It still needs the owner's authority, because the brief
-stops asserting something a `Ready` decision rested on.
+What demotion costs — the pin it carries and the authority it needs — is stated
+in the DECIDE step and holds here unchanged.
 
 Record the answer and the reason for it beside the finding. That record is
 advisory: it informs the next round, and nothing else reads it. The shaping-review

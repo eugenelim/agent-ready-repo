@@ -162,8 +162,7 @@ decides something: what the intent is for, what it admits, who answers for it,
 where it goes next, and what authorises it.
 
 **Working material** — `Opportunity`, `Unresolved questions`, and `Assumptions`.
-These carry the ground, the open matters, and what is being taken on trust. A
-finding against working material is advisory.
+These carry the ground, the open matters, and what is being taken on trust.
 
 The answers available to a sustained finding are stated once, in the `work-loop`
 skill's DECIDE step. They are not restated here. Some of them land differently on
@@ -174,10 +173,8 @@ has a check beyond the sentence existing.
 working material, and the destination follows what the assertion was doing. A
 settled ground for the outcome or the boundary goes to `Opportunity`. A matter
 the assertion decided without the authority to decide it goes to `Unresolved
-questions`. It needs no new pin: both destinations sit inside the artifact the
-review already binds to, so nothing leaves the intent and nothing has to be
-protected from vanishing unnoticed. It still needs the owner's authority, because
-the intent stops asserting something it asserted.
+questions`. What demotion costs — the pin it carries and the authority it needs —
+is stated in the DECIDE step and holds here unchanged.
 
 `drop-the-claim` comes before rewording. Where nearly every finding is a finding
 against prose, answering each one with more careful prose is what makes rounds
