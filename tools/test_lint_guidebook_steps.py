@@ -258,6 +258,73 @@ def test_the_fixture_declares_every_obligation_in_its_own_scope(tmp_path: Path) 
             )
 
 
+def test_a_comment_spanning_lines_is_still_a_comment(tmp_path: Path) -> None:
+    """A wrapped provenance comment must not read as content.
+
+    The structural rules here are all "what follows this label", so a comment
+    line read as content answers them wrongly: the blockquote after
+    `**Agent returns:**` would appear not to follow it, and a clean page would
+    report a finding it does not have.
+
+    `<!--.*-->` cannot match across a newline, which is what CodeQL's bad-tag
+    filter rule names. It is the third time in this contract that a token
+    wrapped by an editor stopped being a token — after a backticked prohibited
+    term and a label in a docstring — so the scanner now tracks the open
+    comment rather than matching one.
+    """
+    step, contract = _complete_step(tmp_path)
+    text = step.read_text(encoding="utf-8")
+    wrapped = text.replace(
+        "<!-- rung: preview-source.md -->",
+        "<!-- rung:\n     preview-source.md -->",
+        1,
+    )
+    assert wrapped != text, "fixture carries no rung comment to wrap"
+    step.write_text(wrapped, encoding="utf-8")
+
+    findings = lint_guidebook_steps.lint([step.parent], contract)
+    assert findings == [], [finding.render() for finding in findings]
+
+
+def test_a_wrapped_rung_still_declares_its_source(tmp_path: Path) -> None:
+    """The wrapped-comment failure that would have gone unnoticed.
+
+    `_rung` returning None reads as "no source declared", so the preview
+    comparison does nothing and the page stays green while showing an excerpt
+    nothing verifies. Proved by wrapping the rung and then breaking the excerpt:
+    the divergence must still be reported.
+    """
+    step, contract = _complete_step(tmp_path)
+    text = step.read_text(encoding="utf-8")
+    text = text.replace(
+        "<!-- rung: preview-source.md -->", "<!-- rung:\n     preview-source.md -->", 1
+    )
+    step.write_text(text.replace("## Decision", "## Drifted", 1), encoding="utf-8")
+
+    findings = lint_guidebook_steps.lint([step.parent], contract)
+    assert "artifact_preview" in {f.obligation for f in findings}, (
+        "a wrapped rung silently disabled the comparison it declares"
+    )
+
+
+def test_a_preview_may_contain_its_own_html_comment(tmp_path: Path) -> None:
+    """Several real templates do, and the fence that closes the block must win.
+
+    A comment inside the excerpt could otherwise put the scanner inside a
+    comment and swallow the closing fence, which would report the preview as
+    absent on a page that shows one.
+    """
+    step, contract = _complete_step(tmp_path)
+    text = step.read_text(encoding="utf-8")
+    step.write_text(text.replace("# Overview", "# Overview <!-- a template hint -->", 1),
+                    encoding="utf-8")
+    findings = lint_guidebook_steps.lint([step.parent], contract)
+    assert [f.obligation for f in findings] == ["artifact_preview"], (
+        "the excerpt no longer matches its source, which is the only thing that "
+        "should be reported here"
+    )
+
+
 def _remove_label(step: Path, contract, obligation: str) -> None:
     """Mutation: remove precisely the selected obligation's opening label."""
     lines = step.read_text(encoding="utf-8").splitlines()

@@ -272,7 +272,46 @@ def _skill_blocks(body: str) -> list[tuple[str, str]]:
     ]
 
 
-COMMENT = re.compile(r"^\s*<!--.*-->\s*$")
+COMMENT_OPEN = "<!--"
+COMMENT_CLOSE = "-->"
+
+
+def _content_lines(lines: list[str], start: int):
+    """Yield each line from `start`, skipping blanks and whole HTML comments.
+
+    Tracks the open comment across lines rather than matching one with a
+    regular expression. A pattern like ``<!--.*-->`` cannot match a comment
+    that spans a newline, so a wrapped provenance comment would have been read
+    as content -- and the structural rules here are all "what follows this
+    label", which such a line would answer wrongly.
+
+    That failure mode has now appeared three times in this contract: a
+    backticked term wrapped mid-prose, a label wrapped in a docstring, and this.
+    Anything that parses this file has to assume its author's editor reflows.
+    """
+    inside = False
+    for position in range(start, len(lines)):
+        line = lines[position]
+        stripped = line.strip()
+        if inside:
+            if COMMENT_CLOSE in stripped:
+                inside = False
+                remainder = stripped.split(COMMENT_CLOSE, 1)[1].strip()
+                if remainder:
+                    yield position, remainder
+            continue
+        if not stripped:
+            continue
+        if stripped.startswith(COMMENT_OPEN):
+            if COMMENT_CLOSE not in stripped:
+                inside = True
+                continue
+            remainder = stripped.split(COMMENT_CLOSE, 1)[1].strip()
+            if not remainder:
+                continue
+            yield position, remainder
+            continue
+        yield position, line
 
 
 def _following_nonblank(lines: list[str], index: int) -> str | None:
@@ -282,23 +321,60 @@ def _following_nonblank(lines: list[str], index: int) -> str | None:
     sitting between a label and its blockquote must not break the structural
     rule that the blockquote follows the label.
     """
-    for line in lines[index + 1 :]:
-        if COMMENT.match(line):
-            continue
-        if line.strip():
-            return line
+    for _, line in _content_lines(lines, index + 1):
+        return line
     return None
+
+
+RUNG = re.compile(r"^rung:\s*(.+)$", re.S)
 
 
 def _rung(lines: list[str], index: int) -> str | None:
-    """The provenance rung declared after an obligation's label, if any."""
-    for line in lines[index + 1 :]:
-        match = re.match(r"^\s*<!--\s*rung:\s*(.+?)\s*-->\s*$", line)
-        if match:
-            return match.group(1)
+    """The provenance rung declared after an obligation's label, if any.
+
+    Reads whole comments rather than single lines. A rung comment wrapped by an
+    editor would not match a one-line pattern, and this fails open -- no rung
+    means no declared source, which means the preview comparison silently does
+    nothing on a page that looks correct.
+    """
+    for line, body in _comments(lines, index + 1):
         if line.startswith("**"):
             break
+        if body is None:
+            continue
+        match = RUNG.match(body.strip())
+        if match:
+            return " ".join(match.group(1).split())
     return None
+
+
+def _comments(lines: list[str], start: int):
+    """Yield ``(line, comment_body)`` from `start`, joining wrapped comments.
+
+    `comment_body` is the text inside a complete HTML comment, or None for an
+    ordinary line -- so a caller can both read comments and see where the
+    surrounding content begins.
+    """
+    buffer: list[str] | None = None
+    for position in range(start, len(lines)):
+        line = lines[position]
+        stripped = line.strip()
+        if buffer is not None:
+            if COMMENT_CLOSE in stripped:
+                buffer.append(stripped.split(COMMENT_CLOSE, 1)[0])
+                yield line, "\n".join(buffer)
+                buffer = None
+            else:
+                buffer.append(stripped)
+            continue
+        if stripped.startswith(COMMENT_OPEN):
+            rest = stripped[len(COMMENT_OPEN):]
+            if COMMENT_CLOSE in rest:
+                yield line, rest.split(COMMENT_CLOSE, 1)[0]
+            else:
+                buffer = [rest]
+            continue
+        yield line, None
 
 
 def _outline_lines(lines: list[str], index: int) -> list[str]:
@@ -576,14 +652,19 @@ def check_page_skeleton(path: Path, step: str, body: str) -> list[Finding]:
 def _fenced_block(lines: list[str], index: int) -> list[str] | None:
     """The lines inside the first fenced block after a label, or None."""
     opened = None
-    for position in range(index + 1, len(lines)):
-        line = lines[position]
-        if opened is None:
-            if line.startswith("```"):
-                opened = position
-            elif line.strip() and not COMMENT.match(line):
-                return None
-        elif line.startswith("```"):
+    for position, line in _content_lines(lines, index + 1):
+        if not line.startswith("```"):
+            return None
+        opened = position
+        break
+    if opened is None:
+        return None
+    # The closing fence is found in the raw lines, not the content ones: a
+    # preview is a markdown artifact and several templates carry their own HTML
+    # comments, one of which could otherwise put the scanner inside a comment
+    # and swallow the fence that ends the block.
+    for position in range(opened + 1, len(lines)):
+        if lines[position].startswith("```"):
             return lines[opened + 1 : position]
     return None
 
