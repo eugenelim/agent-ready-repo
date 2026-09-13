@@ -825,6 +825,8 @@ EXPECTED_SCRIPT_STEPS = [
     ".claude/skills/work-loop/scripts/lint-spec-status.py",
     "packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py",
     ".claude/skills/new-adr/scripts/next-ordinal.py",
+    ".claude/skills/new-adr/scripts/index-records.py",
+    ".claude/skills/new-rfc/scripts/index-records.py",
     ".claude/skills/new-rfc/scripts/next-ordinal.py",
     "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
     ".claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py",

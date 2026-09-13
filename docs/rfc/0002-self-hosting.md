@@ -791,6 +791,28 @@ If accepted, this RFC produces one downstream artifact:
 
 ## Errata
 
+- **2026-09-13 — the three index files are no longer `Manual`.** The projection
+  table's `Manual` classification for `docs/specs/README.md`,
+  `docs/rfc/README.md`, and `docs/adr/README.md` is corrected by
+  [ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md), which decides
+  that an index table over a document corpus is generated from that corpus or
+  does not exist. The mechanism: a generator script ships in the pack owning each
+  index (`governance-extras`), `new-adr` and `new-rfc` invoke it in place of
+  their hand-edit step, and `build_gate_chain.py` invokes the same script through
+  its self-hosted `.claude/skills/` projection with `--check` — the
+  `lint-spec-status.py` route, not a new one. `docs/adr/README.md` and
+  `docs/rfc/README.md` become **Generated**; `docs/specs/README.md` keeps its
+  convention prose but loses its tables entirely, so it has no index to classify.
+  This narrows the classification only. The rest of each row holds, and this
+  RFC's actual decision is unaffected: the seeds at
+  `packs/core/seeds/docs/specs/README.md`,
+  `packs/governance-extras/seeds/docs/rfc/README.md`, and
+  `packs/governance-extras/seeds/docs/adr/README.md` remain placeholder
+  templates, and this repository's live files remain **not** byte-projections of
+  them — the property that made the 2026-05-25 reclassification necessary, and
+  the one generation depends on, since each tree generates from its own corpus.
+  Approver: eugenelim.
+
 - **2026-08-09 — the root `marketplace.json` no longer aggregates every pack.**
   The projection table's row — "Aggregated from `packs/*/.claude-plugin/
   plugin.json` by the self-host recipe" — is narrowed by

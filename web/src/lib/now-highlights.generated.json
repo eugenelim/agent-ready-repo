@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.22"
+          "version": "2.25.23"
         }
       ],
       "date": "2026-09-13",
-      "heading": "[core][2.25.22] — 2026-09-13",
-      "changelogAnchor": "core22522--2026-09-13",
+      "heading": "[core][2.25.23] — 2026-09-13",
+      "changelogAnchor": "core22523--2026-09-13",
       "highlights": [
         {
           "source": "You can now ask `workspace-status` which explicitly selected specs still have workspace membership and which do not, without changing `workspace.toml` or treating absence as permission to delete anything.",

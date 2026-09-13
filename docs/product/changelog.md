@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.22] — 2026-09-13
+## [core][2.25.23] — 2026-09-13
 
 ### Added
 
@@ -68,6 +68,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - You can now ask `workspace-status` which explicitly selected specs still
   have workspace membership and which do not, without changing
   `workspace.toml` or treating absence as permission to delete anything.
+
+## [core][2.25.22] — 2026-09-13
+
+### Changed
+
+- `docs/specs/README.md` describes the spec directory convention and carries no
+  index table. Specs are discovered by listing the directory. `new-spec` no longer
+  maintains a list.
+- The CONVENTIONS seed's ADR and RFC sections point at their index and say it is
+  generated from the records, so a reader knows to regenerate rather than edit.
+
+## [agentbundle][0.44.1] — 2026-09-13
+
+### Changed
+
+- Seed lint no longer requires a placeholder table in the spec README seed,
+  which now carries the directory convention and no index.
+
+## [governance-extras][0.10.7] — 2026-09-13
+
+### Added
+
+- `new-adr` and `new-rfc` carry `index-records.py`, which derives a decision-record
+  index from the records in a directory you name. The index cannot drift from the
+  records, because it is read from them. Run it with `--check` to find out whether
+  it would change without writing.
+
+### Changed
+
+- Creating an ADR or RFC regenerates the index instead of hand-editing a row.
+- The bundled ADR and RFC index seeds are what the generator writes, so your first
+  generation changes nothing. Each seed's "Adding a new …" section moved into the
+  skill and its how-to, where the instruction is reachable without opening an index.
+- The ADR index carries a `Date` column. A record that omits its date falls back to
+  the file's first-commit date.
+
 ## [core][2.25.21] — 2026-09-13
 
 ### Added
@@ -96,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hold forwards so the next round can see the decision. It is a walk rather than
   a text search, because a companion usually paraphrases and shares no string,
   and it continues until the frontier is empty.
+
 ## [core][2.25.20] — 2026-09-13
 
 ### Highlights
@@ -326,6 +363,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A link, an unresolvable path or a containment failure all left the candidate in
   no list at all — neither checked, skipped nor unreadable — so a subject the
   walk could not read was indistinguishable from one that opted out.
+
 ## [governance-extras][0.10.6] — 2026-09-12
 
 ### Added
