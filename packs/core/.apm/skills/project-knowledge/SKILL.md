@@ -17,6 +17,18 @@ Boundary metadata is informational. Mode dispatch and helper registries enforce 
 
 Capture persists strict pending observations. Distill records one terminal disposition and may apply one guarded topic mutation from an explicit proposal. Enquire reads only the committed topic/map surface.
 
+## Migrating legacy knowledge
+
+To activate a legacy-only knowledge base:
+
+1. Run `project-knowledge --migrate-legacy`.
+2. Copy the staged `docs/knowledge/` tree into `docs/knowledge/`.
+3. Commit the promoted files.
+4. Run `project-knowledge --activate-staged` with the committed snapshot on stdin.
+
+The commit is required: `--activate-staged` compares the staged map with
+`HEAD`, making review part of the migration boundary.
+
 ## Producer profiles
 
 `--producer-profile work-loop` lets work-loop submit only semantic judgment.

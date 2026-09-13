@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from knowledge_test_support import (
+    PACK_ROOT,
     PROJECT_KNOWLEDGE_SCRIPT,
     load_knowledge_store_module,
     valid_capture_request,
@@ -119,6 +120,13 @@ def _assert_canonical_empty_staged_map(repo: Path, store) -> None:
     )
 
 
+def _migration_section(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    return text.split("## Migrating legacy knowledge\n", maxsplit=1)[1].split(
+        "\n## ", maxsplit=1
+    )[0]
+
+
 def test_ac1_ac2_zero_byte_legacy_corpus_stages_canonical_empty_map(
     repo: Path, store
 ) -> None:
@@ -173,6 +181,24 @@ def test_ac4_zero_row_migration_activates_and_clears_stage(repo: Path, store) ->
 
     assert activation["state"] == "activated"
     assert not (repo / "docs/knowledge/.migration-stage").exists()
+
+
+def test_ac6_shipped_migration_sections_document_promotion_order() -> None:
+    surfaces = [
+        PACK_ROOT / ".apm/skills/project-knowledge/SKILL.md",
+        PACK_ROOT / "seeds/docs/knowledge/README.md",
+    ]
+    steps = [
+        "--migrate-legacy",
+        "copy the staged `docs/knowledge/` tree into `docs/knowledge/`",
+        "commit",
+        "--activate-staged",
+    ]
+
+    for surface in surfaces:
+        section = _migration_section(surface)
+        positions = [section.lower().index(step) for step in steps]
+        assert positions == sorted(positions)
 
 
 def test_ac20_migration_strictly_prevalidates_every_row_before_staging(
