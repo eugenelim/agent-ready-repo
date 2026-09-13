@@ -485,6 +485,38 @@ contemporaneous fixture 3 re-run is what closes that gap here: it emits a token,
 and the token it emits is the one the current body specifies. Nothing weaker than
 a firing control can source a silent observation.
 
+### Fixtures 4 and 5 re-anchored, and the fixture 3 anchor recorded verbatim
+
+Fixtures 1-5 ran at `077d7d64f` / `f46e8440…`. The round-2 control repair then
+edited the recognized-levels paragraph itself — the one now reading "root first
+and leaf last, so `feature` is the leaf and every other rung is above it" — which
+is the paragraph fixtures 4 and 5 exist to exercise. Fixture 3 was re-dispatched
+and fixture 6 was new, so the firing case and the leaf case already sat at current
+bytes; the unplaceable-level criterion did not. Re-anchored here rather than
+argued to be unreachable by the delta. Raised by the quality reviewer.
+
+The body did not move between the fixture 6 run and this batch: still
+`fc24f59725b03ae45f0ec3c14a2dbd35cf3cc900c50b41872711896e7beaa418`, verified
+before dispatch. `7614a38a0` is HEAD, and it changed other files.
+
+All three were dispatched in one batch at that hash. Verbatim outputs:
+
+| Fixture | Shape | Expected | Observed | Match |
+| --- | --- | --- | --- | --- |
+| 4 | no `Level:` line, `Accepted`, no decomposition | no token | `(no tokens emitted — all applicable conditions hold)` | yes |
+| 5 | `Level: epic`, `Accepted`, no decomposition | no token | `(no findings — empty result: every applicable condition holds)` | yes |
+| 3 | `capability`, `Accepted`, no decomposition | `MALFORMED(children)` | `MALFORMED(children)` | yes |
+
+**No behavioural change from the edit.** Naming the leaf in the ordering sentence
+did not alter suppression on an unplaceable level: both silent cases stay silent
+and the firing case still fires, at one revision, in one batch. The originals at
+`f46e8440…` stand as the earlier observation rather than being replaced.
+
+The fixture 3 re-run recorded under fixture 6 above returned `MALFORMED(children)`
+verbatim — the same token this batch's anchor returned. It is written out here
+because a silent observation is sourced by its anchor, and an anchor summarised in
+prose is weaker than the fixtures it underwrites.
+
 ### T8 re-run 1 — malformed intent, `shaping-reviewer` `intent` mode
 
 Target: the scratch intent recreated from the T8 description — a solution as the
