@@ -203,7 +203,7 @@ def _test_local_ci_orchestration_stub(makefile: str) -> None:
     _check(
         "local-ci-direct-prereqs",
         ci_deps,
-        ["build-check", "lint-ruff", "lint-mypy", "test-after-build-check"],
+        ["lint-ruff", "lint-mypy", "build-check", "test-after-build-check"],
     )
     _check("local-ci-pre-pr-not-direct", "pre-pr" in ci_deps, False)
 
