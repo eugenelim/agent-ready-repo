@@ -1,7 +1,7 @@
 # Plan: Index table generation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py` — the script-in-skill precedent this generator follows: argparse over a record directory, a `--check <dir>` mode, stdlib only, one `lstat` per entry with a record-shaped-symlink refusal (`:162-170`), and git-root resolution for its repository-relative work (`:115-123`). `tools/repo/build_gate_chain.py:267-271` (`check-adr-ordinals`) is the projection-invoked `--check` precedent. `tests/roster/test_decision_record_ordinal_uniqueness.py` is the roster-suite shape for a records-directory walk.
 
 ## Approach
@@ -525,3 +525,8 @@ generator reads files and writes one file per directory.
   becomes `split(" | ")`, which is escape-safe. No acceptance criterion changes.
   Observation, cause, and the generalizable lesson are in
   `notes/verification-ledger.md`.
+- 2026-09-13 — **AM-002, controlled amendment under owner authority.** AC34a
+  required CONVENTIONS to *link* each index. A seed link dangles in a core-only
+  tree, and the live file cannot link while its seed does not, so the criterion
+  was unsatisfiable. The verb becomes *names*, with the reason stated on the
+  criterion. Observation and lesson in `notes/verification-ledger.md`.

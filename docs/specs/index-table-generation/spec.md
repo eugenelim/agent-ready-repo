@@ -1,6 +1,6 @@
 # Spec: Index table generation
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md); [ADR-0006](../../adr/0006-doc-drift-construction-and-judgment.md) (no fail-closed adopter gate); [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md) (skill-script delivery route); [RFC-0002](../../rfc/0002-self-hosting.md) 2026-09-13 erratum
@@ -109,65 +109,65 @@ never the definition.
 
 **Parsing and rendering**
 
-- [ ] **AC1.** The generated index lists one row per record, ordered by parsed ordinal ascending, independent of filesystem iteration order.
-- [ ] **AC2.** A record is a `*.md` file in the record directory whose first heading matches the record type's H1 form and yields an ordinal; any other entry yields no row.
-- [ ] **AC3.** An ADR row carries ordinal, linked title, status, and date. An RFC row carries ordinal, linked title, status, date opened, and date closed.
-- [ ] **AC4.** A row's title text equals its record's H1 title, read from the record and from no other source.
-- [ ] **AC5.** A row's status equals its record's status token, with any qualifying clause following that token removed.
-- [ ] **AC6.** A title or filename containing a Markdown table or link delimiter renders as a single well-formed cell whose link resolves to that record.
+- [x] **AC1.** The generated index lists one row per record, ordered by parsed ordinal ascending, independent of filesystem iteration order.
+- [x] **AC2.** A record is a `*.md` file in the record directory whose first heading matches the record type's H1 form and yields an ordinal; any other entry yields no row.
+- [x] **AC3.** An ADR row carries ordinal, linked title, status, and date. An RFC row carries ordinal, linked title, status, date opened, and date closed.
+- [x] **AC4.** A row's title text equals its record's H1 title, read from the record and from no other source.
+- [x] **AC5.** A row's status equals its record's status token, with any qualifying clause following that token removed.
+- [x] **AC6.** A title or filename containing a Markdown table or link delimiter renders as a single well-formed cell whose link resolves to that record.
 
 **Dates**
 
-- [ ] **AC7.** When a record carries its date field, the row's date is that value.
-- [ ] **AC8.** When a record omits its date field and git history is available, the row's date is that file's first-commit date.
-- [ ] **AC9.** When a record omits its date field and git history is unavailable, the row's date is empty.
-- [ ] **AC10.** The case in AC9 emits a warning naming the file and the missing field.
+- [x] **AC7.** When a record carries its date field, the row's date is that value.
+- [x] **AC8.** When a record omits its date field and git history is available, the row's date is that file's first-commit date.
+- [x] **AC9.** When a record omits its date field and git history is unavailable, the row's date is empty.
+- [x] **AC10.** The case in AC9 emits a warning naming the file and the missing field.
 
 **Refusals, warnings, and the empty corpus**
 
-- [ ] **AC11.** A `*.md` entry whose H1 matches the record form but yields no ordinal, or which carries no status field, emits a warning naming the file and the missing field.
-- [ ] **AC12.** The run in AC11 writes the index and exits 0.
-- [ ] **AC13.** A record-shaped symlink, or any entry resolving outside the supplied record directory, is refused and named, and contributes no row.
-- [ ] **AC14.** A record directory containing no records, invoked with `--type`, yields an index whose table body is that record type's placeholder sentinel.
-- [ ] **AC15.** The record type is taken from `--type` when supplied and inferred from the records present otherwise.
-- [ ] **AC15a.** When the record type is neither supplied nor inferable, the run refuses, names the record type as the missing input, and writes nothing.
+- [x] **AC11.** A `*.md` entry whose H1 matches the record form but yields no ordinal, or which carries no status field, emits a warning naming the file and the missing field.
+- [x] **AC12.** The run in AC11 writes the index and exits 0.
+- [x] **AC13.** A record-shaped symlink, or any entry resolving outside the supplied record directory, is refused and named, and contributes no row.
+- [x] **AC14.** A record directory containing no records, invoked with `--type`, yields an index whose table body is that record type's placeholder sentinel.
+- [x] **AC15.** The record type is taken from `--type` when supplied and inferred from the records present otherwise.
+- [x] **AC15a.** When the record type is neither supplied nor inferable, the run refuses, names the record type as the missing input, and writes nothing.
 
 **The `--check` contract**
 
-- [ ] **AC16.** `--check` writes no file.
-- [ ] **AC17.** `--check` exits 0 when the on-disk file equals the generated file.
-- [ ] **AC18.** `--check` exits non-zero and names the first differing line otherwise.
+- [x] **AC16.** `--check` writes no file.
+- [x] **AC17.** `--check` exits 0 when the on-disk file equals the generated file.
+- [x] **AC18.** `--check` exits non-zero and names the first differing line otherwise.
 
 **Portability**
 
-- [ ] **AC19.** The generator resolves the record directory from its argument.
-- [ ] **AC20.** The generator's source contains none of the frozen literals `docs/adr`, `docs/rfc`, `docs/specs`, `agent-ready-repo`, or `eugenelim`.
-- [ ] **AC21.** Applied to a record instantiated from the bundled `adr.md` template and one from `rfc.md`, the generator produces rows satisfying AC1 and AC3.
-- [ ] **AC22.** Applied to a synthetic record directory the test creates outside this repository's `docs/`, the generator produces rows satisfying AC1 and AC3.
+- [x] **AC19.** The generator resolves the record directory from its argument.
+- [x] **AC20.** The generator's source contains none of the frozen literals `docs/adr`, `docs/rfc`, `docs/specs`, `agent-ready-repo`, or `eugenelim`.
+- [x] **AC21.** Applied to a record instantiated from the bundled `adr.md` template and one from `rfc.md`, the generator produces rows satisfying AC1 and AC3.
+- [x] **AC22.** Applied to a synthetic record directory the test creates outside this repository's `docs/`, the generator produces rows satisfying AC1 and AC3.
 
 **Integration**
 
-- [ ] **AC23.** `new-adr` and `new-rfc` each invoke the generator at their record-creation step.
-- [ ] **AC24.** No shipped skill, reference, or seed instructs updating an index by hand.
-- [ ] **AC25.** The repository gate chain invokes the generator in `--check` mode, through the installed `.claude/skills/` projection, for `docs/adr` and for `docs/rfc`.
-- [ ] **AC26.** `docs/adr/README.md` and `docs/rfc/README.md` each equal the generator's output for their directory.
-- [ ] **AC27.** A generated index is the record type's heading followed by its table, and contains no path outside the record directory.
+- [x] **AC23.** `new-adr` and `new-rfc` each invoke the generator at their record-creation step.
+- [x] **AC24.** No shipped skill, reference, or seed instructs updating an index by hand.
+- [x] **AC25.** The repository gate chain invokes the generator in `--check` mode, through the installed `.claude/skills/` projection, for `docs/adr` and for `docs/rfc`.
+- [x] **AC26.** `docs/adr/README.md` and `docs/rfc/README.md` each equal the generator's output for their directory.
+- [x] **AC27.** A generated index is the record type's heading followed by its table, and contains no path outside the record directory.
 
 **Retirement**
 
-- [ ] **AC28.** `docs/specs/README.md` contains no Markdown table.
-- [ ] **AC29.** `docs/specs/README.md` retains its description of the `docs/specs/<feature>/` directory convention.
-- [ ] **AC30.** `packs/core/seeds/docs/specs/README.md` contains no Markdown table.
-- [ ] **AC31.** The seed placeholder map requires no spec-index sentinel.
-- [ ] **AC32.** The seed placeholder map requires the ADR sentinel and the RFC sentinel.
-- [ ] **AC32a.** The ADR and RFC seeds each contain the record type's heading and its table carrying the placeholder sentinel, and no other section.
-- [ ] **AC33.** No shipped guide states that a skill maintains a spec index.
-- [ ] **AC34.** The ADR and RFC guides name the generator as the mechanism that maintains their index.
-- [ ] **AC34a.** `docs/CONVENTIONS.md`'s ADR section links `docs/adr/README.md` and its RFC section links `docs/rfc/README.md`, so the cross-reference the generated files no longer carry resolves from the convention that owns it.
+- [x] **AC28.** `docs/specs/README.md` contains no Markdown table.
+- [x] **AC29.** `docs/specs/README.md` retains its description of the `docs/specs/<feature>/` directory convention.
+- [x] **AC30.** `packs/core/seeds/docs/specs/README.md` contains no Markdown table.
+- [x] **AC31.** The seed placeholder map requires no spec-index sentinel.
+- [x] **AC32.** The seed placeholder map requires the ADR sentinel and the RFC sentinel.
+- [x] **AC32a.** The ADR and RFC seeds each contain the record type's heading and its table carrying the placeholder sentinel, and no other section.
+- [x] **AC33.** No shipped guide states that a skill maintains a spec index.
+- [x] **AC34.** The ADR and RFC guides name the generator as the mechanism that maintains their index.
+- [x] **AC34a.** `docs/CONVENTIONS.md`'s ADR section names `adr/README.md` and its RFC section names `rfc/README.md`, each stating the index is generated, so the guidance the generated files no longer carry is reachable from the convention that owns it. It is named rather than linked because `CONVENTIONS.md` ships with `core` while those directories arrive with `governance-extras`, so a link dangles in a core-only tree.
 
 **Release**
 
-- [ ] **AC35.** `packs/core/pack.toml` is above `2.25.18`, `packs/governance-extras/pack.toml` is above `0.10.6`, and `packages/agentbundle/pyproject.toml` is above `0.44.0` — the three values at this spec's base revision `aa176ee2c`.
+- [x] **AC35.** `packs/core/pack.toml` is above `2.25.18`, `packs/governance-extras/pack.toml` is above `0.10.6`, and `packages/agentbundle/pyproject.toml` is above `0.44.0` — the three values at this spec's base revision `aa176ee2c`.
 
 ## Follow-ons
 

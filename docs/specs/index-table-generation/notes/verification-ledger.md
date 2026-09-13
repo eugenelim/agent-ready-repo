@@ -85,3 +85,33 @@ for the real number.
 decision, search for the *symbol* as well as the literal: a path assembled from
 segments, or bound to a constant, is invisible to a string search for the
 assembled form.
+
+## 2026-09-13 — AC34a is unsatisfiable for a portable seed (amendment AM-002)
+
+**Observation.** AC34a requires `docs/CONVENTIONS.md`'s ADR and RFC sections to
+*link* their indexes. Two shipped controls make that impossible together:
+
+- `tests/roster/test_install_snapshot.py::test_core_conventions_relative_links_resolve_after_scaffold`
+  reds on a seed link to `adr/README.md`, because `docs/adr/` exists only when
+  `governance-extras` is installed and `CONVENTIONS.md` ships with `core`.
+- `tests/roster/test_shaping_review_documentation_contract.py::test_core_conventions_projection_matches_its_seed`
+  requires the live file and its seed to be identical, so the live file cannot
+  link while the seed does not.
+
+**Why the spec did not catch it.** AC34a was authored to replace the
+cross-reference the generated indexes no longer carry, and "links" was written
+without checking that the destination exists in every install shape. The
+adopter-portability rule the rest of the spec is careful about was not applied
+to this one criterion.
+
+**Remedy.** AC34a's verb changes from *links* to *names*. Both files carry:
+
+> The `adr/README.md` index is generated from the records themselves, so it
+> cannot disagree with them. Regenerate it rather than editing a row.
+
+The navigation intent is delivered — a reader is told which file and that it is
+generated — without a destination that dangles in a core-only tree.
+
+**Generalizable lesson.** A criterion naming a cross-reference must say which
+install shapes the destination exists in. "Link X" is a claim about the tree, not
+just about the text.
