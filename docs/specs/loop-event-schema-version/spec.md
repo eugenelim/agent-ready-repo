@@ -80,11 +80,11 @@ written under.
   criteria share a group because they are one predicate over the writer's two
   paths — the fresh transition and the outbox replay — and a single fixture
   exercises both.
-- **VI-0002 — the contract schema is real and registered (AC-0003, AC-0004):**
+- **VI-0002 — the contract schema is real and registered (AC-0003, AC-0004, AC-0006):**
   goal-based check. The schema is validated against a recorded corpus of lines
   the engine actually emitted rather than a synthesised one, so a shape the
   engine produces cannot pass by construction.
-- **VI-0003 — the architecture states what is emitted (AC-0005):** goal-based
+- **VI-0003 — the architecture states what is emitted, and an owned reader treats absence as v1 (AC-0005, AC-0007):** goal-based
   check over the authored file. Mechanical: the stated count is compared against
   the emitted key count.
 
@@ -94,13 +94,21 @@ written under.
   `.loop-run/events.jsonl` on a transition carries `schema` with integer value 1.
 - [ ] **AC-0002.** An `events.pending` record that carries no `schema` key is
   appended to `events.jsonl` unchanged, still carrying no `schema` key.
-- [ ] **AC-0003.** `contracts/jsonschema/loop-run-event.schema.json` validates
-  every line of the recorded corpus at
-  `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl`.
+- [ ] **AC-0003.** The recorded corpus at
+  `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl` holds at least
+  one record carrying `schema` and at least one legacy record carrying none, and
+  `contracts/jsonschema/loop-run-event.schema.json` validates every line of it.
+- [ ] **AC-0006.** That schema rejects a record whose `schema` is any value other
+  than a positive integer, and rejects a record missing any of the seven identity
+  fields `seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`.
 - [ ] **AC-0004.** `contracts/README.md`'s file table carries a row naming
   `contracts/jsonschema/loop-run-event.schema.json` and what it pins.
 - [ ] **AC-0005.** `docs/architecture/telemetry.md` § 5.1 states a field count
   equal to the number of keys on a line the engine emits.
+- [ ] **AC-0007.** `workspace_mcp.py`'s events poller — the only reader of this
+  file this repository owns — yields the same parsed result for a legacy record
+  carrying no `schema` as for the otherwise identical record carrying
+  `schema: 1`.
 
 ## Retired identifiers
 
@@ -116,7 +124,7 @@ None.
 
 ## Assumptions
 
-- Technical: adding a field breaks neither known reader — `test_loop_engine_events_jsonl.py:125` asserts a key superset, and `packages/agentbundle/agentbundle/workspace_mcp.py:304` polls by byte offset (source: both paths read 2026-09-12)
+- Technical: adding a field breaks neither known reader — `test_loop_engine_events_jsonl.py:125` asserts a key superset, and `packages/agentbundle/agentbundle/workspace_mcp.py:447-482` polls by byte offset (source: both paths read 2026-09-12)
 - Technical: the line is assembled as a dict literal in `_cmd_transition`, so field order is stable and the addition is one key (source: `packs/core/.apm/skills/work-loop/scripts/loop-engine.py:1608-1623`)
 - Technical: the outbox replays `events.pending` through `_append_events_jsonl` without re-deriving fields, which is why a versionless pending record passes through unchanged (source: `loop-engine.py:626`)
 - Technical: `contracts/` is the authored source for repository-public contracts, with no CLI data copy required (source: `contracts/README.md` authority model)

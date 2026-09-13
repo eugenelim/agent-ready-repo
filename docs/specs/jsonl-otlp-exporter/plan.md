@@ -117,6 +117,7 @@ durable state anywhere.
   code exists.
 - Three-source precedence, one case per source plus the empty case. Verifies
   AC-0001, AC-0002, AC-0003, AC-0004.
+- The unconfigured run exits 0 with the not-configured note. Verifies AC-0033.
 
 **Done when:** the empty case passes with a transport seam that raises if constructed.
 
@@ -136,8 +137,10 @@ durable state anywhere.
   nothing sent. Verifies AC-0017.
 - A line over 64 KiB is refused before decoding; the rest still send. Verifies AC-0018.
 - A non-parsing line is skipped and the remainder sent. Verifies AC-0016.
-- Default mode is one-shot; `--follow` delivers an appended line; `--for` ends the
-  run. Verifies AC-0020, AC-0021.
+- The skipped line is reported with its line number. Verifies AC-0038.
+- An absent `--input` path sends nothing and exits 1. Verifies AC-0043.
+- Default mode is one-shot; `--follow` delivers an appended line. Verifies AC-0020, AC-0021.
+- `--for` takes integer seconds from the first read. Verifies AC-0042.
 - Absent file, truncated file, replaced inode, and a trailing line with no newline
   each exit 0 with no partial or duplicate record. Verifies AC-0022.
 
@@ -158,6 +161,8 @@ durable state anywhere.
 - Byte-exact golden for the recorded three-line fixture. Verifies AC-0005.
 - `service.name` takes `--service-name`, defaulting to the profile's name. Verifies AC-0007.
 - Records carry the profile's declared identity attributes. Verifies AC-0023.
+- A profile declares four things, and a field outside the allowlist appears
+  nowhere in the body. Verifies AC-0035, AC-0034.
 
 **Done when:** the golden passes and field names appear only in a profile.
 
@@ -174,16 +179,26 @@ durable state anywhere.
   Required outcome: every response shape drives its documented behaviour.
   Verification mode: TDD. Proof obligation: each fixture asserts a distinct
   observable, so no single change makes them all pass.
-- Non-empty `partialSuccess` produces no retry and reports the count. Verifies AC-0008.
+- Non-empty `partialSuccess` produces no retry. Verifies AC-0008.
+- It reports the rejected count and exits 1. Verifies AC-0036.
 - `Retry-After: N` waits `min(N, 30)`; absent, negative or unparseable is 0. Verifies AC-0009.
-- At most three attempts. Verifies AC-0010.
+- At most three attempts per run, and an exhausted run stops issuing requests.
+  Verifies AC-0010, AC-0037.
+- A request abandoned at 30s, a run bounded at 120s, and a response over 1 MiB
+  refused before decoding. Verifies AC-0040, AC-0041.
 - At most 512 records per request. Verifies AC-0011.
 - A request body never exceeds 8 MiB, asserted by constructing the worst
   admissible case rather than trusting the ceiling. Verifies AC-0019.
-- HTTPS accepted at any host; plaintext only to a resolved loopback address;
-  plaintext to a non-loopback host refused before sending; a redirect not
-  followed; user-info in the netloc refused. Verifies AC-0024, AC-0025, AC-0026,
-  AC-0027, AC-0028.
+- HTTPS accepted at any host with chain and hostname verified; a non-http(s)
+  scheme refused; plaintext accepted only when EVERY resolved address is
+  loopback and issued to a verified address without re-resolution; plaintext to
+  any non-loopback resolution refused; a redirect not followed; user-info
+  refused; and no message carrying an endpoint or redirect target includes a
+  user-info component. Verifies AC-0024, AC-0044, AC-0025, AC-0026, AC-0027,
+  AC-0028, AC-0045.
+- The loopback fixture resolves one host to both a loopback and a routable
+  address — the case that separates validating a resolution from binding the
+  connection to it.
 - Integration, against a live Collector with an `otlp` receiver and a `debug`
   exporter: three records land with each field at its mapped destination. Verifies AC-0006.
 
@@ -206,6 +221,7 @@ behaviour, and the live round trip lands three records.
   overridden or it collides with the reserved band. Verifies AC-0013.
 - No invocation returns a code in 2 through 9. Verifies AC-0014.
 - SIGINT exits 130. Verifies AC-0015.
+- A run in which no line yields a valid record exits 1. Verifies AC-0039.
 
 **Approach:**
 - Top-level `except Exception` maps to 1; never `except BaseException`, so
@@ -240,6 +256,8 @@ from `docs/profiles.md` alone.
 - Manual QA: the console script installed from the built wheel is run against a
   real JSONL file and a real Collector; stdout, stderr and exit code recorded in
   the verification ledger.
+- A tag whose version disagrees with `pyproject.toml` is refused by the release
+  workflow. Verifies AC-0046.
 
 **Done when:** the tagged workflow publishes and a fresh `uv tool install`
 produces a working command.

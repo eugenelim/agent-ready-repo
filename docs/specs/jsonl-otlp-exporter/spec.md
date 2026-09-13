@@ -80,8 +80,9 @@ reaches every backend that has a Collector in front of it.
 - Send nothing when no endpoint resolves, and say so on stderr.
 - Treat every input line as untrusted: bound its size, reject what does not
   parse, and continue past a bad line rather than aborting.
-- Canonicalise the input path before opening it, and refuse anything that is not
-  a regular file inside the resolved root.
+- Decide input refusal on the opened object, not the pathname: open no-follow,
+  then prove the opened descriptor is a regular file inside the resolved root.
+- Send only fields a profile declares. An undeclared field is dropped.
 - Require HTTPS for any endpoint whose host is not a loopback address.
 - Keep the standard library the only runtime dependency.
 
@@ -99,27 +100,32 @@ reaches every backend that has a Collector in front of it.
   criterion.
 - Follow an HTTP redirect, or send to an endpoint carrying user-info.
 - Write a checkpoint, position file, or any other durable state.
+- Write to, truncate, replace or otherwise modify the input file.
+- Put a raw endpoint or redirect target in a message without redacting any
+  user-info component first.
 - Retry a request whose response carries a non-empty `partialSuccess`.
 
 ## Testing Strategy
 
-- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file, so the cases compress into assertions and none needs a network. The unconfigured case asserts the transport seam is never constructed, not that stderr says so — the latter passes for a build that sends first and prints afterwards.
-- **VI-0002 — OTLP encoding (AC-0005, AC-0007, AC-0016):** TDD. The encoder is a pure function from parsed lines to a request body, so a byte-exact golden pins the layout and a diff shows drift. Structural errors are rejected loudly by a receiver, so the golden is not defending against silent rejection — it is the only written form of the emitted layout.
+- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
+- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0035):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
-- **VI-0004 — retry and batching (AC-0008, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture rather than a live condition. Backoff shape and jitter are unpromised in v1 and therefore unasserted.
-- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029):** goal-based check. Each state is one invocation and one observed status. AC-0013 and AC-0014 take their own cases: a parse error exercises the argument parser's own exit path, and the band claim is a statement over every invocation rather than any single one.
-- **VI-0006 — input confinement (AC-0017):** TDD. A symlink, a non-regular file and a path escaping the root are three fixtures over one predicate, asserting the transport seam is never constructed — proving refusal precedes sending.
-- **VI-0007 — size bounds (AC-0018, AC-0019):** TDD. Both are functions over constructed input. AC-0019's arithmetic is asserted by constructing the worst admissible case rather than trusting the stated ceiling.
-- **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0022):** TDD. Mode selection and the run bound are observable from process behaviour; AC-0022's four file states are one predicate substituted at each member.
+- **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
+- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted against the mapping function rather than over every invocation, which is what makes the universal claim checkable.
+- **VI-0006 — input confinement (AC-0017, AC-0043):** TDD. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
+- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0041):** TDD. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
+- **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
-- **VI-0010 — destination policy (AC-0024, AC-0025, AC-0026, AC-0027, AC-0028):** TDD over the opener construction. Five separate failure modes with five separate remedies: an accepted HTTPS target, an accepted loopback plaintext target, a refused non-loopback plaintext target, a refused redirect, and a refused user-info netloc.
+- **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
 - **VI-0011 — the published contract (AC-0030, AC-0031, AC-0032):** goal-based check over the authored files. Presence and structure are mechanical; wording is not asserted.
+- **VI-0012 — release integrity (AC-0046):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
 
 ## Acceptance Criteria
 
 - [ ] **AC-0001.** With no endpoint resolvable from any source, the command opens
-  no socket, exits 0, and writes a line to stderr naming that no endpoint is
-  configured.
+  no socket.
+- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits
+  0 and writes a line to stderr naming that no endpoint is configured.
 - [ ] **AC-0002.** The endpoint used is the first present of, in order:
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, then
   `[telemetry].endpoint` in the TOML file given by `--config`.
@@ -132,63 +138,96 @@ reaches every backend that has a Collector in front of it.
 - [ ] **AC-0006.** A Collector running an `otlp` receiver and a `debug` exporter
   records three log records in which the field the active profile names as its
   timestamp appears as `timeUnixNano`, the field it names as severity appears as
-  `severityNumber`, and every remaining field appears as a log-record attribute.
+  `severityNumber`, and each field the profile's allowlist admits appears as a
+  log-record attribute.
+- [ ] **AC-0034.** A field present in the input but absent from the active
+  profile's allowlist appears nowhere in the emitted request body.
+- [ ] **AC-0035.** A mapping profile declares four things: its timestamp field,
+  its severity field, its record-identity attributes, and the allowlist of fields
+  that may be sent.
 - [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
   attribute taking the value of `--service-name`, defaulting to the active
   profile's declared name.
 - [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
-  retry, and its rejected-record count appears on stderr.
+  retry.
+- [ ] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
+  rejected-record count on stderr and exits 1.
 - [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request
   is issued before `min(N, 30)` seconds have elapsed, and a value that is
   absent, negative or unparseable is treated as 0.
-- [ ] **AC-0010.** A send is attempted at most 3 times.
+- [ ] **AC-0010.** At most 3 send attempts are made per run, counted across all
+  requests the run issues.
+- [ ] **AC-0037.** A run whose send attempts are exhausted stops issuing requests
+  rather than continuing with the next batch.
 - [ ] **AC-0011.** A single request carries at most 512 log records, counted from
-  the parsed lines of the input file.
+  the parsed lines of the input file; record 513 begins the next request.
 - [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
   `--best-effort` is passed.
 - [ ] **AC-0013.** An unrecognised command-line flag exits 1, not 2.
-- [ ] **AC-0014.** No invocation returns an exit code in the range 2 through 9.
+- [ ] **AC-0014.** Every exit from the command passes through one exit-mapping
+  function, which returns only 0, 1 or 130; no other value can reach the caller.
 - [ ] **AC-0015.** SIGINT exits 130.
-- [ ] **AC-0016.** A line that does not parse as JSON is skipped with a stderr
-  note, and the remaining lines are still sent.
-- [ ] **AC-0017.** The command reads only a regular file at the path given by
-  `--input`, canonicalised before opening, and sends nothing when that path is a
-  symlink, a non-regular file, or resolves outside the directory given by
-  `--root`, which defaults to the working directory.
-- [ ] **AC-0018.** A line longer than 64 KiB is refused before it is decoded,
-  skipped with a note on stderr, and the remaining lines are still sent.
-- [ ] **AC-0019.** A request body is at most 8 MiB. The 64 MiB OTLP protocol
-  limit is not binding on this route because the per-line bound in AC-0018 and
-  the record cap in AC-0011 together admit at most 32 MiB, so the 8 MiB body
-  bound is the limit that fires first.
+- [ ] **AC-0016.** A line that does not parse as JSON is skipped, and the
+  remaining lines are still sent.
+- [ ] **AC-0038.** A skipped line is reported on stderr with its line number.
+- [ ] **AC-0039.** A run in which no line yields a valid record exits 1.
+- [ ] **AC-0017.** The command opens the path given by `--input` with no-follow
+  semantics and sends nothing unless the opened descriptor is a regular file
+  whose identity resolves inside the directory given by `--root`, which defaults
+  to the working directory. Refusal is decided on the opened object, never on the
+  pathname alone.
+- [ ] **AC-0018.** A line longer than 64 KiB measured to and excluding its
+  terminating newline is refused before it is decoded, and the remaining lines
+  are still sent.
+- [ ] **AC-0019.** A request body is at most 8 MiB measured on the encoded bytes
+  about to be sent. A batch that would exceed it is split before sending, and a
+  single record that cannot fit is dropped with a stderr note. This is the bound
+  that fires first: the 64 MiB OTLP protocol limit is never reached because no
+  request is issued above 8 MiB.
+- [ ] **AC-0040.** A request that has not completed within 30 seconds is
+  abandoned, and a run's total send time does not exceed 120 seconds, both
+  applying under `--best-effort`.
+- [ ] **AC-0041.** A response body larger than 1 MiB is refused before it is
+  decoded.
 - [ ] **AC-0020.** With no mode flag the command runs one-shot: it reads the file
   once, sends, and exits without waiting for further lines.
 - [ ] **AC-0021.** Under `--follow`, a line appended after start is sent without
-  restarting the process, and `--for <duration>` ends the run at that elapsed
-  time.
-- [ ] **AC-0022.** For each of an absent file, a file truncated to zero, a file
-  replaced by a new inode, and a trailing line with no newline, the command exits
-  0 and sends no partial or duplicate record for that condition.
+  restarting the process.
+- [ ] **AC-0042.** `--for` accepts a duration as an integer number of seconds and
+  ends the run that many seconds after the first read begins.
+- [ ] **AC-0022.** Under `--follow`, started against a file holding one valid
+  record and then subjected in turn to truncation to zero, replacement by a new
+  inode, and a trailing line with no newline, the command sends that first record
+  exactly once, sends no record for the conditions themselves, and exits 0 when
+  `--for` elapses.
+- [ ] **AC-0043.** Started against an absent `--input` path, the command sends
+  nothing and exits 1.
 - [ ] **AC-0023.** Every emitted log record carries the attributes the active
   profile declares as its record identity, which together identify a record for a
   consumer deduplicating at-least-once delivery.
-- [ ] **AC-0024.** An `https` endpoint is accepted at any host.
-- [ ] **AC-0025.** An `http` endpoint is accepted only when its host resolves to
-  a loopback address.
-- [ ] **AC-0026.** An `http` endpoint whose host does not resolve to a loopback
-  address is refused before any request is sent, with a message naming the
-  endpoint, and exits 1.
-- [ ] **AC-0027.** A redirect response is not followed, and the run exits 1 with
-  a message naming the redirect target.
+- [ ] **AC-0024.** An `https` endpoint is accepted at any host, and its
+  certificate chain and hostname are verified against the system trust store.
+- [ ] **AC-0044.** An endpoint whose scheme is neither `https` nor `http` is
+  refused before any request is sent and exits 1; those two are the complete
+  accepted set.
+- [ ] **AC-0025.** An `http` endpoint is accepted only when every address its
+  host resolves to is a loopback address, and the request is issued to one of
+  those verified addresses without re-resolving the host.
+- [ ] **AC-0026.** An `http` endpoint any of whose resolved addresses is not a
+  loopback address is refused before any request is sent and exits 1.
+- [ ] **AC-0045.** A refusal or error message naming an endpoint or a redirect
+  target carries no user-info component of that URL.
+- [ ] **AC-0027.** A redirect response is not followed, and the run exits 1.
 - [ ] **AC-0028.** An endpoint whose netloc carries user-info is refused before
   any request is sent and exits 1.
 - [ ] **AC-0029.** `--version` prints the installed distribution version.
+- [ ] **AC-0046.** A release whose git tag names a version differing from
+  `pyproject.toml`'s is refused by the release workflow.
 - [ ] **AC-0030.** `README-pypi.md` states what the command sends, what the
   payload contains, and that it reaches the configured endpoint — while the
   command ships sending nothing.
-- [ ] **AC-0031.** `docs/profiles.md` states the three things a mapping profile
-  declares — the timestamp field, the severity field, and the record-identity
-  attributes — and shows a worked profile.
+- [ ] **AC-0031.** `docs/profiles.md` states the four things a mapping profile
+  declares and shows a worked profile.
 - [ ] **AC-0032.** `README-pypi.md` states that the distribution is versioned by
   semantic versioning and that the mapping-profile interface is provisional in
   0.x, so a consumer knows what may change under it.

@@ -82,7 +82,10 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
   Verification mode: TDD. Proof obligation: the profile's declared fields are
   asserted against the envelope the engine actually emits, not against a
   restated list.
-- The profile declares `at`, `result`, and `run_id` with `seq`. Verifies AC-0040.
+- The profile declares `at`, `result`, `run_id` with `seq`, and its allowlist.
+  Verifies AC-0040.
+- The documented invocation selects the registered profile and a real emitted
+  line reaches a live Collector at the declared destinations. Verifies AC-0044.
 
 **Done when:** the profile's declarations are asserted against a real emitted line.
 
@@ -93,8 +96,18 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
 **Touches:** `guides/core/how-to/export-loop-telemetry.md`, the wiring tests
 
 **Tests:**
+- `no stub (implementation-discovered)`. Discovery predicate: the wiring seam is
+  the documented invocation plus the package's `--config` and `--input` flags,
+  whose exact form is fixed only once `jsonl-otlp-exporter` ships. Constraint:
+  the package reads one config path; precedence is this catalogue's wiring, not
+  the package's behaviour. Required outcome: repository file before user file,
+  and `--input` resolved to the repository event log. Verification mode: TDD.
+  Proof obligation: the precedence assertion runs over two fixture layout files
+  that differ only in their endpoint, so a build reading the wrong one fails.
 - The documented invocation resolves `--config` to the repository
   `agentbundle-layout.toml` before the user one. Verifies AC-0041.
+- It resolves `--input` to the repository root's `.loop-run/events.jsonl`.
+  Verifies AC-0043.
 
 **Approach:**
 - The package reads one `--config` path; repository-before-user precedence is

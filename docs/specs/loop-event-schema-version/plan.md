@@ -112,7 +112,10 @@ pre-existing cases in that file still pass unchanged.
 **Touches:** `contracts/jsonschema/loop-run-event.schema.json`, `contracts/README.md`, `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl`
 
 **Tests:**
-- The schema validates every line of the recorded corpus. Verifies AC-0003.
+- The corpus holds both a versioned and a legacy record, and the schema
+  validates every line. Verifies AC-0003.
+- The schema rejects a bad `schema` value and a record missing an identity
+  field. Verifies AC-0006.
 - `contracts/README.md`'s file table names the schema. Verifies AC-0004.
 
 **Approach:**
@@ -130,6 +133,8 @@ pre-existing cases in that file still pass unchanged.
 **Tests:**
 - `telemetry.md` § 5.1's stated field count equals the emitted key count.
   Verifies AC-0005.
+- The events poller yields the same parsed result for a legacy record and an
+  explicit `schema: 1` record. Verifies AC-0007.
 
 **Approach:**
 - Bump `pack.toml` and `.claude-plugin/plugin.json` together per

@@ -33,7 +33,7 @@
 An adopter of this catalogue who wants their work-loop runs visible in an
 observability backend installs `jsonl-otlp-exporter`, points it at a Collector,
 and sees a log record per phase transition. This spec is what makes that work
-*here*: the mapping profile that turns this repository's thirteen-field envelope
+*here*: the mapping profile that turns this repository's versioned event envelope
 into OTLP, the optional-dependency declaration that tells an adopter the tool
 exists, the gate enumeration that keeps the package honest, and the documents
 that disclose the capability while it ships sending nothing.
@@ -70,20 +70,22 @@ distribution an adopter installs on purpose.
 
 - Making the dependency required rather than optional.
 - Having the installer acquire the package rather than report it.
-- Shipping a catalogue-level `[pack.layout.*]` default for telemetry.
 
 ### Never do
 
 - Add a network path to any pack.
 - Put `run_id` in a metric dimension. It is a search key; Splunk runs a
   cardinality analysis before indexing a tag and rejects unbounded ones.
+- Ship a catalogue-level `[pack.layout.*]` default for telemetry. `output_dir`
+  is semantically a confined directory, so an endpoint URL is silently anchored
+  under the repository root rather than refused (`telemetry.md` § 5.3).
 - Specify the sender's own behaviour here. That contract is
   `jsonl-otlp-exporter`'s, and duplicating it creates a second home that drifts.
 
 ## Testing Strategy
 
-- **VI-0001 — the work-loop mapping profile (AC-0040):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
-- **VI-0002 — configuration wiring (AC-0041):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
+- **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
+- **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
 - **VI-0003 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 - **VI-0004 — the gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one is a literal list rather than a glob.
 - **VI-0005 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording.
@@ -107,8 +109,14 @@ distribution an adopter installs on purpose.
   reports `jsonl-otlp-exporter` as an optional, unsatisfied runtime dependency of
   `core` and exits 0, invoking no package manager.
 - [ ] **AC-0040.** The `work_loop` mapping profile declares `at` as its timestamp
-  field, `result` as its severity field, and `run_id` with `seq` as its
-  record-identity attributes.
+  field, `result` as its severity field, `run_id` with `seq` as its
+  record-identity attributes, and an allowlist naming every envelope field this
+  catalogue intends to send.
+- [ ] **AC-0043.** The documented invocation resolves `--input` to the
+  repository root's `.loop-run/events.jsonl`.
+- [ ] **AC-0044.** The documented invocation selects the registered `work_loop`
+  profile, and a line the engine actually emitted reaches the Collector with its
+  `at`, `result`, `run_id` and `seq` at the destinations that profile declares.
 - [ ] **AC-0041.** The documented invocation resolves `--config` to the
   repository `agentbundle-layout.toml` before the user `agentbundle-layout.toml`.
 - [ ] **AC-0042.** No exit code this catalogue documents for the exporter falls in
@@ -175,7 +183,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 
 - Technical: gate enumeration in this repository is literal, not glob-based (source: `Makefile:515-516`, `pyproject.toml:16`, `pyproject.toml:94-96`, `Makefile:361-366`)
 - Technical: `[[pack.runtime-dependencies]]` exists in the pack schema and has no reader (source: `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`)
-- Technical: the envelope carries thirteen fields, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
+- Technical: the envelope carries fourteen fields once `loop-event-schema-version` ships, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
 - Process: Tier 1 detect → fail-clean is mandatory and the default (source: `guides/_shared/how-to/author-a-skill.md:104-117`)
 - Process: an ADR is sufficient governance here; no RFC is required (source: user confirmation 2026-09-12)
 - Product: the sender's contract is capability-scoped and may not name this consumer (source: user confirmation 2026-09-12)
