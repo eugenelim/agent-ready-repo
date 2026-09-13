@@ -722,6 +722,55 @@ the platform.
 
 **Suite after fixes:** 176 passed.
 
+## 2026-09-13 — T0's registration answer was incomplete: a second surface
+
+Running the wider repository guards after the review fixes turned one red:
+
+```
+FAILED tools/test_local_ci_shared_test_deduplication.py::
+  test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation
+  — approved standalone command plan drift
+```
+
+**T0 named one registration surface; there are two.** The `Makefile` runner line
+is what makes a suite *run*, and `tools/lint-pack-test-boundary.py` check 7 is
+what refuses a suite with no runner. But
+`tools/test_local_ci_shared_test_deduplication.py` additionally pins the
+**effective command plan** of `make test` behind two digests,
+`APPROVED_STANDALONE_PLAN_DIGEST` and `APPROVED_COMPOSED_PLAN_DIGEST`. Adding a
+runner line changes that plan, so the digests must be re-pinned in the same
+change. Nothing in the Makefile's own commentary points at this file, which is
+why T0's bounded search over the Makefile and the boundary lint did not reach it.
+
+This is a genuine gap in T0's answer rather than a change of circumstance, and it
+would have been cheaper to find at T0 than at review time. The general shape: a
+"where does this get registered" question is not closed by finding the surface
+that *executes* the thing; something may also *pin* it.
+
+### The re-pin followed the protocol the file itself states
+
+That constants block requires two dispositions, and both were produced through
+`_effective_composition_errors` rather than a hand-rolled recomputation:
+
+1. **Sole cause.** The same path run against this worktree's `Makefile` and
+   against `05d5ca2fa~1:Makefile` moves each plan by exactly one line —
+   standalone 62 → 63, composed 61 → 62 — inserting
+   `<PYTHON> -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`
+   at index 31 in both. Deleting that single line from the new plan reproduces
+   the old plan element for element, and it occurs exactly once. Every later
+   index differs only by the shift; nothing was reordered or dropped.
+2. **Prior pins were current.** With the superseded digests still in place, the
+   same path over the pre-change Makefile reports no drift at all, reproducing
+   `7fadaf20…` and `e48c8b01…`. So this re-pin is not sitting on a move someone
+   else had already made and left unrecorded.
+
+New values: standalone `8f32abf234db…`, composed `de0cadbf5e92…`.
+
+`tools/test_local_ci_shared_test_deduplication.py` — 27 passed. The other three
+guards run alongside it were already green: `test_pack_test_compatibility.py`,
+`test_pack_test_class_characterization.py` and `test_build_gate_chain.py`, 95
+passed with 28 subtests across the batch.
+
 ## 2026-09-13 — workspace registration
 
 The spec was in no `workspace.toml` entry, so canonical preflight returned
