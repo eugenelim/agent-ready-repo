@@ -68,6 +68,12 @@ def _git_output(directory: Path, arguments: list[str]) -> str | None:
             shell=False,
             text=True,
             encoding="utf-8",
+            # A path Git reports is whatever bytes the filesystem holds, and it
+            # need not be valid UTF-8. Decoding strictly would raise on one such
+            # entry and discard the whole listing, including every well-formed
+            # record beside it; the ordinals are only matched against a digit
+            # prefix, so a lossless round-trip is all that is needed.
+            errors="surrogateescape",
             timeout=_GIT_TIMEOUT_SECONDS,
         )
     except (OSError, subprocess.SubprocessError, UnicodeError):
