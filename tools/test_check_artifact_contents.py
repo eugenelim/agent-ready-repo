@@ -424,6 +424,33 @@ def test_bad_argument_alone_still_exits_two(tmp_path):
 # ── the real artifacts ───────────────────────────────────────────────────
 
 
+@pytest.fixture(scope="session")
+def real_wheel(tmp_path_factory) -> Path:
+    """The real wheel, built once per session for every test that reads it.
+
+    Session-scoped because the build is the expensive half and both consumers
+    want the identical artifact; `tmp_path` is function-scoped and cannot back
+    it. Consumers must treat the returned path as read-only.
+
+    Probe the toolchain up front, then let a genuine build failure surface as a
+    fixture error. Catching `CalledProcessError` and skipping would report a
+    real packaging regression — malformed pyproject, broken package-data,
+    missing backend — as a green skip, which is the shape this gate exists to
+    prevent. `--no-isolation` needs the backend in-env too, so probe both.
+    """
+    pytest.importorskip("build", reason="`build` not installed")
+    pytest.importorskip("setuptools", reason="build backend not installed")
+    outdir = tmp_path_factory.mktemp("real-wheel")
+    subprocess.run(
+        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
+         "--outdir", str(outdir), str(REPO_ROOT / "packages" / "agentbundle")],
+        check=True, capture_output=True,
+    )
+    wheels = list(outdir.glob("*.whl"))
+    assert wheels, "no wheel was produced"
+    return wheels[0]
+
+
 @pytest.mark.skipif(
     not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
     reason="engine package not present",
@@ -441,31 +468,17 @@ def test_real_zipapp_carries_no_engine_tests(tmp_path):
     not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
     reason="engine package not present",
 )
-def test_real_wheel_carries_no_engine_tests(tmp_path):
+def test_real_wheel_carries_no_engine_tests(real_wheel):
     """AC3 — the headline criterion. Its only other enforcement is the CI step,
     so without this the claim rests entirely on a workflow nothing else pins."""
-    # Probe the toolchain up front, then let a genuine build failure FAIL.
-    # Catching CalledProcessError and skipping would report a real packaging
-    # regression — malformed pyproject, broken package-data, missing backend —
-    # as a green skip, which is the shape this gate exists to prevent.
-    # `--no-isolation` needs the backend in-env too, so probe both.
-    pytest.importorskip("build", reason="`build` not installed")
-    pytest.importorskip("setuptools", reason="build backend not installed")
-    subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
-         "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
-        check=True, capture_output=True,
-    )
-    wheels = list(tmp_path.glob("*.whl"))
-    assert wheels, "no wheel was produced"
-    assert gate.offending_entries(wheels[0]) == []
+    assert gate.offending_entries(real_wheel) == []
 
 
 @pytest.mark.skipif(
     not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
     reason="engine package not present",
 )
-def test_real_wheel_ships_the_scaffold_claude_shims(tmp_path):
+def test_real_wheel_ships_the_scaffold_claude_shims(real_wheel):
     """The two `CLAUDE.md` import shims reach an adopter through the wheel.
 
     Every other assertion about them reads the source checkout, where package
@@ -477,16 +490,7 @@ def test_real_wheel_ships_the_scaffold_claude_shims(tmp_path):
     silently wrote `AGENTS.md` without its Claude-readable sibling, which is
     exactly the gap this pair exists to close.
     """
-    pytest.importorskip("build", reason="`build` not installed")
-    pytest.importorskip("setuptools", reason="build backend not installed")
-    subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
-         "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
-        check=True, capture_output=True,
-    )
-    wheels = list(tmp_path.glob("*.whl"))
-    assert wheels, "no wheel was produced"
-    with zipfile.ZipFile(wheels[0]) as zf:
+    with zipfile.ZipFile(real_wheel) as zf:
         names = set(zf.namelist())
         for rel in ("packs/CLAUDE.md", "profiles/CLAUDE.md"):
             member = f"agentbundle/_data/catalogue-scaffold/{rel}"
