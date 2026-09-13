@@ -62,3 +62,32 @@ failed. That was a correct report of its sandbox, not a defect: under
 raises `PermissionError: [Errno 1] Operation not permitted`. The same five cases
 pass when the supervisor runs them. Per the supervisor protocol, a command the
 worker cannot run is not a stop condition — Claude runs it.
+
+## T6 — the documentation pin, after a sustained review finding
+
+The first implementation of AC6's check pinned an exact long sentence,
+`"copy the staged \`docs/knowledge/\` tree into \`docs/knowledge/\`"`, and split
+the section on an exact heading string. The `quality-engineer` pass raised it as
+a Concern, independently of the supervisor having flagged the same thing: AC6
+requires the promotion *sequence*, not particular wording, and a control that
+reds on ordinary clarity edits gets deleted rather than maintained. T6's own
+plan bullet had said exactly that, so the implementation contradicted its own
+stated mechanism.
+
+Repaired by matching each step on the action it names: a case-insensitive
+regex heading, the two literal CLI flags, a line-scoped pattern requiring the
+copy step to name both a staged source and the `docs/knowledge/` destination,
+and a word-boundary match on the commit.
+
+Loosening a control earns the burden of proving it can still fail. Four
+mutations, run 2026-09-13 against `SKILL.md`, each reverted by editing:
+
+| Mutation | Expected | Observed |
+| --- | --- | --- |
+| Delete the whole migration section | red | `1 failed` |
+| Move the commit step after activate | red | `1 failed` |
+| Replace the copy step with "Promote the staged tree." (drops source and destination) | red | `1 failed` |
+| Reword the copy and commit steps innocuously, sequence intact | **pass** | `1 passed` |
+
+The fourth is the point of the repair: the check now survives editing it should
+survive, and still reds on every semantic break AC6 names.

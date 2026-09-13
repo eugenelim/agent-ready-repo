@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -120,11 +121,27 @@ def _assert_canonical_empty_staged_map(repo: Path, store) -> None:
     )
 
 
+# AC6 requires the promotion *sequence*, not any particular wording for it, so
+# each step is matched by the action it names rather than by a quoted sentence.
+# A pin on exact prose reds on ordinary clarity edits, and a check that reds on
+# innocuous rewording gets deleted rather than maintained.
+_MIGRATION_HEADING = re.compile(r"^##\s+migrating legacy knowledge\s*$", re.I | re.M)
+_MIGRATION_STEPS = (
+    # the two invocations are literal CLI surface and are meant to be exact
+    re.compile(r"--migrate-legacy"),
+    # the copy step has to name both ends: a source that is the staged tree, and
+    # `docs/knowledge/` as the destination. Line-scoped so ordering stays real.
+    re.compile(r"copy\b[^\n]*\bstaged\b[^\n]*docs/knowledge/", re.I),
+    re.compile(r"\bcommit\b", re.I),
+    re.compile(r"--activate-staged"),
+)
+
+
 def _migration_section(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
-    return text.split("## Migrating legacy knowledge\n", maxsplit=1)[1].split(
-        "\n## ", maxsplit=1
-    )[0]
+    heading = _MIGRATION_HEADING.search(text)
+    assert heading is not None, f"{path} has no migration section"
+    return text[heading.end() :].split("\n## ", maxsplit=1)[0]
 
 
 def test_ac1_ac2_zero_byte_legacy_corpus_stages_canonical_empty_map(
@@ -188,17 +205,14 @@ def test_ac6_shipped_migration_sections_document_promotion_order() -> None:
         PACK_ROOT / ".apm/skills/project-knowledge/SKILL.md",
         PACK_ROOT / "seeds/docs/knowledge/README.md",
     ]
-    steps = [
-        "--migrate-legacy",
-        "copy the staged `docs/knowledge/` tree into `docs/knowledge/`",
-        "commit",
-        "--activate-staged",
-    ]
-
     for surface in surfaces:
         section = _migration_section(surface)
-        positions = [section.lower().index(step) for step in steps]
-        assert positions == sorted(positions)
+        matches = [pattern.search(section) for pattern in _MIGRATION_STEPS]
+        assert all(
+            match is not None for match in matches
+        ), f"{surface} is missing a promotion step: {matches}"
+        positions = [match.start() for match in matches if match is not None]
+        assert positions == sorted(positions), f"{surface} states the steps out of order"
 
 
 def test_ac20_migration_strictly_prevalidates_every_row_before_staging(
