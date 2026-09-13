@@ -4,6 +4,66 @@
     {
       "packages": [
         {
+          "name": "frontend-engineering",
+          "version": "0.2.3"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[frontend-engineering][0.2.3] — 2026-09-13",
+      "changelogAnchor": "frontend-engineering023--2026-09-13",
+      "highlights": [
+        {
+          "source": "**The pack now looks at the page, and writes down what it saw.** Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an `inspection observations` field that a list of screenshot filenames does not satisfy.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The pack now looks at the page, and writes down what it saw."
+            },
+            {
+              "type": "text",
+              "value": " Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an "
+            },
+            {
+              "type": "code",
+              "value": "inspection observations"
+            },
+            {
+              "type": "text",
+              "value": " field that a list of screenshot filenames does not satisfy."
+            }
+          ]
+        },
+        {
+          "source": "**A skipped inspection can no longer pass as a completed one.** Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A skipped inspection can no longer pass as a completed one."
+            },
+            {
+              "type": "text",
+              "value": " Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick."
+            }
+          ]
+        },
+        {
+          "source": "**Measure the noise yourself.** Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Measure the noise yourself."
+            },
+            {
+              "type": "text",
+              "value": " Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.25.19"
         }

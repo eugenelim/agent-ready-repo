@@ -54,6 +54,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [frontend-engineering][0.2.3] — 2026-09-13
+
+### Highlights
+
+- **The pack now looks at the page, and writes down what it saw.** Step 4 of the
+  journey captures each route you name at two viewport heights, at rest and
+  scrolled, and reports what a reader would actually meet — something covering
+  something else, text running out of its container, a control too small to hit.
+  The evidence manifest gains an `inspection observations` field that a list of
+  screenshot filenames does not satisfy.
+- **A skipped inspection can no longer pass as a completed one.** Seven distinct
+  result states replace a single unverified line, and the same state reaches the
+  manifest, the step's output, and the acceptance gate — so a missing browser
+  arrives as a decision rather than a green tick.
+- **Measure the noise yourself.** Four defect fixtures and four known-clean ones
+  ship with a procedure for measuring the false-positive rate in your own
+  environment. The pack publishes no rate of its own, because the rate moves with
+  the judge and the viewport sizes and does not transfer.
+
+### Added
+
+- `references/rendered-page-inspection.md`: the rule layer as tables — the
+  finding-class to severity mapping, the required captures, the capture record
+  and judgement-request shapes, the capture/judgement step split, and the result
+  states.
+- `references/rendered-page-measurement.md` and
+  `references/inspection-fixtures/`: the measurement kit, its fixture sets, its
+  denominator, and the rate vocabulary.
+- `SKILL.md` section 5 and journey step 4: the capture and judgement steps and
+  the named skip.
+- [Inspect the rendered page](../../guides/frontend-engineering/how-to/inspect-the-rendered-page.md):
+  the how-to that walks the step against a local file.
+
+### Changed
+
+- The evidence manifest's required-field count moved 11 to 12, and its
+  production-surface total 13 to 14.
+- A finding's severity is derived from its class. A severity a judge supplies is
+  discarded, including when it disagrees.
+- The query string and fragment are cut from a route before it is recorded and
+  before it is stated to the judge.
+
+### Fixed
+
+- A page shorter than its viewport has no scrolled view, and is recorded as
+  `page-scrollable: no` rather than reported as permanently incomplete. Found by
+  running the procedure for real: 17 of 32 captures could not reach a non-zero
+  scroll position, which would have made every sign-in form, 404 and settings
+  panel impossible to inspect completely.
+
 ## [core][2.25.19] — 2026-09-13
 
 ### Highlights
