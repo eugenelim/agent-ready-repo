@@ -136,11 +136,16 @@ class TestConfigFileAcquisition:
     def test_a_symlink_is_refused(self, tmp_path):
         real = _write(tmp_path / "real.toml", '[telemetry]\nendpoint = "https://c:4318"\n')
         link = tmp_path / "link.toml"
-        link.symlink_to(real)
+        try:
+            link.symlink_to(real)
+        except OSError:  # Windows without developer mode
+            pytest.skip("symlinks unavailable on this platform")
         with pytest.raises(cfg.ConfigRefused):
             cfg.read_config_file(link)
 
     def test_a_fifo_is_refused(self, tmp_path):
+        if not hasattr(os, "mkfifo"):  # Windows has no FIFO
+            pytest.skip("FIFOs unavailable on this platform")
         fifo = tmp_path / "fifo.toml"
         os.mkfifo(fifo)
         assert stat.S_ISFIFO(os.lstat(fifo).st_mode)
