@@ -70,7 +70,11 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
 
 ### T1: The work-loop mapping profile
 
-**Depends on:** none (the package's profile interface is a published contract)
+**Depends on:** T6 — T1's pinned assertion compares the profile's `allowlist`
+against the keys of a line the engine emits, and T6 adds `schema` to that
+envelope. Run first, T1 ships a profile one field short and its own assertion
+turns red the moment T6 lands. The package's profile interface is a published
+contract and imposes no ordering; the envelope does.
 
 **Touches:** `packs/core/.apm/skills/work-loop/profiles/work-loop.toml`,
 `packs/core/tests/skills/work-loop/test_work_loop_profile.py`
@@ -250,13 +254,20 @@ class TestSchemaVersionStub:
   **Its red is a mutation, not an absence, and that is deliberate.** AC-0047
   preserves a property that already holds at HEAD, so no feature-absence red
   exists: run against the current engine the assertion is green (4 passed).
-  Non-vacuity was proved instead by mutating the replay branch at
-  `loop-engine.py:626` to `pending["schema"] = 1` before the append, against
-  which it fails (`1 failed, 3 passed`, the three being the harness's own copied
-  cases). The `len(lines) == 2` assertion is load-bearing: without it a pending
+Non-vacuity was proved instead by two mutations of the
+  replay branch at `loop-engine.py:626`, each inserted before the append:
+
+  - `pending["schema"] = 1` (retro-stamping) fails the key-absence assertion.
+  - `pending["spec"] = "docs/specs/other"` (rewriting any other field) fails
+    **only** `replayed == legacy`, which is what earns that assertion its place.
+    AC-0047 says the record is appended *unchanged*, and a key-absence check
+    alone passes a build that rewrote every other field.
+
+  The `len(lines) == 2` assertion is load-bearing too: without it a pending
   record the engine *discards* rather than replays still satisfies the key check,
-  and the mutant passes — which is how the first draft of this stub failed its
-  own mutation run. Compile: `python -m py_compile` OK. Disposable copies removed.
+  and the retro-stamp mutant passes — which is how the first draft of this stub
+  failed its own mutation run. At HEAD the whole file is green (44 passed,
+  5 skipped). Compile: `python -m py_compile` OK. Disposable copies removed.
 
 ```python
 class TestReplayPreservesLegacyRecord:
@@ -275,7 +286,9 @@ class TestReplayPreservesLegacyRecord:
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
         lines = (repo / ".loop-run" / "events.jsonl").read_text().splitlines()
         assert len(lines) == 2, f"replay must precede the new record: {lines}"
-        assert "schema" not in json.loads(lines[0])
+        replayed = json.loads(lines[0])
+        assert "schema" not in replayed
+        assert replayed == legacy, "the replayed record must be unchanged, not merely unstamped"
 ```
 
 **Approach:**

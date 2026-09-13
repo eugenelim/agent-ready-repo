@@ -149,6 +149,11 @@ durable state anywhere.
   for an unsafe path. Verification mode: TDD. Proof obligation: confinement cases
   assert the transport seam is never constructed.
 - The input file's content, size and mtime are unchanged after a run. Verifies AC-0061.
+- A `--config` path that is a symlink, a FIFO, a device or a directory is refused
+  on the opened descriptor with nothing sent and exit 1, and a regular config file
+  outside `--root` is **accepted** — the pair is what separates open-time proof
+  from root confinement, and a build that reuses `--input`'s predicate fails the
+  second case. Verifies AC-0062.
 - A symlink leaf, a non-regular file, and a path escaping `--root` are refused
   with nothing sent. Verifies AC-0017.
 - A directory component swapped between resolution and open is refused: the walk
@@ -189,7 +194,10 @@ package data, and nothing in the package resolves a profile by name.
   mode: TDD. Proof obligation: the golden comparison is written first and fails
   until the mapping exists.
 - Byte-exact golden for the recorded three-line fixture. Verifies AC-0005.
-- `service.name` takes `--service-name`, defaulting to the profile's name. Verifies AC-0007.
+- `service.name` takes `--service-name`; with the flag absent it takes the stem
+  of the `--profile` filename, asserted over a profile file whose stem differs
+  from every value inside it, so a build reading the default out of the profile's
+  contents fails. Verifies AC-0007.
 - Records carry the profile's declared identity attributes. Verifies AC-0023.
 - A field that is outside the allowlist *and* is not the profile's
   `timestamp_field`, `severity_field` or an `identity` member appears nowhere in
@@ -230,8 +238,8 @@ drifting back into shipped data.
 - It exits 1. Verifies AC-0054.
 - `Retry-After: N` delays the next request by `min(N, 30)` from response receipt on
   a monotonic clock; absent, negative or unparseable is 0. Verifies AC-0009.
-- At most three attempts per run, and an exhausted run stops issuing requests.
-  Verifies AC-0010, AC-0037.
+- At most three attempts per run, counted across every request the run issues.
+  Verifies AC-0010.
 - A request abandoned 30s after its own resolution begins, on a monotonic clock.
   Verifies AC-0040.
 - A run that stops issuing at 120s from its first resolution AND abandons a
@@ -240,6 +248,9 @@ drifting back into shipped data.
 - A response refused at 1 MiB plus one byte without further reading. Verifies AC-0041.
 - An oversized `--config` refused before parsing. Verifies AC-0056.
 - At most 512 records per request. Verifies AC-0011.
+- Over a 10,000-record input, a counting seam records that no more than 512 parsed
+  records are resident at any instant. A build that reads the file fully before
+  sending passes every other bound here and fails this one. Verifies AC-0063.
 - A request body never exceeds 8 MiB, asserted by constructing the worst
   admissible case rather than trusting the ceiling, **and** a batch that would
   exceed it is split rather than dropped or truncated — the split half is what

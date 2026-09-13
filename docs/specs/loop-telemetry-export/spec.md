@@ -99,9 +99,9 @@ take no stub.
 
 Across the 20 live criteria: **3** are covered by a validated stub (AC-0040 in
 T1, AC-0046 and AC-0047 in T6); **3** sit under `no stub
-(implementation-discovered)` (AC-0044 in T1, AC-0041 and AC-0043 in T2); **13**
+(implementation-discovered)` (AC-0044 in T1, AC-0041 and AC-0043 in T2); **14**
 are goal-based and take no stub (AC-0020, AC-0021, AC-0022, AC-0031, AC-0039, AC-0042, AC-0045,
-AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053). Every live criterion
+AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054). Every live criterion
 appears in exactly one of the three groups.
 
 - **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.

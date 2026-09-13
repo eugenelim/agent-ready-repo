@@ -114,7 +114,7 @@ because the package does not exist at plan approval and `tdd-stubs.md` forbids
 inventing a module to assert against. T1, T6, T7 and T8 each carry their own
 `no stub (mode)` record naming the mode and the reason.
 
-Across the 61 criteria: **0** are covered by a validated stub; **47** sit under
+Across the 62 criteria: **0** are covered by a validated stub; **48** sit under
 `no stub (implementation-discovered)` in the four TDD tasks (VI-0001, VI-0002,
 VI-0004, VI-0006, VI-0007, VI-0008, VI-0009, VI-0010 and VI-0013); **14** are
 goal-based or manual QA and take no stub (VI-0003, VI-0005, VI-0011 and
@@ -126,10 +126,10 @@ assurance gap this plan carries into EXECUTE.
 - **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
 - **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
-- **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
-- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking the `### Exit codes` table's closed set of states, one invocation per row, and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
-- **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061):** TDD. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
-- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056):** TDD. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
+- **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
+- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking each distinct state the `### Exit codes` table names — several rows name more than one, so one invocation per row samples a row's first alternative and leaves the rest unexercised — and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
+- **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061, AC-0062):** TDD. AC-0062 takes its own fixtures because the config path is the one opened surface the resolved root does not bound, so a build reusing `--input`'s predicate wholesale refuses a legitimate user-scope config and fails it. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
+- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056, AC-0063):** TDD. AC-0063 is asserted through a counting seam over a 10,000-record input rather than by measuring process memory, which no fixture can attribute to this command alone. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
 - **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
@@ -174,8 +174,10 @@ assurance gap this plan carries into EXECUTE.
   additional key, is refused before any request is sent and exits 1.
 
 - [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
-  attribute taking the value of `--service-name`, defaulting to the active
-  profile's declared name.
+  attribute taking the value of `--service-name`, defaulting to the stem of the
+  `--profile` filename. The default is the filename and not a profile-declared
+  name because AC-0035 closes a profile at six keys and none of them is a name,
+  so a name-valued default would be unsatisfiable by every conforming profile.
 - [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry.
 - [ ] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
@@ -189,8 +191,7 @@ assurance gap this plan carries into EXECUTE.
 
 - [ ] **AC-0010.** At most 3 send attempts are made per run, counted across all
   requests the run issues.
-- [ ] **AC-0037.** A run whose send attempts are exhausted stops issuing requests
-  rather than continuing with the next batch.
+
 - [ ] **AC-0011.** A single request carries at most 512 log records, counted from
   the parsed lines of the input file; record 513 begins the next request.
 - [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
@@ -299,6 +300,13 @@ assurance gap this plan carries into EXECUTE.
 
 - [ ] **AC-0056.** A `--config` file larger than 64 KiB is refused before it is
   parsed, and the command sends nothing and exits 1.
+- [ ] **AC-0062.** A `--config` file is opened no-follow and the opened descriptor
+  is proven a regular file before any byte of it is parsed; a symbolic link, a
+  FIFO, a device or a directory at that path is refused with nothing sent and
+  exit 1. Refusal is decided on the opened object, never on the pathname alone.
+  Unlike AC-0017 and AC-0048 this criterion imposes no `--root` confinement: a
+  configuration file legitimately lives outside any data root, so requiring
+  containment here would refuse a correct invocation rather than an attack.
 - [ ] **AC-0057.** The release workflow publishes through OIDC trusted
   publishing, with no long-lived credential present in the workflow.
 - [ ] **AC-0058.** Every third-party action the release workflow uses is pinned to
@@ -307,12 +315,27 @@ assurance gap this plan carries into EXECUTE.
   virtual environment and runs the console script before publishing.
 - [ ] **AC-0061.** After any run, the input file's content, size and modification
   time are unchanged from before the run.
+- [ ] **AC-0063.** At no instant during a run does the command hold more than 512
+  parsed records resident, asserted over an input of at least 10,000 records. The
+  command processes incrementally; no run materialises its whole input before
+  sending. This is the bound that makes the others reachable: AC-0055's run clock
+  starts at the first destination resolution, so without it an arbitrarily large
+  file is read and retained before any deadline applies.
 
 ## Retired identifiers
 
-<!-- Identity is append-only: a retired identifier is never reused. -->
+<!-- Identity is append-only: a retired identifier is never reused. Entries are
+     bare identifiers; the narrative belongs above, not on the entry line. -->
 
-None.
+AC-0037 was retired 2026-09-13 by the deletion pass run against four rounds of
+review output. It required a run whose send attempts were exhausted to stop
+issuing requests, which AC-0010 already forbids: AC-0010 caps attempts at three
+*counted across every request the run issues*, so continuing with the next batch
+is a fourth attempt and fails it. No build satisfies AC-0010 and violates
+AC-0037, so AC-0037 could never fire. It is retired rather than reworded because
+the obligation is not missing — it has an owner.
+
+- AC-0037
 
 ## Follow-ons
 
