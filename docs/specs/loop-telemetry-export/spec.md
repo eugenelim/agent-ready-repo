@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0108 (authored by this delivery — separate sender distribution, versioned event line)
+- **Constrained by:** ADR-0109 (authored by this delivery — separate sender distribution, versioned event line)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** [`contracts/jsonschema/loop-run-event.schema.json`](../../../contracts/jsonschema/loop-run-event.schema.json)
@@ -11,6 +11,14 @@
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
+>
+> **Not every section is contract.** `Boundaries`, `Testing Strategy` and
+> `Acceptance Criteria` are what a completion gate reads, and an amendment
+> changes them. `Objective`, `Durable Outputs`, `Follow-ons` and `Assumptions`
+> are working material: they orient a reader and an author corrects them in place
+> as the work teaches, without an amendment and without a review round. A review
+> finding against working material is advisory — it cannot block, because nothing
+> gates the text it cites.
 
 ## Objective
 
@@ -49,7 +57,7 @@ Collector in front of it.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — a sender outside every pack, and a versioned line, are both reversals of stated current architecture | `docs/adr/0108-*.md` | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
+| Decision rationale | Applicable — a sender outside every pack, and a versioned line, are both reversals of stated current architecture | `docs/adr/0109-*.md` | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
 | Current architecture | Applicable — `telemetry.md` § 2 states "No exporter ships", § 5.3 carries a stale blockquote, and two anchors to `agentbundle.md § 7.1` are dead | `docs/architecture/telemetry.md` | spec owner | § 2, § 5.2, § 5.3 and § 8 read true against the shipped tool; both anchors resolve | Anchors resolve; no claim contradicts the shipped tool |
 | Interface compatibility | Applicable — the event line becomes a versioned wire format with readers outside this repository | `contracts/jsonschema/loop-run-event.schema.json` + a row in `contracts/README.md` | spec owner | Schema validates a recorded corpus of real event lines | Schema committed, registry row present |
 | User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` + `packages/loop-telemetry-exporter/README-pypi.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed; PyPI README renders |
@@ -94,89 +102,101 @@ Collector in front of it.
 
 ## Testing Strategy
 
-**Encoding conformance: TDD, exercised by an integration test.** Measured
-against a live Collector (`telemetry.md` § 10.3): structural errors fail loudly
-with HTTP 400, so a round trip is a strong signal rather than a weak one. The
-residual risk is narrower than "silent discard" — a payload with correct
-structure and wrong attribute names is accepted and stored, so the failure mode
-is *wrong data, not absent data*, and no response assertion can see it.
-
-Two independent checks therefore remain, for their own reasons. The golden
-payload pins the emitted layout so any change to it appears in a diff and
-attribute drift is caught at review. The round trip proves a real receiver
-accepts and parses what we emit, which the golden cannot establish on its own.
-
-**Configuration resolution and off-by-default: TDD.** Pure precedence logic over
-environment and two files. Compressible invariant, no network.
-
-**Retry, backoff and partial-success handling: TDD.** A seam in front of the
-transport lets each response shape be driven directly.
-
-**Exit codes: goal-based check.** Each state is a one-line invocation and an
-observed status.
-
-**Schema version on the event line: TDD.** A field on a dict, plus the replay
-path, both checkable in the existing `loop-engine` suite.
-
-**The installed tool end-to-end: visual / manual QA.** The real console script
-is invoked against a real `events.jsonl` and a real Collector, and the observed
-stdout, stderr and exit code are recorded. A passing unit gate does not satisfy
-this.
+- **Off-by-default and endpoint resolution (AC-0001, AC-0002, AC-0003,
+  AC-0004):** TDD. Pure precedence logic over an environment mapping and two
+  files, so the cases compress into assertions and none of them needs a network.
+  The unconfigured case is asserted against a transport seam that fails if
+  constructed, rather than by reading output — an assertion on stderr would pass
+  for a build that sent first and printed afterwards.
+- **OTLP encoding (AC-0005, AC-0007, AC-0016):** TDD. The encoder is a pure
+  function from parsed lines to a request body, so a byte-exact golden pins the
+  layout and a diff shows any drift. Measured against a live Collector
+  (`telemetry.md` § 10.3), structural errors return HTTP 400, so the golden is
+  not defending against silent rejection — it is the only written form of the
+  emitted layout, which is what attribute drift would otherwise slip past.
+- **A real receiver accepts and parses what we emit (AC-0006):** goal-based
+  check, exercised by an integration test against a live Collector. This is the
+  only check that observes attribute *naming*: a structurally valid payload
+  carrying wrong names is accepted and stored, so neither a 400 nor the golden
+  can see it. It takes its own group rather than joining the encoder's, because
+  it fails on a different input — the golden can be self-consistently wrong
+  while the encoder's own cases stay green.
+- **Transport obligations (AC-0008, AC-0009, AC-0010, AC-0011):** TDD, over a
+  seam in front of `urlopen`. Each response shape — 200 with `partialSuccess`,
+  429 and 503 with `Retry-After`, connection refused — is a fixture rather than
+  a live condition, so the retry, backoff and batching rules are assertions.
+- **Exit codes (AC-0012, AC-0013, AC-0014, AC-0015):** goal-based check. Each
+  state is one invocation and one observed status. AC-0013 and AC-0014 take
+  cases of their own because they fail on inputs the others cannot reach: a
+  parse error exercises `argparse`'s own exit path, and the band claim is a
+  statement over every invocation rather than any single one.
+- **The event line's version (AC-0017, AC-0018):** TDD, in the existing
+  `loop-engine` envelope suite. A field on a dict and a replay passthrough, both
+  observable from the written file.
+- **The event-line contract schema (AC-0019):** goal-based check. The schema is
+  validated against a recorded corpus of real lines rather than a synthesised
+  one, so a line shape the engine actually emits cannot pass by construction.
+- **Disclosure and the architecture records (AC-0020, AC-0021, AC-0022):**
+  goal-based check over the authored files. Anchor resolution is mechanical;
+  the disclosure sentence is checked for presence, not for wording.
+- **The installed tool, end to end (AC-0023):** visual / manual QA. The real
+  console script, installed from the built wheel, is invoked and its stdout,
+  stderr and exit code recorded. A passing unit gate does not satisfy this.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** With no `[telemetry]` section in either layout file and no
+- [ ] **AC-0001.** With no `[telemetry]` section in either layout file and no
   endpoint environment variable set, the exporter opens no socket, exits 0, and
   writes a line to stderr naming that no endpoint is configured.
-- [ ] **AC2.** The endpoint used is the first present of, in order:
+- [ ] **AC-0002.** The endpoint used is the first present of, in order:
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, the
   repository `agentbundle-layout.toml` `[telemetry].endpoint`, then the user
   `agentbundle-layout.toml` `[telemetry].endpoint`.
-- [ ] **AC3.** A value resolved from `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is
+- [ ] **AC-0003.** A value resolved from `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is
   requested unmodified.
-- [ ] **AC4.** A value resolved from any source other than
+- [ ] **AC-0004.** A value resolved from any source other than
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is requested with `/v1/logs` appended.
-- [ ] **AC5.** For the recorded three-line fixture, the emitted request body
+- [ ] **AC-0005.** For the recorded three-line fixture, the emitted request body
   equals `tests/fixtures/otlp-logs-golden.json` byte for byte.
-- [ ] **AC6.** A Collector running an `otlp` receiver and a `debug` exporter
+- [ ] **AC-0006.** A Collector running an `otlp` receiver and a `debug` exporter
   records three log records whose attribute sets equal the three input lines'
   fields.
-- [ ] **AC7.** Every emitted log record carries a `service.name` resource
+- [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
   attribute, defaulting to `work-loop` when none is configured. Splunk renders a
   record without it as `unknown_service`.
-- [ ] **AC8.** A response carrying a non-empty `partialSuccess` produces no
+- [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry, and its `rejectedLogRecords` count appears on stderr.
-- [ ] **AC9.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request is
+- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request is
   issued before N seconds have elapsed.
-- [ ] **AC10.** A send is attempted at most 3 times.
-- [ ] **AC11.** A single request carries at most 512 log records. The OTLP 64
+- [ ] **AC-0010.** A send is attempted at most 3 times.
+- [ ] **AC-0011.** A single request carries at most 512 log records. The OTLP 64
   MiB request limit is non-binding on this route: 512 records of this envelope
   cannot reach it, and the record count is what fires first. Measured from the
   count of parsed lines in the input file.
-- [ ] **AC12.** Send failure after the retry budget exits 1, and exits 0 when
+- [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
   `--best-effort` is passed.
-- [ ] **AC13.** An unrecognised command-line flag exits 1, not 2. The 2–9 band
+- [ ] **AC-0013.** An unrecognised command-line flag exits 1, not 2. The 2–9 band
   belongs to credential/auth states this tool does not have, and `argparse`
   exits 2 by default.
-- [ ] **AC14.** No invocation returns an exit code in the range 2 through 9.
-- [ ] **AC15.** SIGINT exits 130.
-- [ ] **AC16.** A line that does not parse as JSON is skipped with a stderr
+- [ ] **AC-0014.** No invocation returns an exit code in the range 2 through 9.
+- [ ] **AC-0015.** SIGINT exits 130.
+- [ ] **AC-0016.** A line that does not parse as JSON is skipped with a stderr
   note, and the remaining lines are still sent.
-- [ ] **AC17.** Every event line `loop-engine` writes carries `schema` with
+- [ ] **AC-0017.** Every event line `loop-engine` writes carries `schema` with
   integer value 1.
-- [ ] **AC18.** An `events.pending` record lacking `schema` is appended to
+- [ ] **AC-0018.** An `events.pending` record lacking `schema` is appended to
   `events.jsonl` unchanged, carrying no `schema` field.
-- [ ] **AC19.** `contracts/jsonschema/loop-run-event.schema.json` validates every
+- [ ] **AC-0019.** `contracts/jsonschema/loop-run-event.schema.json` validates every
   line of the recorded event corpus, and `contracts/README.md` carries its row.
-- [ ] **AC20.** `guides/core/how-to/export-loop-telemetry.md` states that the
+- [ ] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` states that the
   capability exists, what the payload contains, and that it reaches the
   configured endpoint — while the tool ships sending nothing.
-- [ ] **AC21.** `docs/architecture/telemetry.md` § 5.3 carries no claim that the
+- [ ] **AC-0021.** `docs/architecture/telemetry.md` § 5.3 carries no claim that the
   catalogue-level default does not work, and every `agentbundle.md` anchor it
   cites resolves to a heading that exists.
-- [ ] **AC22.** `docs/architecture/telemetry.md` § 2 and § 8 describe a sender
+- [ ] **AC-0022.** `docs/architecture/telemetry.md` § 2 and § 8 describe a sender
   that exists and is installed separately.
-- [ ] **AC23.** `loop-telemetry-export --version` prints the installed
+- [ ] **AC-0023.** `loop-telemetry-export --version` prints the installed
   distribution version, and the published tag equals `pyproject.toml`'s
   `version`.
 

@@ -1,5 +1,10 @@
 # Plan: loop-telemetry-export
 
+> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
+> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
+> and `Risks` are working material: an implementer corrects them in place as the
+> work teaches, without an amendment and without a review round.
+
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packages/credbroker/` (distribution shape, and the
@@ -74,7 +79,7 @@ new field — the new cases assert presence and the replay passthrough.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| ADR-0108 (decision rationale) | T8 | Accepted ADR file | Cited by `telemetry.md` § 9 |
+| ADR-0109 (decision rationale) | T8 | Accepted ADR file | Cited by `telemetry.md` § 9 |
 | `docs/architecture/telemetry.md` (architecture) | T8 | §§ 2, 5.2, 5.3, 8 diff | Both `agentbundle.md` anchors resolve |
 | `contracts/jsonschema/loop-run-event.schema.json` (interface) | T3 | Schema validates the recorded corpus | Registry row in `contracts/README.md` |
 | `guides/core/how-to/export-loop-telemetry.md` (user promise) | T8 | Guide with the disclosure sentence | `check-guide-index.py` green |
@@ -90,7 +95,7 @@ new field — the new cases assert presence and the replay passthrough.
 **A separate distribution, not a pack primitive.** `telemetry.md:300` states
 "Nothing in a pack sends." Every pack-resident home breaks it; a PyPI
 distribution keeps it literally true and gives the adopter a package-manager
-guarantee rather than a configuration promise. ADR-0108 records this.
+guarantee rather than a configuration promise. ADR-0109 records this.
 
 **One exporter per engine, no shared emitter.** Confirmed as the prevailing
 architecture across Argo, Dagger, Buildkite and Jenkins. A shared library is
@@ -168,7 +173,7 @@ declaration.
 - Goal-based: `python3 -m build packages/loop-telemetry-exporter` produces a
   wheel and an sdist; a fresh venv installs the wheel and
   `loop-telemetry-export --version` prints the version. Mirrors the smoke steps
-  in `release-credbroker.yml`. Verifies AC23.
+  in `release-credbroker.yml`. Verifies AC-0023.
 
 **Approach:**
 - Copy the structural shape of `packages/credbroker/` — `pyproject.toml`,
@@ -186,11 +191,11 @@ declaration.
 **Depends on:** T1
 
 **Tests:**
-- Four-source precedence, one case per source plus the empty case. Verifies AC2.
+- Four-source precedence, one case per source plus the empty case. Verifies AC-0002.
 - Path semantics: signal-specific used as-is, generic gets `/v1/logs`. Verifies
-  AC3 and AC4.
+  AC-0003 and AC-0004.
 - Unconfigured run opens no socket — asserted by a transport seam that fails the
-  test if called, not by inspecting output. Verifies AC1.
+  test if called, not by inspecting output. Verifies AC-0001.
 - `stub: true` — `test_resolves_nothing_when_unconfigured` compiles against
   `config.resolve(env, repo_root, user_root) -> Endpoint | None` and asserts
   `None`.
@@ -207,10 +212,10 @@ raises if constructed.
 **Depends on:** none
 
 **Tests:**
-- A transition writes a line carrying `schema: 1`. Verifies AC17.
-- A pending record lacking `schema` replays unchanged. Verifies AC18. This is
+- A transition writes a line carrying `schema: 1`. Verifies AC-0017.
+- A pending record lacking `schema` replays unchanged. Verifies AC-0018. This is
   the case the existing suite cannot already see.
-- The contract schema validates the recorded corpus. Verifies AC19.
+- The contract schema validates the recorded corpus. Verifies AC-0019.
 
 **Approach:**
 - Add the field in `_cmd_transition`'s `pending_data` literal, above the
@@ -225,9 +230,9 @@ passes with the two new cases, and the corpus validates.
 **Depends on:** T1
 
 **Tests:**
-- Golden byte comparison for the three-line fixture. Verifies AC5.
-- `service.name` present with the documented default. Verifies AC7.
-- Malformed line skipped, remainder encoded. Verifies AC16.
+- Golden byte comparison for the three-line fixture. Verifies AC-0005.
+- `service.name` present with the documented default. Verifies AC-0007.
+- Malformed line skipped, remainder encoded. Verifies AC-0016.
 
 **Approach:**
 - Pure function from parsed lines to a request body. The five OTLP JSON rules
@@ -240,11 +245,14 @@ passes with the two new cases, and the corpus validates.
 **Depends on:** T2, T4
 
 **Tests:**
-- `partialSuccess` non-empty ⇒ no retry, count on stderr. Verifies AC8.
-- 429 and 503 with `Retry-After` ⇒ next attempt not earlier. Verifies AC9.
-- Attempt count capped. Verifies AC10.
-- Batch cap at 512. Verifies AC11.
+- `partialSuccess` non-empty ⇒ no retry, count on stderr. Verifies AC-0008.
+- 429 and 503 with `Retry-After` ⇒ next attempt not earlier. Verifies AC-0009.
+- Attempt count capped. Verifies AC-0010.
+- Batch cap at 512. Verifies AC-0011.
 - Plaintext permitted to loopback, refused elsewhere.
+- Integration, against a live Collector with an `otlp` receiver and a `debug`
+  exporter: three log records land whose attribute sets equal the three input
+  lines' fields. Verifies AC-0006.
 
 **Approach:**
 - Adapt the opener construction and redirect policy from `https_catalogue.py`;
@@ -257,11 +265,11 @@ passes with the two new cases, and the corpus validates.
 **Depends on:** T5
 
 **Tests:**
-- Each exit state from the spec's table, one invocation each. Verifies AC12,
-  AC15.
+- Each exit state from the spec's table, one invocation each. Verifies AC-0012,
+  AC-0015.
 - Unknown flag exits 1, not 2 — the `argparse` default must be overridden.
-  Verifies AC13.
-- No invocation returns 2 through 9. Verifies AC14.
+  Verifies AC-0013.
+- No invocation returns 2 through 9. Verifies AC-0014.
 
 **Approach:**
 - Override `argparse`'s `error()` so a parse failure exits 1.
@@ -293,10 +301,10 @@ passes with the two new cases, and the corpus validates.
 **Tests:**
 - Goal-based: `python3 tools/check-guide-index.py` green; every
   `agentbundle.md` anchor cited by `telemetry.md` resolves to a live heading.
-  Verifies AC20, AC21, AC22.
+  Verifies AC-0020, AC-0021, AC-0022.
 
 **Approach:**
-- Author ADR-0108. Confirm the ordinal is free at authoring time; 0106 is
+- Author ADR-0109. Confirm the ordinal is free at authoring time; 0106 is
   already duplicated, so a reserved number is not a guarantee.
 - Rewrite `telemetry.md` §§ 2, 5.2, 5.3 and 8 against the shipped tool.
 
@@ -340,10 +348,10 @@ release (T9) are independent; neither blocks the other.
   profiles `strindex`) do not reach.
 - **The first `[[pack.runtime-dependencies]]` reader sets precedent.** Kept
   report-only so the contract stays narrow.
-- **Docker may be unavailable for the round-trip gate.** If so, T6's integration
+- **Docker may be unavailable for the round-trip gate.** If so, T5's integration
   test is marked a named skip with the reason recorded, and the manual QA in T9
-  becomes the only evidence for AC6 — a weaker position that must be stated, not
-  hidden.
+  becomes the only evidence for AC-0006 — a weaker position that must be stated,
+  not hidden.
 
 ## Changelog
 
