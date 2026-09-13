@@ -155,7 +155,7 @@ Capture what we learned about the CI flake so the next person does not rediscove
 
 Stage 4 of four, and the pack's second gate. After this the workspace is clean and the next request starts at step 1.
 
-**Next:** [the guides hub](../../README.md) — the workspace is clean, and the next request starts at step 1.
+**Next:** [Start the work](start-the-work.md) — the workspace is clean and the next request comes back through the front door. If the work exposed a new outcome rather than finishing one, it goes to [Frame the intent](../../product-engineering/how-to/frame-the-intent.md) instead.
 <!-- rung: authored -->
 
 **Go deeper:** [the `core` pack reference](../explanation/core-pack.md) — how the loop, the gates and the reviewers fit together.

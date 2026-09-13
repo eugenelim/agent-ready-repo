@@ -246,7 +246,7 @@ type: content-strategy
 
 Stage 3 of three. The gap entries appear in `workspace.toml`, where the product-engineering pack picks them up.
 
-**Next:** [the guides hub](../../README.md#p3--build-it--2-hours) — the queued gaps are picked up by the product-engineering pack.
+**Next:** [Frame the intent](../../product-engineering/how-to/frame-the-intent.md) — in the `product-engineering` guidebook. Each gap entry this step queued arrives there as a problem to frame; the gap slug becomes the intent slug, which is how the thread stays traceable across the two packs.
 <!-- rung: authored -->
 
 **Go deeper:** [the `product-strategy` frameworks and artifacts reference](../reference/frameworks-and-artifacts.md) — every framework this step runs, and the artifact it commits.

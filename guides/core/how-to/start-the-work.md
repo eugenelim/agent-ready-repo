@@ -272,7 +272,9 @@ Adapt the installed packs to this repository.
 **Done with this step:** You can move on when the route names a skill and states what in your request decided it.
 <!-- rung: authored -->
 
-Stage 1 of four. This is the only step you should have to remember — the rest are named for you.
+Stage 1 of four, and the front door for every kind of request. This is the only step you should have to remember — the rest are named for you.
+
+Work often arrives here already shaped. If it came from [Hand it to build](../../product-engineering/how-to/hand-it-to-build.md) in the `product-engineering` guidebook, you already hold a slice and can go straight to [Write the contract](write-the-contract.md) — bring the slug with you.
 
 **Next:** [Write the contract](write-the-contract.md).
 <!-- rung: authored -->
