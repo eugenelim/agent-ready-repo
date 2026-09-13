@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import contextlib
 import dataclasses
 import importlib.util
 import inspect
-import io
 import json
+import subprocess
 import sys
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
@@ -192,23 +191,38 @@ def _invoke_cli(
     *,
     route: str = SELECTED_MEMBERSHIP_ROUTE,
 ) -> tuple[int, dict[str, Any], str]:
-    """Invoke the real CLI function through one captured argument path."""
-    cli = _load_module("core_workspace_status_selection_membership_cli", CLI_PATH)
-    if route == SELECTED_MEMBERSHIP_ROUTE:
-        assert route in cli._SUBCOMMANDS, "selected-membership CLI surface is absent"
+    """Invoke the real CLI process through one argument path."""
     argv = [route, "--root", str(fixture.root)]
     for selector in selectors:
         argv.extend((SELECTOR_FLAG, selector))
-    stdout = io.StringIO()
-    stderr = io.StringIO()
-    try:
-        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            exit_code = cli.main(argv)
-    except SystemExit as exc:
-        exit_code = int(exc.code)
-    output = stdout.getvalue()
-    payload = json.loads(output) if output else {}
-    return exit_code, payload, stderr.getvalue()
+    completed = subprocess.run(
+        [sys.executable, str(CLI_PATH), *argv],
+        check=False,
+        capture_output=True,
+    )
+    payload = json.loads(completed.stdout) if completed.stdout else {}
+    return completed.returncode, payload, completed.stderr.decode("utf-8")
+
+
+def _invoke_cli_bytes(
+    fixture: RepositoryFixture,
+    route: str,
+    extra_args: Iterable[str] = (),
+) -> tuple[int, bytes, bytes]:
+    """Invoke one CLI route and retain its exact output bytes."""
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(CLI_PATH),
+            route,
+            "--root",
+            str(fixture.root),
+            *extra_args,
+        ],
+        check=False,
+        capture_output=True,
+    )
+    return completed.returncode, completed.stdout, completed.stderr
 
 
 @pytest.fixture
@@ -428,7 +442,9 @@ def deterministic_output(tmp_path: Path) -> RepositoryFixture:
 def invalid_workspace(tmp_path: Path) -> dict[str, RepositoryFixture]:
     malformed_root = tmp_path / "malformed"
     malformed_root.mkdir()
-    (malformed_root / "workspace.toml").write_text("[backlog\n", encoding="utf-8")
+    (malformed_root / "workspace.toml").write_text(
+        "# instruction-marker: café\n[backlog\n", encoding="utf-8"
+    )
     malformed = RepositoryFixture(malformed_root, ("docs/specs/selected",))
     invalid_root = tmp_path / "invalid-lifecycle"
     invalid_root.mkdir()
@@ -492,6 +508,15 @@ def read_only_snapshot(tmp_path: Path) -> RepositoryFixture:
     return fixture
 
 
+@pytest.fixture
+def non_ascii_workspace(tmp_path: Path) -> RepositoryFixture:
+    return _write_repository(
+        tmp_path / "non-ascii",
+        ("docs/specs/present",),
+        backlog_open=(_canonical_target("present", summary="Résumé café"),),
+    )
+
+
 def test_engine_rejects_empty_selection(empty_selection: RepositoryFixture) -> None:
     payload = _engine_surface()(empty_selection.root, [])
 
@@ -522,6 +547,10 @@ def test_engine_reuses_canonical_extraction_and_alias_resolution() -> None:
 
 def test_membership_check_performs_no_writes(
     read_only_snapshot: RepositoryFixture,
+    canonical_membership: RepositoryFixture,
+    selected_artifact_absent: RepositoryFixture,
+    invalid_selectors: tuple[RepositoryFixture, tuple[str, ...]],
+    invalid_workspace: dict[str, RepositoryFixture],
 ) -> None:
     before = _tree_snapshot(read_only_snapshot.root)
 
@@ -533,9 +562,23 @@ def test_membership_check_performs_no_writes(
     ]
     assert _tree_snapshot(read_only_snapshot.root) == before
 
+    invalid_fixture, invalid = invalid_selectors
+    cases = (
+        (canonical_membership, canonical_membership.selectors, 0),
+        (selected_artifact_absent, selected_artifact_absent.selectors, 0),
+        (read_only_snapshot, read_only_snapshot.selectors, 0),
+        (invalid_fixture, (invalid[4],), 2),
+        (invalid_workspace["malformed_toml"], ("docs/specs/selected",), 2),
+    )
+    for fixture, selectors, expected_code in cases:
+        snapshot = _tree_snapshot(fixture.root)
+        exit_code, _, _ = _invoke_cli(fixture, selectors)
+        assert exit_code == expected_code
+        assert _tree_snapshot(fixture.root) == snapshot
+
 
 def test_empty_selection_is_rejected_by_recognized_route(
-    empty_selection: RepositoryFixture, unknown_subcommand: str
+    empty_selection: RepositoryFixture, unknown_subcommand: str, tmp_path: Path
 ) -> None:
     empty_code, empty_payload, _ = _invoke_cli(empty_selection, ())
     unknown_code, unknown_payload, _ = _invoke_cli(
@@ -547,6 +590,23 @@ def test_empty_selection_is_rejected_by_recognized_route(
     assert unknown_code == 2
     assert unknown_payload["reason"] == "unknown_subcommand"
     assert empty_payload != unknown_payload
+
+    isolated_cli = tmp_path / "isolated-cli" / "workspace_status.py"
+    isolated_cli.parent.mkdir()
+    isolated_cli.write_bytes(CLI_PATH.read_bytes())
+    isolated = subprocess.run(
+        [
+            sys.executable,
+            str(isolated_cli),
+            SELECTED_MEMBERSHIP_ROUTE,
+            "--root",
+            str(empty_selection.root),
+        ],
+        check=False,
+        capture_output=True,
+    )
+    assert isolated.returncode == 2
+    assert json.loads(isolated.stdout)["reason"] == "empty_selection"
 
 
 def test_selector_grammar_and_confinement_with_valid_absent_artifact_control(
@@ -560,6 +620,95 @@ def test_selector_grammar_and_confinement_with_valid_absent_artifact_control(
     assert valid_payload["results"][0]["membership_present"] is False
     assert all(code == 2 for code, _, _ in invalid_payloads)
     assert all(payload["reason"] == "invalid_selector" for _, payload, _ in invalid_payloads)
+
+
+def test_existing_subcommands_are_unchanged(
+    mixed_presence_selection: RepositoryFixture,
+) -> None:
+    fixture = mixed_presence_selection
+    commands = {
+        "status": (),
+        "reconcile": (),
+        "explain": ("--item", "docs/specs/present/spec.md"),
+    }
+    before = {
+        command: _invoke_cli_bytes(fixture, command, arguments)
+        for command, arguments in commands.items()
+    }
+
+    selected_code, selected_payload, _ = _invoke_cli(fixture, fixture.selectors)
+
+    after = {
+        command: _invoke_cli_bytes(fixture, command, arguments)
+        for command, arguments in commands.items()
+    }
+    assert selected_code == 0
+    assert selected_payload["mode"] == "selected-membership"
+    assert after == before
+
+
+def test_valid_results_have_shape_without_gating_exit(
+    canonical_membership: RepositoryFixture,
+    selected_artifact_absent: RepositoryFixture,
+    mixed_presence_selection: RepositoryFixture,
+) -> None:
+    required_fields = {
+        "selected_directory",
+        "canonical_artifact_path",
+        "membership_present",
+        "occurrences",
+    }
+    for fixture in (
+        canonical_membership,
+        selected_artifact_absent,
+        mixed_presence_selection,
+    ):
+        exit_code, payload, _ = _invoke_cli(fixture, fixture.selectors)
+        assert exit_code == 0
+        assert len(payload["results"]) == len(fixture.selectors)
+        assert all(required_fields <= set(result) for result in payload["results"])
+
+
+def test_invalid_input_error_is_safe(
+    invalid_selectors: tuple[RepositoryFixture, tuple[str, ...]],
+    invalid_workspace: dict[str, RepositoryFixture],
+) -> None:
+    selector_fixture, invalid = invalid_selectors
+    cases = (
+        _invoke_cli(selector_fixture, (invalid[4],)),
+        _invoke_cli(
+            invalid_workspace["malformed_toml"],
+            invalid_workspace["malformed_toml"].selectors,
+        ),
+    )
+    for exit_code, payload, stderr in cases:
+        assert exit_code == 2
+        assert payload["reason"] in {"invalid_selector", "malformed_toml"}
+        assert stderr.encode("utf-8").decode("utf-8") == stderr
+        assert stderr.count("\n") == 1
+        assert "Traceback" not in stderr
+        assert str(selector_fixture.root.parent) not in stderr
+        assert "instruction-marker" not in stderr
+        assert "instruction-marker" not in json.dumps(payload)
+
+
+def test_membership_check_emits_utf8(non_ascii_workspace: RepositoryFixture) -> None:
+    exit_code, stdout, stderr = _invoke_cli_bytes(
+        non_ascii_workspace,
+        SELECTED_MEMBERSHIP_ROUTE,
+        (SELECTOR_FLAG, non_ascii_workspace.selectors[0]),
+    )
+    source = CLI_PATH.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert json.loads(stdout.decode("utf-8"))["results"][0]["membership_present"] is True
+    assert stderr.decode("utf-8") == ""
+    assert source.index('sys.stdout.reconfigure(encoding="utf-8"') < source.index(
+        "def main("
+    )
+    assert source.index('sys.stderr.reconfigure(encoding="utf-8"') < source.index(
+        "def main("
+    )
 
 
 def test_missing_selected_artifact_still_has_membership_result(
@@ -734,6 +883,30 @@ def test_non_identity_edits_do_not_change_results(
         [("docs/specs/present", True, 1), ("docs/specs/absent", False, 0)],
         [("docs/specs/present", True, 1), ("docs/specs/absent", False, 0)],
     ]
+    cli_outputs = []
+    for fixture in identity_preserving_variants:
+        arguments = tuple(
+            argument
+            for selector in fixture.selectors
+            for argument in (SELECTOR_FLAG, selector)
+        )
+        exit_code, stdout, stderr = _invoke_cli_bytes(
+            fixture, SELECTED_MEMBERSHIP_ROUTE, arguments
+        )
+        assert exit_code == 0
+        assert stderr == b""
+        cli_payload = json.loads(stdout)
+        cli_outputs.append(
+            [
+                (
+                    result["selected_directory"],
+                    result["membership_present"],
+                    len(result["occurrences"]),
+                )
+                for result in cli_payload["results"]
+            ]
+        )
+    assert cli_outputs[0] == cli_outputs[1]
 
 
 def test_selected_membership_output_is_deterministic(
@@ -744,6 +917,18 @@ def test_selected_membership_output_is_deterministic(
 
     assert first.encode("utf-8") == second.encode("utf-8")
     assert [len(result["occurrences"]) for result in _results(deterministic_output)] == [1, 0]
+    arguments = tuple(
+        argument
+        for selector in deterministic_output.selectors
+        for argument in (SELECTOR_FLAG, selector)
+    )
+    first_cli = _invoke_cli_bytes(
+        deterministic_output, SELECTED_MEMBERSHIP_ROUTE, arguments
+    )
+    second_cli = _invoke_cli_bytes(
+        deterministic_output, SELECTED_MEMBERSHIP_ROUTE, arguments
+    )
+    assert first_cli == second_cli
 
 
 def test_invalid_workspace_failure_classes_never_report_absence(
