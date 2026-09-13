@@ -639,6 +639,42 @@ from a non-author adopter.
 
 **Match.** No Blockers, no severity labels, no `Fix:` lines, no clean sentinel.
 
+## Control probes — which controls were shown to fail, 2026-09-12
+
+Every control this change added pins prose. A prose pin passes by default, so
+the only evidence that one is load-bearing is watching it go red against the
+wording it claims to pin. Each probe below mutated one clause, ran the control,
+and restored the file; every restore was confirmed byte-identical before the
+next probe. This is the record of that, in the ledger the repository names as
+the home for execution observations — it previously lived only in commit
+messages, where a reader of this ledger would never reach it.
+
+| Probe — the clause mutated | Control | Observed |
+| --- | --- | --- |
+| enumeration referent, condition 4: "the parent it names" → "the parent" | `test_the_enumeration_states_the_referents_the_rules_below_it_use` | red |
+| enumeration referent, condition 5: reintroduce "Children partition the parent" | same | red |
+| absence-branch conjunction: "above the leaf **and** a status of `Accepted`" → "**or**" | `test_condition_five_absence_branch_is_keyed_on_level_and_status` | red |
+| level ordering reversed: `feature › capability › product-strategy › product-vision` | `test_intent_mode_states_the_level_ordering_it_keys_on` | red |
+| suppression widened: "suppresses that absence branch alone" → "suppresses condition 5" | `test_an_unplaceable_level_suppresses_only_the_absence_branch` | red |
+| still-measured clause deleted: "A listed decomposition is still measured." | same | red |
+| `_heading_bound` diverged between the two suites | `test_the_two_section_slicers_have_not_diverged` | red |
+| level-2 wrapper's bound level diverged, each side in turn | same | red, both sides |
+| predicate-5 clause cut from the adjudicator body | `test_finding_adjudicator_source_contract` | red |
+
+Two of these earn their place beyond the routine. The **conjunction** probe is
+what distinguishes the shipped rule from one that fires on every above-leaf
+`Draft` intent, which is the state the authoring pipeline produces most often.
+The **reversed ordering** probe matters because the direction is what decides
+which intents the absence branch fires on: read the ladder the other way and a
+leaf `feature` intent at `Accepted` fires, which is the defect this whole change
+exists to repair.
+
+One control here is asserted by absence rather than presence — the one requiring
+that the superseded `conditions 4 or 5` clause is gone. Every other assertion in
+that task is a positive substring check on prose the change adds, so a body that
+added everything asked of it and deleted nothing would have satisfied all of
+them while shipping two contradictory rules side by side.
+
 ## Concurrent-editing incident, 2026-09-11 — diagnosed
 
 Paragraphs disappeared from this change's files three times while the session

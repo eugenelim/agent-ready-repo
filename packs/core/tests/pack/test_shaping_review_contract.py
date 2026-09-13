@@ -340,8 +340,10 @@ def test_the_output_contract_splits_by_vocabulary() -> None:
 def _adversarial_section(title: str) -> str:
     """One `##` section of the adversarial reviewer, bounded by the next `##`."""
     text = ADVERSARIAL_REVIEWER.read_text(encoding="utf-8")
-    start = text.index(f"## {title}")
-    after_heading = start + len(title) + 3
+    match = re.search(rf"^## {re.escape(title)}$", text, flags=re.MULTILINE)
+    assert match is not None, f"{title}: no level-2 heading"
+    start = match.start()
+    after_heading = match.end()
     return text[start : _heading_bound(text, after_heading, 2)]
 
 

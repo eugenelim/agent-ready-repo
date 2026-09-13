@@ -53,8 +53,8 @@ cannot express a rewrite.
    names a parent, a parent being an optional attribution at every level; and where an intent lists
    no decomposition, the children condition fires only above the leaf of the recognized level set
    at `Status: Accepted`, since framing precedes decomposition and this review runs at framing. A
-   level the mode cannot place suppresses that absence branch alone. It does not run that table,
-   which stays with
+   level the mode cannot place suppresses that absence branch alone. `intent` mode does not run
+   the failure-mode table, which stays with
    `delivery-brief` and `spec` mode unchanged. Wrong owner still outranks criterion craft: its token
    is emitted alone and suppresses the other five.
 2. Intent-mode output is `MALFORMED(<field>)` per failed condition, or nothing. No severity bucket,

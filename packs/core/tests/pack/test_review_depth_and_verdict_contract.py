@@ -122,8 +122,10 @@ def _top_level_section(text: str, title: str) -> str:
     text instead of by the section they name. Bounding on "the next `##`" keeps
     each slice the size of its own section however many sections are added.
     """
-    start = text.index(f"## {title}")
-    after_heading = start + len(title) + 3
+    match = re.search(rf"^## {re.escape(title)}$", text, flags=re.MULTILINE)
+    assert match is not None, f"{title}: no level-2 heading"
+    start = match.start()
+    after_heading = match.end()
     return text[start : _heading_bound(text, after_heading, 2)]
 
 
@@ -542,6 +544,28 @@ def test_the_two_section_slicers_have_not_diverged() -> None:
 
     here = Path(__file__).resolve()
     sibling = here.parent / "test_shaping_review_contract.py"
+
+    def body(path: Path, name: str) -> str:
+        """One function's source, by text, normalized for its local name."""
+        text = path.read_text(encoding="utf-8")
+        start = text.index(f"def {name}(")
+        end = text.index("\ndef ", start)
+        # The wrappers differ only in signature: one reads the file itself, the
+        # other takes the text. Compare the slicing arithmetic they share.
+        return "\n".join(
+            line for line in text[start:end].rstrip().splitlines()
+            if "_heading_bound(" in line or "after_heading" in line
+            or "re.search" in line or "match.start" in line or "match.end" in line
+        )
+
+    assert body(here, "_top_level_section") == body(
+        sibling, "_adversarial_section"
+    ), (
+        "the two level-2 section wrappers have diverged; both slice the same "
+        "adversarial-reviewer body, and a one-sided edit to their bound widens "
+        "one suite's slices with nothing going red"
+    )
+
     assert definition(here) == definition(sibling), (
         "the two _heading_bound definitions have diverged; a divergence here "
         "fails no other test and silently widens every slice this file's "
