@@ -51,7 +51,9 @@ CONFLICT_MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
 # recipe's own commands, so a recipe that grew `--global` would otherwise
 # rewrite the developer's and the runner's real config instead of failing.
 _ESCAPING_SCOPES = ("--global", "--system", "--file", "--blob", "-f")
-_ESCAPING_PREFIXES = ("--file=", "--blob=")
+# Attached forms too: git accepts `--file=<path>` and the short `-f<path>`, and
+# a whole-token check sees neither.
+_ESCAPING_PREFIXES = ("--file=", "--blob=", "-f")
 # `shlex` performs no make expansion, so a token carrying one would be written
 # into the scratch repo verbatim while `make bootstrap-git` registers something
 # else -- and the test would then compare that literal against DRIVER_COMMAND,
@@ -100,7 +102,6 @@ def _bootstrap_git_recipe() -> list[list[str]]:
             "so executing it would assert a literal against itself"
         )
         commands.append(tokens)
-        continue
     assert commands, "bootstrap-git runs no git config command"
     return commands
 

@@ -530,12 +530,25 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # (spec/self-host-projection-merge-driver), which join the final tools batch.
 # They gate the `merge=regen` block, and `lint-ci-parity` disposes their
 # gate-main steps as LOCAL("test-after-build-check"), which is only true while
-# this batch runs them. Dispositioned the same way: `_normalized_command_plan`
-# was run against this worktree's Makefile and against the same Makefile at
-# 5c96716d8 (before the batch line changed). Both plans keep their line counts
-# — 62 standalone, 61 composed — exactly one line shifts in each (index 47),
-# and it gains exactly two tokens, which are the two new modules; no other line
-# moves, is reordered, or is dropped.
+# this batch runs them.
+#
+# Dispositioned both ways, through `_effective_composition_errors` itself
+# rather than a hand-rolled recomputation. Reproducing a pinned value needs the
+# whole path, not just `_normalized_command_plan`: standalone is
+# `_plan_digest(_without_construction_addition(plan))`, and composed first
+# strips ` --ignore=<path>` for every `COMPOSED_EXCLUSIONS` member from each
+# line and re-joins on whitespace. Stopping at the normalized plan yields a
+# different hash and sends the next re-pinner chasing a phantom move.
+#
+# (1) Sole cause: the same path run against this worktree's Makefile and
+# against `5c96716d8:Makefile` (before the batch line changed) keeps both line
+# counts — 62 standalone, 61 composed — with exactly one line differing in each
+# at index 47, gaining exactly the two new module tokens; no other line moves,
+# is reordered, or is dropped. (2) Prior pins were current: with the superseded
+# digests swapped back in, that same path against the reverted Makefile
+# reports no drift, reproducing `d29b113d…` and `61120874…` exactly. This
+# second half matters more here than in earlier entries, because this re-pin
+# sits on a merge of origin/main that could itself have moved the plan.
 APPROVED_STANDALONE_PLAN_DIGEST = (
     "7fadaf203076cf15c3f39820828443ebf14ea9d76216051595a037cf4e5c73b8"
 )

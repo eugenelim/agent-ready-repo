@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CONVENTIONS.md` § Pack source-of-truth split: corrected the gate coverage
   claimed for `tools/hooks/<name>.<ext>`, and the set of seed-projected paths
   described as reclassified Manual.
+
 ## [core][2.25.18] — 2026-09-12
 
 ### Changed
