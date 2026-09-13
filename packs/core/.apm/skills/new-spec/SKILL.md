@@ -682,6 +682,20 @@ is clean. Abandoned or rejected authoring is also a no-op. `work-loop` owns
 `spec-approved` and `plan-locked` after their separate human and state-machine
 gates succeed.
 
+## Answering a shaping-review finding
+
+The answers available to a sustained finding are stated once, in the `work-loop`
+skill's DECIDE step. They are not restated here, and the shaping review in step 6
+is unchanged by them: it reads what it already read.
+
+Which parts of a spec are contract and which are working material is stated by
+the bundled `assets/spec.md`, their single owner. `demote-the-claim` moves an
+obligation from the first into the second, so that template is where to read what
+the move costs.
+
+Record the answer and the reason for it beside the finding. That record is
+advisory: it informs the next round, and nothing else reads it.
+
 ## Anti-patterns to refuse
 
 - Drafting a spec for something already half-built without checking against

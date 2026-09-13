@@ -54,6 +54,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.24] — 2026-09-13
+
+### Highlights
+
+- **Authors can now answer sustained shaping findings without turning every
+  response into more contract prose.** Intent, delivery-brief, and spec
+  guidance points to the work-loop's ordered response ladder while keeping
+  lifecycle gates unchanged, and it states where a demoted claim belongs in
+  each upstream artifact.
+
+### Changed
+
+- `intake-intent`, `author-delivery-brief`, and `new-spec` now point to the
+  work-loop DECIDE step as the single home of finding-response vocabulary.
+  Their local guidance states only how `demote-the-claim` and
+  `drop-the-claim` apply to each artifact's contract and working material.
+- The shaping reviewer no longer reopens a decision that the supplied brief or
+  spec records as settled with its ground and owner. Consequences, conflicts,
+  and pre-existing defects remain reviewable.
+
 ## [core][2.25.23] — 2026-09-13
 
 ### Fixed
