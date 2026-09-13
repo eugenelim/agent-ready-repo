@@ -9,7 +9,7 @@ repository's own history, and closes the attribution question left open by
 - **Run date:** 2026-09-13
 - **Owner:** eugenelim, Platform Core maintainer
 - **Base:** `6848d547d`; changelog at 214 free-standing release entries
-- **Verdict:** collector yes, generator half, time-as-routing-key no — see [Verdict](#verdict)
+- **Verdict:** collector yes, generator permitted but untested, time-as-routing-key no — see [Verdict](#verdict)
 - **Scope:** evidence only. No production code was written. The prototype is
   throwaway and lives outside the repository.
 - **Supersedes:** nothing. It adds a third candidate alongside fragmentation and
@@ -37,12 +37,32 @@ header requires that highlights be
 > **Reviewed like code.** Write them in the same PR as the implementation,
 > grounded in that diff and its verification evidence.
 
-A per-PR artifact reviewed alongside the diff is *closer to a fragment than to a
-generated release note*. So the two designs are not simply ranked; they disagree
-about when the user-facing sentence is written. Choosing between them needs the
-draft-acceptance measurement in [Known unknowns](#known-unknowns) and the
-conflict-rate measurement the fragmentation spike named — neither of which exists
-yet.
+**That constraint may make the two designs converge — a hypothesis, not a
+result.** If the draft and its highlights must exist in the implementation PR,
+they have to persist somewhere per-PR, and two of the candidate locations are the
+shared `changelog.md`, which reinstates exactly the feature-branch edit that
+conflicts, and a separate per-PR file, which *is* a fragment whatever it is
+called.
+
+Two further locations exist and this spike evaluated neither:
+
+- **Pull-request metadata** — a release-note block and labels on the PR itself,
+  collected at release. The survey credits Kubernetes with exactly this shape. It
+  satisfies "written in the same PR" without adding a tracked file, but it moves
+  the durable record into mutable hosting metadata, which the survey already
+  flags as a weaker source than a committed artifact.
+- **A commit trailer** — a structured field in the commit message. Unlike PR
+  metadata this *is* committed Git history, so it is immutable and travels with
+  the repository, but it is amended rather than reviewed as a file and its
+  standing under "reviewed like code" is untested.
+
+So the conflict-removal claim above holds for a design that writes at release
+time — which the header currently forbids — and possibly for a metadata- or
+trailer-backed design that nobody here has assessed. Whether option 3 collapses
+into option 2 is therefore open, and turns on those two locations. Choosing needs the
+draft-acceptance measurement in [Known unknowns](#known-unknowns), the
+conflict-rate measurement the fragmentation spike named, and an assessment of
+per-PR metadata as a persistence site — none of which exists yet.
 
 ## Method and evidence
 
@@ -147,7 +167,7 @@ A worked case, checked by hand: `core` 2.25.18 → 2.25.20 spans 71 raw commits,
 19 touching `packs/core`, 11 of those `feat`/`fix`, against 5 bullets across the
 two changelog entries in that span.
 
-## Result 4 — the generator can draft but cannot finish
+## Result 4 — generation is permitted under human authority; its quality is untested
 
 The repository already says this, in the changelog's own header:
 
@@ -156,7 +176,10 @@ The repository already says this, in the changelog's own header:
 > product. Rewrite for users, not contributors.**
 
 So the proposal is the documented workflow with its two mechanical halves
-automated. The hard half is the `/now/` payload: **139 Highlights bullets across
+automated. Whether a generator drafts the body *well* was never tested here or in
+[the inputs spike](changelog-generator-quality-spike.md) — neither ran one. What
+is established is where a generator may sit and what it must not decide. The hard
+part is the `/now/` payload: **139 Highlights bullets across
 99 entries, 91% opening with a bold outcome lede**, median 283 chars. A commit
 message says what changed; a highlight says what someone can now do, and no
 collector derives the second from the first.
@@ -238,12 +261,24 @@ precisely what the repository's header already prescribes.
 ## Recommended order of work
 
 1. **Collector only.** A read-only report: given an artifact, resolve its previous
-   released version from the manifest, list candidate `feat`/`fix` commits in that
-   subtree. No writes, so it cannot damage anything, and it makes the documented
-   workflow faster.
-2. **Generator to a draft in the release PR.** Emits `Added`/`Changed`/`Fixed`
-   groups, leaves `Highlights` empty for a person. Written once, then frozen.
-3. **Then choose between generation and fragments** — not before. The two
+   released version from the manifest and list the commits in that subtree,
+   **carrying each commit's change type** and applying the provisional exclusion
+   list rather than a `feat`/`fix` include-list — the latter drops 42 untyped
+   commits, 4 `perf:`, 2 `revert:` and 1 `Delivered` across the measured entries.
+   No writes, so it cannot damage anything, and it makes the documented workflow
+   faster.
+2. **Generator to a draft in the implementation PR.** Emits `Added`/`Changed`/
+   `Fixed` groups, leaves `Highlights` to a person. The implementation PR is
+   where the changelog header requires highlights to be written — "the same PR as
+   the implementation", with "no separate editorial process" — so drafting in a
+   *release* PR instead would be a change to that header, not just an
+   implementation choice.
+3. **Carry the change type, and exclude rather than include.** The generator
+   inputs spike measured that a `feat`/`fix` include-list drops 42 untyped
+   commits, 4 `perf:`, 2 `revert:` and 1 `Delivered`, while an exclusion list
+   lets a doc/tooling release report itself as such. Type is an author's label,
+   not verified impact, so treat the list as candidate policy.
+4. **Then choose between generation and fragments** — not before. The two
    disagree about *when* the user-facing sentence is written, and the changelog
    header's "write them in the same PR as the implementation" currently favours
    the fragment side. Step 1 is compatible with either and costs little, so it is
@@ -269,14 +304,22 @@ and no located gate detects them.
 
 ## Known unknowns
 
-- **Known-unknown:** Would a generated draft actually be accepted, or rewritten
-  wholesale? Would be closed by: generating drafts for the last 10 released
-  entries and diffing them against what shipped.
+- **Narrowed** by [the generator inputs spike](changelog-generator-quality-spike.md):
+  the bullet's facts are largely present in its source commit (median containment
+  0.55 against a size-matched control's 0.25) but the sentence is not reused
+  (median Jaccard 0.107). Exact token reuse in the shipped bullets is
+  content-word vocabulary is largely shared while the two word-sets overlap
+  little overall, and the typical bullet was not copied wholesale from a single
+  commit. Whether an extractive, templated or model-assisted draft would be
+  acceptable remains untested and is the next measurement.
 - **Known-unknown:** Why did 15 released versions never appear in their manifest?
   Would be closed by: reading those release commits; the answer decides whether
   6% is a fixable process gap or a permanent floor.
-- **Known-unknown:** What do the 13 zero-yield windows have in common? Would be
-  closed by: reading those entries; if they are documentation or tooling releases
-  the collector is not meant to cover, the real failure rate is lower than 8%.
+- **Answered** by [the generator inputs spike](changelog-generator-quality-spike.md):
+  5 of the 13 have no commits at all in the artifact tree, 4 carry only
+  `docs`/`chore`/`refactor` commits, 1 was a `perf:` commit the `feat`/`fix`
+  include-list wrongly dropped, 1 is `release:`+`docs:`, and 2 are untyped.
+  An exclusion list takes the rate from 8% to 6% and leaves a 5 of 166 (3%)
+  no-commit residual.
 - **Unknowable:** Whether the 22 order departures were editorial intent or
   accident. Why not: no retained artifact records the intended sequence.

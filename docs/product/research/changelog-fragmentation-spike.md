@@ -281,13 +281,20 @@ choose. Three live options remain, and the evidence does not select between them
    released history untouched as a frozen baseline, and buys a build step, a
    fragment format, and a drift gate.
 3. **Collect and generate from commit history** — evaluated in the
-   [collector/generator spike](changelog-collector-generator-spike.md); removes
-   the shared file from feature branches entirely, but leaves the `Highlights`
-   decision and its approval with a person and sits against this changelog's rule
-   that highlights are written in the implementation PR.
+   [collector/generator spike](changelog-collector-generator-spike.md). It would
+   remove the shared file from feature branches, but only if the entry is written
+   at release time, which this changelog's header currently forbids: highlights
+   are written in the implementation PR. Under the present header the draft has
+   to persist per-PR, and **if** that is a tracked per-PR file it is option 2's
+   artifact with a different author.
 
-Options 2 and 3 disagree about *when* the user-facing sentence is written, so they
-are not simply ranked. Choosing among all three needs the conflict-rate
+Options 2 and 3 may therefore not be independent. Two locations would keep them
+distinct, and no spike has assessed either: a pull-request release-note block, as
+Kubernetes uses, which keeps the record out of the tree but in mutable hosting
+metadata; or a commit trailer, which is immutable committed history but is
+amended rather than reviewed as a file. So the first questions are whether writing
+the entry at release time is acceptable at all, and if not, whether PR metadata or
+a commit trailer is an acceptable home. Choosing among all three needs the conflict-rate
 measurement named in the first known-unknown above — which counts touches today
 and should count conflicts — plus the draft-acceptance measurement the
 collector/generator spike names.
