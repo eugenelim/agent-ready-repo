@@ -41,6 +41,12 @@ def table_rows(markdown: str, heading: str) -> list[list[str]]:
     The header and its `---` separator are dropped. A cell is returned exactly
     as written, so an empty cell stays empty rather than disappearing — the
     completeness check depends on being able to see one.
+
+    **Pipe policy: a literal `|` inside a cell is not supported.** Splitting on
+    every pipe would shift later cells silently — a pipe in a description column
+    moves a `yes` out of the Required column and quietly drops a required field.
+    Rather than inventing an escape this markdown does not use, a row whose cell
+    count does not match its header is rejected outright.
     """
     section = markdown.split(f"\n## {heading}\n", 1)
     if len(section) != 2:
@@ -55,19 +61,52 @@ def table_rows(markdown: str, heading: str) -> list[list[str]]:
         if re.fullmatch(r"\|[\s:|-]+\|", stripped):
             continue  # separator
         rows.append([cell.strip() for cell in stripped.strip("|").split("|")])
-    return rows[1:]  # drop the header row
+    if not rows:
+        raise AssertionError(f"'## {heading}' in {RULES.name} holds no table")
+
+    header, body = rows[0], rows[1:]
+    for row in body:
+        if len(row) != len(header):
+            raise AssertionError(
+                f"'## {heading}' row {row!r} has {len(row)} cells against a "
+                f"{len(header)}-cell header — an unescaped '|' in a cell shifts "
+                f"every cell after it"
+            )
+    return body
+
+
+def unique_keyed(rows: list[list[str]], heading: str) -> dict[str, list[str]]:
+    """`{row[0]: row}` refusing a duplicate key.
+
+    A dict comprehension keeps the last duplicate and discards the first in
+    silence. That is how "every class has exactly one severity" became a rule
+    that could not fail on the one mutation it exists to catch: a second
+    `occlusion` row carrying `Minor` simply replaced the first.
+    """
+    out: dict[str, list[str]] = {}
+    for row in rows:
+        if row[0] in out:
+            raise AssertionError(
+                f"'## {heading}' declares {row[0]!r} more than once; a rule "
+                f"table row key must be unique or the rule it states is ambiguous"
+            )
+        out[row[0]] = row
+    return out
 
 
 def severity_by_class(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Severity by finding class")}
+    rows = unique_keyed(table_rows(markdown, "Severity by finding class"), "Severity by finding class")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def finding_content_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Finding content")}
+    rows = unique_keyed(table_rows(markdown, "Finding content"), "Finding content")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def resolution_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Severity resolution")}
+    rows = unique_keyed(table_rows(markdown, "Severity resolution"), "Severity resolution")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def required_captures(markdown: str) -> dict[str, tuple[str, str]]:
@@ -94,7 +133,8 @@ def judgement_request_fields(markdown: str) -> list[str]:
 
 
 def step_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Step separation")}
+    rows = unique_keyed(table_rows(markdown, "Step separation"), "Step separation")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def satisfies(predicate: str, value: int) -> bool:
@@ -198,7 +238,14 @@ def evaluate_capture_set(
             ):
                 missing.append(f"{name} (route {route})")
 
-        # Rule 2 — every height this route actually captured carries the pair.
+        # Rule 2 — every height this route actually captured carries the pair,
+        # but ONLY because the reference says so. The quantifier is shipped
+        # content, not something this module supplies; a check that authors its
+        # own rule asserts behaviour the pack never promised an adopter.
+        if capture_set_rules(markdown).get(
+            "every-captured-height-needs-the-pair"
+        ) != "required":
+            continue
         for height in sorted({int(c["viewport-height"]) for c in route_captures}):
             at_height = [
                 c for c in route_captures if int(c["viewport-height"]) == height
@@ -283,7 +330,8 @@ def result_surfaces(markdown: str) -> dict[str, str]:
 
 
 def observations_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Observations field")}
+    rows = unique_keyed(table_rows(markdown, "Observations field"), "Observations field")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def manifest_fields(skill_markdown: str) -> list[str]:
@@ -333,11 +381,13 @@ def observations_value_is_acceptable(markdown: str, value: str) -> bool:
 # ── route handling and judge authority ──────────────────────────────────────
 
 def route_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Route recording")}
+    rows = unique_keyed(table_rows(markdown, "Route recording"), "Route recording")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def judging_rules(markdown: str) -> dict[str, str]:
-    return {row[0]: row[1] for row in table_rows(markdown, "Judging captured content")}
+    rows = unique_keyed(table_rows(markdown, "Judging captured content"), "Judging captured content")
+    return {key: row[1] for key, row in rows.items()}
 
 
 def sensitive_view_rules(markdown: str) -> dict[str, str]:
@@ -401,3 +451,77 @@ def recorded_route(markdown: str, url: str) -> str:
 def judgement_request_route(markdown: str, url: str) -> str:
     """The route stated to the judge. Same rule, one definition."""
     return recorded_route(markdown, url)
+
+
+# ── verdict, precedence, and the shipped height rule ────────────────────────
+
+SEVERITY_ORDER = ("Blocker", "Major", "Minor", "Note")
+
+
+def verdict_rules(markdown: str) -> dict[str, str]:
+    rows = unique_keyed(table_rows(markdown, "Inspection verdict"), "Inspection verdict")
+    return {key: row[1] for key, row in rows.items()}
+
+
+def capture_set_rules(markdown: str) -> dict[str, str]:
+    """The extra rules stated under `Required captures` beyond the four rows."""
+    section = markdown.split("\n## Required captures\n", 1)[1]
+    out: dict[str, str] = {}
+    for line in section.splitlines():
+        s = line.strip()
+        if s.startswith("| every-captured-height-needs-the-pair |"):
+            cells = [c.strip() for c in s.strip("|").split("|")]
+            out[cells[0]] = cells[1]
+    return out
+
+
+def resolve_class(markdown: str, fitting: list[str]) -> str:
+    """The class a failure takes when it fits more than one.
+
+    Honours the `multi-class-failure` rule rather than hard-coding most-severe:
+    if the reference stopped saying that, this would return the first class
+    offered and the precedence test would fail.
+    """
+    if not fitting:
+        raise AssertionError("a finding must fit at least one class")
+    if resolution_rules(markdown).get("multi-class-failure") != "most-severe-class":
+        return fitting[0]
+    mapping = severity_by_class(markdown)
+    return min(fitting, key=lambda c: SEVERITY_ORDER.index(mapping[c]))
+
+
+def inspection_result(
+    markdown: str,
+    captures: list[dict[str, int | str]],
+    findings: list[dict[str, object]] | None = None,
+) -> dict[str, str]:
+    """`{"state": ..., "verdict": ...}` — did it run, and did it pass.
+
+    Two questions, two answers. "The browser would not start" and "the page is
+    broken" are both not-a-pass and are not the same thing.
+    """
+    findings = findings or []
+    set_status, _ = evaluate_capture_set(markdown, captures)
+    # `evaluate_capture_set` answers "is the set complete"; the shipped
+    # `Result states` table is the authority on what that state is called.
+    state = "completed" if set_status == "complete" else set_status
+    rules = verdict_rules(markdown)
+
+    blocking = rules.get("verdict-blocking-severity", "Blocker")
+    unresolved = [
+        f for f in findings
+        if not f.get("resolved")
+        and resolve_severity(markdown, str(f["class"]), None) == blocking
+    ]
+    if rules.get("verdict-source") != "findings":
+        raise AssertionError("the reference no longer derives the verdict from findings")
+    verdict = "fail" if (unresolved and rules.get("blocking-finding-verdict") == "fail") else "pass"
+    return {"state": state, "verdict": verdict}
+
+
+def is_completed_inspection_result(markdown: str, result: dict[str, str]) -> bool:
+    """A completed inspection needs BOTH a completed state and a passing verdict."""
+    rules = verdict_rules(markdown)
+    if rules.get("completed-inspection-requires") != "completed-state-and-passing-verdict":
+        return result["state"] == "completed"
+    return result["state"] == "completed" and result["verdict"] == "pass"

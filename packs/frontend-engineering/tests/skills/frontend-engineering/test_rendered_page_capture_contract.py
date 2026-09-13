@@ -155,10 +155,14 @@ def test_the_judgement_request_restates_every_recorded_field(rules_markdown: str
     stated = judgement_request_fields(rules_markdown)
     for field in ("route", "viewport-width", "viewport-height", "scroll-position"):
         assert field in stated, f"the judgement request omits {field}"
-    assert sorted(stated) == sorted(REQUIRED)
-    assert sorted(judgement_request_fields(rules_markdown)) == sorted(
-        capture_record_fields(rules_markdown)
-    ), "the judgement request and the capture record no longer carry the same fields"
+    # Every recorded field is restated to the judge. The request may carry MORE
+    # than the record — since the amendment it also declares the capture
+    # untrusted evidence — so this is containment, not equality.
+    recorded = set(capture_record_fields(rules_markdown))
+    assert recorded <= set(stated), (
+        f"the judgement request omits recorded field(s) {sorted(recorded - set(stated))}"
+    )
+    assert set(REQUIRED) <= set(stated)
 
 
 @pytest.mark.parametrize("absent_field", REQUIRED)

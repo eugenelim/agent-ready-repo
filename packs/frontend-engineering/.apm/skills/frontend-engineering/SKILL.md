@@ -609,7 +609,12 @@ a capture nobody scrolled looks like.
 Two heights because a layout that holds at one often fails at the other. Two
 scroll positions because the at-rest view is the one nobody scrolls to reach, and
 the scrolled view is where sticky headers and overlays come to rest on top of
-content. Further heights are welcome; none are required.
+content. Further heights are welcome, and none beyond the two bands is
+required — but a height you **do** capture carries the same obligation: at
+every captured height, including one beyond the two required bands, that
+route needs an at-rest capture and a scrolled one, or a recorded
+`page-scrollable: no`. A third height captured only at rest looks like
+coverage and is not.
 
 ```bash
 # Playwright — set the viewport, scroll, then capture. Any driver works;

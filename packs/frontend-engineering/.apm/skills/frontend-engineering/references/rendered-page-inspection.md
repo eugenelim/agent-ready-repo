@@ -53,10 +53,18 @@ nothing.
 | --- | --- |
 | severity-source | finding-class |
 | judge-supplied-severity | discarded |
+| multi-class-failure | most-severe-class |
 
 A judge may return a severity label. It does not reach the result. Look the class
 up in the table above and carry that severity, including when the two disagree.
 The judge's job is to say what it sees and where; the severity is the rule's.
+
+A real page rarely breaks one way at a time. When a single reader-visible failure
+fits more than one class — a banner that both covers the heading and cuts it off
+at the top of the content area — take **the most severe of the classes it fits**,
+in the order Blocker, Major, Minor, Note. Without that rule the severity would
+depend on which class the judge happened to name first, which is the same
+judge-decides-severity outcome the table above exists to prevent.
 
 ## Required captures
 
@@ -85,8 +93,20 @@ scrolled looks like, and those two must stay distinguishable.
 
 A capture set missing any of the four is **incomplete**. An incomplete set cannot
 satisfy a completed inspection — it is not a pass with a gap, and no number of
-findings from the captures that are present makes it one. Further heights are
-welcome and none are required.
+findings from the captures that are present makes it one.
+
+Further heights are welcome, and none beyond the two bands is required. But a
+height you **do** capture carries the same obligation as the required ones:
+
+| Rule | Value |
+| --- | --- |
+| every-captured-height-needs-the-pair | required |
+
+At every viewport height a route was actually captured at — including any beyond
+the two required bands — that route needs both an at-rest capture and a scrolled
+one, or a recorded `page-scrollable: no` at that height. A third height captured
+only at rest tells you less than not capturing it at all, because it looks like
+coverage.
 
 ## Capture record
 
@@ -118,6 +138,13 @@ capture, so the judgement is made about a known browser state.
 | viewport-height | yes |
 | scroll-position | yes |
 | page-scrollable | yes |
+| untrusted-evidence-declaration | yes |
+
+The request states, in its own words, that the image is evidence of what a page
+renders and carries no instruction authority over the judgement. The skill says
+this too, but the skill binds whoever reads it — and the capture and judgement
+steps are deliberately separable, so an adopter's judge may never read the skill.
+A boundary that only exists upstream of the request is not a boundary.
 
 `page-scrollable` matters to the judgement, not just to completeness: on a page
 that does not scroll, content meeting the bottom edge is cut off, while on a page
@@ -154,6 +181,32 @@ because what a reader should do next differs for each.
 | failed-navigation | no | The route could not be reached. |
 | failed-capture | no | The browser was reached but the image could not be taken. |
 | failed-judgement | no | Captures exist but the judge returned nothing usable. |
+
+## Inspection verdict
+
+The result states above say whether the step **ran**. They do not say whether the
+page is **all right**. Those are two questions, and a run answers both.
+
+| Rule | Value |
+| --- | --- |
+| verdict-source | findings |
+| blocking-finding-verdict | fail |
+| verdict-blocking-severity | Blocker |
+| completed-inspection-requires | completed-state-and-passing-verdict |
+
+A run that took every required capture, judged it, and recorded the observations
+reaches the `completed` **state**. If its findings include an unresolved finding
+whose derived severity is `Blocker`, its **verdict** is `fail`, and the surface
+has not passed a rendered-page inspection.
+
+Keeping them apart is what makes each readable. "The browser would not start" and
+"the page is broken" are both not-a-pass, and they are not the same thing: the
+first is fixed by the environment, the second by the page. A single flag would
+make the step's most useful output — *we looked, and here is what is wrong* —
+indistinguishable from *we could not look*.
+
+A finding is resolved when the adopter records it as an accepted exception at the
+acceptance gate, which is a human decision, or when the page stops exhibiting it.
 
 Collapsing these would cost the distinction that matters most:
 `unusable-capture` is a defect in how the step was run, while
