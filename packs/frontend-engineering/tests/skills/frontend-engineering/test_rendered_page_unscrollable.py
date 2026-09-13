@@ -75,7 +75,9 @@ def test_a_scrollable_page_missing_its_scrolled_captures_is_still_incomplete(
     assert status == "incomplete", (
         "a scrollable page with no scrolled capture was accepted as complete"
     )
-    assert "short-scrolled" in missing and "tall-scrolled" in missing
+    # Entries carry their route now that completeness is evaluated per route.
+    assert any("short-scrolled" in entry for entry in missing), missing
+    assert any("tall-scrolled" in entry for entry in missing), missing
 
 
 def test_the_branch_is_not_inferred_from_a_zero_scroll_position(

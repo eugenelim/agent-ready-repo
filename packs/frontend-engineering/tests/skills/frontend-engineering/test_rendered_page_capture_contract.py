@@ -35,6 +35,26 @@ def rules_markdown() -> str:
     return read_rules()
 
 
+def _names(missing: list[str], requirement: str) -> bool:
+    """Whether `missing` reports `requirement`.
+
+    Entries carry the route they belong to — "short-at-rest (route /a)" — because
+    completeness is evaluated per route, so this matches on the requirement name
+    rather than on the whole entry.
+    """
+    return any(requirement in entry for entry in missing)
+
+
+def _capture(route: str, height: int, scroll: int, scrollable: str = "yes") -> dict[str, int | str]:
+    return {
+        "route": route,
+        "viewport-width": 390 if height <= 600 else 1280,
+        "viewport-height": height,
+        "scroll-position": scroll,
+        "page-scrollable": scrollable,
+    }
+
+
 def complete_set() -> list[dict[str, int | str]]:
     """One capture at each of the four required combinations."""
     return [
@@ -53,7 +73,7 @@ def test_a_set_without_a_short_viewport_capture_is_rejected(rules_markdown: str)
     captures = [c for c in complete_set() if int(c["viewport-height"]) > 600]
     status, missing = evaluate_capture_set(rules_markdown, captures)
     assert status == "incomplete", "a set with no short-viewport capture was accepted"
-    assert "short-at-rest" in missing and "short-scrolled" in missing
+    assert _names(missing, "short-at-rest") and _names(missing, "short-scrolled")
 
 
 def test_a_set_without_a_tall_viewport_capture_is_rejected(rules_markdown: str) -> None:
@@ -62,7 +82,7 @@ def test_a_set_without_a_tall_viewport_capture_is_rejected(rules_markdown: str) 
     captures = [c for c in complete_set() if int(c["viewport-height"]) < 900]
     status, missing = evaluate_capture_set(rules_markdown, captures)
     assert status == "incomplete", "a set with no tall-viewport capture was accepted"
-    assert "tall-at-rest" in missing and "tall-scrolled" in missing
+    assert _names(missing, "tall-at-rest") and _names(missing, "tall-scrolled")
 
 
 @pytest.mark.parametrize(
@@ -95,7 +115,7 @@ def test_a_set_missing_a_scroll_position_at_a_height_is_rejected(
     assert status == "incomplete", (
         f"a set missing the {height}px capture at scroll {dropped_scroll} was accepted"
     )
-    assert expected_missing in missing
+    assert _names(missing, expected_missing)
 
 
 def test_a_complete_set_is_accepted(rules_markdown: str) -> None:
@@ -195,3 +215,76 @@ def test_judgement_consumes_a_capture_set_it_did_not_produce(
     rules = step_rules(rules_markdown)
     assert rules.get("judgement-step-input") == "capture-set"
     assert rules.get("judgement-step-produces-captures") == "no"
+
+
+# ── completeness is per route, and per height actually captured ─────────────
+
+def test_two_routes_cannot_cover_each_others_required_heights(
+    rules_markdown: str,
+) -> None:
+    """Verifies the "for each inspected route" half of the capture criteria.
+
+    A flat scan over every capture accepts this set: the short band is present
+    and so is the tall one, just never on the same route. Neither route was
+    actually inspected at both heights.
+    """
+    captures = [
+        _capture("/a", 600, 0),
+        _capture("/a", 600, 400),
+        _capture("/b", 900, 0),
+        _capture("/b", 900, 400),
+    ]
+    status, missing = evaluate_capture_set(rules_markdown, captures)
+    assert status == "incomplete", (
+        "one route covering the short band and another the tall band was "
+        "accepted as a complete inspection of both"
+    )
+    assert _names(missing, "tall-at-rest"), missing
+    assert any("/a" in entry for entry in missing)
+    assert any("/b" in entry for entry in missing)
+
+
+def test_an_extra_captured_height_needs_its_scrolled_counterpart(
+    rules_markdown: str,
+) -> None:
+    """Verifies the "for each viewport height captured" half.
+
+    The criterion is not limited to the two required bands. An adopter who adds
+    a third height has captured that height, so it owes the same at-rest and
+    scrolled pair — and a rule that only walks the table's named rows never
+    looks at it.
+    """
+    captures = complete_set() + [_capture("/a", 750, 0)]
+    status, missing = evaluate_capture_set(rules_markdown, captures)
+    assert status == "incomplete", (
+        "a 750px at-rest capture with no scrolled counterpart was accepted"
+    )
+    assert _names(missing, "scrolled at 750px"), missing
+
+
+def test_an_extra_captured_height_is_accepted_once_it_is_paired(
+    rules_markdown: str,
+) -> None:
+    """The green path for the rule above: extra heights are welcome, they just
+    carry the same obligation. Without this, a rule rejecting every extra height
+    would pass the check above."""
+    captures = complete_set() + [_capture("/a", 750, 0), _capture("/a", 750, 400)]
+    assert evaluate_capture_set(rules_markdown, captures) == ("complete", [])
+
+
+def test_two_fully_captured_routes_are_accepted(rules_markdown: str) -> None:
+    """The green path for per-route evaluation."""
+    captures = complete_set() + [
+        _capture("/b", 600, 0),
+        _capture("/b", 600, 400),
+        _capture("/b", 900, 0),
+        _capture("/b", 900, 400),
+    ]
+    assert evaluate_capture_set(rules_markdown, captures) == ("complete", [])
+
+
+def test_an_empty_capture_set_is_incomplete(rules_markdown: str) -> None:
+    """True on empty state: a set with no captures at all is not a pass."""
+    status, missing = evaluate_capture_set(rules_markdown, [])
+    assert status == "incomplete"
+    assert missing

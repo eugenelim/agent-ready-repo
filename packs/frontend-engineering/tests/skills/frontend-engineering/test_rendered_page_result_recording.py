@@ -152,7 +152,6 @@ def test_a_skip_is_distinguishable_from_a_completed_run_in_all_three_surfaces(
 
     assert is_completed_inspection(rules_markdown, "completed")
     assert not is_completed_inspection(rules_markdown, SKIP_STATE)
-    assert SKIP_STATE != "completed"
 
 
 @pytest.mark.parametrize("state", FAILURE_STATES)
@@ -177,11 +176,15 @@ def test_each_failure_family_records_its_own_distinguishable_state(
     states = result_states(rules_markdown)
     assert state in states, f"{state} is not a declared result state"
 
-    others = [s for s in FAILURE_STATES + [SKIP_STATE, "completed"] if s != state]
-    assert state not in others
-    assert len(set(FAILURE_STATES + [SKIP_STATE])) == 4, (
-        "the skip and the three failure families collapsed into fewer states"
+    # Distinctness is read from the shipped table, not from this module's own
+    # constants: a list built from distinct literals is distinct by
+    # construction and proves nothing about what the pack ships.
+    declared = [s for s in (*FAILURE_STATES, SKIP_STATE) if s in states]
+    assert len(declared) == 4, (
+        f"the skip and the three failure families are not four distinct rows in "
+        f"the shipped Result states table; it declares {sorted(states)}"
     )
+    assert not is_completed_inspection(rules_markdown, state)
 
 
 def test_exactly_one_result_state_is_a_completed_inspection(

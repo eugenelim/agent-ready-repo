@@ -63,10 +63,27 @@ RATE_VOCABULARY = [
     "accuracy",
 ]
 
-# A number next to one of those terms. Percentages, decimals, fractions and
-# bare integers all count; "4 known-clean fixtures" is a count, not a rate, so
-# the window is deliberately tight and anchored on the term.
+# A number near one of those terms. Percentages, decimals and bare integers all
+# count; "4 known-clean fixtures" is a count, not a rate, so the window stays
+# anchored on the term rather than matching any number anywhere.
+#
+# The separator admits punctuation and a short intervening clause, because
+# "The false-positive rate, measured locally, is 4%" is a published rate and an
+# earlier `\s+`-only window missed it: the comma defeated the whitespace class
+# and the clause overran a two-word gap. This widens HOW a listed term may be
+# separated from its number. It does not widen WHICH terms are listed — the
+# Testing Strategy fixes the guard's reach as the pack-stated vocabulary, and a
+# rate phrased outside it is a named, accepted blind spot.
 _NUMBER = r"\d+(?:\.\d+)?\s*%?"
+# After a term, the gap is wide: a rate is normally written term-first, and the
+# clause between it and its number can be long — "the false-positive rate,
+# measured locally, is 4%".
+_GAP_AFTER = r"[\s,;:()\[\]—–-]*(?:[\w-]+[\s,;:()\[\]—–-]+){0,6}"
+# Before a term, it stays tight. "4% false-positive rate" is a rate, but
+# widening this direction makes an ordinary count collide with a term further
+# down the page — the shipped "Known-clean fixtures — 4" heading sits six words
+# above "the false-positive rate is measured over", and that 4 is a count.
+_GAP_BEFORE = r"\s+(?:\w+\s+){0,2}"
 
 
 def test_the_rate_vocabulary_matches_what_the_pack_states() -> None:
@@ -98,8 +115,8 @@ def test_no_shipped_content_states_a_rate(path: Path) -> None:
             window = text[max(0, match.start() - 40) : match.end() + 40]
             # A number immediately before or after the term, within the window.
             adjacent = re.search(
-                rf"(?:{_NUMBER}\s+(?:\w+\s+){{0,2}}{re.escape(term)}"
-                rf"|{re.escape(term)}\s+(?:\w+\s+){{0,2}}(?:of\s+)?{_NUMBER})",
+                rf"(?:{_NUMBER}{_GAP_BEFORE}{re.escape(term)}"
+                rf"|{re.escape(term)}{_GAP_AFTER}(?:of\s+)?{_NUMBER})",
                 window,
                 re.IGNORECASE,
             )
@@ -117,6 +134,15 @@ def test_the_rate_guard_catches_a_planted_rate(tmp_path: Path) -> None:
         "A detection rate of 92% was measured.",
         "precision 0.91 across the corpus",
         "It missed 3 defects.",
+        # Punctuated and clause-separated forms, which an earlier `\s+`-only
+        # window let through even though the term is in the vocabulary.
+        "The false-positive rate, measured locally, is 4%.",
+        "The false-positive rate (on our corpus) was 0.04.",
+        "Detection rate: 92%.",
+        "The false-positive rate — across every clean fixture — is 4%.",
+        "In our environment the false-positive rate came out at about 4%.",
+        # Number-first, which the tight before-window still has to catch.
+        "A 4% false-positive rate.",
     ):
         planted.write_text(bad, encoding="utf-8")
         with pytest.raises(AssertionError, match="states a rate"):

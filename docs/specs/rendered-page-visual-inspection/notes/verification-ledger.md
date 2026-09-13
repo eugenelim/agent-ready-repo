@@ -448,8 +448,22 @@ has a sticky header, the same structure that makes `defect-occlusion.html` fail,
 and its content area is offset by the header's own height, so nothing is covered
 at rest or scrolled.
 
-This count is a local measurement with this judge and these viewport sizes. It is
-not a rate, and it is not published in any shipped pack content.
+**The configuration this was measured with**, because the shipped procedure's
+step 6 requires the result be written next to it, and a count without it cannot
+be reproduced or compared:
+
+| | |
+| --- | --- |
+| Judge | Claude Opus 5 (`claude-opus-5`), reading each capture directly as an image, one capture per judgement, with the capture's recorded fields stated alongside it |
+| Browser | Chromium 149.0.7827.55, headless, driven by Playwright 1.61.0 (Python) |
+| Short viewport | 390 × 600 CSS px, at scroll 0 and scroll 400 |
+| Tall viewport | 1280 × 900 CSS px, at scroll 0 and scroll 400 |
+| Platform | macOS, Darwin 25.5.0, arm64 |
+| Fixture source | `file://` URLs, the shipped set unchanged |
+
+These counts are a local measurement with that judge and those viewport sizes.
+They are not a rate, they do not transfer to a different judge, and they are not
+published in any shipped pack content.
 
 ### The defect the run exposed
 
@@ -637,6 +651,76 @@ findings, all pre-existing warnings in other packs); for this pack, one finding 
 headroom left**, in the warn tier the pack already occupied before this delivery.
 `catalogue verify --root .` ok. `lint-pack-test-boundary` 8 of 8. Suite: 168
 passed in 0.47s.
+
+## 2026-09-13 — Review round 1: 9 findings, 6 sustained, 3 refuted
+
+Reviewer: Codex (`codex-cli` 0.154.0), read-only, against the merged diff.
+Artifacts at `.context/reviews/6bdc571b-85f8-4ece-8724-598567efb6a4/`.
+
+Three were refuted on current evidence: that the unscrollable branch trusts a
+forgeable string (it accepts a literal recorded `no` only, and `yes`/`YES`/
+`true`/`maybe`/`""` are already pinned as leaving the set incomplete); that the
+reference's "all four of these" contradicts the amendment (it names four capture
+*requirements*, not four images, as the paragraph below it states); and that the
+portability guard should cover `packs/AGENTS.md` (the Testing Strategy fixes the
+guard's reach as the stated identifier set, and the criterion scopes it to sites,
+routes, build directory and test harness).
+
+### The Blocker was real, and reproduced before fixing
+
+`evaluate_capture_set` ran a flat `any()` over every capture with no route key.
+Two cases, both confirmed returning `("complete", [])` before the fix:
+
+- `/a` captured only at the short height and `/b` only at the tall height. The
+  set looks complete because both bands appear somewhere, though **neither route
+  was inspected at both**. The criterion says "for each inspected route".
+- A 750px at-rest capture with no scrolled counterpart. The old rule walked only
+  the four table rows, so a height the adopter actually captured was never
+  checked. The criterion says "for each viewport height captured".
+
+Completeness is now evaluated per route, and within each route at every distinct
+height that route captured — not only the two named bands. Both cases now fail,
+and four green paths hold: one complete route, two complete routes, an
+unscrollable short page, and an extra height once it is paired. An empty capture
+set is incomplete, so the rule is true on empty state.
+
+### The two Nits were both controls that could not fail
+
+Finding 8 is the sharper lesson. The `or True` line was removed earlier in the
+session — or so the ledger would have said. The edit was applied to the wrong
+file's contents by a patch script operating on the wrong variable, so it
+silently no-opped and the assertion stayed. **A patch that reports success is not
+evidence the edit landed**; only re-reading the target is. The reviewer caught
+what the session's own account had already written off.
+
+Finding 9 removed two assertions comparing module constants to each other, and
+re-derived the failure-family distinctness from the shipped `Result states`
+table rather than from a list this module builds out of distinct literals.
+
+### The rate guard now tolerates punctuation, in one direction only
+
+Finding 5 was sustained narrowly: the vocabulary's reach is accepted as-is, but a
+miss on a term *inside* it is a defect. `The false-positive rate, measured
+locally, is 4%` escaped a `\s+`-only window.
+
+Widening both directions immediately produced a **false positive on real shipped
+content**: the measurement reference's own "Known-clean fixtures — 4" heading
+sits six words above "the false-positive rate is measured over", and that 4 is a
+count. So the window is now asymmetric — wide after a term, tight before it,
+since a rate is normally written term-first and "4% false-positive rate" needs
+only a tight before-window. Ten planted rates are caught, including punctuated,
+parenthesised, em-dashed, colon and number-first forms; four legitimate
+count-bearing sentences still pass.
+
+### Finding 7: the measurement is now reproducible
+
+The shipped procedure's step 6 requires a result be written next to the judge and
+viewport sizes it was measured with, and the ledger said only "this judge and
+these viewport sizes". The T6 entry above now names the judge, the browser build,
+the Playwright version, both viewport dimensions with their scroll offsets, and
+the platform.
+
+**Suite after fixes:** 176 passed.
 
 ## 2026-09-13 — workspace registration
 

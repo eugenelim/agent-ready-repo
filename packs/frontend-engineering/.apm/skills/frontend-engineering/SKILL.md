@@ -629,7 +629,7 @@ to the same offset are the same picture:
 | scroll-position | Vertical scroll offset the capture was taken at, in CSS pixels |
 | page-scrollable | Whether the page scrolls at this viewport height — `yes` or `no` |
 
-A capture missing any of the four is **unusable**: it yields no finding, and it
+A capture missing any of the five is **unusable**: it yields no finding, and it
 is reported as unusable rather than passed over. A set missing any of the four
 required captures is **incomplete**, and an incomplete set cannot satisfy a
 completed inspection — findings from the captures that are present do not make it
@@ -652,7 +652,8 @@ on placeholder data the same way it breaks on real data.
 
 #### 5b. Judgement
 
-Send each capture to the judge with the four recorded fields stated alongside it.
+Send each capture to the judge with all five recorded fields stated alongside
+it, `page-scrollable` included.
 The scroll position is what separates "this content is clipped at the top of the
 page" from "this content is above the fold because the reader scrolled", and the
 judge cannot tell those apart from the image.

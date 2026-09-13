@@ -149,19 +149,65 @@ def _scroll_rule_met(rule: str, capture: dict[str, int | str]) -> bool:
     return False
 
 
+def _scroll_pair_rule(markdown: str) -> str:
+    """The scroll-position rule a captured height must satisfy.
+
+    Taken from a `*-scrolled` row rather than written here, so the unscrollable
+    branch stays defined in one place — the table.
+    """
+    rules = required_captures(markdown)
+    return rules["short-scrolled"][1]
+
+
 def evaluate_capture_set(
     markdown: str, captures: list[dict[str, int | str]]
 ) -> tuple[str, list[str]]:
-    """`("complete", [])` or `("incomplete", [missing capture names])`."""
-    missing = [
-        name
-        for name, (height_rule, scroll_rule) in required_captures(markdown).items()
-        if not any(
-            satisfies(height_rule, int(c["viewport-height"]))
-            and _scroll_rule_met(scroll_rule, c)
-            for c in captures
-        )
-    ]
+    """`("complete", [])` or `("incomplete", [missing requirement names])`.
+
+    Two rules, both scoped to **one route at a time**, because the criteria are
+    "for each inspected route" and "for each viewport height captured":
+
+    1. Every route supplies each of the named required captures — the two height
+       bands, each at rest and scrolled.
+    2. At every height a route actually captured, including heights beyond the
+       two required bands, that route has both an at-rest capture and a scrolled
+       one (or a recorded `page-scrollable: no`).
+
+    A flat scan over all captures satisfies neither: it lets one route cover the
+    short band while another covers the tall one, and it never looks at a height
+    the table does not name.
+    """
+    if not captures:
+        return ("incomplete", ["no captures"])
+
+    by_route: dict[str, list[dict[str, int | str]]] = {}
+    for capture in captures:
+        by_route.setdefault(str(capture.get("route", "")), []).append(capture)
+
+    missing: list[str] = []
+    at_rest_rule = required_captures(markdown)["short-at-rest"][1]
+    scrolled_rule = _scroll_pair_rule(markdown)
+
+    for route, route_captures in sorted(by_route.items()):
+        # Rule 1 — the named required captures, within this route.
+        for name, (height_rule, scroll_rule) in required_captures(markdown).items():
+            if not any(
+                satisfies(height_rule, int(c["viewport-height"]))
+                and _scroll_rule_met(scroll_rule, c)
+                for c in route_captures
+            ):
+                missing.append(f"{name} (route {route})")
+
+        # Rule 2 — every height this route actually captured carries the pair.
+        for height in sorted({int(c["viewport-height"]) for c in route_captures}):
+            at_height = [
+                c for c in route_captures if int(c["viewport-height"]) == height
+            ]
+            if not any(_scroll_rule_met(at_rest_rule, c) for c in at_height):
+                missing.append(f"at-rest at {height}px (route {route})")
+            if not any(_scroll_rule_met(scrolled_rule, c) for c in at_height):
+                missing.append(f"scrolled at {height}px (route {route})")
+
     return ("incomplete", missing) if missing else ("complete", [])
 
 

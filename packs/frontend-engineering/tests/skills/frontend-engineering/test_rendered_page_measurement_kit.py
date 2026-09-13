@@ -184,7 +184,6 @@ def test_the_stated_denominator_equals_the_known_clean_count(procedure: str) -> 
         f"the procedure states a denominator of {stated.group(1)} but names "
         f"{len(clean)} known-clean fixtures"
     )
-    assert f"{len(clean)} fixtures" in normalized or True
 
 
 def test_the_capture_arithmetic_is_right(procedure: str) -> None:
