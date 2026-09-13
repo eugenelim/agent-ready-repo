@@ -66,12 +66,20 @@ If the Core pack and its `shaping-reviewer` are installed, `frame-intent` can
 send one attributed evidence packet to an isolated reviewer in `intent` mode.
 It is an optional augmentation: a genuinely fresh context or an independent
 human reviewing the same packet can stand in, while warm self-review is only
-advisory. The reviewer returns `Clean` or `Findings`; `frame-intent` retains
-the decision and status, and unresolved findings block a reviewed handoff.
+advisory. The reviewer checks well-formedness, not quality: it returns one
+`MALFORMED(<field>)` token per failed condition, or nothing at all.
+`frame-intent` retains the decision and status, and an unresolved token blocks
+a reviewed handoff.
+
+Once the intent is well-formed, `adversarial-reviewer` in `intent` mode can
+attack the bet itself. It returns only an open question with a named decider or
+a validation hook — a kill condition plus the real-world activity that would
+trigger it — or nothing at all. That read is advisory: it settles no status, and
+`de-risk-intent` still authors your kill condition.
 
 Without Core or another independent route, the intent remains authorable.
 `frame-intent` reports that the optional Core intent shaping review is
-unavailable and does not claim `Clean`.
+unavailable and claims no review result.
 
 ## 2. De-risk the riskiest assumption
 

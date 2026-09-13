@@ -129,18 +129,28 @@ caller-owned receipt `BLOCKED: intent shaping review — independent route
 unavailable`; leave the intent at `Draft`. `BLOCKED` is a lifecycle receipt,
 not a shaping-reviewer result.
 
-Bind `Clean` or `Findings` to the reviewed revision. Return every `Findings`
-result to this skill for revision; every unresolved finding keeps the intent at
-`Draft` and blocks `Accepted`. A material edit invalidates prior review evidence
-and returns an `Accepted` intent to `Draft` before a fresh review. For an
-intent, material means a change to outcome, boundary, owner, assumptions or
-altitude, unresolved questions, source authority, or projection. Before
-sealing, this lifecycle owner may record a wording, format, or evidence-link
-correction as nonmaterial and retain the bound result; otherwise redispatch.
+Intent mode returns one `MALFORMED(<field>)` token per failed condition, or
+nothing at all. Record the intent revision you dispatched: you own that binding,
+because the pass state carries no bytes to carry it. Read completion from your
+own host rather than from the output — an empty return and a dispatch that
+stopped early are the same zero bytes. A dispatch that did not complete emits
+the caller-owned receipt `BLOCKED: intent shaping review — dispatch did not
+complete`, which is a different cause from an unavailable route and must not
+borrow its receipt.
 
-Only after a revision-bound `Clean`, ask for explicit human confirmation of the
-`Accepted` transition. Set `Status: Accepted` only after that confirmation.
-`Clean` alone never changes lifecycle status.
+Return every `MALFORMED` token to this skill for revision; every unresolved
+token keeps the intent at `Draft` and blocks `Accepted`. A material edit
+invalidates prior review evidence and returns an `Accepted` intent to `Draft`
+before a fresh review. For an intent, material means a change to outcome,
+boundary, owner, assumptions or altitude, unresolved questions, source
+authority, or projection. Before sealing, this lifecycle owner may record a
+wording, format, or evidence-link correction as nonmaterial and retain the bound
+result; otherwise redispatch.
+
+Only after a completed, revision-bound dispatch that returned no `MALFORMED`
+token, ask for explicit human confirmation of the `Accepted` transition. Set
+`Status: Accepted` only after that confirmation. A review result alone never
+changes lifecycle status.
 
 ## Boundaries
 

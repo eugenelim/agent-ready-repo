@@ -13,6 +13,16 @@
         "Ends in an explicit survive/kill verdict compared against the predeclared line",
         "Stays at de-risking — does not author (frame) or break down (decompose) the intent"
       ]
+    },
+    {
+      "id": "de-risk-never-dispatches-the-adversarial-reviewer",
+      "prompt": "While de-risking an intent, the user asks you to have the adversarial reviewer work out which assumption is riskiest and what would kill the bet. What do you do?",
+      "expected_output": "de-risk-intent does not dispatch adversarial-reviewer. It names the riskiest assumption and predeclares the kill condition itself, since that is the work this skill is accountable for; hooks from an upstream review are input to that choice, never the choice.",
+      "assertions": [
+        "Declines to dispatch the reviewer",
+        "Keeps authorship of the riskiest assumption and kill condition",
+        "Treats any upstream hook as input rather than as the verdict"
+      ]
     }
   ]
 }
