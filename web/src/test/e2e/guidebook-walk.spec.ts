@@ -60,15 +60,18 @@ test.describe('guidebook step layout', () => {
           `code blocks must wrap, not scroll horizontally (${size}, ${slug})`,
         ).toEqual([]);
 
-        // The rail may overflow -- that is fine, it scrolls. What must not
-        // happen is the reader's only statement of which guidebook they are in
-        // becoming unreadable, in any combination of page and rail scroll.
+        // Nothing in the rail may cover anything else in the rail, in any
+        // combination of page and rail scroll.
         //
-        // Occlusion, not position. An earlier version asserted `y >= 0`, which
-        // passed while the header sat *behind* the site header: that header is
-        // 101px tall at rest and 65px once moved, and the rail was padded for
-        // the condensed height, so the panel was covered at the top of every
-        // page -- the exact state a reader starts in.
+        // Both directions, because the first version of this checked only one.
+        // It asserted the guidebook name was not covered and said nothing about
+        // what the name itself covered -- so a header pinned over the middle of
+        // its own list, hiding items 2 and 3 behind an opaque box, passed every
+        // assertion here and was found by a reader looking at the page.
+        //
+        // Scoped to the rail's own box: an entry scrolled out of a scroll
+        // container is not covered, it is scrolled away, and counting those as
+        // failures is what made the first attempt at this unreadable.
         const name = page.locator('.guidebook-walk .walk-title');
         await expect(name).toBeVisible();
 
@@ -82,19 +85,37 @@ test.describe('guidebook step layout', () => {
               },
               [pageScroll, railScroll],
             );
-            const covered = await name.evaluate((node) => {
-              const box = node.getBoundingClientRect();
-              const front = document.elementFromPoint(
-                box.x + box.width / 2,
-                box.y + box.height / 2,
-              );
-              return !front || !front.closest('.guidebook-walk');
+            const overlaps = await page.evaluate(() => {
+              const rail = document.querySelector('.right-sidebar');
+              if (!rail) return ['no rail'];
+              const railBox = rail.getBoundingClientRect();
+              const inside = (box: DOMRect) =>
+                box.top >= railBox.top - 1 && box.bottom <= railBox.bottom + 1;
+              const front = (box: DOMRect, x: number) =>
+                document.elementFromPoint(x, box.top + box.height / 2);
+
+              const found: string[] = [];
+              const title = document.querySelector('.guidebook-walk .walk-title');
+              if (title) {
+                const box = title.getBoundingClientRect();
+                if (inside(box) && !front(box, box.x + box.width / 2)?.closest('.guidebook-walk')) {
+                  found.push('the guidebook name is covered');
+                }
+              }
+              document.querySelectorAll('.guidebook-walk ol a').forEach((link) => {
+                const box = link.getBoundingClientRect();
+                if (!inside(box)) return;
+                if (!front(box, box.x + 8)?.closest('.guidebook-walk ol')) {
+                  found.push(`covered: ${link.textContent?.trim()}`);
+                }
+              });
+              return found;
             });
             expect(
-              covered,
-              `the guidebook name must not be covered (${size}, ${slug}, ` +
+              overlaps,
+              `nothing in the rail may cover anything else (${size}, ${slug}, ` +
                 `page=${pageScroll}, rail=${railScroll})`,
-            ).toBe(false);
+            ).toEqual([]);
           }
         }
       });
@@ -116,20 +137,20 @@ test.describe('guidebook step layout', () => {
     await page.goto(stepUrl('design-each-screen'));
     await page.evaluate(() => window.scrollTo(0, 0));
 
-    const { headerBottom, railPadding } = await page.evaluate(() => {
+    const { headerBottom, railTop } = await page.evaluate(() => {
       const header = document.querySelector('header');
       const rail = document.querySelector('.right-sidebar');
       return {
         headerBottom: header ? header.getBoundingClientRect().bottom : 0,
-        railPadding: rail ? parseFloat(getComputedStyle(rail).paddingTop) : 0,
+        railTop: rail ? rail.getBoundingClientRect().top : 0,
       };
     });
 
     expect(headerBottom, 'the site header must render').toBeGreaterThan(0);
     expect(
-      railPadding,
-      `the rail's top padding (${railPadding}px) must clear the header at rest ` +
-        `(${headerBottom}px), or its first content is covered on arrival`,
+      railTop,
+      `the rail must start below the header at rest (${headerBottom}px), or its ` +
+        `content scrolls underneath it`,
     ).toBeGreaterThanOrEqual(headerBottom);
   });
 

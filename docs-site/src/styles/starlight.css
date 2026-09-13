@@ -833,6 +833,12 @@ main h1 {
      exactly how much of the rail stayed covered, and what CI caught after this
      looked right locally. */
   --docs-orientation-band-rule: 1px;
+  /* The sticky header at rest: the band, its rule, and the nav. Anything that
+     must sit clear of the header reads this one value. */
+  --docs-header-height: calc(
+    var(--sl-nav-height) + var(--docs-orientation-band-height) +
+      var(--docs-orientation-band-rule)
+  );
 }
 
 /* ---------------------------------------------------------------------------
@@ -856,5 +862,13 @@ main h1 {
  * ------------------------------------------------------------------------- */
 
 .right-sidebar {
-  padding-top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height) + var(--docs-orientation-band-rule));
+  /* Inset below the header, not padded away from it. The rail is a fixed,
+     full-height scroll container, so padding only moved its *first* content
+     clear — everything after it still scrolled up underneath the header, which
+     at 1280x600 on the eight-skill step hid four of the five entries. Insetting
+     shortens the scrollport instead, so the rail's own top edge is where its
+     content stops. */
+  top: var(--docs-header-height);
+  height: calc(100vh - var(--docs-header-height));
+  padding-top: 1rem;
 }

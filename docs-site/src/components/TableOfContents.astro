@@ -22,12 +22,7 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
       {/* The visible eyebrow names the walk; the accessible name above repeats
           it, because `aria-labelledby` pointing at "Step 4 of 5" alone told a
           screen-reader user their position in something unnamed. */}
-      {/* Pinned, because the rail is a fixed 100vh scroll container: on a
-          short viewport the eight-skill step overflows it by 145px, and
-          scrolling the rail took the reader's only orientation off the top
-          first. The step list below scrolls under this.
-
-          The header names the guidebook and nothing else. A numeral and a
+      {/* The header names the guidebook and nothing else. A numeral and a
           "Step 4 of 5" line both restated the entry already marked current in
           the list immediately below — three renderings of one fact, in the
           panel with the least room for any of them. */}
@@ -57,14 +52,12 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
   }
 
   .walk-header {
-    position: sticky;
-    /* The header at its TALLEST. It is 101px at rest and 65px once the page
-       has scrolled, and CSS sticky cannot track a moving offset — so pinning to
-       the condensed height left this hidden behind the header in the one state
-       that combines both: page at the top, rail scrolled. Pinning to the tall
-       height costs a band of space in the other states and is never hidden. */
-    top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height) + var(--docs-orientation-band-rule));
-    z-index: 1;
+    /* Not sticky. Pinning it made it float over its own list: the header stayed
+       at the top of the scrollport while items 2 and 3 scrolled underneath a
+       box with an opaque background. It was pinned to survive the rail
+       overflowing, but the rail overflowing is not the problem the reader had —
+       the header being covered by the site header was, and the rail's top
+       padding fixes that without putting anything on top of anything. */
     margin-bottom: 0.6rem;
     padding: 0.5rem 0.7rem;
     border: 1px solid var(--sl-color-hairline-light);
