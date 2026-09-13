@@ -26,7 +26,7 @@ than creating a durable artifact.
       spec.
 
    Direct-light does **not** invoke `new-spec`; create `docs/specs/`; create a
-   sibling plan; update `docs/specs/README.md`; mutate `workspace.toml`;
+   sibling plan; mutate `workspace.toml`;
    initialize `loop-engine` or `loop-cohort`; run spec-status lint when no spec
    exists; or perform project-knowledge capture solely because a spec gate did
    not occur. All ordinary implementation gates and the adversarial review

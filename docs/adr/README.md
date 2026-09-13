@@ -117,6 +117,7 @@
 | 0109 | [Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline](0109-starlight-replaces-mkdocs-for-reference-docs.md) | Accepted |
 | 0110 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
 | 0111 | [Intent review splits into a mechanical well-formedness check and a narrowed assumption attack](0111-intent-review-splits-well-formedness-from-assumption-attack.md) | Accepted |
+| 0112 | [Index tables over a document corpus are generated or absent, never hand-maintained](0112-index-tables-are-generated-or-absent.md) | Accepted |
 
 ## Adding a new ADR
 

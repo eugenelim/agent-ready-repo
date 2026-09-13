@@ -266,6 +266,8 @@ it produces theater, not clarity.
 
 ## 2. ADR — Architecture Decision Records — `docs/adr/`
 
+The index at [`adr/README.md`](adr/README.md) is generated from the records themselves.
+
 **What:** an immutable record of a decision and the context that produced it.
 "We chose Postgres over DynamoDB because <reasons>, accepting <tradeoffs>."
 
@@ -306,6 +308,8 @@ discussion, write an ADR. If you'd shrug, don't.
 ---
 
 ## 3. RFC — Request For Comments — `docs/rfc/`
+
+The index at [`rfc/README.md`](rfc/README.md) is generated from the records themselves.
 
 **What:** a proposal to change something significant — a new feature area, a
 new convention, a deprecation, a breaking change to a public interface. RFCs

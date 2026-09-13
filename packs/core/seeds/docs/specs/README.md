@@ -13,22 +13,13 @@ docs/specs/<feature>/
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```
 
-## Active specs
+## Why there is no index
 
-<!-- Update this list as features are added. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no specs yet -->
-
-## Shipped specs (archived)
-
-<!-- Once a feature is shipped, move its row here. The spec stays in place
-     as documentation of the feature's contract. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no shipped specs yet -->
+Specs are discovered by listing this directory. There is no index table, because
+an index over a document corpus is generated from that corpus or it does not
+exist, and a spec index had no reader: nothing in the repository instructed an
+agent to read one, while 216 instructions told it to write one. See
+[ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md).
 
 ## Adding a new spec
 
