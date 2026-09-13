@@ -5,7 +5,7 @@ description: Use when a strategist needs to set the organizational content direc
 
 # Skill: define-content-strategy
 
-Produces a **content strategy** — a governance and structural document grounded in the Halvorson content strategy quad (Brain Traffic, 2018 revision): Purpose + Process + Structure + Governance. This is the organizational/governance layer above per-surface content design — it defines why content exists, how it is made and maintained, how it is structured, and how it stays consistent. The artifact feeds the experience-design pack's `content-design` skill and the design-thread `map-screen-flow` step. See `references/agentbundle-layout.md` for artifact path.
+Produces a **content strategy** — a governance and structural document in four parts: Purpose + Process + Structure + Governance. These four are this pack's own composite, informed by the content-strategy quad but not identical to either published version of it — Halvorson and Rach's 2012 quad is Substance / Structure / Workflow / Governance, and Brain Traffic's 2018 revision is Editorial / Experience / Structure / Process. Cite it as the composite it is; an attribution to a quad that names different sections sends a reader to a source that contradicts this artifact. This is the organizational/governance layer above per-surface content design — it defines why content exists, how it is made and maintained, how it is structured, and how it stays consistent. The artifact feeds the experience-design pack's `content-design` skill and the design-thread `map-screen-flow` step. See `references/agentbundle-layout.md` for artifact path.
 
 ## Output rendering
 
