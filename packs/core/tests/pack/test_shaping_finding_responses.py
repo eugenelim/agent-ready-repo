@@ -308,28 +308,56 @@ def test_upstream_sections_do_not_redefine_what_demotion_costs(label: str) -> No
     )
 
 
+DISCLAIMER = (
+    "They are not the contract and working-material tiers a spec carries, and "
+    "nothing reads them to grade a finding"
+)
+
+SPEC_OWN_SPLIT = (
+    "Which parts of a spec are contract and which are working material is stated "
+    "by the bundled `assets/spec.md`, their single owner."
+)
+
+
 @pytest.mark.parametrize("label", ("intent", "brief"))
-def test_upstream_sections_do_not_borrow_the_spec_tier_labels(label: str) -> None:
-    """Keep the spec's tier vocabulary off surfaces whose findings block.
+def test_upstream_sections_never_classify_with_the_spec_tiers(label: str) -> None:
+    """Keep the spec's operative tier vocabulary out of these sections entirely.
 
     `working material` is operative elsewhere in this pack: a finding whose every
-    cited surface is working material sustains at advisory severity at most. An
-    upstream section labelled that way would let a finding that blocks `Accepted`
-    or `Ready` be graded down, which is the same defect as calling it advisory in
-    prose. These surfaces use their own local labels instead.
+    cited surface is working material sustains at advisory severity at most. Any
+    use here that classifies one of this artifact's own sections can therefore
+    grade down a finding that blocks `Accepted` or `Ready`.
+
+    Checks every occurrence in the section, not a list of spellings: the only
+    admitted use is the disclaimer that explicitly denies the tiers apply. A bold
+    label, a plain-text "moves it into working material", and any future phrasing
+    all fail alike.
     """
     section = _flat(_new_section(label))
-    for borrowed in ("**Working material**", "**Contract**"):
-        assert borrowed not in section, (
-            f"{label}: labels a group with the spec tier term {borrowed!r}"
+    assert DISCLAIMER in section, f"{label}: lost the sentence disclaiming the tiers"
+    remainder = section.replace(DISCLAIMER, "", 1)
+    for tier_term in ("working material", "working-material"):
+        assert tier_term not in remainder, (
+            f"{label}: classifies a section with the spec tier term "
+            f"{tier_term!r} outside the disclaimer"
         )
     assert "**Deciding sections**" in section, f"{label}: lost its deciding-sections label"
-    assert "**Recording sections**" in section, f"{label}: lost its recording-sections label"
-    assert "nothing reads them to grade a finding" in section, (
-        f"{label}: no longer disclaims that the labels grade a finding"
+    assert "**Recording sections**" in section, (
+        f"{label}: lost its recording-sections label"
     )
-    lowered = section.lower()
-    for claim in ("material is advisory", "finding against working material"):
-        assert claim not in lowered, (
-            f"{label}: claims a finding against working material is advisory"
+
+
+def test_spec_section_uses_the_tiers_only_for_the_spec_split() -> None:
+    """Allow the spec's own tiers, which are real, and nothing beyond them.
+
+    Unlike the intent and brief, a spec genuinely has contract and working
+    material, and `assets/spec.md` owns that split. The one admitted sentence is
+    the one naming that owner.
+    """
+    section = _flat(_new_section("spec"))
+    assert SPEC_OWN_SPLIT in section, "spec: lost the sentence naming the split's owner"
+    remainder = section.replace(SPEC_OWN_SPLIT, "", 1)
+    for tier_term in ("working material", "working-material"):
+        assert tier_term not in remainder, (
+            f"spec: uses {tier_term!r} beyond the sentence naming its owner"
         )

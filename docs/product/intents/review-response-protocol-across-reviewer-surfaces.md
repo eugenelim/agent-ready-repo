@@ -189,8 +189,8 @@ on the reviewer.
 
 **The ladder is not restated upstream.** Its one home stays work-loop's DECIDE
 step. Each of the three shaping surfaces gains a short section that points there
-and adds only what the pointer cannot carry: what contract and working material
-mean for that artifact, which is where `demote-the-claim` moves an assertion.
+and adds only what the pointer cannot carry: which of that artifact's sections
+decide and which record,which is where `demote-the-claim` moves an assertion.
 
 - **An intent's deciding sections** are `Outcome`, `Boundary`, `Owner`,
   `Projection` and `Source`; its recording sections are `Opportunity`,

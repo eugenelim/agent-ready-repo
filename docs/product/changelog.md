@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `intake-intent`, `author-delivery-brief`, and `new-spec` now point to the
   work-loop DECIDE step as the single home of finding-response vocabulary.
   Their local guidance states only how `demote-the-claim` and
-  `drop-the-claim` apply to each artifact's contract and working material.
+  `drop-the-claim` apply to each artifact's deciding and recording sections.
 - The shaping reviewer no longer reopens a decision that the supplied brief or
   spec records as settled with its ground and owner. Consequences, conflicts,
   and pre-existing defects remain reviewable.
