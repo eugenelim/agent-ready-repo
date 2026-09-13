@@ -1,7 +1,7 @@
 # Plan: Self-host projection merge driver
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/CONVENTIONS.md` § Pack source-of-truth split
   (the authoritative Projected-path list); in
   `packages/agentbundle/agentbundle/build/self_host.py` — `TARGET_PATHS`,
