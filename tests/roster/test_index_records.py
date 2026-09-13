@@ -138,10 +138,17 @@ def test_a_record_without_status_warns_and_still_renders(tmp_path, capsys):
 
 FROZEN = ("docs/adr", "docs/rfc", "docs/specs", "agent-ready-repo", "eugenelim")
 
+_SHIPPED_COPIES = (
+    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py",
+    ROOT / "packs/governance-extras/.apm/skills/new-rfc/scripts/index-records.py",
+)
+
+
 @pytest.mark.parametrize("literal", FROZEN)
-def test_the_generator_source_holds_no_frozen_literal(literal):
-    """AC20: the script carries nothing drawn from this repository."""
-    assert literal not in SCRIPT.read_text(encoding="utf-8")
+@pytest.mark.parametrize("copy", _SHIPPED_COPIES, ids=["new-adr", "new-rfc"])
+def test_the_generator_source_holds_no_frozen_literal(copy, literal):
+    """AC20, over every shipped copy — each is independently the generator."""
+    assert literal not in copy.read_text(encoding="utf-8")
 
 
 def test_a_sentence_after_the_status_token_is_a_qualifying_clause(tmp_path):
@@ -241,9 +248,15 @@ def test_a_record_heading_without_a_usable_ordinal_is_warned_about(tmp_path):
     (tmp_path / "0002-big.md").write_text(
         "# ADR-10000: Too many digits\n\n- **Status:** Accepted\n",
         encoding="utf-8", newline="\n")
-    code, err = _main("--check", str(tmp_path))
+    # Write mode, not --check: --check on a directory with no index yet reports
+    # divergence, which would mask the exit code this case is about.
+    code, err = _main(str(tmp_path))
+    assert code == 0, "a malformed record warns; it does not fail the run"
     assert "0002-big.md" in err
     assert "ordinal" in err
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert len(rows) == 1, "AC2: the malformed record must contribute no row"
 
 
 # --- regressions for the second security round ---
@@ -278,6 +291,8 @@ def test_an_ordinary_directory_under_a_symlinked_ancestor_still_works(tmp_path):
     except OSError:
         pytest.skip("symlinks unavailable")
     assert _main(str(link / "recs"))[0] == 0
+    # Assert where it landed, not just that it succeeded.
+    assert (inner / "README.md").is_file()
 
 
 def test_an_empty_status_does_not_capture_the_following_line(tmp_path):

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import tempfile
 import pathlib
 import re
 import stat
@@ -107,7 +108,13 @@ def _escape_cell(text: str) -> str:
     # literal inside backticks, and escaping there would corrupt a legitimate
     # placeholder such as `packs/<pack>/tests/`.
     parts = text.split("`")
-    for i in range(0, len(parts), 2):  # even indices are outside a code span
+    # Even indices sit outside a code span. With an odd number of backticks the
+    # final run is unclosed, so its trailing segment is outside one too, and a
+    # renderer parses what follows as raw HTML.
+    outside = set(range(0, len(parts), 2))
+    if len(parts) % 2 == 0:
+        outside.add(len(parts) - 1)
+    for i in outside:
         parts[i] = parts[i].replace("<", "&lt;").replace(">", "&gt;")
     return "`".join(parts)
 
@@ -234,15 +241,19 @@ def render(directory, record_type: str | None = None) -> str:
                  _escape_cell(status)]
         for index, field in enumerate(spec["dates"]):  # type: ignore[arg-type]
             value = _field(body, field)
+            # Only the record's opening date may ever resolve from history: a
+            # record has an add event, but a later date (a closing date) has no
+            # corresponding event, so filling it would publish a false one. This
+            # holds whether the field is absent, empty, or placeholder-bearing.
             opening = index == 0
-            if value is None or (value == _UNFILLED and opening):
+            if opening and (value is None or value == _UNFILLED):
                 # Absent, or an unfilled opening date: a record has an add event,
                 # so git can answer. An unfilled *closing* date cannot -- there was
                 # no closing event, and filling it would publish a false one.
                 value = _git_added(directory, name)
                 if not value:
                     _warn(f"{name}: no {field} field and no git history")
-            elif value == _UNFILLED:
+            elif value is None or value == _UNFILLED:
                 value = ""
             elif not value:
                 # Present and deliberately empty — an RFC with no terminal status.
@@ -315,13 +326,19 @@ def main(argv: list[str] | None = None) -> int:
         if target.resolve().parent != directory:
             _warn(f"{target}: index target resolves outside the record directory")
             return 1
-    current = target.read_text(encoding="utf-8") if mode is not None else ""
+    try:
+        current = target.read_text(encoding="utf-8") if mode is not None else ""
+    except (OSError, UnicodeDecodeError) as error:
+        _warn(f"{target}: cannot read the existing index ({error})")
+        return 1
     if args.check:
         if current == generated:
             return 0
         for number, (old, new) in enumerate(zip(current.splitlines(), generated.splitlines()), 1):
             if old != new:
-                _warn(f"{target}: line {number} differs\n  on disk:   {old}\n  generated: {new}")
+                _warn(f"{target}: line {number} differs\n  on disk:   {old}\n"
+                      f"  generated: {new}\n"
+                      f"  regenerate with: index-records.py {args.dir}")
                 return 1
         _warn(f"{target}: differs in length ({len(current.splitlines())} vs "
               f"{len(generated.splitlines())} lines)")
@@ -329,12 +346,21 @@ def main(argv: list[str] | None = None) -> int:
     # Create-and-replace, never truncate-in-place: the object written is the one
     # just checked, a pre-existing hardlinked inode is not reused, and an encode
     # failure cannot leave the index destroyed.
-    scratch = target.with_name(f".{target.name}.index-records")
+    # mkstemp, not a fixed name: it opens O_EXCL with a unique name in the record
+    # directory, so an existing path cannot be written through -- the scratch was
+    # otherwise the unguarded twin of the target check above -- and two concurrent
+    # runs cannot share one partially written file.
+    scratch = None
     try:
-        scratch.write_text(generated, encoding="utf-8", newline="\n")
+        handle, scratch_name = tempfile.mkstemp(
+            dir=directory, prefix=".index-records-", suffix=".tmp")
+        scratch = pathlib.Path(scratch_name)
+        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(generated)
         os.replace(scratch, target)
     except (OSError, UnicodeEncodeError) as error:
-        scratch.unlink(missing_ok=True)
+        if scratch is not None:
+            scratch.unlink(missing_ok=True)
         _warn(f"{target}: could not write ({error})")
         return 1
     return 0
