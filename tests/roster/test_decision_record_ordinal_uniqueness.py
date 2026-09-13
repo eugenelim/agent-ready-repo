@@ -108,7 +108,7 @@ def test_the_companion_groups_are_actually_present() -> None:
         len([n for n in _groups(ROOT / d).values() if len(n) > 1])
         for d in RECORD_DIRECTORIES
     )
-    assert shared >= 20, f"expected at least 20 companion groups, found {shared}"
+    assert shared >= 1, f"no companion group present, so that branch is unexercised: {shared}"
 
 
 @pytest.mark.parametrize(

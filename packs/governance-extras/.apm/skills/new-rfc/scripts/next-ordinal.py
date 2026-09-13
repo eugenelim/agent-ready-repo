@@ -76,6 +76,15 @@ def _git_output(directory: Path, arguments: list[str]) -> str | None:
             errors="surrogateescape",
             timeout=_GIT_TIMEOUT_SECONDS,
         )
+    except subprocess.TimeoutExpired:
+        # Say so. A silent degrade hands back an ordinal that looks remote-aware
+        # and is not, which is the collision this mode exists to avoid.
+        print(
+            f"next-ordinal: git {arguments[0]} exceeded {_GIT_TIMEOUT_SECONDS}s; "
+            "allocating from the working tree alone",
+            file=sys.stderr,
+        )
+        return None
     except (OSError, subprocess.SubprocessError, UnicodeError):
         return None
     return result.stdout
@@ -203,9 +212,16 @@ def main(argv: list[str] | None = None) -> int:
 
     # Sorted because directory iteration order is unspecified and varies by
     # filesystem: an unsorted report changes line order between machines.
+    if not duplicates:
+        # Confirm on stderr, never stdout: a caller piping this command still
+        # gets nothing, while a log shows the difference between this check
+        # passing and it not having run at all.
+        print(f"next-ordinal: {args.dir}: no duplicate ordinals", file=sys.stderr)
+        return 0
+
     for ordinal, names in sorted(duplicates.items()):
         print(f"duplicate ordinal {ordinal:04d}: {', '.join(names)}", file=sys.stderr)
-    return 1 if duplicates else 0
+    return 1
 
 
 if __name__ == "__main__":

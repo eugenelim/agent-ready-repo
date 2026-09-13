@@ -189,12 +189,23 @@ def test_next_ordinal_times_out_blocking_git_and_keeps_local_answer(
     blocking_git.chmod(0o755)
     (tmp_path / "0002-local.md").touch()
     monkeypatch.setenv("PATH", os.fspath(blocking_bin))
+    # Drive the bound down and assert an independent ceiling. Deriving the
+    # expectation from the module's own constant would pass at any value it
+    # happened to hold, including one large enough to be no bound at all.
+    monkeypatch.setattr(MODULE, "_GIT_TIMEOUT_SECONDS", 0.2)
 
     started = time.monotonic()
     assert MODULE.main([os.fspath(tmp_path)]) == 0
     elapsed = time.monotonic() - started
-    assert elapsed < MODULE._GIT_TIMEOUT_SECONDS + 1
-    assert capsys.readouterr().out == "0003\n"
+    assert elapsed < 5
+    captured = capsys.readouterr()
+    assert captured.out == "0003\n"
+    assert "allocating from the working tree alone" in captured.err
+
+
+def test_the_git_timeout_is_five_seconds() -> None:
+    """The shipped bound is contractual, so it is asserted on its own."""
+    assert MODULE._GIT_TIMEOUT_SECONDS == 5
 
 
 @pytest.mark.parametrize(
@@ -294,7 +305,10 @@ def test_check_ignores_companion_directory_and_research_file(
     assert run_check(tmp_path) == 0
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err == ""
+    # AC4 constrains stdout, so a caller piping this command still gets nothing.
+    # The stderr line is what separates "this check ran and passed" from "this
+    # check never ran" in a build log.
+    assert "no duplicate ordinals" in captured.err
 
 
 @pytest.mark.parametrize(
