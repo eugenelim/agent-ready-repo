@@ -176,9 +176,9 @@ Every run of the step ends in exactly one of these. Only `completed` is a
 completed inspection; the rest are distinct states, not one "unverified" bucket,
 because what a reader should do next differs for each.
 
-| Result state | Completed inspection | What it says |
+| Result state | Execution complete | What it says |
 | --- | --- | --- |
-| completed | yes | Every required capture was taken, judged, and the observations recorded. |
+| completed | yes | Every required capture was taken, judged, and the observations recorded. Whether the page is all right is the verdict's question, not this column's. |
 | incomplete | no | A required capture is missing from the set. |
 | unusable-capture | no | A capture arrived without every required field, so nothing could be judged from it. |
 | skipped-no-browser | no | No browser was reachable. Names the missing capability. |
@@ -211,6 +211,9 @@ indistinguishable from *we could not look*.
 
 A finding is resolved when the adopter records it as an accepted exception at the
 acceptance gate, which is a human decision, or when the page stops exhibiting it.
+
+**A completed inspection is execution complete AND a `pass` verdict.** This
+column answers only the first.
 
 Collapsing these would cost the distinction that matters most:
 `unusable-capture` is a defect in how the step was run, while

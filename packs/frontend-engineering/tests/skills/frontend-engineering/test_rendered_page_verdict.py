@@ -10,6 +10,7 @@ execution failure. These are the checks for the criteria that closed that.
 from __future__ import annotations
 
 import itertools
+from pathlib import Path
 
 import pytest
 from frontend_engineering_rendered_page_rules import (
@@ -296,42 +297,61 @@ def _completed_row(text: str) -> str:
     return next(ln for ln in text.splitlines() if ln.strip().startswith("| completed |"))
 
 
-def _row_makes_completion_conditional(row: str) -> bool:
-    """Whether a `completed` row makes completion depend on a PASSING verdict.
+def _states_completion_needs_both(text: str) -> bool:
+    """Whether a surface says a completed inspection needs execution AND a pass.
 
-    Asserting only that the word "verdict" appears accepts the negation — "yes
-    regardless of verdict" contains it. This checks the relationship: the
-    completion cell must be conditional AND name a pass, and must not negate it.
+    The result-state column answers execution only — `completed` there means the
+    step ran. Putting a conditional phrase in that cell would be friendlier to a
+    human and would break the machine-readable contract the evaluators parse, so
+    the conjunction lives in prose beside the table instead. This checks that it
+    is actually there, and that nothing negates it.
     """
-    cells = [c.strip() for c in row.strip("|").split("|")]
-    verdict_cell = cells[1].lower()
-    if any(neg in verdict_cell for neg in ("regardless", "not required", "whatever", "ignoring")):
+    flat = " ".join(text.split()).lower()
+    if any(neg in flat for neg in
+           ("regardless of verdict", "verdict not required", "whatever the verdict")):
         return False
-    return ("verdict" in verdict_cell
-            and "pass" in verdict_cell
-            and any(cond in verdict_cell for cond in ("if", "when", "only")))
+    return ("execution complete" in flat
+            and "verdict" in flat
+            and ("`pass` verdict" in flat or "and a `pass`" in flat
+                 or "passing verdict" in flat))
 
 
-def test_the_skill_completed_row_is_conditional_on_a_passing_verdict() -> None:
-    """The result-state table graded `completed` unconditionally, which is what
-    contradicted the reference."""
-    assert _row_makes_completion_conditional(_completed_row(read_skill())), (
-        f"the skill's completed row does not make completion conditional on a "
-        f"passing verdict: {_completed_row(read_skill())}"
+def _column_means_execution(row_or_header: str) -> bool:
+    """The result-state table's second column must be about execution."""
+    return "execution complete" in row_or_header.lower()
+
+
+@pytest.mark.parametrize("surface", ["skill", "reference", "guide"])
+def test_completion_needs_both_axes_on_every_surface(surface: str) -> None:
+    """Every surface carrying the result-state table must also say that a
+    completed inspection needs a passing verdict.
+
+    The reference table graded `completed` as a completed inspection outright,
+    which contradicted the same file's verdict rule and let a run holding a
+    Blocker read as complete.
+    """
+    text = {"skill": read_skill(), "reference": read_rules(), "guide": _guide()}[surface]
+    header = next(ln for ln in text.splitlines() if ln.strip().startswith("| Result state |"))
+    assert _column_means_execution(header), (
+        f"{surface}'s result-state column still claims to answer completion "
+        f"rather than execution: {header}"
+    )
+    assert _states_completion_needs_both(text), (
+        f"{surface} never says a completed inspection needs both axes"
     )
 
 
 @pytest.mark.parametrize("negation", [
-    "| completed | yes regardless of verdict | x |",
-    "| completed | yes, verdict not required | x |",
-    "| completed | yes | x |",
-    "| completed | yes, whatever the verdict | x |",
+    "Result state | Execution complete. A completed inspection is yes regardless of verdict.",
+    "Result state | Execution complete. The verdict not required for completion.",
+    "Result state | Completed inspection | ...",
 ])
-def test_a_negated_completed_row_is_rejected(negation: str) -> None:
-    """The mutation the round-5 finding named: a check requiring only the word
-    `verdict` accepts text that negates the contract."""
-    assert not _row_makes_completion_conditional(negation), (
-        f"a negated completed row was accepted: {negation}"
+def test_a_negated_or_mislabelled_contract_is_rejected(negation: str) -> None:
+    """The round-5 lesson: a check that looks for the word `verdict` accepts
+    text that negates the rule. These must all fail."""
+    assert not (_column_means_execution(negation)
+                and _states_completion_needs_both(negation)), (
+        f"a negated or mislabelled contract was accepted: {negation}"
     )
 
 
@@ -443,8 +463,8 @@ def test_the_guide_carries_the_verdict() -> None:
     adopter following it would not learn that a Blocker stops completion."""
     guide = _guide()
     assert "verdict" in guide.lower()
-    assert _row_makes_completion_conditional(_completed_row(guide)), (
-        "the guide's result table still grades completion by state alone"
+    assert _states_completion_needs_both(guide), (
+        "the guide never says a completed inspection needs a passing verdict"
     )
     assert "has not passed" in guide
 
@@ -462,3 +482,57 @@ def test_the_guide_tells_the_adopter_to_declare_the_capture_untrusted() -> None:
     guide = " ".join(_guide().split())
     assert "untrusted evidence" in guide
     assert "no instruction authority over the judgement" in guide
+
+
+# ── every adopter surface, DERIVED rather than listed ───────────────────────
+#
+# Round 6 found four stale surfaces a hand-written sweep had missed: the pack
+# reference page, the audit how-to, the tutorial, and journey step 5. A sweep
+# only reaches what its seed contains, and that seed was typed by hand.
+#
+# So the seed is derived: any shipped file that describes the evidence manifest
+# is a surface the inspection result has to appear on. A new guide page that
+# lists manifest fields is caught the day it is added.
+
+def _manifest_describing_surfaces() -> list[Path]:
+    """Shipped files that enumerate evidence-manifest fields.
+
+    Keyed on `known exceptions`, a manifest field that predates this delivery,
+    so the seed does not depend on anything this delivery added — a file that
+    forgot the inspection entirely is still found.
+    """
+    roots = [PACK_ROOT, PACK_ROOT.parent.parent / "guides" / "frontend-engineering"]
+    out: list[Path] = []
+    for root in roots:
+        for p in sorted(root.rglob("*.md")):
+            if "/tests/" in p.as_posix():
+                continue
+            text = p.read_text(encoding="utf-8", errors="replace")
+            if "known exceptions" in text and "unverified items" in text:
+                out.append(p)
+    return out
+
+
+def test_the_derived_surface_list_is_not_empty() -> None:
+    """A sweep over an empty list passes trivially — the failure mode that makes
+    a coverage guard worthless."""
+    surfaces = _manifest_describing_surfaces()
+    assert len(surfaces) >= 4, (
+        f"expected several manifest-describing surfaces; found {len(surfaces)}: "
+        f"{[p.name for p in surfaces]}"
+    )
+
+
+def test_every_manifest_describing_surface_names_the_inspection() -> None:
+    """Any shipped file that tells a reader what the evidence manifest contains
+    must mention the inspection's output, or it teaches a manifest that is a
+    field short."""
+    stale = []
+    for p in _manifest_describing_surfaces():
+        text = p.read_text(encoding="utf-8", errors="replace").lower()
+        if "inspection observations" not in text and "rendered-page inspection" not in text:
+            stale.append(p.name)
+    assert not stale, (
+        f"these shipped surfaces describe the evidence manifest without the "
+        f"inspection: {stale}"
+    )

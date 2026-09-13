@@ -1134,3 +1134,70 @@ and it is mechanical rather than attitudinal: **a check that reads a helper
 proves nothing about shipped content.** The sweep that finds it takes six
 minutes and should run after any change to a rule layer, not after five review
 rounds.
+
+## 2026-09-13 — Round 6: a false tick, and a sweep whose seed was typed by hand
+
+Owner authorised this round past the retry cap. Six findings, all sustained on
+inspection, and the first is the one the round was pointed at.
+
+### A ticked criterion that was not true
+
+The reference's own `Result states` table still read `| completed | yes |`
+unconditionally. `SKILL.md` and the guide had been corrected in round 5; **the
+rule layer the other two derive from had not**. So the consequence criterion sat
+ticked `[x]` while the shipped authority said a run holding an unresolved
+Blocker was a completed inspection.
+
+Fixing it broke nine tests, which was the useful part: `result_states` parses
+that cell, so putting a conditional phrase there is friendlier to a human and
+breaks the machine-readable contract. The resolution splits the two cleanly —
+the column is now **`Execution complete`**, carrying `yes`/`no` for the parser,
+and the conjunction ("a completed inspection is execution complete AND a `pass`
+verdict") is stated in prose beside it on all three surfaces. The checks moved
+with it: they now assert the column means execution and the conjunction is
+present, and reject a mislabelled column or a negated conjunction.
+
+### The sweep's seed was the limit, not the sweep
+
+The mechanical sweep run earlier was better than reading for the defect — but it
+was seeded with three hand-typed surfaces. Round 6 found four more it never
+looked at:
+
+| Surface | Was |
+| --- | --- |
+| `guides/…/reference/frontend-engineering.md` | Documented five lenses |
+| `guides/…/how-to/run-an-audit.md` | Never ran the inspection; manifest template omitted it |
+| `guides/…/tutorials/scaffold-a-component.md` | Gate 4 taught screenshot-only |
+| `JOURNEY.md` step 5 | Manifest inventory omitted the fields its own gate requires three steps later |
+
+**The seed is now derived rather than listed.** Any shipped file containing both
+`known exceptions` and `unverified items` — manifest fields that predate this
+delivery, so the key does not depend on anything it added — is a surface the
+inspection result must appear on. A new guide page that lists manifest fields is
+caught the day it is added, and the guard refuses to run over an empty list.
+
+**That derived sweep immediately found a fifth surface nobody had named:
+`fe-status/SKILL.md`** — the skill whose entire job is reading the evidence
+manifest and reporting a surface's quality state. It described an 11-field
+manifest and knew nothing of the inspection, so it would have answered "what is
+the state of this surface?" without the verdict. It now reads the field and
+reports both axes, including that a surface with no observations was never
+looked at, which is different from one that was looked at and failed.
+
+### Also fixed
+
+The shipped capture command could not scroll. `npx playwright screenshot` takes
+an at-rest capture only, so half the required set was unreproducible from the
+instructions. Section 5a now carries a procedure that scrolls, records the
+**attained** offset rather than the requested one, and asks the page whether it
+scrolls at all rather than inferring it from an offset of 0.
+
+### Count
+
+Fourteen instances of one defect class across this delivery. The progression is
+the lesson: reading for it caught instances late; a mechanical sweep caught four
+more; a *derived* sweep caught one the mechanical one could not see. Each step
+removed a source of human judgement from the check.
+
+**Suite: 238 passed.** ruff, mypy, catalogue lint/verify, journey and guide
+lints all green. These fixes ship unreviewed, like round 5's, by owner decision.

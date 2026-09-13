@@ -616,11 +616,29 @@ route needs an at-rest capture and a scrolled one, or a recorded
 `page-scrollable: no`. A third height captured only at rest looks like
 coverage and is not.
 
-```bash
-# Playwright — set the viewport, scroll, then capture. Any driver works;
-# what matters is that the state below is recorded alongside each image.
-npx playwright screenshot --viewport-size=390,600 <route-or-file> short-at-rest.png
+`npx playwright screenshot` takes an at-rest capture and cannot scroll, so it
+covers only half the set. Drive the browser directly for the rest — any driver
+works, and this is the shape whatever you use has to produce:
+
+```js
+// One capture. Repeat for each row of the table above.
+const page = await browser.newPage({ viewport: { width: 390, height: 600 } });
+await page.goto(route);                     // route as the adopter named it
+const scrollable = await page.evaluate(
+  () => document.documentElement.scrollHeight > window.innerHeight);
+if (scrollable) await page.evaluate(y => window.scrollTo(0, y), 400);
+const attained = await page.evaluate(() => window.scrollY);   // record THIS
+await page.screenshot({ path: 'short-scrolled.png' });
 ```
+
+Three things that command has to do and a one-shot screenshot does not:
+
+- **Scroll**, for the two scrolled rows.
+- **Record the offset it actually reached**, not the one you asked for. They
+  differ whenever the page is shorter than the scroll you requested, and the
+  recorded value is what the judge is told.
+- **Ask the page whether it scrolls at all** at this height, which is what
+  `page-scrollable` records. Do not infer it from the offset landing at 0.
 
 Record five fields with every capture. The image does not show them, and a judge
 cannot recover them by looking harder — a page at rest and the same page scrolled
@@ -702,9 +720,9 @@ them is fixed by the page.
 A finding is resolved when the adopter accepts it as an exception at the
 acceptance gate, or when the page stops exhibiting it.
 
-| Result state | Completed inspection | When |
+| Result state | Execution complete | When |
 | --- | --- | --- |
-| completed | yes, if the verdict is `pass` | Every required capture taken, judged, observations recorded |
+| completed | yes | Every required capture taken, judged, observations recorded |
 | incomplete | no | A required capture is missing from the set |
 | unusable-capture | no | A capture arrived without every required field |
 | skipped-no-browser | no | No browser reachable — name the missing capability |

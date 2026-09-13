@@ -143,9 +143,9 @@ acceptance gate is told to check that.
 Write both into the manifest. The state alone says the step happened and nothing
 about whether the page is all right.
 
-| Result state | Completed? | When |
+| Result state | Execution complete | When |
 |---|---|---|
-| completed | yes, if the verdict is `pass` | Every required capture taken, judged, observations recorded |
+| completed | yes | Every required capture taken, judged, observations recorded |
 | incomplete | no | A required capture is missing |
 | unusable-capture | no | A capture arrived without every required field |
 | skipped-no-browser | no | No browser reachable — name the missing capability |
