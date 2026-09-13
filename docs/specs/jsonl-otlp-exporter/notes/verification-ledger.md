@@ -189,3 +189,59 @@ reader now signals that it has caught up and the batcher flushes what it holds.
 **The idle trigger itself is unspecified by the contract** — the criterion says
 the record must be sent without restarting the process, and says nothing about
 when. If a different trigger is wanted, that is a criterion change.
+
+## Third implementation review — converging, and one structural answer
+
+13 findings raised, 8 sustained, 5 refuted. Refutation rose to 38% from 10% in
+both earlier rounds, which is what convergence looks like: the remaining reports
+are increasingly things the code already handles.
+
+| Round | Raised | Sustained |
+| --- | ---: | ---: |
+| 1 | 29 | 25 |
+| 2 | 20 | 18 |
+| 3 | 13 | 8 |
+
+**All three sustained surface findings were one rule, not three defects.** The
+time bounds were per-operation while the contract asks for an absolute one: DNS
+resolution was outside every deadline; connect, write and header read each got
+the full socket timeout independently; and a `Connection: close` response sets
+`connection.sock = None`, so the per-chunk re-arm was skipped entirely. Patching
+three call sites would have been the partial-surface mistake for a fifth time.
+
+The answer is one mechanism covering every blocking phase: a watchdog that tears
+the connection down at the deadline, plus a bounded resolution on a daemon
+thread. `socket.getaddrinfo` and `socket.create_connection` accept no timeout, so
+nothing inside the call can be bounded — abandoning the thread is strictly better
+than inheriting its stall.
+
+**The watchdog's first version did not work, and my own test caught it.** Closing
+a socket another thread is blocked reading does not wake it: the descriptor is
+duplicated into the response's file object, so the blocked `recv` keeps waiting.
+Measured — the request blocked for the full 120-second socket timeout despite a
+one-second deadline. `shutdown(SHUT_RDWR)` before the close tears the connection
+down underneath the reader and the call returns. The test drives a real socket
+that accepts and then says nothing, with the socket timeout set deliberately far
+larger than either bound, so anything finishing in time can only have been
+stopped by the watchdog.
+
+## A short read is a real defect with a stated reachability limit
+
+`os.read` is one `read(2)` and may return fewer bytes than requested. A prefix of
+a TOML file can itself be valid TOML, so a short read let an incomplete config or
+profile be accepted as complete — and the profile decides what may be sent. Both
+now compare the bytes read against the `fstat` size and refuse a mismatch.
+
+Stated honestly: this is **not reachable for a local regular file** under the
+64 KiB ceiling, and I could not force a short read locally. It is reachable on a
+network or FUSE-backed file. The defect is real, the severity is low, and the
+check is cheaper than the argument about whether it can happen.
+
+## A second disposition recorded for the owner
+
+`--service-name ''` now emits an empty `service.name` rather than falling back to
+the profile stem. AC-0007 says the attribute takes the *value* of the flag and
+names the stem as the *default*, so a supplied empty string is a value. The
+opposite reading is defensible — `config._present` deliberately treats an empty
+environment variable as absent — and the criterion does not decide between them.
+If the fallback reading is wanted, AC-0007 needs the words.

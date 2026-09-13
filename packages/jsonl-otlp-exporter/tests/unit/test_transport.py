@@ -12,6 +12,7 @@ from __future__ import annotations
 import io
 import json
 import socket
+import time
 
 import pytest
 
@@ -513,3 +514,105 @@ class TestReviewRegressions:
             tp.resolve_destination("https://ho\x1bst／evil:4318/v1/logs")
         message = str(excinfo.value)
         assert all(not (ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F) for c in message)
+
+
+class TestRound3Regressions:
+    """Time bounds that must hold whatever the call is blocked on."""
+
+    def test_a_stalled_resolver_does_not_hang_the_run(self):
+        """Neither getaddrinfo nor create_connection takes a timeout, so an
+        unanswering resolver hung the process before either clock was read."""
+        import threading as _t
+
+        started = _t.Event()
+
+        def never_answers(*args, **kwargs):
+            started.set()
+            _t.Event().wait()  # blocks forever
+
+        import jsonl_otlp_exporter.transport as mod
+        real = mod.REQUEST_TIMEOUT_SECONDS
+        mod.REQUEST_TIMEOUT_SECONDS = 1
+        try:
+            with pytest.raises(tp.DestinationRefused) as excinfo:
+                tp.resolve_destination("http://stalled.example:4318/v1/logs",
+                                       resolver=never_answers)
+        finally:
+            mod.REQUEST_TIMEOUT_SECONDS = real
+        assert started.is_set()
+        assert "did not answer" in str(excinfo.value)
+
+    def test_the_watchdog_abandons_a_request_blocked_in_any_phase(self, monkeypatch):
+        """Against a REAL socket that accepts the connection and then says nothing.
+
+        The fakes cannot show this. The connect, the header read and the body
+        read each get the socket timeout independently, and `http.client`
+        restarts the timer on every recv, so no per-operation timeout bounds the
+        request as a whole. Only closing the connection from outside does.
+
+        The socket timeout handed to the connection is deliberately far LARGER
+        than the request bound, so anything that finishes in time can only have
+        been stopped by the watchdog. The bounds are shrunk so the proof takes
+        seconds rather than two minutes.
+        """
+        import http.client
+        import socket as _s
+        import threading as _t
+
+        monkeypatch.setattr(tp, "REQUEST_TIMEOUT_SECONDS", 1)
+        monkeypatch.setattr(tp, "RUN_TIMEOUT_SECONDS", 4)
+
+        listener = _s.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+        held = []
+
+        def accept_and_stall():
+            while True:
+                try:
+                    conn, _ = listener.accept()
+                except OSError:
+                    return
+                held.append(conn)  # accepted, then never answers
+
+        _t.Thread(target=accept_and_stall, daemon=True).start()
+
+        destination = tp.resolve_destination(
+            f"http://127.0.0.1:{port}/v1/logs",
+            resolver=lambda *a, **k: _addrinfo("127.0.0.1"),
+        )
+        started = time.monotonic()
+        out = tp.send_batches(
+            [([], b"{}")], destination,
+            lambda scheme, host, p, timeout, ctx: http.client.HTTPConnection(
+                host, p, timeout=120),   # far larger than either bound
+            stream=io.StringIO(), run_started=started,
+        )
+        elapsed = time.monotonic() - started
+        listener.close()
+        for conn in held:
+            conn.close()
+
+        assert out.status == 1
+        assert out.attempts >= 1
+        assert elapsed < 30, (
+            f"the run took {elapsed:.1f}s against a 4s run bound and a 120s "
+            "socket timeout; without the watchdog it would block on the socket"
+        )
+
+    def test_the_for_deadline_bounds_a_retry_backoff(self):
+        """`--follow --for 1` against `Retry-After: 30` slept thirty seconds and
+        reissued, because the sender never learned about `--for` and the reader's
+        own deadline cannot fire while the sender is asleep."""
+        clock = _Clock()
+        slept, connect_log = [], []
+        out = tp.send_batches(
+            [([], b"{}")], _dest(),
+            _factory([], [_FakeResponse(429, {"retry-after": "30"}),
+                          _FakeResponse(200)], connect_log),
+            clock=clock, sleep=slept.append, stream=io.StringIO(),
+            run_started=0.0, for_seconds=1,
+        )
+        assert len(connect_log) == 1, "no second request may be issued past --for"
+        assert out.status == 1

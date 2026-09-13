@@ -15,6 +15,7 @@ rather than by a later check.
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import os
@@ -205,6 +206,15 @@ def iter_records(
     record does not cost you the others.
     """
     deadline = None if for_seconds is None else clock() + for_seconds
+    # One-shot reads the file ONCE (AC-0020). Bounding the pass at the size the
+    # descriptor had when it was opened is what makes that true: against a writer
+    # appending faster than the reader drains, `os.read` never returns empty, the
+    # `if not follow: return` below is unreachable, and the run neither sends nor
+    # exits.
+    budget = None
+    if not follow:
+        with contextlib.suppress(OSError):
+            budget = os.fstat(fd).st_size
     buffer = bytearray()
     line_number = 0
     # True while discarding the tail of a line already refused for length. Its
@@ -220,7 +230,10 @@ def iter_records(
         # `--for` does not bound the run.
         if deadline is not None and clock() >= deadline:
             return
-        chunk = os.read(fd, 65536)
+        want = 65536 if budget is None else max(0, min(65536, budget))
+        chunk = os.read(fd, want) if want else b""
+        if budget is not None:
+            budget -= len(chunk)
         if chunk:
             buffer.extend(chunk)
             while True:

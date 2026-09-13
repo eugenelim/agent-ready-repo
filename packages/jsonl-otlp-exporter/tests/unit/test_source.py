@@ -392,3 +392,37 @@ class TestRound2Regressions:
             assert os.read(fd, 32) == b'{"a":1}\n'
         finally:
             os.close(fd)
+
+
+class TestRound3Regressions:
+    def test_one_shot_terminates_against_a_file_that_keeps_growing(self, tmp_path):
+        """AC-0020 says one-shot reads the file ONCE and exits.
+
+        Against a writer appending faster than the reader drains, `os.read` never
+        returns empty, so the only one-shot exit was unreachable: nothing was
+        sent and the process did not terminate. The pass is now bounded by the
+        size the descriptor had when it was opened.
+        """
+        import threading
+
+        line = json.dumps({"a": 1}) + "\n"
+        target = _write(tmp_path / "e.jsonl", line * 100)
+        fd = src.open_input(target, tmp_path)
+        stop = threading.Event()
+
+        def keep_appending():
+            with target.open("a", encoding="utf-8") as handle:
+                while not stop.is_set():
+                    handle.write(line * 200)
+                    handle.flush()
+
+        writer = threading.Thread(target=keep_appending, daemon=True)
+        writer.start()
+        try:
+            records = list(src.iter_records(fd))     # must terminate
+        finally:
+            stop.set()
+            writer.join(timeout=5)
+            os.close(fd)
+        assert records, "the records present at open must still be delivered"
+        assert len(records) < 5000, "one-shot must not keep following the writer"

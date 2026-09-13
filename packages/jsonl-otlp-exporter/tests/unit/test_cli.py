@@ -389,3 +389,26 @@ class TestReviewRegressions:
         code, err = _run(workspace, responses=[_Response(200)])
         assert code == 0
         assert "nests deeper" in err
+
+
+class TestRound3Regressions:
+    def test_an_explicitly_empty_service_name_is_used_as_given(self, workspace):
+        """AC-0007 says `service.name` takes the VALUE of --service-name and
+        names the profile stem as the default, so an empty string is a supplied
+        value rather than an absent one. Recorded in the verification ledger,
+        because the opposite reading is defensible and the criterion does not
+        decide between them."""
+        sent = []
+        code, _ = _run(workspace, "--service-name", "", responses=[_Response(200)], sent=sent)
+        assert code == 0
+        body = json.loads(sent[0])
+        attrs = body["resourceLogs"][0]["resource"]["attributes"]
+        name = next(a["value"]["stringValue"] for a in attrs if a["key"] == "service.name")
+        assert name == "", f"expected the supplied empty value, got {name!r}"
+
+    def test_an_absent_service_name_still_defaults_to_the_profile_stem(self, workspace):
+        sent = []
+        _run(workspace, responses=[_Response(200)], sent=sent)
+        attrs = json.loads(sent[0])["resourceLogs"][0]["resource"]["attributes"]
+        name = next(a["value"]["stringValue"] for a in attrs if a["key"] == "service.name")
+        assert name == "p"

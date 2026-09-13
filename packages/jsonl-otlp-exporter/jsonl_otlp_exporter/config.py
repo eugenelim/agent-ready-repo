@@ -65,6 +65,16 @@ def read_config_file(path: Path | str | None) -> dict[str, Any]:
                 f"config file is {info.st_size} bytes, over the {MAX_CONFIG_BYTES}-byte ceiling: {path}"
             )
         raw = os.read(fd, MAX_CONFIG_BYTES)
+        if len(raw) != info.st_size:
+            # `os.read` is one `read(2)` and may return fewer bytes than asked
+            # for. A prefix of a TOML file can be valid TOML, so parsing it would
+            # accept an incomplete config as complete -- and enable sending from
+            # a file whose full content does not parse. Not reachable for a local
+            # regular file under the ceiling; reachable on a network or FUSE
+            # mount, which is exactly where a truncated read is plausible.
+            raise ConfigRefused(
+                f"config file read returned {len(raw)} of {info.st_size} bytes: {path}"
+            )
     finally:
         os.close(fd)
     try:

@@ -180,6 +180,12 @@ def load_profile(path: Path | str | None, root: Path | str | None = None) -> Pro
                 f"profile is {info.st_size} bytes, over the {MAX_PROFILE_BYTES}-byte ceiling"
             )
         raw_bytes = os.read(fd, MAX_PROFILE_BYTES)
+        if len(raw_bytes) != info.st_size:
+            # Same reasoning as the config file: a valid prefix would be accepted
+            # as a whole profile, and the profile decides what may be sent.
+            raise ProfileRefused(
+                f"profile read returned {len(raw_bytes)} of {info.st_size} bytes"
+            )
     finally:
         os.close(fd)
 

@@ -91,7 +91,15 @@ def _run(args, env, stream, connection_factory) -> int:
 
     if profile is None:
         profile = load_profile(None, args.root)  # raises: there is no default
-    service_name = args.service_name or default_service_name(args.profile)
+    # `is None`, not falsiness: AC-0007 says `service.name` takes the value of
+    # `--service-name` and names the stem as the DEFAULT, so an explicitly empty
+    # value is a supplied value. Recorded in the verification ledger, because the
+    # opposite reading -- treating empty as absent, which `config._present` does
+    # deliberately for env vars -- is defensible and the criterion does not decide.
+    service_name = (
+        args.service_name if args.service_name is not None
+        else default_service_name(args.profile)
+    )
     # AC-0055 anchors the run bound at the FIRST destination resolution, and
     # AC-0040 requires the request bound to cover resolution. `resolve_destination`
     # does the DNS work, so the clock starts before it, not when sending begins.
@@ -144,6 +152,7 @@ def _run(args, env, stream, connection_factory) -> int:
             stream=stream,
             best_effort=args.best_effort,
             run_started=run_started,
+            for_seconds=args.for_seconds,
         )
     finally:
         os.close(fd)

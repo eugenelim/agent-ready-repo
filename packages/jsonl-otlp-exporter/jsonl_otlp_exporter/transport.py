@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import ipaddress
+import threading
 import json
 import socket
 import ssl
@@ -166,7 +167,7 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
         return Destination(url, "https", parts.hostname, port, path,
                            parts.hostname, parts.query)
 
-    infos = resolver(parts.hostname, port, 0, socket.SOCK_STREAM)
+    infos = _resolve_bounded(resolver, parts.hostname, port, REQUEST_TIMEOUT_SECONDS)
     addresses = [info[4][0] for info in infos]
     if not addresses:
         raise DestinationRefused(f"endpoint host does not resolve: {render_endpoint(url)}")
@@ -277,6 +278,7 @@ def send_batches(
     stream=None,
     best_effort: bool = False,
     run_started: float | None = None,
+    for_seconds: int | None = None,
 ) -> SendOutcome:
     """POST each batch, honouring the attempt, retry and time bounds.
 
@@ -292,6 +294,13 @@ def send_batches(
     # another 120 sending.
     run_started = clock() if run_started is None else run_started
     run_deadline = run_started + RUN_TIMEOUT_SECONDS
+    if for_seconds is not None:
+        # `--for` bounds the RUN, and the sender is part of it. The reader's own
+        # deadline cannot fire during a retry backoff because the reader is not
+        # running then -- so `--follow --for 1` against a `Retry-After: 30` slept
+        # thirty seconds and reissued, ending neither at one second nor before
+        # the request.
+        run_deadline = min(run_deadline, run_started + for_seconds)
 
     for records, body in batches:
         while True:
@@ -431,6 +440,80 @@ def _partial_success(payload: bytes) -> tuple[bool, int]:
         return True, 0
 
 
+def _resolve_bounded(resolver, host, port, seconds: float):
+    """Resolve `host`, giving up after `seconds`.
+
+    Neither `socket.getaddrinfo` nor `socket.create_connection` accepts a
+    timeout, and a resolver that never answers hangs the process -- which defeats
+    AC-0040 and AC-0055 before either clock is ever consulted. The lookup runs on
+    a daemon thread that the caller abandons; the thread cannot outlive the
+    process, and abandoning it is strictly better than inheriting its stall.
+    """
+    outcome: dict = {}
+
+    def _lookup():
+        try:
+            outcome["value"] = resolver(host, port, 0, socket.SOCK_STREAM)
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the caller's thread
+            outcome["error"] = exc
+
+    worker = threading.Thread(target=_lookup, daemon=True)
+    worker.start()
+    worker.join(seconds)
+    if worker.is_alive():
+        raise DestinationRefused(
+            f"destination resolution did not answer within {seconds:g}s"
+        )
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
+
+
+class _Watchdog:
+    """Close the connection at an absolute deadline, whatever it is blocked on.
+
+    Re-arming the socket timeout per phase is not enough and three separate
+    findings said so from three directions: the connect and the header read each
+    get the full timeout independently, `http.client`'s reader restarts the timer
+    on every `readline`, and a `Connection: close` response sets
+    `connection.sock = None` so there is nothing left to re-arm at all.
+
+    Closing the connection from another thread makes whichever call is blocked
+    raise, so one mechanism covers connect, write, header read and body read --
+    rather than four patches that each cover one and miss the next.
+    """
+
+    def __init__(self, connection, seconds: float):
+        self._timer = threading.Timer(max(0.0, seconds), self._abandon)
+        self._timer.daemon = True
+        self._connection = connection
+        self.fired = False
+
+    def _abandon(self):
+        self.fired = True
+        # `shutdown` FIRST, and that is the whole point. Closing a socket another
+        # thread is blocked reading does not reliably wake it -- the descriptor
+        # is duplicated into the response's file object, so the blocked `recv`
+        # keeps waiting and the watchdog achieves nothing. `shutdown(SHUT_RDWR)`
+        # tears the connection down underneath the reader and the call returns.
+        # Measured: without this the request blocked for the full 120s socket
+        # timeout despite a 1s deadline.
+        sock = getattr(self._connection, "sock", None)
+        if sock is not None:
+            with contextlib.suppress(OSError):
+                sock.shutdown(socket.SHUT_RDWR)
+        with contextlib.suppress(Exception):
+            self._connection.close()
+
+    def __enter__(self):
+        self._timer.start()
+        return self
+
+    def __exit__(self, *exc_info):
+        self._timer.cancel()
+        return False
+
+
 def _host_header(destination: Destination) -> str:
     """Build a valid Host authority, bracketing an IPv6 literal.
 
@@ -448,13 +531,14 @@ def _host_header(destination: Destination) -> str:
 
 def _post(destination: Destination, body: bytes, connection_factory, timeout: float,
           deadline: float | None = None, clock: Callable[[], float] = time.monotonic):
-    """One request, abandoned at `deadline` however slowly it makes progress.
+    """One request, abandoned at `deadline` whatever it is blocked on.
 
-    A socket timeout alone is not enough: it bounds each blocking operation, so a
-    receiver returning one byte every 29 seconds keeps every `recv` inside a
-    30-second timeout while the request as a whole runs without limit. The
-    response is read in bounded chunks with the monotonic deadline checked
-    between them.
+    A socket timeout bounds each blocking operation, not the request: the connect
+    and the header read each get the full timeout independently, and
+    `http.client` restarts the timer on every `recv`, so a receiver trickling
+    bytes keeps a single call blocked indefinitely. The watchdog closes the
+    connection at the deadline instead, which covers connect, write, header read
+    and body read with one mechanism.
     """
     context = ssl.create_default_context() if destination.scheme == "https" else None
     connection = connection_factory(
@@ -464,56 +548,73 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
         timeout,
         context,
     )
+    watchdog = (
+        _Watchdog(connection, deadline - clock())
+        if deadline is not None
+        else contextlib.nullcontext()
+    )
     try:
-        connection.request(
-            "POST",
-            destination.target,
-            body=body,
-            headers={
-                "Content-Type": "application/json",
-                # The Host header keeps virtual hosting correct even though the
-                # connection was made to a pinned address.
-                "Host": _host_header(destination),
-                "Content-Length": str(len(body)),
-            },
-        )
-        response = connection.getresponse()
-        # One byte past the ceiling is read on purpose: reading exactly the
-        # ceiling cannot distinguish "at the limit" from "over it".
-        remaining = MAX_RESPONSE_BYTES + 1
-        chunks: list[bytes] = []
-        socket_ = getattr(connection, "sock", None)
-        while remaining > 0:
-            if deadline is not None:
-                left = deadline - clock()
-                if left <= 0:
-                    raise DestinationRefused(
-                        "request abandoned at its deadline while reading the response"
-                    )
-                # Re-arm the socket to what is LEFT, not to the per-operation
-                # timeout. `HTTPResponse.read(n)` loops over `recv` until it has
-                # n bytes, and each `recv` restarts the timer -- so a receiver
-                # trickling one byte just inside the timeout keeps a single call
-                # blocking forever. Bounding each call by the remaining budget
-                # caps the overrun at one chunk.
-                if socket_ is not None:
-                    with contextlib.suppress(OSError):
-                        socket_.settimeout(left)
-            chunk = response.read(min(remaining, 65536))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            remaining -= len(chunk)
-        payload = b"".join(chunks)
-        if len(payload) > MAX_RESPONSE_BYTES:
+        with watchdog:
+            return _exchange(destination, body, connection, deadline, clock)
+    except OSError as exc:
+        if getattr(watchdog, "fired", False):
             raise DestinationRefused(
-                f"response body exceeds {MAX_RESPONSE_BYTES} bytes; refused without decoding"
-            )
-        # Lowercased keys: field names are case-insensitive per RFC 9110 and
-        # HTTP/2 mandates lowercase, while `getheaders()` preserves exactly what
-        # the server sent. A literal "Retry-After" lookup misses "retry-after"
-        # and the backoff is silently ignored.
-        headers = {name.lower(): value for name, value in response.getheaders()}
-        return response.status, headers, payload
+                "request abandoned at its deadline"
+            ) from exc
+        raise
     finally:
         connection.close()
+
+
+def _exchange(destination, body, connection, deadline, clock):
+    """The exchange itself. The caller owns the deadline and the connection."""
+    connection.request(
+        "POST",
+        destination.target,
+        body=body,
+        headers={
+            "Content-Type": "application/json",
+            # The Host header keeps virtual hosting correct even though the
+            # connection was made to a pinned address.
+            "Host": _host_header(destination),
+            "Content-Length": str(len(body)),
+        },
+    )
+    response = connection.getresponse()
+    # One byte past the ceiling is read on purpose: reading exactly the
+    # ceiling cannot distinguish "at the limit" from "over it".
+    remaining = MAX_RESPONSE_BYTES + 1
+    chunks: list[bytes] = []
+    socket_ = getattr(connection, "sock", None)
+    while remaining > 0:
+        if deadline is not None:
+            left = deadline - clock()
+            if left <= 0:
+                raise DestinationRefused(
+                    "request abandoned at its deadline while reading the response"
+                )
+            # Re-arm the socket to what is LEFT, not to the per-operation
+            # timeout. `HTTPResponse.read(n)` loops over `recv` until it has
+            # n bytes, and each `recv` restarts the timer -- so a receiver
+            # trickling one byte just inside the timeout keeps a single call
+            # blocking forever. Bounding each call by the remaining budget
+            # caps the overrun at one chunk.
+            if socket_ is not None:
+                with contextlib.suppress(OSError):
+                    socket_.settimeout(left)
+        chunk = response.read(min(remaining, 65536))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    payload = b"".join(chunks)
+    if len(payload) > MAX_RESPONSE_BYTES:
+        raise DestinationRefused(
+            f"response body exceeds {MAX_RESPONSE_BYTES} bytes; refused without decoding"
+        )
+    # Lowercased keys: field names are case-insensitive per RFC 9110 and
+    # HTTP/2 mandates lowercase, while `getheaders()` preserves exactly what
+    # the server sent. A literal "Retry-After" lookup misses "retry-after"
+    # and the backoff is silently ignored.
+    headers = {name.lower(): value for name, value in response.getheaders()}
+    return response.status, headers, payload
