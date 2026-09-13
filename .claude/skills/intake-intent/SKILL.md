@@ -152,6 +152,43 @@ token, ask for explicit human confirmation of the `Accepted` transition. Set
 `Status: Accepted` only after that confirmation. A review result alone never
 changes lifecycle status.
 
+## What a finding against an intent can move
+
+An intent's parts are not equal, and where a finding lands decides what may be
+done about it.
+
+**Contract** — `Outcome`, `Boundary`, `Owner`, `Projection`, and `Source`. Each
+decides something: what the intent is for, what it admits, who answers for it,
+where it goes next, and what authorises it.
+
+**Working material** — `Opportunity`, `Unresolved questions`, and `Assumptions`.
+These carry the ground, the open matters, and what is being taken on trust. A
+finding against working material is advisory.
+
+The answers available to a sustained finding are stated once, in the `work-loop`
+skill's DECIDE step. They are not restated here. Some of them land differently on
+an intent, because an intent carries no criterion set and almost nothing in it
+has a check beyond the sentence existing.
+
+`demote-the-claim` moves an assertion out of `Outcome` or `Boundary` and into
+working material, and the destination follows what the assertion was doing. A
+settled ground for the outcome or the boundary goes to `Opportunity`. A matter
+the assertion decided without the authority to decide it goes to `Unresolved
+questions`. It needs no new pin: both destinations sit inside the artifact the
+review already binds to, so nothing leaves the intent and nothing has to be
+protected from vanishing unnoticed. It still needs the owner's authority, because
+the intent stops asserting something it asserted.
+
+`drop-the-claim` comes before rewording. Where nearly every finding is a finding
+against prose, answering each one with more careful prose is what makes rounds
+run long without converging: an assertion no stated outcome depends on is
+decoration whether or not it is true.
+
+Record the answer and the reason for it beside the finding. That record is
+advisory: it informs the next round, and nothing else reads it. The
+shaping-review gate above is unchanged, and neither the answer nor its reason may
+relax, satisfy, or shortcut it.
+
 ## Boundaries
 
 metadata:

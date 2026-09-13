@@ -121,6 +121,21 @@ section. Shortening or single-homing it is the wrong fix. In `intent` mode the
 `MALFORMED(owner)` suppression rule is how it is carried; in the other two, it
 is the first finding and the last.
 
+## A settled decision is not a finding
+
+This holds in `delivery-brief` and `spec` mode. `intent` mode does not carry it:
+its conditions are mechanical, and none of them can reopen a choice.
+
+Where the supplied artifact records a decision as settled — naming what was
+decided, on what ground, and by whom — do not raise a finding that reopens it.
+Raise instead what that record cannot answer: a consequence of the decision the
+record does not address, or a conflict between it and another obligation in the
+same artifact.
+
+A pre-existing defect is a different thing and stays in scope however late it is
+found. Keeping the two apart is the point, because an author can then refuse a
+reopened decision without dismissing a real defect raised in the same round.
+
 ## Known failure modes in delivery-brief and spec mode
 
 These two rubrics measure a contract, so they carry the table below. `intent`
