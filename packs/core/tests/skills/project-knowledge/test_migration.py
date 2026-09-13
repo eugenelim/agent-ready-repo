@@ -106,6 +106,75 @@ def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
 
 
+def _assert_canonical_empty_staged_map(repo: Path, store) -> None:
+    stage = repo / "docs/knowledge/.migration-stage"
+    assert [
+        path.relative_to(stage).as_posix() for path in store.staged_migration_files(repo)
+    ] == ["docs/knowledge/topics.index.json"]
+    assert store.staged_map_bytes(repo) == (
+        b"{\n"
+        b'  "entries": [],\n'
+        b'  "schema_version": "knowledge-topic-map.v1"\n'
+        b"}\n"
+    )
+
+
+def test_ac1_ac2_zero_byte_legacy_corpus_stages_canonical_empty_map(
+    repo: Path, store
+) -> None:
+    _write_legacy(repo, [])
+
+    result = store.stage_legacy_migration(repo)
+
+    assert result["counts"] == {
+        "input_rows": 0,
+        "active_import": 0,
+        "needs_review_import": 0,
+        "refused": 0,
+    }
+    assert result["diagnostics"] == []
+    _assert_canonical_empty_staged_map(repo, store)
+
+
+def test_ac3_all_refused_legacy_corpus_stages_canonical_empty_map(
+    repo: Path, store
+) -> None:
+    rows = copy.deepcopy(_legacy_rows()[:2])
+    rows[0]["title"] = "Refuse blank bodies"
+    rows[0]["body"] = ""
+    rows[1]["title"] = "Refuse whitespace bodies"
+    rows[1]["body"] = "   "
+    _write_legacy(repo, rows)
+
+    result = store.stage_legacy_migration(repo)
+
+    assert result["counts"] == {
+        "input_rows": 2,
+        "active_import": 0,
+        "needs_review_import": 0,
+        "refused": 2,
+    }
+    _assert_canonical_empty_staged_map(repo, store)
+
+
+def test_ac4_zero_row_migration_activates_and_clears_stage(repo: Path, store) -> None:
+    _write_legacy(repo, [])
+    store.stage_legacy_migration(repo)
+    stage = repo / "docs/knowledge/.migration-stage/docs/knowledge"
+    knowledge = repo / "docs/knowledge"
+    shutil.copy2(stage / "topics.index.json", knowledge / "topics.index.json")
+    _git(repo, "add", "docs/knowledge/patterns.jsonl", "docs/knowledge/topics.index.json")
+    _git(repo, "commit", "-m", "test: activate empty project knowledge")
+
+    activation = store.activate_staged_migration(
+        repo,
+        committed_snapshot=store.committed_knowledge_snapshot(repo),
+    )
+
+    assert activation["state"] == "activated"
+    assert not (repo / "docs/knowledge/.migration-stage").exists()
+
+
 def test_ac20_migration_strictly_prevalidates_every_row_before_staging(
     repo: Path, store
 ) -> None:
