@@ -7,9 +7,29 @@ kind: explanation
 
 # Guides
 
-**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — five steps, about ten hours, from installing the catalogue to a merged change a human approved.
+**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — from installing the catalogue to a merged change a human approved, in about ten hours.
 
-Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way. Each pack guide explains what to install, what to ask for, what the agent produces, and where a human decides.
+Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way.
+
+## Walk a pack
+
+Five packs carry a **guidebook**: a numbered walk through that pack's journey,
+one step per stage. Each step shows what you type, what the agent replies, a
+turn where you push back, where you decide, and an excerpt of the artifact you
+get — so you can tell whether what came back is right.
+
+| Guidebook | Walk it when | Steps |
+| --- | --- | --: |
+| [`core`](core/README.md) | You have work to do and want the loop that governs it | 4 |
+| [`product-strategy`](product-strategy/README.md) | You are setting direction upstream of any initiative | 3 |
+| [`product-engineering`](product-engineering/README.md) | You have a problem and need a framed, evidenced bet | 4 |
+| [`experience-design`](experience-design/README.md) | You have an outcome and need designed, reviewed screens | 5 |
+| [`desk-research`](desk-research/README.md) | You need an answer grounded in evidence, not recall | 4 |
+
+They hand to each other, and each hand-off says so at both ends: strategy
+queues gaps that discovery frames, discovery hands slices that the build loop
+specs, and design hands a reviewed set that the build loop specs against. Start
+wherever your work actually is — the guidebooks are a network, not a queue.
 
 ## The install-to-ship walkthrough
 
