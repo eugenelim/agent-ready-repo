@@ -686,9 +686,10 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
 
 **Done when:** the ledger records every observation below with its verbatim
 output, against the projection hash of the agent that produced it, recorded
-beside it, with the revision noted as provenance. Every dispatch in this task is
-`shaping-reviewer`; the adversarial re-run recorded alongside them carries
-`adversarial-reviewer`'s hash. The hash is the anchor: a commit can move the
+beside it, with the revision noted as provenance. Every dispatch in the fixture
+table below is `shaping-reviewer`; the re-run T8 observations this task also
+records include one `adversarial-reviewer` dispatch, which carries that agent's
+hash. The hash is the anchor: a commit can move the
 tree without moving the projection, and this branch's rebase left most recorded
 revisions unresolvable in a fresh clone. Each must match:
 
