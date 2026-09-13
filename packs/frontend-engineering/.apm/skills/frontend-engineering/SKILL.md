@@ -568,7 +568,107 @@ Install: `npm install --save-dev stylelint stylelint-declaration-strict-value`
 - [ ] All applicable states from the 18-state matrix are present in the HTML — not just the happy path; check each applicable state by reading the HTML
 - [ ] No hardcoded colour or spacing values outside the token-definition block — grep: `grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" <file.css>` should return only the `:root` / primitive token-definition block, no other hex, rgb, or px values
 - [ ] Print output correct: if PPT/PDF context, open in browser and trigger print preview — check slide boundaries, colour preservation, no overflow
-- [ ] Screenshot taken and observed: Playwright headless (`page.screenshot()`) or browser devtools screenshot — assert on what you see, not on internal state
+- [ ] Rendered-page inspection run, and its observations recorded — section 5 below. This is the item that replaces "take a screenshot and look at it": a filename is not an observation.
+
+### 5. Rendered-page inspection (requires Chromium — runs headless, no display server)
+
+The gates above read the markup, the stylesheet, and the accessibility tree. None
+of them opens the page. A page can pass all three while a banner covers the
+heading, a price runs out of its card, or the only button sits half off-screen.
+This step looks at the page and writes down what it saw.
+
+It is two steps, and they stay apart: **capture** drives the browser and produces
+images plus a record for each one; **judgement** reads that capture set and
+reports failures. The capture step never calls the judge, and the judgement step
+never opens a browser. An adopter who already has a judge they trust keeps the
+capture and routes the images there.
+
+All of the rules below — which captures are required, what each record carries,
+and how a finding's severity is decided — live in
+[`references/rendered-page-inspection.md`](references/rendered-page-inspection.md).
+Read it rather than working from this summary.
+
+#### 5a. Capture
+
+The routes to inspect are the ones the adopter names. Capture each one at all
+four required states — two viewport heights, each at rest and scrolled:
+
+| Capture | Viewport height | Scroll position |
+| --- | --- | --- |
+| short-at-rest | ≤600 CSS px | 0 |
+| short-scrolled | ≤600 CSS px | >0 |
+| tall-at-rest | ≥900 CSS px | 0 |
+| tall-scrolled | ≥900 CSS px | >0 |
+
+Two heights because a layout that holds at one often fails at the other. Two
+scroll positions because the at-rest view is the one nobody scrolls to reach, and
+the scrolled view is where sticky headers and overlays come to rest on top of
+content. Further heights are welcome; none are required.
+
+```bash
+# Playwright — set the viewport, scroll, then capture. Any driver works;
+# what matters is that the state below is recorded alongside each image.
+npx playwright screenshot --viewport-size=390,600 <route-or-file> short-at-rest.png
+```
+
+Record four fields with every capture. The image does not show them, and a judge
+cannot recover them by looking harder — a page at rest and the same page scrolled
+to the same offset are the same picture:
+
+| Field | What to record |
+| --- | --- |
+| route | The route or local file path captured |
+| viewport-width | Viewport width in CSS pixels |
+| viewport-height | Viewport height in CSS pixels |
+| scroll-position | Vertical scroll offset the capture was taken at, in CSS pixels |
+
+A capture missing any of the four is **unusable**: it yields no finding, and it
+is reported as unusable rather than passed over. A set missing any of the four
+required captures is **incomplete**, and an incomplete set cannot satisfy a
+completed inspection — findings from the captures that are present do not make it
+one.
+
+#### 5b. Judgement
+
+Send each capture to the judge with the four recorded fields stated alongside it.
+The scroll position is what separates "this content is clipped at the top of the
+page" from "this content is above the fold because the reader scrolled", and the
+judge cannot tell those apart from the image.
+
+Ask for two things per finding: **what** the reader-visible failure is, and
+**where** on the page it appears. Do not ask for a severity. Classify the finding
+yourself and take the severity from the finding-class table in the reference —
+a severity the judge volunteers is discarded, including when it disagrees.
+
+Report a failure the reader would meet, never a difference from a previous run.
+This step ships no baseline and compares against no stored image, so a deliberate
+redesign produces no findings at all.
+
+#### 5c. What the run reports
+
+Every run ends in exactly one result state, and the same state is written to all
+three places a result reaches: the evidence manifest, the step's own reported
+output, and what the acceptance gate is given. Only `completed` is a completed
+inspection.
+
+| Result state | Completed inspection | When |
+| --- | --- | --- |
+| completed | yes | Every required capture taken, judged, observations recorded |
+| incomplete | no | A required capture is missing from the set |
+| unusable-capture | no | A capture arrived without every required field |
+| skipped-no-browser | no | No browser reachable — name the missing capability |
+| failed-navigation | no | The route could not be reached |
+| failed-capture | no | Browser reached, image could not be taken |
+| failed-judgement | no | Captures exist, judge returned nothing usable |
+
+These stay seven states rather than one "unverified" line. `unusable-capture` is
+a defect in how the step was run; `skipped-no-browser` is a fact about the
+environment. A single label makes the first read as the second, and the first is
+the one somebody needs to fix.
+
+When no browser is reachable, say which capability is missing — "no Chromium
+reachable; rendered-page inspection not run" — rather than recording the step as
+done with a note.
 
 ---
 
@@ -606,7 +706,7 @@ Enforce these per route. The seven asset budget categories to track are: JS budg
 
 FE cannot claim completion (create or retrofit) or a passing gate run (verify) without an evidence manifest. The manifest is a structured record of what was tested and what was found.
 
-**Required fields (all 11 must be present):**
+**Required fields (all 12 must be present):**
 
 | Field | What to record |
 |---|---|
@@ -615,6 +715,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
+| inspection observations | What was seen in the captures, plus the rendered-page inspection result state. A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
 | a11y result | Output of the accessibility gate (pa11y/axe-core); include manual-check outcome for WCAG 2.4.11 and 2.5.8 |
 | perf result | CWV measurement or Lighthouse score; include mobile and desktop values where available |
 | console/network result | No console errors; network requests match expected; no unexpected third-party calls |
@@ -622,7 +723,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | known exceptions | Documented, accepted gaps with rationale and owner — not a place to hide problems |
 | unverified items | Items that could not be verified in this session with reason (no Chromium, no network, etc.) |
 
-**Additional fields for a production surface (2 more, 13 in total):**
+**Additional fields for a production surface (2 more, 14 in total):**
 
 The Digital Experience Contract carries a *Security and Privacy* and a
 *Reliability* field at production tier, and this manifest did not require the
