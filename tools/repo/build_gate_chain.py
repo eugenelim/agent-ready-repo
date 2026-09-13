@@ -269,6 +269,18 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "new-adr", "scripts", "next-ordinal.py",
             args=("--check", "docs/adr"),
         ),
+        # AC25: the index is generated, so the gate asserts it still matches its
+        # records. Same script the skills run, reached through its projection.
+        _script_step(
+            "check-adr-index",
+            ".claude", "skills", "new-adr", "scripts", "index-records.py",
+            args=("--check", "docs/adr"),
+        ),
+        _script_step(
+            "check-rfc-index",
+            ".claude", "skills", "new-rfc", "scripts", "index-records.py",
+            args=("--check", "docs/rfc"),
+        ),
         _script_step(
             "check-rfc-ordinals",
             ".claude", "skills", "new-rfc", "scripts", "next-ordinal.py",

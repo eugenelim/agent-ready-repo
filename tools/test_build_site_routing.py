@@ -2450,8 +2450,11 @@ def test_the_frozen_work_index_spec_remains_byte_unchanged():
     # AC11's other half: the LIVING index is where supersession is recorded,
     # since the frozen artifacts may not be annotated. Nothing else asserts it,
     # so the pointer could be reverted silently.
-    index = (_REPO_ROOT / "docs" / "specs" / "README.md").read_text(encoding="utf-8")
-    m6_row = next(
-        line for line in index.splitlines() if "m6-astro-work-index/" in line
+    # The spec index was retired (ADR-0112), and the predecessor's own bytes are
+    # pinned by this suite, so the pointer cannot live on its Status line either.
+    # The successor records the relationship from its side, which is the surviving
+    # source: this assertion reads there rather than at a retired second home.
+    successor = (_REPO_ROOT / "docs" / "specs" / "site-now-surface" / "spec.md").read_text(
+        encoding="utf-8"
     )
-    assert "site-now-surface/spec.md" in m6_row, m6_row
+    assert "m6-astro-work-index" in successor, "successor no longer names its predecessor"
