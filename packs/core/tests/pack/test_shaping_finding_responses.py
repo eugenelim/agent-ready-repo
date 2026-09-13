@@ -111,13 +111,9 @@ def test_intent_demotion_destinations_and_authority_are_pinned() -> None:
         "the destination follows what the assertion was doing" in section
     ), "intent: destination decision rule is missing"
     assert (
-        "It needs no new pin: both destinations sit inside the artifact the "
-        "review already binds to" in section
-    ), "intent: the no-new-pin rule is missing"
-    assert (
-        "It still needs the owner's authority, because the intent stops "
-        "asserting something it asserted." in section
-    ), "intent: owner authority is no longer required"
+        "What demotion costs \u2014 the pin it carries and the authority it needs "
+        "\u2014 is stated in the DECIDE step and holds here unchanged." in section
+    ), "intent: no longer defers demotion's cost to DECIDE"
 
 
 def test_brief_demotion_destinations_and_fallthrough_are_pinned() -> None:
@@ -154,6 +150,14 @@ def test_reviewer_does_not_reopen_settled_decisions_or_hide_defects() -> None:
         "A pre-existing defect is a different thing and stays in scope however "
         "late it is found." in section
     ), "reviewer: pre-existing defect carve-out is missing"
+    assert (
+        "any obligation the supplied evidence carries, whether it sits in the "
+        "same artifact or in the governing material beside it" in section
+    ), "reviewer: conflict scope narrowed back to the artifact alone"
+    assert (
+        "A recorded ground never settles a conflict with a non-waivable control."
+        in section
+    ), "reviewer: a recorded ground can immunise a decision"
 
 
 def test_upstream_surfaces_do_not_copy_the_rest_of_the_ladder() -> None:
@@ -245,6 +249,12 @@ def test_new_sections_are_count_neutral(label: str) -> None:
     assert not re.search(r"one of the \w+ answers", section), (
         f"{label}: contains a counted answer-set construction"
     )
+    assert "both destinations" not in section, (
+        f"{label}: counts the destinations it enumerates"
+    )
+    assert not re.search(
+        r"\ball (?:\w+|\d+) (?:answers|responses|destinations)\b", section
+    ), f"{label}: contains a counted set beside its enumeration"
 
 
 @pytest.mark.parametrize("label", NEW_SECTIONS)
@@ -261,3 +271,47 @@ def test_new_sections_do_not_cite_internal_records(label: str) -> None:
         flags=re.IGNORECASE,
     )
     assert match is None, f"{label}: cites internal AC identifier {match.group(0)!r}"
+
+
+@pytest.mark.parametrize("label", ("intent", "brief"))
+def test_upstream_sections_do_not_redefine_what_demotion_costs(label: str) -> None:
+    """Keep DECIDE the sole definition of what `demote-the-claim` costs.
+
+    A local surface that points at DECIDE must not redefine one of its answers
+    in passing. DECIDE moves the obligation *with* a content pin and records the
+    pin that catches its removal; guidance asserting no pin is needed describes
+    a different answer under the same name.
+    """
+    section = _flat(_new_section(label))
+    lowered = section.lower()
+    for contradiction in ("no new pin", "needs no pin", "without a pin"):
+        assert contradiction not in lowered, (
+            f"{label}: redefines demotion's cost with {contradiction!r}"
+        )
+    assert "is stated in the DECIDE step and holds here unchanged." in section, (
+        f"{label}: no longer defers demotion's cost to DECIDE"
+    )
+
+
+@pytest.mark.parametrize("label", ("intent", "brief"))
+def test_upstream_sections_do_not_call_a_finding_advisory(label: str) -> None:
+    """Keep the destination map from claiming what a shaping gate blocks on.
+
+    Working material is advisory in a spec, whose own template says so. Upstream
+    it is not: intent mode blocks `Accepted` on a missing riskiest assumption,
+    and delivery-brief mode blocks `Ready` on checks reaching outside the Ready
+    field set. The map says where a demoted assertion goes and nothing about
+    what blocks.
+    """
+    section = _flat(_new_section(label)).lower()
+    for claim in (
+        "working material is advisory",
+        "against working material is advisory",
+        "material is advisory",
+    ):
+        assert claim not in section, (
+            f"{label}: claims a finding against working material is advisory"
+        )
+    # "advisory" itself stays legal: both sections correctly describe the
+    # recorded answer as advisory, which is a statement about the record and
+    # not about what a shaping gate blocks on.

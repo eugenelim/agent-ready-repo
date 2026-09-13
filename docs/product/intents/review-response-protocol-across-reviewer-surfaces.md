@@ -207,12 +207,18 @@ mean for that artifact, which is where `demote-the-claim` moves an assertion.
 - **A spec's split is already stated** by `new-spec`'s bundled `assets/spec.md`,
   which is its single owner. That surface gains the pointer and nothing else.
 
-**Demotion upstream needs no new pin, and that is the substantive difference from
-downstream.** Downstream a pin is what stops a demoted obligation vanishing
-unnoticed, because it leaves a gated criterion set for prose nothing reads.
-Upstream both destinations sit inside the artifact the review already binds to,
-so nothing leaves the artifact. What demotion still needs is the owner's
-authority, because the artifact stops asserting something it asserted.
+**What demotion costs is not restated upstream.** An earlier draft claimed
+demotion upstream needs no new pin, on the reasoning that both destinations sit
+inside the artifact the review already binds to. Review sustained that as a
+contradiction: DECIDE defines `demote-the-claim` as moving an obligation to
+working material *with* a content pin, and requires the reason to record the pin
+that catches its removal. Guidance that claims to point at DECIDE cannot
+redefine one of its answers in passing. The claim was dropped rather than
+argued, and each surface now defers to DECIDE for the cost.
+
+Whether DECIDE's pin requirement can be satisfied at all on an artifact with no
+machine anywhere is a real question, and it is registered rather than settled
+here.
 
 **The cut axis carries most findings here.** An intent has almost no machine
 anywhere, so nearly every finding against one is a finding against prose, and

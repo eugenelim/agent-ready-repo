@@ -131,8 +131,10 @@ its conditions are mechanical, and none of them can reopen a choice.
 Where the supplied artifact records a decision as settled — naming what was
 decided, on what ground, and by whom — do not raise a finding that reopens it.
 Raise instead what that record cannot answer: a consequence of the decision the
-record does not address, or a conflict between it and another obligation in the
-same artifact.
+record does not address, or a conflict between it and any obligation the
+supplied evidence carries, whether it sits in the same artifact or in the
+governing material beside it. A recorded ground never settles a conflict with a
+non-waivable control.
 
 A pre-existing defect is a different thing and stays in scope however late it is
 found. Keeping the two apart is the point, because an author can then refuse a
