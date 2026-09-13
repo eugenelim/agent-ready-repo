@@ -6,6 +6,7 @@ roster, selects one disjoint slice, and executes its commands unchanged.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -47,6 +48,40 @@ WEIGHTS: dict[str, float] = {
 DEFAULT_WEIGHT = 6.1
 
 
+# Set in every child environment so a nested selector fails loudly instead of
+# recursing. Nothing legitimately runs a shard inside a shard.
+REENTRY_MARKER = "SHARD_TEST_ROSTER_ACTIVE"
+
+
+def child_environment() -> dict[str, str]:
+    """Return an environment that cannot re-select a shard.
+
+    Make exports command-line variables to sub-makes through ``MAKEFLAGS``, so a
+    roster command that itself runs ``make test`` -- the Makefile harnesses in
+    tools/test_local_ci_shared_test_deduplication.py do exactly that -- would
+    inherit ``SHARD``/``SHARDS``, take the sharded branch, and run this selector
+    again. Run 34789473362 shard 4 recursed that way until the job was killed at
+    its timeout, having produced no output at all.
+
+    Stripping the pair from both the environment and ``MAKEFLAGS`` makes a
+    nested ``make test`` resolve to the ordinary serial branch, which is what
+    those harnesses expect.
+    """
+    env = dict(os.environ)
+    env.pop("SHARD", None)
+    env.pop("SHARDS", None)
+    makeflags = env.get("MAKEFLAGS")
+    if makeflags is not None:
+        kept = [
+            token
+            for token in makeflags.split()
+            if not token.startswith(("SHARD=", "SHARDS="))
+        ]
+        env["MAKEFLAGS"] = " ".join(kept)
+    env[REENTRY_MARKER] = "1"
+    return env
+
+
 class Executor(Protocol):
     """Run one unchanged roster command as its own process."""
 
@@ -85,10 +120,15 @@ def classify(line: str) -> str:
     # can never be swallowed by it.
     if re.match(r"^make\[\d+\]: ", stripped):
         return "ignore"
-    if any(marker in stripped for marker in PRECONDITION_MARKERS):
-        return "precondition"
+    # Unambiguous runner shapes are decided FIRST. A precondition marker is a
+    # substring test, so a future suite whose path merely CONTAINS a marker --
+    # `-m pytest tools/repo/editable_install_guard.py`, say -- would otherwise
+    # be classified as a precondition: dropped from the union's work multiset
+    # and silently run in every shard instead of exactly one.
     if "-m pytest " in stripped or stripped.startswith("npm run "):
         return "work"
+    if any(marker in stripped for marker in PRECONDITION_MARKERS):
+        return "precondition"
 
     tokens = stripped.split()
     if (
@@ -149,7 +189,11 @@ def _extract_target_recipe(makefile_text: str) -> list[str]:
 def _refuse_recursive_make(lines: Sequence[str]) -> None:
     """Refuse roster lines GNU Make would execute despite ``-n``."""
     for line in lines:
-        if "$(MAKE)" in line or "${MAKE}" in line or line.lstrip().startswith("+"):
+        # GNU Make recipe-control prefixes are `@`, `-` and `+`, in any order
+        # and repetition, so `@+cmd` and `-+cmd` force execution just as `+cmd`
+        # does. Strip the whole prefix run and look for `+` anywhere in it.
+        prefix = line[: len(line) - len(line.lstrip("@-+\t "))]
+        if "$(MAKE)" in line or "${MAKE}" in line or "+" in prefix:
             raise RosterError(f"unsafe dry-run roster line: {line}")
 
 
@@ -176,6 +220,7 @@ def _expand_roster(makefile_path: Path) -> list[str]:
             text=True,
             capture_output=True,
             check=False,
+            env=child_environment(),
         )
     except OSError as error:
         raise RosterError(f"cannot expand test roster: {error}") from error
@@ -276,12 +321,19 @@ def _default_executor(
     check: bool,
 ) -> subprocess.CompletedProcess[bytes]:
     """Execute one roster command without combining it with another."""
-    return subprocess.run(command, shell=shell, cwd=cwd, check=check)
+    return subprocess.run(
+        command, shell=shell, cwd=cwd, check=check, env=child_environment()
+    )
 
 
 def main(argv: Sequence[str], executor: Executor = _default_executor) -> int:
     """Execute one validated shard, with every precondition first."""
     try:
+        if os.environ.get(REENTRY_MARKER):
+            raise RosterError(
+                "refusing to run a shard inside a shard — a nested selector "
+                "recurses until the job is killed; see child_environment()"
+            )
         shard, shards = _selector(argv)
         preconditions: list[str] = []
         work_units: list[str] = []

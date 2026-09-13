@@ -521,15 +521,19 @@ lint-mypy:
 # suite, so test-corpus.yml still runs one undecomposed command per job and
 # stays out of lint-ci-parity's scope for the reason recorded there.
 #
-# A one-sided SHARD or SHARDS reaches the runner with an empty value and is
-# REFUSED there — Make cannot tell "unset" from "empty" usefully, so the
-# selector owns every validation and an invalid shard never runs a partial
-# roster green.
+# Routed on $(origin ...), NOT on the values. `make test SHARD=` assigns an
+# EMPTY value from the command line: testing the value would take the serial
+# branch and quietly run the whole roster for a caller who asked for a shard.
+# Testing the ORIGIN sends every explicit assignment — empty or not — to the
+# selector, which owns all validation and refuses an empty value by name.
 SHARD ?=
 SHARDS ?=
+shard_selector_given := $(strip \
+  $(filter command line environment,$(origin SHARD)) \
+  $(filter command line environment,$(origin SHARDS)))
 
 test:
-ifeq ($(strip $(SHARD)$(SHARDS)),)
+ifeq ($(shard_selector_given),)
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 else
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(PYTHON) tools/shard_test_roster.py --shard '$(SHARD)' --shards '$(SHARDS)'

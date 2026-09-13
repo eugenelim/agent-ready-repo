@@ -2683,11 +2683,18 @@ def _shard_matrix_errors(text: str) -> list[str]:
     # comments explain the contract and contain `SHARDS=4` in prose; a
     # whole-file search matches the backtick-quoted comment first and compares
     # the matrix against a literal nothing executes.
-    shards_match = None
-    for scalar in _shard_workflow_run_scalars(text):
-        shards_match = re.search(r"SHARDS=(\S+)", scalar)
-        if shards_match is not None:
-            break
+    # Read SHARDS= from the ONE `make test` scalar, not the first scalar that
+    # happens to contain the token: an unrelated earlier step containing
+    # `SHARDS=4` would otherwise satisfy this check while the real command ran
+    # `SHARDS=3`, leaving a shard unrun with every job green.
+    make_test = [
+        scalar
+        for scalar in _shard_workflow_run_scalars(text)
+        if re.search(r"(?m)^\s*make\s+test(\s|$)", scalar)
+    ]
+    if len(make_test) != 1:
+        return [f"expected exactly one `make test` run scalar, found {len(make_test)}"]
+    shards_match = re.search(r"SHARDS=(\S+)", make_test[0])
     if matrix_match is None:
         return ["no shard matrix found"]
     if shards_match is None:
@@ -2745,7 +2752,9 @@ def _shard_roster_leaks(scalars: list[str]) -> list[str]:
             leaks.append(f"invokes pytest: {scalar!r}")
         if re.search(r"test_[A-Za-z0-9_]*\.py", scalar):
             leaks.append(f"names a test file: {scalar!r}")
-        if re.search(r"(^|[\s'\"=/])tests/", scalar):
+        # With OR without a trailing slash: `make check packs/core/tests` names
+        # a suite just as `tests/` does, and requiring the slash let it through.
+        if re.search(r"(^|[\s'\"=/])tests(/|\s|$)", scalar):
             leaks.append(f"names a suite directory: {scalar!r}")
     return leaks
 
@@ -2822,3 +2831,122 @@ def test_shard_expansion_passes_no_print_directory() -> None:
     with mock.patch.object(shard.subprocess, "run", fake_run):
         shard.roster_lines()
     assert "--no-print-directory" in captured["argv"], captured["argv"]
+
+
+def test_shard_refuses_combined_force_recipe_prefixes() -> None:
+    """`@+cmd` forces execution under -n exactly as `+cmd` does."""
+    shard = _shard_module()
+    for prefix in ("+", "@+", "-+", "+@", "@-+"):
+        makefile_text = (
+            "override define run-test-suite\necho safe\nendef\n"
+            f"test-unleased:\n\t{prefix}echo observable\n"
+        )
+        make_run = mock.Mock()
+        with (
+            mock.patch.object(shard.subprocess, "run", make_run),
+            unittest.TestCase().assertRaises(shard.RosterError),
+        ):
+            shard.roster_lines(makefile_text)
+        assert make_run.call_args_list == [], prefix
+
+    # `@` and `-` alone do NOT force execution and must stay allowed, or the
+    # refusal would reject the roster's own silenced guard lines.
+    allowed = (
+        "override define run-test-suite\n@echo safe\n-echo safe\nendef\n"
+        "test-unleased:\n\t$(call run-test-suite)\n"
+    )
+    with mock.patch.object(
+        shard.subprocess,
+        "run",
+        return_value=subprocess.CompletedProcess(["make"], 0, stdout="", stderr=""),
+    ):
+        shard.roster_lines(allowed)
+
+
+def test_shard_pytest_shape_outranks_a_precondition_substring() -> None:
+    """A suite whose PATH contains a precondition marker is still work.
+
+    Otherwise it leaves the union's work multiset and runs in every shard
+    instead of exactly one -- a suite that is over-run and under-proved at once.
+    """
+    shard = _shard_module()
+    line = "python3 -m pytest tools/repo/editable_install_guard.py -q"
+    assert shard.classify(line) == "work"
+    # The real precondition, which is not a pytest invocation, still classifies.
+    assert shard.classify("python3 tools/repo/editable_install_guard.py") == "precondition"
+
+
+def test_shard_matrix_check_reads_only_the_make_test_scalar() -> None:
+    """An unrelated step mentioning SHARDS= cannot satisfy the matrix check."""
+    text = SHARD_WORKFLOW.read_text(encoding="utf-8")
+    decoyed = text.replace(
+        "      - name: make test\n",
+        "      - name: decoy\n        run: echo SHARDS=4\n\n      - name: make test\n",
+        1,
+    ).replace("make test SHARD=${{ matrix.shard }} SHARDS=4", "make test SHARD=${{ matrix.shard }} SHARDS=3", 1)
+    assert decoyed != text
+    assert _shard_matrix_errors(decoyed) != []
+
+
+def test_shard_roster_leak_detector_catches_slashless_suite_paths() -> None:
+    """A suite directory named without a trailing slash is still a leak."""
+    assert _shard_roster_leaks(["make check packs/core/tests"])
+    assert _shard_roster_leaks(["make check tests"])
+    # And the legitimate shipped steps still read clean.
+    assert _shard_roster_leaks(["python -m pip install pytest -r tools/requirements.txt"]) == []
+    assert _shard_roster_leaks(["npm ci --prefix docs-site"]) == []
+
+
+def test_shard_child_environment_cannot_reselect_a_shard() -> None:
+    """A roster command that runs `make test` must not inherit the selector.
+
+    Regression: run 34789473362 shard 4 recursed until killed at its timeout,
+    producing no output. Make exports command-line variables through MAKEFLAGS,
+    so the Makefile harnesses in this very file re-entered the sharded branch.
+    """
+    shard = _shard_module()
+    hostile = {
+        "SHARD": "4",
+        "SHARDS": "4",
+        "MAKEFLAGS": "w -- SHARD=4 SHARDS=4 FOO=keep",
+        "PATH": os.environ.get("PATH", ""),
+    }
+    with mock.patch.dict(os.environ, hostile, clear=True):
+        env = shard.child_environment()
+    assert "SHARD" not in env
+    assert "SHARDS" not in env
+    assert "SHARD=4" not in env["MAKEFLAGS"]
+    assert "SHARDS=4" not in env["MAKEFLAGS"]
+    # Unrelated MAKEFLAGS content survives — this scrubs the selector, not the
+    # caller's whole Make configuration.
+    assert "FOO=keep" in env["MAKEFLAGS"]
+    assert "w" in env["MAKEFLAGS"].split()
+    assert env[shard.REENTRY_MARKER] == "1"
+
+
+def test_shard_refuses_to_run_nested_inside_another_shard() -> None:
+    """Residual nesting fails immediately rather than hanging."""
+    shard = _shard_module()
+    recorder = _ShardRecordingExecutor()
+    with mock.patch.dict(os.environ, {shard.REENTRY_MARKER: "1"}):
+        result = shard.main(["--shard", "1", "--shards", "2"], executor=recorder)
+    assert result != 0
+    assert recorder.calls == []
+
+
+def test_shard_executor_and_expansion_both_use_the_scrubbed_environment() -> None:
+    """Both the dry run and every work unit run with the selector stripped."""
+    shard = _shard_module()
+    seen: list[dict[str, str]] = []
+
+    def fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        seen.append(kwargs.get("env") or {})
+        return subprocess.CompletedProcess(args[0] if args else [], 0, stdout="", stderr="")
+
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard.roster_lines()
+        shard._default_executor("true", shell=True, cwd=REPO_ROOT, check=False)
+    assert len(seen) == 2
+    for env in seen:
+        assert "SHARD" not in env and "SHARDS" not in env
+        assert env.get(shard.REENTRY_MARKER) == "1"
