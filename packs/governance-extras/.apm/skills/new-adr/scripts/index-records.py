@@ -17,12 +17,12 @@ from __future__ import annotations
 
 import argparse
 import os
-import tempfile
 import pathlib
 import re
 import stat
 import subprocess
 import sys
+import tempfile
 import urllib.parse
 
 # Git reads these from the environment and would answer for another repository.
@@ -353,7 +353,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         if current == generated:
             return 0
-        for number, (old, new) in enumerate(zip(current.splitlines(), generated.splitlines()), 1):
+        for number, (old, new) in enumerate(
+                # strict=False on purpose: a length mismatch is reported by the
+                # branch below, after the first differing line has been named.
+                zip(current.splitlines(), generated.splitlines(), strict=False), 1):
             if old != new:
                 _warn(f"{target}: line {number} differs\n  on disk:   {old}\n"
                       f"  generated: {new}\n"
@@ -381,12 +384,12 @@ def main(argv: list[str] | None = None) -> int:
         # a hand-written one. Keep an existing target's mode; otherwise use the
         # umask-derived mode a normal create would have produced.
         if mode is not None:
-            os.chmod(scratch, stat.S_IMODE(mode))
+            pathlib.Path(scratch).chmod(stat.S_IMODE(mode))
         else:
             umask = os.umask(0)
             os.umask(umask)
-            os.chmod(scratch, 0o666 & ~umask)
-        os.replace(scratch, target)
+            pathlib.Path(scratch).chmod(0o666 & ~umask)
+        pathlib.Path(scratch).replace(target)
     except (OSError, UnicodeEncodeError) as error:
         if scratch is not None:
             scratch.unlink(missing_ok=True)

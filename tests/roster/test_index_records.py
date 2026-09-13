@@ -3,11 +3,19 @@
 Materialized unchanged from docs/specs/index-table-generation/plan.md
 ## Construction tests, per the tdd-stubs stub-to-EXECUTE handoff.
 """
-import importlib.util, pathlib, re, sys, urllib.parse
+import importlib.util
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import urllib.parse
+
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py"
+
 
 def _load():
     spec = importlib.util.spec_from_file_location("index_records_adr", SCRIPT)
@@ -16,10 +24,12 @@ def _load():
     spec.loader.exec_module(mod)
     return mod
 
+
 def _write(d, name, h1, status="Accepted", date="2026-01-01"):
     (d / name).write_text(
         f"# {h1}\n\n- **Status:** {status}\n- **Date:** {date}\n",
         encoding="utf-8", newline="\n")
+
 
 def test_rows_are_ordered_by_ordinal_not_filesystem_order(tmp_path):
     """AC1: shuffled creation order still renders ascending by ordinal."""
@@ -29,6 +39,7 @@ def test_rows_are_ordered_by_ordinal_not_filesystem_order(tmp_path):
     ordinals = [r.split("|")[1].strip() for r in rows if r.startswith("| 0")]
     assert ordinals == ["0001", "0009", "0010"]
 
+
 def test_a_non_record_entry_yields_no_row(tmp_path):
     """AC2: a .md file whose H1 is not the record form contributes nothing."""
     _write(tmp_path, "0001-r.md", "ADR-0001: Real")
@@ -36,6 +47,7 @@ def test_a_non_record_entry_yields_no_row(tmp_path):
     rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
             if r.startswith("| 0")]
     assert len(rows) == 1
+
 
 def test_a_qualifying_clause_is_stripped_from_status(tmp_path):
     """AC5: `Accepted — partially amended: ...` renders as `Accepted`."""
@@ -45,6 +57,7 @@ def test_a_qualifying_clause_is_stripped_from_status(tmp_path):
     assert rows, "no record row rendered"
     row = rows[0]
     assert row.split("|")[3].strip() == "Accepted"
+
 
 @pytest.mark.parametrize("title,shown", [
     ("Choose A | B", r"Choose A \| B"),
@@ -57,6 +70,7 @@ def test_a_delimiter_bearing_title_renders_one_escaped_cell(tmp_path, title, sho
     assert rows, "no record row rendered"
     row = rows[0]
     assert row.split(" | ")[1] == f"[{shown}](0001-r.md)"
+
 
 def test_a_delimiter_bearing_filename_yields_a_resolving_link(tmp_path):
     """AC6, filename half: the link destination survives escaping and resolves."""
@@ -75,13 +89,13 @@ def test_a_delimiter_bearing_filename_yields_a_resolving_link(tmp_path):
     assert urllib.parse.unquote(dest) == name
     assert (tmp_path / name).exists()
 
-import os, subprocess
 
 def _git_repo(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.email", "t@example.invalid"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path, check=True)
     return tmp_path
+
 
 def test_header_date_wins_over_git_history(tmp_path):
     """AC7: a present Date field is used even inside a git repository."""
@@ -95,6 +109,7 @@ def test_header_date_wins_over_git_history(tmp_path):
             if r.startswith("| 0")]
     assert rows, "no record row rendered"
     assert "2020-02-02" in rows[0]
+
 
 def test_absent_header_date_falls_back_to_first_commit_date(tmp_path):
     """AC8: the fallback is the file's add date, not today."""
@@ -110,6 +125,7 @@ def test_absent_header_date_falls_back_to_first_commit_date(tmp_path):
     row = rows[0]
     assert row.split("|")[4].strip() == "2024-04-04"
 
+
 def test_absent_date_without_git_warns_and_leaves_the_cell_empty(tmp_path, capsys):
     """AC9 + AC10: empty cell, and a warning naming file and field."""
     (tmp_path / "0001-r.md").write_text("# ADR-0001: T\n\n- **Status:** Accepted\n",
@@ -121,10 +137,12 @@ def test_absent_date_without_git_warns_and_leaves_the_cell_empty(tmp_path, capsy
     err = capsys.readouterr().err
     assert "0001-r.md" in err and "Date" in err
 
+
 def test_an_empty_directory_renders_the_type_sentinel(tmp_path):
     """AC14: the adopter's first-install state is a sentinel, not an empty table."""
     out = _load().render(tmp_path, record_type="adr")
     assert "<!-- no ADRs yet -->" in out
+
 
 @pytest.mark.parametrize("kind,heading", [("ADR", "Architecture Decision Records"),
                                           ("RFC", "Requests For Comments")])
@@ -133,12 +151,14 @@ def test_the_record_type_is_inferred_when_not_supplied(tmp_path, kind, heading):
     _write(tmp_path, "0001-r.md", f"{kind}-0001: T")
     assert heading in _load().render(tmp_path)
 
+
 def test_a_record_without_status_warns_and_still_renders(tmp_path, capsys):
     """AC11 + AC12: a malformed record never costs the whole index."""
     (tmp_path / "0001-r.md").write_text("# ADR-0001: T\n", encoding="utf-8", newline="\n")
     out = _load().render(tmp_path, record_type="adr")
     assert any(line.startswith("| 0001") for line in out.splitlines())
     assert "0001-r.md" in capsys.readouterr().err
+
 
 FROZEN = ("docs/adr", "docs/rfc", "docs/specs", "agent-ready-repo", "eugenelim")
 
@@ -178,7 +198,8 @@ def test_an_unfilled_date_placeholder_is_not_a_date(tmp_path):
 
 def _main(*argv):
     """Run the CLI in-process and return (exit_code, stderr)."""
-    import contextlib, io
+    import contextlib
+    import io
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
         code = _load().main(list(argv))
@@ -188,7 +209,7 @@ def _main(*argv):
 def test_check_writes_nothing_and_reports_zero_when_the_index_matches(tmp_path):
     """AC16 + AC17."""
     _write(tmp_path, "0001-r.md", "ADR-0001: T")
-    assert _main(str(tmp_path)) [0] == 0
+    assert _main(str(tmp_path))[0] == 0
     before = (tmp_path / "README.md").read_bytes()
     code, _ = _main("--check", str(tmp_path))
     assert code == 0
@@ -208,14 +229,13 @@ def test_check_reports_nonzero_and_names_the_first_differing_line(tmp_path):
 
 def test_an_index_target_that_is_a_symlink_is_refused_and_named(tmp_path):
     """AC13 at the write path: the reader refusing a link is not enough."""
-    import os
     victim = tmp_path / "victim.txt"
     victim.write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
     recs = tmp_path / "recs"
     recs.mkdir()
     _write(recs, "0001-r.md", "ADR-0001: T")
     try:
-        os.symlink(victim, recs / "README.md")
+        pathlib.Path(recs / "README.md").symlink_to(victim)
     except OSError:
         pytest.skip("symlinks unavailable")
     code, err = _main(str(recs))
@@ -267,13 +287,12 @@ def test_a_record_heading_without_a_usable_ordinal_is_warned_about(tmp_path):
 
 def test_a_symlinked_record_directory_is_refused(tmp_path):
     """Resolving a symlinked record directory would index one tree and write another."""
-    import os
     victim = tmp_path / "victimdir"
     victim.mkdir()
     (victim / "README.md").write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
     _write(victim, "0001-r.md", "ADR-0001: X")
     try:
-        os.symlink(victim, tmp_path / "linkdir")
+        pathlib.Path(tmp_path / "linkdir").symlink_to(victim)
     except OSError:
         pytest.skip("symlinks unavailable")
     code, err = _main("--type", "adr", str(tmp_path / "linkdir"))
@@ -284,14 +303,13 @@ def test_a_symlinked_record_directory_is_refused(tmp_path):
 
 def test_an_ordinary_directory_under_a_symlinked_ancestor_still_works(tmp_path):
     """Only the supplied directory is checked: macOS resolves /var through a link."""
-    import os
     real, link = tmp_path / "real", tmp_path / "link"
     real.mkdir()
     inner = real / "recs"
     inner.mkdir()
     _write(inner, "0001-r.md", "ADR-0001: Fine")
     try:
-        os.symlink(real, link)
+        pathlib.Path(link).symlink_to(real)
     except OSError:
         pytest.skip("symlinks unavailable")
     assert _main(str(link / "recs"))[0] == 0
@@ -351,14 +369,13 @@ def test_angle_brackets_inside_a_code_span_are_left_alone(tmp_path):
 
 def test_a_symlinked_scratch_path_cannot_be_written_through(tmp_path):
     """The first atomic-write fix created the unguarded twin of the target check."""
-    import os
     victim = tmp_path / "victim.txt"
     victim.write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
     recs = tmp_path / "recs"
     recs.mkdir()
     _write(recs, "0001-r.md", "ADR-0001: X")
     try:
-        os.symlink(victim, recs / ".README.md.index-records")
+        pathlib.Path(recs / ".README.md.index-records").symlink_to(victim)
     except OSError:
         pytest.skip("symlinks unavailable")
     assert _main(str(recs))[0] == 0

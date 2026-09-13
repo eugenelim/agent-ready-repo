@@ -29,7 +29,6 @@ import pytest
 # pythonpath already pins `packages/agentbundle` for this suite, and inserting
 # it again leaks a packaged source tree into the collecting process, which
 # tools/test_import_time_path_leaks.py refuses.
-
 from agentbundle.build.self_host import _runtime_projections  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
