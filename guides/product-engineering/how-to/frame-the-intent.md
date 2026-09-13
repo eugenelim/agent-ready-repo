@@ -325,6 +325,8 @@ Next gate: <gate id> — needs <what>
 ## Where this leads
 
 **Done with this step:** You can move on when the outcome names a customer change rather than something you could build.
+
+`frame-domain` grounds its real-world-activity half by wrapping `desk-research` in applied mode, so you do not run that yourself. If the domain is unfamiliar, the [`desk-research` guidebook](../../desk-research/how-to/scope-the-question.md) is the same evidence pass run deliberately, and its output is a better input than an inline one.
 <!-- rung: authored -->
 
 Stage 1 of four, and the pack's first gate. The slug set here follows the work to the end — through decomposition, into the spec directory the `core` guidebook creates, and out again at closeout.

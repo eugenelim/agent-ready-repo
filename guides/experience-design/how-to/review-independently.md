@@ -98,7 +98,7 @@ The journey then invokes the read-only `experience-reviewer` in an independent c
 
 This closes the `experience-design` thread. The reviewed design set is the input to the build loop — where engineering picks it up.
 
-**Next:** [P3 · Build it](../../README.md#p3--build-it--2-hours), after the independent findings are resolved.
+**Next:** [Write the contract](../../core/how-to/write-the-contract.md) — in the `core` guidebook, once the independent findings are resolved. The reviewed design set is what the build loop specs against; each screen brief becomes acceptance criteria rather than being restated.
 <!-- rung: authored -->
 
 **Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.

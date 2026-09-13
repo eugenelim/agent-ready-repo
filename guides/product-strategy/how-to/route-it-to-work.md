@@ -244,7 +244,7 @@ type: content-strategy
 **Done with this step:** You are done when a product engineer could start on each gap entry without asking what it means.
 <!-- rung: authored -->
 
-Stage 3 of three. The gap entries appear in `workspace.toml`, where the product-engineering pack picks them up.
+Stage 3 of three, and it hands to two packs rather than one. The gap entries appear in `workspace.toml`, where the `product-engineering` pack picks them up. The UX and content strategies are read by the `experience-design` pack — `ux-strategy.md` sits upstream of [Map the customer journey](../../experience-design/how-to/map-the-customer-journey.md), and `content-strategy.md` upstream of the content brief in [Derive the screen flow](../../experience-design/how-to/derive-the-screen-flow.md).
 
 **Next:** [Frame the intent](../../product-engineering/how-to/frame-the-intent.md) — in the `product-engineering` guidebook. Each gap entry this step queued arrives there as a problem to frame; the gap slug becomes the intent slug, which is how the thread stays traceable across the two packs.
 <!-- rung: authored -->

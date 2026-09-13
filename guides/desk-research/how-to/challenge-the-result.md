@@ -166,6 +166,8 @@ Compare the competing explanations here as hypotheses, and score each against th
 
 Stage 3 of four. For a single-session question this is the last step.
 
+Evidence is an input to a decision, not a decision. A survey grounding a product question feeds [Frame the intent](../../product-engineering/how-to/frame-the-intent.md) in the `product-engineering` guidebook; one grounding a market question feeds [Read the situation](../../product-strategy/how-to/read-the-situation.md) in `product-strategy`, where its findings are cited as sources.
+
 **Next:** [Run it as a project](run-it-as-a-project.md).
 <!-- rung: authored -->
 

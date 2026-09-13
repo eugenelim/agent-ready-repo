@@ -306,6 +306,8 @@ Show the current design-thread status.
 
 This is stage 1 of the `experience-design` thread. Four steps remain before the design set is ready for build planning.
 
+If your organisation has run [Route it to work](../../product-strategy/how-to/route-it-to-work.md) in the `product-strategy` guidebook, `ux-strategy.md` already exists and is upstream of this step — read it before mapping, rather than deriving a second vision here.
+
 **Next:** [Derive the screen flow](derive-the-screen-flow.md).
 <!-- rung: authored -->
 
