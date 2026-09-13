@@ -574,6 +574,70 @@ asserting a flat 32 that the shipped fixtures contradict. The test that checks
 the arithmetic was updated to match and to require the explanation, so the
 procedure cannot silently drift back to a number that is wrong.
 
+## 2026-09-13 — T7: release surface, and the dependency-surface comparison
+
+### The no-new-dependency check, against T0's enumerated surfaces
+
+Each of the five surfaces T0 named was re-measured, not assumed:
+
+| # | Surface | Before | After |
+| --- | --- | --- | --- |
+| 1 | `pack.toml` → `[pack.dependencies]` | Table absent | Table absent — 0 occurrences |
+| 2 | `pack.toml` → `[pack.first-value].prerequisites` | `[]` | `[]` |
+| 3 | `.claude-plugin/plugin.json` | No dependency field | No dependency field |
+| 4 | Skill frontmatter `allowed-tools` / `metadata` | Unused across all 9 skills | Unused — still only `name` and `description` |
+| 5 | Shipped Python import surface | Empty | Empty — **0** `.py` files and **0** `scripts/` directories under `.apm/` |
+
+**No newly required dependency.**
+
+Surface 5 needed care rather than a raw count. `find packs/frontend-engineering
+-name '*.py'` now returns 9 files, which looks like a change until you see they
+are all under `tests/`, outside the `.apm/` runtime export boundary and therefore
+not shipped. The correct measurement is scoped to `.apm/`, and there it is still
+zero. Their imports are `re`, `pathlib`, `__future__`, the local sibling module,
+and `pytest` — already the repository's test runner, not a new dependency.
+
+This is what the plan's "no script is added to the pack" decision bought: the
+check is a file-existence question under one directory rather than a judgement
+about what some script imports.
+
+### Release surface
+
+`pack.toml` and `.claude-plugin/plugin.json` both moved 0.2.2 → **0.2.3**, patch
+per `packs/AGENTS.md` § *Version bump rule* — changed content, and no new
+primitive, since this adds references and fixtures to an existing skill rather
+than a new skill, agent, command or hook. `origin/main` was confirmed at 0.2.2
+first, so the bump does not collide with an unpushed one.
+
+The changelog entry is free-standing directly beneath `[Unreleased]`, not nested
+inside it, and carries a `### Highlights` block because the release changes what
+an adopter can do. The `/now/` projection was therefore regenerated in the same
+change: `web/src/lib/now-highlights.generated.json` moved from 138 released
+highlights in 98 groups to **141 in 99**, and
+`test_build_site_routing.py -k now` passes, which is the check that fails on a
+changelog edit committed without it.
+
+Eval harness: three trigger queries added to `eval_queries.json` (23 → 26) and a
+`rendered-page-inspection` behavioural eval added to `evals.json` (1 → 2 evals),
+with seven assertions covering the capture set, the recorded fields, route
+exclusion, severity derivation, the manifest entry and the named skip.
+
+### Correcting the T3 self-host note
+
+T3 recorded that this pack has no in-repo projection. That is true of **skill**
+projections and remains the reason the earlier self-host runs produced no diff.
+It is not true in general: self-host after the version bump rewrote
+`.claude-plugin/marketplace.json`, which carries each pack's version. So the pack
+does have exactly one in-repo projection, and it is the one a version bump
+touches. A content-only change leaves it alone; a release does not.
+
+**Gates:** `catalogue lint --root . --deep` exit 0 across the catalogue (70
+findings, all pre-existing warnings in other packs); for this pack, one finding —
+`CAT-S003` at **829** body lines against the 1,000 hard ceiling, **171 of
+headroom left**, in the warn tier the pack already occupied before this delivery.
+`catalogue verify --root .` ok. `lint-pack-test-boundary` 8 of 8. Suite: 168
+passed in 0.47s.
+
 ## 2026-09-13 — workspace registration
 
 The spec was in no `workspace.toml` entry, so canonical preflight returned

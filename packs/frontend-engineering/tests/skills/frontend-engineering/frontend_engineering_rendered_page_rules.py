@@ -62,6 +62,10 @@ def severity_by_class(markdown: str) -> dict[str, str]:
     return {row[0]: row[1] for row in table_rows(markdown, "Severity by finding class")}
 
 
+def finding_content_rules(markdown: str) -> dict[str, str]:
+    return {row[0]: row[1] for row in table_rows(markdown, "Finding content")}
+
+
 def resolution_rules(markdown: str) -> dict[str, str]:
     return {row[0]: row[1] for row in table_rows(markdown, "Severity resolution")}
 

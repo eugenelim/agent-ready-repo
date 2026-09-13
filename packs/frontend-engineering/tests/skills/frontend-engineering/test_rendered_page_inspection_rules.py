@@ -13,7 +13,10 @@ import pytest
 
 from frontend_engineering_rendered_page_rules import (
     SEVERITIES,
+    finding_content_rules,
+    inspection_section,
     read_rules,
+    read_skill,
     resolution_rules,
     resolve_severity,
     severity_by_class,
@@ -107,3 +110,47 @@ def test_a_class_row_without_a_severity_fails_the_completeness_check(
 
     with pytest.raises(AssertionError, match="has no severity"):
         check_every_class_has_one_severity(mutated)
+
+
+def test_a_finding_names_the_reader_visible_failure(rules_markdown: str) -> None:
+    """Verifies: each reported finding names the reader-visible failure."""
+    assert finding_content_rules(rules_markdown).get("finding-names-failure") == (
+        "required"
+    )
+    # Every class also carries the failure in reader's words, which is the
+    # vocabulary a finding names it from.
+    for row in table_rows(rules_markdown, "Severity by finding class"):
+        assert len(row) == 3 and len(row[2]) > 20, (
+            f"finding class {row[0]!r} does not describe its reader-visible failure"
+        )
+    # The specific ask, not the bare word "what", which appears throughout the
+    # file and would make this check unable to fail.
+    assert "the reader-visible failure is" in inspection_section(read_skill()), (
+        "the skill's judgement step no longer asks what the failure is"
+    )
+
+
+def test_a_finding_names_where_on_the_page_it_appears(rules_markdown: str) -> None:
+    """Verifies: each reported finding names where on the page that failure
+    appears.
+
+    Asserted separately from the failure itself: naming the problem and naming
+    its location are two things a report can do independently, and a finding
+    nobody can locate cannot be acted on.
+    """
+    assert finding_content_rules(rules_markdown).get("finding-names-location") == (
+        "required"
+    )
+    assert "on the page it appears" in inspection_section(read_skill()), (
+        "the skill's judgement step no longer asks where the failure appears"
+    )
+
+
+def test_a_finding_never_reports_a_difference_from_a_previous_run(
+    rules_markdown: str,
+) -> None:
+    """The spec's guardrail: findings name a reader-visible failure, never a
+    difference from before. A baseline would make a deliberate redesign noisy."""
+    assert finding_content_rules(rules_markdown).get(
+        "finding-names-difference-from-previous-run"
+    ) == "never"

@@ -26,6 +26,27 @@ a capture without one yields no finding at all. A capture taken after scrolling
 shows content above the fold leaving the viewport, which is what scrolling is;
 that is not this class.
 
+## Finding content
+
+Every reported finding says two things, and a report missing either is not a
+finding.
+
+| Rule | Value |
+| --- | --- |
+| finding-names-failure | required |
+| finding-names-location | required |
+| finding-names-difference-from-previous-run | never |
+
+**What** is the reader-visible failure, named from the class table above —
+"the announcement bar covers the page heading", not "something looks off".
+**Where** is the place on the page a reader would meet it — the element, the
+region, or the position. A finding nobody can locate cannot be fixed or
+dismissed, so it is not actionable and does not count.
+
+A finding never reports a difference from a previous run. This step holds no
+baseline and compares against no stored image: a deliberate redesign produces
+nothing.
+
 ## Severity resolution
 
 | Rule | Value |
