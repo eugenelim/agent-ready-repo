@@ -2939,35 +2939,35 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
                 "form": "canonical",
             }
         )
-    for membership in legacy_memberships:
-        path = _legacy_canonical_alias(membership.entry)
+    for legacy_membership in legacy_memberships:
+        path = _legacy_canonical_alias(legacy_membership.entry)
         if (
-            membership.collection not in _SELECTED_SPEC_COLLECTIONS
+            legacy_membership.collection not in _SELECTED_SPEC_COLLECTIONS
             or path not in occurrences_by_path
         ):
             continue
         occurrences_by_path[path].append(
             {
                 "canonical_artifact_path": path,
-                "initiative": membership.ini_slug or None,
-                "collection": membership.collection,
-                "entry_index": membership.entry_index,
+                "initiative": legacy_membership.ini_slug or None,
+                "collection": legacy_membership.collection,
+                "entry_index": legacy_membership.entry_index,
                 "form": "legacy",
             }
         )
-    for membership in parse_blocked_memberships:
-        path = membership.canonical_artifact_path
+    for blocked_membership in parse_blocked_memberships:
+        path = blocked_membership.canonical_artifact_path
         if (
-            membership.collection not in _SELECTED_SPEC_COLLECTIONS
+            blocked_membership.collection not in _SELECTED_SPEC_COLLECTIONS
             or path not in occurrences_by_path
         ):
             continue
         occurrences_by_path[path].append(
             {
                 "canonical_artifact_path": path,
-                "initiative": membership.ini_slug or None,
-                "collection": membership.collection,
-                "entry_index": membership.entry_index,
+                "initiative": blocked_membership.ini_slug or None,
+                "collection": blocked_membership.collection,
+                "entry_index": blocked_membership.entry_index,
                 "form": "parse-blocked",
             }
         )
