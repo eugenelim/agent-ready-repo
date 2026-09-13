@@ -32,8 +32,7 @@ def run_git(arguments: list[str | pathlib.Path], directory: pathlib.Path) -> Non
         cwd=directory,
         check=True,
         stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         encoding="utf-8",
     )
@@ -390,12 +389,12 @@ def test_check_refuses_entry_that_cannot_be_classified(
     records = tmp_path / "records"
     records.mkdir()
     (records / "0001-a.md").touch()
-    os.chmod(records, 0o600)
+    pathlib.Path(records).chmod(0o600)
     try:
         assert run_check(records) == 1
         assert "cannot classify entry" in capsys.readouterr().err
     finally:
-        os.chmod(records, 0o700)
+        pathlib.Path(records).chmod(0o700)
 
 
 def test_check_refuses_a_dangling_record_symlink(
