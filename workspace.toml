@@ -384,6 +384,13 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
+  # RFC-0096 Wave 7c slice 1 of 2, registered 2026-09-13 after ADR-0114 chose the
+  # post-mutation-invariant route. Read-only: it resolves whether any membership
+  # points at a selected spec, including duplicate and legacy-alias forms. Slice 2
+  # (the prune operation) composes it, and RFC-0096's 2026-09-13 Errata requires it
+  # to re-verify each carved-out candidate before any deletion. Draft; requires
+  # human approval before dispatch.
+  {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
   # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and the
   # owner-authorized fourth adversarial round. It remains Draft and requires
