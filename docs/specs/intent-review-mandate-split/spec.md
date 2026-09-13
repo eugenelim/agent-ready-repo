@@ -1,6 +1,6 @@
 # Spec: Intent review mandate split
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0109, RFC-0099
@@ -389,13 +389,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   hook carrying both a kill condition and its triggering activity.
 - [ ] A recorded manual-QA run observes that the same mode emits no Blocker,
   Concern, Nit, rewrite, or "consider also" item on that dispatch.
-- [ ] A recorded manual-QA run dispatches three intents against the rebuilt
-  projection, each carrying no decomposition, and observes that only the third
-  emits `MALFORMED(children)`: one at the leaf level, one above the leaf at
-  `Draft`, and one above the leaf at `Accepted`. The first two are the states
-  the authoring pipeline produces and must pass; the third is the condition's
-  reachable failing state. A run whose cases produce the same output settles
-  nothing, because the repair is the difference between them.
+- [ ] A recorded manual-QA run dispatches four intents against the rebuilt
+  projection, each carrying no decomposition, and observes that only the last
+  emits `MALFORMED(children)`: one at the leaf level at `Draft`, one at the leaf
+  level at `Accepted`, one above the leaf at `Draft`, and one above the leaf at
+  `Accepted`. The first three are states the authoring pipeline produces and
+  must pass; the last is the condition's reachable failing state. Each of the
+  first three differs from it in exactly one field, so its silence is
+  attributable: the leaf-at-`Accepted` case isolates the level and the
+  above-leaf-at-`Draft` case isolates the status. A set whose passing cases
+  differ from the failing one in two fields at once settles nothing, because
+  either field alone would explain the silence.
 - [ ] A recorded manual-QA run observes the unplaceable-level cases against
   fixtures that satisfy every other trigger of the absence branch — no listed
   decomposition, and `Status: Accepted` — one declaring no level and one

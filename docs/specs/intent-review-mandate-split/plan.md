@@ -1,7 +1,7 @@
 # Plan: Intent review mandate split
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, version
   bump rule, portability rule), `packs/AGENTS.local.md` (projection ownership
   table, release pipeline), `docs/CONVENTIONS.md` § *Superseding a frozen
@@ -686,7 +686,8 @@ output and the revision that produced them, and each matches:
 
 | Fixture | Expected |
 | --- | --- |
-| leaf level, no decomposition | no token |
+| leaf level, `Draft`, no decomposition | no token |
+| leaf level, `Accepted`, no decomposition | no token |
 | above the leaf, `Draft`, no decomposition | no token |
 | above the leaf, `Accepted`, no decomposition | `MALFORMED(children)` |
 | no level declared, `Accepted`, no decomposition | no token |
