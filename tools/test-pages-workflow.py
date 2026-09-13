@@ -93,7 +93,13 @@ WEB_PACKAGE_JSON = "web/package.json"
 # What `test:e2e:gate` must BE. An explicit allowlist of read-only specs: the two
 # excluded specs write PNGs into tracked `docs/specs/**` paths, and a glob or an
 # exclusion flag would let a newly added writing spec join required CI silently.
-EXPECTED_GATE_SCRIPT = "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts"
+# `guidebook-walk.spec.ts` is read-only -- it navigates built pages and measures
+# geometry -- so it joins the allowlist by the deliberate edit the pin exists to
+# require, rather than by a glob.
+EXPECTED_GATE_SCRIPT = (
+    "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts "
+    "guidebook-walk.spec.ts"
+)
 
 
 def script_is_pinned(script: str) -> bool:

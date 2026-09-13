@@ -21,12 +21,21 @@ the same change. The nav-ineligible set is pinned by its inventory test.
 - Prefer in-tree link targets: links out of `guides/` render as GitHub blob URLs
   and send readers off-site.
 
+## The guidebook step contract
+
+A guidebook step is a guide page carrying `order:` frontmatter inside a pack's
+guidebook, and every step must carry every obligation the contract enumerates.
+The contract is [`docs/guides/guidebook-step-contract.md`](../docs/guides/guidebook-step-contract.md)
+and `tools/lint-guidebook-steps.py` enforces it, reading its identifiers and
+label forms out of that file.
+
 ## Essential commands
 
 ```bash
 python3 tools/validate_guides.py
 python3 tools/check-guide-index.py
 python3 tools/lint-guide-titles.py
+python3 tools/lint-guidebook-steps.py guides/<pack>
 python3 tools/build-site.py
 ```
 

@@ -161,6 +161,45 @@ jobs:
             exit 1
           fi
 
+  guidebook-walk:
+    name: Guidebook steps agree across every surface
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Install tooling requirements
+        run: pip install -r tools/requirements.txt
+      # The step contract, checked against the source.
+      - name: Lint the guidebook step contract
+        run: |
+          set -euo pipefail
+          for book in guides/*/; do
+            if ls "$book"*/*.md >/dev/null 2>&1; then
+              python3 tools/lint-guidebook-steps.py "$book"
+            fi
+          done
+      # Then the same walk, checked against what actually rendered. A step
+      # states its position on five surfaces -- body, projected frontmatter,
+      # right-hand rail, mobile bar, sidebar entry -- each generated from the
+      # one before, so any single one can drift and the page still builds. The
+      # source lint cannot see that; only the built output can.
+      # The rendered sweep needs a built site, which needs Node. Without this
+      # step `make site-build` exits 127 -- command not found -- which reads as
+      # a build failure rather than a missing toolchain.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Build the site
+        run: |
+          set -euo pipefail
+          npm ci --prefix docs-site
+          make site-build
+      - name: Sweep every step against every surface that names it
+        run: python3 tools/check-guidebook-walk.py
+      - name: Self-test the sweep
+        run: python3 -m pytest tools/test_check_guidebook_walk.py -q
+
   lint-skill-spec:
     name: agentskills.io spec
     runs-on: ubuntu-latest

@@ -631,6 +631,17 @@ def _strip_guide_metadata(text: str) -> str:
         data["description"] = str(data["summary"]).strip()
         _TRANSFORM_COUNTS["summary_mapped"] += 1
 
+    # A guidebook step's position, carried into the projected page so the
+    # in-page navigation can say "Step 3 of 5" instead of "On this page". The
+    # source is the body's own declaration, so the heading, the sidebar number
+    # and the page text can never disagree. Non-steps carry neither field and
+    # keep the default heading.
+    position = _STEP_OF.search(body)
+    if position:
+        data = dict(data)
+        data["step"] = int(position.group(1))
+        data["steps"] = int(position.group(2))
+
     # Exclude None values so yaml.safe_dump doesn't emit `key: null` noise.
     cleaned = {
         k: v for k, v in data.items()
@@ -717,7 +728,8 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
         if path.suffix != ".md" or not path.is_file():
             continue
         rel_parts = list(path.relative_to(guides_root).parts)
-        fm = _parse_frontmatter(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+        fm = _parse_frontmatter(text)
 
         # A file directly under guides/ has no pack segment — the root README
         # belongs to the tree itself, not to a pack called "README.md".
@@ -752,11 +764,19 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             print(f"  note  {_relpath(path)}: {why}; mirrored but not in navigation",
                   file=sys.stderr)
 
+        # A guidebook step declares its own position in its body. That
+        # declaration -- not `order:` -- is what makes a page a step, because
+        # `order:` also carries a cross-kind reading thread (Atlassian's runs
+        # tutorial, how-to, reference, explanation) whose members are not steps
+        # and must not be numbered as if they were.
+        step = _declared_step(text)
+
         records.append({
             "source_path": path,
             "pack": pack,
             "kind": kind,
             "order": order,
+            "step": step,
             "title": title,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
@@ -799,6 +819,22 @@ _KIND_BUCKETS = (
     ("reference", "Reference"),
     ("explanation", "Explanation"),
 )
+
+
+
+_STEP_DECLARATION = re.compile(r"^\*\*Step (\d+) of \d+ — ", re.M)
+_STEP_OF = re.compile(r"^\*\*Step (\d+) of (\d+) — ", re.M)
+
+
+def _declared_step(text: str) -> int | None:
+    """The step number a guidebook page declares in its own body, if any.
+
+    Taken from the body rather than frontmatter so navigation and the page can
+    never disagree: the reader sees "Step 3 of 5" on the page and "3." in the
+    sidebar because both come from the same statement.
+    """
+    match = _STEP_DECLARATION.search(text)
+    return int(match.group(1)) if match else None
 
 
 def _guide_label(record: dict, baseline: dict) -> str:
@@ -869,9 +905,19 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 
         for rec in sorted((r for r in members if r["is_index"]), key=lambda r: r["slug"]):
             group_items.append(entry(rec))
-        for rec in sorted((r for r in members if r["order"] is not None and not r["is_index"]),
-                          key=lambda r: (r["order"], r["slug"])):
-            group_items.append(entry(rec))
+        # A guidebook step is numbered in the sidebar, because the run is flat
+        # and a reader otherwise sees consecutive siblings with nothing marking
+        # them as a sequence. The number comes from the page's own "Step N of M"
+        # declaration, so nav and body cannot disagree, and a page that never
+        # calls itself a step is left alone. Applied here rather than in
+        # `_guide_label` so pack index link text keeps the plain title.
+        ordered = sorted((r for r in members if r["order"] is not None and not r["is_index"]),
+                         key=lambda r: (r["order"], r["slug"]))
+        for rec in ordered:
+            item = entry(rec)
+            if rec.get("step") is not None:
+                item["label"] = f"{rec['step']}. {item['label']}"
+            group_items.append(item)
         for rec in sorted((r for r in members
                            if r["order"] is None and not r["is_index"] and r["kind"] is None),
                           key=lambda r: r["slug"]):
@@ -1053,13 +1099,68 @@ def _rewrite_changelog(text: str) -> str:
     return _strip_md_suffixes(result)
 
 
-def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
+
+def guidebook_index(repo_root: Path) -> dict[str, dict]:
+    """Map each pack to its guidebook's first step, when it ships one.
+
+    Built from the same inventory the sidebar uses, so the pack page, the
+    top-level anchor and the right-hand rail all name one walk and cannot
+    disagree about where it starts.
+    """
+    guides_root = repo_root / "guides"
+    if not guides_root.exists():
+        return {}
+    steps: dict[str, list[dict]] = {}
+    for record in build_guide_inventory(guides_root):
+        if record["nav_eligible"] and record["pack"] and record.get("step") is not None:
+            steps.setdefault(record["pack"], []).append(record)
+    index = {}
+    for pack, records in steps.items():
+        walk = sorted(records, key=lambda r: r["step"])
+        index[pack] = {
+            "slug": walk[0]["slug"],
+            "title": walk[0]["title"] or walk[0]["slug"].rsplit("/", 1)[-1],
+            "count": len(walk),
+        }
+    return index
+
+
+def _guidebook_banner(entry: dict) -> str:
+    """The line a pack page leads with when that pack ships a guidebook.
+
+    A reader who has just found the pack cannot find the walk: the pack README
+    says which skill to type first, which is useful only if you already know a
+    guided sequence exists. Nothing on the page said one did, and the guides
+    tree was reachable only through a link that left for GitHub.
+    """
+    return (
+        f"**New to this pack?** Walk the guidebook — {entry['count']} steps, "
+        f"starting at [{entry['title']}]({SITE_BASE}/{entry['slug']}/). "
+        "Each step shows what to type, what comes back, and what it writes.\n"
+    )
+
+
+def _rewrite_pack_readme(text: str, pack_src_path: Path,
+                         guidebook: dict | None = None) -> str:
     """Rewrite links in pack READMEs moved from packs/<slug>/README.md
     to docs-site/src/content/docs/packs/<slug>.md.
 
     Pack-home links (../other-pack/README.md) → base-qualified pack route.
     Other repository files, including files beside the README → GitHub URL.
+
+    When the pack ships a guidebook, a pointer to its first step is inserted
+    after the tagline. Generated rather than authored into each README so it
+    cannot drift from the walk it names, and so the pack sources stay portable
+    — the link is a site route that means nothing outside this site.
     """
+    if guidebook:
+        lines = text.splitlines(keepends=True)
+        cut = next(
+            (i for i, line in enumerate(lines)
+             if i > 0 and line.startswith(("---", "## "))),
+            len(lines),
+        )
+        text = "".join(lines[:cut]) + _guidebook_banner(guidebook) + "\n" + "".join(lines[cut:])
     packs_root = (REPO_ROOT / "packs").resolve()
     repo_root = REPO_ROOT.resolve()
 
@@ -2121,16 +2222,51 @@ def load_guide_baseline(path: Path) -> dict:
     return baseline
 
 
-def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
-    """Collate the guides tree and project it into the ``Guides`` sidebar group."""
+
+def project_guidebooks_group(records: list[dict], guide_groups: list[dict],
+                             baseline: dict) -> dict | None:
+    """Project the packs that ship a guidebook into a top-level anchor group.
+
+    The problem this removes: a reader on a pack page could not find the walk.
+    The guides tree is one group of two hundred entries nested among the packs,
+    so a guidebook's five steps were reachable only by scrolling to the right
+    pack and recognising five consecutive titles as a sequence. Nothing named
+    them, and nothing said a walk existed.
+
+    One entry per guidebook, pointing at its first step, placed above the pack
+    catalogue — because starting the walk is the thing most readers arriving
+    here want to do, and it had no anchor at all.
+    """
+    labels = {g["dir"]: g.get("label", g["dir"]) for g in guide_groups if g.get("dir")}
+    steps: dict[str, list[dict]] = {}
+    for record in records:
+        if record["nav_eligible"] and record["pack"] and record.get("step") is not None:
+            steps.setdefault(record["pack"], []).append(record)
+    if not steps:
+        return None
+
+    items = []
+    for pack in sorted(steps, key=lambda p: labels.get(p, p).casefold()):
+        walk = sorted(steps[pack], key=lambda r: r["step"])
+        label = labels.get(pack, pack.replace("-", " ").title())
+        items.append({
+            "label": f"{label} — {len(walk)} steps",
+            "slug": walk[0]["slug"],
+        })
+    return {"label": "Guidebooks", "items": items}
+
+
+def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> tuple[dict | None, dict | None]:
+    """Collate the guides tree into the ``Guides`` group and the ``Guidebooks`` anchor."""
     guides_root = repo_root / "guides"
     if not guides_root.exists():
-        return None
+        return None, None
     with site_toml.open("rb") as f:
         guide_groups = tomllib.load(f).get("guide_groups", [])
     records = build_guide_inventory(guides_root)
     baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
     group = project_guide_sidebar(records, guide_groups, baseline)
+    guidebooks = project_guidebooks_group(records, guide_groups, baseline)
 
     # The failure this change removes — pages published but unreachable — was
     # invisible precisely because nothing counted. Report on every run.
@@ -2143,11 +2279,14 @@ def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
     if fallback:
         print(f"  warn    undeclared in site.toml [[guide_groups]]: {', '.join(fallback)}",
               file=sys.stderr)
-    return group
+    if guidebooks:
+        print(f"  guides  {len(guidebooks['items'])} guidebook(s) anchored at the top level")
+    return group, guidebooks
 
 
 def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
-                            guides_group: dict | None = None) -> None:
+                            guides_group: dict | None = None,
+                            guidebooks_group: dict | None = None) -> None:
     """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
     groups_seen: list[str] = []
     groups_map: dict[str, list[dict]] = {}
@@ -2158,9 +2297,12 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
             groups_map[g] = []
         groups_map[g].append({"label": p["display_name"], "slug": f"packs/{p['slug']}"})
 
-    sidebar: list[dict] = [
-        {"label": "Pack Catalogue", "items": [{"label": "All Packs", "slug": "packs"}]},
-    ]
+    sidebar: list[dict] = []
+    if guidebooks_group:
+        sidebar.append(guidebooks_group)
+    sidebar.append(
+        {"label": "Pack Catalogue", "items": [{"label": "All Packs", "slug": "packs"}]}
+    )
     for g in groups_seen:
         sidebar.append({"label": g, "items": groups_map[g]})
 
@@ -2241,13 +2383,15 @@ def main() -> None:
     # against a writable one it leaves directories behind.
     if not args.dry_run:
         packs_out.mkdir(parents=True, exist_ok=True)
+    guidebooks = guidebook_index(REPO_ROOT)
     for p in packs:
         src = packs_dir / p["slug"] / "README.md"
         dst = packs_out / f"{p['slug']}.md"
         if src.exists():
             copy_file(
                 src, dst,
-                rewriter=lambda t, s=src: _rewrite_pack_readme(t, s),
+                rewriter=lambda t, s=src, g=guidebooks.get(p["slug"]):
+                    _rewrite_pack_readme(t, s, g),
                 dry_run=args.dry_run,
             )
         else:
@@ -2267,8 +2411,9 @@ def main() -> None:
 
     print("build-site: generating sidebar-config.json …")
     sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"
-    guides_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
+    guides_group, guidebooks_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
     generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run,
+                            guidebooks_group=guidebooks_group,
                             guides_group=guides_group)
 
     print("build-site: mirroring guides …")

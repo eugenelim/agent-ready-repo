@@ -47,7 +47,34 @@ def _pairs(node) -> list[tuple[str, str]]:
 
 
 def _guides_group() -> dict:
-    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")
+    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[0]
+
+
+def _guidebooks_group() -> dict | None:
+    """The top-level anchor group -- one entry per pack that ships a walk."""
+    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[1]
+
+
+def test_guidebooks_anchor_points_at_step_one_of_a_real_walk():
+    """The anchor exists to make a walk reachable, so it must reach one.
+
+    A reader on a pack page could not find the guidebook at all: the guides
+    tree is one group of two hundred entries nested among the packs, and the
+    pack page's only guides link left the site for GitHub. An anchor that
+    pointed at a page which is not a step, or at a walk of one, would restate
+    that failure rather than fix it.
+    """
+    anchor = _guidebooks_group()
+    assert anchor is not None and anchor["items"], "no guidebook is anchored"
+    steps = {
+        r["slug"]: r
+        for r in build_site.build_guide_inventory(REPO_ROOT / "guides")
+        if r.get("step") is not None
+    }
+    for item in anchor["items"]:
+        record = steps.get(item["slug"])
+        assert record is not None, f"{item['slug']} is not a guidebook step"
+        assert record["step"] == 1, f"{item['slug']} is step {record['step']}, not the first"
 
 
 # ---------------------------------------------------------------------------
