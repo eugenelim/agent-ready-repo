@@ -1,6 +1,6 @@
 # Spec: Selection-scoped membership absence
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0112](../../adr/0112-prune-success-requires-a-two-sided-post-mutation-invariant.md), [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) 2026-09-13 Errata
