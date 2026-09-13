@@ -1,6 +1,6 @@
 # Spec: Decision-record ordinal uniqueness
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0007 (a governance lint ships as a skill script, and the catalogue runs the projected copy)
@@ -143,85 +143,85 @@ indistinguishable from one that cannot fail.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — `--check` reds on a duplicated ordinal.** Given a directory where
+- [x] **AC1 — `--check` reds on a duplicated ordinal.** Given a directory where
       two records share one ordinal, `next-ordinal.py --check <dir>` exits
       non-zero.
-- [ ] **AC2 — `--check` reports every duplicate.** On that same run it names
+- [x] **AC2 — `--check` reports every duplicate.** On that same run it names
       every ordinal held by more than one record, each with its competing record
       names. A directory holding more than one duplicated ordinal reports all of
       them.
-- [ ] **AC3 — `--check` greens on a companion.** Given a directory whose only
+- [x] **AC3 — `--check` greens on a companion.** Given a directory whose only
       repeated ordinal prefixes belong to companions, `next-ordinal.py --check
       <dir>` exits zero.
-- [ ] **AC4 — A clean `--check` is silent.** On that same run it prints nothing
+- [x] **AC4 — A clean `--check` is silent.** On that same run it prints nothing
       to stdout.
-- [ ] **AC5 — A record is a regular file with an ordinal prefix and no research
+- [x] **AC5 — A record is a regular file with an ordinal prefix and no research
       suffix.** `--check` counts as a record exactly those directory entries that
       are regular files, whose name begins with four or more digits followed by
       `-` or `.`, and whose name does not end in `-research.md`. A directory
       entry is never a record.
-- [ ] **AC6 — `next` answers from the union.** `next-ordinal.py <dir>` prints one
+- [x] **AC6 — `next` answers from the union.** `next-ordinal.py <dir>` prints one
       more than the highest record ordinal in the union of the working tree and
       the remote default branch.
-- [ ] **AC7 — `next` degrades to the working tree.** `next-ordinal.py <dir>`
+- [x] **AC7 — `next` degrades to the working tree.** `next-ordinal.py <dir>`
       prints the working-tree-only answer when no remote default branch ref
       resolves, when the directory is outside a repository, and when no `git`
       binary is available.
-- [ ] **AC8 — A degraded `next` still succeeds.** On each of those runs it exits
+- [x] **AC8 — A degraded `next` still succeeds.** On each of those runs it exits
       zero.
-- [ ] **AC9 — `next` keeps its pinned filename contract.** `next-ordinal.py
+- [x] **AC9 — `next` keeps its pinned filename contract.** `next-ordinal.py
       <dir>` returns its pre-change answer for every name the existing
       parametrized suite pins: `0042.md` counts, `0042foo.md` and `42-foo.md` do
       not, and `00099-bar.md` yields `0100`.
-- [ ] **AC10 — The two shipped scripts are one script.** The `new-adr` and
+- [x] **AC10 — The two shipped scripts are one script.** The `new-adr` and
       `new-rfc` copies of `next-ordinal.py` under `.apm/` are byte-identical to
       each other.
-- [ ] **AC11 — The chain reds on a duplicate.** The `build-check` chain exits
+- [x] **AC11 — The chain reds on a duplicate.** The `build-check` chain exits
       non-zero when either `docs/adr` or `docs/rfc` holds a duplicated ordinal.
-- [ ] **AC12 — The chain runs the artifact adopters run.** Each ordinal-check
+- [x] **AC12 — The chain runs the artifact adopters run.** Each ordinal-check
       step in the `build-check` chain executes a projected copy rather than the
       `.apm/` source, observable as a step whose script path resolves under
       `.claude/skills/`.
-- [ ] **AC13 — Both record directories are clean.** `--check` exits zero against
+- [x] **AC13 — Both record directories are clean.** `--check` exits zero against
       `docs/adr` and against `docs/rfc`.
-- [ ] **AC14 — Each index row agrees with itself.** Every row of
+- [x] **AC14 — Each index row agrees with itself.** Every row of
       `docs/adr/README.md` and `docs/rfc/README.md` carries a bare ordinal column
       equal to the ordinal in that row's link target.
-- [ ] **AC15 — No pre-repair filename survives outside the rename's own
+- [x] **AC15 — No pre-repair filename survives outside the rename's own
       record.** A search over every tracked path for each of the four pre-repair
       filenames returns zero matches, excluding
       `docs/specs/decision-record-ordinal-uniqueness/`. That directory is
       excluded because it is the audit record of the rename and has to name what
       moved; every other path naming an old filename is a stale reference.
-- [ ] **AC16 — The retained member keeps its ordinal.** For each of the four
+- [x] **AC16 — The retained member keeps its ordinal.** For each of the four
       collided pairs, the retained record still carries its original ordinal, and
       each pair is reported separately so a partial repair is visible: ADR-0055 is
       `wave1-docs-restructure-contracts-and-guides-to-repo-root`, ADR-0106 is
       `direct-skill-identity-and-upgrade-revision-route`, RFC-0047 is
       `default-source-on-discovery-verbs`, and RFC-0074 is
       `fidelity-ladder-and-ephemeral-env-qualification`.
-- [ ] **AC17 — The release surface moves together.**
+- [x] **AC17 — The release surface moves together.**
       `packs/governance-extras/pack.toml` and
       `packs/governance-extras/.claude-plugin/plugin.json` both read `0.10.6`.
-- [ ] **AC18 — The projections match their source.** `agentbundle catalogue
+- [x] **AC18 — The projections match their source.** `agentbundle catalogue
       self-host --root . --check` reports no drift.
-- [ ] **AC19 — An incomplete scan is not a pass.** `--check` exits zero only
+- [x] **AC19 — An incomplete scan is not a pass.** `--check` exits zero only
       after completely enumerating an existing directory. A target that is
       missing or is not a directory, a directory that cannot be enumerated, and
       an entry that cannot be classified each exit non-zero and say which
       condition fired. "Proved clean" and "could not inspect" are different
       answers, and the pre-change `next_ordinal` convention of returning `0001`
       for a missing directory is not carried into `--check`.
-- [ ] **AC20 — A record-looking symlink is an integrity error.** A directory
+- [x] **AC20 — A record-looking symlink is an integrity error.** A directory
       entry whose name satisfies the record predicate but which is a symlink
       rather than a regular file exits non-zero naming that entry, rather than
       being silently counted or silently skipped. Silently skipping it would let
       two record-looking paths share an ordinal while the gate stayed green.
-- [ ] **AC21 — A hung `git` does not hang the caller.** Each git invocation
+- [x] **AC21 — A hung `git` does not hang the caller.** Each git invocation
       carries a finite timeout of 5 seconds. On expiry `next` returns the
       working-tree answer and exits zero, the same as every other degraded
       condition.
-- [ ] **AC22 — The environment cannot redirect the union.** `next` returns the
+- [x] **AC22 — The environment cannot redirect the union.** `next` returns the
       same ordinal when `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR`,
       `GIT_OBJECT_DIRECTORY` or `GIT_ALTERNATE_OBJECT_DIRECTORIES` are set in the
       calling environment to another repository, and a directory whose name

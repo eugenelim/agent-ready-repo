@@ -1,7 +1,7 @@
 # Plan: Decision-record ordinal uniqueness
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/CONVENTIONS.md` §§ 2–3 own the record and
   companion forms; `tools/repo/build_gate_chain.py:249-278` carries two analogous
   productions of the same pattern (`lint-spec-status`, `lint-brief-coverage`),
