@@ -166,10 +166,11 @@ build-check-unleased:
 	# COMMAND LINE, which is how `gate-main` says "gate-sast owns the scan".
 	# ADR-0086 partially supersedes ADR-0017 here: the leg is no longer chained
 	# into the required job in CI, but this Makefile chain is DELIBERATELY intact
-	# so `make build-check` on a developer machine still scans — that is what
-	# ADR-0017's dogfooding rationale actually required, and tools/assert-sast-
-	# chain-reachable.py pins it, because after the split no CI path runs this
-	# branch and nothing else would notice it being deleted.
+	# so `make build-check` on a developer machine still scans. ADR-0113 then
+	# supersedes ADR-0017's dogfooding sub-decision — gate-sast is the enforcement
+	# point, and this chain is the local REPRODUCTION path, not the guarantee.
+	# tools/assert-sast-chain-reachable.py still pins it, because after the split
+	# no CI path runs this branch and nothing else would notice it being deleted.
 	@if [ "$(origin SAST_DELEGATED)" = "command line" ] && [ -n "$(SAST_DELEGATED)" ]; then \
 		echo "build-check: SAST_DELEGATED passed on the command line — SAST/SCA delegated, not invoked by this target"; \
 	elif [ -n "$(SKIP_SAST)" ]; then \
@@ -183,8 +184,9 @@ build-check-unleased:
 # deps. Chained into build-check above so the repo's single native gate runs it
 # locally. NOT in build-check.yml CI any more: since ADR-0086 the leg is its own
 # `gate-sast` job and `gate-main` passes SAST_DELEGATED=1, so this chain runs only
-# on a developer machine — which is exactly what ADR-0017's dogfooding rationale
-# required, and what tools/assert-sast-chain-reachable.py now pins. Not added to
+# on a developer machine. Per ADR-0113 that makes it the local reproduction path
+# rather than the guarantee; tools/assert-sast-chain-reachable.py pins that it
+# stays reachable. To scan directly, run `make sast`. Not added to
 # tools/hooks/pre-pr.py or
 # tools/catalogue/pre_pr_catalogue.py (the Windows CI path runs the former;
 # Semgrep has no Windows support). Linux/macOS only (Semgrep).
@@ -669,7 +671,11 @@ test-after-build-check-unleased: lint-editable-install
 # build-check already runs pre_pr_catalogue.py --skip-verify after its one
 # portable verification and persistent build. A direct pre-pr prerequisite here
 # would repeat both the aggregator and portable verification in the same CI run.
-ci: build-check lint-ruff lint-mypy test-after-build-check
+# Linters first: they take no lease and finish in seconds, while build-check ends
+# in the network-bound SAST/SCA leg. Behind build-check, the cheapest feedback in
+# the repo arrived last. build-check still runs — test-after-build-check declares
+# it as its own prerequisite — and its internal order is unchanged.
+ci: lint-ruff lint-mypy build-check test-after-build-check
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────

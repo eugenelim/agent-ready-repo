@@ -51,7 +51,7 @@ owns pack-test isolation.
 `make ci` has exactly four direct prerequisites:
 
 ```make
-ci: build-check lint-ruff lint-mypy test-after-build-check
+ci: lint-ruff lint-mypy build-check test-after-build-check
 ```
 
 That set is pinned. `tools/test-lint-ci-parity.py`'s `local-ci-direct-prereqs`

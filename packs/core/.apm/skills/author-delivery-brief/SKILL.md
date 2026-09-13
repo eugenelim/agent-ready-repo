@@ -282,6 +282,39 @@ continue stage 1 above. Meeting it does not set `Status: Ready`; only the human-
 continue write-back does. Only confirmed delivery slices create specs and
 plans.
 
+## What a finding against a brief can move
+
+A brief's parts are not equal, and where a finding lands decides what may be done
+about it.
+
+**Deciding sections** — the fields the Ready gate reads, named in stage 1 above.
+
+**Recording sections** — every other section the brief carries, including
+`Rabbit holes`, `Design artifacts`, and `Ready gaps`.
+
+Both labels are local to choosing a demotion destination. They are not the
+contract and working-material tiers a spec carries, and nothing reads them to
+grade a finding: every finding this skill's shaping review sustains blocks
+`Ready` exactly as it did.
+
+The answers available to a sustained finding are stated once, in the `work-loop`
+skill's DECIDE step. They are not restated here. `demote-the-claim` lands
+differently on a brief, because a brief's contract is a named field set rather
+than a criterion set: it moves an assertion out of a Ready-gate field and into a
+section the gate does not read. A design trap worth remembering goes to `Rabbit
+holes`; provenance that only informed the brief goes to `Design artifacts`.
+`Ready gaps` is not a destination — the brief drops it on leaving `Draft`, so
+demoting into it is deletion with a delay. Where neither destination fits, the
+assertion had no work left to do and the answer was `drop-the-claim`.
+
+What demotion costs — the pin it carries and the authority it needs — is stated
+in the DECIDE step and holds here unchanged.
+
+Record the answer and the reason for it beside the finding. That record is
+advisory: it informs the next round, and nothing else reads it. The shaping-review
+gate in stage 2 is unchanged, and neither the answer nor its reason may relax,
+satisfy, or shortcut it.
+
 ## Boundaries
 
 metadata:
