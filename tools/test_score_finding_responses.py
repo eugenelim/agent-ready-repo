@@ -20,7 +20,6 @@ from tools.score_finding_responses import (
     validate_transcript_rendering,
 )
 
-
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _CASES_DIRECTORY = _REPOSITORY_ROOT / "docs/specs/finding-response-scoring/cases"
 _TRANSCRIPTS_DIRECTORY = _REPOSITORY_ROOT / "docs/specs/finding-response-scoring/transcripts"

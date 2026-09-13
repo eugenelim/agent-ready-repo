@@ -6,14 +6,13 @@ This module parses, validates, scores, and reports recorded finding responses.
 from __future__ import annotations
 
 import argparse
-from collections import Counter
-from dataclasses import dataclass
 import hashlib
-from pathlib import Path
 import re
 import stat
 import sys
-
+from collections import Counter
+from dataclasses import dataclass
+from pathlib import Path
 
 DISPOSITIONS = (
     "repair",
@@ -298,6 +297,7 @@ def validate_transcript_rendering(
                 f"{finding.grammar!r}"
             )
 
+
 def _canonical_rendering_path(
     transcript_path: Path, arm: str, repository_root: Path
 ) -> str:
@@ -420,7 +420,10 @@ def render_score(score: Score) -> str:
         f"Repair share: {score.repair_count}/{score.finding_count}",
         "Dispositions:",
     ]
-    lines.extend(f"- {disposition}: {disposition_counts[disposition]}" for disposition in DISPOSITIONS)
+    lines.extend(
+        f"- {disposition}: {disposition_counts[disposition]}"
+        for disposition in DISPOSITIONS
+    )
     lines.extend(
         (
             "Acceptance criteria: "
