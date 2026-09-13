@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.23] — 2026-09-13
+## [core][2.25.25] — 2026-09-13
 
 ### Highlights
 - **A frontend review now gets the pictures, not just the diff.** When a surface
@@ -66,6 +66,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
   capture set, its recorded observations, and the adopter-named routes, and names
   the reviewer's reader-visible-layout lens.
+
+## [core][2.25.24] — 2026-09-13
+
+### Highlights
+
+- **A sustained shaping finding no longer reads as an instruction to edit.**
+  Intent, delivery-brief and spec authoring point at the work-loop's ordered
+  response ladder — cut, route, fix, hold, walked until one applies — so an
+  author can answer a finding by dropping a claim nothing is obliged by rather
+  than writing more careful prose. The lifecycle gates are unchanged: whatever
+  blocked before still blocks.
+- **Each upstream artifact states where a demoted claim belongs.** An intent
+  sends a settled ground to `Opportunity` and a matter decided without the
+  authority to decide it to `Unresolved questions`. A brief sends a design trap
+  to `Rabbit holes` and informing provenance to `Design artifacts`, and never to
+  `Ready gaps`, which it drops on leaving `Draft`.
+- **A shaping reviewer no longer reopens a decision the artifact records as
+  settled.** A pre-existing defect stays reviewable however late it is found, so
+  an author can refuse a reopened decision without dismissing a real defect from
+  the same round.
+
+### Changed
+
+- `intake-intent`, `author-delivery-brief`, and `new-spec` now point to the
+  work-loop DECIDE step as the single home of finding-response vocabulary.
+  Their local guidance states only how `demote-the-claim` and
+  `drop-the-claim` apply to each artifact's deciding and recording sections.
+- The shaping reviewer no longer reopens a decision that the supplied brief or
+  spec records as settled with its ground and owner. Consequences, conflicts,
+  and pre-existing defects remain reviewable.
+
+## [core][2.25.23] — 2026-09-13
+
+### Fixed
+
+- The spec README seed names the `new-spec` skill instead of a Claude Code path.
+  `contracts/adapter.toml` projects that skill into seven different roots, so the
+  hardcoded `.claude/skills/...` copy command was wrong for every adopter on
+  another adapter. It now points at a `SKILL` variable, matching the ADR and RFC
+  seeds, and the seed comes off the portable-citation cleanup list.
 
 ## [core][2.25.22] — 2026-09-13
 ### Changed

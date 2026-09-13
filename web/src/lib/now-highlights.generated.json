@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.23"
+          "version": "2.25.25"
         }
       ],
       "date": "2026-09-13",
-      "heading": "[core][2.25.23] — 2026-09-13",
-      "changelogAnchor": "core22523--2026-09-13",
+      "heading": "[core][2.25.25] — 2026-09-13",
+      "changelogAnchor": "core22525--2026-09-13",
       "highlights": [
         {
           "source": "**A frontend review now gets the pictures, not just the diff.** When a surface has been inspected, the work-loop hands `frontend-reviewer` the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about.",
@@ -30,6 +30,106 @@
             {
               "type": "text",
               "value": " the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.24"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.24] — 2026-09-13",
+      "changelogAnchor": "core22524--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A sustained shaping finding no longer reads as an instruction to edit.** Intent, delivery-brief and spec authoring point at the work-loop's ordered response ladder — cut, route, fix, hold, walked until one applies — so an author can answer a finding by dropping a claim nothing is obliged by rather than writing more careful prose. The lifecycle gates are unchanged: whatever blocked before still blocks.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A sustained shaping finding no longer reads as an instruction to edit."
+            },
+            {
+              "type": "text",
+              "value": " Intent, delivery-brief and spec authoring point at the work-loop's ordered response ladder — cut, route, fix, hold, walked until one applies — so an author can answer a finding by dropping a claim nothing is obliged by rather than writing more careful prose. The lifecycle gates are unchanged: whatever blocked before still blocks."
+            }
+          ]
+        },
+        {
+          "source": "**Each upstream artifact states where a demoted claim belongs.** An intent sends a settled ground to `Opportunity` and a matter decided without the authority to decide it to `Unresolved questions`. A brief sends a design trap to `Rabbit holes` and informing provenance to `Design artifacts`, and never to `Ready gaps`, which it drops on leaving `Draft`.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Each upstream artifact states where a demoted claim belongs."
+            },
+            {
+              "type": "text",
+              "value": " An intent sends a settled ground to "
+            },
+            {
+              "type": "code",
+              "value": "Opportunity"
+            },
+            {
+              "type": "text",
+              "value": " and a matter decided without the authority to decide it to "
+            },
+            {
+              "type": "code",
+              "value": "Unresolved questions"
+            },
+            {
+              "type": "text",
+              "value": ". A brief sends a design trap to "
+            },
+            {
+              "type": "code",
+              "value": "Rabbit holes"
+            },
+            {
+              "type": "text",
+              "value": " and informing provenance to "
+            },
+            {
+              "type": "code",
+              "value": "Design artifacts"
+            },
+            {
+              "type": "text",
+              "value": ", and never to "
+            },
+            {
+              "type": "code",
+              "value": "Ready gaps"
+            },
+            {
+              "type": "text",
+              "value": ", which it drops on leaving "
+            },
+            {
+              "type": "code",
+              "value": "Draft"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        },
+        {
+          "source": "**A shaping reviewer no longer reopens a decision the artifact records as settled.** A pre-existing defect stays reviewable however late it is found, so an author can refuse a reopened decision without dismissing a real defect from the same round.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A shaping reviewer no longer reopens a decision the artifact records as settled."
+            },
+            {
+              "type": "text",
+              "value": " A pre-existing defect stays reviewable however late it is found, so an author can refuse a reopened decision without dismissing a real defect from the same round."
             }
           ]
         }

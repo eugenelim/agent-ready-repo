@@ -152,6 +152,46 @@ token, ask for explicit human confirmation of the `Accepted` transition. Set
 `Status: Accepted` only after that confirmation. A review result alone never
 changes lifecycle status.
 
+## What a finding against an intent can move
+
+An intent's parts are not equal, and where a finding lands decides what may be
+done about it.
+
+**Deciding sections** — `Outcome`, `Boundary`, `Owner`, `Projection`, and
+`Source`. Each decides something: what the intent is for, what it admits, who
+answers for it, where it goes next, and what authorises it.
+
+**Recording sections** — `Opportunity`, `Unresolved questions`, and
+`Assumptions`. These carry the ground, the open matters, and what is being taken
+on trust.
+
+Both labels are local to choosing a demotion destination. They are not the
+contract and working-material tiers a spec carries, and nothing reads them to
+grade a finding: every condition this skill's shaping review checks blocks
+exactly as it did.
+
+The answers available to a sustained finding are stated once, in the `work-loop`
+skill's DECIDE step. They are not restated here. Some of them land differently on
+an intent, because an intent carries no criterion set and almost nothing in it
+has a check beyond the sentence existing.
+
+`demote-the-claim` moves an assertion out of a deciding section and into a
+recording one, and the destination follows what the assertion was doing. A
+settled ground for the outcome or the boundary goes to `Opportunity`. A matter
+the assertion decided without the authority to decide it goes to `Unresolved
+questions`. What demotion costs — the pin it carries and the authority it needs —
+is stated in the DECIDE step and holds here unchanged.
+
+`drop-the-claim` comes before rewording. Where nearly every finding is a finding
+against prose, answering each one with more careful prose is what makes rounds
+run long without converging: an assertion no stated outcome depends on is
+decoration whether or not it is true.
+
+Record the answer and the reason for it beside the finding. That record is
+advisory: it informs the next round, and nothing else reads it. The
+shaping-review gate above is unchanged, and neither the answer nor its reason may
+relax, satisfy, or shortcut it.
+
 ## Boundaries
 
 metadata:
