@@ -565,10 +565,15 @@ def is_pack_rules_seed(relative: str) -> bool:
     nested-router guard. Inlining any one of them as a separate pattern is the
     failure this function exists to prevent.
 
-    Shape only: `.md` suffix, no dot segments. The single-hop bound belongs to the
+    Shape only: `.md` suffix, no dot segments, no backslash or absolute form, and
+    not the router itself under a decoy path. The single-hop bound belongs to the
     routing-topic guard, which a predicate over a path string cannot express.
     """
     if not relative.startswith(".agents/rules/") or not relative.endswith(".md"):
+        return False
+    if "\\" in relative or relative.startswith("/"):
+        return False
+    if relative == ".agents/rules/AGENT_RULES.md":
         return False
     return not any(part in {"", ".", ".."} for part in relative.split("/"))
 
@@ -640,16 +645,11 @@ def _agent_rules_violations(
             violations.append(f"{path}: agent-rules-read-not-literal")
             continue
         relative = read_cell[1:-1]
-        parts = relative.split("/")
-        invalid = (
-            not relative.startswith(".agents/rules/")
-            or not relative.endswith(".md")
-            or "\\" in relative
-            or relative.startswith("/")
-            or any(part in {"", ".", ".."} for part in parts)
-            or relative in {"AGENT_RULES.md", ".agents/rules/AGENT_RULES.md"}
-        )
-        if invalid:
+        # The shared predicate is the whole shape test. Re-stating it here was
+        # the divergence its docstring warns about: this site rejected three
+        # forms the predicate admitted, so a path could clear the confined-read
+        # selection while no routing row could ever name it.
+        if not is_pack_rules_seed(relative):
             violations.append(f"{path}: agent-rules-read-path-invalid")
             continue
         if relative in reads:
@@ -657,9 +657,9 @@ def _agent_rules_violations(
             continue
         reads.add(relative)
         target = seeds_root / relative
-        if relative not in _SEEDS_REQUIRED_PLACEHOLDERS and not is_pack_rules_seed(relative):
-            violations.append(f"{path}: agent-rules-read-target-invalid")
-            continue
+        # No declared-seed re-check here: reaching this line already means the
+        # shared predicate admitted the path, so the old guard was unreachable
+        # once the row check started calling the predicate instead of copying it.
         try:
             target_text = _read_agent_guidance(target, seeds_root)
         except (OSError, UnicodeDecodeError, UnsafeContentError):
