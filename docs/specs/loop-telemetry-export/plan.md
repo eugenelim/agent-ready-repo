@@ -104,8 +104,10 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
   and `--input` resolved to the repository event log. Verification mode: TDD.
   Proof obligation: the precedence assertion runs over two fixture layout files
   that differ only in their endpoint, so a build reading the wrong one fails.
-- The documented invocation resolves `--config` to the repository
-  `agentbundle-layout.toml` before the user one. Verifies AC-0041.
+- Per-setting resolution over two fixture layout files: a setting the repository
+  file declares comes from there; a setting it omits while the user file declares
+  it comes from the user file. A whole-file-wins implementation fails the second
+  case. Verifies AC-0041.
 - It resolves `--input` to the repository root's `.loop-run/events.jsonl`.
   Verifies AC-0043.
 

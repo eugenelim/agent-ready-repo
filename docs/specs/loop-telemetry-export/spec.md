@@ -46,7 +46,7 @@ distribution an adopter installs on purpose.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — a sender outside every pack reverses stated current architecture | `docs/adr/0109-*.md` | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
+| Decision rationale | Applicable — a sender outside every pack reverses stated current architecture | [`docs/adr/0111-loop-telemetry-sender-is-a-separately-installed-distribution.md`](../../adr/0111-loop-telemetry-sender-is-a-separately-installed-distribution.md) | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
 | Current architecture | Applicable — `telemetry.md` § 2 states "No exporter ships" and § 5.3 carried a stale blockquote | `docs/architecture/telemetry.md` | spec owner | §§ 2, 5.2, 5.3 and 8 read true against the shipped tool; both anchors resolve | Anchors resolve; no claim contradicts the shipped tool |
 | User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed |
 | Optional-dependency reporting | Applicable — the first reader of `[[pack.runtime-dependencies]]` | `packs/core/pack.toml` + the catalogue lint's reporting path | spec owner | Lint run naming the unsatisfied optional dependency | AC-0039 green |
@@ -83,6 +83,14 @@ distribution an adopter installs on purpose.
   `jsonl-otlp-exporter`'s, and duplicating it creates a second home that drifts.
 
 ## Testing Strategy
+
+**TDD stub dispositions.** Three plan tasks are TDD: T1, T2 and T6. T6 carries a
+validated stub with its recorded compile and intended-red results, because its
+seam — the existing envelope suite — already exists. T1 and T2 carry `no stub
+(implementation-discovered)` with a discovery predicate and proof obligation,
+because both depend on interfaces `jsonl-otlp-exporter` publishes and that
+package does not exist at plan approval. The remaining tasks are goal-based and
+take no stub.
 
 - **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
 - **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
@@ -129,14 +137,19 @@ distribution an adopter installs on purpose.
 - [ ] **AC-0044.** The documented invocation selects the registered `work_loop`
   profile, and a line the engine actually emitted reaches the Collector with its
   `at`, `result`, `run_id` and `seq` at the destinations that profile declares.
-- [ ] **AC-0041.** The documented invocation resolves `--config` to the
-  repository `agentbundle-layout.toml` before the user `agentbundle-layout.toml`.
+- [ ] **AC-0041.** The documented invocation resolves each `[telemetry]` setting
+  from the repository `agentbundle-layout.toml` when that file declares it, and
+  from the user `agentbundle-layout.toml` when the repository file exists but
+  declares no value for it.
+
 - [ ] **AC-0042.** No exit code this catalogue documents for the exporter falls in
   the 2–9 band reserved by
   [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
 
-- [ ] **AC-0046.** Every event line `loop-engine` appends to
-  `.loop-run/events.jsonl` on a transition carries `schema` with integer value 1.
+- [ ] **AC-0046.** Every event line `loop-engine` constructs for a transition and
+  appends to `.loop-run/events.jsonl` carries `schema` with integer value 1.
+  This governs freshly constructed records only; a replayed record is AC-0047's.
+
 - [ ] **AC-0047.** An `events.pending` record that carries no `schema` key is
   appended to `events.jsonl` unchanged, still carrying no `schema` key.
 - [ ] **AC-0048.** The recorded corpus at

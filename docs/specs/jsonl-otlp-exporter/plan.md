@@ -144,8 +144,13 @@ durable state anywhere.
   to `--root`, write no position state. Required outcome: refusal before any read
   for an unsafe path. Verification mode: TDD. Proof obligation: confinement cases
   assert the transport seam is never constructed.
-- A symlink, a non-regular file, and a path escaping `--root` are refused with
-  nothing sent. Verifies AC-0017.
+- A symlink leaf, a non-regular file, and a path escaping `--root` are refused
+  with nothing sent. Verifies AC-0017.
+- A directory component swapped between resolution and open is refused: the walk
+  holds a root descriptor, opens each component no-follow, and checks leaf
+  identity both before and after opening. This is the case that separates
+  descriptor-anchored traversal from pathname validation, and a pathname-first
+  implementation passes every other case here.
 - A line over 64 KiB is refused before decoding; the rest still send. Verifies AC-0018.
 - A non-parsing line is skipped and the remainder sent. Verifies AC-0016.
 - The skipped line is reported with its line number. Verifies AC-0038.
@@ -181,6 +186,9 @@ durable state anywhere.
 - A bad `timestamp_format`, a non-integer `severity_map` value, an oversized or
   unparseable profile, and no `--profile` at all are each refused before any
   request. Verifies AC-0049, AC-0050, AC-0051, AC-0052.
+- A declared timestamp, severity or identity field reaches its destination whether
+  or not the allowlist names it, and is not duplicated as an attribute.
+  Verifies AC-0053.
 
 **Done when:** the golden passes and field names appear only in a profile.
 
@@ -198,12 +206,17 @@ durable state anywhere.
   Verification mode: TDD. Proof obligation: each fixture asserts a distinct
   observable, so no single change makes them all pass.
 - Non-empty `partialSuccess` produces no retry. Verifies AC-0008.
-- It reports the rejected count and exits 1. Verifies AC-0036.
+- It reports the rejected count. Verifies AC-0036.
+- It exits 1. Verifies AC-0054.
 - `Retry-After: N` waits `min(N, 30)`; absent, negative or unparseable is 0. Verifies AC-0009.
 - At most three attempts per run, and an exhausted run stops issuing requests.
   Verifies AC-0010, AC-0037.
-- A request abandoned at 30s, a run bounded at 120s, and a response over 1 MiB
-  refused before decoding. Verifies AC-0040, AC-0041.
+- A request abandoned 30s after its own resolution begins, on a monotonic clock.
+  Verifies AC-0040.
+- A run that stops issuing 120s after its first resolution, covering retries and
+  inter-attempt waits. Verifies AC-0055.
+- A response refused at 1 MiB plus one byte without further reading. Verifies AC-0041.
+- An oversized `--config` refused before parsing. Verifies AC-0056.
 - At most 512 records per request. Verifies AC-0011.
 - A request body never exceeds 8 MiB, asserted by constructing the worst
   admissible case rather than trusting the ceiling. Verifies AC-0019.
@@ -214,9 +227,13 @@ durable state anywhere.
   refused; and no message carrying an endpoint or redirect target includes a
   user-info component. Verifies AC-0024, AC-0044, AC-0025, AC-0026, AC-0027,
   AC-0028, AC-0045.
-- The loopback fixture resolves one host to both a loopback and a routable
-  address — the case that separates validating a resolution from binding the
-  connection to it.
+- The loopback fixture uses a stateful resolver whose first answer is loopback
+  and whose second answer is routable, so a build that re-resolves at connect
+  time reaches the routable address and fails. A fixture returning both addresses
+  at once cannot distinguish the two implementations.
+- Proxy environment variables naming a non-loopback proxy do not cause a
+  plaintext request to leave the host: the opener is constructed with proxy
+  handling disabled rather than inheriting the ambient environment.
 - Integration, against a live Collector with an `otlp` receiver and a `debug`
   exporter: three records land with each field at its mapped destination. Verifies AC-0006.
 
@@ -256,8 +273,9 @@ behaviour, and the live round trip lands three records.
 **Tests:**
 - `README-pypi.md` states what is sent, what the payload contains, and the
   destination. Verifies AC-0030.
-- `docs/profiles.md` states the three things a profile declares and shows a
-  worked profile. Verifies AC-0031.
+- `docs/profiles.md` carries a fenced `toml` block parsing as a profile that
+  satisfies AC-0035, names all six keys outside it, and its worked profile
+  demonstrates an `allowlist` that omits at least one input field. Verifies AC-0031.
 - `README-pypi.md` states semantic versioning and that the profile interface is
   provisional in 0.x. Verifies AC-0032.
 
@@ -276,6 +294,10 @@ from `docs/profiles.md` alone.
   the verification ledger.
 - A tag whose version disagrees with `pyproject.toml` is refused by the release
   workflow. Verifies AC-0046.
+- The workflow publishes through OIDC trusted publishing with no long-lived
+  credential, pins every third-party action to a full-length commit SHA, and
+  installs the built wheel into a fresh virtual environment before publishing.
+  Verifies AC-0057, AC-0058, AC-0059.
 
 **Done when:** the tagged workflow publishes and a fresh `uv tool install`
 produces a working command.

@@ -107,19 +107,26 @@ reaches every backend that has a Collector in front of it.
 
 ## Testing Strategy
 
+**TDD stub dispositions.** Four plan tasks are TDD: T2, T3, T4 and T5. None
+carries a validated stub, and all four carry `no stub
+(implementation-discovered)` with a discovery predicate and proof obligation,
+because the package does not exist at plan approval and `tdd-stubs.md` forbids
+inventing a module to assert against. The remaining tasks are goal-based or
+manual QA and take no stub.
+
 - **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
-- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
+- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
-- **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
+- **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
 - **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted against the mapping function rather than over every invocation, which is what makes the universal claim checkable.
 - **VI-0006 — input confinement (AC-0017, AC-0043):** TDD. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
-- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0041):** TDD. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
+- **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056):** TDD. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
 - **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
 - **VI-0011 — the published contract (AC-0030, AC-0031, AC-0032):** goal-based check over the authored files. Presence and structure are mechanical; wording is not asserted.
 - **VI-0013 — profile form and validation (AC-0035, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052):** TDD. A profile is TOML, so every case is a fixture file and the whole group runs with no network. AC-0047 is asserted by driving a profile file whose content would execute if it were ever imported or evaluated, and observing that it is parsed as data and refused on schema rather than taking effect — an implementation that imports would pass a key-shape check but fail this one. AC-0052 takes its own case because "no profile" and "a bad profile" fail differently and a build defaulting to a built-in profile passes every other case here.
-- **VI-0012 — release integrity (AC-0046):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
+- **VI-0012 — release integrity (AC-0046, AC-0057, AC-0058, AC-0059):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
 
 ## Acceptance Criteria
 
@@ -136,13 +143,20 @@ reaches every backend that has a Collector in front of it.
   `/v1/logs` appended.
 - [ ] **AC-0005.** For the recorded three-line fixture under the reference
   profile, the emitted request body equals the committed golden byte for byte.
-- [ ] **AC-0006.** A Collector running an `otlp` receiver and a `debug` exporter
-  records three log records in which the field the active profile names as its
-  timestamp appears as `timeUnixNano`, the field it names as severity appears as
-  `severityNumber`, and each field the profile's allowlist admits appears as a
-  log-record attribute.
-- [ ] **AC-0034.** A field present in the input but absent from the active
-  profile's allowlist appears nowhere in the emitted request body.
+- [ ] **AC-0006.** A conforming OTLP/HTTP receiver, configured to record what it
+  accepts, records three log records in which the field the active profile names
+  as its timestamp appears as `timeUnixNano`, the field it names as severity
+  appears as `severityNumber`, and each field the profile's allowlist admits
+  appears as a log-record attribute.
+
+- [ ] **AC-0034.** A field present in the input, absent from the active profile's
+  `allowlist`, and not named by its `timestamp_field`, `severity_field` or
+  `identity` appears nowhere in the emitted request body.
+- [ ] **AC-0053.** A field named by the profile's `timestamp_field`,
+  `severity_field` or `identity` is emitted at its declared destination whether
+  or not the `allowlist` also names it, and is not additionally emitted as a
+  duplicate attribute.
+
 - [ ] **AC-0035.** A profile declares exactly these six keys and no others:
   `timestamp_field`, `timestamp_format`, `severity_field`, `severity_map`,
   `identity`, `allowlist`. A profile missing any of them, or carrying any
@@ -154,7 +168,9 @@ reaches every backend that has a Collector in front of it.
 - [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry.
 - [ ] **AC-0036.** A response carrying a non-empty `partialSuccess` reports its
-  rejected-record count on stderr and exits 1.
+  rejected-record count on stderr.
+- [ ] **AC-0054.** A response carrying a non-empty `partialSuccess` exits 1.
+
 - [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request
   is issued before `min(N, 30)` seconds have elapsed, and a value that is
   absent, negative or unparseable is treated as 0.
@@ -167,8 +183,10 @@ reaches every backend that has a Collector in front of it.
 - [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
   `--best-effort` is passed.
 - [ ] **AC-0013.** An unrecognised command-line flag exits 1, not 2.
-- [ ] **AC-0014.** Every exit from the command passes through one exit-mapping
-  function, which returns only 0, 1 or 130; no other value can reach the caller.
+- [ ] **AC-0014.** The process status the command returns is one of exactly 0, 1
+  or 130, for every invocation in the closed set of exit-producing states the
+  `### Exit codes` table enumerates.
+
 - [ ] **AC-0015.** SIGINT exits 130.
 - [ ] **AC-0016.** A line that does not parse as JSON is skipped, and the
   remaining lines are still sent.
@@ -183,15 +201,22 @@ reaches every backend that has a Collector in front of it.
   terminating newline is refused before it is decoded, and the remaining lines
   are still sent.
 - [ ] **AC-0019.** A request body is at most 8 MiB measured on the encoded bytes
-  about to be sent. A batch that would exceed it is split before sending, and a
-  single record that cannot fit is dropped with a stderr note. This is the bound
-  that fires first: the 64 MiB OTLP protocol limit is never reached because no
-  request is issued above 8 MiB.
-- [ ] **AC-0040.** A request that has not completed within 30 seconds is
-  abandoned, and a run's total send time does not exceed 120 seconds, both
-  applying under `--best-effort`.
-- [ ] **AC-0041.** A response body larger than 1 MiB is refused before it is
-  decoded.
+  about to be sent, and a batch that would exceed it is split before sending.
+  This is the bound that fires first: the 64 MiB OTLP protocol limit is never
+  reached because no request is issued above 8 MiB.
+
+- [ ] **AC-0040.** A single request is abandoned 30 seconds after that request's
+  destination resolution begins, measured on a monotonic clock and covering
+  resolution, connection setup, write and read.
+- [ ] **AC-0055.** A run stops issuing requests 120 seconds after its first
+  destination resolution begins, measured on a monotonic clock and covering
+  every request, every retry and every inter-attempt wait. Both bounds apply
+  under `--best-effort`.
+
+- [ ] **AC-0041.** At most 1 MiB plus one byte of a response body is read; a body
+  that reaches that length is refused without further reading and without
+  decoding.
+
 - [ ] **AC-0020.** With no mode flag the command runs one-shot: it reads the file
   once, sends, and exits without waiting for further lines.
 - [ ] **AC-0021.** Under `--follow`, a line appended after start is sent without
@@ -200,9 +225,10 @@ reaches every backend that has a Collector in front of it.
   ends the run that many seconds after the first read begins.
 - [ ] **AC-0022.** Under `--follow`, started against a file holding one valid
   record and then subjected in turn to truncation to zero, replacement by a new
-  inode, and a trailing line with no newline, the command sends that first record
-  exactly once, sends no record for the conditions themselves, and exits 0 when
-  `--for` elapses.
+  inode, and a trailing line with no newline, the command sends that first
+  record exactly once, sends no record for the conditions themselves, and exits
+  0 when `--for` elapses.
+
 - [ ] **AC-0043.** Started against an absent `--input` path, the command sends
   nothing and exits 1.
 - [ ] **AC-0023.** Every emitted log record carries the attributes the active
@@ -218,8 +244,10 @@ reaches every backend that has a Collector in front of it.
   those verified addresses without re-resolving the host.
 - [ ] **AC-0026.** An `http` endpoint any of whose resolved addresses is not a
   loopback address is refused before any request is sent and exits 1.
-- [ ] **AC-0045.** A refusal or error message naming an endpoint or a redirect
-  target carries no user-info component of that URL.
+- [ ] **AC-0045.** Any message naming an endpoint or a redirect target renders it
+  through one representation that omits user-info, query and fragment, and that
+  contains no C0 or C1 control character.
+
 - [ ] **AC-0027.** A redirect response is not followed, and the run exits 1.
 - [ ] **AC-0028.** An endpoint whose netloc carries user-info is refused before
   any request is sent and exits 1.
@@ -252,6 +280,15 @@ reaches every backend that has a Collector in front of it.
   as TOML, is refused before any request is sent and exits 1.
 - [ ] **AC-0052.** With no `--profile` given, the command sends nothing and exits
   1; no profile is built in.
+
+- [ ] **AC-0056.** A `--config` file larger than 64 KiB is refused before it is
+  parsed, and the command sends nothing and exits 1.
+- [ ] **AC-0057.** The release workflow publishes through OIDC trusted
+  publishing, with no long-lived credential present in the workflow.
+- [ ] **AC-0058.** Every third-party action the release workflow uses is pinned to
+  a full-length commit SHA.
+- [ ] **AC-0059.** The release workflow installs the built wheel into a fresh
+  virtual environment and runs the console script before publishing.
 
 ## Retired identifiers
 
