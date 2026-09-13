@@ -388,6 +388,11 @@ queue   = [
   # 2026-09-09 and registered after a clean shaping review and the
   # owner-authorized fourth adversarial round. It remains Draft and requires
   # human approval before dispatch.
+  # Registered 2026-09-13 after eleven review rounds across two reviewers plus an
+  # independent Codex readiness judgment. The routed cognitive-load rule was
+  # skipped for a whole session and breached throughout; this inlines it into the
+  # files hosts already load and retires the router hop.
+  {path = "docs/specs/cognitive-rule-inlining/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Inline the cognitive-load chat clauses into both AGENTS.md files, empty the routing table, retire the routed topic file and every declaration of it, and record a paired measurement that gates nothing", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached

@@ -23,14 +23,14 @@ def test_seed_adapter_path_classifier_has_a_narrow_rules_exception() -> None:
     roots = {".agents", ".claude"}
 
     assert not module._seed_names_adapter_path(
-        ".agents/rules/cognitive-load.md", roots
+        ".agents/rules/example.md", roots
     )
     assert not module._seed_names_adapter_path(".portable/../docs/example.md", roots)
     for unsafe in (
         ".agents/rules/../skills/example",
         ".agents/rules/./cognitive-load.md",
         ".agents/rules/nested/cognitive-load.md",
-        ".agents/rules/cognitive-load.txt",
+        ".agents/rules/example.txt",
         ".claude/skills/example",
     ):
         assert module._seed_names_adapter_path(unsafe, roots), unsafe
@@ -241,7 +241,7 @@ class ProgressiveDisclosureLintTests(unittest.TestCase):
             active.write_text(".claude/skills/example/\n", encoding="utf-8")
             self.assertIn("seed vendor path", lint(root))
             active.unlink()
-            active.write_text(".agents/rules/cognitive-load.md\n", encoding="utf-8")
+            active.write_text(".agents/rules/example.md\n", encoding="utf-8")
             self.assertNotIn("seed vendor path", lint(root))
             active.unlink()
             active.write_text(".agents/rules/../skills/example\n", encoding="utf-8")

@@ -285,9 +285,6 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
     assert (_SEEDS / "AGENT_RULES.md").is_file()
     assert (_SEEDS / "docs" / "AGENTS.md").is_file()
     assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
-    # The router's own target ships too, though the root guidance reaches it
-    # only through AGENT_RULES.md.
-    assert (_SEEDS / ".agents" / "rules" / "cognitive-load.md").is_file()
 
 
 # STUB: AC19

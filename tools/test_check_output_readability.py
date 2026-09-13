@@ -107,12 +107,11 @@ def test_each_publishable_pack_has_a_passing_readability_fixture() -> None:
 @pytest.mark.parametrize(
     "relative",
     (
-        ".agents/rules/cognitive-load.md",
         "docs/AGENTS.md",
         "guides/_shared/reference/output-rendering.md",
     ),
 )
-def test_shipped_cognitive_load_guidance_meets_its_own_readability_gate(
+def test_shipped_short_form_guidance_meets_the_70_8_gate(
     relative: str,
 ) -> None:
     document = (ROOT / relative).read_text(encoding="utf-8")

@@ -54,6 +54,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.0] — 2026-09-13
+
+### Changed
+
+- The cognitive-load rules are inline in `AGENTS.md` instead of routed. Root
+  `AGENTS.md` used to tell an agent to read `AGENT_RULES.md` and then every
+  `always` rule there; those are model-directed reads with no error, no log and
+  no failed gate when they do not happen, and they were skipped for a whole
+  session while the rule they route to was breached throughout. The clauses now
+  sit in the file every host already loads, beside the cut-before-adding ladder
+  that was already there.
+- `AGENT_RULES.md` ships with an empty routing table and is read only when one
+  of its `when` rows matches the work. It survives as the extension point for
+  conditional rules, and the catalogue lint now accepts a pack-shipped
+  `.agents/rules/*.md` seed so a pack can supply one.
+
+### Removed
+
+- `.agents/rules/cognitive-load.md` is retired. Its chat clauses moved inline;
+  its instruction-authority clauses moved with them, because that posture
+  reached a session only through the routing chain this change removes.
+
+### Upgrading
+
+Four things an update does not do for you, because seed delivery adds and
+updates but never removes:
+
+1. **Delete `.agents/rules/cognitive-load.md` from your tree by hand.** A
+   retired seed is never removed, so yours stays on disk, orphaned, with its
+   routing row gone.
+2. **Merge `AGENT_RULES.upstream.md`.** Your `AGENT_RULES.md` differs from the
+   new seed, so the empty table arrives as a companion rather than replacing the
+   live file — and until you merge it, your old `always` row stays live.
+3. **Merge `AGENTS.upstream.md`.** Root `AGENTS.md` is a delivered seed too, so
+   a customised one takes the same companion treatment. The inlined clauses are
+   in that companion, not in the file your host loads.
+4. **Add a routing row if you want one.** The shipped table is empty, so there
+   is no example to copy. A row reads
+   `| <when> | `.agents/rules/<name>.md` | <purpose> |`, and the file it names
+   must exist and carry no routing table of its own.
+
 ## [core][2.25.21] — 2026-09-13
 
 ### Added

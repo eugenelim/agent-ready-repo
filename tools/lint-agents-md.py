@@ -26,9 +26,9 @@ from pathlib import Path
 
 import lint_git_ignore  # tools/ is sys.path[0] for a script run
 
-MAX_ROOT_LINES = 120
+MAX_ROOT_LINES = 170
 MAX_ROOT_LOCAL_LINES = 60
-MAX_SEED_LINES = 100
+MAX_SEED_LINES = 150
 MAX_SCOPED_LINES = 80
 MAX_EXAMPLE_LINES = 35
 STALE_DAYS = 180  # warn-only threshold
