@@ -41,7 +41,12 @@ DESCRIPTORS: dict[str, dict[str, object]] = {
 
 # A qualifying clause may follow the lifecycle token; the table carries the token.
 _STATUS = re.compile(r"^-?\s*\*\*Status:\*\*\s*(.+?)\s*$", re.MULTILINE)
-_TOKEN_END = re.compile(r"\s+(?:—|--|\(|<!--)")
+_TOKEN_END = re.compile(r"\.\s|\s+(?:—|--|\(|<!--)")
+
+
+# The bundled record templates ship this literal for an unfilled date, so a
+# record still carrying it has no date rather than a date of that text.
+_DATE_PLACEHOLDER = "YYYY-MM-DD"
 
 
 def _field(text: str, name: str) -> str | None:
@@ -50,6 +55,8 @@ def _field(text: str, name: str) -> str | None:
     if match is None:
         return None
     value = match.group(1).split("<!--")[0].strip()
+    if value == _DATE_PLACEHOLDER:
+        return None
     return value or None
 
 

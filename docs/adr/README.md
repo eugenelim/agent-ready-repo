@@ -2,7 +2,7 @@
 
 | # | Title | Status | Date |
 | --- | --- | --- | --- |
-| 0001 | [Adopt AGENTS.md + spec/ADR/RFC governance](0001-adopt-agents-md-and-doc-hierarchy.md) | Accepted | YYYY-MM-DD |
+| 0001 | [Adopt AGENTS.md + spec/ADR/RFC governance](0001-adopt-agents-md-and-doc-hierarchy.md) | Accepted | 2026-05-03 |
 | 0002 | [Install-scope is a per-pack default + allowance, not a per-item or adopter-only choice](0002-install-scope-per-pack-default-and-allowance.md) | Accepted | 2026-05-23 |
 | 0003 | [Four-broker contract for credentialed skills; in-process shim + adapter-root subprocess as the two v1 transports](0003-credential-broker-contract.md) | Accepted | 2026-05-26 |
 | 0004 | [Per-IDE direct writes are the repo-scope install default; dist-tree is opt-in](0004-repo-scope-per-adapter-projection.md) | Accepted | 2026-05-26 |
@@ -24,7 +24,7 @@
 | 0020 | [Per-pack Diátaxis hierarchy for `guides/`](0020-per-pack-diataxis-hierarchy-for-guides.md) | Accepted | 2026-06-13 |
 | 0021 | [`pack.toml` is the metadata source of truth, projected lossily per tool; pack identity is `@catalogue/pack`](0021-pack-manifest-source-of-truth-and-scoped-identity.md) | Accepted | 2026-06-13 |
 | 0022 | [The business-unit cross-component layer — a value-stream meta-repo, per-component brief slicing with `parent-intent` provenance, and a referenced (never forked) shared contract](0022-value-stream-meta-repo-cross-component-layer.md) | Accepted | 2026-06-13 |
-| 0023 | [The "three reviewers" ceiling scopes the core code-review lenses](0023-reviewer-ceiling-scopes-core-code-review-lenses.md) | Superseded by ADR-0042. ADR-0042 keeps this ADR's core holding | 2026-06-14 |
+| 0023 | [The "three reviewers" ceiling scopes the core code-review lenses](0023-reviewer-ceiling-scopes-core-code-review-lenses.md) | Superseded by ADR-0042 | 2026-06-14 |
 | 0024 | [`design-craft` serves designers as upstream design-intent authors, under strict framework-agnosticism](0024-design-craft-upstream-intent-and-agnosticism.md) | Accepted | 2026-06-14 |
 | 0025 | [Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs](0025-pack-profiles-single-scope-cli-manifest.md) | Accepted | 2026-06-14 |
 | 0026 | [SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic](0026-sso-consumer-resolution-in-credbroker.md) | Accepted | 2026-06-16 |

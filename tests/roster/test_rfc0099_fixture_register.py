@@ -114,7 +114,7 @@ def test_register_discloses_late_creation_and_is_indexed() -> None:
     assert "written after RFC-0099 acceptance" in register
     assert "required it before acceptance" in register
     assert "[`fixture-register.md`](fixture-register.md)" in spec
-    assert "rfc0099-migration-validation-record/spec.md" in index
+    # ADR-0112 retired the spec index; the spec itself is the record.
 
 
 def test_shaping_keys_resolve_to_sanitized_adjudication_evidence() -> None:

@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.44.1] — 2026-09-13
+
+### Changed
+
+- Seed lint no longer requires a placeholder table in `docs/specs/README.md`.
+  That seed carries the spec directory convention and no index; see ADR-0112.
+
 ## [0.44.0] — 2026-09-11
 
 ### Added

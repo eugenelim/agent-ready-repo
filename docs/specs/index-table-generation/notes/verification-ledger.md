@@ -48,3 +48,40 @@ No acceptance criterion changes; AC6's contract is untouched.
 assertion's expected value is authored rather than observed, prove it can also go
 green — against a scratch implementation that returns a plausible value, not one
 that returns nothing.
+
+## 2026-09-13 — the consumer sweep undercounted; ADR-0112's Context is wrong
+
+**Observation.** ADR-0112 states the spec index's "only two mechanical readers"
+are `tools/test_guide_typed_asides.py` and the `close-work` roster test.
+Execution found **five**:
+
+| Reader | What it asserted |
+| --- | --- |
+| `tools/test_guide_typed_asides.py` | its own spec's row: status, AC/task counts |
+| `tests/roster/test_close_work_extraction_and_immediate_disposition.py` | its own spec's row: status, Constrained by |
+| `tests/roster/test_agent_skill_engineering_consumer_integrations.py` ×2 | AC14's verification, and a bare-slug over-count control |
+| `tests/roster/test_rfc0099_fixture_register.py` | that its spec appears in the index |
+| `tests/roster/test_tdd_stub_lifecycle_contract.py` | RFC-index row prose (`PLAN-contained`) |
+
+**Why the sweep missed three.** All three name the file through a module
+constant built from path segments — `ROOT / "docs" / "specs" / "README.md"` —
+so a search for the literal `docs/specs/README.md` never reached them. A
+filtered grep is not an exhaustive consumer list.
+
+**Does the decision still hold?** Yes, and the corrected count strengthens it
+rather than weakening it. Every one of the five asserted either its own spec's
+row or hand-written index prose. None read the index to find something. The
+finding that no instruction anywhere tells an agent to read the index is
+unchanged, and remains the discriminator ADR-0112 rests on.
+
+**Disposition.** ADR-0112 is Accepted and its body is frozen; `CONVENTIONS.md`
+admits only a Status-line edit. The count is wrong in a Context sentence, not in
+the Decision, the drivers, or the consequences, and no later reader is misled
+about what was decided. Recorded here rather than corrected in place, and not
+worth a superseding ADR. A future ADR touching this area should cite this entry
+for the real number.
+
+**Generalizable lesson.** When a sweep's conclusion is load-bearing for a
+decision, search for the *symbol* as well as the literal: a path assembled from
+segments, or bound to a constant, is invisible to a string search for the
+assembled form.

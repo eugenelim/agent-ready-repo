@@ -54,6 +54,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.19] — 2026-09-13
+
+### Changed
+
+- `docs/specs/README.md` describes the spec directory convention and carries no
+  index table. Specs are discovered by listing the directory. `new-spec` no longer
+  maintains a list.
+
+## [agentbundle][0.44.1] — 2026-09-13
+
+### Changed
+
+- Seed lint no longer requires a placeholder table in the spec README seed,
+  which now carries the directory convention and no index.
+
+## [governance-extras][0.11.0] — 2026-09-13
+
+### Added
+
+- `new-adr` and `new-rfc` carry `index-records.py`, which derives a decision-record
+  index from the records in a directory you name. The index cannot drift from the
+  records, because it is read from them. Run it with `--check` to find out whether
+  it would change without writing.
+
+### Changed
+
+- Creating an ADR or RFC regenerates the index instead of hand-editing a row.
+- The bundled ADR and RFC index seeds are what the generator writes, so your first
+  generation changes nothing. Each seed's "Adding a new …" section moved into the
+  skill and its how-to, where the instruction is reachable without opening an index.
+- The ADR index carries a `Date` column. A record that omits its date falls back to
+  the file's first-commit date.
+
 ## [core][2.25.18] — 2026-09-12
 
 ### Changed

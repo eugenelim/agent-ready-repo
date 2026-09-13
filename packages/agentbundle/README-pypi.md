@@ -14,7 +14,7 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.44.0
+## What's new in 0.44.1
 
 Installing a pack now adds its default output location to an
 `agentbundle-layout.toml` you already keep. That step has existed for several
