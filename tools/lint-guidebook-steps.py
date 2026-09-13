@@ -57,7 +57,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # The contract file leads with its own H1 and the obligations follow, so the
 # section marker is the file itself rather than a heading inside a larger one.
@@ -264,7 +263,11 @@ def _skill_blocks(body: str) -> list[tuple[str, str]]:
     """Return each named skill and only the text inside its own Run block."""
     matches = list(RUN_HEADING.finditer(body))
     return [
-        (match.group(1), body[match.end() : matches[index + 1].start() if index + 1 < len(matches) else len(body)])
+        (
+            match.group(1),
+            body[match.end() : matches[index + 1].start()
+                 if index + 1 < len(matches) else len(body)],
+        )
         for index, match in enumerate(matches)
     ]
 
@@ -398,48 +401,86 @@ def _check_obligation(
             continue
         if primary.startswith("**Step") and not re.match(r"^\*\*Step \d+ of \d+ — .+\*\*$", line):
             findings.append(Finding(path, step, obligation, "position label is malformed"))
-        elif any("Skipping costs:" in variant for variant in variants) and not any(item.startswith("*Skipping costs:*") for item in lines[index + 1 :]):
+        elif (
+            any("Skipping costs:" in variant for variant in variants)
+                and not any(item.startswith("*Skipping costs:*") for item in lines[index + 1 :])
+        ):
             findings.append(Finding(path, step, obligation, "missing `*Skipping costs:*`"))
-        elif primary.startswith("**Agent returns:") and not (_following_nonblank(lines, index) or "").startswith(">"):
-            findings.append(Finding(path, step, obligation, "must be followed by an attributed blockquote"))
-        elif primary.startswith("**You push back:") and not (_following_nonblank(lines, index) or "").startswith(">"):
+        elif (
+            primary.startswith("**Agent returns:")
+                and not (_following_nonblank(lines, index) or "").startswith(">")
+        ):
+            findings.append(
+                Finding(path, step, obligation, "must be followed by an attributed blockquote")
+            )
+        elif (
+            primary.startswith("**You push back:")
+                and not (_following_nonblank(lines, index) or "").startswith(">")
+        ):
             # A step showing only a clean response teaches a reader to accept
             # the first draft. The correction turn is quoted like any other.
-            findings.append(Finding(path, step, obligation, "must be followed by the corrected exchange as a blockquote"))
+            findings.append(
+                Finding(path, step, obligation,
+                    "must be followed by the corrected exchange as a blockquote"
+                )
+            )
         elif primary.startswith("**Go deeper:") and not re.search(r"\]\([^)]+\)", line):
             # A backticked repository path was accepted before, which let a
             # reader-facing step close by naming a file only a maintainer can
             # open. Depth has to be reachable from the page.
-            findings.append(Finding(path, step, obligation, "must carry a resolving link a reader can follow"))
+            findings.append(
+                Finding(path, step, obligation, "must carry a resolving link a reader can follow")
+            )
         elif primary.startswith("**Check ("):
             match = re.match(r"^\*\*Check \(([^)]+)\):\*\*", line)
             if match is None:
                 findings.append(Finding(path, step, obligation, "declares no judgement kind"))
             elif match.group(1) not in contract.judgement_kinds:
-                findings.append(Finding(path, step, obligation, f"kind `{match.group(1)}` is not in the closed set"))
+                findings.append(Finding(path, step, obligation,
+                    f"kind `{match.group(1)}` is not in the closed set"
+                ))
         elif primary.startswith("**Where it lands:") and not re.search(r"`[^`]+`", line):
-            findings.append(Finding(path, step, obligation, "must name a backticked artifact path"))
+            findings.append(
+                Finding(path, step, obligation, "must name a backticked artifact path")
+            )
         elif primary.startswith("**What it looks like:"):
             excerpt = _fenced_block(lines, index)
             source = _source_path(lines, index, path)
             if excerpt is None:
-                findings.append(Finding(path, step, obligation, "shows no fenced excerpt of the artifact"))
+                findings.append(
+                    Finding(path, step, obligation, "shows no fenced excerpt of the artifact")
+                )
             elif source is not None:
                 if not source.is_file():
-                    findings.append(Finding(path, step, obligation, "declared preview source does not resolve"))
+                    findings.append(
+                        Finding(path, step, obligation, "declared preview source does not resolve")
+                    )
                 elif not _appears_verbatim_in(excerpt, source.read_text(encoding="utf-8")):
-                    findings.append(Finding(path, step, obligation, "excerpt does not appear verbatim in its declared source"))
+                    findings.append(
+                        Finding(path, step, obligation,
+                            "excerpt does not appear verbatim in its declared source"
+                        )
+                    )
         elif primary.startswith("**Concepts:"):
             detail = _check_concepts(lines, index, path)
             if detail:
                 findings.append(Finding(path, step, obligation, detail))
         elif primary.startswith("**Next:") and not re.search(r"\]\([^)]+\)", line):
             # A cold reader could not act on "continue with the build workflow".
-            findings.append(Finding(path, step, obligation, "must carry a resolving link, not a prose promise"))
-        elif primary.startswith("**You type:") and not (_following_nonblank(lines, index) or "").startswith("```"):
+            findings.append(
+                Finding(path, step, obligation, "must carry a resolving link, not a prose promise")
+            )
+        elif (
+            primary.startswith("**You type:")
+                and not (_following_nonblank(lines, index) or "").startswith("```")
+        ):
             # The site attaches its copy button to fenced blocks only, so an
             # inline utterance is the one value a reader must retype by hand.
-            findings.append(Finding(path, step, obligation, "must be followed by a fenced block a reader can copy"))
+            findings.append(
+                Finding(path, step, obligation,
+                    "must be followed by a fenced block a reader can copy"
+                )
+            )
         elif primary.startswith(STEP_MAP_HEADING):
             detail = _check_step_map(body)
             if detail:
@@ -471,7 +512,6 @@ def _check_step_map(body: str) -> str | None:
     return None
 
 
-
 def _outside_fences(body: str) -> str:
     """The body with fenced blocks blanked out, line count preserved.
 
@@ -501,21 +541,35 @@ def check_page_skeleton(path: Path, step: str, body: str) -> list[Finding]:
     """
     headings = re.findall(r"^## (.+?)\s*$", _outside_fences(body), re.M)
     if not headings:
-        return [Finding(path, step, "skeleton", "carries no `##` heading, so the page has no in-page navigation")]
+        return [
+            Finding(path, step, "skeleton",
+                    "carries no `##` heading, so the page has no in-page navigation")
+        ]
     expected_first, expected_last = STEP_MAP_HEADING[3:], SKELETON_TAIL[3:]
     findings: list[Finding] = []
     if headings[0] != expected_first:
-        findings.append(Finding(path, step, "skeleton", f"first `##` is `{headings[0]}`, not `{expected_first}`"))
+        findings.append(
+            Finding(path, step, "skeleton",
+                    f"first `##` is `{headings[0]}`, not `{expected_first}`")
+        )
     if headings[-1] != expected_last:
-        findings.append(Finding(path, step, "skeleton", f"last `##` is `{headings[-1]}`, not `{expected_last}`"))
+        findings.append(
+            Finding(path, step, "skeleton",
+                    f"last `##` is `{headings[-1]}`, not `{expected_last}`")
+        )
     for name in headings[1:-1]:
         if not name.startswith("Run `"):
-            findings.append(Finding(path, step, "skeleton", f"`{name}` is not a `Run` block and may not be a `##`"))
+            findings.append(
+                Finding(path, step, "skeleton",
+                        f"`{name}` is not a `Run` block and may not be a `##`")
+            )
     # A trailing heading with nothing under it is worse than no heading: it
     # publishes a table-of-contents entry that leads a reader to an empty page
     # section. The onward pointers are what the section is for.
     if SKELETON_TAIL in body and "**Next:**" not in body.split(SKELETON_TAIL, 1)[1]:
-        findings.append(Finding(path, step, "skeleton", f"`{expected_last}` carries no onward pointer"))
+        findings.append(
+            Finding(path, step, "skeleton", f"`{expected_last}` carries no onward pointer")
+        )
     return findings
 
 
@@ -585,9 +639,14 @@ def check_page(path: Path, step: str, body: str, contract: Contract) -> list[Fin
     """
     findings: list[Finding] = []
     if PROVENANCE.search(body):
-        findings.append(Finding(path, step, "provenance", "records a rung in visible prose; use an HTML comment"))
+        findings.append(
+            Finding(path, step, "provenance",
+                    "records a rung in visible prose; use an HTML comment")
+        )
     for bad in PLACEHOLDER.findall(body):
-        findings.append(Finding(path, step, "placeholder", f"`{bad}` is not the declared `<segment>` form"))
+        findings.append(
+            Finding(path, step, "placeholder", f"`{bad}` is not the declared `<segment>` form")
+        )
     return findings
 
 
@@ -603,10 +662,18 @@ def check_named_runnables(path: Path, step: str, body: str, skills: set[str]) ->
     findings: list[Finding] = []
     for name in sorted(set(re.findall(r"^" + RUN_HEADING_FORM + r" `([a-z0-9-]+)`", body, re.M))):
         if name not in skills:
-            findings.append(Finding(path, step, "runnable", f"`{name}` is not a published skill of this pack"))
+            findings.append(
+                Finding(path, step, "runnable", f"`{name}` is not a published skill of this pack")
+            )
     for name in sorted(set(re.findall(r"[Rr]un `([a-z0-9-]+)`", body))):
-        if name not in skills and not re.search(r"^" + RUN_HEADING_FORM + r" `" + re.escape(name), body, re.M):
-            findings.append(Finding(path, step, "runnable", f"`{name}` is presented as a run but is not a published skill"))
+        if (
+            name not in skills
+                and not re.search(r"^" + RUN_HEADING_FORM + r" `" + re.escape(name), body, re.M)
+        ):
+            findings.append(
+                Finding(path, step, "runnable",
+                        f"`{name}` is presented as a run but is not a published skill")
+            )
     return findings
 
 
@@ -662,7 +729,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--contract", type=Path, default=REPO_ROOT / "docs" / "guides" / "guidebook-step-contract.md")
+    parser.add_argument(
+        "--contract", type=Path,
+        default=REPO_ROOT / "docs" / "guides" / "guidebook-step-contract.md",
+    )
     parser.add_argument("guidebooks", nargs="+", type=Path)
     args = parser.parse_args(argv)
     missing = [str(path) for path in args.guidebooks if not path.is_dir()]
@@ -678,7 +748,8 @@ def main(argv: list[str] | None = None) -> int:
         print(finding.render(), file=sys.stderr)
     if findings:
         return 1
-    print(f"lint-guidebook-steps: OK ({len(args.guidebooks)} guidebook director{'y' if len(args.guidebooks) == 1 else 'ies'})")
+    noun = "directory" if len(args.guidebooks) == 1 else "directories"
+    print(f"lint-guidebook-steps: OK ({len(args.guidebooks)} guidebook {noun})")
     return 0
 
 

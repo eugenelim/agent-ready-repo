@@ -129,7 +129,8 @@ def check_guidebook(pages: list[Path], build: Path, base: str) -> list[Finding]:
             elif (int(stated.group(1)), int(stated.group(2))) != (step, total):
                 findings.append(Finding(
                     name, surface,
-                    f"says {stated.group(1)} of {stated.group(2)}; the body says {step} of {total}"))
+                    f"says {stated.group(1)} of {stated.group(2)}; "
+                    f"the body says {step} of {total}"))
 
         if rail is None:
             continue
@@ -148,7 +149,9 @@ def check_guidebook(pages: list[Path], build: Path, base: str) -> list[Finding]:
 
         for href, title, _ in entries:
             if href.split("#")[0] not in routes:
-                findings.append(Finding(name, "rail", f"`{title}` links to {href}, which is not built"))
+                findings.append(
+                    Finding(name, "rail", f"`{title}` links to {href}, which is not built")
+                )
 
         for href in re.findall(r'<strong>Next:</strong>\s*<a href="([^"]*)"', text):
             target = href.split("#")[0]

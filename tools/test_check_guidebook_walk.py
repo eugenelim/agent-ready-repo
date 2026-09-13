@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -24,8 +25,6 @@ _spec = importlib.util.spec_from_file_location(
     "check_guidebook_walk", REPO_ROOT / "tools" / "check-guidebook-walk.py"
 )
 check_guidebook_walk = importlib.util.module_from_spec(_spec)
-import sys
-
 sys.modules["check_guidebook_walk"] = check_guidebook_walk
 _spec.loader.exec_module(check_guidebook_walk)
 

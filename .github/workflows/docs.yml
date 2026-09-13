@@ -194,10 +194,17 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: docs-site/package-lock.json
+        # BOTH lock files: `make site-build` builds `web/` and `docs-site/`,
+        # and installing only one left the other's binaries absent -- `npm run
+        # build --prefix web` then exits 127, which reads as a build failure
+        # rather than a missing install.
+          cache-dependency-path: |
+            web/package-lock.json
+            docs-site/package-lock.json
       - name: Build the site
         run: |
           set -euo pipefail
+          npm ci --prefix web
           npm ci --prefix docs-site
           make site-build
       - name: Sweep every step against every surface that names it

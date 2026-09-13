@@ -821,7 +821,6 @@ _KIND_BUCKETS = (
 )
 
 
-
 _STEP_DECLARATION = re.compile(r"^\*\*Step (\d+) of \d+ — ", re.M)
 _STEP_OF = re.compile(r"^\*\*Step (\d+) of (\d+) — ", re.M)
 
@@ -1097,7 +1096,6 @@ def _rewrite_changelog(text: str) -> str:
 
     result = re.sub(r"(\]\()(\.\./[^)#]*)(#[^)]+)?\)", replace, text)
     return _strip_md_suffixes(result)
-
 
 
 def guidebook_index(repo_root: Path) -> dict[str, dict]:
@@ -2222,7 +2220,6 @@ def load_guide_baseline(path: Path) -> dict:
     return baseline
 
 
-
 def project_guidebooks_group(records: list[dict], guide_groups: list[dict],
                              baseline: dict) -> dict | None:
     """Project the packs that ship a guidebook into a top-level anchor group.
@@ -2256,7 +2253,9 @@ def project_guidebooks_group(records: list[dict], guide_groups: list[dict],
     return {"label": "Guidebooks", "items": items}
 
 
-def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> tuple[dict | None, dict | None]:
+def build_guides_sidebar_group(
+    repo_root: Path, site_toml: Path
+) -> tuple[dict | None, dict | None]:
     """Collate the guides tree into the ``Guides`` group and the ``Guidebooks`` anchor."""
     guides_root = repo_root / "guides"
     if not guides_root.exists():
@@ -2388,10 +2387,10 @@ def main() -> None:
         src = packs_dir / p["slug"] / "README.md"
         dst = packs_out / f"{p['slug']}.md"
         if src.exists():
+            guidebook = guidebooks.get(p["slug"])
             copy_file(
                 src, dst,
-                rewriter=lambda t, s=src, g=guidebooks.get(p["slug"]):
-                    _rewrite_pack_readme(t, s, g),
+                rewriter=lambda t, s=src, g=guidebook: _rewrite_pack_readme(t, s, g),
                 dry_run=args.dry_run,
             )
         else:

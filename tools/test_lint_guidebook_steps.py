@@ -13,8 +13,8 @@ Covers AC-0001 (the contract is stated and binding) for
 
 from __future__ import annotations
 
-import re
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
