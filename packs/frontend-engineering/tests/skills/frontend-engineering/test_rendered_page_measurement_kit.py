@@ -14,8 +14,7 @@ import re
 from pathlib import Path
 
 import pytest
-
-from frontend_engineering_rendered_page_rules import PACK_ROOT, severity_by_class, read_rules
+from frontend_engineering_rendered_page_rules import PACK_ROOT, read_rules, severity_by_class
 
 SKILL_DIR = PACK_ROOT / ".apm" / "skills" / "frontend-engineering"
 MEASUREMENT = SKILL_DIR / "references" / "rendered-page-measurement.md"

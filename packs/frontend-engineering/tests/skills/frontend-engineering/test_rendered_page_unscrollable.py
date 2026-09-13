@@ -14,14 +14,13 @@ else.
 from __future__ import annotations
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     capture_record_fields,
     evaluate_capture_set,
     evaluate_record,
+    inspection_section,
     read_rules,
     read_skill,
-    inspection_section,
     required_captures,
 )
 
@@ -116,7 +115,7 @@ def test_page_scrollable_is_a_required_capture_record_field(
 def test_a_record_without_page_scrollable_is_unusable(rules_markdown: str) -> None:
     """It is unusable on the same terms as the other required fields, not a
     special case with a softer outcome."""
-    record: dict[str, object] = {f: 1 for f in REQUIRED}
+    record: dict[str, object] = dict.fromkeys(REQUIRED, 1)
     del record["page-scrollable"]
     status, absent = evaluate_record(rules_markdown, record)
     assert status == "unusable"

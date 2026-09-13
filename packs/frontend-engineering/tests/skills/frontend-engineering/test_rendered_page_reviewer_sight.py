@@ -10,11 +10,9 @@ the captures, the independent check is still blind, and the step is self-review.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 import pytest
-
-from frontend_engineering_rendered_page_rules import PACK_ROOT, severity_by_class, read_rules
+from frontend_engineering_rendered_page_rules import PACK_ROOT, read_rules, severity_by_class
 
 REVIEWER = PACK_ROOT / ".apm" / "agents" / "frontend-reviewer.md"
 # The work-loop dispatch line lives in the core pack's source, not in the
@@ -230,3 +228,30 @@ def test_the_journey_describes_a_reviewer_that_reads_the_page(work_loop: str) ->
     assert "reader-visible layout failure" in block, (
         "the review gate does not name the new lens"
     )
+
+
+# ── round 5: the no-evidence path, and the journey's own summary ────────────
+
+def test_the_no_evidence_path_is_a_named_skip_not_a_diff_only_pass(
+    reviewer: str,
+) -> None:
+    """The fallback said "review against the diff alone", which makes Lens 6
+    impossible — a diff cannot answer it. A silently dropped lens reads as a
+    clean one."""
+    norm = _normalized(reviewer)
+    assert "do not fall back to the diff alone" in norm
+    assert "Capture the adopter-named routes yourself" in norm
+    assert "skipped, naming what was missing" in norm
+    assert "A silently dropped lens reads as a clean one" in norm
+
+
+def test_the_journey_metadata_no_longer_advertises_a_diff_only_reviewer() -> None:
+    """`whatChanges` is the shipped one-paragraph summary of the pack. It still
+    listed five diff lenses after the reviewer gained a sixth that reads the
+    page."""
+    journey = (PACK_ROOT / "JOURNEY.md").read_text(encoding="utf-8")
+    what_changes = next(ln for ln in journey.splitlines() if ln.startswith("whatChanges:"))
+    assert "rendered captures" in what_changes, (
+        "the pack summary still describes the reviewer as reading only the diff"
+    )
+    assert "independent diff read" not in what_changes

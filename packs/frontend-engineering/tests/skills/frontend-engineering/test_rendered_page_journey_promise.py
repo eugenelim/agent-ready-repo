@@ -12,10 +12,7 @@ the right response is to get the decision made, then update the constant.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
-
 from frontend_engineering_rendered_page_rules import PACK_ROOT
 
 JOURNEY = PACK_ROOT / "JOURNEY.md"

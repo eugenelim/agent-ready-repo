@@ -9,7 +9,6 @@ the step that is judging it.
 from __future__ import annotations
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     inspection_section,
     judgement_request_route,
@@ -155,3 +154,40 @@ def test_what_a_sensitive_capture_exposes_is_named(rules_markdown: str) -> None:
     assert any(
         term in carried for term in ("names", "email", "payment", "order")
     ), "no concrete example of exposed content is named"
+
+
+# ── the exposure table, checked by value rather than by phrase ──────────────
+#
+# A sweep that deleted and then corrupted every rule row in the reference found
+# this table the only one whose rows could be removed or garbled with the suite
+# green: its check looked for loose phrases, not for the rows themselves.
+
+EXPOSED_TO_THE_JUDGE = {
+    "The page as rendered",
+    "The route, minus query string and fragment",
+    "Viewport width and height, scroll position, and whether the page scrolls",
+}
+
+
+def test_every_exposure_row_is_pinned_by_value(rules_markdown: str) -> None:
+    """Each row an adopter reads before deciding to capture a signed-in view is
+    pinned, so one cannot be dropped or reworded unnoticed."""
+    exposure = sensitive_view_exposure(rules_markdown)
+    assert set(exposure) == EXPOSED_TO_THE_JUDGE, (
+        f"the exposure table changed: extra={sorted(set(exposure) - EXPOSED_TO_THE_JUDGE)}, "
+        f"missing={sorted(EXPOSED_TO_THE_JUDGE - set(exposure))}"
+    )
+    for key, value in exposure.items():
+        assert len(value) > 25, f"the {key!r} row no longer says what it can include"
+
+
+@pytest.mark.parametrize("dropped", sorted(EXPOSED_TO_THE_JUDGE))
+def test_dropping_an_exposure_row_is_caught(rules_markdown: str, dropped: str) -> None:
+    """The mutation the sweep ran by hand, now pinned: deleting any row fails."""
+    mutated = "\n".join(
+        ln for ln in rules_markdown.splitlines()
+        if not ln.strip().startswith(f"| {dropped} |")
+    )
+    assert mutated != rules_markdown
+    with pytest.raises(AssertionError, match="exposure table changed"):
+        test_every_exposure_row_is_pinned_by_value(mutated)

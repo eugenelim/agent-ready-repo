@@ -1055,3 +1055,82 @@ Both `Blocker`-class defects now stop the surface completing while still
 reporting that the step ran. The two `Major` defects are reported and do not
 block, which is the intended gradient — a step that blocked on every finding
 would be turned off, and the intent's guardrail names that outcome directly.
+
+## 2026-09-13 — Round 5, a mechanical sweep, and the end of the review budget
+
+### The sweep, run because one-at-a-time fixing was not converging
+
+The same defect class — a rule living where the check can see it and the adopter
+cannot — had recurred through rounds 1, 4 and 8 of implementation. Instead of
+reading for a fourth instance, it was tested mechanically in three directions.
+
+1. **Delete each shipped rule row; does anything fail?** 42 two-cell rows.
+   **41 caught, 1 survivor.** This also disproved a code-reading hypothesis: six
+   `.get()` calls with fallbacks looked like live fail-open holes, but the tests
+   assert row values directly, so a deleted row fails anyway. Recorded because
+   the reading was wrong and the measurement corrected it.
+2. **Corrupt each rule's value to garbage.** **39 of 42 caught**, 3 survivors —
+   all rows of the sensitive-capture exposure table, the only table checked by
+   phrase rather than by value.
+3. **Is each rule's substance on the surfaces an adopter reads?** Two apparent
+   gaps were false positives and were eliminated rather than reported: the
+   untrusted-evidence rule is in § 5c under different words, and the filename
+   rule is in the manifest row, outside the section window the check used.
+
+A later, wider sweep over all 59 rows found four more deletable. Two are real —
+`incomplete` and `unusable-capture` carry acceptance criteria and are now pinned
+by name. Two are **not defects**: no criterion requires the `clipped` or
+`illegible` classes to exist, and the one-severity-per-class rule governs the
+rows present rather than which classes a pack ships. Recorded so the next sweep
+does not re-raise them.
+
+### Round 5, and what it converged with
+
+Two reviewers, 9 findings. Several matched the sweep independently; two did not,
+and both were things the sweep could not see:
+
+- **`ruff` reported 24 errors and `make lint-ruff` had never been run.** The
+  merged `CLAUDE.md` states plainly that ruff and mypy *are* the local gate.
+  Fixed; both now pass, 139 source files clean under mypy.
+- **The new shipped-surface checks accepted negated contracts.** They required
+  only the word `verdict` to appear, so "yes regardless of verdict" or "verdict
+  not recorded" would pass. The checks now assert the *relationship* — the
+  completion cell must be conditional, name a pass, and not negate it — with
+  four negation mutations pinned.
+
+### What was fixed
+
+| Finding | Fix |
+| --- | --- |
+| `Result surfaces` required state only | The table now carries a verdict column; all three surfaces require both axes. This is the row that governs the other three, so fixing them individually had left the contract state-only |
+| Precedence stated nowhere the agent reads | Now in § 5b where the agent classifies, and in the guide |
+| The guide never mentioned the verdict | Section 3 carries both axes; its `completed` row is conditional on a pass |
+| The guide omitted the judge-side declaration | Step 2 tells the adopter to declare the capture untrusted in the request itself |
+| The guide omitted the extra-height rule | Section 1 carries it |
+| The reviewer's "review against the diff alone" fallback | Lens 6 cannot be answered by a diff, so the no-evidence path is now capture-it-yourself, else a named skip. A silently dropped lens reads as a clean one |
+| Journey metadata advertised a diff-only reviewer | `whatChanges` names the rendered captures |
+| Journey step-4 output carried state only | Carries the verdict |
+| The spec's Objective still called reviewer seeding a follow-on | Records that it was taken into scope by owner decision |
+| Exposure table corruptible | All three rows pinned by value, with per-row deletion mutations |
+| `incomplete` / `unusable-capture` deletable | Criterion-bearing states pinned by name |
+
+**Suite: 235 passed.** `ruff` and `mypy` clean. `catalogue lint --deep` exit 0
+(`CAT-S003` 851 of 1,000). `catalogue verify` ok. All journey and guide lints
+pass.
+
+### The review budget, and what ships unreviewed
+
+`review_retry_count` reached 5 of 5 with this round. The owner was shown the
+position before the retry was spent and chose: fix round 5, then stop reviewing
+and ship.
+
+**So the round-5 repairs above are unreviewed.** That is the delivery's largest
+residual risk and it is stated here and in the PR rather than left implicit.
+Mitigating it: every fix is pinned by a check that was driven against a mutated
+source, the two sweeps were re-run after the fixes, and the suite grew 213 → 235.
+
+The recurring defect class is the lesson worth carrying out of this delivery,
+and it is mechanical rather than attitudinal: **a check that reads a helper
+proves nothing about shipped content.** The sweep that finds it takes six
+minutes and should run after any change to a rule layer, not after five review
+rounds.

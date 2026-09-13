@@ -21,8 +21,11 @@ agent to observe a screenshot, but that instruction names no required capture
 states, no record of what was seen, and no consequence for skipping. This delivery
 makes the step real: the agent drives the browser the pack already requires,
 captures the surface in named states, and reports reader-visible failures into the
-evidence manifest the human acceptance gate reads. Wiring those observations into
-what the independent reviewer is seeded with is a follow-on, not this delivery.
+evidence manifest the human acceptance gate reads, and an unresolved blocking
+finding stops the surface completing. Wiring those observations into what the
+independent reviewer is seeded with was scoped out at authoring time and **taken
+into scope on 2026-09-13 by owner decision**, together with the reviewer's lens
+and its ability to capture a page itself.
 
 Success for the adopter is a completion signal that cannot be green while the
 page is visibly broken, plus the means to measure, in their own environment, how

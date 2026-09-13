@@ -95,7 +95,8 @@ def unique_keyed(rows: list[list[str]], heading: str) -> dict[str, list[str]]:
 
 
 def severity_by_class(markdown: str) -> dict[str, str]:
-    rows = unique_keyed(table_rows(markdown, "Severity by finding class"), "Severity by finding class")
+    heading = "Severity by finding class"
+    rows = unique_keyed(table_rows(markdown, heading), heading)
     return {key: row[1] for key, row in rows.items()}
 
 
@@ -386,7 +387,8 @@ def route_rules(markdown: str) -> dict[str, str]:
 
 
 def judging_rules(markdown: str) -> dict[str, str]:
-    rows = unique_keyed(table_rows(markdown, "Judging captured content"), "Judging captured content")
+    heading = "Judging captured content"
+    rows = unique_keyed(table_rows(markdown, heading), heading)
     return {key: row[1] for key, row in rows.items()}
 
 
@@ -548,7 +550,8 @@ def inspection_result(
     ]
     if rules.get("verdict-source") != "findings":
         raise AssertionError("the reference no longer derives the verdict from findings")
-    verdict = "fail" if (unresolved and rules.get("blocking-finding-verdict") == "fail") else "pass"
+    fails = unresolved and rules.get("blocking-finding-verdict") == "fail"
+    verdict = "fail" if fails else "pass"
     return {"state": state, "verdict": verdict}
 
 

@@ -10,7 +10,6 @@ states.
 from __future__ import annotations
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     SEVERITIES,
     finding_content_rules,

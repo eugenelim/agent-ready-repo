@@ -8,7 +8,6 @@ distinguishable from a completed one, read from the reference's result tables.
 from __future__ import annotations
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     is_completed_inspection,
     manifest_fields,
@@ -197,3 +196,52 @@ def test_exactly_one_result_state_is_a_completed_inspection(
     assert completed == ["completed"], (
         f"states reading as a completed inspection: {completed}"
     )
+
+
+# ── the criterion-bearing result states, pinned by name ────────────────────
+#
+# A sweep deleting every rule row in the reference found `incomplete` and
+# `unusable-capture` removable with the suite green, because the evaluators
+# return those literals regardless of whether the table declares them. Both
+# carry acceptance criteria, so both must be declared.
+#
+# `clipped` and `illegible` are also removable and that is CORRECT: no criterion
+# requires those classes to exist. The one-severity-per-class rule governs the
+# rows that are present, not which classes a pack chooses to ship.
+
+CRITERION_BEARING_STATES = {
+    "completed": "yes",
+    "incomplete": "no",
+    "unusable-capture": "no",
+    "skipped-no-browser": "no",
+    "failed-navigation": "no",
+    "failed-capture": "no",
+    "failed-judgement": "no",
+}
+
+
+def test_every_criterion_bearing_result_state_is_declared(rules_markdown: str) -> None:
+    """Each of these is named by an acceptance criterion, so the shipped table
+    has to declare it — and declare whether it is a completed inspection."""
+    states = result_states(rules_markdown)
+    for name, expected in CRITERION_BEARING_STATES.items():
+        assert name in states, (
+            f"the shipped Result states table no longer declares {name!r}, which "
+            f"an acceptance criterion names"
+        )
+        assert states[name] == expected, (
+            f"{name!r} is declared {states[name]!r}, expected {expected!r}"
+        )
+
+
+@pytest.mark.parametrize("state", sorted(CRITERION_BEARING_STATES))
+def test_dropping_a_criterion_bearing_state_is_caught(
+    rules_markdown: str, state: str
+) -> None:
+    mutated = "\n".join(
+        ln for ln in rules_markdown.splitlines()
+        if not ln.strip().startswith(f"| {state} |")
+    )
+    assert mutated != rules_markdown
+    with pytest.raises(AssertionError, match="no longer declares"):
+        test_every_criterion_bearing_result_state_is_declared(mutated)

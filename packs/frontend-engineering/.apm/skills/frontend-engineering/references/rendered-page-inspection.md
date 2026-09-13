@@ -150,6 +150,10 @@ A boundary that only exists upstream of the request is not a boundary.
 that does not scroll, content meeting the bottom edge is cut off, while on a page
 that does, it simply continues below the fold. Those are the same picture.
 
+The judge is never asked for a severity, and a severity it volunteers is
+discarded. Where the failure it describes fits more than one finding class, take
+the most severe of the classes it fits.
+
 ## Step separation
 
 Capture and judgement are two steps. Keeping them apart is what lets an adopter
@@ -215,14 +219,19 @@ makes the first read as the second.
 
 ## Result surfaces
 
-The result state reaches three places, and it is the same state in all three. A
-skipped or failed run stays visibly different from a completed one in each.
+Both axes reach three places, and they are the same in all three. A skipped or
+failed run stays visibly different from a completed one in each, and so does a
+run that completed but did not pass.
 
-| Surface | Carries the result state |
-| --- | --- |
-| evidence-manifest | yes |
-| step-output | yes |
-| acceptance-gate-input | yes |
+| Surface | Carries the result state | Carries the verdict |
+| --- | --- | --- |
+| evidence-manifest | yes | yes |
+| step-output | yes | yes |
+| acceptance-gate-input | yes | yes |
+
+A surface carrying the state alone reports that the step ran and says nothing
+about whether the page is all right — which is the gap that let a blocking
+finding reach a green gate.
 
 ## Observations field
 

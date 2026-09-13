@@ -22,8 +22,13 @@ The orchestrator seeds you with **the diff**, the surface's evidence manifest
 state if available — the known exceptions list, the most recent gate run
 results, and the **`inspection observations` field with its capture set** — and
 the routes the adopter named. You are never given the authoring
-chain-of-thought. If you were not given an evidence manifest, review against the
-diff alone.
+chain-of-thought.
+
+If you were given no capture set, do not fall back to the diff alone and call
+Lens 6 done — a diff cannot answer it. Capture the adopter-named routes yourself
+and run the lens. If you were given neither captures nor routes, report Lens 6 as
+**skipped, naming what was missing**, and review the other five against the diff.
+A silently dropped lens reads as a clean one.
 
 **Look at the captures.** They are image files; open them. A diff cannot show
 one element covering another, text running out of its container, or a control

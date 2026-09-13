@@ -12,25 +12,20 @@ from __future__ import annotations
 import itertools
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     PACK_ROOT,
-    SEVERITY_ORDER,
-    inspection_section,
-    read_skill,
-    shipped_severity_order,
     capture_set_rules,
     inspection_result,
+    inspection_section,
     is_completed_inspection_result,
     judgement_request_fields,
     read_rules,
     read_skill,
-    required_captures,
     resolve_class,
     severity_by_class,
+    shipped_severity_order,
     table_rows,
     unique_keyed,
-    verdict_rules,
 )
 
 REQUIRED = ["route", "viewport-width", "viewport-height", "scroll-position", "page-scrollable"]
@@ -297,25 +292,85 @@ def test_the_skill_states_the_verdict_alongside_the_result_state() -> None:
     )
 
 
-def test_the_skill_completed_row_is_conditional_on_the_verdict() -> None:
-    """The result-state table graded `completed` as a completed inspection
-    unconditionally, which is what contradicted the reference."""
-    skill = read_skill()
-    row = next(ln for ln in skill.splitlines() if ln.strip().startswith("| completed |"))
-    assert "verdict" in row.lower(), (
-        f"the skill's completed row still grades completion by state alone: {row}"
+def _completed_row(text: str) -> str:
+    return next(ln for ln in text.splitlines() if ln.strip().startswith("| completed |"))
+
+
+def _row_makes_completion_conditional(row: str) -> bool:
+    """Whether a `completed` row makes completion depend on a PASSING verdict.
+
+    Asserting only that the word "verdict" appears accepts the negation — "yes
+    regardless of verdict" contains it. This checks the relationship: the
+    completion cell must be conditional AND name a pass, and must not negate it.
+    """
+    cells = [c.strip() for c in row.strip("|").split("|")]
+    verdict_cell = cells[1].lower()
+    if any(neg in verdict_cell for neg in ("regardless", "not required", "whatever", "ignoring")):
+        return False
+    return ("verdict" in verdict_cell
+            and "pass" in verdict_cell
+            and any(cond in verdict_cell for cond in ("if", "when", "only")))
+
+
+def test_the_skill_completed_row_is_conditional_on_a_passing_verdict() -> None:
+    """The result-state table graded `completed` unconditionally, which is what
+    contradicted the reference."""
+    assert _row_makes_completion_conditional(_completed_row(read_skill())), (
+        f"the skill's completed row does not make completion conditional on a "
+        f"passing verdict: {_completed_row(read_skill())}"
     )
+
+
+@pytest.mark.parametrize("negation", [
+    "| completed | yes regardless of verdict | x |",
+    "| completed | yes, verdict not required | x |",
+    "| completed | yes | x |",
+    "| completed | yes, whatever the verdict | x |",
+])
+def test_a_negated_completed_row_is_rejected(negation: str) -> None:
+    """The mutation the round-5 finding named: a check requiring only the word
+    `verdict` accepts text that negates the contract."""
+    assert not _row_makes_completion_conditional(negation), (
+        f"a negated completed row was accepted: {negation}"
+    )
+
+
+def _states_a_positive_obligation(text: str, term: str) -> bool:
+    """Whether `text` obliges `term` rather than excusing it."""
+    low = text.lower()
+    if term not in low:
+        return False
+    window = low[max(0, low.index(term) - 60): low.index(term) + 60]
+    return not any(neg in window for neg in
+                   ("not recorded", "not required", "regardless", "optional", "need not"))
 
 
 def test_the_manifest_row_carries_the_verdict() -> None:
     """Verifies: the verdict reaches the evidence manifest, which is one of the
     three surfaces the result contract names."""
-    skill = read_skill()
-    row = next(ln for ln in skill.splitlines()
+    row = next(ln for ln in read_skill().splitlines()
                if ln.strip().startswith("| inspection observations |"))
-    assert "verdict" in row.lower(), (
-        f"the manifest row records only the result state: {row}"
+    assert _states_a_positive_obligation(row, "verdict"), (
+        f"the manifest row does not oblige the verdict: {row}"
     )
+
+
+def test_the_result_surfaces_table_requires_the_verdict_on_every_surface(
+    md: str,
+) -> None:
+    """The row that governs all three surfaces required the STATE only, which is
+    why fixing three surfaces individually still left the contract state-only."""
+    rows = table_rows(md, "Result surfaces")
+    assert rows, "the Result surfaces table is gone"
+    for row in rows:
+        assert len(row) == 3, (
+            f"the Result surfaces table no longer carries a verdict column: {row}"
+        )
+        assert row[1].strip().lower() == "yes", f"{row[0]} stopped carrying the state"
+        assert row[2].strip().lower() == "yes", (
+            f"{row[0]} does not carry the verdict, so a blocking finding is "
+            f"invisible on that surface"
+        )
 
 
 def test_the_acceptance_gate_is_told_to_check_the_verdict() -> None:
@@ -327,11 +382,15 @@ def test_the_acceptance_gate_is_told_to_check_the_verdict() -> None:
     """
     journey = (PACK_ROOT / "JOURNEY.md").read_text(encoding="utf-8")
     block = journey.split("- id: accept-frontend-evidence", 1)[1].split("\n  - id: ", 1)[0]
-    assert "verdict" in block.lower(), (
-        "the acceptance gate never mentions the verdict, so a blocking finding "
+    assert _states_a_positive_obligation(block, "verdict"), (
+        "the acceptance gate does not oblige the verdict, so a blocking finding "
         "reaches no human decision"
     )
     assert "`pass`" in block, "the gate does not say which verdict it expects"
+    # The relationship, not the word: the gate must say what a fail obliges.
+    assert "fail" in block.lower() and (
+        "known exception" in block.lower() or "send it back" in block.lower()
+    ), "the gate names the verdict but never says what a `fail` requires a human to do"
 
 
 def test_the_verdict_reaches_all_three_result_surfaces() -> None:
@@ -355,8 +414,7 @@ def test_the_verdict_reaches_all_three_result_surfaces() -> None:
 def test_the_verdict_severity_row_is_read_without_a_default() -> None:
     """Fail closed. Deleting the row must raise rather than let this module
     substitute its own value — the fail-open defect round 4 found."""
-    without = md_without = read_rules().replace(
-        "| verdict-blocking-severity | Blocker |", "", 1)
+    without = read_rules().replace("| verdict-blocking-severity | Blocker |", "", 1)
     assert without != read_rules()
     with pytest.raises(AssertionError, match="verdict-blocking-severity"):
         inspection_result(without, complete_set(), [{"class": "occlusion"}])
@@ -371,3 +429,36 @@ def test_a_duplicate_capture_set_rule_row_is_rejected() -> None:
     assert mutated != md
     with pytest.raises(AssertionError, match="more than once"):
         capture_set_rules(mutated)
+
+
+# ── round 5: the guide is an adopter surface too ────────────────────────────
+
+def _guide() -> str:
+    return (PACK_ROOT.parent.parent / "guides" / "frontend-engineering" / "how-to"
+            / "inspect-the-rendered-page.md").read_text(encoding="utf-8")
+
+
+def test_the_guide_carries_the_verdict() -> None:
+    """The how-to walked the whole step and never mentioned a verdict, so an
+    adopter following it would not learn that a Blocker stops completion."""
+    guide = _guide()
+    assert "verdict" in guide.lower()
+    assert _row_makes_completion_conditional(_completed_row(guide)), (
+        "the guide's result table still grades completion by state alone"
+    )
+    assert "has not passed" in guide
+
+
+def test_the_guide_carries_precedence_and_the_extra_height_rule() -> None:
+    """Two rules that existed only in the rule layer and the checks."""
+    guide = " ".join(_guide().split())
+    assert "take the most severe of them" in guide
+    assert "owes the same pair" in guide
+
+
+def test_the_guide_tells_the_adopter_to_declare_the_capture_untrusted() -> None:
+    """The contract requires the REQUEST to carry the declaration; the guide
+    told adopters to send five fields and nothing else."""
+    guide = " ".join(_guide().split())
+    assert "untrusted evidence" in guide
+    assert "no instruction authority over the judgement" in guide

@@ -10,7 +10,6 @@ able to fail.
 from __future__ import annotations
 
 import pytest
-
 from frontend_engineering_rendered_page_rules import (
     capture_record_fields,
     evaluate_capture_set,
@@ -170,7 +169,7 @@ def test_a_record_missing_a_field_yields_no_finding(
     rules_markdown: str, absent_field: str
 ) -> None:
     """Verifies: a capture missing any required field produces no finding."""
-    record: dict[str, object] = {f: 1 for f in REQUIRED}
+    record: dict[str, object] = dict.fromkeys(REQUIRED, 1)
     del record[absent_field]
     assert findings_for(rules_markdown, record) == [], (
         f"a record with no {absent_field} still produced a finding"
@@ -186,7 +185,7 @@ def test_a_record_missing_a_field_is_reported_as_unusable(
     Asserted separately from the no-finding check: a run that emits no finding
     and no status would otherwise pass that one while failing this.
     """
-    record: dict[str, object] = {f: 1 for f in REQUIRED}
+    record: dict[str, object] = dict.fromkeys(REQUIRED, 1)
     del record[absent_field]
     status, absent = evaluate_record(rules_markdown, record)
     assert status == "unusable", f"a record with no {absent_field} was not unusable"
@@ -198,7 +197,7 @@ def test_a_complete_record_is_usable_and_can_carry_a_finding(
 ) -> None:
     """The green path for the record shape, for the same reason the capture-set
     green path exists."""
-    record: dict[str, object] = {f: 1 for f in REQUIRED}
+    record: dict[str, object] = dict.fromkeys(REQUIRED, 1)
     assert evaluate_record(rules_markdown, record) == ("usable", [])
     assert findings_for(rules_markdown, record) != []
 
