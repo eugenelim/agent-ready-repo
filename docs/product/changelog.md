@@ -54,6 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.23] — 2026-09-13
+
+### Fixed
+
+- The spec README seed names the `new-spec` skill instead of a Claude Code path.
+  `contracts/adapter.toml` projects that skill into seven different roots, so the
+  hardcoded `.claude/skills/...` copy command was wrong for every adopter on
+  another adapter. It now points at a `SKILL` variable, matching the ADR and RFC
+  seeds, and the seed comes off the portable-citation cleanup list.
+
 ## [core][2.25.22] — 2026-09-13
 
 ### Changed
