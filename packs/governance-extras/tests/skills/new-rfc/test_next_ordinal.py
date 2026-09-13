@@ -414,6 +414,30 @@ def test_next_ordinal_sees_a_non_ascii_remote_record(
     assert capsys.readouterr().out == "0010\n"
 
 
+def test_next_ordinal_survives_a_non_utf8_remote_path(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """One undecodable remote name must not discard the whole listing.
+
+    Git reports whatever bytes the filesystem holds. Decoding strictly raises on
+    such an entry and drops every well-formed record beside it, which would hand
+    out an ordinal the remote already uses. Skipped where the filesystem refuses
+    the name at all, as APFS does.
+    """
+    probe = tmp_path / "probe"
+    probe.mkdir()
+    try:
+        (probe / os.fsdecode(b"\xff")).touch()
+    except (OSError, UnicodeError):
+        pytest.skip("filesystem rejects non-UTF-8 names")
+
+    checkout = remote_checkout(
+        tmp_path, "records", remote_record=os.fsdecode(b"0009-bad-\xff.md")
+    )
+    assert MODULE.main([os.fspath(checkout)]) == 0
+    assert capsys.readouterr().out == "0010\n"
+
+
 def test_shipped_adr_and_rfc_scripts_are_byte_identical() -> None:
     """The two published copies stay synchronized."""
     assert (SCRIPTS / "next-ordinal.py").read_bytes() == ADR_SCRIPT.read_bytes()
