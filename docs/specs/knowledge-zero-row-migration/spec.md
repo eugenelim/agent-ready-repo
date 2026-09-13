@@ -1,6 +1,6 @@
 # Spec: knowledge-zero-row-migration
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0081](../../adr/0081-canonical-project-knowledge-uses-per-topic-json.md) and [ADR-0082](../../adr/0082-project-knowledge-modes-separate-authority.md) (Accepted)
@@ -93,31 +93,31 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — an empty legacy corpus stages instead of crashing.** With
+- [x] **AC1 — an empty legacy corpus stages instead of crashing.** With
   `docs/knowledge/patterns.jsonl` present and zero bytes long,
   `stage_legacy_migration` returns `counts` equal to
   `{"input_rows": 0, "active_import": 0, "needs_review_import": 0, "refused": 0}`
   and `diagnostics` equal to `[]`.
-- [ ] **AC2 — the zero-row staged result is the canonical empty map, not an
+- [x] **AC2 — the zero-row staged result is the canonical empty map, not an
   empty directory.** After AC1's run, exactly one file exists anywhere under
   `docs/knowledge/.migration-stage/`: the map at
   `docs/knowledge/.migration-stage/docs/knowledge/topics.index.json`, whose
   content is these 66 bytes exactly, including the trailing newline —
   `{\n  "entries": [],\n  "schema_version": "knowledge-topic-map.v1"\n}\n`.
-- [ ] **AC3 — a corpus whose every row is refused stages the same shape.** With
+- [x] **AC3 — a corpus whose every row is refused stages the same shape.** With
   a `patterns.jsonl` of *n* rows, *n* at least 1, that each receive the
   `refused` disposition, staging returns `counts` equal to
   `{"input_rows": n, "active_import": 0, "needs_review_import": 0, "refused": n}`
   and leaves the same single staged map, byte for byte, that AC2 names.
-- [ ] **AC4 — the zero-row migration activates end to end.** After AC1's run,
+- [x] **AC4 — the zero-row migration activates end to end.** After AC1's run,
   with the staged map copied into `docs/knowledge/` and committed,
   `activate_staged_migration` returns `state` equal to `"activated"` and the
   directory `docs/knowledge/.migration-stage/` no longer exists.
-- [ ] **AC5 — the zero-row coverage discriminates.** Run against the staging
+- [x] **AC5 — the zero-row coverage discriminates.** Run against the staging
   behaviour this repository shipped in 2.25.18, where the stage root exists only
   as a side effect of writing a topic, the test covering AC1 fails with an
   unhandled `FileNotFoundError` naming `topics.index.json`.
-- [ ] **AC6 — both shipped surfaces state the promotion sequence.** The
+- [x] **AC6 — both shipped surfaces state the promotion sequence.** The
   `project-knowledge` skill body and the `docs/knowledge/README.md` seed each
   carry a migration section giving, in this order: run `--migrate-legacy`, copy
   the staged `docs/knowledge/` tree into `docs/knowledge/`, commit it, then run

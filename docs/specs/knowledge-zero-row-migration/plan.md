@@ -1,7 +1,7 @@
 # Plan: knowledge-zero-row-migration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, self-host
   projection, pack test loader rule) and `packs/core/AGENTS.md`. Analogous
   implementation: `_stage_legacy_migration_locked` and its sibling
