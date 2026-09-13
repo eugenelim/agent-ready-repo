@@ -79,6 +79,12 @@ def classify(line: str) -> str:
     stripped = line.strip()
     if not stripped or stripped.startswith("#"):
         return "ignore"
+    # Make's own recursion diagnostics, never roster content. `--no-print-
+    # directory` above suppresses the common one; this stays as the second
+    # layer, matched narrowly on the `make[N]:` prefix so a real roster line
+    # can never be swallowed by it.
+    if re.match(r"^make\[\d+\]: ", stripped):
+        return "ignore"
     if any(marker in stripped for marker in PRECONDITION_MARKERS):
         return "precondition"
     if "-m pytest " in stripped or stripped.startswith("npm run "):
@@ -153,6 +159,13 @@ def _expand_roster(makefile_path: Path) -> list[str]:
         result = subprocess.run(
             [
                 "make",
+                # This runs from inside a make recipe, so MAKELEVEL is already
+                # non-zero and GNU Make announces "Entering directory ..." on
+                # STDOUT -- interleaved with the roster it is meant to emit.
+                # macOS make stayed quiet and CI did not; the classifier refused
+                # the line rather than dropping a suite, which is the designed
+                # behaviour, but the roster must not carry it in the first place.
+                "--no-print-directory",
                 "-f",
                 str(makefile_path),
                 "-n",

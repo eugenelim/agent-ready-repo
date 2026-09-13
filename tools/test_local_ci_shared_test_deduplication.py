@@ -2778,3 +2778,47 @@ def test_shard_workflow_runs_one_test_step_on_the_exact_runner() -> None:
         r"make test SHARD=\$\{\{ matrix\.shard \}\} SHARDS=\d+", make_test[0].strip()
     ), make_test[0]
     assert re.search(r"(?m)^\s*runs-on:\s*ubuntu-latest\s*$", text)
+
+
+def test_shard_ignores_make_recursion_diagnostics_narrowly() -> None:
+    """Make's own `make[N]:` chatter is not roster content, but nothing else is.
+
+    Regression: run 34789174316 failed all four shards on the exact first line
+    below. `roster_lines` runs `make -n` from inside a make recipe, so MAKELEVEL
+    is non-zero and GNU Make announces the directory on stdout. macOS make
+    stayed quiet, so only CI saw it.
+    """
+    shard = _shard_module()
+    for diagnostic in (
+        "make[1]: Entering directory '/home/runner/work/agent-ready-repo/agent-ready-repo'",
+        "make[2]: Leaving directory '/tmp/x'",
+    ):
+        assert shard.classify(diagnostic) == "ignore", diagnostic
+
+    # The rule must stay narrow: anything that is not the `make[N]:` prefix is
+    # still refused, so this cannot become a hole that swallows a roster line.
+    for refused in (
+        "make test-unleased",
+        "makefoo[1]: Entering directory '/x'",
+        "make[x]: Entering directory '/x'",
+        "  make[1] Entering directory '/x'",
+    ):
+        try:
+            shard.classify(refused)
+        except shard.RosterError:
+            continue
+        raise AssertionError(f"should have been refused: {refused!r}")
+
+
+def test_shard_expansion_passes_no_print_directory() -> None:
+    """The dry run suppresses the diagnostic at source, not only on read."""
+    shard = _shard_module()
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(argv, **kwargs):  # type: ignore[no-untyped-def]
+        captured["argv"] = list(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard.roster_lines()
+    assert "--no-print-directory" in captured["argv"], captured["argv"]
