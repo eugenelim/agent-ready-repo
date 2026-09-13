@@ -522,7 +522,7 @@ carry a decidable predicate, which would move it out of the prose-only region:
 *is the set being enumerated already mechanically enumerable from a named
 artifact?* For `make ci` the answer is decidable rather than a judgment, and by
 two independent instruments in this repository: the `Makefile` declares
-`ci: build-check lint-ruff lint-mypy test-after-build-check` on one line, and
+`ci: lint-ruff lint-mypy build-check test-after-build-check` on one line, and
 `make -np` emits the same prerequisite list from make's own database without
 parsing prose. The candidate rule is the one rubric class 4 now
 states as its first clause.

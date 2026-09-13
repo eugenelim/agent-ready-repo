@@ -210,7 +210,15 @@ The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejecte
 - **`Experimental`** (optional) — the proposal includes an `Experiment / validation` section and the trial is running; the RFC sits here, results pending in a linked spike note, until they land and it moves to a terminal status. Use only when an experiment is genuinely in flight.
 - **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
 
-The skill also updates `docs/rfc/README.md` so the new file shows up in the index.
+The skill then regenerates the index so the new file shows up in it, by running
+the bundled generator over the RFC directory:
+
+```bash
+python3 "$SKILL/scripts/index-records.py" docs/rfc
+```
+
+The index is derived from the records themselves, so it cannot drift from them.
+Run the same command with `--check` to find out whether it would change.
 
 ## Step 8 — After acceptance
 

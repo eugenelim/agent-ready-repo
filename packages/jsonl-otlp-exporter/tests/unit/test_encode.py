@@ -1,4 +1,4 @@
-"""T4, encoder half — the conversion semantics ADR-0112 settles.
+"""T4, encoder half — the conversion semantics ADR-0114 settles.
 
 Covers AC-0005, AC-0023, AC-0034, AC-0053, AC-0064, AC-0065, AC-0066, AC-0068,
 AC-0069, AC-0070, AC-0071, AC-0072.

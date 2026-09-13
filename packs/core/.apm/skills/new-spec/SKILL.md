@@ -282,7 +282,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      six failure classes in order first: they precede shape, and class 1 —
      an obligation authored where an owner already exists — outranks every
      criterion-craft question below it.
-     See step 9 for citation discipline and step 5 for the corpus obligation.
+     See step 8 for citation discipline and step 5 for the corpus obligation.
    - **An obligation whose only check is that a sentence exists is not a
      criterion.** Ask what would red if the obligation were violated. If the
      answer is a machine — a test, a lint, a parse, a scored run over a frozen
@@ -536,7 +536,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    unavailable`; leave the spec at `Draft`. `BLOCKED` is a lifecycle receipt,
    not a shaping-reviewer result. Resolve findings until it returns `Clean`. A
    missing reviewer, consequential grounding gap, or unresolved finding is
-   `BLOCKED`: do not index or seek approval. A material edit to Objective, Boundaries, Acceptance
+   `BLOCKED`: do not seek approval. A material edit to Objective, Boundaries, Acceptance
    Criteria, Testing Strategy, governing constraints, or the
    contract/construction separation invalidates the result and requires a fresh
    shaping review; the lifecycle owner may record a pre-seal, nonmaterial
@@ -551,7 +551,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    the pinned build artifact. Do not edit a pinned artifact directly; this
    skill defines no run-record field, closure rule, or recovery transition.
 
-7. Spec-mode adversarial review. Before announcing the spec in the README,
+7. Spec-mode adversarial review. Before the spec is approved,
    select a subagent matching `adversarial-reviewer` and ask it to review
    the freshly drafted `spec.md` + `plan.md` in spec mode — the role supports
    this explicitly.
@@ -634,10 +634,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    a residue falls in a protected risk class, say so and do not seek acceptance
    for it.
 
-8. Update `docs/specs/README.md` to add the feature to the active list. Do not
-   index before both review gates are clean.
-
-9. **Keep the spec the single source of truth — drift is a bug.** When
+8. **Keep the spec the single source of truth — drift is a bug.** When
    implementation diverges from the spec, the spec is wrong: update it in
    the same PR. The failure mode this discipline prevents has a name —
    **context poisoning**: an agent loads a stale, duplicated, or
@@ -661,7 +658,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    `python '<skill-dir>/scripts/<name>.py'`, and read each one's `--help` for
    its flags and exit codes.
 
-   - `lint-contract-item-alignment.py` — run here, at step 9, over the spec
+   - `lint-contract-item-alignment.py` — run here, at step 8, over the spec
      directory. It decides that every criterion and verification item carries
      an identifier, that identifiers are unique, that none is reused against the
      artifact's retired list, that every item reference resolves, and that a

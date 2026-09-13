@@ -85,14 +85,13 @@ def test_release_handoff_records_the_completed_change_and_batch_closeout() -> No
     ).read_text(encoding="utf-8")
     assert re.search(r"^- \*\*Status:\*\* Done\b", plan, re.MULTILINE)
 
-    spec_index = (REPO_ROOT / "docs/specs/README.md").read_text(encoding="utf-8")
-    row = next(
-        line
-        for line in spec_index.splitlines()
-        if "guide-typed-asides-conversion/spec.md" in line
+    # The spec index was retired by ADR-0112; the spec and plan are the source.
+    spec = (REPO_ROOT / "docs/specs/guide-typed-asides-conversion/spec.md").read_text(
+        encoding="utf-8"
     )
-    assert "| Shipped |" in row
-    assert "12 ACs / 4 tasks" in row
+    assert re.search(r"^- \*\*Status:\*\* Shipped\b", spec, re.MULTILINE)
+    assert len(re.findall(r"^- \[[x ]\] \*\*AC", spec, re.MULTILINE)) == 12
+    assert len(re.findall(r"^### T\d+", plan, re.MULTILINE)) == 4
 
     product_changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(
         encoding="utf-8"

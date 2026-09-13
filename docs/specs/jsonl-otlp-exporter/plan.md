@@ -67,7 +67,7 @@ A profile is a TOML document declaring six keys: `timestamp_field`,
 `identity`, and `allowlist`. It is data, never code: loading executes nothing,
 which is what keeps the extension point's threat model to bounded untrusted-input
 parsing rather than arbitrary execution. A selected profile is trusted to define
-the payload; selecting one is the operator's act, and ADR-0112 records why an
+the payload; selecting one is the operator's act, and ADR-0114 records why an
 invocation-level cap was declined.
 
 ### Component / module decomposition
@@ -186,7 +186,7 @@ durable state anywhere.
 
 **Touches:** `jsonl_otlp_exporter/encode.py`, `jsonl_otlp_exporter/profile.py`
 (parsing, schema validation and confined loading of a `--profile` file), its
-tests and their profile fixtures. **No `mappings/` package.** ADR-0112 makes a
+tests and their profile fixtures. **No `mappings/` package.** ADR-0114 makes a
 profile data the consumer supplies, so the distribution bundles none: the
 profiles this task's tests use are fixtures under the test tree, never importable
 package data, and nothing in the package resolves a profile by name.

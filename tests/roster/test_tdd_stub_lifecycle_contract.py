@@ -144,11 +144,14 @@ def test_frozen_rfc_records_the_correction_without_rewriting_history() -> None:
     assert "PLAN-contained" in errata
     assert "CODE-IMPLEMENTATION" in errata
     assert "frozen body remains the historical decision" in errata
+    # The RFC index is generated from each record's own H1 (ADR-0112), so it no
+    # longer carries a hand-written summary to assert the correction against.
+    # The errata above is the record of it, and the row still resolves.
     index_row = next(
-        line for line in _text(RFC_INDEX).splitlines() if line.startswith("| [0028]")
+        line for line in _text(RFC_INDEX).splitlines()
+        if "](0028-tdd-stub-generation-in-the-core-loop.md)" in line
     )
-    assert "PLAN-contained" in index_row
-    assert "CODE-IMPLEMENTATION" in index_row
+    assert index_row.startswith("| 0028 |")
 
 
 def test_skill_evals_cover_plan_proof_and_execute_materialization() -> None:
