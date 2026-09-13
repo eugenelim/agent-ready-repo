@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.22"
+          "version": "2.25.24"
         }
       ],
       "date": "2026-09-13",
-      "heading": "[core][2.25.22] — 2026-09-13",
-      "changelogAnchor": "core22522--2026-09-13",
+      "heading": "[core][2.25.24] — 2026-09-13",
+      "changelogAnchor": "core22524--2026-09-13",
       "highlights": [
         {
           "source": "**A sustained shaping finding no longer reads as an instruction to edit.** Intent, delivery-brief and spec authoring point at the work-loop's ordered response ladder — cut, route, fix, hold, walked until one applies — so an author can answer a finding by dropping a claim nothing is obliged by rather than writing more careful prose. The lifecycle gates are unchanged: whatever blocked before still blocks.",
