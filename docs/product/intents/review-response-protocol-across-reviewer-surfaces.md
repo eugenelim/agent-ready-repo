@@ -113,6 +113,62 @@ adjudicator should be handed the previous rounds' refutations, and what that doe
 to its independence, is the question this intent should settle before carrying
 the protocol to the other surfaces.
 
+## Changed 2026-09-13 — the set grew to ten, ordered cut-first, and work-loop went first
+
+Three changes to this intent's subject, on owner authority recorded in
+[`docs/specs/finding-response-receptacle/notes/owner-decisions.md`](../../specs/finding-response-receptacle/notes/owner-decisions.md).
+
+**The set is no longer eight.** Two answers were added: `drop-the-claim`, for an
+assertion nothing is obliged by, and `demote-the-claim`, for an obligation that is
+real but whose only check is that a sentence exists, which leaves the contract for
+working material and gains a content pin. The gap they fill is structural — every
+prior answer edits the artifact, moves ownership, or holds, so a review round
+could only add or hold and never let a contract shrink. That is the mechanism
+behind rounds that run long without converging: a finding against unnecessary
+prose could only be answered by writing more careful prose.
+
+**The set is an ordered ladder, not a menu.** Four axes — cut, route, fix, hold —
+walked until one applies, then stopped. Cut leads because the repository already
+governs code changes that way: cut before adding, take the first sufficient option
+and stop. The order also pays for itself, because asking whether a claim needs to
+exist is cheap while tracing a check's reach or locating a generator is not, and
+spending that on a claim about to be deleted is the waste.
+
+**Every answer walks its surfaces before it is taken, and the direction differs.**
+Cut walks backwards, asking what referenced the thing that no longer exists — it
+reaches furthest, because removing a node orphans the tasks, tests, design prose,
+durable-output rows and pins that pointed at it. Route walks outwards to confirm
+the named owner covers the whole claim, then back to remove what still states it
+locally, or routing creates the second home for one rule the repository forbids.
+Fix walks sideways across the other instances, the companions that describe them,
+and anything that pins those. Hold walks forwards, because a dismissal or an
+acceptance the next round cannot see produces exactly the recurrence this intent
+already records.
+
+It is a walk rather than a flat search, for two reasons this work produced. A
+companion usually paraphrases, so it shares no string with the repair and no text
+search reaches it. And each change opens its own frontier — a narrowed criterion
+moves its design prose, which changes what a task asserts, which may sit under a
+pin — so one pass closes nothing. The walk terminates on an empty frontier.
+
+The walk also feeds back into the ladder: a claim living on many surfaces is
+evidence for repairing its generator, or for dropping it, rather than for
+repairing the instance a reviewer happened to cite.
+
+**Work-loop's DECIDE shipped first, not `shaping-reviewer`.** This intent's
+Boundary names `shaping-reviewer` as the first surface; it was not. The receptacle
+work went to `review-verdict.v1` and the work-loop DECIDE step because that is
+where a disposition record already existed to extend. The sequencing deviation is
+recorded rather than reframed after the fact.
+
+`shaping-reviewer` remains next, and it is not a copy of this work. Its surfaces
+carry no criterion set, so `demote-the-claim` needs a different destination map:
+an intent's binding parts are its Outcome and Boundary, its working material is
+Opportunity and Unresolved questions, and demotion upstream means moving an
+assertion between them. The cut axis matters more there than here, because an
+intent has almost no machine anywhere and so nearly every finding against one is a
+finding against prose.
+
 ## Boundary
 
 - Includes `shaping-reviewer` first, then a survey of the reviewer and

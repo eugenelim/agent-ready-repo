@@ -54,6 +54,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.21] — 2026-09-13
+
+### Added
+
+- A `review-verdict.v1` finding can record `response` and `reason`: which answer
+  a sustained finding was given, and the ground for choosing it. Both are
+  optional and recorded as a pair. An unrecognised value, a `response` without a
+  non-empty `reason`, and a `reason` without a `response` are each ignored with a
+  note, leaving the entry and the record valid. Neither field appears in the
+  finding-disposition table, state precedence, or residual eligibility, so
+  nothing that decides a verdict can read them.
+
+### Changed
+
+- The work-loop's DECIDE step states the answers to a sustained finding as an
+  ordered ladder in four axes — cut, route, fix, hold — walked until one applies,
+  then stopped. Cut leads because a review that can only add or hold cannot let a
+  contract shrink, which is how rounds run long without converging.
+- Two answers are new. `drop-the-claim` removes an assertion nothing is obliged
+  by, operating on an assertion rather than a sentence or item.
+  `demote-the-claim` moves an obligation out of the contract into working
+  material with a content pin, which needs owner authority and is never free.
+- Every answer walks its surfaces before it is taken, and the direction differs:
+  cut walks backwards to what referenced the removed thing, route outwards then
+  back to leave one home, fix sideways across other instances and their pins, and
+  hold forwards so the next round can see the decision. It is a walk rather than
+  a text search, because a companion usually paraphrases and shares no string,
+  and it continues until the frontier is empty.
 ## [core][2.25.20] — 2026-09-13
 
 ### Highlights
