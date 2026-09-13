@@ -11,6 +11,13 @@ one file per entry and assembled at build, closing the open question left by
   see [Verdict](#verdict)
 - **Scope:** evidence only. No production code, schema, or migration was written.
   The prototype lives in a scratch directory and is not part of the repository.
+- **Compare against:**
+  [Changelog collector and generator — evaluation spike](changelog-collector-generator-spike.md),
+  which evaluates drafting entries from commit history bounded by version bumps.
+  It is a third candidate, not a replacement: the results below still hold, and
+  that spike's own evidence notes this changelog requires highlights to be written
+  in the implementation PR — which favours a per-PR artifact. Read the "next
+  decision" below as a three-way choice.
 
 ## What this spike tests
 
@@ -264,16 +271,23 @@ did not examine.
 ## Next decision, for the owner
 
 The spike closes the feasibility question and narrows the design, but does not
-choose. Two live options remain, and the evidence does not select between them:
+choose. Three live options remain, and the evidence does not select between them:
 
-1. **Fragment pending entries only** — highest value per unit of risk on this
-   evidence; leaves released history untouched as a frozen baseline.
-2. **Add a separator gate and stop there** — the eight live defects are the only
+1. **Add a separator gate and stop there** — the eight live defects are the only
    demonstrated harm so far, and a renderer or linter closes them without any
-   fragmentation, migration, or new directory.
+   fragmentation, migration, or new directory. Materially the cheapest, and it
+   closes the defect class that prompted this work.
+2. **Fragment pending entries only** — targets the 82% head-of-file churn, leaves
+   released history untouched as a frozen baseline, and buys a build step, a
+   fragment format, and a drift gate.
+3. **Collect and generate from commit history** — evaluated in the
+   [collector/generator spike](changelog-collector-generator-spike.md); removes
+   the shared file from feature branches entirely, but leaves the `Highlights`
+   decision and its approval with a person and sits against this changelog's rule
+   that highlights are written in the implementation PR.
 
-Option 2 is materially cheaper and closes the defect class that prompted this
-work. Option 1 additionally targets the 82% churn concentration but buys a build
-step, a fragment format, and a drift gate. Choosing between them needs the
-conflict-rate measurement named in the first known-unknown above, which counts
-touches today and should count conflicts.
+Options 2 and 3 disagree about *when* the user-facing sentence is written, so they
+are not simply ranked. Choosing among all three needs the conflict-rate
+measurement named in the first known-unknown above — which counts touches today
+and should count conflicts — plus the draft-acceptance measurement the
+collector/generator spike names.

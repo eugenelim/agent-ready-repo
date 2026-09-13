@@ -1,0 +1,282 @@
+# Changelog collector and generator — evaluation spike
+
+Evaluates a proposed alternative to fragmenting the changelog: a **collector**
+that gathers repository changes, a **generator** that turns them into entries,
+and a **bound** limiting each run to one window. Tests the design against this
+repository's own history, and closes the attribution question left open by
+[the fragmentation spike](changelog-fragmentation-spike.md).
+
+- **Run date:** 2026-09-13
+- **Owner:** eugenelim, Platform Core maintainer
+- **Base:** `6848d547d`; changelog at 214 free-standing release entries
+- **Verdict:** collector yes, generator half, time-as-routing-key no — see [Verdict](#verdict)
+- **Scope:** evidence only. No production code was written. The prototype is
+  throwaway and lives outside the repository.
+- **Supersedes:** nothing. It adds a third candidate alongside fragmentation and
+  a separator gate; it does not replace either spike's results.
+
+## The proposal, restated
+
+Three parts, evaluated separately because they do not stand or fall together:
+
+1. **Collector** — gather what changed in the repository, mechanically.
+2. **Generator with logic** — turn the collected changes into changelog entries.
+3. **Bounded to a time period** — run over one window at a time.
+
+## How this relates to fragmentation
+
+This is a **third candidate**, not a replacement. If a collector and generator
+carried the whole job, fragments would be unnecessary — nobody would write the
+changelog on a feature branch, so nothing could collide, and there would be no
+fragment directory, assembler, drift gate, or migration to pay for.
+
+Result 4 shows they do not carry the whole job, and one piece of repository
+evidence cuts directly against release-time generation. The changelog's own
+header requires that highlights be
+
+> **Reviewed like code.** Write them in the same PR as the implementation,
+> grounded in that diff and its verification evidence.
+
+A per-PR artifact reviewed alongside the diff is *closer to a fragment than to a
+generated release note*. So the two designs are not simply ranked; they disagree
+about when the user-facing sentence is written. Choosing between them needs the
+draft-acceptance measurement in [Known unknowns](#known-unknowns) and the
+conflict-rate measurement the fragmentation spike named — neither of which exists
+yet.
+
+## Method and evidence
+
+All figures below come from one script, `spike_collector_evidence.py`, run from
+the repository root at base `6848d547d`; its stdout is the evidence of record.
+The script prints its own classifier expressions and the complete miss list
+rather than a sample, so a reader who cannot run it can still see what was
+counted. Release records come from `tools/build-site.py`'s own
+`parse_changelog_releases`, so the spike counts what the `/now/` projection sees.
+
+An earlier attribution run did not path-filter the commit range. Its attribution
+figures were wrong and made the design look unworkable; that run has been
+discarded, its output deleted, and no figure from it appears in this document.
+
+## Result 1 — the collector's raw material is richer than its output
+
+| Source | Median length |
+| --- | ---: |
+| Commit subject | 73 chars |
+| **Full commit message** | **1,114 chars** |
+| Changelog bullet | 306 chars |
+
+Measured over `--since='90 days ago'` ending at this document's base commit
+`6848d547d`: **2,141 commits**, 1,998 of them (**93%**) carrying a body beyond the
+subject.
+
+Conventional-commit parsing uses a repository-specific loose classifier,
+`^(\w+)(\([^)]*\))?(\+\w+(\([^)]*\))?)*!?:`, which accepts this repository's
+compound `chore(core)+feat(core): …` subjects. It admits 1,841 of 2,141 (86%).
+Strict Conventional Commits grammar, `^(\w+)(\([^)]+\))?!?: .`, admits 1,840 — so
+the rounded share is the same either way. Loose type counts: `docs`=578, `fix`=481, `feat`=393,
+`chore`=196, unparseable=300.
+
+The subject line alone would not be enough — its maximum length, 156 chars, is
+shorter than the *median* changelog bullet. The full message comfortably is.
+
+What this establishes is **input sufficiency**: the candidate material exists, in
+roughly the right volume, at the right granularity. 874 `feat`/`fix` commits
+accompanied 1,023 top-level changelog bullets over the same 90 days, and the
+per-entry measurement in Result 3 puts the median at **1.0 `feat`/`fix` commit
+per bullet** — so the mapping is near one-to-one rather than a synthesis across
+many commits.
+
+What it does **not** establish is that a generator would draft well. Volume and
+granularity are not semantic correspondence: no entry was generated and compared
+against what shipped. Draftability stays undecided pending that comparison.
+[inference]
+
+## Result 2 — time alone cannot route a commit to an entry
+
+A window defined by time cannot route a commit to an entry, because releases are
+per-artifact and overlap heavily:
+
+- **24 artifacts** carry independent versions (`core`=95 releases, `agentbundle`=26,
+  `architect`=11, `product-engineering`=10, …).
+- **26 of 36 release dates (72%) carry two or more artifacts.**
+- One date carries **23**.
+
+On 72% of release dates, a time window alone would have to guess which artifact a
+given commit belongs to. The measurement rules out time as the *routing* key; it
+does not rule out time as a *run* bound. A collector can still be invoked over a
+period — what it cannot do is infer artifact identity from that period.
+
+Routing needs the two keys Result 3 tests instead: artifact **paths**, and the
+**version bump** as the window edge.
+
+## Result 3 — version-bump boundaries and path attribution both work
+
+This is the question that could have killed the design. Two halves.
+
+**Boundary discoverability.** Walking each artifact's manifest history
+(`packs/<name>/pack.toml`, `packages/<name>/pyproject.toml`) for the commit that
+first declared each version:
+
+- **224 of 239 released `(artifact, version)` pairs — 94% — have a bump commit.**
+- The 15 misses are all versions a manifest never declared. In full: `core`
+  2.25.19, 2.25.17, 2.25.13, 2.25.9, 2.25.6, 2.24.4, 2.24.3, 2.24.2, 2.23.2,
+  2.23.1, 2.18.2, 2.16.4, 2.15.3, 2.3.1, and `agentbundle` 0.43.0. Fourteen of
+  the fifteen are `core`, which is consistent with versions superseded or
+  re-derived before release, though the cause was not confirmed.
+
+**Attribution.** For the 166 single-artifact entries where both the current and
+previous boundary exist, filtering the bump-to-bump range by the artifact's own
+subtree collapses it to a usable size:
+
+| Window, progressively filtered | Median commits | Max |
+| --- | ---: | ---: |
+| Raw `prev-bump..this-bump` range | 31 | 1,183 |
+| Filtered to the artifact's tree | **3** | 53 |
+| …and to `feat:` / `fix:` | **2** | 41 |
+
+Against the entries' actual bullet counts, that yields a **median of 1.0
+`feat`/`fix` commit per changelog bullet** — the collector finds almost exactly
+as many candidate changes as the entry contains.
+
+The failure mode is bounded and measurable: **13 of 166 windows (8%) yield zero
+`feat`/`fix` commits for an entry that does have bullets.** Those entries have no
+*typed candidate* to draft from; whether some untyped commit in the window still
+describes the change was not checked.
+
+A worked case, checked by hand: `core` 2.25.18 → 2.25.20 spans 71 raw commits,
+19 touching `packs/core`, 11 of those `feat`/`fix`, against 5 bullets across the
+two changelog entries in that span.
+
+## Result 4 — the generator can draft but cannot finish
+
+The repository already says this, in the changelog's own header:
+
+> Entries can be drafted from conventional commits: `git log --oneline` filtered
+> to `feat:` and `fix:` since the last tag is **a starting point, not a finished
+> product. Rewrite for users, not contributors.**
+
+So the proposal is the documented workflow with its two mechanical halves
+automated. The hard half is the `/now/` payload: **139 Highlights bullets across
+99 entries, 91% opening with a bold outcome lede**, median 283 chars. A commit
+message says what changed; a highlight says what someone can now do, and no
+collector derives the second from the first.
+
+Two qualifications the same header supplies, which keep this short of "a person
+must type every highlight":
+
+- It expressly permits AI-assisted drafting — "the reviewer, not the drafter, is
+  the authority". So a generator may propose highlight prose; what it cannot do
+  is be the authority for it.
+- **Not every release owes one.** The header states that a released entry with no
+  `Highlights` stays in the changelog and is simply absent from `/now/` — which
+  matches the measurement: 99 of 214 entries carry them, not all 214.
+
+The irreducible part is therefore the *decision* — whether this release changed
+what a consumer can do, and whether the sentence says so — not the keystrokes.
+
+Two further limits worth costing:
+
+- **14% of commits (300 of 2,141) are not conventional-commit parseable** and are
+  invisible to a type-filtered collector.
+- **9 of 214 entries never appear as an added heading in history** — they were
+  edited in place afterwards. A regenerator overwrites exactly that class of
+  correction, which is the survey's first anti-pattern. The generated entry must
+  be written once into the release commit and then frozen, never regenerated.
+
+## Result 5 — commit order does not reconstruct the existing file
+
+Testing whether commit order reproduces the changelog's entry order, for the 205
+free-standing entries whose introducing commit is identifiable:
+
+| Order source | Entries landing elsewhere | Adjacent contradictions |
+| --- | ---: | ---: |
+| Stable date-descending | 80 / 214 | 10 |
+| **Commit order** | **107 / 205** | **22 / 204** |
+
+Commit order is *worse* than date order at reproducing the file. The conclusion
+matches the fragmentation spike's: **released history is not regenerable** and
+stays a frozen baseline.
+
+Forward-looking, the measurement says less than it first appears. The 22
+contradictions establish only that the existing order departs from commit order in
+roughly **1 adjacent pair in 9**. They do not establish *when* or *by whom* that
+departure is decided.
+
+The fragmentation spike left "ordering is decided at release time, by a single
+owner" open as an explicit known-unknown, and the changelog header points the
+other way — it names ordinary implementation-PR review as the only approval gate,
+with no separate editorial step. So "a generator proposes an order and a human
+reorders it in a serialized release PR" is a **compatibility hypothesis that
+inherits that same open question**, not a conclusion this spike closes.
+
+## Verdict
+
+| Part | Verdict | Load-bearing evidence |
+| --- | --- | --- |
+| Collector | **Yes** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet; 94% of releases have a boundary |
+| Generator | **Undecided, bounded** | inputs are sufficient, but no draft was generated and compared; it may draft `Highlights` prose but cannot be the authority for it |
+| Time as the routing key | **No** | 72% of release dates carry 2+ artifacts; route by path + version bump. Time remains fine as a run bound |
+
+Two failure rates fall out, and they are **not additive** — they are measured
+over different populations, so no combined figure is reported here:
+
+- **15 of 239 released `(artifact, version)` pairs (6%)** have no discoverable
+  bump commit, so no window can be computed for them at all.
+- **13 of 166 single-artifact entries that had both boundaries (8%)** produced
+  zero `feat`/`fix` candidates despite the entry carrying bullets. "Zero typed
+  candidates" is not the same as "no material exists" — an untyped or
+  differently-scoped commit may still describe the change.
+
+Combining them would require an entry-level cohort neither rate uses. What can be
+said without arithmetic: the mechanical path has a high hit rate on the entries it
+reaches, and it reaches most of them. What stays with a person is the `Highlights`
+*decision and its approval* — whether the release changed what a consumer can do,
+and whether the sentence says so — on the 99 of 214 entries that carry one. That
+is a drafting aid under human authority, not an automated changelog, which is
+precisely what the repository's header already prescribes.
+
+## Recommended order of work
+
+1. **Collector only.** A read-only report: given an artifact, resolve its previous
+   released version from the manifest, list candidate `feat`/`fix` commits in that
+   subtree. No writes, so it cannot damage anything, and it makes the documented
+   workflow faster.
+2. **Generator to a draft in the release PR.** Emits `Added`/`Changed`/`Fixed`
+   groups, leaves `Highlights` empty for a person. Written once, then frozen.
+3. **Then choose between generation and fragments** — not before. The two
+   disagree about *when* the user-facing sentence is written, and the changelog
+   header's "write them in the same PR as the implementation" currently favours
+   the fragment side. Step 1 is compatible with either and costs little, so it is
+   worth doing before the choice, not after.
+
+The separator gate from the fragmentation spike remains worth doing independently
+of all three, and is cheaper than any of them: eight defects are live on `main`
+and no located gate detects them.
+
+## What this spike did not test
+
+- **Generated output quality.** No entry was actually generated and compared to
+  its hand-written counterpart. The 1.0-commits-per-bullet ratio says the inputs
+  are *present*, not that a generator would write them well.
+- **Multi-artifact entries.** Result 3 measured only the 166 single-artifact
+  entries; the 9 entries naming up to 6 artifacts were excluded and have a harder
+  attribution problem.
+- **Backport, revert, and squash paths.** The 93%-with-body figure describes
+  ordinary history; whether every merge path preserves per-change messages was
+  not checked.
+- **The two adopter-facing changelogs** and the `packs/core/seeds/` template,
+  out of scope by instruction.
+
+## Known unknowns
+
+- **Known-unknown:** Would a generated draft actually be accepted, or rewritten
+  wholesale? Would be closed by: generating drafts for the last 10 released
+  entries and diffing them against what shipped.
+- **Known-unknown:** Why did 15 released versions never appear in their manifest?
+  Would be closed by: reading those release commits; the answer decides whether
+  6% is a fixable process gap or a permanent floor.
+- **Known-unknown:** What do the 13 zero-yield windows have in common? Would be
+  closed by: reading those entries; if they are documentation or tooling releases
+  the collector is not meant to cover, the real failure rate is lower than 8%.
+- **Unknowable:** Whether the 22 order departures were editorial intent or
+  accident. Why not: no retained artifact records the intended sequence.
