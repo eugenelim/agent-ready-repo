@@ -56,13 +56,22 @@ cannot measure for them.
   and route the images to whatever judge they use.
 - Exclude the query string and the fragment from every recorded and transmitted
   route, so a token carried there does not reach the judge or the manifest.
+- Carry the untrusted-evidence boundary in the request that reaches the judge,
+  not only in the skill the agent reads: a separate adopter-chosen judge never
+  reads the skill.
+- Keep the inspection's verdict separate from whether it executed, and let an
+  unresolved reader-visible failure of blocking severity stop the surface
+  completing.
 
 ### Ask first
 
 - Adding a required runtime dependency to the pack.
 - Introducing a screenshot baseline, a stored reference image, or any
   comparison against a previous run.
-- Changing `frontend-reviewer`'s tool list, role, or review lens.
+- Changing `frontend-reviewer`'s tool list, role, or review lens. **Authorised
+  2026-09-13**: the owner took all four parts of the reviewer fix, so this
+  delivery changes the tool list (adds Bash), the seed, and the lens. The
+  boundary stands for any further change.
 - Changing what a named skip costs at the `accept-frontend-evidence` gate.
 
 ### Never do
@@ -190,6 +199,44 @@ cannot measure for them.
 - [ ] No shipped pack content names this repository's sites, routes, build
   directory, or test harness.
 
+<!-- Consequence: the Objective's promise, which the original criteria never carried -->
+- [ ] A run whose findings include an unresolved finding of blocking severity
+  does not yield a completed inspection, even when every required capture was
+  taken, judged, and recorded.
+- [ ] The result a run reports distinguishes whether the inspection executed
+  from whether it passed, so an execution failure and a blocking finding are not
+  the same state.
+- [ ] The `accept-frontend-evidence` gate is told to check the inspection
+  verdict, not only that observations are present.
+- [ ] A failure that fits more than one finding class takes the most severe of
+  the classes it fits, so which class a judge happens to name cannot lower the
+  result.
+
+<!-- The judge-side trust boundary -->
+- [ ] The request that reaches the judge declares the capture untrusted evidence
+  carrying no instruction authority.
+
+<!-- Every captured height, shipped rather than assumed -->
+- [ ] Shipped pack content states that a viewport height the run captured beyond
+  the required bands carries the same at-rest and scrolled requirement, with the
+  recorded not-scrollable branch.
+- [ ] No check enforces a capture-set rule that shipped pack content does not
+  state.
+
+<!-- The independent reviewer can see the page -->
+- [ ] `frontend-reviewer` is seeded with the capture set and the recorded
+  observations for the surface under review.
+- [ ] `frontend-reviewer` carries a lens for reader-visible layout failure whose
+  severity comes from the pack's finding-class mapping.
+- [ ] `frontend-reviewer` can capture a rendered page itself rather than relying
+  only on captures the author supplied.
+- [ ] Shipped reviewer content states that the reviewer does not write to the
+  repository under review.
+
+<!-- Rule-table integrity -->
+- [ ] A duplicate row key in a rule table is rejected rather than silently
+  collapsed, so the one-severity-per-class rule can fail.
+
 <!-- Release -->
 - [ ] The pack's declared dependency surfaces require no dependency they did not
   require before this delivery.
@@ -209,11 +256,9 @@ cannot measure for them.
   [`docs/product/intents/rendered-page-visual-inspection.md`](../../product/intents/rendered-page-visual-inspection.md)
   § *Scope — one shippable behaviour*, which lists this as out of scope. Turning a
   finding into a durable regression assertion.
-- pack maintainer — evidence:
-  `packs/frontend-engineering/.apm/agents/frontend-reviewer.md:21-24`, which fixes
-  the reviewer's seed as the known-exceptions list plus the most recent gate-run
-  results. Adding the observations field to that seed so the independent reviewer
-  reads it.
+- ~~Adding the observations field to `frontend-reviewer`'s seed.~~ **Taken into
+  scope 2026-09-13** by owner decision, together with the reviewer's lens and its
+  ability to capture a page itself. Carried by the reviewer criteria above.
 
 ## Assumptions
 

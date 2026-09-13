@@ -398,9 +398,129 @@ the dependency-ordered correction rather than an edit to them.
 and the end-to-end run is re-executed with every fixture reaching a complete
 capture set.
 
+### T8: A reader-visible Blocker stops the surface completing
+
+**Depends on:** T6a
+
+Added 2026-09-13 by contract amendment under owner authority. The Objective
+promises a completion signal that cannot be green while the page is visibly
+broken; no original criterion carried it, and every "cannot satisfy a completed
+inspection" rule was about execution failure rather than findings.
+
+**Tests:**
+- A run with every required capture present, judged, recorded, and carrying an
+  unresolved blocking finding does not yield a completed inspection. Verifies the
+  consequence criterion at the state the whole delivery turns on.
+- The same run with no blocking finding does yield a completed inspection. The
+  green path: without it, a rule failing every run satisfies the assertion above.
+- Execution state and verdict are separate fields, so `failed-capture` and "a
+  Blocker was found" are not the same state. Verifies the separation criterion.
+- A failure fitting two classes takes the more severe. Driven over every pair in
+  the mapping that carries differing severities, not one example — the mapping is
+  the domain. Verifies the precedence criterion.
+- The `accept-frontend-evidence` gate names the verdict in its `whatToCheck`.
+
+**Approach:**
+- Add a verdict to the result contract, separate from the execution state, and a
+  class-precedence rule to the reference.
+- Carry both into `SKILL.md` § 5c and the journey gate.
+
+**Done when:** the five assertions are green, the mutation in which a blocking
+finding still completes fails, and `catalogue lint --deep` and `verify` pass.
+
+### T9: The judge is told the capture is untrusted evidence
+
+**Depends on:** T6a
+
+**Tests:**
+- The judgement request contract carries an untrusted-evidence declaration.
+  Verifies that criterion.
+- The declaration names both halves the cited authority requires: the content is
+  evidence, and it carries no instruction authority.
+
+**Approach:**
+- Add the required row to the `Judgement request` table and restate § 5b.
+- Do not add judge-output whitelisting; the adjudication called that over-broad
+  and it overloads `failed-judgement`.
+
+**Done when:** both assertions are green and the deep lint passes.
+
+### T10: The every-captured-height rule is shipped, not assumed
+
+**Depends on:** T6a
+
+The rule is enforced by `evaluate_capture_set` and stated nowhere in shipped
+content, which contradicts this plan's design decision that rules are data the
+checks read. The check currently authors the rule it checks.
+
+**Tests:**
+- Shipped pack content states the every-captured-height at-rest/scrolled
+  requirement, including the recorded not-scrollable branch. Verifies that
+  criterion.
+- The evaluator reads the rule from the table rather than hard-coding it:
+  removing the rule from the reference makes the extra-height case stop failing.
+  This is the assertion that makes the "no check enforces an unshipped rule"
+  criterion able to fail.
+- The contradicting "none are required" sentence is gone from the reference and
+  from `SKILL.md`.
+
+**Approach:**
+- State the rule in `Required captures`; correct the contradicting sentence.
+- Move the quantifier out of the evaluator and into the table it reads.
+
+**Done when:** the three assertions are green and the mutation above fails.
+
+### T11: A duplicate rule-table row is rejected rather than collapsed
+
+**Depends on:** T6a
+
+**Tests:**
+- A rule table carrying a duplicate row key raises rather than silently keeping
+  the last row. Verifies that criterion.
+- With the duplicate rejected, the existing one-severity-per-class assertion
+  fails on a conflicting duplicate class row — which it cannot do today.
+- The pipe policy is stated explicitly rather than left to `split`.
+
+**Approach:**
+- Reject duplicate keys in the shared table reader; state the pipe policy.
+- Take only the minimum the adjudication named; the wider validation set is a
+  defensible owner choice and is not in scope.
+
+**Done when:** the three assertions are green.
+
+### T12: The independent reviewer can see the page
+
+**Depends on:** T8, T9, T10
+
+This is the part the intent named and the original spec scoped out: the reviewer
+reads a diff, and nothing in a diff shows one element covering another.
+
+**Tests:**
+- `frontend-reviewer`'s seed contract names the capture set and the observations.
+  Verifies that criterion.
+- Its lens set includes reader-visible layout failure, taking severity from the
+  pack's finding-class mapping. Verifies that criterion.
+- Its declared tools let it capture a page itself. Verifies that criterion.
+- Shipped reviewer content states it does not write to the repository under
+  review. Verifies that criterion, and is the mitigation for the residual risk
+  the ledger records.
+- The work-loop's dispatch line for this reviewer passes the capture set, not
+  only the diff and the manifest state. Without this the seed contract is
+  aspirational.
+
+**Approach:**
+- Widen the seed section and the lens list in
+  `packs/frontend-engineering/.apm/agents/frontend-reviewer.md`; add Bash to its
+  tools with a stated capture-only, no-write constraint.
+- Update the dispatch line in `packs/core/.apm/skills/work-loop/SKILL.md` — the
+  source, not the `.claude/` projection — and regenerate self-host.
+
+**Done when:** the five assertions are green, `catalogue lint --deep` and
+`verify` pass for both packs, and the self-host projection regenerates.
+
 ### T7: Eval harness, versions, changelog, and dependency surfaces agree with the shipped content
 
-**Depends on:** T1-T6a
+**Depends on:** T1-T6a, T8-T12
 
 **Tests:** no stub (goal-based).
 
@@ -453,6 +573,9 @@ dependency-surface comparison shows no newly required dependency.
 - 2026-09-13: amended under owner authority after T6's end-to-end run — added
   T6a for pages that cannot scroll, which the shipped capture rule marked
   permanently incomplete.
+- 2026-09-13: amended under owner authority after the specialist reviews — the
+  Objective's promise had no acceptance criterion, and the owner took all four
+  parts of the reviewer fix. Added T8-T12.
 - 2026-09-13: initial plan.
 - 2026-09-13: revised from the round-4 adjudications — shrank the judge-severity
   criterion to the provenance claim its check verifies, admitted both valid outcomes
