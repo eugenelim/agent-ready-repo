@@ -11,7 +11,11 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test:plugins": "node --test src/plugins/rehype-scrollable-tables.test.ts src/components/shared-chrome.test.ts"
+    "test:plugins": "node --test src/plugins/rehype-scrollable-tables.test.ts src/components/shared-chrome.test.ts",
+    "prebuild": "python3 ../tools/build-site.py --renderer-inputs",
+    "predev": "python3 ../tools/build-site.py --renderer-inputs",
+    "pretest:plugins": "python3 ../tools/build-site.py --renderer-inputs",
+    "preastro": "python3 ../tools/build-site.py --renderer-inputs"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "7.3.0",
