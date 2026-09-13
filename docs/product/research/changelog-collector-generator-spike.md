@@ -9,7 +9,7 @@ repository's own history, and closes the attribution question left open by
 - **Run date:** 2026-09-13
 - **Owner:** eugenelim, Platform Core maintainer
 - **Base:** `6848d547d`; changelog at 214 free-standing release entries
-- **Verdict:** collector yes, generator permitted but untested, time-as-routing-key no — see [Verdict](#verdict)
+- **Verdict:** collector selection yes but its boundary rule is defective, generator permitted but untested, time-as-routing-key no — see [Verdict](#verdict). The boundary defect was measured later, in [the inputs spike](changelog-generator-quality-spike.md) Result 5.
 - **Scope:** evidence only. No production code was written. The prototype is
   throwaway and lives outside the repository.
 - **Supersedes:** nothing. It adds a third candidate alongside fragmentation and
@@ -129,15 +129,22 @@ period — what it cannot do is infer artifact identity from that period.
 Routing needs the two keys Result 3 tests instead: artifact **paths**, and the
 **version bump** as the window edge.
 
-## Result 3 — version-bump boundaries and path attribution both work
+## Result 3 — path attribution works; the version-bump boundary is discoverable but not correct
 
-This is the question that could have killed the design. Two halves.
+This is the question that could have killed the design. Two halves — and the
+first half measures only whether a boundary can be *found*, not whether it names
+the right release. The inputs spike later measured that second question and the
+answer is no; read this section against
+[its Result 5](changelog-generator-quality-spike.md).
 
 **Boundary discoverability.** Walking each artifact's manifest history
 (`packs/<name>/pack.toml`, `packages/<name>/pyproject.toml`) for the commit that
 first declared each version:
 
 - **224 of 239 released `(artifact, version)` pairs — 94% — have a bump commit.**
+  Discoverability is not correctness: the inputs spike later measured this rule
+  selecting the wrong release's commits in 2 of 10 sampled windows, because
+  manifest-declaration order is not release order once a version is renumbered.
 - The 15 misses are all versions a manifest never declared. In full: `core`
   2.25.19, 2.25.17, 2.25.13, 2.25.9, 2.25.6, 2.24.4, 2.24.3, 2.24.2, 2.23.2,
   2.23.1, 2.18.2, 2.16.4, 2.15.3, 2.3.1, and `agentbundle` 0.43.0. Fourteen of
@@ -236,7 +243,7 @@ inherits that same open question**, not a conclusion this spike closes.
 
 | Part | Verdict | Load-bearing evidence |
 | --- | --- | --- |
-| Collector | **Yes** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet; 94% of releases have a boundary |
+| Collector | **Selection yes, boundary no** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet. But the version-bump boundary resolves the *wrong release* — see [inputs spike](changelog-generator-quality-spike.md) Result 5 |
 | Generator | **Undecided, bounded** | inputs are sufficient, but no draft was generated and compared; it may draft `Highlights` prose but cannot be the authority for it |
 | Time as the routing key | **No** | 72% of release dates carry 2+ artifacts; route by path + version bump. Time remains fine as a run bound |
 
@@ -260,25 +267,29 @@ precisely what the repository's header already prescribes.
 
 ## Recommended order of work
 
-1. **Collector only.** A read-only report: given an artifact, resolve its previous
-   released version from the manifest and list the commits in that subtree,
+1. **Repair the boundary rule first.** Manifest-declaration order is not release
+   order, and every later step inherits the wrong commits when it is wrong. Until
+   a rule is shown to name the right release, steps 2 and 3 rest on sand.
+2. **Collector only.** A read-only report: given an artifact, resolve its previous
+   released version and list the commits in that subtree,
    **carrying each commit's change type** and applying the provisional exclusion
    list rather than a `feat`/`fix` include-list — the latter drops 42 untyped
    commits, 4 `perf:`, 2 `revert:` and 1 `Delivered` across the measured entries.
    No writes, so it cannot damage anything, and it makes the documented workflow
    faster.
-2. **Generator to a draft in the implementation PR.** Emits `Added`/`Changed`/
+3. **Generator to a draft in the implementation PR.** Emits `Added`/`Changed`/
    `Fixed` groups, leaves `Highlights` to a person. The implementation PR is
    where the changelog header requires highlights to be written — "the same PR as
    the implementation", with "no separate editorial process" — so drafting in a
    *release* PR instead would be a change to that header, not just an
    implementation choice.
-3. **Carry the change type, and exclude rather than include.** The generator
+4. **Carry the change type, and exclude rather than include.** The generator
    inputs spike measured that a `feat`/`fix` include-list drops 42 untyped
    commits, 4 `perf:`, 2 `revert:` and 1 `Delivered`, while an exclusion list
    lets a doc/tooling release report itself as such. Type is an author's label,
-   not verified impact, so treat the list as candidate policy.
-4. **Then choose between generation and fragments** — not before. The two
+   not verified impact, and the inputs spike measured the `docs` rule hiding a
+   user-visible install change — so treat the list as candidate policy.
+5. **Then choose between generation and fragments** — not before. The two
    disagree about *when* the user-facing sentence is written, and the changelog
    header's "write them in the same PR as the implementation" currently favours
    the fragment side. Step 1 is compatible with either and costs little, so it is

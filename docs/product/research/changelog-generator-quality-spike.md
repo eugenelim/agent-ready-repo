@@ -231,8 +231,112 @@ published it. The header's rule that a release may correctly carry *no*
 wrong pushes copy onto a public page that the maintainer withheld. Whether some
 other generator could make that call was not tested.
 
-**This is a two-case observation, not a rate.** It says the failure modes are
-real and preview-visible; it does not say how often they occur.
+**This is a two-case observation, not a rate**, and Result 5 supersedes its
+reading: at n=10 the Highlights decision was right 7 times out of 10, and
+over-publication is not the dominant failure. What survives from these two cases
+is that the preview surfaces failures at a glance.
+
+## Result 5 — ten drafted entries, judged independently: attribution fails before prose does
+
+Result 4 ran at n=2 and pointed at over-publication. At n=10 that is not the
+dominant failure, and the real one is more serious.
+
+Ten entries were drafted from collector output alone, shipped entry not in view,
+then judged by an independent reviewer who did not write them. Drafts were
+scored on the Highlights decision, group match, coverage of shipped bullets,
+over-inclusion, missing prior values, and an overall verdict.
+
+| Verdict | Count |
+| --- | ---: |
+| Usable as-is | 2 |
+| Usable after light edit | 4 |
+| Needs rewrite | 2 |
+| **Wrong content entirely** | **2** |
+
+- **Highlights decision: 7 of 10 correct** — 1 over-published, 2 under-published.
+  Result 4's n=2 reading, that over-emphasis is *the* failure mode, does not
+  survive the larger sample.
+- **Coverage: 18 of 26 shipped bullets (69%)** had a recognisable counterpart.
+- **Over-inclusion: 7 drafted bullets across 5 entries** had no counterpart.
+- **Missing prior value: 8 of 10 entries.** This one did generalise.
+
+### The dominant failure is release attribution, not sentence quality
+
+**Four of the ten windows are wrong or polluted** — two describe the wrong
+release entirely, two more admit a neighbouring release's work:
+
+| Entry | What the collector handed the drafter |
+| --- | --- |
+| `core` 2.25.15 | 2.25.14's event-envelope work |
+| `core` 2.25.12 | 2.25.13's missing-`git` fix |
+| `core` 2.25.7 | window reads `2.25.5 -> 2.25.7`, admitting 2.25.6's work **and a merged 2.25.4 fix** |
+| `core` 2.25.4 | a commit whose own subject says `core 2.25.3` |
+
+The root cause is in the boundary rule, not the drafter. The collector resolves a
+window from **the first commit that declared a version in the manifest**, and
+that is not release order: versions get renumbered when branches collide. One
+admitted commit in the `core` 2.25.7 window says so outright — "main took 2.25.4
+… the consumer seam becomes 2.25.5, and the cooling diagnosis becomes 2.25.6".
+A window built on declaration order therefore skips releases and spans others.
+
+Renumbering is demonstrated for the sampled failures — a merge commit in the
+window says so — but it is **not** established as the cause of the 15
+undiscoverable boundaries in Result 3. That cause remains unconfirmed and stays a
+known unknown. What is established is that this is the first measured defect in
+the collector, which until now had been confirmed four ways.
+
+**No amount of better drafting repairs these two entries** — that is the
+load-bearing result. It does not mean drafting is fine. Among the correctly
+attributed drafts the judge named a distinct weakness: *commit-message
+transcription instead of release synthesis*, preserving maintenance detail while
+losing the consumer outcome. Prompt quality cannot repair a wrong window;
+drafting quality remains measurable only once the window is right.
+
+### The exclusion list hid a user-visible change
+
+`core` 2.25.15 shipped a documentation correction, and the commit carrying it —
+`docs(packs): correct what the layout append actually does, and release it` —
+was **excluded by the `docs` rule** recommended in Result 3. A `docs:` commit
+that changes what an install does is user-visible. The exclusion list is
+therefore not only unvalidated but measurably over-broad on this corpus.
+
+### Which omissions were the drafter's fault, and which the source's
+
+This split is the most decision-relevant output, because only the first kind is
+fixable by better generation:
+
+**Drafting failures — the fact was in the admitted commits and the draft lost
+it:** the literal section value `design`, stated plainly in the commit and
+omitted from the `experience-design` draft; `core` 2.25.2's checkpoint cadence,
+where the commit says "the third round and every second round after" and the
+draft wrote "from the third round"; the legacy `spec/<slug>` path in `core`
+2.25.4; and `product-engineering` 0.13.12, where the material for a Highlight
+was present across three repair commits and the draft failed to synthesise it.
+
+**Source limits — the fact was never in the commits.** Examples, not an
+exhaustive list: the `strategy` section value, which its commit never names while
+explicitly warning that section names are not derivable from pack names; the
+exact retained and removed field names in `core` 2.25.11;
+`product-engineering` 0.13.12's "second, advisory read" wording, absent because
+the window opens on repair commits rather than the originating feature; and the
+literal consumer name `architect-design` in `architect` 0.15.7.
+
+### Where a draft beat what shipped
+
+Three drafts carried material the shipped entry dropped: `architect` 0.15.7
+enumerated the selection-failure classes rather than compressing them; `core`
+2.25.11 kept the before/after measurements (220,195 → 86,510 characters; 646 → 3
+lines) that substantiate its performance claim; and `core` 2.25.7 stated plainly
+that the race window is narrowed rather than closed. None of the three drafts is
+better *overall*, but "shipped" is the release of record, not automatically the
+better artifact.
+
+### What this sample cannot support
+
+The two catastrophic misses are collector faults, so this is **not** a measured
+rate of drafting quality — scoring them as drafting failures would be false. A
+clean measurement of drafting needs a boundary rule that proves release
+ownership first.
 
 ## What this means for the design
 
@@ -241,9 +345,9 @@ that only the first two were measured:
 
 | Part | Mechanical? | Basis |
 | --- | --- | --- |
-| **Collector** — which commits are candidates | **Yes** | boundary, path filter, squash split; deterministic and verifiable, and confirmed by the paired margin above |
-| **Exclusion** — dropping non-user-impacting work | **Partly** | change type is recorded data, but type ≠ impact; the list is reviewable policy needing validation |
-| **Emphasis** — which change matters and how to say it | **Untested** | output shares few tokens with its source; no generator was implemented, and the two previewed drafts over-published |
+| **Collector** — which commits are candidates | **Partly** | path filter and squash split hold; the version-bump *boundary* is defective — Result 5 shows 4 of 10 windows wrong or polluted |
+| **Exclusion** — dropping non-user-impacting work | **Partly, and over-broad** | change type is recorded data, but type ≠ impact; Result 5 shows the `docs` rule hiding a user-visible install change |
+| **Emphasis** — which change matters and how to say it | **Measured once, at n=10, confounded** | 2 usable as-is, 4 after light edit, 2 needing rewrite, 2 wrong content — but 4 windows were wrong or polluted, so the aggregate scores the collector as much as the drafter |
 
 `changelog.md`'s header constrains where a model may sit. It forbids one **in the
 automation path** — "no model runs in CI, release automation, or site
@@ -259,9 +363,13 @@ implementation choice — the same tension the fragmentation spike records.
 
 ## Verdict
 
-The collector is confirmed again, now four ways: boundary discoverability, path
-attribution, the type census, and a paired 42-of-47 margin over a size-matched
-control.
+The collector's *selection* is confirmed four ways — boundary discoverability,
+path attribution, the type census, and a paired 42-of-47 margin over a
+size-matched control. Its **boundary rule is not**: Result 5 found 4 of 10
+windows wrong or polluted — two handing the drafter an entirely different
+release, two admitting a neighbour's work — because manifest-declaration order is
+not release order once versions are renumbered on merge. That is the first
+measured defect in the collector and it precedes every generator question.
 
 The generator question is **narrowed, not answered**. A shipped bullet shares
 much of its content-word vocabulary with its source commit (median containment
@@ -272,10 +380,11 @@ what a generator could produce. The one inference they carry is that the typical
 whole bullet was not copied wholesale from one commit.
 
 Whether extraction, templating, or a model-assisted step can do that is **not
-determined here**, because no generator was implemented. The two hand-invoked
-drafts in Result 4 illustrate failure modes at n=2; they do not evaluate an
-implementation. An overlap statistic cannot answer it either — the next
-measurement is a set of rendered drafts compared against what shipped.
+determined here**, because no generator was implemented. Result 5 evaluates ten
+hand-invoked drafts and returns 6 of 10 usable or near-usable — but with 4 of 10
+windows wrong or polluted, that figure scores the collector as much as the
+drafter. A clean drafting measurement needs a boundary rule that proves release
+ownership first.
 
 Nothing here decides between generation and fragmentation. The
 [fragmentation spike](changelog-fragmentation-spike.md)'s three-way decision
@@ -283,8 +392,9 @@ stands.
 
 ## What this spike did not test
 
-- **Any generator at all** — mechanical, templated, or model-assisted. This is
-  the central limit: the spike measures inputs, never outputs.
+- **Any generator implementation.** Results 4 and 5 evaluate twelve entries
+  drafted by hand-invoked model assistance; no mechanical, templated, or
+  production generator was built or run, and no automated pipeline was tested.
 - **Whether the exclusion list is right.** Derived from observed type vocabulary,
   not validated against a human judgement of user impact.
 - **The 42 untyped commits.** Counted, not read.
@@ -294,11 +404,14 @@ stands.
 
 ## Known unknowns
 
-- **Known-unknown:** How often does a drafted entry need correcting, and how
-  badly? Would be closed by: drafting the last 10 entries from collector output
-  and diffing each **rendered entry** against what shipped. Per-bullet
-  accept/edit/reject was considered and rejected — it imposes the review overhead
-  the tool exists to remove. Result 4 ran this at n=2.
+- **Answered, with a confound**, by Result 5: ten drafts scored 2 usable as-is,
+  4 after light edit, 2 needing rewrite, 2 wrong content. Four windows were wrong
+  or polluted, so this measures the collector as much as the drafter. **Re-run it
+  after the boundary rule is repaired** for a clean figure.
+- **Known-unknown:** Does a boundary rule keyed on something other than
+  manifest-declaration order select the right release? Would be closed by:
+  re-running Result 5's ten windows against a candidate rule — release tags, or
+  the changelog entry's own commit — and counting wrong or polluted windows.
 - **Known-unknown:** Can the before-value be recovered mechanically? Would be
   closed by: checking whether the diff of the release commit yields the prior
   value for the kind of setting a changelog bullet cites, since the commit
