@@ -66,8 +66,8 @@ Place the bet on this candidate — what are we committing to, and what would te
 **Output varies** with how much evidence the candidate carries and how reversible the commitment is.
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->
 
-**No decision gate at this step.**
-<!-- rung: authored -->
+**You decide:** Approve the decision brief — the pack's `approve-decision-brief` gate, after the full lens-roster pass on the surviving candidates. This is the last point at which the bet is cheap to change.
+<!-- rung: packs/product-engineering/JOURNEY.md -->
 
 **Check (falsifiable):** Ask what observation would make you stop; this surfaces a bet with no losing condition.
 <!-- rung: packs/product-engineering/.apm/skills/place-bet/SKILL.md -->

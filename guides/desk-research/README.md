@@ -13,6 +13,20 @@ The pack has two axes. **Depth** (above) is episodic — one-shot questions. **L
 
 New here? Walk [your first research session](tutorials/desk-research-first-session.md), then reach for [the pipelines](how-to/research-pipelines.md) when one question needs several skills working together. For a sustained investigation, walk [your first research project](tutorials/your-first-research-project.md).
 
+## Walk the guidebook
+
+Four steps. The first three are one session; the fourth is for a question that
+outlasts one.
+
+1. [Scope the question](how-to/scope-the-question.md)
+2. [Run the research](how-to/run-the-research.md)
+3. [Challenge the result](how-to/challenge-the-result.md)
+4. [Run it as a project](how-to/run-it-as-a-project.md)
+
+**The walk covers the main thread.** `decision-archaeology` is the pack's
+twelfth skill and is not on it: it reconstructs why a past decision was made,
+which is a different job from answering a research question.
+
 ## Tutorials
 
 - [Your first research session](tutorials/desk-research-first-session.md) — install the pack and run `/desk-research` across all four depth modes.

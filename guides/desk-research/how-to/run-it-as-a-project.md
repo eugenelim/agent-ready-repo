@@ -66,7 +66,7 @@ Start a research project on how teams operate design systems at scale. This runs
 **Output varies** with the question, the time you have, and whether a prior corpus exists.
 <!-- rung: packs/desk-research/.apm/skills/desk-research-project-start/SKILL.md -->
 
-**You decide:** Set the scope and the depth before this runs — the pack's `set-research-scope-and-depth` gate. A project is a standing commitment, not a session.
+**You decide:** Set the scope and the depth before this runs — the same `set-research-scope-and-depth` gate as step 2, on the other route. A project and a single session are alternatives, so you pass this gate once, not twice.
 <!-- rung: packs/desk-research/JOURNEY.md -->
 
 **Check (falsifiable):** Ask what finding would make you abandon the working hypothesis; this surfaces a hypothesis that no evidence could contradict.
