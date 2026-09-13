@@ -43,14 +43,20 @@ NEUTRAL_PATH = Path("probe-notes.txt")
 CONFLICT_MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
 
 # Read from the Makefile rather than repeated here. `make bootstrap-git` is the
-# only thing that registers the driver for a real maintainer, and AC5 is a
-# goal-based check with no artifact, so nothing else joins that recipe to the
-# `merge=regen` attribute. A typo in the recipe would otherwise leave every
-# test below green while every real merge fell back to conflicting.
+# only thing that registers the driver for a real maintainer, so this parse is
+# what joins that recipe to the `merge=regen` attribute `.gitattributes`
+# declares. Restating the driver name instead would leave a typo in the recipe
+# green here while every real merge fell back to conflicting.
 # Scopes that would escape the scratch repository. The AC5 test runs the
 # recipe's own commands, so a recipe that grew `--global` would otherwise
 # rewrite the developer's and the runner's real config instead of failing.
-_ESCAPING_SCOPES = ("--global", "--system", "--file", "--blob")
+_ESCAPING_SCOPES = ("--global", "--system", "--file", "--blob", "-f")
+_ESCAPING_PREFIXES = ("--file=", "--blob=")
+# `shlex` performs no make expansion, so a token carrying one would be written
+# into the scratch repo verbatim while `make bootstrap-git` registers something
+# else -- and the test would then compare that literal against DRIVER_COMMAND,
+# which came from the same parse. Comparing a parse to itself proves nothing.
+_UNEXPANDED = ("$(", "${")
 
 _DRIVER_KEY = re.compile(r"^merge\.([A-Za-z0-9_-]+)\.driver$")
 
@@ -78,13 +84,23 @@ def _bootstrap_git_recipe() -> list[list[str]]:
         if not stripped.startswith("git config "):
             continue
         tokens = shlex.split(stripped)
-        escaping = [t for t in tokens if t in _ESCAPING_SCOPES]
+        escaping = [
+            t for t in tokens
+            if t in _ESCAPING_SCOPES or t.startswith(_ESCAPING_PREFIXES)
+        ]
         assert not escaping, (
             f"bootstrap-git runs `git config {escaping[0]}`, which writes "
             "outside the repository; the AC5 test executes these commands and "
             "would rewrite real developer config"
         )
+        unexpanded = [t for t in tokens if any(m in t for m in _UNEXPANDED)]
+        assert not unexpanded, (
+            f"bootstrap-git command carries an unexpanded make reference "
+            f"{unexpanded[0]!r}; this parser cannot reproduce what make runs, "
+            "so executing it would assert a literal against itself"
+        )
         commands.append(tokens)
+        continue
     assert commands, "bootstrap-git runs no git config command"
     return commands
 
@@ -368,7 +384,7 @@ def test_bootstrap_git_registers_the_driver_idempotently(tmp_path: Path) -> None
         for command in commands:
             _git(*command[1:], cwd=root)
 
-    probe = _git("config", "--get", f"merge.{DRIVER_NAME}.driver",
+    probe = _git("config", "--local", "--get", f"merge.{DRIVER_NAME}.driver",
                  cwd=root, check=False)
     assert probe.returncode == 0, (
         f"the recipe registered no merge.{DRIVER_NAME}.driver; expected "
@@ -380,7 +396,11 @@ def test_bootstrap_git_registers_the_driver_idempotently(tmp_path: Path) -> None
     )
     # Set semantics make a rerun idempotent with no guard; a recipe that grew an
     # append (`--add`) would leave two values and fail `--get`.
-    repeated = _git("config", "--get-all", f"merge.{DRIVER_NAME}.driver",
+    # `--local`: without it this reads the developer's global and system scopes
+    # too, so a maintainer who registered the driver globally instead of per
+    # clone fails with "a second run changed the value" -- a cause that did not
+    # happen.
+    repeated = _git("config", "--local", "--get-all", f"merge.{DRIVER_NAME}.driver",
                     cwd=root, check=False)
     assert repeated.stdout.strip().splitlines() == [DRIVER_COMMAND], (
         "a second run changed the value: " + repeated.stdout

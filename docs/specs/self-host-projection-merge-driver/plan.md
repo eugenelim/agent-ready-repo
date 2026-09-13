@@ -256,19 +256,21 @@ and the suite appears as a `gate-main` step.
 **Depends on:** none
 
 **Tests:**
-- Goal-based (AC5): run `make bootstrap-git` twice, then
-  `git config --get merge.regen.driver` and `--get merge.regen.name`; the first
-  reads `true`, and it does not change between runs.
-  `git config` set semantics make the recipe idempotent without a guard, so the
-  check confirms that rather than testing an added conditional.
+- TDD (AC5), in `tools/test_merge_driver_behaviour.py`: read the `git config`
+  commands out of the `bootstrap-git` recipe and run them twice against a
+  scratch repository, then assert the driver key holds the recipe's value and a
+  second run did not change it. Invoking `make bootstrap-git` directly is the
+  one thing the test must not do — it writes the developer's real git config.
+  Reading the recipe rather than restating it is the join: nothing else ties
+  that recipe to the driver name `.gitattributes` declares.
 
 **Approach:**
 - Add the target beside the existing `bootstrap-*` family in the `Makefile`.
 - Record the step in `AGENTS.local.md` § Worktree bootstrap, noting that git
   config is shared across linked worktrees but not across clones.
 
-**Done when:** the two-run command sequence above reports the stated values,
-and `AGENTS.local.md` § Worktree bootstrap names the target.
+**Done when:** `python -m pytest tools/test_merge_driver_behaviour.py -k
+bootstrap` passes and `AGENTS.local.md` § Worktree bootstrap names the target.
 
 ### T4: Durable outputs
 
@@ -294,8 +296,12 @@ and `AGENTS.local.md` § Worktree bootstrap names the target.
   "were reclassified as *Manual* with placeholder seeds", which is wrong for
   `AGENT_RULES.md`, `docs/AGENTS.md` and `governance/manifest.example.yaml`.
   Then `make build-self`.
-- No changelog entry: the change is maintainer-only, and the changelog is
-  released-artifact-scoped.
+- `docs/product/changelog.md`: the seed edit is shipped pack content, so
+  `packs/core` bumps and that bump is a released artifact owing a free-standing
+  `## [core][<version>]` entry with `Highlights` — an adopter's installed
+  conventions now say something different. Derive the version from the current
+  `origin/main`, never from the branch's base: `origin/main` may already have
+  published the next number.
 
 **Done when:** `AGENTS.local.md` § Landing changes states the regeneration
 sequence, `AGENTS.local.md` § Worktree bootstrap names `make bootstrap-git`,

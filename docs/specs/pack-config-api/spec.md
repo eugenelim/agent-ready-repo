@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0074, ADR-0058, ADR-0059
+- **Constrained by:** RFC-0101, ADR-0058, ADR-0059
 - **Shipped in:** agentbundle 0.21.0
 - **Contract:** none (internal Python API + CLI subcommands; no external network API)
 - **Shape:** service

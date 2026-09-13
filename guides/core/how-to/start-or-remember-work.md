@@ -70,8 +70,11 @@ For intent-only capture, `intake-intent` records the status, outcome, boundary,
 owner, unresolved questions, projection, and source. Product altitude, opportunity,
 assumptions, scale, and JTBD context are optional. Before it can become
 `Accepted`, the owner sends the intent and one attributed evidence packet to an
-independent cold shaping review. Findings return to the owner for revision; a
-revision-bound `Clean` still needs explicit human confirmation. If no isolated
+independent cold shaping review. That review checks well-formedness, not
+quality: it returns one `MALFORMED(<field>)` token per failed condition, or
+nothing at all. Tokens return to the owner for revision; a completed,
+revision-bound dispatch that returned no token still needs explicit human
+confirmation. If no isolated
 subagent, fresh context, or independent human is available, the owner emits
 `BLOCKED` and leaves the intent Draft. If an intent already exists,
 the skill updates that repository path instead of creating a renamed copy.

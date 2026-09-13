@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0047 (Decisions 3, 4), ADR-0037 (D2), ADR-0010 (reference-architecture foundation)
+- **Constrained by:** RFC-0100 (Decisions 3, 4), ADR-0037 (D2), ADR-0010 (reference-architecture foundation)
 - **Contract:** none <!-- seed + skill-prose change; no API surface -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -28,12 +28,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Adding the recording surface to `adapt-to-project` / `init-project` **elicitation** flows (in scope per RFC-0047 follow-on, but confirm the elicitation wording stays optional and non-mandating).
+- Adding the recording surface to `adapt-to-project` / `init-project` **elicitation** flows (in scope per RFC-0100 follow-on, but confirm the elicitation wording stays optional and non-mandating).
 - Any change that would make a filled `reference.md` or `AGENTS.md` block a *prerequisite* for any work-loop path.
 
 ### Never do
 
-- **Introduce a new top-level config file** (no `grounding.toml`) — RFC-0047 non-goal; reuse files the adopter already owns.
+- **Introduce a new top-level config file** (no `grounding.toml`) — RFC-0100 non-goal; reuse files the adopter already owns.
 - **Fail the loop, or add a CI gate, on absence** of any recorded coordinate.
 - **Auto-populate** `reference.md` from the running stack — that is a separate detect-and-fill capability, out of scope.
 
@@ -58,7 +58,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Assumptions
 
 - Technical: `reference.md` already carries the right arc42 slots — Constraints (line ~29), Key technology decisions (~53), Crosscutting → Observability / Testing standards (~85). (source: verified `packs/core/.apm/skills/adapt-to-project/assets/reference.md` 2026-06-25)
-- Technical: the infra preflight / multi-artifact discovery lives in `references/infra-verification.md` under the work-loop skill. (source: RFC-0047 § Proposal Layer B; work-loop SKILL.md references)
-- Technical: the presence-check idiom is established — `agentbundle-layout.toml` optional resolution, `adapt-to-project` "(if present)" reads, `architect-design` "state which surface you detected (or 'none')". (source: RFC-0047 § Proposal; ADR-0037 D2)
+- Technical: the infra preflight / multi-artifact discovery lives in `references/infra-verification.md` under the work-loop skill. (source: RFC-0100 § Proposal Layer B; work-loop SKILL.md references)
+- Technical: the presence-check idiom is established — `agentbundle-layout.toml` optional resolution, `adapt-to-project` "(if present)" reads, `architect-design` "state which surface you detected (or 'none')". (source: RFC-0100 § Proposal; ADR-0037 D2)
 - Process: seed edits must keep placeholder shape and pass `lint-seeds`/`lint-catalogue-seeds` (the four first-party packs stay enforced); a filled command block uses placeholders, not real commands. (source: `feedback_lint_seeds_forbids_rfc_numbers` memory; the `catalogue-seeds-lint` spec)
-- Product: adopters will fill the optional surface often enough to be worth it — falsifiable, but bounded: an empty surface costs nothing because it is presence-checked. (source: RFC-0047 § Key assumptions)
+- Product: adopters will fill the optional surface often enough to be worth it — falsifiable, but bounded: an empty surface costs nothing because it is presence-checked. (source: RFC-0100 § Key assumptions)

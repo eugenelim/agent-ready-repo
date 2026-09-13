@@ -54,5 +54,5 @@ Self-host projections carry `merge=regen`, so an update settles them and leaves
 them stale. `make build-self` writes; stage it or the amend drops what it wrote:
 `git merge --no-ff origin/main && make build-self && git add -A && git commit
 --amend --no-edit`. Never pass `FORCE=1` from automation. Pack sources still
-conflict, as do the three projections no gate reaches;
-`tools/test_gitattributes_merge_driver.py` owns which paths carry the driver.
+conflict, as do a few projections that carry no driver for differing reasons;
+`tools/test_gitattributes_merge_driver.py` owns which paths carry it and why.

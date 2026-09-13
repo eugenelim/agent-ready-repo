@@ -116,7 +116,10 @@ def _mutated_scratch_tree(root: Path, destination: Path) -> None:
             continue
         # One write, not a copy followed by an append: on a copy-on-write
         # filesystem the append forces the block copy that copy2 deferred, so
-        # copy-then-mutate costs roughly four times a single write.
+        # copy-then-mutate costs roughly four times a single write. This drops
+        # permission bits, which copy2 preserved -- the drift comparison reads
+        # content, so it does not matter today, but a mode-sensitive gate must
+        # not read this as an intentional equivalence.
         target.write_bytes(source.read_bytes() + b"\n")
     assert not missing, (
         "tracked files absent from the working tree; the two sides of the "

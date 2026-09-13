@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.18"
+          "version": "2.25.19"
         }
       ],
       "date": "2026-09-13",
-      "heading": "[core][2.25.18] — 2026-09-13",
-      "changelogAnchor": "core22518--2026-09-13",
+      "heading": "[core][2.25.19] — 2026-09-13",
+      "changelogAnchor": "core22519--2026-09-13",
       "highlights": [
         {
           "source": "**The conventions you install now say which projected paths a gate actually watches.** Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose.",
@@ -22,6 +22,59 @@
             {
               "type": "text",
               "value": " Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.18"
+        }
+      ],
+      "date": "2026-09-12",
+      "heading": "[core][2.25.18] — 2026-09-12",
+      "changelogAnchor": "core22518--2026-09-12",
+      "highlights": [
+        {
+          "source": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet."
+            }
+          ]
+        },
+        {
+          "source": "A second, optional read attacks the bet itself and may only hand back an open question with a named decider or a kill condition with its real-world trigger. It cannot ask you to reword anything, and an empty answer is a real answer.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "A second, optional read attacks the bet itself and may only hand back an open question with a named decider or a kill condition with its real-world trigger. It cannot ask you to reword anything, and an empty answer is a real answer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "product-engineering",
+          "version": "0.13.12"
+        }
+      ],
+      "date": "2026-09-12",
+      "heading": "[product-engineering][0.13.12] — 2026-09-12",
+      "changelogAnchor": "product-engineering01312--2026-09-12",
+      "highlights": [
+        {
+          "source": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "After framing an intent, you can have the bet attacked rather than the wording reviewed — and whatever comes back is advisory, so it never moves the intent's status on its own."
             }
           ]
         }

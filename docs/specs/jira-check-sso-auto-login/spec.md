@@ -1285,10 +1285,10 @@ Every entry was established by reading source or executing a probe on
 
 - `auth_default` / `base_url` from `catalogue.toml [pack-defaults.atlassian]`,
   via an installer-side projection so skill scripts stay stdlib-only. The
-  RFC-0074 cascade is Shipped but has no consumer, and its baked layer lives
+  RFC-0101 cascade is Shipped but has no consumer, and its baked layer lives
   inside the `agentbundle` package at
   `packages/agentbundle/agentbundle/_data/install-defaults.toml`, unreachable
-  from stdlib-only scripts. Needs an RFC-0074 addendum plus an ADR extending
+  from stdlib-only scripts. Needs an RFC-0101 addendum plus an ADR extending
   ADR-0059, and must carry AC25's destination-pinning constraint.
   *(deferred: pack-config-catalogue-sso-defaults)*
 - Auto-recovery for `confluence-crawler`'s CLI was delivered by

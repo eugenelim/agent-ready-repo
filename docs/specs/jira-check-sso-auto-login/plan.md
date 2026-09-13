@@ -124,7 +124,7 @@ cd packs/atlassian/.apm/skills/jira && python scripts/jira.py --insecure check
 - `confluence-crawler`'s `check` behaviour (it *does* inherit the shared-file
   changes — see spec scope; that is not "no change").
 - `[pack.adapter-contract] version`.
-- `catalogue.toml` / `install-defaults.toml` — deferred to the RFC-0074 addendum.
+- `catalogue.toml` / `install-defaults.toml` — deferred to the RFC-0101 addendum.
 
 ## Declined patterns
 

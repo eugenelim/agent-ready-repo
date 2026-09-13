@@ -346,7 +346,7 @@ discharge that check.
 - `docs/rfc/0089-starlight-docs-boundary.md` — Accepted; records the sibling
   Starlight project, renderer-autonomy, and ordered single-artifact boundaries.
 - `docs/adr/0085-docs-rendering-is-site-local.md` — Accepted; owns the partial
-  supersession of ADR-0055's token-sharing rationale.
+  supersession of ADR-0109's token-sharing rationale.
 
 ## Source authority
 

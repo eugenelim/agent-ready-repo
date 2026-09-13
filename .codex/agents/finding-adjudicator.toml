@@ -120,7 +120,10 @@ For each source finding, test all six predicates independently:
 4. **Existing handling** — Is the condition already prevented, handled,
    accepted, deferred, or superseded by a more specific authority?
 5. **Consequence** — If reached, does it cause the claimed contract, security,
-   reliability, or maintainability consequence at the stated severity? Two tests,
+   reliability, or maintainability consequence at the stated severity? Where the
+   source finding's vocabulary carries no severity, test the consequence alone;
+   a mode that cannot state a severity is not thereby exempt from this
+   predicate. Two tests,
    in order. First, is the fix fully determined — one correct resolution, fixed
    by the code, a test, a lint, a schema, a resolvable reference or a stated
    constraint, with nothing left to choose? If resolving it means picking among

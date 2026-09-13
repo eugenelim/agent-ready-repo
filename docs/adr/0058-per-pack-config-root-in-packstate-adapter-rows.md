@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-28
 - **Decision-makers:** eugenelim
-- **Related:** [RFC-0074](../rfc/0074-pack-config-and-oplog.md), [ADR-0039 footprint co-ownership and install identity](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md)
+- **Related:** [RFC-0101](../rfc/0101-pack-config-and-oplog.md), [ADR-0039 footprint co-ownership and install identity](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md)
 
 ## Decision summary
 

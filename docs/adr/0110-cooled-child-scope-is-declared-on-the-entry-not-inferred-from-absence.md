@@ -1,7 +1,8 @@
-# ADR-0106: A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"
+# ADR-0110: A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"
 
 - **Status:** Accepted
 - **Date:** 2026-09-03
+- **Renumbered:** issued as ADR-0106 and moved to ADR-0110 on 2026-09-12. Two records had been accepted under 0106 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its decision text is unaltered.
 - **Decision-makers:** eugenelim
 - **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) §6 and §7 and its 2026-09-03 Errata (Wave 7b's mechanism half). This record supersedes in part the `status-projection-and-context-exclusion` spec's AC59, and is governed by the `workspace-routing-invariants` spec's § *Ask first* and § *Canonical findings*; both are named rather than linked, because `docs/CONVENTIONS.md` § *Cite upward, never downward* holds that ADRs do not link to specs.
 

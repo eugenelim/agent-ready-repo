@@ -29,17 +29,33 @@ def _boundary_values(section: str) -> tuple[str, ...]:
     return tuple(line.strip()[2:] for line in boundary_block.splitlines())
 
 
-def test_intent_shaping_review_requires_independent_clean_and_human_confirmation() -> None:
+def test_intent_shaping_review_requires_independence_and_human_confirmation() -> None:
     gate = _normalized_gate()
 
     assert "`shaping-reviewer` subagent in `intent` mode" in gate
     assert "genuinely fresh context or an independent human" in gate
     assert "Warm self-review is advisory and cannot satisfy this gate." in gate
-    assert "Return every `Findings` result to this skill for revision" in gate
-    assert "every unresolved finding keeps the intent at `Draft` and blocks `Accepted`" in gate
-    assert "Only after a revision-bound `Clean`, ask for explicit human confirmation" in gate
+    assert "Return every `MALFORMED` token to this skill for revision" in gate
+    assert "every unresolved token keeps the intent at `Draft` and blocks `Accepted`" in gate
+    assert (
+        "Only after a completed, revision-bound dispatch that returned no "
+        "`MALFORMED` token, ask for explicit human confirmation"
+    ) in gate
     assert "Set `Status: Accepted` only after that confirmation." in gate
-    assert "`Clean` alone never changes lifecycle status." in gate
+    assert "A review result alone never changes lifecycle status." in gate
+
+
+def test_intent_caller_owns_the_binding_an_empty_result_cannot_carry() -> None:
+    """An empty pass and a dead dispatch are the same zero bytes."""
+    gate = _normalized_gate()
+
+    assert "Record the intent revision you dispatched" in gate
+    assert "the pass state carries no bytes" in gate
+    assert "Read completion from your own host" in gate
+    assert (
+        "`BLOCKED: intent shaping review — dispatch did not complete`" in gate
+    )
+    assert "must not borrow its receipt" in gate
 
 
 def test_intent_material_revision_and_recorded_nonmaterial_correction_have_distinct_effects() -> None:
@@ -59,7 +75,7 @@ def test_intent_refuses_unavailable_independence_before_dispatch_with_caller_rec
     assert "When no independent route is available, refuse before invocation" in gate
     assert "`BLOCKED: intent shaping review — independent route unavailable`" in gate
     assert "`BLOCKED` is a lifecycle receipt, not a shaping-reviewer result." in gate
-    assert "`Clean` or `Findings`" in gate
+    assert "one `MALFORMED(<field>)` token per failed condition, or nothing at all" in gate
 
 
 def test_intent_passes_one_attributed_untrusted_packet_without_reviewer_retrieval() -> None:

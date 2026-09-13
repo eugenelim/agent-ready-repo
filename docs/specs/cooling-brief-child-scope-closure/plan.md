@@ -83,7 +83,7 @@ copying them. Each case builds its own root under `tmp_path`.
 
 | Spec durable output | Task | Evidence handed to close-work |
 | --- | --- | --- |
-| Decision rationale (ADR-0106, `notes/ask-first-review.md`) | T0 | *The pointer takes the licensed form* |
+| Decision rationale (ADR-0110, `notes/ask-first-review.md`) | T0 | *The pointer takes the licensed form* |
 | Current architecture (the frozen spec's Status token) | T0, T2 | *The frozen body is otherwise unchanged*; *Both sites pinning the edited file carry its new digest*; *The three superseded Wave 6 cases are updated, not deleted* |
 | User documentation (both adopter guide surfaces) | T1 | *The adopter closeout procedure states the precondition*; *The `parent` field's reference entry states the cooling interaction* |
 | Interface compatibility (both documentation homes) | T1 | *The code is documented where the gate looks*; *The next action says when the empty answer is correct* |
@@ -142,7 +142,7 @@ constructed fixture rather than by repository state.
 
 **Depends on:** none
 
-**Touches:** docs/adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md, docs/adr/README.md, docs/specs/status-projection-and-context-exclusion/spec.md, docs/specs/cooling-scope-closure/spec.md, tests/roster/test_cooling_scope_closure.py
+**Touches:** docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md, docs/adr/README.md, docs/specs/status-projection-and-context-exclusion/spec.md, docs/specs/cooling-scope-closure/spec.md, tests/roster/test_cooling_scope_closure.py
 
 **Tests:** goal-based, no stub (goal-based). *The pointer takes the licensed form* and *The frozen body is otherwise unchanged*. *The pointer takes the licensed form* pins the pointer's wording and *The frozen body is otherwise unchanged* the body's integrity; they fail for different reasons and take different repairs. The digest moves in two places: the dict inside `test_ac23_pinned_files_are_byte_unchanged` in `tests/roster/test_cooling_scope_closure.py`, and `cooling-scope-closure`'s AC23 table row naming `docs/specs/status-projection-and-context-exclusion/spec.md`. Both are found by searching for `2cac21ca`, which is what T0's Done-when asserts is gone. The suite hashes only its own dict, so the prose copy has no oracle and needs an explicit check.
 
@@ -152,7 +152,7 @@ constructed fixture rather than by repository state.
 - Recompute the digest and update both sites.
 - Add the `docs/adr/README.md` index row.
 
-**Done when:** the frozen spec's Status line matches the licensed form and names ADR-0106; `git diff <the base T0 started from> -- <that file>` shows exactly one changed line, taken against a named revision rather than the index, since T0 commits within the task; both digest sites carry the recomputed value and neither retains `2cac21ca`; `docs/adr/README.md` carries an ADR-0106 row; and `tests/roster/test_cooling_scope_closure.py` passes.
+**Done when:** the frozen spec's Status line matches the licensed form and names ADR-0110; `git diff <the base T0 started from> -- <that file>` shows exactly one changed line, taken against a named revision rather than the index, since T0 commits within the task; both digest sites carry the recomputed value and neither retains `2cac21ca`; `docs/adr/README.md` carries an ADR-0110 row; and `tests/roster/test_cooling_scope_closure.py` passes.
 
 ### T1: Resolve parent scope, fail closed on the unestablished answer, document the code
 
@@ -160,7 +160,7 @@ constructed fixture rather than by repository state.
 
 This field is machine-parsed for task tokens, so the reasoning sits here rather
 than inside it: T1 consumes nothing T0 produces and touches no frozen spec. Only
-the ADR-0106 assertion messages need T0, and the task that rewrites them reaches
+the ADR-0110 assertion messages need T0, and the task that rewrites them reaches
 it anyway. Rollout still sequences T0 first, for the reason Rollout states.
 
 **Touches:** packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py, packs/core/.apm/skills/workspace-status/SKILL.md, guides/core/reference/workspace-toml-schema.md, guides/core/how-to/close-and-disposition-work.md, tests/roster/test_cooling_brief_child_scope_closure.py, tests/roster/test_status_projection_and_context_exclusion.py
@@ -330,9 +330,9 @@ def test_the_parent_is_read_from_the_entry_not_the_body(tmp_path, engine) -> Non
 **Tests:** goal-based, no stub (goal-based). *The three superseded Wave 6 cases are updated, not deleted*. Its merge-base basis is what makes T1's helper edit visible here rather than reading as clean.
 
 **Approach:**
-- Flip each of the three cases to the behaviour ADR-0106 records, keeping each function's name and its role as the control for the same observable.
+- Flip each of the three cases to the behaviour ADR-0110 records, keeping each function's name and its role as the control for the same observable.
 - Keep the third case's ini-003 spec undeclared and cooled. Its own docstring records that there is no initiative filter and that its killing mutation is the behaviour this delivery ships, so re-declaring that entry would restore a premise the docstring refutes. Assert instead that the floor crosses initiative boundaries.
-- Rewrite both copies of the assertion message `the residual is closed — update AC59 and remove the Follow-ons row` to point at ADR-0106; as written they instruct an edit the spec's Boundaries forbid.
+- Rewrite both copies of the assertion message `the residual is closed — update AC59 and remove the Follow-ons row` to point at ADR-0110; as written they instruct an edit the spec's Boundaries forbid.
 
 **Done when:** all three functions still exist, none carries the string `the residual is closed`, and `python3 -m pytest tests/roster/test_status_projection_and_context_exclusion.py -q` passes.
 
@@ -382,7 +382,7 @@ release surface reflect final engine bytes.
 - **Two sessions converge on one digest table.** This delivery moves `cooling-scope-closure`'s AC23 row 3 and Wave 7c has merged, moving four other rows of the same table — `cooling.py`, `delivery-lifecycle-record.schema.json`, and both `thirty-day-cooling-and-retirement` files. `auto-mechanical-chores-run-21` is **discharged**: it merged, so its AC29 rewording of `docs/specs/cooling-scope-closure/spec.md` is inherited and its changes are not a coordination risk. Verified after the fast-forward to `9ab376dcc`, which is both `HEAD` and `git merge-base HEAD origin/main`: the AC23 digest row and the test pin in `tests/roster/test_cooling_scope_closure.py` both still carry `2cac21ca`. Cited by content rather than line, because Wave 7c's merge moved both. Mitigation: re-read the row after any further merge of main.
 - **Wave 7c's `_COOLING_PAIRS` edit is a semantic dependency, not just a textual one.** Every parent-scope fixture reaches the new branch only because `("cool-30-days", "Cooling")` is in `_COOLING_PAIRS` — the frozenset Wave 7c added to. Line-disjointness is a merge property and does not protect the premise: if that pair set changes shape, the cooled set changes and every criterion's input changes with it. Re-check the pair set after any merge of their work, not just the diff. **Discharged as of `9ab376dcc`:** their merge added `("retain-exception", "Reclassified")`, taking the set to four pairs, and moved the suite's own `COOLING_PAIRS` mirror in step, so `assert frozenset(COOLING_PAIRS) == engine._COOLING_PAIRS` holds. Probe 15 re-derived the corpus and the gap's population against the new set: 118 spec entries, 101 omitting `source.parent`, and no cooled artifact at all, so no criterion's input changed.
 - **A concurrent session moves the core version, repeatedly.** The merge base has carried 2.24.0, 2.24.1, 2.24.3, 2.25.2, 2.25.3 and 2.25.4 across this delivery's review, the last two within one day. No target is named here for that reason; § *Constraints* carries the derivation. *This delivery moved the release surface*'s floor is therefore whatever `packs/core/pack.toml` reads at the merge base when T4 runs, and this delivery must exceed it. *This delivery moved the release surface* compares against the merge base rather than a literal, so a further bump arriving from main moves the floor with it and cannot satisfy the criterion on its own.
-- **ADR-0106's ordinal is taken by a parallel session.** Re-check immediately before committing.
+- **ADR-0110's ordinal is taken by a parallel session.** Re-check immediately before committing.
 
 ## Changelog
 

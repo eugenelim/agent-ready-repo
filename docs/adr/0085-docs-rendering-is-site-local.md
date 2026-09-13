@@ -3,8 +3,8 @@
 - **Status:** Accepted
 - **Date:** 2026-08-17
 - **Decision-makers:** eugenelim
-- **Supersedes:** [ADR-0055](0055-starlight-replaces-mkdocs-for-reference-docs.md) in part — shared palette and design-token implementation
-- **Related:** [RFC-0089](../rfc/0089-starlight-docs-boundary.md), [ADR-0055](0055-starlight-replaces-mkdocs-for-reference-docs.md)
+- **Supersedes:** [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md) in part — shared palette and design-token implementation
+- **Related:** [RFC-0089](../rfc/0089-starlight-docs-boundary.md), [ADR-0109](0109-starlight-replaces-mkdocs-for-reference-docs.md)
 
 ## Decision summary
 
@@ -16,7 +16,7 @@
 
 ## Context
 
-ADR-0055 selected Starlight and described sharing the marketing site's design-token system. The later documentation refresh instead shipped a self-contained docs palette and recorded that boundary in `docs-site/AGENTS.md`.
+ADR-0109 selected Starlight and described sharing the marketing site's design-token system. The later documentation refresh instead shipped a self-contained docs palette and recorded that boundary in `docs-site/AGENTS.md`.
 
 RFC-0089 ratified the shipped structure: `web/` is the marketing project, `docs-site/` is the technical-documentation project, and their generated outputs form one ordered publication artifact.
 
@@ -26,7 +26,7 @@ The marketing and technical-documentation sites will own their palettes, compone
 
 Shared product identity may be expressed through information architecture, destination vocabulary, and generated content data. It does not require shared CSS, runtime components, or colour alignment.
 
-This supersedes only ADR-0055's palette and design-token-sharing decision. Its decisions about Starlight, the sibling project boundary, the Node/Astro toolchain, and build order remain authoritative.
+This supersedes only ADR-0109's palette and design-token-sharing decision. Its decisions about Starlight, the sibling project boundary, the Node/Astro toolchain, and build order remain authoritative.
 
 ## Decision drivers
 
@@ -68,4 +68,4 @@ This supersedes only ADR-0055's palette and design-token-sharing decision. Its d
 ## References
 
 - [RFC-0089: Starlight docs boundary](../rfc/0089-starlight-docs-boundary.md)
-- [ADR-0055: Starlight replaces MkDocs for reference docs](0055-starlight-replaces-mkdocs-for-reference-docs.md)
+- [ADR-0109: Starlight replaces MkDocs for reference docs](0109-starlight-replaces-mkdocs-for-reference-docs.md)

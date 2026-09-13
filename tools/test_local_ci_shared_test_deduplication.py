@@ -197,6 +197,12 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_sidebar.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
+    # spec/self-host-projection-merge-driver: both suites gate the
+    # `merge=regen` block, and `lint-ci-parity` disposes their gate-main steps
+    # as LOCAL("test-after-build-check") -- which is only true while this batch
+    # runs them.
+    "tools/test_gitattributes_merge_driver.py",
+    "tools/test_merge_driver_behaviour.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -520,11 +526,21 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # modules; no other line moves, is reordered, or is dropped. Line counts are
 # unchanged — that batch is one continued command, so the modules lengthen an
 # existing line rather than adding one.
+# Re-pinned 2026-09-13 for the two merge-driver modules
+# (spec/self-host-projection-merge-driver), which join the final tools batch.
+# They gate the `merge=regen` block, and `lint-ci-parity` disposes their
+# gate-main steps as LOCAL("test-after-build-check"), which is only true while
+# this batch runs them. Dispositioned the same way: `_normalized_command_plan`
+# was run against this worktree's Makefile and against the same Makefile at
+# 5c96716d8 (before the batch line changed). Both plans keep their line counts
+# — 62 standalone, 61 composed — exactly one line shifts in each (index 47),
+# and it gains exactly two tokens, which are the two new modules; no other line
+# moves, is reordered, or is dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d29b113d9479b7a8e3c7fcbf450e65c0fe2c215ac657050fa1f79511f88124d8"
+    "7fadaf203076cf15c3f39820828443ebf14ea9d76216051595a037cf4e5c73b8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "61120874532d1206b49526f368feafd1cd090290a96abb2d12e4903902e7313a"
+    "e48c8b01613f6570a2ed6895a4629b0f12bea62839a12f731bb32c741b2f7722"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

@@ -4,7 +4,7 @@
 - **Date:** 2026-06-25
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level), RFC-0050 (the `experience`-pack child RFC that models it), RFC-0033 + ADR-0024 (created the `design-craft` pack and its posture — **frozen, bridged here**), RFC-0047 § Errata 2026-06-25 (the `infra-contract-acquisition → contract-acquisition` skill rename — the precedent this follows), `docs/specs/design-craft-pack/` (Shipped — **frozen, bridged here**)
+- **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level), RFC-0050 (the `experience`-pack child RFC that models it), RFC-0033 + ADR-0024 (created the `design-craft` pack and its posture — **frozen, bridged here**), RFC-0100 § Errata 2026-06-25 (the `infra-contract-acquisition → contract-acquisition` skill rename — the precedent this follows), `docs/specs/design-craft-pack/` (Shipped — **frozen, bridged here**)
 
 ## Decision summary
 
@@ -36,7 +36,7 @@ Two facts constrain *how* the rename can happen:
 
 The catalogue already has a proven rename mechanism for exactly this shape:
 the **`infra-contract-acquisition → contract-acquisition`** skill rename
-(RFC-0047 § Errata, 2026-06-25) renamed the live surface, kept frozen
+(RFC-0100 § Errata, 2026-06-25) renamed the live surface, kept frozen
 governance naming the old skill as historical record bridged by an erratum,
 and shipped **no install-time alias**.
 
@@ -133,5 +133,5 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
 
 - RFC-0048 Decision 3 (`docs/rfc/0048-autonomous-product-team-operating-model.md`).
 - RFC-0050, the `experience`-pack child RFC (`docs/rfc/0050-the-experience-pack.md`).
-- RFC-0047 § Errata 2026-06-25 (the `contract-acquisition` rename precedent).
+- RFC-0100 § Errata 2026-06-25 (the `contract-acquisition` rename precedent).
 - RFC-0033, ADR-0024, `docs/specs/design-craft-pack/` (the frozen governance bridged here).
