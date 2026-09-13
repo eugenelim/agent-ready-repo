@@ -327,7 +327,9 @@ Next gate: <gate id> — needs <what>
 **Done with this step:** You can move on when the outcome names a customer change rather than something you could build.
 <!-- rung: authored -->
 
-Stage 1 of four, and the pack's first gate. The slug set here follows the work to the end.
+Stage 1 of four, and the pack's first gate. The slug set here follows the work to the end — through decomposition, into the spec directory the `core` guidebook creates, and out again at closeout.
+
+If this intent arrived from [Route it to work](../../product-strategy/how-to/route-it-to-work.md) in the `product-strategy` guidebook, it is already a queued gap entry: reuse its slug rather than minting a new one, or the thread breaks at the pack boundary.
 
 **Next:** [Find the opportunities](find-the-opportunities.md).
 <!-- rung: authored -->

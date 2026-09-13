@@ -234,7 +234,7 @@ references/voice-axes.md. -->
 
 Stage 4 of four, and the pack's last gate. After this the build loop owns the work.
 
-**Next:** [the guides hub](../../README.md#p3--build-it--2-hours) — the slices are picked up by the build loop.
+**Next:** [Write the contract](../../core/how-to/write-the-contract.md) — in the `core` guidebook. Each slice this step produced becomes one spec there, and the slice's slug becomes the spec directory's name.
 <!-- rung: authored -->
 
 **Go deeper:** [the `product-engineering` intent-fields reference](../reference/intent-fields-and-modes.md) — the fields, modes and projection profiles these skills read and write.
