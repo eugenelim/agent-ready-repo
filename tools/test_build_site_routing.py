@@ -787,13 +787,17 @@ def test_the_chrome_files_this_guard_names_still_exist():
 
 def test_each_renderer_reads_its_own_projected_input():
     """AC10: one canonical source, two independently allocated renderer inputs."""
-    marketing = _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
-    docs = _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
-    assert marketing.is_file() and docs.is_file()
-    assert marketing != docs
+    # The two renderer inputs are generated, not committed, so their allocation
+    # is asserted from the generator and their destinations from the manifest
+    # constants. Reading the files would make this test require a prior build.
+    assert (
+        build_site.MARKETING_SHARED_CHROME_PROJECTION
+        != build_site.DOCS_SHARED_CHROME_PROJECTION
+    )
 
-    marketing_payload = json.loads(marketing.read_text(encoding="utf-8"))
-    docs_payload = json.loads(docs.read_text(encoding="utf-8"))
+    projected = build_site.project_shared_chrome(_shared_chrome_fixture())
+    marketing_payload = projected["marketing"]
+    docs_payload = projected["docs"]
     # The docs projection deliberately exposes no `header`: the docs band is not
     # the marketing header, and inferring one from the other is the drift this
     # separation exists to prevent.
@@ -2095,13 +2099,6 @@ _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
 # this change from one unrelated merge, which is precisely how an exact floor
 # breaks on the next release.
 _MIN_REAL_CHANGELOG_RELEASES = 130
-_PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
-_MARKETING_SHARED_CHROME_PROJECTION = (
-    _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
-)
-_DOCS_SHARED_CHROME_PROJECTION = (
-    _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
-)
 _EMITTED_CHANGELOG = _REPO_ROOT / "build" / "docs" / "changelog" / "index.html"
 
 # The day `/now/` launched. A historical fact, deliberately pinned rather than
@@ -2111,37 +2108,48 @@ _EMITTED_CHANGELOG = _REPO_ROOT / "build" / "docs" / "changelog" / "index.html"
 _LAUNCH_DATE = "2026-08-18"
 
 
-def test_the_committed_now_projection_matches_the_changelog_source():
-    """The committed projection is in sync with the changelog it derives from.
+def test_the_generator_projects_the_real_changelog_into_a_valid_payload():
+    """The generator runs clean against the real changelog, not only a fixture.
 
-    The marketing build reads the committed JSON, and the workflow projects it in
-    a pass that runs BEFORE that build. Without this gate a changelog edit could
-    ship with a stale public page and nothing would say so.
+    This replaces a staleness gate that compared a COMMITTED copy of the
+    projection against its source. That copy is no longer tracked: every build
+    path regenerates it before the renderer reads it, so there is no second copy
+    left to disagree with the changelog. What that gate uniquely covered, and
+    this keeps, is that the projection survives the real corpus — a fixture
+    cannot catch a heading shape that only the shipped changelog contains.
     """
-    import json
+    source = _CHANGELOG.read_text(encoding="utf-8")
+    payload = build_site.project_now_highlights(source)
+    assert payload["schemaVersion"] == 1
 
-    expected = build_site.project_now_highlights(
-        _CHANGELOG.read_text(encoding="utf-8")
+    # Correspondence, derived from the parser rather than from a stored copy of
+    # the answer: every free-standing release carrying Highlights must project
+    # exactly once, with exactly its highlights. A shape-only assertion would
+    # pass while the projection silently dropped releases.
+    expected = {
+        release["anchor"]: (release["date"], tuple(release["highlights"]))
+        for release in build_site.parse_changelog_releases(source).releases
+        if release["highlights"] and not release["unreleased"]
+    }
+    assert expected, "the real changelog carries no projectable highlights"
+
+    projected = {
+        group["changelogAnchor"]: (
+            group["date"],
+            tuple(h["source"] for h in group["highlights"]),
+        )
+        for group in payload["groups"]
+    }
+    assert len(projected) == len(payload["groups"]), "duplicate anchor projected"
+    assert set(projected) == set(expected), (
+        "projection does not match the changelog: "
+        f"missing={sorted(set(expected) - set(projected))}, "
+        f"unexpected={sorted(set(projected) - set(expected))}"
     )
-    committed = json.loads(_PROJECTION.read_text(encoding="utf-8"))
-    assert committed == expected, (
-        "web/src/lib/now-highlights.generated.json is stale — "
-        "run `python3 tools/build-site.py --journeys-only`"
-    )
-
-
-def test_the_committed_marketing_shared_chrome_projection_matches_site_toml():
-    """The committed marketing renderer input remains derived from site.toml."""
-    build_site.assert_marketing_shared_chrome_projection_current(
-        _shared_chrome_fixture(), _MARKETING_SHARED_CHROME_PROJECTION
-    )
-
-
-def test_the_committed_docs_shared_chrome_projection_matches_site_toml():
-    """The docs build input remains derived from the renderer-neutral source."""
-    build_site.assert_docs_shared_chrome_projection_current(
-        _shared_chrome_fixture(), _DOCS_SHARED_CHROME_PROJECTION
-    )
+    # Content, not only membership: a mutation that swapped one release's
+    # highlight text while preserving every count would pass a cardinality check.
+    differing = sorted(a for a in expected if projected[a] != expected[a])
+    assert not differing, f"projected date or highlight text differs at: {differing}"
 
 
 def test_the_real_changelog_has_no_silently_withheld_highlights():
@@ -2387,9 +2395,10 @@ def test_the_public_work_surface_is_gone_from_marketing_inputs():
     present = [str(p.relative_to(_REPO_ROOT)) for p in forbidden if p.exists()]
     assert not present, f"retired work-index surface still present: {present}"
 
-    projection = json.loads(
-        _MARKETING_SHARED_CHROME_PROJECTION.read_text(encoding="utf-8")
-    )
+    # Derived from site.toml here rather than read from the generated file.
+    # The docstring above says this asserts over source; reading the generated
+    # copy only approximated that, and that copy is no longer tracked.
+    projection = build_site.project_shared_chrome(_shared_chrome_fixture())["marketing"]
     destinations = [
         link
         for section in (
@@ -2455,3 +2464,65 @@ def test_the_frozen_work_index_spec_remains_byte_unchanged():
         line for line in index.splitlines() if "m6-astro-work-index/" in line
     )
     assert "site-now-surface/spec.md" in m6_row, m6_row
+
+
+# ---------------------------------------------------------------------------
+# The generated renderer inputs are NOT committed. What makes that safe is that
+# every npm entry point projects them first, so a clean checkout can build or
+# test without a prior step. Delete a hook and the failure is a confusing
+# module-resolution error in CI, far from its cause — so the hooks are pinned.
+# ---------------------------------------------------------------------------
+
+_GENERATOR_HOOK = "python3 ../tools/build-site.py --renderer-inputs"
+_REQUIRED_HOOKS = {
+    "web": ("prebuild", "predev", "pretest", "preastro"),
+    "docs-site": ("prebuild", "predev", "pretest:plugins", "preastro"),
+}
+# Per package, not global: these serve or exercise an already-built artifact and
+# import no generated source. `test:e2e:gate` starts `npm run preview`
+# (web/playwright.config.ts) and, by docs/guides/how-to/verify-a-site-release.md,
+# requires both site builds first.
+_HOOK_EXEMPT = {
+    "web": {"preview", "test:e2e:gate"},
+    "docs-site": {"preview"},
+}
+
+
+def test_every_npm_entry_point_projects_its_renderer_inputs_first():
+    """Each runnable npm script that imports a generated input has a pre-hook.
+
+    Both packages are checked in one pass and every problem is reported, so a
+    missing hook in `web/` cannot hide one in `docs-site/`.
+    """
+    problems: list[str] = []
+
+    for package, required in sorted(_REQUIRED_HOOKS.items()):
+        scripts = json.loads(
+            (_REPO_ROOT / package / "package.json").read_text(encoding="utf-8")
+        )["scripts"]
+        hooks = {f"pre{name}" for name in scripts}
+
+        # Every non-exempt runnable script must have a pre-hook, and that hook
+        # must be the generator — not merely some pre-hook. Only the hooks this
+        # package actually declares are skipped, so an ordinary future script
+        # whose name starts with "pre" is still checked.
+        for name in sorted(scripts):
+            if name in hooks or name in _HOOK_EXEMPT[package]:
+                continue
+            actual = scripts.get(f"pre{name}")
+            if actual != _GENERATOR_HOOK:
+                problems.append(
+                    f"{package}/package.json: `pre{name}` must run "
+                    f"`{_GENERATOR_HOOK}`; found {actual!r}"
+                )
+
+        # Named explicitly as well, so deleting a script and its hook together
+        # cannot quietly shrink what this test covers.
+        for hook in required:
+            if scripts.get(hook) != _GENERATOR_HOOK:
+                problems.append(
+                    f"{package}/package.json: required hook `{hook}` must run "
+                    f"`{_GENERATOR_HOOK}`; found {scripts.get(hook)!r}"
+                )
+
+    assert not problems, "\n".join(problems)

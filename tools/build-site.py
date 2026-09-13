@@ -375,7 +375,7 @@ def generate_marketing_shared_chrome_projection(
 def assert_marketing_shared_chrome_projection_current(
     contract: object, output: Path = MARKETING_SHARED_CHROME_PROJECTION
 ) -> None:
-    """Reject a committed marketing input that no longer matches ``site.toml``."""
+    """Reject a marketing input at ``output`` that no longer matches ``site.toml``."""
     expected = project_shared_chrome(contract)["marketing"]
     actual = json.loads(output.read_text(encoding="utf-8"))
     if actual != expected:
@@ -400,7 +400,7 @@ def generate_docs_shared_chrome_projection(
 def assert_docs_shared_chrome_projection_current(
     contract: object, output: Path = DOCS_SHARED_CHROME_PROJECTION
 ) -> None:
-    """Reject a committed docs input that no longer matches ``site.toml``."""
+    """Reject a docs input at ``output`` that no longer matches ``site.toml``."""
     expected = project_shared_chrome(contract)["docs"]
     actual = json.loads(output.read_text(encoding="utf-8"))
     if actual != expected:
@@ -2331,6 +2331,16 @@ def main() -> None:
         action="store_true",
         help="Sync pack-local JOURNEY.md files only; skip Starlight aggregation.",
     )
+    parser.add_argument(
+        "--renderer-inputs",
+        action="store_true",
+        help=(
+            "Project the three generated renderer inputs and nothing else. "
+            "The npm pre-build/pre-test hooks call this: the inputs are not "
+            "committed, so each entry point must be able to produce exactly "
+            "what it imports without writing any other repository surface."
+        ),
+    )
     args = parser.parse_args()
 
     packs_dir = REPO_ROOT / "packs"
@@ -2340,6 +2350,18 @@ def main() -> None:
     # Validate the complete shared vocabulary before either build path can
     # project or clean renderer inputs.
     shared_chrome_contract = load_shared_chrome_contract(site_toml)
+
+    if args.renderer_inputs:
+        generate_marketing_shared_chrome_projection(
+            shared_chrome_contract, dry_run=args.dry_run
+        )
+        generate_docs_shared_chrome_projection(
+            shared_chrome_contract, dry_run=args.dry_run
+        )
+        _report_now_projection(changelog_src, dry_run=args.dry_run)
+        print("build-site: projected 3 renderer input(s)"
+              + (" (dry run)" if args.dry_run else ""))
+        return
 
     if args.journeys_only:
         journey_dir = REPO_ROOT / "web" / "src" / "content" / "journeys"
@@ -2424,9 +2446,11 @@ def main() -> None:
         shared_chrome_contract, dry_run=args.dry_run
     )
 
-    # Docs runs last in the load-bearing build order. Its committed input is
-    # therefore refreshed only here, immediately before `npm run build --prefix
-    # docs-site`; unlike marketing, it is not needed in the journeys-only pass.
+    # Docs runs last in the load-bearing build order, so its generated input is
+    # refreshed here, immediately before `npm run build --prefix docs-site`;
+    # unlike marketing, it is not needed in the journeys-only pass. The input is
+    # not committed — `--renderer-inputs` is what an entry point calls to obtain
+    # it without running this whole aggregation.
     print("build-site: projecting docs shared chrome …")
     generate_docs_shared_chrome_projection(
         shared_chrome_contract, dry_run=args.dry_run
