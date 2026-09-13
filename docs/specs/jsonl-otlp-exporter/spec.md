@@ -114,7 +114,7 @@ because the package does not exist at plan approval and `tdd-stubs.md` forbids
 inventing a module to assert against. T1, T6, T7 and T8 each carry their own
 `no stub (mode)` record naming the mode and the reason.
 
-Across the 62 criteria: **0** are covered by a validated stub; **48** sit under
+Across the 72 criteria: **0** are covered by a validated stub; **58** sit under
 `no stub (implementation-discovered)` in the four TDD tasks (VI-0001, VI-0002,
 VI-0004, VI-0006, VI-0007, VI-0008, VI-0009, VI-0010 and VI-0013); **14** are
 goal-based or manual QA and take no stub (VI-0003, VI-0005, VI-0011 and
@@ -124,7 +124,7 @@ existing at plan approval, not an omission, and it is the single largest
 assurance gap this plan carries into EXECUTE.
 
 - **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
-- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
+- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053, AC-0064, AC-0065, AC-0066, AC-0068, AC-0069, AC-0070, AC-0071, AC-0072, AC-0073):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
 - **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
 - **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking each distinct state the `### Exit codes` table names — several rows name more than one, so one invocation per row samples a row's first alternative and leaves the rest unexercised — and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
@@ -134,7 +134,7 @@ assurance gap this plan carries into EXECUTE.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
 - **VI-0011 — the published contract (AC-0030, AC-0031, AC-0032):** goal-based check over the authored files. Presence and structure are mechanical; wording is not asserted.
-- **VI-0013 — profile form and validation (AC-0035, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052):** TDD. A profile is TOML, so every case is a fixture file and the whole group runs with no network. AC-0047 is asserted by driving a profile file whose content would execute if it were ever imported or evaluated, and observing that it is parsed as data and refused on schema rather than taking effect — an implementation that imports would pass a key-shape check but fail this one. AC-0052 takes its own case because "no profile" and "a bad profile" fail differently and a build defaulting to a built-in profile passes every other case here.
+- **VI-0013 — profile form and validation (AC-0035, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0067):** TDD. A profile is TOML, so every case is a fixture file and the whole group runs with no network. AC-0047 is asserted by driving a profile file whose content would execute if it were ever imported or evaluated, and observing that it is parsed as data and refused on schema rather than taking effect — an implementation that imports would pass a key-shape check but fail this one. AC-0052 takes its own case because "no profile" and "a bad profile" fail differently and a build defaulting to a built-in profile passes every other case here.
 - **VI-0012 — release integrity (AC-0046, AC-0057, AC-0058, AC-0059):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
 
 ## Acceptance Criteria
@@ -315,6 +315,55 @@ assurance gap this plan carries into EXECUTE.
   virtual environment and runs the console script before publishing.
 - [ ] **AC-0061.** After any run, the input file's content, size and modification
   time are unchanged from before the run.
+- [ ] **AC-0064.** Under `timestamp_format = "rfc3339"` the timestamp field
+  admits a JSON string carrying a date, a time and an explicit offset — `Z` or
+  `±HH:MM` — with zero to nine fractional-second digits, and the emitted
+  `timeUnixNano` is that instant's exact nanosecond count since the Unix epoch. A
+  string carrying no offset is not admitted and is never assumed to be UTC.
+
+- [ ] **AC-0065.** Under `timestamp_format = "epoch-millis"` or
+  `"epoch-seconds"` the timestamp field admits a JSON integer, or a JSON string
+  of ASCII digits with an optional leading `-`, and does not admit a value
+  carrying a fractional part. The emitted `timeUnixNano` is that value multiplied
+  by 1,000,000 or 1,000,000,000 respectively, computed in integer arithmetic.
+
+- [ ] **AC-0066.** A record whose timestamp field is absent, is not admitted by
+  the active `timestamp_format`, or converts to a value below 0 or at or above
+  2^63 sends no log record; its line number is reported on stderr and the run
+  continues, sending the remaining records.
+
+- [ ] **AC-0067.** A profile whose `severity_map` carries any value outside the
+  closed range 1 through 24 is refused before any request is sent and exits 1.
+
+- [ ] **AC-0068.** A record whose severity field is absent, is JSON `null`, or
+  carries a value the active `severity_map` does not name is still sent, with
+  both `severityNumber` and `severityText` absent from the emitted record. The
+  run reports each distinct unmapped value once on stderr with the number of
+  records it affected, and that condition alone does not change the exit status.
+
+- [ ] **AC-0069.** A record whose severity field carries a value the active
+  `severity_map` names emits `severityNumber` as the mapped integer and
+  `severityText` as that field's original string value.
+
+- [ ] **AC-0070.** Each emitted attribute value is wrapped in exactly one
+  `AnyValue` member chosen by its JSON type: a string emits `stringValue`; `true`
+  or `false` emits `boolValue`; a number with no fractional part and no exponent
+  that fits a signed 64-bit integer emits `intValue` as a quoted decimal string;
+  any other number emits `doubleValue`; an array emits `arrayValue` whose members
+  are converted by these same rules; an object emits `kvlistValue` whose members
+  are converted by these same rules.
+
+- [ ] **AC-0071.** A JSON `null` emits no attribute: its key is absent from the
+  emitted record rather than present carrying an empty value.
+
+- [ ] **AC-0072.** A value nested more than 8 levels below an attribute's top
+  level emits no attribute for that key, and the run reports that key once on
+  stderr.
+
+- [ ] **AC-0073.** A line that parses as JSON but whose top-level value is not an
+  object sends no record; its line number is reported on stderr and the run
+  continues, sending the remaining records.
+
 - [ ] **AC-0063.** At no instant during a run does the command hold more than 512
   parsed records resident, asserted over an input of at least 10,000 records. The
   command processes incrementally; no run materialises its whole input before
@@ -355,13 +404,12 @@ the obligation is not missing — it has an owner.
   is not hypothetical: the work-loop envelope's `budgets` field is a nested
   object, measured on a real emitted line on 2026-09-13, so the first consumer
   already exercises the unanswered nested-value case.
-  These are product decisions about meaning, not omissions of rigour, and writing
-  contract text before they are settled would pin the wrong answer in a published
-  interface. **Owner: the ADR-0111 decision owner (eugenelim).** They gate
-  EXECUTE for T4, not spec approval: until they are answered, a valid profile's
-  transformation behaviour and the continuation behaviour for a syntactically
-  valid but semantically uncovered record are both unpinned, and this spec says
-  so rather than implying coverage it does not have.
+  **Settled 2026-09-13 by the ADR-0111 decision owner; this entry is closed.**
+  The four answers are recorded in ADR-0111 with their reasons and are pinned by
+  AC-0064 through AC-0073. The EXECUTE gate this entry placed on T4 is therefore
+  discharged. Kept rather than deleted because the spec was approved while it was
+  open, so a reader needs to see that the gap was bounded, owned and closed
+  rather than forgotten.
 
 ## Assumptions
 

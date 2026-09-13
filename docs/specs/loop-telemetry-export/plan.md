@@ -90,7 +90,9 @@ prose before the first `(`, so an identifier named there becomes a dependency.)
   OK. Intended red: all three fail with `FileNotFoundError` on the profile path,
   because the file does not exist yet (3 failed). Proof the red is the assertion
   rather than a broken harness: pointed at a profile generated from a line the
-  engine actually emitted, the same three pass (3 passed). That run also measured
+  engine actually emitted and carrying the pinned `success = 9` / `failure = 17`
+  map, the same three pass (3 passed), and changing `success` to 10 fails one of
+  them — so the pinned pairs are asserted, not merely present. That run also measured
   the envelope — **13 keys today**: `at`, `awaiting_input`, `budgets`, `event`,
   `from`, `phase_s`, `phase_started_at`, `result`, `run_id`, `seq`, `spec`, `to`,
   `waived`, becoming 14 once T6 adds `schema`, which is why T5 now depends on T6.
@@ -132,9 +134,13 @@ class TestWorkLoopProfile:
         assert profile["severity_field"] == "result"
         assert profile["identity"] == ["run_id", "seq"]
 
-    def test_severity_map_covers_every_gate_result(self, tmp_path) -> None:
+    def test_severity_map_is_the_pinned_pairs_and_covers_every_gate_result(self, tmp_path) -> None:
         # STUB: AC-0040
         profile = tomllib.loads(_PROFILE.read_text(encoding="utf-8"))
+        assert profile["severity_map"] == {"success": 9, "failure": 17}
+        # The pinned pairs and the engine's own values are asserted together on
+        # purpose: pinning literals alone would silently stop covering the engine
+        # the day a third gate result is added.
         missing = set(_engine_module()._GATE_RESULTS.values()) - set(profile["severity_map"])
         assert not missing, f"severity_map omits {sorted(missing)}"
 

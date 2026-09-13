@@ -163,6 +163,10 @@ durable state anywhere.
   implementation passes every other case here.
 - A line over 64 KiB is refused before decoding; the rest still send. Verifies AC-0018.
 - A non-parsing line is skipped and the remainder sent. Verifies AC-0016.
+- A line that parses as JSON but is an array, a string or a number at top level
+  is skipped with its line number reported and the remainder sent. Verifies
+  AC-0073. A build that treats "parses as JSON" as "is a record" passes AC-0016
+  and fails this.
 - The skipped line is reported with its line number. Verifies AC-0038.
 - An absent `--input` path sends nothing and exits 1. Verifies AC-0043.
 - Default mode is one-shot; `--follow` delivers an appended line. Verifies AC-0020, AC-0021.
@@ -215,6 +219,33 @@ package data, and nothing in the package resolves a profile by name.
 - A declared timestamp, severity or identity field reaches its destination whether
   or not the allowlist names it, and is not duplicated as an attribute.
   Verifies AC-0053.
+- Timestamp conversion, one case per admitted representation and one per refused
+  one: an RFC 3339 string with `Z`, with `±HH:MM`, and with nine fractional
+  digits each convert to their exact nanosecond count; an offset-less string is
+  refused. Verifies AC-0064. The offset-less case is the load-bearing one — a
+  build that defaults it to UTC passes every other timestamp case here.
+- Integer and digit-string inputs under `epoch-millis` and `epoch-seconds`
+  convert by integer multiplication, and a fractional value is refused. The
+  assertion uses a value whose float round-trip is lossy, so a build converting
+  through a float fails. Verifies AC-0065.
+- An absent, non-admitted or out-of-range timestamp skips its record, reports its
+  line number, and leaves the remaining records sent. Verifies AC-0066.
+- A `severity_map` value of 0 and one of 25 are each refused before any request.
+  Verifies AC-0067.
+- A record whose severity is absent, `null`, or unnamed by the map is sent with
+  no `severityNumber` and no `severityText`, its value reported once with a
+  count, and the exit status unchanged. Verifies AC-0068. This is asserted over a
+  fixture in which most records are unmapped, because the measured envelope makes
+  that the common case, not the edge.
+- A mapped severity emits the mapped integer and the original string. Verifies AC-0069.
+- One case per `AnyValue` member over a record carrying a string, a boolean, an
+  integer, a float, an array and a nested object, asserted on the emitted body.
+  Verifies AC-0070. The nested object is the work-loop envelope's shape, so the
+  recursive case is exercised by the first real consumer rather than only by a
+  synthetic fixture.
+- A JSON `null` leaves its key absent from the body entirely. Verifies AC-0071.
+- A value nested nine levels deep emits no attribute and is reported once.
+  Verifies AC-0072.
 
 **Done when:** the golden passes, field names appear only in a profile, and the
 installed wheel contains no profile file — the check that keeps a fixture from

@@ -140,8 +140,9 @@ appears in exactly one of the three groups.
 - [ ] **AC-0040.** This repository ships a profile at
   `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` declaring
   `timestamp_field = "at"`, `timestamp_format = "rfc3339"`,
-  `severity_field = "result"`, a `severity_map` whose keys include every value in
-  `loop-engine.py`'s `_GATE_RESULTS`, `identity = ["run_id", "seq"]`, and an
+  `severity_field = "result"`, a `severity_map` reading exactly
+  `success = 9` and `failure = 17` — INFO and ERROR in OTLP's severity numbering,
+  and the two values `loop-engine.py`'s `_GATE_RESULTS` produces — `identity = ["run_id", "seq"]`, and an
   `allowlist` whose members are exactly the keys of a line the engine emits, less
   `at`, `result`, `run_id` and `seq`. The allowlist is stated against an emitted
   line rather than as a name list, so a field added to the envelope fails this

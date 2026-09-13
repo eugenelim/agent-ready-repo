@@ -156,6 +156,51 @@ invocation-level cap that could only narrow a profile's allowlist was considered
 and declined — it adds a second control and a concept every operator must learn,
 to constrain a file the operator already chose.
 
+**Conversion semantics are pinned, and every unmapped case degrades rather than
+drops.** *(Amended 2026-09-13. The spec previously bounded four value-level
+questions out of scope with this ADR's owner named; the owner settled them on
+2026-09-13 and they are recorded here.)*
+
+A profile pins the *form* of a mapping; these four decisions pin what the values
+mean.
+
+**Timestamps admit one representation per format, and never guess.** `rfc3339`
+takes a string carrying date, time and an *explicit* offset, with up to nine
+fractional digits. An offset-less string is refused rather than assumed to be
+UTC: assuming costs up to fourteen hours of silent error, and a wrong timestamp
+is worse than an absent record because it is indistinguishable from a real one.
+`epoch-millis` and `epoch-seconds` take an integer — never a float — and convert
+in integer arithmetic, because a float seconds value cannot represent a
+nanosecond instant exactly and the rounding is invisible downstream.
+
+**Severity numbers are constrained to OTLP's 1–24, and 0 is refused.** Zero is
+`SEVERITY_NUMBER_UNSPECIFIED`, which a backend cannot distinguish from a field
+that was never set, so admitting it would let a profile express "unknown" in a
+way no consumer can query.
+
+**An unmapped or absent severity sends the record anyway.** This is the decision
+with the largest blast radius, and it was settled on a measurement rather than a
+preference: of the work-loop FSM's fifteen events, **five carry no gate result at
+all** — `spec-ready`, `plan-locked`, `wave-complete`, `wave-passed` and
+`contract-amendment` — and those are among the most frequent transitions in a
+real run. Skipping a record whose severity does not map would therefore discard a
+third of the event vocabulary and most of the traffic. A run emits the record
+with severity omitted, reports each distinct unmapped value once with a count,
+and exits 0 on that account. Failing the run instead would mean that adding one
+FSM event breaks an adopter's telemetry in production, which inverts the
+degradation this whole design is built on.
+
+**JSON maps onto `AnyValue` by type, recursively, and `null` emits nothing.**
+The `AnyValue` wrapper list is one of only two emission rules measured to be
+load-bearing for ingestion (§ 10.3 of `telemetry.md`; the other is hex
+identifiers). Objects and arrays convert recursively, which the first consumer
+already exercises — the work-loop envelope's `budgets` field is a nested object.
+`null` emits no attribute rather than an empty one, because an absent key is
+queryable and an empty `AnyValue` is not. Recursion is bounded at eight levels so
+a hostile input cannot make the encoder walk without limit, and a line whose
+top-level JSON value is not an object is skipped exactly as an unparseable line
+is.
+
 ## Alternatives considered
 
 Each is priced against the drivers in Context above: a seeded script (drivers 1,
