@@ -231,8 +231,28 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  # S7 of the same brief, authored 2026-09-11. It fixes a guidebook step contract
+  # and makes each of the five SOP packs' journeys walkable against it, and
+  # carries the correction to the three-whole-pack-handoff premise S6 shipped,
+  # which is false against the packs' own Shipped contracts. It supersedes S3-S5
+  # inside those five packs; the ledger is in the spec's notes. Re-cut from an
+  # earlier, narrower draft registered as `four-discipline-walk-execution`, which
+  # never reached main. It remains Draft and requires human approval.
+  {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
 ]
 shipped = [
+  # The frozen-case run A6 cut unbuilt, scoped by owner decision to the
+  # repair-response arm only. The instrument works; its first output is that the
+  # arm comparison is not decisive at one session per cell, so it licenses no
+  # decision about the finding grammar. The authoring-guidance arm remains
+  # unmeasured and still gates the deferred criteria in the owning intent.
+  {path = "docs/specs/finding-response-scoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/spec-authoring-protocol-measured-before-shipping.md"}, summary = "A deterministic scorer plus three frozen cases measuring whether a neutral finding grammar changes how sustained findings are answered; result is non-decisive at n=1 per cell", needs = []},
+  # Gives the non-repair answers somewhere to live: optional response/reason on a
+  # review-verdict finding, and DECIDE stating the answers as a cut-first ladder.
+  # Two answers added on owner authority, filling the axis that let a contract
+  # shrink. Naming the answers stays a deferred criterion, so the ladder ships as
+  # guidance pinned by tests and carries no acceptance criterion.
+  {path = "docs/specs/finding-response-receptacle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md"}, summary = "Optional response and reason on a review-verdict finding, and the answers to a sustained finding stated in DECIDE as an ordered four-axis ladder with a stop rule and a per-axis surface walk", needs = []},
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
   # criteria over the three checks the skill runs on its own artifacts; the
   # selection procedure, its guide page, the frozen-case run and the
@@ -459,6 +479,11 @@ open = [
   # reads as an instruction to edit. Carries a second, reviewer-side obligation
   # A6 does not own: a reviewer must not relitigate a decision the brief records
   # as settled, which is distinct from raising a real pre-existing defect late.
+  # Found unregistered 2026-09-13 while building the frozen-case run it owns:
+  # it appeared only inside a comment, so nothing could route to it. Its
+  # authoring-guidance arm is still unmeasured and still gates the deferred
+  # criteria carried verbatim in it.
+  {path = "docs/product/intents/spec-authoring-protocol-measured-before-shipping.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Bring the selection procedure, set-level sweep and review-response protocol back under contract once a frozen-case run can score them; the repair-response arm is built and non-decisive, the authoring-guidance arm is unbuilt", needs = []},
   {path = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/acceptance-criteria-set-construction/spec.md"}, summary = "Carry the eight-response review protocol and the grounding probes out to shaping-reviewer, the pack reviewer surfaces, and the upstream brief and intent stages", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-criteria-set-construction/spec.md"}]},
   # The layout section vocabulary is not the pack vocabulary. Packs were
   # deliberately renamed to canonical names (`research` -> `desk-research`,

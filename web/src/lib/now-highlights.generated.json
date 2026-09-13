@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.20"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.20] — 2026-09-13",
+      "changelogAnchor": "core22520--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A legacy-only repository can activate its knowledge base even when the migration has nothing to import.** Activating was the first command such a repository runs, and it crashed on the state those repositories are actually in: an empty `patterns.jsonl`. The migration now produces the canonical empty topic map instead of a traceback.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A legacy-only repository can activate its knowledge base even when the migration has nothing to import."
+            },
+            {
+              "type": "text",
+              "value": " Activating was the first command such a repository runs, and it crashed on the state those repositories are actually in: an empty "
+            },
+            {
+              "type": "code",
+              "value": "patterns.jsonl"
+            },
+            {
+              "type": "text",
+              "value": ". The migration now produces the canonical empty topic map instead of a traceback."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.19"
         }
       ],
@@ -13,27 +47,15 @@
       "changelogAnchor": "core22519--2026-09-13",
       "highlights": [
         {
-          "source": "You can now ask `workspace-status` which explicitly selected specs still have workspace membership and which do not, without changing `workspace.toml` or treating absence as permission to delete anything.",
+          "source": "**The conventions you install now say which projected paths a gate actually watches.** Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose.",
           "segments": [
             {
-              "type": "text",
-              "value": "You can now ask "
-            },
-            {
-              "type": "code",
-              "value": "workspace-status"
+              "type": "strong",
+              "value": "The conventions you install now say which projected paths a gate actually watches."
             },
             {
               "type": "text",
-              "value": " which explicitly selected specs still have workspace membership and which do not, without changing "
-            },
-            {
-              "type": "code",
-              "value": "workspace.toml"
-            },
-            {
-              "type": "text",
-              "value": " or treating absence as permission to delete anything."
+              "value": " Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose."
             }
           ]
         }

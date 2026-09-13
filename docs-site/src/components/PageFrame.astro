@@ -128,7 +128,9 @@ if (!productLabel) {
   }
 
   .header {
-    --docs-orientation-band-height: 2.25rem;
+    /* `--docs-orientation-band-height` is a root token (tokens.css): the right
+       sidebar has to clear this band too, and a value declared here is
+       invisible to it. */
     z-index: var(--sl-z-index-navbar);
     position: sticky;
     top: calc(-1 * var(--docs-orientation-band-height));

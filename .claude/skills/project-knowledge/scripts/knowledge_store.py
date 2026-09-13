@@ -2912,6 +2912,7 @@ def _stage_legacy_migration_locked(
     _clear_staged_migration_unlocked(repo_root)
     stage_knowledge = _stage_knowledge_root(repo_root)
     try:
+        stage_knowledge.mkdir(parents=True, exist_ok=True)
         for topic in sorted(imports.values(), key=lambda item: item["topic_key"]):
             _write_staged_topic(stage_knowledge, topic)
         if inject == "interrupted_staged_write":

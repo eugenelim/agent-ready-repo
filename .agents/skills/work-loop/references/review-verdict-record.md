@@ -62,7 +62,7 @@ Each is closed on the same terms as the top level.
 - `named_skips[]` — `{code, category, reason, residual_eligible}`. First three
   non-empty strings; `residual_eligible` boolean.
 - `findings[]` — `{id, source_role, severity, effective_severity, citation,
-  text, status}`. `id`, `source_role`, `citation`, and `text` non-empty strings;
+  text, status, response?, reason?}`. `id`, `source_role`, `citation`, and `text` non-empty strings;
   `id` stays unchanged across review, adjudication, disposition, and verdict emission.
   Both severities are `blocker | concern | nit`: `severity` always
   preserves the reviewer value; `effective_severity` equals it unless DECIDE
@@ -77,6 +77,7 @@ Each is closed on the same terms as the top level.
   it cheap. Every other non-clean report still reaches this array only through
   adjudication. Refuted findings appear only in paired audit artifacts. See [`finding-adjudication.md`](finding-adjudication.md)
   for the full gateway procedure.
+
 - `required_gates[]` — `{name, outcome, evidence}`. `name` and `evidence`
   non-empty strings; `outcome` `passed | failed`.
 - `deferrals[]` — `{slug, reason, accepted_by, residual_eligible}`. First three
@@ -84,6 +85,20 @@ Each is closed on the same terms as the top level.
 - `blind_spots[]` — `{surface, reason, evidence_limit, accepted_by,
   residual_eligible}`. First four non-empty strings; `residual_eligible`
   boolean.
+
+### Response metadata
+
+`response` and `reason` are optional metadata recorded as a pair. For a
+sustained finding, `response` uses the token paired with an answer stated in
+[DECIDE](../SKILL.md#step-5-decide). `reason` records a non-empty ground for that
+answer. Any unrecognised `response`, a `response` without a non-empty `reason`,
+and a `reason` without a `response` are each ignored with a note naming what was
+wrong, leaving the entry and the record valid.
+
+These fields are advisory. They never decide the record's outcome, and **nothing
+may derive a score from them** — not their values, their absence, or their being
+malformed or unpaired. A count of responses is not a quality signal, and a record
+that scored them would gate on them by another name.
 
 ## State precedence
 
