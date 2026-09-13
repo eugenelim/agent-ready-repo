@@ -182,6 +182,14 @@ jobs:
       # right-hand rail, mobile bar, sidebar entry -- each generated from the
       # one before, so any single one can drift and the page still builds. The
       # source lint cannot see that; only the built output can.
+      # The rendered sweep needs a built site, which needs Node. Without this
+      # step `make site-build` exits 127 -- command not found -- which reads as
+      # a build failure rather than a missing toolchain.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
       - name: Build the site
         run: |
           set -euo pipefail
