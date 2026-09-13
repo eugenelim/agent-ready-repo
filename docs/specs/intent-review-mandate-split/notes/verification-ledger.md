@@ -569,6 +569,16 @@ Three dispatches of this fixture description now exist, and they do not agree:
 | `077d7d64f` | four tokens — statement, non-goals, riskiest-assumption, children — no owner token |
 | `b5fc2e327` | `MALFORMED(owner)` alone |
 
+**Narrowed by fixture J.** J is the same packet with a named individual as
+owner, and it emitted the four tokens G's owner-suppression hid, with no owner
+token. G and J therefore differ in the owner field alone, which makes the pair a
+one-variable isolation neither run was designed to build: condition 6 fires on
+the collective placeholder and not on the named individual, and the suppression
+rule behaves as specified in both. The mechanics are not in question. What is
+left is only whether a collective placeholder *should* fail condition 6 — the
+condition's intended reach, which is the spec owner's to settle and is recorded
+here unsettled.
+
 No owner-related line changed across any of those revisions, and the suppression
 rule is untouched throughout. The variation is the mode exercising judgement on
 a phrase that does not determine the answer, which is a stronger reading of the
@@ -832,11 +842,65 @@ receipts RFC-0099 § 10 already requires — activity that happens regardless.
 
 **Match.** No Blockers, no severity labels, no `Fix:` lines, no clean sentinel.
 
+### Fixture J — multiple violations, expectation stated before dispatch
+
+Dispatched after fixtures A-I, at the same `shaping-reviewer` hash
+`fc24f59725b03ae45f0ec3c14a2dbd35cf3cc900c50b41872711896e7beaa418`, re-verified
+immediately before and immediately after the dispatch. `HEAD` had moved to
+`39898de14` — documentation only — so the hash rather than the revision is this
+fixture's anchor, and it did not move.
+
+**Why this fixture exists.** With the earlier records scoped back, no surviving
+observation closed the criterion that asks for a dispatch against one intent
+violating at least two conditions with exactly the matching tokens observed.
+Fixture G is the only other current-bytes multi-violation fixture, and it cannot
+close that criterion for two independent reasons: it emitted
+`MALFORMED(owner)` alone under suppression, so the other conditions were never
+observed; and no expectation was stated for it before dispatch, so there was
+nothing for the output to match. J removes the owner defect so suppression cannot
+mask the rest, and its expectation is recorded here as it was stated in the
+dispatch request, before the output existed.
+
+The fixture is a `capability` at `Accepted` with a named individual owner and no
+parent: the outcome is a solution rather than an outcome, there is no non-goals
+section, two assumptions are listed with none named riskiest, and the two children
+overlap on briefs so the decomposition does not partition.
+
+**Expected**, stated before dispatch: exactly `MALFORMED(statement)`,
+`MALFORMED(non-goals)`, `MALFORMED(riskiest-assumption)` and
+`MALFORMED(children)`, with no `MALFORMED(owner)` and no `MALFORMED(altitude)`.
+
+**Observed**, entire output:
+
+```
+MALFORMED(statement)
+MALFORMED(non-goals)
+MALFORMED(riskiest-assumption)
+MALFORMED(children)
+```
+
+**Match, exactly — four tokens, no more and no fewer.** Four conditions fail in
+one packet and all four are reported, so the tokens are per-condition rather than
+first-failure-wins. Neither excluded token appeared: the owner is a named
+individual and no parent is named, and neither condition fired. This is the
+multi-violation observation the criterion asks for, and unlike fixture G its
+expectation predates its output.
+
+**It also bounds the fixture G finding.** G and J differ in the owner field alone.
+G's `Owner: the team` produced `MALFORMED(owner)` alone; J's named individual
+produced the four tokens G's suppression hid. So condition 6 fires on the
+collective placeholder and not on the named individual, and the suppression rule
+itself is working as specified in both. What remains open is only whether a
+collective placeholder *should* fail condition 6 — a question about the
+condition's intended reach, not about token mechanics. Decider: the spec owner.
+
 ### What this batch settles
 
-Eight of nine fixtures matched their stated expectation; the ninth asserted none.
-The six-fixture comparison set behaved as designed — the single firing case fired,
-every isolating case stayed silent, and no pair collapsed. The one finding that
-does not reduce to a confirmation is fixture G, and it is a finding about this
-ledger's prose rather than about the shipped body: a paragraph reasoning from a
-superseded observation now asserts behaviour that current bytes contradict.
+Nine of ten fixtures matched an expectation stated before dispatch; fixture G
+asserted none by design. The six-fixture comparison set behaved as designed — the
+single firing case fired, every isolating case stayed silent, and no pair
+collapsed. Fixture J closes the multi-violation criterion with an exact
+four-token match. The one finding that does not reduce to a confirmation is
+fixture G, and it is a finding about this ledger's prose rather than about the
+shipped body: a paragraph reasoning from a superseded observation now asserts
+behaviour that current bytes contradict.
