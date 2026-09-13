@@ -129,9 +129,15 @@ _MIGRATION_HEADING = re.compile(r"^##\s+migrating legacy knowledge\s*$", re.I | 
 _MIGRATION_STEPS = (
     # the two invocations are literal CLI surface and are meant to be exact
     re.compile(r"--migrate-legacy"),
-    # the copy step has to name both ends: a source that is the staged tree, and
-    # `docs/knowledge/` as the destination. Line-scoped so ordering stays real.
-    re.compile(r"copy\b[^\n]*\bstaged\b[^\n]*docs/knowledge/", re.I),
+    # The copy step has to name both ends: a staged source, and `docs/knowledge/`
+    # as the destination. The destination is required *after* a directional word,
+    # because a single `docs/knowledge/` operand is satisfied by the source alone
+    # -- "Copy the staged `docs/knowledge/` tree to a backup" would otherwise
+    # pass while the step it documents is wrong. Line-scoped so ordering is real.
+    re.compile(
+        r"copy\b[^\n]*\bstaged\b[^\n]*\b(?:into|onto|over|to)\b[^\n]*docs/knowledge/",
+        re.I,
+    ),
     re.compile(r"\bcommit\b", re.I),
     re.compile(r"--activate-staged"),
 )

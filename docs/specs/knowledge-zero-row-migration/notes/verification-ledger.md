@@ -91,3 +91,41 @@ mutations, run 2026-09-13 against `SKILL.md`, each reverted by editing:
 
 The fourth is the point of the repair: the check now survives editing it should
 survive, and still reds on every semantic break AC6 names.
+
+### T6, second repair — the loosened pattern did not require the destination
+
+The `quality-engineer` re-review of the first repair sustained a further
+Concern, and it was correct. The pattern
+`copy\b[^\n]*\bstaged\b[^\n]*docs/knowledge/` requires only **one**
+`docs/knowledge/` operand, which the *source* already supplies. So
+"Copy the staged `docs/knowledge/` tree to a backup" passed, and AC6's
+destination was not actually required by the check.
+
+The first repair's mutation set missed it because every mutation there removed
+the copy step wholesale — "Promote the staged tree." drops `copy` and `staged`
+together, so no case isolated the destination. A predicate has to be walked
+against every case that distinguishes it, not the one case that happens to come
+to mind. The reviewer named the exact input; it was reproduced before repairing.
+
+The step now requires the destination to follow a directional word:
+
+```
+copy\b[^\n]*\bstaged\b[^\n]*\b(?:into|onto|over|to)\b[^\n]*docs/knowledge/
+```
+
+Walked against all eight distinguishing cases, 0 mismatches:
+
+| Input | Expected | Observed |
+| --- | --- | --- |
+| shipped `SKILL.md` line | match | match |
+| shipped seed line | match | match |
+| reworded, destination named ("over your `docs/knowledge/` directory") | match | match |
+| reworded with "onto" | match | match |
+| "…tree to a backup." (the reviewer's case) | no match | no match |
+| "…tree." (destination removed) | no match | no match |
+| "Copy the files into `docs/knowledge/`." (no staged source) | no match | no match |
+| "…into `docs/archive/`." (wrong destination) | no match | no match |
+
+End to end against both real shipped surfaces, each mutation reverted by
+editing: backup destination **red**, destination removed **red**, wrong
+destination **red**, unmutated **pass**.
