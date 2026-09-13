@@ -261,7 +261,10 @@ class ProgressiveDisclosureLintTests(unittest.TestCase):
             active.unlink()
             ignored = root / "packs/example/seeds/.gitignore"
             ignored.write_text(".claude/cache\n", encoding="utf-8")
-            backlog = root / "packs/core/seeds/docs/specs/README.md"
+            # Any file still on _SEED_VENDOR_ROOT_BACKLOG serves as the fixture.
+            # The spec README came off that list once its seed stopped naming an
+            # adapter path, so this points at a member that remains.
+            backlog = root / "packs/core/seeds/docs/knowledge/README.md"
             backlog.parent.mkdir(parents=True)
             backlog.write_text(".claude/skills/example/\n", encoding="utf-8")
             self.assertNotIn("seed vendor path", lint(root))

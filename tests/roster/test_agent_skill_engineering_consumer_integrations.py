@@ -92,7 +92,6 @@ GUIDES_TWIN = (
 CLAUDE_WORK_LOOP = ROOT / ".claude" / "skills" / "work-loop" / "SKILL.md"
 AGENTS_WORK_LOOP = ROOT / ".agents" / "skills" / "work-loop" / "SKILL.md"
 WORKSPACE = ROOT / "workspace.toml"
-SPECS_README = ROOT / "docs" / "specs" / "README.md"
 BRIEF = ROOT / "docs" / "product" / "briefs" / "agent-skill-engineering.md"
 CHANGELOG = ROOT / "docs" / "product" / "changelog.md"
 
@@ -117,7 +116,6 @@ BOUND_SURFACES = (
     GUIDES,
     GUIDES_TWIN,
     WORKSPACE,
-    SPECS_README,
     BRIEF,
     CHANGELOG,
     PROVIDER_CASES,
@@ -647,11 +645,13 @@ def test_ac14_rejects_the_two_match_shapes_that_can_never_resolve() -> None:
     assert SPEC_PATH not in canonical  # same-slice
     assert [e for e in canonical if isinstance(e, dict) and e.get("path") == SPEC_PATH]  # same-slice
 
-    # A slug already cited as a predecessor matches more lines than its own row.
-    rows = SPECS_README.read_text(encoding="utf-8").splitlines()
-    sibling = "agent-skill-engineering-corpus"
-    assert len([r for r in rows if sibling in r]) > 1  # same-slice
-    assert len([r for r in rows if f"]({sibling}/spec.md)" in r]) == 1  # same-slice
+    # The second repair guarded a bare-slug match over-counting in the spec
+    # index. ADR-0112 retired that index, so the over-count it prevented can no
+    # longer occur; the matching property itself is demonstrated inline rather
+    # than against a retired artifact.
+    corpus = ["| [a/](a/spec.md) | ... constrained by `b` |", "| [b/](b/spec.md) | ... |"]
+    assert len([r for r in corpus if "b" in r]) > 1  # same-slice
+    assert len([r for r in corpus if "](b/spec.md)" in r]) == 1  # same-slice
 
 
 def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:
@@ -680,19 +680,12 @@ def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:
     assert sum(len(v) for v in rooms.values()) == 1, rooms  # same-slice
     assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
 
-    # The row is found by its link target, not by a bare-slug match. The README
-    # records a hard predecessor as a backticked slug in the *Constrained by*
-    # column, so `agent-skill-engineering-corpus` already appears on three lines
-    # (its own row at :26 and two successors citing it). A later sibling citing
-    # this slug the same way would otherwise redden AC14 on a Shipped spec that
-    # in fact satisfies it.
-    link = f"]({SPEC_DIR.name}/spec.md)"
-    rows = [line for line in SPECS_README.read_text(encoding="utf-8").splitlines() if link in line]
-    assert len(rows) == 1, rows  # same-slice
-    row = rows[0]
-    assert shape.lower() in row.lower()  # same-slice
-    assert re.search(rf"\b{criteria}\s+ACs?\b", row) is not None  # same-slice
-    assert re.search(rf"\b{tasks}\s+tasks?\b", row) is not None  # same-slice
+    # ADR-0112 retired the spec index, so the cross-check that compared these
+    # counts against an index row has no counterpart. `shape`, `criteria` and
+    # `tasks` are read from the spec and plan that own them; a second statement
+    # of the same facts is what drifted.
+    assert shape  # same-slice
+    assert criteria > 0 and tasks > 0  # same-slice
 
     spec_map = _section(BRIEF.read_text(encoding="utf-8"), "Spec map")
     assert SPEC_DIR.name in spec_map  # same-slice

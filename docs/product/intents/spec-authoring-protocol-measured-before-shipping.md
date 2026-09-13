@@ -71,6 +71,36 @@ is built and the score moves the right way.
   `intent-frozen-at-shaping` — landed in the same change that shipped it, so the
   claim below that the protection sits in the pins is true of these two as well.
 
+## Measured 2026-09-13 — the run is built, and its arm comparison is not decisive
+
+The frozen-case run this intent owns exists and works:
+[`docs/specs/finding-response-scoring/result.md`](../../specs/finding-response-scoring/result.md).
+Its first output is about the method rather than the grammar.
+
+**It does not establish whether the finding grammar affects how findings are
+answered.** One session per cell cannot characterise run-to-run variation, and
+the one cell that was repeated moved by 7 findings in repair share — the same
+size as the between-arm difference in that case. **No decision about neutralizing
+the finding grammar should rest on this run.**
+
+Across the six cells, three of the eight responses were never used at all:
+repair-the-generator, route-to-owner, and accept-as-proportionate.
+
+This is the deferral principle working rather than failing. Sixteen review rounds
+once argued the authoring guidance and never measured it; here the measurement
+arrived before the decision and declined to license it. Answering the question
+properly needs replication, and whether to buy that is an owner decision.
+
+Defects in the run itself were caught by independent review before anything
+rested on them, including several claims that outran their evidence. Those are
+checkable against the current files. An earlier defect in the neutral arm itself
+is recorded too, but its artifacts were not retained, so that account is
+working-tree recollection rather than evidence. The result page marks which is
+which.
+
+The authoring-guidance arm — the recall-and-rejection question in this intent's
+own deferral table — remains unmeasured and still gates AC-0023 through AC-0027.
+
 ## Boundary
 
 **What this intent owns is the criteria, not the prose.** The guidance it covers

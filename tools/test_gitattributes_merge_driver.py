@@ -25,14 +25,16 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-AGENTBUNDLE = REPO_ROOT / "packages" / "agentbundle"
-sys.path.insert(0, str(AGENTBUNDLE))
-
-from agentbundle.build.self_host import (  # noqa: E402
+# No sys.path mutation here: pyproject.toml's [tool.pytest.ini_options]
+# pythonpath already pins `packages/agentbundle` for this suite; inserting it
+# again leaks a packaged source tree into the collecting process.
+from agentbundle.build.self_host import (
     _runtime_projections,
     _self_host_projection_paths,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+AGENTBUNDLE = REPO_ROOT / "packages" / "agentbundle"
 
 # `git ls-files -s` mode for a symlink. Git applies no content merge driver to
 # a symlink blob, so declaring one would have no effect; both sides of the

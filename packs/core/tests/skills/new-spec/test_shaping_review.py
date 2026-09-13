@@ -43,20 +43,19 @@ def _spec_stage_checks() -> str:
 
 
 def test_new_spec_runs_shaping_before_preserved_adversarial_gate() -> None:
-    """The caller owns a blocking shaping gate before indexing or approval."""
+    """The caller owns a blocking shaping gate before approval."""
     text = NEW_SPEC.read_text(encoding="utf-8")
     shaping = text.index("6. Shaping spec review.")
     adversarial = text.index("7. Spec-mode adversarial review.")
-    indexing = text.index("8. Update `docs/specs/README.md`")
+    approval = text.index("8. **Keep the spec the single source of truth")
 
-    assert shaping < adversarial < indexing
-    assert "unresolved finding is `BLOCKED`: do not index or seek approval" in _flat(NEW_SPEC)
-    assert "Do not index before both review gates are clean." in _flat(NEW_SPEC)
+    assert shaping < adversarial < approval
+    assert "unresolved finding is `BLOCKED`: do not seek approval" in _flat(NEW_SPEC)
     assert (
         "adversarial-reviewer: no matching subagent installed; review skipped"
         in text
     )
-    assert "not a blocker." in text[text.index("7. Spec-mode"):indexing]
+    assert "not a blocker." in text[text.index("7. Spec-mode"):approval]
     assert "the same roster step 7 uses" in text
     assert "the same roster step 6 uses" not in text
 

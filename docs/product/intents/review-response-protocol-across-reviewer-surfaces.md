@@ -113,6 +113,138 @@ adjudicator should be handed the previous rounds' refutations, and what that doe
 to its independence, is the question this intent should settle before carrying
 the protocol to the other surfaces.
 
+## Changed 2026-09-13 — the set grew to ten, ordered cut-first, and work-loop went first
+
+Three changes to this intent's subject, on owner authority recorded in
+[`docs/specs/finding-response-receptacle/notes/owner-decisions.md`](../../specs/finding-response-receptacle/notes/owner-decisions.md).
+
+**The set is no longer eight.** Two answers were added: `drop-the-claim`, for an
+assertion nothing is obliged by, and `demote-the-claim`, for an obligation that is
+real but whose only check is that a sentence exists, which leaves the contract for
+working material and gains a content pin. The gap they fill is structural — every
+prior answer edits the artifact, moves ownership, or holds, so a review round
+could only add or hold and never let a contract shrink. That is the mechanism
+behind rounds that run long without converging: a finding against unnecessary
+prose could only be answered by writing more careful prose.
+
+**The set is an ordered ladder, not a menu.** Four axes — cut, route, fix, hold —
+walked until one applies, then stopped. Cut leads because the repository already
+governs code changes that way: cut before adding, take the first sufficient option
+and stop. The order also pays for itself, because asking whether a claim needs to
+exist is cheap while tracing a check's reach or locating a generator is not, and
+spending that on a claim about to be deleted is the waste.
+
+**Every answer walks its surfaces before it is taken, and the direction differs.**
+Cut walks backwards, asking what referenced the thing that no longer exists — it
+reaches furthest, because removing a node orphans the tasks, tests, design prose,
+durable-output rows and pins that pointed at it. Route walks outwards to confirm
+the named owner covers the whole claim, then back to remove what still states it
+locally, or routing creates the second home for one rule the repository forbids.
+Fix walks sideways across the other instances, the companions that describe them,
+and anything that pins those. Hold walks forwards, because a dismissal or an
+acceptance the next round cannot see produces exactly the recurrence this intent
+already records.
+
+It is a walk rather than a flat search, for two reasons this work produced. A
+companion usually paraphrases, so it shares no string with the repair and no text
+search reaches it. And each change opens its own frontier — a narrowed criterion
+moves its design prose, which changes what a task asserts, which may sit under a
+pin — so one pass closes nothing. The walk terminates on an empty frontier.
+
+The walk also feeds back into the ladder: a claim living on many surfaces is
+evidence for repairing its generator, or for dropping it, rather than for
+repairing the instance a reviewer happened to cite.
+
+**Work-loop's DECIDE shipped first, not `shaping-reviewer`.** This intent's
+Boundary names `shaping-reviewer` as the first surface; it was not. The receptacle
+work went to `review-verdict.v1` and the work-loop DECIDE step because that is
+where a disposition record already existed to extend. The sequencing deviation is
+recorded rather than reframed after the fact.
+
+`shaping-reviewer` went next, and it was not a copy of this work. The section
+below records what it took.
+
+## Changed 2026-09-13 — the shaping surfaces carry the ladder by pointer, not by copy
+
+**Decided by:** eugenelim, scope owner. Two of this intent's own unresolved
+questions were settled to make this change, and are removed from that list below.
+
+**A reviewer surface gets the settled-decision rule and not the response list.**
+The question this intent carried — whether a reviewer needs the responses at all
+— is answered no. The responses are the author's move, and a reviewer that
+enumerates them writes the author's answer for it. `shaping-reviewer` gains one
+rule instead: where the supplied artifact records a decision as settled, do not
+raise a finding that reopens it; raise what that record cannot answer. A
+pre-existing defect stays in scope however late it is found, and keeping the two
+apart is what lets an author refuse a reopened decision without dismissing a real
+defect from the same round. This narrows what a reviewer may raise rather than
+adding anything it may block on. It is scoped to `delivery-brief` and `spec`
+mode; `intent` mode's conditions are mechanical and cannot reopen a choice.
+
+**The settled-decision boundary is a reviewer rule.** The intent's second open
+question offered reviewer, brief obligation, or both. Both would have put one
+rule in two homes, and a brief obligation alone leaves it to whatever each
+brief's author happens to write, which is the gap this intent recorded. It lives
+on the reviewer.
+
+**The ladder is not restated upstream.** Its one home stays work-loop's DECIDE
+step. Each of the three shaping surfaces gains a short section that points there
+and adds only what the pointer cannot carry: which of that artifact's sections
+decide and which record,which is where `demote-the-claim` moves an assertion.
+
+- **An intent's deciding sections** are `Outcome`, `Boundary`, `Owner`,
+  `Projection` and `Source`; its recording sections are `Opportunity`,
+  `Unresolved questions` and `Assumptions`. Demotion moves an assertion out of
+  `Outcome` or `Boundary`, and the destination follows what the assertion was
+  doing: a settled ground for the outcome or the boundary goes to `Opportunity`,
+  and a matter the assertion decided without the authority to decide it goes to
+  `Unresolved questions`.
+- **A brief's deciding sections** are the field set the Ready gate reads; its
+  recording sections are every other section. Demotion moves an assertion into a
+  section the gate does not read — `Rabbit holes` for a design trap, `Design
+  artifacts` for provenance that only informed the brief. `Ready gaps` is not a
+  destination, because the brief drops it on leaving `Draft`, so demoting into it
+  is deletion with a delay.
+
+**The labels are deliberately not the spec's tiers.** An earlier draft called
+these groups contract and working material, borrowing the vocabulary a spec
+template uses. Review sustained that as a defect twice over. In prose it implied
+a finding against the second group is advisory, which is false upstream: a
+missing riskiest assumption blocks `Accepted`, and delivery-brief review blocks
+`Ready` on checks reaching outside the Ready field set. Operationally it was
+worse — `finding-adjudicator` caps a finding at advisory severity when every
+cited surface is working material, so the borrowed label would have graded down
+findings that block. The surfaces now use local labels that nothing reads to
+grade a finding.
+- **A spec's split is already stated** by `new-spec`'s bundled `assets/spec.md`,
+  which is its single owner. That surface gains the pointer and nothing else.
+
+**What demotion costs is not restated upstream.** An earlier draft claimed
+demotion upstream needs no new pin, on the reasoning that both destinations sit
+inside the artifact the review already binds to. Review sustained that as a
+contradiction: DECIDE defines `demote-the-claim` as moving an obligation to
+working material *with* a content pin, and requires the reason to record the pin
+that catches its removal. Guidance that claims to point at DECIDE cannot
+redefine one of its answers in passing. The claim was dropped rather than
+argued, and each surface now defers to DECIDE for the cost.
+
+Whether DECIDE's pin requirement can be satisfied at all on an artifact with no
+machine anywhere is a real question, and it is registered rather than settled
+here.
+
+**The cut axis carries most findings here.** An intent has almost no machine
+anywhere, so nearly every finding against one is a finding against prose, and
+`drop-the-claim` comes before rewording. Answering a finding against unnecessary
+prose with more careful prose is the mechanism behind rounds that run long
+without converging.
+
+**Nothing here may block.** Naming the answers is a criterion this repository has
+deferred, so the guidance ships under a content pin and carries no acceptance
+criterion; adding one would re-promote a deferred criterion. The guardrail is
+enforced structurally rather than by assertion: the vocabulary is absent from
+every section that decides a gate outcome, and the existing gate sentences on all
+three surfaces are pinned unchanged.
+
 ## Boundary
 
 - Includes `shaping-reviewer` first, then a survey of the reviewer and
@@ -148,11 +280,6 @@ the protocol to the other surfaces.
 
 ## Unresolved questions
 
-- Does a reviewer surface need the response list at all, or only the
-  no-relitigation rule? The responses are the author's move; a reviewer that
-  enumerates them may be writing the author's answer for them.
-- Is the settled-decision boundary a reviewer rule, a brief obligation, or both?
-  Today it lives only in whatever the brief's author happens to write.
 - Which of the pack reviewers have their own finding-response prose already, and
   would gain a second home rather than a first one?
 

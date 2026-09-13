@@ -66,7 +66,7 @@ RULES = (
     (
         "step-four-pointers",
         "skill",
-        "See step 9 for citation discipline and step 5 for the corpus obligation.",
+        "See step 8 for citation discipline and step 5 for the corpus obligation.",
     ),
     (
         "deletion-pass",
@@ -265,13 +265,13 @@ def test_step_pointers_name_headings_that_still_exist() -> None:
     The pointer text is pinned above, but text alone cannot notice that step 8
     became step 9. Anchor both ordinals to the headings they name.
 
-    Inserting the shaping-review gate as step 6 pushed every later step down
-    one, so citation discipline is now step 9. This test caught that; the
+    Retiring the spec-index write that was step 8 pulled every later step up
+    one, so citation discipline is now step 8. This test caught that; the
     pointer and this anchor moved together.
     """
     body = SKILL.read_text(encoding="utf-8")
     assert "5. Fill in the plan second" in body
-    assert "9. **Keep the spec the single source of truth" in body
+    assert "8. **Keep the spec the single source of truth" in body
 
 
 def test_corpus_absence_rule_precedes_the_sign_off_gate() -> None:
@@ -343,7 +343,7 @@ def test_a_later_review_round_is_bounded_to_the_delta() -> None:
     """
     body = flattened(SKILL)
     step = body.split("7. Spec-mode adversarial review.", 1)[1].split(
-        "8. Update `docs/specs/README.md`", 1
+        "8. **Keep the spec the single source of truth", 1
     )[0]
     for clause in (
         "bounded to the delta since the previous persisted report",
@@ -361,7 +361,7 @@ def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
     """The gateway must supply the adjudicator's validated path inputs."""
     body = flattened(SKILL)
     step = body.split("7. Spec-mode adversarial review.", 1)[1].split(
-        "8. Update `docs/specs/README.md`", 1
+        "8. **Keep the spec the single source of truth", 1
     )[0]
     protocol = (
         "[`work-loop` pre-EXECUTE review protocol]"

@@ -856,7 +856,7 @@ def test_projected_file_safety_matches_the_agentbundle_canonical() -> None:
     assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
 
 
-def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
+def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
     spec_path = (
         ROOT / "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
     )
@@ -870,13 +870,6 @@ def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
         line.removeprefix("- **Status:** ")
         for line in plan_path.read_text(encoding="utf-8").splitlines()
         if line.startswith("- **Status:** ")
-    )
-    index_row = next(
-        line
-        for line in (ROOT / "docs/specs/README.md")
-        .read_text(encoding="utf-8")
-        .splitlines()
-        if "close-work-extraction-and-immediate-disposition/" in line
     )
     workspace = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
     work = workspace["ini-002"]["work"]
@@ -898,10 +891,8 @@ def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
     }
     assert spec_status in expected
     assert plan_status == expected[spec_status][0]
-    assert (
-        f"| {spec_status} | RFC-0096; Waves 1–3 (Shipped); "
-        "Waves 5–7 (live dependencies) |"
-    ) in index_row
+    # The spec index was retired by ADR-0112; the spec's own fields are the source.
+    assert "RFC-0096" in spec_path.read_text(encoding="utf-8")
     assert memberships == expected[spec_status][1]
 
     # A shipped spec carries no unchecked acceptance criterion; a separable

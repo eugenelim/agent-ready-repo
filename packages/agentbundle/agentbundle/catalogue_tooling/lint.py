@@ -512,7 +512,7 @@ _SEEDS_REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/architecture/overview.md": (
         "<area>", "<responsibility>", "<change guidance>",
     ),
-    "docs/specs/README.md": ("<!-- no specs yet -->",),
+    "docs/specs/README.md": (),
     "docs/knowledge/patterns.jsonl": (),
     "docs/rfc/README.md": ("<!-- no RFCs yet -->",),
     "docs/adr/README.md": ("<!-- no ADRs yet -->",),
