@@ -143,3 +143,49 @@ One repair in this pass initially had no failing control of its own — the `--f
 deadline check survived being reverted. It now has a test driving 4,000 records
 through full chunks so the reader never sees an empty read, which fails when the
 check is removed.
+
+## Second implementation review — the same lesson, four times
+
+20 findings raised, 18 sustained, 2 refuted. **16 distinct defects.**
+
+Round 2's central result is not any individual defect. It is that the shape
+round 1 named — *a repair applied to one surface and not its sibling* — happened
+three more times, twice in the round-1 repairs themselves and once inside this
+round's own repair:
+
+| Where | The surface that was missed |
+| --- | --- |
+| round-1 repair | `_attributes` handled the new `TOO_DEEP` sentinel; the identity loop twenty lines below it did not, so the sentinel was appended as a value and `json.dumps` ended the run |
+| round-1 repair | the absolute request deadline was checked *between* reads, but `http.client` re-arms the socket timeout on every byte, so one blocking read still ran without limit |
+| round-1 repair | `--for` was checked once per `os.read`, not while draining the buffer that read produced, so records already in hand were yielded past the deadline |
+| round-2 repair | the containment `try` wrapped only the timestamp block, so an exception from the identity loop beside it still ended the run — caught by my own new test |
+
+The generator-level answer is a containment floor around the **whole** per-record
+body, not a wider net around one statement. Four of the sixteen defects were the
+same class: an untrusted value reaching a standard-library call that raises —
+a 4,301-digit decimal string (CPython's integer-conversion limit), ~16,000 levels
+of nesting (`RecursionError`, and 40 KB, so inside the 64 KiB line ceiling),
+`10**399` (`OverflowError` from `float()`), and bare `NaN`/`Infinity`, which
+`json.loads` accepts and `json.dumps` writes back as non-JSON tokens.
+
+## Two findings measured rather than accepted
+
+- The recursion finding named depth 2,000. Measured: 2,000 and 5,000 parse fine;
+  20,000 raises. The stated trigger was wrong and the defect is real, so it was
+  sustained on the corrected threshold rather than on the reviewer's number.
+- The "advisory" symlinked-`--root` finding was reproduced by a probe of mine
+  within minutes of the adjudication: on macOS `/tmp` and `/var` are symlinks
+  into `/private`, so comparing a resolved root against a lexical input refused
+  an ordinary invocation. It is not advisory; it would have broken every macOS
+  user passing an absolute `--input` under `/tmp`. Only the PARENT is resolved —
+  resolving the leaf as well made a symlinked leaf resolve inside the root and be
+  accepted, which the suite caught immediately.
+
+## A disposition recorded for the owner
+
+`--follow` with no `--for` never flushed a partial batch, so a record appended
+after start was held until 512 arrived and AC-0021 was never satisfied. The
+reader now signals that it has caught up and the batcher flushes what it holds.
+**The idle trigger itself is unspecified by the contract** — the criterion says
+the record must be sent without restarting the process, and says nothing about
+when. If a different trigger is wanted, that is a criterion change.

@@ -115,7 +115,7 @@ def test_each_field_reaches_the_destination_its_profile_declares():
     records = [json.loads(line) for line in lines if line.strip()]
     run_id = records[0]["run_id"]
 
-    def encode(batch):
+    def encode(batch, diagnostics=True):
         return json.dumps(encode_records(batch, profile, service_name="reference")).encode("utf-8")
 
     _require_export_configured()

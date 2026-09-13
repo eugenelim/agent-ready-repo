@@ -39,6 +39,7 @@ _MAX_UNIX_NANOS = 2**63
 
 _DIGITS = re.compile(r"^-?[0-9]+$")
 _EPOCH = _dt.datetime(1970, 1, 1, tzinfo=_dt.timezone.utc)
+_INF = float("inf")
 
 # RFC 3339 with a MANDATORY offset. `fromisoformat` would happily accept a naive
 # string and produce a naive datetime, which is exactly the guess this refuses.
@@ -90,7 +91,14 @@ def to_unix_nanos(value: Any, timestamp_format: str) -> int:
         if isinstance(value, int):
             number = value
         elif isinstance(value, str) and _DIGITS.match(value):
-            number = int(value)
+            try:
+                number = int(value)
+            except ValueError as exc:
+                # CPython refuses to convert a decimal string past 4300 digits.
+                # A 4301-digit line is well inside the 64 KiB line ceiling.
+                raise RecordSkipped(
+                    f"timestamp {value[:32]!r}... is not convertible ({exc})"
+                ) from exc
         else:
             # A float is refused rather than rounded: it cannot represent a
             # nanosecond instant exactly, and the rounding is invisible later.
@@ -135,13 +143,25 @@ def any_value(value: Any, depth: int = 0) -> dict[str, Any] | None | _TooDeep:
         # Checked before int: bool is an int subclass, and a true/false emitted
         # as intValue 1/0 loses the type a consumer filters on.
         return {"boolValue": value}
+    if isinstance(value, float) and (value != value or value in (_INF, -_INF)):
+        # proto3 JSON represents a non-finite double as a quoted string. Emitting
+        # the bare Python repr instead produces `NaN` or `Infinity` in the body,
+        # which is not JSON at all -- the receiver rejects the whole request and
+        # one odd number costs every good record batched with it.
+        return {"doubleValue": "NaN" if value != value else
+                ("Infinity" if value > 0 else "-Infinity")}
     if isinstance(value, int):
         if -(2**63) <= value < 2**63:
             # proto3 JSON carries 64-bit integers as quoted strings. A receiver
             # accepts a bare number too, but the quoted form is what the spec
             # says and what survives a JSON parser with 53-bit floats.
             return {"intValue": str(value)}
-        return {"doubleValue": float(value)}
+        # An integer too large for a double raises OverflowError rather than
+        # returning inf, and that escapes the encoder.
+        try:
+            return {"doubleValue": float(value)}
+        except OverflowError:
+            return {"doubleValue": "Infinity" if value > 0 else "-Infinity"}
     if isinstance(value, float):
         return {"doubleValue": value}
     if isinstance(value, str):
@@ -201,52 +221,86 @@ def encode_records(
             if profile.timestamp_field not in record:
                 raise RecordSkipped(f"no {profile.timestamp_field!r} field")
             nanos = to_unix_nanos(record[profile.timestamp_field], profile.timestamp_format)
+
+            entry: dict[str, Any] = {"timeUnixNano": str(nanos)}
+
+            missing_identity = [name for name in profile.identity if record.get(name) is None]
+            if missing_identity:
+                # AC-0023 says every emitted record carries its identity attributes,
+                # and a consumer deduplicates on exactly those. Emitting a record
+                # without them produces a row nothing can deduplicate, which is worse
+                # than not emitting it -- so this is skipped and reported, the same
+                # disposition AC-0066 gives a record with no usable timestamp.
+                if on_skip is not None:
+                    on_skip(index, f"no value for identity field(s) {missing_identity}")
+                continue
+
+            severity = record.get(profile.severity_field)
+            # `severity in severity_map` hashes its left operand, so a JSON array or
+            # object here raises TypeError and takes the whole run down. Only a
+            # string can be a TOML table key, so anything else is simply unmapped.
+            mapped = profile.severity_map.get(severity) if isinstance(severity, str) else None
+            if mapped is not None:
+                entry["severityNumber"] = mapped
+                entry["severityText"] = severity
+            elif on_unmapped_severity is not None:
+                # Not a skip. Severity is enrichment, not identity: of the first
+                # consumer's fifteen transition events, five carry no severity
+                # value at all, so dropping those records would discard a third
+                # of the event vocabulary.
+                #
+                # Keyed by type AND rendering. The string "7" and the number 7
+                # both render as 7, and collapsing them reports one value with a
+                # combined count where AC-0068 asks for each distinct value with
+                # its own. A rendering is used at all because the key must be
+                # hashable, and a list- or object-valued severity is not.
+                on_unmapped_severity(
+                    severity if severity is None
+                    else f"{type(severity).__name__}:{severity!r}"
+                )
+
+            attributes = _attributes(record, profile, dropped_deep)
+            over_deep_identity = False
+            for name in profile.identity:
+                wrapped = any_value(record.get(name))
+                if wrapped is TOO_DEEP:
+                    # `_attributes` handles this for allowlisted fields; the identity
+                    # loop is its sibling surface and was missed, so the sentinel was
+                    # appended as a value and `json.dumps` raised, ending the run.
+                    over_deep_identity = True
+                    if on_dropped_deep is not None:
+                        on_dropped_deep(name)
+                    break
+                if wrapped is not None:
+                    attributes.append({"key": name, "value": wrapped})
+            if over_deep_identity:
+                # Same disposition as a missing identity field: a record without its
+                # identity is one nothing can deduplicate.
+                if on_skip is not None:
+                    on_skip(index, "an identity field nests past the depth limit")
+                continue
+            if attributes:
+                entry["attributes"] = attributes
+            if dropped_deep and on_dropped_deep is not None:
+                for name in dropped_deep:
+                    on_dropped_deep(name)
+            log_records.append(entry)
         except RecordSkipped as exc:
             if on_skip is not None:
                 on_skip(index, str(exc))
             continue
-
-        entry: dict[str, Any] = {"timeUnixNano": str(nanos)}
-
-        missing_identity = [name for name in profile.identity if record.get(name) is None]
-        if missing_identity:
-            # AC-0023 says every emitted record carries its identity attributes,
-            # and a consumer deduplicates on exactly those. Emitting a record
-            # without them produces a row nothing can deduplicate, which is worse
-            # than not emitting it -- so this is skipped and reported, the same
-            # disposition AC-0066 gives a record with no usable timestamp.
+        except Exception as exc:  # noqa: BLE001 - containment floor
+            # Deliberately broad, and deliberately around the WHOLE record.
+            # The first review round found three instances of an untrusted
+            # value reaching a standard-library call that raises -- a digit
+            # string past CPython's conversion limit, an integer too large
+            # for a double, a structure past the recursion limit -- and each
+            # killed the run. A narrower try caught only the timestamp, which
+            # is the same partial-surface mistake in miniature. The named
+            # repairs remain; this is the floor under the next sibling.
             if on_skip is not None:
-                on_skip(index, f"no value for identity field(s) {missing_identity}")
+                on_skip(index, f"could not be encoded ({type(exc).__name__}: {exc})")
             continue
-
-        severity = record.get(profile.severity_field)
-        # `severity in severity_map` hashes its left operand, so a JSON array or
-        # object here raises TypeError and takes the whole run down. Only a
-        # string can be a TOML table key, so anything else is simply unmapped.
-        mapped = profile.severity_map.get(severity) if isinstance(severity, str) else None
-        if mapped is not None:
-            entry["severityNumber"] = mapped
-            entry["severityText"] = severity
-        elif on_unmapped_severity is not None:
-            # Keyed on a stable rendering: the raw value may be unhashable, and
-            # the caller tallies these in a dict.
-            # Not a skip. Severity is enrichment, not identity: of the first
-            # consumer's fifteen transition events, five carry no severity value
-            # at all, so dropping those records would discard a third of the
-            # event vocabulary.
-            on_unmapped_severity(severity if isinstance(severity, (str, type(None))) else repr(severity))
-
-        attributes = _attributes(record, profile, dropped_deep)
-        for name in profile.identity:
-            wrapped = any_value(record.get(name))
-            if wrapped is not None:
-                attributes.append({"key": name, "value": wrapped})
-        if attributes:
-            entry["attributes"] = attributes
-        if dropped_deep and on_dropped_deep is not None:
-            for name in dropped_deep:
-                on_dropped_deep(name)
-        log_records.append(entry)
 
     return {
         "resourceLogs": [

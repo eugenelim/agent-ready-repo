@@ -311,13 +311,29 @@ class TestReviewRegressions:
 
     def test_the_version_output_is_the_installed_distribution_version(self, capsys):
         """T2. Asserting only exit 0 let a hardcoded literal pass every test, so
-        AC-0029 had no control that could fail."""
-        from importlib.metadata import version
+        AC-0029 had no control that could fail.
+
+        The expected value is derived from the metadata, with the documented
+        source-tree fallback when the distribution is not installed -- an earlier
+        version asserted the installed version unconditionally and passed or
+        failed depending on whether an `.egg-info` happened to be lying around,
+        which is an assertion pinned to the developer's environment.
+        """
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            expected = version("jsonl-otlp-exporter")
+        except PackageNotFoundError:
+            expected = "0+unknown"
 
         code = cli.main(["--version"], env=ENV, stream=io.StringIO(),
                         connection_factory=_factory())
         assert code == 0
-        assert capsys.readouterr().out.strip() == version("jsonl-otlp-exporter")
+        printed = capsys.readouterr().out.strip()
+        assert printed == expected
+        assert printed != "0.1.0" or expected == "0.1.0", (
+            "a hardcoded literal must not be able to satisfy this"
+        )
 
     def test_the_unconfigured_cli_path_constructs_no_connection(self, workspace):
         """T3. AC-0001's proof lived on `run_unconfigured_check`, which the CLI

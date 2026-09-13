@@ -353,3 +353,68 @@ class TestReviewRegressions:
         entries = _one(record, on_skip=lambda i, m: skips.append(m))
         assert entries == []
         assert skips and "run_id" in skips[0]
+
+
+class TestRound2Regressions:
+    """Values that used to raise out of the encoder and end the run."""
+
+    def test_an_oversize_digit_string_timestamp_skips_its_record(self):
+        """CPython refuses a decimal string past 4300 digits; a 4301-digit line
+        sits well inside the 64 KiB line ceiling."""
+        with pytest.raises(RecordSkipped):
+            to_unix_nanos("9" * 4301, "epoch-seconds")
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            (float("nan"), {"doubleValue": "NaN"}),
+            (float("inf"), {"doubleValue": "Infinity"}),
+            (float("-inf"), {"doubleValue": "-Infinity"}),
+            (10**399, {"doubleValue": "Infinity"}),
+            (-(10**399), {"doubleValue": "-Infinity"}),
+        ],
+    )
+    def test_a_non_finite_number_takes_proto_jsons_quoted_form(self, value, expected):
+        """The bare Python repr is `NaN`/`Infinity`, which is not JSON. proto3
+        JSON carries a non-finite double as a quoted string, and an integer too
+        large for a double raises OverflowError rather than returning inf."""
+        wrapped = any_value(value)
+        assert wrapped == expected
+        json.loads(json.dumps(wrapped))  # the body must stay parseable
+
+    def test_an_over_deep_identity_value_skips_the_record(self):
+        """`_attributes` handled the sentinel; the identity loop beside it did
+        not, so the sentinel object was appended and json.dumps raised."""
+        deep = "leaf"
+        for _ in range(MAX_NESTING_DEPTH + 3):
+            deep = {"n": deep}
+        record = {"at": "2026-09-13T05:52:24Z", "result": "success",
+                  "run_id": deep, "seq": 1}
+        skips, dropped = [], []
+        body = encode_records([record], _reference(), "svc",
+                              on_skip=lambda i, m: skips.append(m),
+                              on_dropped_deep=dropped.append)
+        assert _records_of(body) == []
+        assert skips and dropped == ["run_id"]
+        json.dumps(body)  # must still serialise
+
+    def test_two_distinct_unmapped_severities_tally_separately(self):
+        """The string "7" and the number 7 both render as 7, so collapsing them
+        reported one value with a combined count."""
+        base = {"at": "2026-09-13T05:52:24Z", "run_id": "r", "seq": 1}
+        seen = []
+        encode_records([dict(base, result=7), dict(base, result="7")],
+                       _reference(), "svc", on_unmapped_severity=seen.append)
+        assert len(set(seen)) == 2, f"collapsed into {seen}"
+
+    def test_an_unknown_encoder_failure_skips_its_record(self):
+        """The containment floor: the review found three instances of an
+        untrusted value reaching a stdlib call that raises, so the next sibling
+        should cost one record rather than the run."""
+        class Hostile(dict):
+            def get(self, *args, **kwargs):
+                raise RuntimeError("something nobody predicted")
+
+        body = encode_records([Hostile({"at": "2026-09-13T05:52:24Z"})],
+                              _reference(), "svc", on_skip=lambda i, m: None)
+        assert _records_of(body) == []

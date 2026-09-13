@@ -13,6 +13,7 @@ deterministically instead of by waiting.
 
 from __future__ import annotations
 
+import contextlib
 import ipaddress
 import json
 import socket
@@ -24,6 +25,7 @@ from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 from urllib.parse import urlsplit
 
 __all__ = [
+    "IDLE",
     "Destination",
     "DestinationRefused",
     "SendOutcome",
@@ -47,6 +49,12 @@ MAX_ATTEMPTS_PER_RUN = 3               # AC-0010
 MAX_RETRY_AFTER_SECONDS = 30           # AC-0009
 REQUEST_TIMEOUT_SECONDS = 30           # AC-0040
 RUN_TIMEOUT_SECONDS = 120              # AC-0055
+
+class _Idle:
+    """Yielded by the reader when it has caught up and is waiting for more."""
+
+
+IDLE = _Idle()
 
 _RETRYABLE_STATUSES = frozenset({429, 503})
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
@@ -77,7 +85,9 @@ def render_endpoint(url: str) -> str:
         rendered = url.split("?", 1)[0].split("#", 1)[0]
         if "@" in rendered:
             scheme, _, rest = rendered.partition("://")
-            rendered = f"{scheme}://{rest.partition('@')[2]}" if rest else rendered
+            # RIGHTmost '@': a password may itself contain one, and splitting on
+            # the first leaves a fragment of it in the rendered endpoint.
+            rendered = f"{scheme}://{rest.rpartition('@')[2]}" if rest else rendered
         return _strip_control(rendered)
     if port:
         host = f"{host}:{port}"
@@ -104,6 +114,18 @@ class Destination:
     port: int
     path: str
     connect_host: str
+    query: str = ""
+
+    @property
+    def target(self) -> str:
+        """The request target: path plus query.
+
+        AC-0003 requires a value from the logs-specific variable to be requested
+        unmodified, and a query string is part of it -- a Collector behind a
+        gateway may carry a tenant there. `render_endpoint` strips the query
+        independently, so keeping it on the wire does not put it in a message.
+        """
+        return f"{self.path}?{self.query}" if self.query else self.path
 
     @property
     def safe_url(self) -> str:
@@ -141,7 +163,8 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
 
     if parts.scheme == "https":
         # Accepted at any host; the chain and hostname are verified at connect.
-        return Destination(url, "https", parts.hostname, port, path, parts.hostname)
+        return Destination(url, "https", parts.hostname, port, path,
+                           parts.hostname, parts.query)
 
     infos = resolver(parts.hostname, port, 0, socket.SOCK_STREAM)
     addresses = [info[4][0] for info in infos]
@@ -155,7 +178,8 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
             )
     # Pin the first verified address. The connection is made to THIS, never to
     # the hostname again -- a second resolution could answer differently.
-    return Destination(url, "http", parts.hostname, port, path, addresses[0])
+    return Destination(url, "http", parts.hostname, port, path,
+                       addresses[0], parts.query)
 
 
 def batch_records(
@@ -177,6 +201,16 @@ def batch_records(
     """
     pending: list[Mapping[str, Any]] = []
     for record in records:
+        if record is IDLE:
+            # The reader went quiet. Under bare `--follow` the iterator never
+            # ends, so waiting for a full batch means an appended record is held
+            # forever and AC-0021 is never satisfied. Flushing on idle sends what
+            # is in hand without terminating the reader, and cannot breach the
+            # record or byte ceilings because it only ever shrinks a batch.
+            if pending:
+                yield from _emit(pending, encode, max_bytes, on_oversize)
+                pending = []
+            continue
         pending.append(record)
         if len(pending) < max_records:
             continue
@@ -186,8 +220,8 @@ def batch_records(
         yield from _emit(pending, encode, max_bytes, on_oversize)
 
 
-def _emit(batch, encode, max_bytes, on_oversize=None):
-    body = encode(batch)
+def _emit(batch, encode, max_bytes, on_oversize=None, diagnostics=True):
+    body = encode(batch, diagnostics)
     if len(body) <= max_bytes:
         yield list(batch), body
         return
@@ -203,9 +237,12 @@ def _emit(batch, encode, max_bytes, on_oversize=None):
         if on_oversize is not None:
             on_oversize(len(body))
         return
+    # The parent encode already fired every per-record callback for exactly
+    # these records, so the halves must not fire them again -- double-counting
+    # made "400 records affected" report as 800.
     middle = len(batch) // 2
-    yield from _emit(batch[:middle], encode, max_bytes, on_oversize)
-    yield from _emit(batch[middle:], encode, max_bytes, on_oversize)
+    yield from _emit(batch[:middle], encode, max_bytes, on_oversize, diagnostics=False)
+    yield from _emit(batch[middle:], encode, max_bytes, on_oversize, diagnostics=False)
 
 
 @dataclass
@@ -262,22 +299,35 @@ def send_batches(
                 out.status = out.status or 1
                 out.reason = out.reason or "attempt budget exhausted"
                 return out
-            if clock() >= run_deadline:
+            # ONE sample for both the bound check and the remaining budget. Two
+            # readings can straddle the deadline, admitting an iteration at
+            # 119.999 and then computing a zero timeout -- and a zero timeout is
+            # not "expired" to `http.client`, it is non-blocking mode, so the
+            # request is issued anyway and consumes one of the three attempts.
+            now = clock()
+            remaining = run_deadline - now
+            if remaining <= 0:
                 out.status = out.status or 1
                 out.reason = out.reason or "run time bound reached"
                 return out
 
-            # The per-request timeout covers resolution, connection, write and
-            # read, and is clamped so it can never outlive the run bound -- a
-            # request begun at second 119 must not run to second 149.
-            remaining = max(0.0, run_deadline - clock())
-            timeout = min(float(REQUEST_TIMEOUT_SECONDS), remaining)
+            # AC-0040 anchors the request bound at that request's own destination
+            # resolution. The first request's resolution is the run's, so its
+            # budget is measured from `run_started`, not from now -- otherwise a
+            # 29-second resolution grants a fresh 30 seconds on top of it.
+            request_anchor = run_started if out.attempts == 0 else now
+            deadline = min(request_anchor + REQUEST_TIMEOUT_SECONDS, run_deadline)
+            timeout = max(0.0, deadline - now)
+            if timeout <= 0:
+                out.status = out.status or 1
+                out.reason = out.reason or "request bound reached before issue"
+                return out
 
             out.attempts += 1
             try:
                 status, headers, payload = _post(
                     destination, body, connection_factory, timeout,
-                    deadline=min(clock() + timeout, run_deadline), clock=clock,
+                    deadline=deadline, clock=clock,
                 )
             except Exception as exc:  # noqa: BLE001 - any transport failure is one outcome
                 print(
@@ -381,6 +431,21 @@ def _partial_success(payload: bytes) -> tuple[bool, int]:
         return True, 0
 
 
+def _host_header(destination: Destination) -> str:
+    """Build a valid Host authority, bracketing an IPv6 literal.
+
+    `http.client` brackets correctly on its own, but only when it builds the
+    header; passing an explicit `Host` key suppresses that path entirely, so the
+    bracketing has to be done here or `::1` ships as `Host: ::1:4318`.
+    """
+    host = destination.host
+    if ":" in host:
+        host = f"[{host}]"
+    if destination.port in (80, 443):
+        return host
+    return f"{host}:{destination.port}"
+
+
 def _post(destination: Destination, body: bytes, connection_factory, timeout: float,
           deadline: float | None = None, clock: Callable[[], float] = time.monotonic):
     """One request, abandoned at `deadline` however slowly it makes progress.
@@ -402,15 +467,13 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
     try:
         connection.request(
             "POST",
-            destination.path,
+            destination.target,
             body=body,
             headers={
                 "Content-Type": "application/json",
                 # The Host header keeps virtual hosting correct even though the
                 # connection was made to a pinned address.
-                "Host": destination.host
-                if destination.port in (80, 443)
-                else f"{destination.host}:{destination.port}",
+                "Host": _host_header(destination),
                 "Content-Length": str(len(body)),
             },
         )
@@ -419,11 +482,23 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
         # ceiling cannot distinguish "at the limit" from "over it".
         remaining = MAX_RESPONSE_BYTES + 1
         chunks: list[bytes] = []
+        socket_ = getattr(connection, "sock", None)
         while remaining > 0:
-            if deadline is not None and clock() >= deadline:
-                raise DestinationRefused(
-                    "request abandoned at its deadline while reading the response"
-                )
+            if deadline is not None:
+                left = deadline - clock()
+                if left <= 0:
+                    raise DestinationRefused(
+                        "request abandoned at its deadline while reading the response"
+                    )
+                # Re-arm the socket to what is LEFT, not to the per-operation
+                # timeout. `HTTPResponse.read(n)` loops over `recv` until it has
+                # n bytes, and each `recv` restarts the timer -- so a receiver
+                # trickling one byte just inside the timeout keeps a single call
+                # blocking forever. Bounding each call by the remaining budget
+                # caps the overrun at one chunk.
+                if socket_ is not None:
+                    with contextlib.suppress(OSError):
+                        socket_.settimeout(left)
             chunk = response.read(min(remaining, 65536))
             if not chunk:
                 break

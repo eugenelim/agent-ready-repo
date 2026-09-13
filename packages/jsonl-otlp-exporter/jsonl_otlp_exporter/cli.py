@@ -103,25 +103,30 @@ def _run(args, env, stream, connection_factory) -> int:
     dropped_deep: dict[str, int] = {}
     emitted = [0]
 
-    def encode(batch):
+    def encode(batch, diagnostics=True):
+        # `diagnostics` is False when the batcher re-encodes a subset it has
+        # already encoded once to measure it. The callbacks fired on the parent
+        # were complete and correct; firing them again on each half double-counts
+        # every record.
         body = encode_records(
             batch, profile, service_name,
-            on_skip=lambda index, reason: print(
+            on_skip=(lambda index, reason: print(
                 f"jsonl-otlp-export: record {index + 1} of this batch skipped: {reason}",
                 file=stream,
-            ),
-            on_unmapped_severity=lambda value: unmapped.__setitem__(
+            )) if diagnostics else None,
+            on_unmapped_severity=(lambda value: unmapped.__setitem__(
                 value, unmapped.get(value, 0) + 1
-            ),
-            on_dropped_deep=lambda key: dropped_deep.__setitem__(
+            )) if diagnostics else None,
+            on_dropped_deep=(lambda key: dropped_deep.__setitem__(
                 key, dropped_deep.get(key, 0) + 1
-            ),
+            )) if diagnostics else None,
         )
         # Count what was actually EMITTED, not that the encoder ran. A batch
         # whose every record was skipped still posts a well-formed body with an
         # empty logRecords list, which a receiver answers 200 -- so counting
         # invocations reports success for a run that sent no record at all.
-        emitted[0] += len(body["resourceLogs"][0]["scopeLogs"][0]["logRecords"])
+        if diagnostics:
+            emitted[0] += len(body["resourceLogs"][0]["scopeLogs"][0]["logRecords"])
         return json.dumps(body).encode("utf-8")
 
     try:
@@ -147,7 +152,7 @@ def _run(args, env, stream, connection_factory) -> int:
         # Once per distinct value with a count, not once per record: a run over a
         # large file would otherwise print a line per record and bury everything.
         print(
-            f"jsonl-otlp-export: severity value {value!r} is not in the profile's "
+            f"jsonl-otlp-export: severity value {str(value).split(':', 1)[-1]} is not in the profile's "
             f"severity_map; {count} record(s) sent without a severity",
             file=stream,
         )

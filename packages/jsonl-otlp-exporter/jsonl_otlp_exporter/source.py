@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 __all__ = [
+    "IDLE",
     "InputRefused",
     "MAX_LINE_BYTES",
     "open_input",
@@ -37,6 +38,9 @@ MAX_LINE_BYTES = 64 * 1024
 
 _NONBLOCK = getattr(os, "O_NONBLOCK", 0)
 _DIRECTORY = getattr(os, "O_DIRECTORY", 0)
+
+
+from .transport import IDLE  # noqa: E402 - shared sentinel, one definition
 
 
 class InputRefused(Exception):
@@ -62,8 +66,23 @@ def open_input(path: Path | str, root: Path | str | None = None) -> int:
     target = Path(path)
 
     if target.is_absolute():
+        # Resolve the target the same way the root was resolved before comparing
+        # them. Comparing a resolved root against a lexical path refuses a
+        # perfectly ordinary invocation: on macOS `/tmp` and `/var` are symlinks
+        # into `/private`, so `--root /tmp/x --input /tmp/x/events.jsonl` had the
+        # root resolve to `/private/tmp/x` and the input stay `/tmp/x/...`, and
+        # `relative_to` failed.
+        #
+        # This is a prefilter for deriving components only. Containment is still
+        # proven by the descriptor-relative O_NOFOLLOW walk below, so resolving
+        # here grants no acceptance that the walk would not also grant.
         try:
-            relative = target.relative_to(root_path)
+            # The PARENT is resolved, never the leaf. Resolving the whole path
+            # would follow a symlinked leaf to its target inside the root and
+            # accept it -- which AC-0017 forbids and the suite caught. The leaf
+            # stays lexical so the O_NOFOLLOW open below is what decides it.
+            resolved = target.parent.resolve() / target.name
+            relative = resolved.relative_to(root_path)
         except ValueError as exc:
             raise InputRefused(f"input path is outside --root: {target}") from exc
     else:
@@ -149,6 +168,18 @@ def open_input(path: Path | str, root: Path | str | None = None) -> int:
             os.close(descriptor)
 
 
+def _reject_constant(name: str):
+    """Refuse JSON's non-standard constants at the decode seam.
+
+    `json.loads` accepts bare `NaN`, `Infinity` and `-Infinity` by default. None
+    is valid JSON, and a float carrying one is written back out by `json.dumps`
+    as that same bare token -- so a single such line produces a request body that
+    is not JSON and the receiver rejects the whole batch, costing every good
+    record in it. Refusing here routes the line into the ordinary skip path.
+    """
+    raise ValueError(f"{name} is not valid JSON")
+
+
 def _report(stream, message: str) -> None:
     print(f"jsonl-otlp-export: {message}", file=stream if stream is not None else sys.stderr)
 
@@ -216,14 +247,32 @@ def iter_records(
                     discarding = False
                     continue
 
+                if deadline is not None and clock() >= deadline:
+                    # One 64 KiB read can hold far more than a batch, so draining
+                    # it without rechecking yields records -- and issues requests
+                    # -- after `--for` has already elapsed.
+                    return
+
                 line_number += 1
                 if len(raw) > MAX_LINE_BYTES:
                     _report(stream, f"line {line_number}: over {MAX_LINE_BYTES} bytes; skipped")
                     continue
                 try:
-                    value = json.loads(raw.decode("utf-8"))
-                except (UnicodeDecodeError, json.JSONDecodeError):
-                    _report(stream, f"line {line_number}: does not parse as JSON; skipped")
+                    value = json.loads(raw.decode("utf-8"), parse_constant=_reject_constant)
+                except Exception as exc:  # noqa: BLE001 - containment, see below
+                    # Deliberately broad. A line is untrusted, and the decoder
+                    # raises more than JSONDecodeError on hostile input: about
+                    # 16,000 levels of nesting exceeds the interpreter's
+                    # recursion limit while still fitting inside the 64 KiB line
+                    # ceiling, and it arrives as RecursionError. Naming only the
+                    # two expected exception types let one line end the run and
+                    # cost every later line, which is the opposite of what the
+                    # Boundaries require.
+                    _report(
+                        stream,
+                        f"line {line_number}: does not parse as JSON "
+                        f"({type(exc).__name__}); skipped",
+                    )
                     continue
                 if not isinstance(value, dict):
                     _report(
@@ -240,4 +289,8 @@ def iter_records(
             return
         if deadline is not None and clock() >= deadline:
             return
+        # Tell the consumer we have caught up. Under bare `--follow` there is no
+        # deadline and the iterator never ends, so without this a partial batch
+        # is held until 512 records arrive and an appended line is never sent.
+        yield IDLE
         time.sleep(poll_interval)

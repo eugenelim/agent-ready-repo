@@ -184,12 +184,12 @@ class TestBatching:
     """AC-0011, AC-0019, AC-0063 — bounded per request, and never accumulated."""
 
     def test_at_most_512_records_per_request(self):
-        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
         batches = list(tp.batch_records([{"i": i} for i in range(1025)], encode))
         assert [len(records) for records, _ in batches] == [512, 512, 1]
 
     def test_record_513_begins_the_next_request(self):
-        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
         batches = list(tp.batch_records([{"i": i} for i in range(513)], encode))
         assert batches[0][0][-1]["i"] == 511
         assert batches[1][0][0]["i"] == 512
@@ -198,7 +198,7 @@ class TestBatching:
         """Measured on the ENCODED body. Splitting rather than truncating is the
         difference between two requests and silently lost records."""
         payload = "x" * 40_000
-        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
         records = [{"i": i, "pad": payload} for i in range(400)]
         batches = list(tp.batch_records(records, encode))
         assert len(batches) > 1
@@ -216,7 +216,7 @@ class TestBatching:
                 pulled.append(i)
                 yield {"i": i}
 
-        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
         batches = tp.batch_records(source(), encode)
         next(batches)
         assert len(pulled) <= tp.MAX_RECORDS_PER_REQUEST, (
@@ -338,21 +338,49 @@ class TestTimeBounds:
             f"{tp.RUN_TIMEOUT_SECONDS}s run bound; issued at {connect_log}"
         )
 
-    def test_a_request_beginning_near_the_deadline_cannot_outlive_it(self):
+    def test_a_later_request_near_the_deadline_cannot_outlive_it(self):
         """A request begun at second 119 must not be allowed to run to 149.
 
         This is the half an issuance-only cutoff fails: it would refuse to
         *start* a request after 120s while letting one already started run on.
+
+        The near-deadline request is deliberately not the FIRST one. AC-0040
+        anchors a request's 30-second bound at its own destination resolution,
+        and the first request's resolution is the run's -- so a first request
+        issued at 119s has had its budget for 119 seconds already. Only a later
+        request anchors at the moment it starts, which is the case this pins.
         """
         clock = _Clock()
-        clock.now = 119.0
+        connect_log = []
+
+        def factory(scheme, host, port, timeout, context):
+            connect_log.append({"at": clock.now, "timeout": timeout})
+            clock.now = 119.0          # the first attempt consumes the run
+            return _FakeConnection([], [_FakeResponse(503, {"retry-after": "0"})])
+
+        tp.send_batches([([], b"{}")], _dest(), factory, clock=clock,
+                        sleep=lambda s: None, stream=io.StringIO(), run_started=0.0)
+        assert len(connect_log) >= 2, "a second request at 119s is still allowed to start"
+        assert connect_log[1]["at"] == 119.0
+        assert connect_log[1]["timeout"] <= 1.0, (
+            f"timeout {connect_log[1]['timeout']} would run past the 120s run bound"
+        )
+
+    def test_the_first_request_is_bounded_from_the_runs_own_resolution(self):
+        """AC-0040 says the request bound COVERS resolution.
+
+        Anchoring the first request at the moment sending starts would hand a run
+        that spent 29 seconds resolving a fresh 30 seconds on top of it.
+        """
+        clock = _Clock()
+        clock.now = 29.0               # resolution took 29 seconds
         connect_log = []
         tp.send_batches([([], b"{}")], _dest(),
                         _factory([], [_FakeResponse()], connect_log),
-                        clock=clock, run_started=0.0)
-        assert connect_log, "a request at 119s is still allowed to start"
+                        clock=clock, stream=io.StringIO(), run_started=0.0)
+        assert connect_log, "a request at 29s still has one second of budget"
         assert connect_log[0]["timeout"] <= 1.0, (
-            f"timeout {connect_log[0]['timeout']} would run past the 120s run bound"
+            f"timeout {connect_log[0]['timeout']} ignores the 29s already spent"
         )
 
 
@@ -471,7 +499,7 @@ class TestReviewRegressions:
     def test_an_unsplittable_oversize_record_is_not_sent_and_is_reported(self):
         """AC-0019's ceiling is unconditional. A single record over it cannot be
         split, so it is refused and reported rather than sent."""
-        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
         seen = []
         batches = list(tp.batch_records(
             [{"pad": "x" * (tp.MAX_BODY_BYTES + 100)}], encode, on_oversize=seen.append))

@@ -345,3 +345,50 @@ class TestDeadlineWhileBytesKeepArriving:
             assert len(list(src.iter_records(fd))) == 4000
         finally:
             os.close(fd)
+
+
+class TestRound2Regressions:
+    """Untrusted lines that used to end the whole run."""
+
+    def test_a_line_past_the_recursion_limit_is_skipped_not_fatal(self, tmp_path):
+        """~16,000 levels of nesting is 40 KB -- inside the 64 KiB line ceiling --
+        and the decoder raises RecursionError, which is not a JSONDecodeError.
+
+        The reviewer's stated depth of 2,000 parses fine; measuring found the
+        real threshold, and the defect is real above it.
+        """
+        deep = "[" * 20000 + "]" * 20000
+        good = '{"a":1}\n'
+        target = _write(tmp_path / "e.jsonl", good + deep + "\n" + good)
+        err = io.StringIO()
+        assert _records(target, tmp_path, stream=err) == [{"a": 1}, {"a": 1}]
+        assert "line 2" in err.getvalue()
+
+    @pytest.mark.parametrize("token", ["NaN", "Infinity", "-Infinity"])
+    def test_a_non_standard_json_constant_is_skipped(self, tmp_path, token):
+        """`json.loads` accepts these by default and `json.dumps` writes them back
+        as bare tokens, producing a body that is not JSON -- so one such line
+        would cost every good record batched with it."""
+        target = _write(tmp_path / "e.jsonl",
+                        '{"a":1}\n' + '{"b": %s}\n' % token + '{"c":3}\n')
+        err = io.StringIO()
+        assert _records(target, tmp_path, stream=err) == [{"a": 1}, {"c": 3}]
+        assert "line 2" in err.getvalue()
+
+    def test_an_absolute_input_under_a_symlinked_root_is_accepted(self, tmp_path):
+        """On macOS `/tmp` and `/var` are symlinks into `/private`, so comparing a
+        resolved root against a lexical input refused an ordinary invocation.
+        This was found by a probe hitting it, not by reading."""
+        real = tmp_path / "real"
+        real.mkdir()
+        target = _write(real / "e.jsonl", '{"a":1}\n')
+        link = tmp_path / "link"
+        try:
+            link.symlink_to(real, target_is_directory=True)
+        except OSError:
+            pytest.skip("symlinks unavailable on this platform")
+        fd = src.open_input(link / "e.jsonl", link)
+        try:
+            assert os.read(fd, 32) == b'{"a":1}\n'
+        finally:
+            os.close(fd)
