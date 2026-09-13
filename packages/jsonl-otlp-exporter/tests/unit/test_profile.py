@@ -109,7 +109,11 @@ class TestSeverityRange:
 class TestTimestampFormatEnum:
     """AC-0049 — a closed enum, so an unknown format is never guessed at."""
 
-    @pytest.mark.parametrize("fmt", sorted(prof.TIMESTAMP_FORMATS))
+    # AC-0049 names these three as literals. Sourcing the domain from
+    # `prof.TIMESTAMP_FORMATS` means deleting a format also deletes its own
+    # test case, so the suite stays green while a valid profile starts being
+    # refused -- a domain taken from the table under test.
+    @pytest.mark.parametrize("fmt", ["rfc3339", "epoch-millis", "epoch-seconds"])
     def test_each_declared_format_is_accepted(self, fmt):
         raw = _valid()
         raw["timestamp_format"] = fmt
@@ -212,3 +216,10 @@ class TestDefaultServiceName:
         """The reason AC-0007 stopped citing the profile: there is no such key."""
         assert "service_name" not in prof.REQUIRED_KEYS
         assert "name" not in prof.REQUIRED_KEYS
+
+
+def test_the_accepted_format_set_is_exactly_the_three_the_contract_names():
+    """Pins the enum itself, so adding a fourth format is a deliberate act."""
+    assert prof.TIMESTAMP_FORMATS == frozenset(
+        {"rfc3339", "epoch-millis", "epoch-seconds"}
+    )

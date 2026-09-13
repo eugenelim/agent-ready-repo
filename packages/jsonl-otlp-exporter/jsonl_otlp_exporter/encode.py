@@ -67,7 +67,13 @@ def to_unix_nanos(value: Any, timestamp_format: str) -> int:
         # parse identical across the supported range.
         if text[-1] in "Zz":
             text = text[:-1] + "+00:00"
-        parsed = _dt.datetime.fromisoformat(text)
+        try:
+            parsed = _dt.datetime.fromisoformat(text)
+        except ValueError as exc:
+            # `2026-02-30T00:00:00Z` matches the regex -- which constrains shape,
+            # not the calendar -- and only the parse knows the month has no 30th.
+            # Letting this escape kills the whole run over one bad record.
+            raise RecordSkipped(f"timestamp {value!r} is not a real instant ({exc})") from exc
         # Whole-second arithmetic against a fixed epoch, in integers. Going via
         # `timestamp()` would round-trip through a float and `int()` truncates
         # toward zero, so a pre-1970 instant would land one second late.
@@ -101,17 +107,30 @@ def to_unix_nanos(value: Any, timestamp_format: str) -> int:
     return nanos
 
 
-def any_value(value: Any, depth: int = 0) -> dict[str, Any] | None:
-    """Wrap a JSON value as an OTLP `AnyValue`, or return None to omit it.
+class _TooDeep:
+    """Sentinel: this value nests past the ceiling.
 
-    None is returned for JSON `null` and for anything nested past the depth
+    Distinct from `None`, which means JSON `null`. Collapsing the two is what
+    made an over-depth descendant vanish while its ancestors still emitted -- so
+    the attribute survived as an empty container instead of being dropped and
+    reported.
+    """
+
+
+TOO_DEEP = _TooDeep()
+
+
+def any_value(value: Any, depth: int = 0) -> dict[str, Any] | None | _TooDeep:
+    """Wrap a JSON value as an OTLP `AnyValue`, or say why it is not emitted.
+
+    Returns `None` for JSON `null` and `TOO_DEEP` for anything past the nesting
     ceiling. An omitted key is queryable ("this record has no such field"); an
     empty AnyValue is not.
     """
     if value is None:
         return None
     if depth > MAX_NESTING_DEPTH:
-        return None
+        return TOO_DEEP
     if isinstance(value, bool):
         # Checked before int: bool is an int subclass, and a true/false emitted
         # as intValue 1/0 loses the type a consumer filters on.
@@ -128,12 +147,20 @@ def any_value(value: Any, depth: int = 0) -> dict[str, Any] | None:
     if isinstance(value, str):
         return {"stringValue": value}
     if isinstance(value, list):
-        members = [any_value(item, depth + 1) for item in value]
-        return {"arrayValue": {"values": [m for m in members if m is not None]}}
+        members = []
+        for item in value:
+            wrapped = any_value(item, depth + 1)
+            if wrapped is TOO_DEEP:
+                return TOO_DEEP
+            if wrapped is not None:
+                members.append(wrapped)
+        return {"arrayValue": {"values": members}}
     if isinstance(value, dict):
         entries = []
         for key, item in value.items():
             wrapped = any_value(item, depth + 1)
+            if wrapped is TOO_DEEP:
+                return TOO_DEEP
             if wrapped is not None:
                 entries.append({"key": str(key), "value": wrapped})
         return {"kvlistValue": {"values": entries}}
@@ -150,8 +177,9 @@ def _attributes(
         if name in routed or name not in record:
             continue
         wrapped = any_value(record[name])
-        if wrapped is None and record[name] is not None:
+        if wrapped is TOO_DEEP:
             dropped_deep.append(name)
+            continue
         if wrapped is not None:
             attributes.append({"key": name, "value": wrapped})
     return attributes
@@ -180,16 +208,33 @@ def encode_records(
 
         entry: dict[str, Any] = {"timeUnixNano": str(nanos)}
 
+        missing_identity = [name for name in profile.identity if record.get(name) is None]
+        if missing_identity:
+            # AC-0023 says every emitted record carries its identity attributes,
+            # and a consumer deduplicates on exactly those. Emitting a record
+            # without them produces a row nothing can deduplicate, which is worse
+            # than not emitting it -- so this is skipped and reported, the same
+            # disposition AC-0066 gives a record with no usable timestamp.
+            if on_skip is not None:
+                on_skip(index, f"no value for identity field(s) {missing_identity}")
+            continue
+
         severity = record.get(profile.severity_field)
-        if severity is not None and severity in profile.severity_map:
-            entry["severityNumber"] = profile.severity_map[severity]
-            entry["severityText"] = str(severity)
+        # `severity in severity_map` hashes its left operand, so a JSON array or
+        # object here raises TypeError and takes the whole run down. Only a
+        # string can be a TOML table key, so anything else is simply unmapped.
+        mapped = profile.severity_map.get(severity) if isinstance(severity, str) else None
+        if mapped is not None:
+            entry["severityNumber"] = mapped
+            entry["severityText"] = severity
         elif on_unmapped_severity is not None:
+            # Keyed on a stable rendering: the raw value may be unhashable, and
+            # the caller tallies these in a dict.
             # Not a skip. Severity is enrichment, not identity: of the first
             # consumer's fifteen transition events, five carry no severity value
             # at all, so dropping those records would discard a third of the
             # event vocabulary.
-            on_unmapped_severity(severity)
+            on_unmapped_severity(severity if isinstance(severity, (str, type(None))) else repr(severity))
 
         attributes = _attributes(record, profile, dropped_deep)
         for name in profile.identity:

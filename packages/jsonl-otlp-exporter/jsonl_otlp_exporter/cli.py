@@ -13,6 +13,7 @@ import http.client
 import json
 import os
 import sys
+import time
 from collections.abc import Sequence
 
 from . import __version__
@@ -91,22 +92,36 @@ def _run(args, env, stream, connection_factory) -> int:
     if profile is None:
         profile = load_profile(None, args.root)  # raises: there is no default
     service_name = args.service_name or default_service_name(args.profile)
+    # AC-0055 anchors the run bound at the FIRST destination resolution, and
+    # AC-0040 requires the request bound to cover resolution. `resolve_destination`
+    # does the DNS work, so the clock starts before it, not when sending begins.
+    run_started = time.monotonic()
     destination = resolve_destination(endpoint)
     fd = open_input(args.input, args.root)
 
-    skipped: list[str] = []
     unmapped: dict[object, int] = {}
-    encoded_any = [False]
+    dropped_deep: dict[str, int] = {}
+    emitted = [0]
 
     def encode(batch):
-        encoded_any[0] = True
         body = encode_records(
             batch, profile, service_name,
-            on_skip=lambda index, reason: skipped.append(reason),
+            on_skip=lambda index, reason: print(
+                f"jsonl-otlp-export: record {index + 1} of this batch skipped: {reason}",
+                file=stream,
+            ),
             on_unmapped_severity=lambda value: unmapped.__setitem__(
                 value, unmapped.get(value, 0) + 1
             ),
+            on_dropped_deep=lambda key: dropped_deep.__setitem__(
+                key, dropped_deep.get(key, 0) + 1
+            ),
         )
+        # Count what was actually EMITTED, not that the encoder ran. A batch
+        # whose every record was skipped still posts a well-formed body with an
+        # empty logRecords list, which a receiver answers 200 -- so counting
+        # invocations reports success for a run that sent no record at all.
+        emitted[0] += len(body["resourceLogs"][0]["scopeLogs"][0]["logRecords"])
         return json.dumps(body).encode("utf-8")
 
     try:
@@ -114,11 +129,16 @@ def _run(args, env, stream, connection_factory) -> int:
             fd, follow=args.follow, for_seconds=args.for_seconds, stream=stream
         )
         outcome = send_batches(
-            batch_records(records, encode),
+            batch_records(records, encode, on_oversize=lambda size: print(
+                f"jsonl-otlp-export: one record encodes to {size} bytes, over the "
+                "8 MiB request ceiling, and cannot be split; it was not sent",
+                file=stream,
+            )),
             destination,
             connection_factory,
             stream=stream,
             best_effort=args.best_effort,
+            run_started=run_started,
         )
     finally:
         os.close(fd)
@@ -132,11 +152,20 @@ def _run(args, env, stream, connection_factory) -> int:
             file=stream,
         )
 
-    if outcome.requests == 0 and encoded_any[0] is False:
+    for key, count in dropped_deep.items():
+        print(
+            f"jsonl-otlp-export: attribute {key!r} nests deeper than the limit; "
+            f"omitted from {count} record(s)",
+            file=stream,
+        )
+
+    if emitted[0] == 0:
         print("jsonl-otlp-export: no line yielded a valid record; nothing was sent",
               file=stream)
         return EXIT_FAILED
-    if outcome.status != EXIT_OK and args.best_effort:
+    if outcome.status != EXIT_OK and args.best_effort and not outcome.partial_success:
+        # Same scoping as in send_batches: best-effort forgives a send failure,
+        # not a receiver rejecting records on their content.
         return EXIT_OK
     return EXIT_FAILED if outcome.status else EXIT_OK
 

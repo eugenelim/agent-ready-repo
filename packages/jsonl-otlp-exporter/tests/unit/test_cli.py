@@ -38,7 +38,12 @@ class _Response:
         return list(self._headers.items())
 
     def read(self, amount):
-        return self._payload[:amount]
+        # A real HTTPResponse CONSUMES: successive reads advance and eventually
+        # return b"". A fake that re-returns the whole payload lets a chunked
+        # reader loop forever, which is a defect in the double, not the caller.
+        chunk = self._payload[:amount]
+        self._payload = self._payload[amount:]
+        return chunk
 
 
 class _Connection:
@@ -107,7 +112,7 @@ class TestExitCodeTableByState:
         assert "line 2" in err
 
     def test_send_failure_under_best_effort(self, workspace):
-        code, _ = _run(workspace, "--best-effort", responses=[_Response(500)] * 3)
+        code, _ = _run(workspace, "--best-effort", responses=[_Response(500) for _ in range(3)])
         assert code == 0
 
     def test_unreadable_input_file(self, workspace):
@@ -177,7 +182,7 @@ class TestExitCodeTableByState:
         assert "unexpected failure" in err.getvalue()
 
     def test_send_failure_after_the_retry_budget(self, workspace):
-        code, _ = _run(workspace, responses=[_Response(500)] * 3)
+        code, _ = _run(workspace, responses=[_Response(500) for _ in range(3)])
         assert code == 1
 
     def test_non_empty_partial_success(self, workspace):
@@ -210,8 +215,8 @@ class TestTheClosedStatusSet:
         cases = [
             (lambda: _run(workspace, responses=[_Response(200)])),
             (lambda: _run(workspace, env={})),
-            (lambda: _run(workspace, "--best-effort", responses=[_Response(500)] * 3)),
-            (lambda: _run(workspace, responses=[_Response(500)] * 3)),
+            (lambda: _run(workspace, "--best-effort", responses=[_Response(500) for _ in range(3)])),
+            (lambda: _run(workspace, responses=[_Response(500) for _ in range(3)])),
             (lambda: _run(workspace, env={"OTEL_EXPORTER_OTLP_ENDPOINT": "ftp://h"})),
         ]
         for case in cases:
@@ -243,7 +248,7 @@ class TestBestEffort:
         assert code == 1
 
     def test_best_effort_still_reports_the_failure_on_stderr(self, workspace):
-        code, err = _run(workspace, "--best-effort", responses=[_Response(500)] * 3)
+        code, err = _run(workspace, "--best-effort", responses=[_Response(500) for _ in range(3)])
         assert code == 0
         assert "500" in err, "exit 0 must not mean silence"
 
@@ -299,3 +304,72 @@ class TestDryRun:
         )
         assert code == 1
         assert "no built-in profile" in err.getvalue()
+
+
+class TestReviewRegressions:
+    """Cases the implementation review found at the CLI seam."""
+
+    def test_the_version_output_is_the_installed_distribution_version(self, capsys):
+        """T2. Asserting only exit 0 let a hardcoded literal pass every test, so
+        AC-0029 had no control that could fail."""
+        from importlib.metadata import version
+
+        code = cli.main(["--version"], env=ENV, stream=io.StringIO(),
+                        connection_factory=_factory())
+        assert code == 0
+        assert capsys.readouterr().out.strip() == version("jsonl-otlp-exporter")
+
+    def test_the_unconfigured_cli_path_constructs_no_connection(self, workspace):
+        """T3. AC-0001's proof lived on `run_unconfigured_check`, which the CLI
+        never calls -- so a build opening a socket before the unconfigured return
+        passed. This asserts it on the path that actually ships."""
+        def exploding(*args, **kwargs):
+            raise AssertionError("a connection was constructed with no endpoint")
+
+        err = io.StringIO()
+        code = cli.main(_argv(workspace), env={}, stream=err,
+                        connection_factory=exploding)
+        assert code == 0
+        assert "no endpoint is configured" in err.getvalue()
+
+    def test_a_run_whose_every_record_is_rejected_exits_one(self, workspace):
+        """AC-0039. Counting encoder INVOCATIONS reported success for a run that
+        posted an empty batch and got a 200 for it."""
+        (workspace / "e.jsonl").write_text(
+            '{"result":"success","run_id":"r","seq":1}\n'
+            '{"result":"failure","run_id":"r","seq":2}\n', encoding="utf-8")
+        code, err = _run(workspace, responses=[_Response(200)])
+        assert code == 1
+        assert "no line yielded a valid record" in err
+
+    def test_a_record_skipped_by_the_encoder_is_reported(self, workspace):
+        """The `skipped` list was written and never read, so an inadmissible
+        timestamp produced no diagnostic anywhere."""
+        (workspace / "e.jsonl").write_text(
+            GOOD_LINE + '{"at":"no offset","result":"success","run_id":"r","seq":2}\n',
+            encoding="utf-8")
+        code, err = _run(workspace, responses=[_Response(200)])
+        assert code == 0
+        assert "skipped" in err, "an encoder-skipped record must say so"
+
+    def test_best_effort_does_not_forgive_a_partial_success_at_the_cli(self, workspace):
+        payload = json.dumps({"partialSuccess": {"rejectedLogRecords": 1}}).encode()
+        code, _ = _run(workspace, "--best-effort",
+                       responses=[_Response(200, {}, payload)])
+        assert code == 1, "AC-0054 is unconditional; best-effort covers send failure"
+
+    def test_an_over_depth_attribute_is_reported_at_the_cli(self, workspace):
+        """`on_dropped_deep` was never passed, so the report could not fire even
+        once the encoder was fixed to produce it."""
+        deep = "leaf"
+        for _ in range(12):
+            deep = {"n": deep}
+        (workspace / "p.toml").write_text(
+            REFERENCE_PROFILE.replace('allowlist = ["event"]', 'allowlist = ["event", "deep"]'),
+            encoding="utf-8")
+        (workspace / "e.jsonl").write_text(
+            json.dumps({"at": "2026-09-13T05:52:24Z", "result": "success",
+                        "run_id": "r", "seq": 1, "deep": deep}) + "\n", encoding="utf-8")
+        code, err = _run(workspace, responses=[_Response(200)])
+        assert code == 0
+        assert "nests deeper" in err

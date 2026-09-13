@@ -100,3 +100,46 @@ configured and no profile, the run exits 1. **This is recorded as a contract
 observation for the owner, not a silent choice**: if the intended reading is the
 opposite, AC-0052 needs the words "when an endpoint resolves" and that is a
 contract amendment, not a code change.
+
+## Implementation review — two dispositions recorded for the owner
+
+Both arise where a criterion states an obligation unconditionally but names no
+disposition for the case that cannot satisfy it. The code takes a reading; if it
+is the wrong one, the criterion needs words rather than the code needing a change.
+
+**A record missing a declared `identity` field is skipped, not emitted.** AC-0023
+says every emitted record carries its identity attributes, and a consumer
+deduplicates on exactly those — so a record emitted without them is a row nothing
+can deduplicate, which is worse than no row. This mirrors AC-0066's disposition
+for a record with no usable timestamp: skip, report, continue. The alternatives
+were refusing the profile and refusing the run.
+
+**A single record whose encoded body alone exceeds 8 MiB is refused, not sent.**
+AC-0019's first conjunct is unconditional — "a request body is at most 8 MiB
+measured on the encoded bytes about to be sent" — and a one-record batch cannot
+be split further. It is reported with its size rather than dropped in silence.
+The earlier behaviour sent it, which violated the ceiling outright.
+
+## What the implementation review cost, and what it bought
+
+Three Codex reviewers with disjoint focus sets raised 29 findings; neutral
+adjudication sustained 25 and refuted 3, with 1 indeterminate. That is a 10%
+refutation rate against 73% across the five specification rounds — traced build
+defects with concrete inputs do not evaporate under scrutiny the way readings of
+prose do.
+
+Fourteen production defects and six test defects, against a suite of 152 tests
+that was green and had been mutation-proved at every step. The mutations proved
+the paths I had thought of. `2026-02-30T00:00:00Z`, `{"result": []}`, a
+zero-count `partialSuccess`, a lowercase `retry-after` — none of those inputs was
+in my head when I wrote the tests, and each of the first two killed an entire run.
+
+Two defects shared one shape: **a repair made on one side and never wired on the
+other.** `render_endpoint` was made total while its caller kept raising; a
+`run_started` parameter was added to fix the run-clock anchor and no caller ever
+passed it, leaving the fix inert. Both passed every test.
+
+One repair in this pass initially had no failing control of its own — the `--for`
+deadline check survived being reverted. It now has a test driving 4,000 records
+through full chunks so the reader never sees an empty read, which fails when the
+check is removed.

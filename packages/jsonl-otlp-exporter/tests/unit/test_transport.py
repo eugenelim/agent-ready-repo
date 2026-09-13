@@ -32,7 +32,12 @@ class _FakeResponse:
         return list(self._headers.items())
 
     def read(self, amount):
-        return self._payload[:amount]
+        # A real HTTPResponse CONSUMES: successive reads advance and eventually
+        # return b"". A fake that re-returns the whole payload lets a chunked
+        # reader loop forever, which is a defect in the double, not the caller.
+        chunk = self._payload[:amount]
+        self._payload = self._payload[amount:]
+        return chunk
 
 
 class _FakeConnection:
@@ -309,19 +314,29 @@ class TestTimeBounds:
                         _factory([], [_FakeResponse()], connect_log), clock=_Clock())
         assert connect_log[0]["timeout"] == tp.REQUEST_TIMEOUT_SECONDS
 
-    def test_no_request_is_issued_after_the_run_bound(self):
+    @pytest.mark.parametrize("best_effort", [False, True])
+    def test_no_request_is_issued_after_the_run_bound(self, best_effort):
+        """61 seconds per request, so the THIRD issuance would fall at 122s.
+
+        At 50 seconds each, three attempts land at 0, 50 and 100 -- all inside
+        the bound -- and the run stops on the attempt budget instead. Deleting
+        the deadline check entirely left that version green.
+        """
         clock = _Clock()
         connect_log = []
 
         def factory(scheme, host, port, timeout, context):
-            connect_log.append(timeout)
-            clock.now += 50.0
-            return _FakeConnection([], [_FakeResponse(200)])
+            connect_log.append(clock.now)
+            clock.now += 61.0
+            return _FakeConnection([], [_FakeResponse(500)])
 
-        out = tp.send_batches([([], b"{}")] * 5, _dest(), factory,
-                              clock=clock, stream=io.StringIO())
-        assert len(connect_log) <= tp.MAX_ATTEMPTS_PER_RUN
-        assert clock.now >= tp.RUN_TIMEOUT_SECONDS or out.status == 0
+        tp.send_batches([([], b"{}") for _ in range(5)], _dest(), factory,
+                        clock=clock, stream=io.StringIO(),
+                        best_effort=best_effort, run_started=0.0)
+        assert len(connect_log) == 2, (
+            f"third request would start at {clock.now}s, past the "
+            f"{tp.RUN_TIMEOUT_SECONDS}s run bound; issued at {connect_log}"
+        )
 
     def test_a_request_beginning_near_the_deadline_cannot_outlive_it(self):
         """A request begun at second 119 must not be allowed to run to 149.
@@ -349,18 +364,124 @@ class TestResponseBound:
         log, err = [], io.StringIO()
         out = tp.send_batches(
             [([], b"{}")], _dest(),
-            _factory(log, [_FakeResponse(200, {}, oversize)] * 3),
+            _factory(log, [_FakeResponse(200, {}, b"x" * (tp.MAX_RESPONSE_BYTES + 1)) for _ in range(3)]),
             clock=_Clock(), stream=err,
         )
         assert out.status == 1
         assert "exceeds" in err.getvalue()
 
     def test_a_body_at_the_ceiling_is_accepted(self):
-        at_limit = b'{"x":"' + b"y" * (tp.MAX_RESPONSE_BYTES - 9) + b'"}'
-        assert len(at_limit) <= tp.MAX_RESPONSE_BYTES
+        """EXACTLY at the ceiling, not one byte under.
+
+        A fixture one byte short cannot tell `>` from `>=`, so flipping the
+        comparison rejects a legal 1 MiB body while every test still passes.
+        """
+        head, tail = b'{"x":"', b'"}'
+        at_limit = head + b"y" * (tp.MAX_RESPONSE_BYTES - len(head) - len(tail)) + tail
+        assert len(at_limit) == tp.MAX_RESPONSE_BYTES
         out = tp.send_batches(
             [([], b"{}")], _dest(),
             _factory([], [_FakeResponse(200, {}, at_limit)]),
             clock=_Clock(), stream=io.StringIO(),
         )
         assert out.status == 0
+
+
+class TestReviewRegressions:
+    """Cases the implementation review found in the transport."""
+
+    @pytest.mark.parametrize("name", ["Retry-After", "retry-after", "RETRY-AFTER"])
+    def test_retry_after_is_found_whatever_case_the_server_used(self, name):
+        """HTTP field names are case-insensitive (RFC 9110) and HTTP/2 mandates
+        lowercase. `getheaders()` preserves what the server sent, so a literal
+        "Retry-After" lookup silently ignored the backoff and retried at once."""
+        slept = []
+        tp.send_batches(
+            [([], b"{}")], _dest(),
+            _factory([], [_FakeResponse(503, {name: "10"}), _FakeResponse(200)]),
+            clock=_Clock(), sleep=slept.append, stream=io.StringIO(),
+        )
+        assert slept and abs(slept[0] - 10.0) < 0.01, f"{name} was not honoured"
+
+    def test_a_zero_count_partial_success_is_still_a_partial_success(self):
+        """The criteria key on the OBJECT being non-empty, not the count.
+
+        A receiver saying "I rejected records, here is why" with a zero count was
+        read as complete success and exited 0.
+        """
+        payload = json.dumps(
+            {"partialSuccess": {"rejectedLogRecords": 0, "errorMessage": "invalid"}}
+        ).encode()
+        err = io.StringIO()
+        out = tp.send_batches([([], b"{}")], _dest(),
+                              _factory([], [_FakeResponse(200, {}, payload)]),
+                              clock=_Clock(), stream=err)
+        assert out.partial_success is True
+        assert out.status == 1
+        assert "partial success" in err.getvalue()
+
+    def test_an_absent_or_empty_partial_success_is_success(self):
+        for payload in (b"{}", b'{"partialSuccess":{}}', b""):
+            out = tp.send_batches([([], b"{}")], _dest(),
+                                  _factory([], [_FakeResponse(200, {}, payload)]),
+                                  clock=_Clock(), stream=io.StringIO())
+            assert out.status == 0 and out.partial_success is False, payload
+
+    def test_best_effort_does_not_forgive_a_partial_success(self):
+        """AC-0012 scopes the allowance to a send FAILURE. This send succeeded --
+        HTTP 200 -- and the receiver refused records on their content, which
+        AC-0054 makes an unconditional exit 1."""
+        payload = json.dumps({"partialSuccess": {"rejectedLogRecords": 3}}).encode()
+        out = tp.send_batches([([], b"{}")], _dest(),
+                              _factory([], [_FakeResponse(200, {}, payload)]),
+                              clock=_Clock(), stream=io.StringIO(), best_effort=True)
+        assert out.status == 1
+
+    def test_best_effort_still_forgives_an_ordinary_send_failure(self):
+        out = tp.send_batches([([], b"{}")], _dest(),
+                              _factory([], [_FakeResponse(500) for _ in range(3)]),
+                              clock=_Clock(), stream=io.StringIO(), best_effort=True)
+        assert out.status == 0
+
+    def test_a_trickling_response_is_abandoned_at_the_request_deadline(self):
+        """A socket timeout bounds each recv, not the request. One byte every
+        29 seconds kept every operation inside a 30-second timeout while the
+        request as a whole ran without limit."""
+        clock = _Clock()
+
+        class _Trickle:
+            def getheaders(self):
+                return []
+
+            def read(self, amount):
+                clock.now += 29.0     # inside any per-operation timeout
+                return b"x"           # ... and never finishes
+
+            status = 200
+
+        def factory(scheme, host, port, timeout, context):
+            return _FakeConnection([], [_Trickle()])
+
+        err = io.StringIO()
+        out = tp.send_batches([([], b"{}")], _dest(), factory,
+                              clock=clock, stream=err, run_started=0.0)
+        assert out.status == 1
+        assert "deadline" in err.getvalue()
+
+    def test_an_unsplittable_oversize_record_is_not_sent_and_is_reported(self):
+        """AC-0019's ceiling is unconditional. A single record over it cannot be
+        split, so it is refused and reported rather than sent."""
+        encode = lambda batch: json.dumps([dict(r) for r in batch]).encode()
+        seen = []
+        batches = list(tp.batch_records(
+            [{"pad": "x" * (tp.MAX_BODY_BYTES + 100)}], encode, on_oversize=seen.append))
+        assert batches == []
+        assert seen and seen[0] > tp.MAX_BODY_BYTES
+
+    def test_a_malformed_endpoint_is_refused_without_leaking_its_bytes(self):
+        """`urlsplit` interpolates the ORIGINAL netloc into its ValueError, so an
+        unguarded call put an unsanitised endpoint on stderr."""
+        with pytest.raises(tp.DestinationRefused) as excinfo:
+            tp.resolve_destination("https://ho\x1bst／evil:4318/v1/logs")
+        message = str(excinfo.value)
+        assert all(not (ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F) for c in message)

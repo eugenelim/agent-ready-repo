@@ -295,3 +295,61 @@ class TestAnyValue:
         for _ in range(MAX_NESTING_DEPTH - 1):
             value = {"n": value}
         assert any_value(value) is not None
+
+
+class TestReviewRegressions:
+    """Cases the implementation review found. Each names the input that broke."""
+
+    def test_a_calendar_invalid_timestamp_skips_its_record_not_the_run(self):
+        """`2026-02-30` matches the RFC 3339 shape; only the parse knows February.
+
+        Before the repair this escaped as ValueError and killed the whole run,
+        so one bad record cost every good one in the same file.
+        """
+        with pytest.raises(RecordSkipped):
+            to_unix_nanos("2026-02-30T00:00:00Z", "rfc3339")
+        good = {"at": "2026-09-13T05:52:24Z", "result": "success", "run_id": "r", "seq": 1}
+        bad = dict(good, at="2026-02-30T00:00:00Z")
+        body = encode_records([good, bad, good], _reference(), "svc", on_skip=lambda i, m: None)
+        assert len(_records_of(body)) == 2, "a bad date must not cost the good records"
+
+    @pytest.mark.parametrize("severity", [[], {}, {"a": 1}, [1, 2]])
+    def test_an_unhashable_severity_is_unmapped_not_a_crash(self, severity):
+        """`value in severity_map` hashes its left operand; a list raised TypeError."""
+        record = {"at": "2026-09-13T05:52:24Z", "result": severity, "run_id": "r", "seq": 1}
+        seen = []
+        entries = _one(record, on_unmapped_severity=seen.append)
+        assert len(entries) == 1
+        assert "severityNumber" not in entries[0]
+        assert len(seen) == 1
+
+    def test_an_over_depth_value_omits_its_whole_attribute_and_is_reported(self):
+        """The attribute must disappear, not survive as an empty container.
+
+        Filtering the too-deep member out of its parent left every ancestor
+        non-None, so the key was emitted carrying an empty kvlist and the
+        `dropped_deep` report never fired -- it was dead code.
+        """
+        deep = "leaf"
+        for _ in range(MAX_NESTING_DEPTH + 2):
+            deep = {"n": deep}
+        record = {"at": "2026-09-13T05:52:24Z", "result": "success",
+                  "run_id": "r", "seq": 1, "budgets": deep}
+        dropped = []
+        entries = _one(record, on_dropped_deep=dropped.append)
+        keys = {a["key"] for a in entries[0]["attributes"]}
+        assert "budgets" not in keys, "the whole attribute must be omitted"
+        assert dropped == ["budgets"], "and the key reported exactly once"
+
+    def test_a_record_missing_a_declared_identity_field_is_not_emitted(self):
+        """AC-0023 says every emitted record carries its identity attributes.
+
+        A record emitted without them is a row nothing can deduplicate, which is
+        worse than no row -- so it is skipped and reported, the same disposition
+        AC-0066 gives a record with no usable timestamp.
+        """
+        record = {"at": "2026-09-13T05:52:24Z", "result": "success", "seq": 1}
+        skips = []
+        entries = _one(record, on_skip=lambda i, m: skips.append(m))
+        assert entries == []
+        assert skips and "run_id" in skips[0]

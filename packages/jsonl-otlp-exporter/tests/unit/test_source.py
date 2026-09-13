@@ -310,3 +310,38 @@ class TestInputImmutability:
         before = {p for p in tmp_path.rglob("*")}
         _records(target, tmp_path)
         assert {p for p in tmp_path.rglob("*")} == before
+
+
+class TestDeadlineWhileBytesKeepArriving:
+    """AC-0042 — the `--for` bound must hold whether or not the file goes quiet.
+
+    The deadline used to be tested only in the "no bytes available" branch, so a
+    file being appended at least as fast as it is parsed never reached it and the
+    run was unbounded. This drives many full chunks so the reader never once sees
+    an empty read, and the clock passes the deadline while data is still coming.
+    """
+
+    def test_the_run_ends_even_though_every_read_returns_data(self, tmp_path):
+        line = json.dumps({"a": 1, "pad": "x" * 200}) + "\n"
+        target = _write(tmp_path / "e.jsonl", line * 4000)  # many 64 KiB reads
+        clock = _FakeClock(step=1.0)
+        fd = src.open_input(target, tmp_path)
+        try:
+            records = list(src.iter_records(fd, for_seconds=3, clock=clock, poll_interval=0))
+        finally:
+            os.close(fd)
+        assert records, "the run must deliver what it read before the deadline"
+        assert len(records) < 4000, (
+            f"all {len(records)} records were read: the deadline was never "
+            "evaluated while bytes kept arriving"
+        )
+
+    def test_without_a_deadline_the_whole_file_is_read(self, tmp_path):
+        """The control's other half: the bound must not truncate an unbounded run."""
+        line = json.dumps({"a": 1, "pad": "x" * 200}) + "\n"
+        target = _write(tmp_path / "e.jsonl", line * 4000)
+        fd = src.open_input(target, tmp_path)
+        try:
+            assert len(list(src.iter_records(fd))) == 4000
+        finally:
+            os.close(fd)

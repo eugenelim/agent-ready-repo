@@ -76,9 +76,23 @@ def open_input(path: Path | str, root: Path | str | None = None) -> int:
         raise InputRefused(f"input path names no file: {target}")
 
     try:
-        root_fd = os.open(root_path, os.O_RDONLY | _DIRECTORY)
+        before_root = os.lstat(root_path)
+        root_fd = os.open(root_path, os.O_RDONLY | _DIRECTORY | os.O_NOFOLLOW)
     except OSError as exc:
         raise InputRefused(f"--root is not an openable directory: {root_path}") from exc
+    if _identity(os.fstat(root_fd)) != _identity(before_root):
+        os.close(root_fd)
+        raise InputRefused(f"--root changed identity while being opened: {root_path}")
+    # The anchor gets the same treatment as the leaf: opened no-follow, with its
+    # identity compared against what was examined. Without this the walk proved
+    # containment relative to whatever directory the root NAME pointed at when it
+    # was opened, not relative to the directory that was resolved.
+    #
+    # Residual, stated rather than implied: an intermediate component of the
+    # root path itself can still be swapped between `Path.resolve()` above and
+    # this open. Closing that needs a component-by-component walk from the
+    # filesystem root, and the attack needs write access to a parent of --root,
+    # which is a stronger position than this tool defends against.
 
     open_fds = [root_fd]
     try:
@@ -169,6 +183,12 @@ def iter_records(
     discarding = False
 
     while True:
+        # Checked on EVERY pass, not only when the file went quiet. A file being
+        # appended at least as fast as it is parsed never reaches the no-bytes
+        # branch, so a deadline tested only there is never evaluated at all and
+        # `--for` does not bound the run.
+        if deadline is not None and clock() >= deadline:
+            return
         chunk = os.read(fd, 65536)
         if chunk:
             buffer.extend(chunk)

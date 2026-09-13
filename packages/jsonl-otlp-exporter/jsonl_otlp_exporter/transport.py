@@ -113,7 +113,17 @@ class Destination:
 def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = None) -> Destination:
     """Check the endpoint and pin the address the request will be issued to."""
     resolver = resolver or socket.getaddrinfo
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+        _ = parts.port  # also raises on a non-numeric port
+    except ValueError as exc:
+        # `urlsplit` interpolates the ORIGINAL netloc into its message, so
+        # letting this escape puts an unsanitised endpoint -- control characters
+        # and all -- on stderr, which is exactly what AC-0045 forbids.
+        # `render_endpoint` handles its own ValueError and cannot re-raise.
+        raise DestinationRefused(
+            f"endpoint is not a usable URL: {render_endpoint(url)} ({type(exc).__name__})"
+        ) from exc
 
     if parts.scheme not in ("https", "http"):
         raise DestinationRefused(
@@ -153,6 +163,7 @@ def batch_records(
     encode: Callable[[Sequence[Mapping[str, Any]]], bytes],
     max_records: int = MAX_RECORDS_PER_REQUEST,
     max_bytes: int = MAX_BODY_BYTES,
+    on_oversize: Callable[[int], None] | None = None,
 ) -> Iterator[tuple[list[Mapping[str, Any]], bytes]]:
     """Yield (records, encoded body) pairs, each inside both bounds.
 
@@ -169,22 +180,32 @@ def batch_records(
         pending.append(record)
         if len(pending) < max_records:
             continue
-        yield from _emit(pending, encode, max_bytes)
+        yield from _emit(pending, encode, max_bytes, on_oversize)
         pending = []
     if pending:
-        yield from _emit(pending, encode, max_bytes)
+        yield from _emit(pending, encode, max_bytes, on_oversize)
 
 
-def _emit(batch, encode, max_bytes):
+def _emit(batch, encode, max_bytes, on_oversize=None):
     body = encode(batch)
-    if len(body) <= max_bytes or len(batch) == 1:
-        # A single record over the ceiling cannot be split further. It is still
-        # sent: dropping it would lose data to a bound meant to shape requests.
+    if len(body) <= max_bytes:
         yield list(batch), body
         return
+    if len(batch) == 1:
+        # A single record that alone exceeds the ceiling cannot be split. AC-0019
+        # states the ceiling unconditionally -- "a request body is at most 8 MiB
+        # measured on the encoded bytes about to be sent" -- so it is not sent.
+        # It is reported rather than dropped in silence, because losing a record
+        # without saying so is the worse failure.
+        #
+        # The criterion names the ceiling but no replacement disposition; this
+        # reading is recorded for the owner in the verification ledger.
+        if on_oversize is not None:
+            on_oversize(len(body))
+        return
     middle = len(batch) // 2
-    yield from _emit(batch[:middle], encode, max_bytes)
-    yield from _emit(batch[middle:], encode, max_bytes)
+    yield from _emit(batch[:middle], encode, max_bytes, on_oversize)
+    yield from _emit(batch[middle:], encode, max_bytes, on_oversize)
 
 
 @dataclass
@@ -194,6 +215,7 @@ class SendOutcome:
     requests: int = 0
     rejected_records: int = 0
     reason: str = ""
+    partial_success: bool = False
 
 
 def _retry_after_seconds(raw: str | None) -> int:
@@ -254,7 +276,8 @@ def send_batches(
             out.attempts += 1
             try:
                 status, headers, payload = _post(
-                    destination, body, connection_factory, timeout
+                    destination, body, connection_factory, timeout,
+                    deadline=min(clock() + timeout, run_deadline), clock=clock,
                 )
             except Exception as exc:  # noqa: BLE001 - any transport failure is one outcome
                 print(
@@ -270,7 +293,7 @@ def send_batches(
             received_at = clock()
 
             if status in _REDIRECT_STATUSES:
-                location = headers.get("Location", "")
+                location = headers.get("location", "")
                 print(
                     f"jsonl-otlp-export: refusing a redirect from "
                     f"{destination.safe_url} to {render_endpoint(location)}",
@@ -281,7 +304,7 @@ def send_batches(
                 return out
 
             if status in _RETRYABLE_STATUSES:
-                delay = _retry_after_seconds(headers.get("Retry-After"))
+                delay = _retry_after_seconds(headers.get("retry-after"))
                 if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                     out.status = 1
                     out.reason = "attempt budget exhausted"
@@ -299,12 +322,13 @@ def send_batches(
 
             if 200 <= status < 300:
                 out.requests += 1
-                rejected = _partial_success_rejected(payload)
-                if rejected:
+                present, rejected = _partial_success(payload)
+                if present:
                     out.rejected_records += rejected
+                    out.partial_success = True
                     print(
-                        f"jsonl-otlp-export: the receiver rejected {rejected} record(s) "
-                        f"({destination.safe_url})",
+                        f"jsonl-otlp-export: the receiver reported a partial success "
+                        f"rejecting {rejected} record(s) ({destination.safe_url})",
                         file=stream,
                     )
                     # No retry. A partialSuccess names records the receiver
@@ -325,25 +349,48 @@ def send_batches(
                 return out
             break
 
-    if best_effort:
+    if best_effort and not out.partial_success:
+        # AC-0012 scopes the allowance to "send failure after the retry budget",
+        # and the flag's own help says "even when sending fails". A partial
+        # success is not a send failure: the request succeeded with HTTP 200 and
+        # the receiver refused records on their content. AC-0054 states its exit
+        # obligation unconditionally, and AC-0055 shows the spec writes an
+        # explicit best-effort carve-out when it means one.
         out.status = 0
     return out
 
 
-def _partial_success_rejected(payload: bytes) -> int:
+def _partial_success(payload: bytes) -> tuple[bool, int]:
+    """Return (a non-empty partialSuccess was present, rejected-record count).
+
+    The criteria key on the OBJECT being non-empty, not on the count being
+    positive: a body carrying `{"rejectedLogRecords": 0, "errorMessage": "..."}`
+    is the receiver telling you something went wrong, and reading only the count
+    reports success for it.
+    """
     try:
         parsed = json.loads(payload.decode("utf-8")) if payload else {}
     except (UnicodeDecodeError, json.JSONDecodeError):
-        return 0
-    partial = (parsed or {}).get("partialSuccess") or {}
+        return False, 0
+    partial = (parsed or {}).get("partialSuccess")
+    if not isinstance(partial, dict) or not partial:
+        return False, 0
     try:
-        return int(partial.get("rejectedLogRecords", 0) or 0)
+        return True, int(partial.get("rejectedLogRecords", 0) or 0)
     except (TypeError, ValueError):
-        return 0
+        return True, 0
 
 
-def _post(destination: Destination, body: bytes, connection_factory, timeout: float):
-    """One request. Never follows a redirect; the caller decides what a 3xx means."""
+def _post(destination: Destination, body: bytes, connection_factory, timeout: float,
+          deadline: float | None = None, clock: Callable[[], float] = time.monotonic):
+    """One request, abandoned at `deadline` however slowly it makes progress.
+
+    A socket timeout alone is not enough: it bounds each blocking operation, so a
+    receiver returning one byte every 29 seconds keeps every `recv` inside a
+    30-second timeout while the request as a whole runs without limit. The
+    response is read in bounded chunks with the monotonic deadline checked
+    between them.
+    """
     context = ssl.create_default_context() if destination.scheme == "https" else None
     connection = connection_factory(
         destination.scheme,
@@ -370,11 +417,28 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
         response = connection.getresponse()
         # One byte past the ceiling is read on purpose: reading exactly the
         # ceiling cannot distinguish "at the limit" from "over it".
-        payload = response.read(MAX_RESPONSE_BYTES + 1)
+        remaining = MAX_RESPONSE_BYTES + 1
+        chunks: list[bytes] = []
+        while remaining > 0:
+            if deadline is not None and clock() >= deadline:
+                raise DestinationRefused(
+                    "request abandoned at its deadline while reading the response"
+                )
+            chunk = response.read(min(remaining, 65536))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
         if len(payload) > MAX_RESPONSE_BYTES:
             raise DestinationRefused(
                 f"response body exceeds {MAX_RESPONSE_BYTES} bytes; refused without decoding"
             )
-        return response.status, dict(response.getheaders()), payload
+        # Lowercased keys: field names are case-insensitive per RFC 9110 and
+        # HTTP/2 mandates lowercase, while `getheaders()` preserves exactly what
+        # the server sent. A literal "Retry-After" lookup misses "retry-after"
+        # and the backoff is silently ignored.
+        headers = {name.lower(): value for name, value in response.getheaders()}
+        return response.status, headers, payload
     finally:
         connection.close()

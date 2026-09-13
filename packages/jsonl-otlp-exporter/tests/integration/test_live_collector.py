@@ -61,6 +61,18 @@ def _connection_factory(scheme, connect_host, port, timeout, context):
     return http.client.HTTPConnection(connect_host, port, timeout=timeout)
 
 
+def _require_export_configured() -> None:
+    """Answer the ENVIRONMENT question before sending, never after.
+
+    Asked afterwards, "the file exporter is not configured" and "the run sent
+    nothing" look identical -- so a build whose batching yields no batch returns
+    status 0 and the only check that observes attribute naming downgrades itself
+    to a skip. The environment is knowable up front; the outcome is not.
+    """
+    if not EXPORT.parent.exists():
+        pytest.skip(f"no export directory at {EXPORT.parent}; configure the file exporter")
+
+
 def _stored_records(before_bytes: int, run_id: str) -> list[dict]:
     """Read back only what this test wrote, by offset and by run_id."""
     for _ in range(40):  # the exporter flushes asynchronously
@@ -68,7 +80,11 @@ def _stored_records(before_bytes: int, run_id: str) -> list[dict]:
             break
         time.sleep(0.25)
     else:
-        pytest.skip(f"no export written at {EXPORT}; is the file exporter configured?")
+        raise AssertionError(
+            f"the send reported success but nothing was stored at {EXPORT}. "
+            "The receiver accepted a request that carried no record, or the "
+            "exporter produced no request at all."
+        )
 
     with EXPORT.open("rb") as handle:
         handle.seek(before_bytes)
@@ -102,6 +118,7 @@ def test_each_field_reaches_the_destination_its_profile_declares():
     def encode(batch):
         return json.dumps(encode_records(batch, profile, service_name="reference")).encode("utf-8")
 
+    _require_export_configured()
     before = EXPORT.stat().st_size if EXPORT.exists() else 0
     destination = resolve_destination(ENDPOINT)
     outcome = send_batches(batch_records(records, encode), destination, _connection_factory)
