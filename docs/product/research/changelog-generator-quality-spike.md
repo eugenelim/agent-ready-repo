@@ -338,6 +338,71 @@ rate of drafting quality — scoring them as drafting failures would be false. A
 clean measurement of drafting needs a boundary rule that proves release
 ownership first.
 
+## Result 6 — four boundary rules at n=20: one never pollutes, none is complete
+
+Result 5 named the boundary rule as the collector's first measured defect. Four
+candidate rules were compared over the 20 most recent single-artifact entries,
+scored by two detectors that do not depend on which rule produced the window:
+**foreign** (an admitted commit's message names a different version of the same
+artifact — the signal the independent judge used) and **span** (another release's
+boundary falls inside the window).
+
+| Rule | Clean | Polluted | Empty | No boundary |
+| --- | ---: | ---: | ---: | ---: |
+| R1 first manifest declaration *(shipped)* | 12 | **4** | 4 | 0 |
+| R2 last manifest declaration | 12 | **4** | 4 | 0 |
+| **R3 commit that added the changelog heading** | 12 | **0** | 8 | 0 |
+| R4 commit that bumps the manifest *and* touches the changelog | 10 | 3 | 3 | 4 |
+
+**Release tags were ruled out before testing.** 113 tags exist, but they cover
+only `agentbundle` (60) and `credbroker` (7) — 2 of the 24 artifacts that
+release. No pack carries one.
+
+### R3 never admits another release's commits
+
+Zero polluted windows, against four for both manifest rules. Keying the boundary
+on the changelog heading also needs no manifest at all, which dissolves Result
+3's 15 undiscoverable boundaries: every released entry has a heading by
+construction.
+
+### But no rule is complete, and R3 fails more often — differently
+
+R3 returns 8 empty windows against 4. The counts of *usable* windows are
+therefore identical at 12 of 20 for R1, R2 and R3; what differs is the failure
+mode.
+
+A hybrid — R3's boundary, falling back to R2 when empty — **recovers nothing**,
+and this is derivable from the data rather than needing another run. R3's eight
+empty windows are exactly R1/R2's four empties plus R1/R2's four *polluted*
+windows. Every window R3 leaves empty is either empty under the manifest rules
+too, or only non-empty there because it is polluted.
+
+That splits the 20 cleanly:
+
+- **12 — clean under R3.**
+- **4 — empty under every rule.** `core` 2.25.20, 2.25.18, 2.25.14, 2.25.10 have
+  no admitted commits in the artifact's subtree at all. That is a *path-filter*
+  limit, not a boundary one: the work sat outside `packs/core/`.
+- **4 — separable by no tested rule.** `core` 2.25.19, 2.25.17, 2.25.13, 2.25.9
+  are empty under R3 and polluted under R1/R2.
+
+### Why R3 is still the right rule
+
+Equal usable rate, but its failures are **empty rather than wrong**. An empty
+window reports that it found nothing to draft from; a polluted window produces a
+confident entry describing the wrong release, which is exactly what produced
+Result 5's two zero-coverage drafts. Fail-loud beats fail-wrong when the output
+is published prose.
+
+### A finding that outlives the rule choice
+
+Both the heading and the version bump can enter the mainline through a **merge
+resolution**, and `git log -S` does not show a merge's diff. The first run of
+this comparison reported that `core` 2.25.19's heading — plainly present in the
+file — had never been introduced by any commit. Eight boundaries were missing for
+that reason alone. Any collector must search merge diffs (`--diff-merges=first-parent`)
+or it will silently conclude that released versions do not exist.
+
 ## What this means for the design
 
 The three parts separate along the line this spike measured — with the caveat
@@ -408,10 +473,13 @@ stands.
   4 after light edit, 2 needing rewrite, 2 wrong content. Four windows were wrong
   or polluted, so this measures the collector as much as the drafter. **Re-run it
   after the boundary rule is repaired** for a clean figure.
-- **Known-unknown:** Does a boundary rule keyed on something other than
-  manifest-declaration order select the right release? Would be closed by:
-  re-running Result 5's ten windows against a candidate rule — release tags, or
-  the changelog entry's own commit — and counting wrong or polluted windows.
+- **Answered** by Result 6: the changelog-heading rule admits no foreign
+  commits in 20 windows, against 4 for both manifest rules; release tags cover
+  only 2 of 24 artifacts and were ruled out. No rule is complete — 8 of 20
+  windows come back empty under it.
+- **Known-unknown:** Where does the work for the 4 windows that are empty under
+  every rule actually live? Would be closed by: widening the path filter beyond
+  the artifact's subtree for those four releases and seeing what appears.
 - **Known-unknown:** Can the before-value be recovered mechanically? Would be
   closed by: checking whether the diff of the release commit yields the prior
   value for the kind of setting a changelog bullet cites, since the commit

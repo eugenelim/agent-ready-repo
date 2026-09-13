@@ -243,7 +243,7 @@ inherits that same open question**, not a conclusion this spike closes.
 
 | Part | Verdict | Load-bearing evidence |
 | --- | --- | --- |
-| Collector | **Selection yes, boundary no** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet. But the version-bump boundary resolves the *wrong release* — see [inputs spike](changelog-generator-quality-spike.md) Result 5 |
+| Collector | **Selection yes; boundary must move to the changelog heading** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet. The version-bump boundary resolves the *wrong release* (Result 5); the heading-commit rule never does, though it leaves 8 of 20 windows empty (Result 6) |
 | Generator | **Undecided, bounded** | inputs are sufficient, but no draft was generated and compared; it may draft `Highlights` prose but cannot be the authority for it |
 | Time as the routing key | **No** | 72% of release dates carry 2+ artifacts; route by path + version bump. Time remains fine as a run bound |
 
@@ -267,9 +267,16 @@ precisely what the repository's header already prescribes.
 
 ## Recommended order of work
 
-1. **Repair the boundary rule first.** Manifest-declaration order is not release
-   order, and every later step inherits the wrong commits when it is wrong. Until
-   a rule is shown to name the right release, steps 2 and 3 rest on sand.
+1. **Key the boundary on the changelog heading, not the manifest.** Manifest
+   declaration order is not release order. Measured over 20 windows, the
+   heading-commit rule admitted no foreign release's commits where both manifest
+   rules polluted 4; it also needs no manifest, which dissolves the 15
+   undiscoverable boundaries above. It is not complete — 8 of 20 windows come
+   back empty — but an empty window reports that it found nothing, where a
+   polluted one confidently describes the wrong release. Search merge diffs when
+   resolving it: a heading can enter through a merge resolution, which plain
+   `git log -S` never shows. Detail in
+   [the inputs spike](changelog-generator-quality-spike.md) Result 6.
 2. **Collector only.** A read-only report: given an artifact, resolve its previous
    released version and list the commits in that subtree,
    **carrying each commit's change type** and applying the provisional exclusion
