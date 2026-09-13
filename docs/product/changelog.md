@@ -54,13 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.19] — 2026-09-13
+## [core][2.25.20] — 2026-09-13
 
 ### Changed
 
 - `docs/specs/README.md` describes the spec directory convention and carries no
   index table. Specs are discovered by listing the directory. `new-spec` no longer
   maintains a list.
+- The CONVENTIONS seed's ADR and RFC sections point at their index and say it is
+  generated from the records, so a reader knows to regenerate rather than edit.
 
 ## [agentbundle][0.44.1] — 2026-09-13
 
@@ -69,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seed lint no longer requires a placeholder table in the spec README seed,
   which now carries the directory convention and no index.
 
-## [governance-extras][0.11.0] — 2026-09-13
+## [governance-extras][0.10.7] — 2026-09-13
 
 ### Added
 
