@@ -382,7 +382,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   against one intent that violates at least two conditions and observes exactly
   the matching `MALFORMED` tokens.
 - [ ] A recorded manual-QA run dispatches `shaping-reviewer` `intent` mode
-  against one well-formed intent and observes empty output.
+  against one well-formed intent and observes no `MALFORMED` token. Token
+  absence is the predicate here, matching what the callers gate on; whether a
+  conforming pass must also be byte-empty is the conformance question recorded
+  in the ledger, and this criterion does not decide it.
 - [ ] A recorded manual-QA run dispatches `adversarial-reviewer` `intent` mode
   against one intent whose riskiest assumption is named but untested, and
   observes at least one open question with a named decider or one validation
@@ -392,8 +395,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] A recorded manual-QA run dispatches four intents against the rebuilt
   projection, each carrying no decomposition, and observes exactly one token
   across the set: the above-leaf `Accepted` case emits `MALFORMED(children)`,
-  and the other three are silent. Each silent case earns its place by differing
-  from the firing case in one named respect:
+  and the other three are silent. Two of the silent cases differ from the firing
+  case in one respect each and are what make the firing attributable; the third
+  differs in both and is in the set because it is the state the pipeline
+  produces most often and must pass:
   - leaf level, `Accepted` — differs in level alone, so its silence is what
     attributes the firing to the level;
   - above the leaf, `Draft` — differs in status alone, so its silence is what
@@ -401,10 +406,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   - leaf level, `Draft` — differs in both, attributes nothing by itself, and is
     in the set because it is the state the authoring pipeline produces most
     often and must pass.
-- [ ] Every observation this section requires is recorded at one revision,
-  against one `shaping-reviewer` projection hash recorded beside it. A
-  comparison drawn across two revisions is not an attribution, because the body
-  may have moved in the paragraph the compared respect keys on.
+- [ ] Every observation this section requires is recorded against the same
+  `shaping-reviewer` projection hash, and that hash is recorded beside it. The
+  hash is the anchor because it names the bytes the reviewer ran; the revision
+  is recorded as provenance and may differ between observations, since a commit
+  can move the tree without moving the projection. A comparison drawn across two
+  different projection hashes is not an attribution, because the body may have
+  moved in the paragraph the compared respect keys on.
 - [ ] A recorded manual-QA run observes the unplaceable-level cases against
   fixtures that satisfy every other trigger of the absence branch — no listed
   decomposition, and `Status: Accepted` — one declaring no level and one

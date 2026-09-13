@@ -676,7 +676,10 @@ and wait for the reviewer to finish before creating any commit.
 
 ## T12 — final observation batch, 2026-09-12
 
-Nine dispatches, one batch, one revision, one pair of hashes.
+Ten dispatches against one `shaping-reviewer` projection hash. Nine ran as one
+batch at a single revision; fixture J was dispatched afterwards, at a later
+revision that moved documentation only and left the projection byte-identical.
+The hash is what every comparison in this section rests on.
 
 **What this batch supersedes, stated precisely.** It supersedes every earlier
 observation taken against a `shaping-reviewer` body *older* than
@@ -708,10 +711,13 @@ as provenance.
 | `.claude/agents/adversarial-reviewer.md` | `abe20ccf7637ff60f88cbb898eee7049d220185e31e2aab36b3a24d6071676d8` |
 | Dispatched | 2026-09-12, from a session started after the final body edit |
 
-**All nine ran at one revision against one hash.** Both hashes were taken before
-the first dispatch and re-taken after the eighth; neither moved, and
-`git status --porcelain` was empty at both readings, so no mid-run rewrite
-confounds any comparison below. The freshness grep for
+**All ten ran against one projection hash.** For the batch of nine, both agent
+hashes were taken before the first dispatch and re-taken after the last of them,
+fixture I — the adversarial dispatch that closes two criteria — so the bracket
+covers every dispatch in the batch rather than stopping at the eighth. Fixture J
+carries its own before-and-after reading of the `shaping-reviewer` hash. Neither
+reading moved, and `git status --porcelain` was empty at each, so no mid-run
+rewrite confounds any comparison below. The freshness grep for
 `suppresses that absence branch alone` returns 1 in
 `.claude/agents/shaping-reviewer.md`, and no reply contains `conditions 4 or 5`,
 `least-artifact projection`, `core-only viability`, or a "Children question".
