@@ -61,8 +61,13 @@ concurrency:
 #                          build_gate_chain.py; the needs.*.result guard has no
 #                          local counterpart in any target.
 #
-#   all five               make ci   ← the only job-level "local green implies CI
-#                                      green" claim. Use this before pushing.
+#   all five               make ci   ← the broadest local reproduction, and NOT a
+#                                      CI-green guarantee: the gate-export-boundary
+#                                      and gate-credbroker gaps above are exactly
+#                                      the case where it is green and CI is red.
+#                                      It is not the pre-push command either — a PR
+#                                      runs this workflow, and test-corpus.yml plus
+#                                      test-roster.yml cover the rest on dispatch.
 jobs:
   gate-main:
     name: gate-main
