@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0096 §6 and §7 and its 2026-09-03 Errata, which scope Wave 7b to the read-free parent link; [ADR-0106](../../adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md), which decides the three answers and licenses the `Status` pointer this delivery writes; `status-projection-and-context-exclusion`, Shipped and frozen, which owns the child-state set and the AC59 half ADR-0106 supersedes; `workspace-routing-invariants`, Shipped and frozen, whose § *Ask first* governs a new finding code and whose § *Always do* requires the smallest safe next action; `thirty-day-cooling-and-retirement`, Shipped and frozen, which owns what cooling means
+- **Constrained by:** RFC-0096 §6 and §7 and its 2026-09-03 Errata, which scope Wave 7b to the read-free parent link; [ADR-0110](../../adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md), which decides the three answers and licenses the `Status` pointer this delivery writes; `status-projection-and-context-exclusion`, Shipped and frozen, which owns the child-state set and the AC59 half ADR-0110 supersedes; `workspace-routing-invariants`, Shipped and frozen, whose § *Ask first* governs a new finding code and whose § *Always do* requires the smallest safe next action; `thirty-day-cooling-and-retirement`, Shipped and frozen, which owns what cooling means
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** `contracts/jsonschema/workspace-entry.schema.json` — read, not modified
@@ -16,7 +16,7 @@
 
 A cooled spec's workspace entry answers "is this spec a child, and of what?"
 without opening the artifact, which is the one thing cooling forbids.
-`source.parent` carries three answers. [ADR-0106](../../adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md)
+`source.parent` carries three answers. [ADR-0110](../../adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md)
 § *The decision, stated as the three answers* is their one home and states each answer
 with its consequence; this spec does not restate them.
 
@@ -31,7 +31,7 @@ action.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — reversing part of a ticked criterion in a frozen spec is licensed only by an ADR pointer, and admitting a finding code is an `Ask first` boundary | [ADR-0106](../../adr/0106-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md); `notes/ask-first-review.md` | Approver | *The pointer takes the licensed form* | The ADR is Accepted and the pointer resolves |
+| Decision rationale | Applicable — reversing part of a ticked criterion in a frozen spec is licensed only by an ADR pointer, and admitting a finding code is an `Ask first` boundary | [ADR-0110](../../adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md); `notes/ask-first-review.md` | Approver | *The pointer takes the licensed form* | The ADR is Accepted and the pointer resolves |
 | Current architecture | Applicable — a reader arriving at the frozen Wave 6 spec must not follow a rule the repository no longer keeps | `docs/specs/status-projection-and-context-exclusion/spec.md`, `Status` token only | Spec owner | *The frozen body is otherwise unchanged*; *Both sites pinning the edited file carry its new digest*; *The three superseded Wave 6 cases are updated, not deleted* | The frozen body is unchanged apart from that line |
 | Interface compatibility | Applicable — `cooled_child_scope_unknown` joins the public refusal contract | `packs/core/.apm/skills/workspace-status/SKILL.md`; `guides/core/reference/workspace-toml-schema.md` | `workspace-status` owner | *The code is documented where the gate looks*; *The next action says when the empty answer is correct* | Both rows resolve and the documentation gate is green |
 | Reusable learning | Applicable — the derivation basis these criteria are read off | `notes/probes.md` | Spec owner | Each probe records the construction that produced it, runnable from the repository root | Every probe's construction re-runs; a probe's recorded output is the engine state at the time it ran, which this delivery deliberately changes for several of them |
@@ -52,7 +52,7 @@ action.
 ### Ask first
 
 - Add a finding code. Granted 2026-09-03 for `cooled_child_scope_unknown`; recorded in `notes/ask-first-review.md`.
-- Reverse any part of a ticked criterion in a frozen spec. Granted 2026-09-03 for AC59's undeclared half; recorded in ADR-0106.
+- Reverse any part of a ticked criterion in a frozen spec. Granted 2026-09-03 for AC59's undeclared half; recorded in ADR-0110.
 - Change an acceptance criterion belonging to a live sibling delivery. Granted 2026-09-04 for `cooling-scope-closure`'s AC23 digest row naming `status-projection-and-context-exclusion/spec.md`, which the `Status`-line edit necessarily invalidates; recorded in `notes/owner-decisions.md`.
 - Change an existing finding code's meaning or its set of emitters.
 - Attribute an unknown cooled child to a named brief by inference rather than declaration.
@@ -211,7 +211,7 @@ entry is not present with an empty `needs`, which is a different fixture.
 
 - [x] **AC14 — The pointer takes the licensed form.**
   `docs/specs/status-projection-and-context-exclusion/spec.md`'s
-  `- **Status:**` line reads `Shipped (superseded in part by ADR-0106 — ` then a
+  `- **Status:**` line reads `Shipped (superseded in part by ADR-0110 — ` then a
   clause naming `AC59`, then `; everything else stands)`.
 - [x] **AC15 — The frozen body is otherwise unchanged.** Substituting that
   file's `- **Status:**` line with the content that line has at this branch's
@@ -309,6 +309,6 @@ entry is not present with an empty `needs`, which is a different fixture.
 - Technical: `docs/lifecycle/` holds no records, so nothing has cooled and the refusal costs nothing on this checkout (source: `ls docs/lifecycle`)
 - Technical: a finding's `detail` field reaches no consumer, so the two unestablished causes cannot be distinguished by it (source: `notes/probes.md` probe 10)
 - Process: a new finding code needs a reason and a next action in both documentation homes in the same commit, because the shipped gate checks a superset over `set(engine._FINDING_NEXT_ACTIONS)` across both (source: `tests/roster/test_workspace_status_projection.py`)
-- Process: reversing part of a ticked criterion in a frozen spec is licensed only by a `Status`-token parenthetical citing an ADR (source: `docs/CONVENTIONS.md:111` and `:143-185` § *Superseding a frozen document*; granted by the owner 2026-09-03, recorded in ADR-0106)
+- Process: reversing part of a ticked criterion in a frozen spec is licensed only by a `Status`-token parenthetical citing an ADR (source: `docs/CONVENTIONS.md:111` and `:143-185` § *Superseding a frozen document*; granted by the owner 2026-09-03, recorded in ADR-0110)
 - Process: `tests/roster/` sits outside the frozen unit, which `docs/CONVENTIONS.md:119-121` scopes to the spec directory, so the three superseded Wave 6 cases may be updated
 - Product: `cooled_child_scope_unknown` is the accepted code name (source: `notes/owner-decisions.md` § *2026-09-03 — `cooled_child_scope_unknown` is the code's name*)

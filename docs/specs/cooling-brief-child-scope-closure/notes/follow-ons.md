@@ -46,7 +46,7 @@ delivery's to make.
 
 **Why it is not a blocker.** The direction of the residual is fail-open on a
 value a human wrote into a reviewed, committed file, which is the same trust
-`workspace.toml` already carries for every other routing fact. ADR-0106 records
+`workspace.toml` already carries for every other routing fact. ADR-0110 records
 the limitation as accepted in its § *Consequences*, and this delivery's
 contribution is that the *undeclared* case — the one nobody asserted anything
 about — is no longer silent.
@@ -131,7 +131,7 @@ citations already violate it:
 | `workspace_status.py` | 722 | `AC28` |
 | `workspace_status.py` | 791 | `AC29` |
 
-(The eighth was this delivery's own `ADR-0106`, since removed.)
+(The eighth was this delivery's own `ADR-0110`, since removed.)
 
 **What this delivery did.** Wrote the limitation directly instead of citing the
 ADR, so its additions add nothing to the count. The pre-existing seven are left

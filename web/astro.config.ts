@@ -3,7 +3,7 @@ import sitemap from '@astrojs/sitemap';
 
 // The Astro marketing site is the platform-site anchor at `/`; Starlight
 // reference docs are co-deployed at `/docs/` from `docs-site/` (RFC-0061,
-// platform-site spec, ADR-0055).
+// platform-site spec, ADR-0109).
 //
 // Build order is load-bearing: `astro build` cleans `outDir` on every run, so
 // this web/ build MUST run BEFORE the `docs-site/` Starlight build writes into

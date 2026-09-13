@@ -6,9 +6,9 @@
 - **Date opened:** 2026-08-17
 - **Date closed:** 2026-08-17
 - **Decision weight:** heavy (ratifies a permanent top-level project and
-  partially supersedes accepted ADR-0055; requires bounded de-risk evidence and
+  partially supersedes accepted ADR-0109; requires bounded de-risk evidence and
   explicit Approver sign-off)
-- **Related:** [ADR-0055](../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md),
+- **Related:** [ADR-0109](../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md),
   [RFC-0061](0061-web-top-level-directory.md),
   [`starlight-migration`](../specs/starlight-migration/spec.md),
   [`docs-site-design-refresh`](../specs/docs-site-design-refresh/spec.md),
@@ -41,7 +41,7 @@
   documentation, sibling to the existing `web/` Astro marketing project. Keep
   their renderers independent but publish their output as one ordered,
   verified artifact.
-- **Why now (situation–complication–question):** ADR-0055 selected Starlight and
+- **Why now (situation–complication–question):** ADR-0109 selected Starlight and
   the migration has shipped. RFC-0061 authorized `web/`, but the permanent
   `docs-site/` top-level directory still lacks the equivalent structural
   record required by repository governance. The question is whether to ratify
@@ -67,7 +67,7 @@ are projected into Starlight by `tools/build-site.py`.
 
 The implementation is already shipped, but its governance record is
 asymmetric. RFC-0061 explicitly authorized the `web/` top-level directory.
-ADR-0055 chose Starlight over the previous documentation renderer, but it did
+ADR-0109 chose Starlight over the previous documentation renderer, but it did
 not authorize the resulting permanent top-level project. Repository rules
 require an RFC before a new top-level directory becomes permanent. Leaving the
 gap open makes future work reconstruct whether `docs-site/` is temporary,
@@ -75,7 +75,7 @@ whether it contains the marketing site, and whether the two projects are meant
 to converge.
 
 The frozen migration record also preserves a decision that is no longer
-current: ADR-0055's token-sharing rationale and the shipped migration spec's
+current: ADR-0109's token-sharing rationale and the shipped migration spec's
 amber-palette criteria describe the site at migration time. The later shipped
 `docs-site-design-refresh` spec removed that import, established a
 self-contained cobalt docs palette, and recorded the divergence in living
@@ -130,9 +130,9 @@ seams. Shared product identity is expressed through approved information
 architecture, destination vocabulary, and generated content data rather than
 shared CSS or runtime components.
 
-D2 deliberately supersedes only the palette/token-sharing part of ADR-0055
+D2 deliberately supersedes only the palette/token-sharing part of ADR-0109
 and the corresponding amber/token assertions in the frozen
-`starlight-migration` spec. ADR-0055 remains authoritative for Starlight,
+`starlight-migration` spec. ADR-0109 remains authoritative for Starlight,
 the sibling project boundary, the Node/Astro toolchain, and build order. On
 RFC acceptance, a focused follow-on ADR records the renderer-local palette
 decision; the earlier ADR and frozen spec then receive Status-only partial-
@@ -268,7 +268,7 @@ adversarial and cold-reader gates complete.
 
 ### Repository precedent
 
-- [ADR-0055](../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md)
+- [ADR-0109](../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md)
   selects Starlight for technical documentation and records the project/build
   boundary; its palette/token rationale is the narrow part D2 supersedes.
 - [RFC-0061](0061-web-top-level-directory.md) authorizes the sibling marketing
@@ -306,9 +306,9 @@ formal governance ratification occurs only if this RFC is accepted.
 
 - ADR: [ADR-0085](../adr/0085-docs-rendering-is-site-local.md) records that
   docs palette and renderer implementation are site-local and supersedes the
-  token-sharing part of ADR-0055.
+  token-sharing part of ADR-0109.
 - Spec: [`site-contract-provenance-cleanup`](../specs/site-contract-provenance-cleanup/spec.md)
-  applies Status-only partial-supersession pointers to ADR-0055 and the frozen
+  applies Status-only partial-supersession pointers to ADR-0109 and the frozen
   `starlight-migration` spec after that ADR exists.
 - Spec: [`docs-site-build-contract-hardening`](../specs/docs-site-build-contract-hardening/spec.md)
 - Spec: [`site-ci-contract-closure`](../specs/site-ci-contract-closure/spec.md)

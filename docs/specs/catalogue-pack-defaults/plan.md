@@ -12,7 +12,7 @@ Four parallel changes land in one PR: (1) JSON schema + dataclass updates to acc
 
 ## Constraints
 
-- RFC-0074: `user-dir` must resolve under `$HOME`; rejected at both `compile_defaults` and `agentbundle install`.
+- RFC-0101: `user-dir` must resolve under `$HOME`; rejected at both `compile_defaults` and `agentbundle install`.
 - ADR-0059: `compile_defaults` must emit alphabetically sorted pack names and keys.
 - ADR-0058: `user-root` is written only to rows this install writes; pre-existing rows are not touched.
 - `STATE_SCHEMA_VERSION` stays at `"0.4"` — `user-root` is optional with a read-time default.

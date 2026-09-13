@@ -16,7 +16,7 @@ A small, surgical prose + routing change to two existing `core`-pack skill sourc
 
 - ADR-0037 D1 — **one gate, two surfaces; no parallel skill** (the load-bearing rail).
 - ADR-0034 Principle 1 — no bundled per-vendor/per-library data.
-- RFC-0047 Decisions 1, 2 — extend the gate; source via detect-and-recommend; MCP is Tier-1 detect-and-stop.
+- RFC-0100 Decisions 1, 2 — extend the gate; source via detect-and-recommend; MCP is Tier-1 detect-and-stop.
 - The 3-tier dependency policy (reviewer-enforced) — MCP/retrieval surface never Tier-2.
 - `feedback_self_host_projection` — edit pack **source**, never the projection; `make build-self` is the gate.
 
@@ -95,7 +95,7 @@ Pure prose/routing change to `core`-pack skill sources, projected by `make build
 
 ## Changelog
 
-- 2026-06-25: initial plan (RFC-0047 Layer A follow-on).
+- 2026-06-25: initial plan (RFC-0100 Layer A follow-on).
 - 2026-06-25: folded pre-EXECUTE adversarial findings — T2 present-source consult-and-cite grep (Concern 1); named `notes/manual-qa.md` recording location (Concern 2); T3 widens the re-derivation bullet's firing condition, not just the slice noun (Concern 3); `author-a-skill` referenced as the how-to guide it is (Nit 4).
 - 2026-06-25: progressive-disclosure trim of work-loop REVIEW infra blocks (kept the file under the 1000-line skill-spec cap; depth already in `references/infra-verification.md`).
-- 2026-06-25: **scope broadened** (RFC-0047 § Errata) from "mirror T2 only" to the **full tiered oracle protocol** for software — added T0 (version detect), T1 (type-checker/compiler + API-surface extract), T3 (versioned docs), runtime probe, and software oracle-tier honesty to `contract-acquisition/SKILL.md`; per-ecosystem commands to `references/oracle-table.md`; ACs 9–12. Research-backed (type checkers / stubs / introspection / version-pinning / runtime probes as the deterministic library-contract oracles).
+- 2026-06-25: **scope broadened** (RFC-0100 § Errata) from "mirror T2 only" to the **full tiered oracle protocol** for software — added T0 (version detect), T1 (type-checker/compiler + API-surface extract), T3 (versioned docs), runtime probe, and software oracle-tier honesty to `contract-acquisition/SKILL.md`; per-ecosystem commands to `references/oracle-table.md`; ACs 9–12. Research-backed (type checkers / stubs / introspection / version-pinning / runtime probes as the deterministic library-contract oracles).

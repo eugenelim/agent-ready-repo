@@ -29,7 +29,7 @@ license exactly one edit to a frozen spec — a `Status`-token parenthetical, wh
 form is at `:154-155` — and rule 2 at `:162-163` requires it to point at an ADR
 rather than a spec or an RFC erratum. No route was available to an
 implementing agent without an Approver signature. Granted, and discharged by
-ADR-0106 plus the `Status` pointer AC14 pins.
+ADR-0110 plus the `Status` pointer AC14 pins.
 
 ## 2026-09-03 — Include the engine slug retag as a bundled fix
 

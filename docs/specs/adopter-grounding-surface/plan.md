@@ -15,7 +15,7 @@ Three additive prose edits to existing seed/template/skill sources, then project
 ## Constraints
 
 - ADR-0037 D2 — presence-check absolute; no new config file; recorded coordinates seed, never replace.
-- RFC-0047 Decisions 3, 4 — reuse `AGENTS.md` + `reference.md`; read-if-present.
+- RFC-0100 Decisions 3, 4 — reuse `AGENTS.md` + `reference.md`; read-if-present.
 - ADR-0010 — `reference.md` is the golden path; sharpen its slots, don't restructure.
 - Seed lint (`lint-seeds` → `lint-catalogue-seeds`, see sibling spec) — `core` seeds stay placeholder-shaped and enforced.
 - `feedback_self_host_projection` — edit seed/template/skill **sources**; `make build-self` is the gate.
@@ -121,7 +121,7 @@ Additive seed/template/skill prose, projected by `make build-self`. No infra, no
 
 ## Changelog
 
-- 2026-06-25: initial plan (RFC-0047 Layer B follow-on).
+- 2026-06-25: initial plan (RFC-0100 Layer B follow-on).
 - 2026-06-25: implemented (T1–T5). AGENTS.md infra block, three sharpened
   `reference.md` slots, the presence-checked preflight step, and optional
   elicitation threaded into `adapt-to-project` (Detect) + `init-project`

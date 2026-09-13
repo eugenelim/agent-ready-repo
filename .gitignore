@@ -52,7 +52,7 @@ AGENTS.local.md
 node_modules/
 package-lock.json
 # The Astro marketing site (web/, RFC-0061) and the Starlight docs site
-# (docs-site/, ADR-0055) are real npm packages, not skills' in-place deps:
+# (docs-site/, ADR-0109) are real npm packages, not skills' in-place deps:
 # their lockfiles ARE committed so CI's `npm ci` is reproducible.
 !web/package-lock.json
 !docs-site/package-lock.json

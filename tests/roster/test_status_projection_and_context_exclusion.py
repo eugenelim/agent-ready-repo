@@ -1929,10 +1929,10 @@ def test_a_cooled_child_contributes_no_fabricated_state(tmp_path, engine) -> Non
 
 
 def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engine) -> None:
-    """ADR-0106: a cooled spec leaves an unrelated brief alone once it declares `none`.
+    """ADR-0110: a cooled spec leaves an unrelated brief alone once it declares `none`.
 
-    Superseded in part by ADR-0106. AC59 held that an undeclared `source.parent`
-    marked no brief, so absence carried the availability guarantee. ADR-0106
+    Superseded in part by ADR-0110. AC59 held that an undeclared `source.parent`
+    marked no brief, so absence carried the availability guarantee. ADR-0110
     splits absence in two: a declared **empty** value marks nothing and releases
     every dependency, while an **absent** key is unknown scope and fails closed.
     The availability half this case pins therefore survives unchanged in
@@ -1969,7 +1969,7 @@ def test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone(tmp_path, engi
 
 
 def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> None:
-    """ADR-0106 closes the gap this case was written to pin.
+    """ADR-0110 closes the gap this case was written to pin.
 
     The child still names its brief in the artifact body only, so the link is
     still not recoverable without the read RFC-0096 section 7 forbids. What
@@ -2023,9 +2023,9 @@ def test_cooled_parentless_child_scope_residual_is_pinned(tmp_path, engine) -> N
 def test_unrelated_cooled_spec_does_not_affect_different_initiative_brief(
     tmp_path, engine
 ) -> None:
-    """ADR-0106: the unknown-scope floor crosses initiative boundaries.
+    """ADR-0110: the unknown-scope floor crosses initiative boundaries.
 
-    Superseded in part by ADR-0106. There is still no initiative filter, and
+    Superseded in part by ADR-0110. There is still no initiative filter, and
     this is still an attribution test rather than a scoping one. What changed is
     the direction of the answer: a cooled spec that declares no parent at all no
     longer marks *no* brief, it makes *every* brief's scope unknown, because the

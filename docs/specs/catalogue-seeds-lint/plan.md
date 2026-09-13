@@ -14,7 +14,7 @@ Two coupled changes that must land together: (1) gate the lint's enumeration on 
 
 ## Constraints
 
-- ADR-0037 D4 / RFC-0047 Decision 6 — single tool, opt-in flag, no central list, unenforced-by-construction for org packs.
+- ADR-0037 D4 / RFC-0100 Decision 6 — single tool, opt-in flag, no central list, unenforced-by-construction for org packs.
 - ADR-0021 — `pack.toml` source of truth, projected lossily; the contract-version rule governs whether the new field needs a bump.
 - RFC-0002 — the placeholder-only seed contract the lint enforces (unchanged in content; only its *scope* becomes opt-in).
 - `feedback_nonprojected_pack_bump_drifts_marketplace` — keep the new field unmapped so it does not drift `marketplace.json`/`plugin.json`.
@@ -106,7 +106,7 @@ Repo-internal catalogue tooling + manifest-field change. No runtime infra. **Dep
 
 ## Changelog
 
-- 2026-06-25: initial plan (RFC-0047 Decision 6 follow-on).
+- 2026-06-25: initial plan (RFC-0100 Decision 6 follow-on).
 - 2026-06-25: implemented and shipped. Gate added at `_enumerate_seed_files`
   (one chokepoint, via a `_pack_opts_in` `pack.toml` read — no central list);
   flag added to the four first-party packs; tool + CI job/path-filter/run-line +

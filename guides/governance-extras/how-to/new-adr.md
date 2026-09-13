@@ -107,7 +107,27 @@ bundled `scripts/next-ordinal.py` helper against that directory. It prints the
 next 4-digit ordinal—`0001` if the destination has no ADRs, max-plus-one
 otherwise. Numbers are sequential within the resolved destination and never
 reused. The helper parses the full digit prefix, so transitions like `0099` →
-`0100` work correctly without manual zero-padding. External destinations remain
+`0100` work correctly without manual zero-padding. When the destination sits in
+a Git repository, the helper also counts ordinals already on the remote default
+branch, so a long-lived branch stops proposing a number that merged upstream
+while it waited. If Git is unavailable or the remote has not been fetched, it
+falls back to the working tree alone rather than failing.
+
+That number is a snapshot, not a reservation. Re-derive it immediately before
+opening your pull request rather than when the branch starts: a collision with
+a record someone else merged exists only against the default branch, so nothing
+inside your branch — including review — can see it. The companion check reports
+a directory where two records already share an ordinal:
+
+```bash
+python3 scripts/next-ordinal.py --check docs/adr
+```
+
+It exits non-zero on a collision, and also when it cannot inspect the directory,
+so a mistyped path never reports clean. A `NNNN-notes/` folder or a
+`NNNN-<slug>-research.md` sibling is a companion and shares its record's ordinal
+by design, so neither is reported. Running this check wherever your project
+gates a merge is what actually keeps ordinals unique. External destinations remain
 external; without an authorized write adapter, the skill returns a portable
 handoff instead of probing or writing them.
 

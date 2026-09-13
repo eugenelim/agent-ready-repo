@@ -6,7 +6,7 @@
 - **Constrained by:**
   - [ADR-0050](../../adr/0050-astro-marketing-site-toolchain-and-deploy.md) — the Astro
     marketing site at `/agent-ready-repo` whose links this spec corrects
-  - [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md) — the
+  - [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md) — the
     Starlight reference docs mounted at `/agent-ready-repo/docs/`, which is what makes
     `/docs/guides/<pack>/` the correct target
 - **Contract:** none.

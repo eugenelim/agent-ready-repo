@@ -2312,7 +2312,7 @@ def main() -> None:
 
     # No design-token copy. `docs-site/src/styles/starlight.css` is a self-contained
     # token sheet and stopped importing the copied file; ADR-0085 makes docs
-    # rendering site-local, superseding ADR-0055's token-sharing sub-decision. The
+    # rendering site-local, superseding ADR-0109's token-sharing sub-decision. The
     # copy was vestigial, and the accompanying hard failure —
     # "web/src/styles/tokens.css missing — docs-site CSS depends on it" — asserted a
     # dependency that no longer existed, so a marketing-side change could stop

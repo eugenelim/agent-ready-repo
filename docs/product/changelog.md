@@ -172,6 +172,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A link, an unresolvable path or a containment failure all left the candidate in
   no list at all — neither checked, skipped nor unreadable — so a subject the
   walk could not read was indistinguishable from one that opted out.
+## [governance-extras][0.10.6] — 2026-09-12
+
+### Added
+
+- `new-adr` and `new-rfc` gain `next-ordinal.py --check <dir>`, which reports
+  every ordinal already held by more than one record and exits non-zero. It also
+  exits non-zero when it cannot inspect the directory at all — a missing path, an
+  unreadable directory, an entry it cannot classify, or a record-shaped symlink —
+  so a mistyped path never reports clean. A `NNNN-notes/` folder or a
+  `NNNN-<slug>-research.md` sibling shares its record's ordinal by design and is
+  not reported. Wire it into whatever check your project runs before a change
+  merges: that, rather than the allocator, is what keeps ordinals unique.
+
+### Changed
+
+- `next-ordinal.py <dir>` now counts ordinals already on the remote default
+  branch as well as those in your working tree, so a long-lived branch stops
+  proposing a number that merged upstream while it waited. Where Git is
+  unavailable, the directory is outside a repository, the remote has not been
+  fetched, or Git does not answer within five seconds, it falls back to the
+  working tree and says so rather than failing.
+- Both procedures now tell you to re-derive the ordinal immediately before
+  opening your pull request rather than when the branch starts. The number is a
+  snapshot, not a reservation, and a collision with a record someone else merged
+  exists only against the default branch — nothing inside your branch, review
+  included, can see it.
 
 ## [core][2.25.15] — 2026-09-11
 
@@ -6395,7 +6421,7 @@ project page and the swept docstrings actually reach installers.
   the work-loop's framework-grounding detect target, and a repo-scope profile
   that installs the org's forked `core` first — distributed from a detached fork
   the organization owns via the editable-install path, with no upstream
-  dependency. No new machinery. (RFC-0047 Decision 5, ADR-0037 D3.)
+  dependency. No new machinery. (RFC-0100 Decision 5, ADR-0037 D3.)
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`
@@ -6482,7 +6508,7 @@ project page and the swept docstrings actually reach installers.
   organization pack that intentionally ships filled-in *instance* content — omits
   the flag and is unenforced by construction, with no edit to the lint or any
   central pack list. The flag is catalogue-internal metadata and is not projected
-  to `plugin.json` / `marketplace.json`. (RFC-0047 Decision 6 / ADR-0037 D4.)
+  to `plugin.json` / `marketplace.json`. (RFC-0100 Decision 6 / ADR-0037 D4.)
 - **The work-loop's EXECUTE contract-grounding gate now fires on unfamiliar
   frameworks and libraries, not just infrastructure.** Before generating code
   against an unfamiliar internal framework or third-party library whose contract

@@ -942,8 +942,13 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
             "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
         ),
+        # Re-pinned 2026-09-12: this spec's Status-line supersession pointer named
+        # ADR-0106, an ordinal that was held by two accepted records and has since
+        # been repaired. The pointer now names ADR-0110. Only that line changed,
+        # and a Status-line pointer is the one edit a frozen spec accepts, so the
+        # frozen dependency this guard protects is intact.
         "docs/specs/status-projection-and-context-exclusion/spec.md": (
-            "082fbbb677bae5f3b46459cf110879812984bf96c77b5fbd40986265efd7730d"
+            "5e113c58ace6fe524287c9d169e0417f088c5fa39744fb392c9e4eec8bbdb445"
         ),
         "docs/specs/status-projection-and-context-exclusion/plan.md": (
             "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
