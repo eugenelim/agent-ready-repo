@@ -143,3 +143,65 @@ Where an expected value is authored rather than observed, the PLAN-time scratch
 must also drive it green once, or the assertion is a guess with a test's
 authority. Hard-coding the inverse of a transformation — rather than applying the
 real inverse — is the specific shape that failed here.
+
+## 2026-09-13 — AM-004, recorded retroactively
+
+**Process deviation, stated first.** The T1 stub was edited twice more after
+AM-003 was authorized, and the edits were made *before* this record existed. The
+amendment gate requires owner authority before an approved artifact changes; I
+changed it and sought authority afterwards. The owner authorized recording it
+retroactively on 2026-09-13. The gate exists so an implementer cannot reshape
+what it is measured against, and doing the work first defeats it regardless of
+whether the change was correct.
+
+**What changed.** AM-003 made the filename case decode with
+`urllib.parse.unquote`. An adversarial round then showed that assertion could not
+observe the property AC6 needs:
+
+- `assert (tmp_path / urllib.parse.unquote(dest)).exists()` passes for an **empty**
+  destination, because `tmp_path / ""` is `tmp_path`, which exists.
+- Round-tripping through `unquote` passes for a raw `#` or `?`, because `unquote`
+  does not touch them — while the emitted link is broken, since a renderer reads
+  `0001-a#b.md` as path `0001-a` plus a fragment.
+
+The case now asserts three separate properties: the destination matches
+`[A-Za-z0-9._~%-]+` (fully encoded), it round-trips to the filename, and that
+filename exists. Its fixture filename gained `#` and `?`, the two bytes the old
+hand-maintained encoder list omitted.
+
+**Mutation proof.** Reverting `_escape_destination` to the hand-maintained list
+(`%` and space only) reddens
+`test_a_delimiter_bearing_filename_yields_a_resolving_link`; replacing it with
+`return ""` reddens it too. Both observed 2026-09-13.
+
+**No criterion changed.** AC6 reads as it always has.
+
+**Generalizable lesson — the fourth amendment to one stub.** AM-001 through
+AM-004 are one root cause seen four times: an assertion authored against an
+expected value the author never observed. Each repair fixed the instance the
+reviewer named and left the assertion still unable to fail for its stated reason.
+The test only became a control once it asserted the *property* (the destination
+is encoded) rather than a *consequence* of the property (something at that path
+exists). Prefer asserting the property.
+
+**Second deviation, same round.** A mutation restore corrupted the generator: a
+blind `str.replace` of `    return ""` hit the wrong occurrence and broke 29
+tests. `tdd-stubs` and this repository's mutation guidance both say restore by
+editing; blind replacement is not editing. Recovery was `git checkout --` of that
+one file, whose safety rested on the fixes being reproducible from a recorded
+script.
+
+**Cohort reseal, same round.** The retroactive AM-004 transition was refused:
+`schedule check-current` found `plan.md` no longer matched the scheduled
+baseline, because the stub was edited while the plan was sealed. The engine's
+own cohort-only recovery was followed — restore `Approved` on both artifacts,
+`loop-cohort reset`, `init`, `approve-plan`, `schedule`, restore the working
+status — and `loop-engine reset` was deliberately not run, since `plan-locked` is
+legal only from `SPEC-PLAN-APPROVED` and resetting the engine would strand the
+run. The reseal cleared the retry counters and the stasis baseline and re-pinned
+whatever was on disk, so it is a re-approval in substance. Baseline moved
+`77eeded86ae5` to `1fe37dc0accc`.
+
+The guard did the work here: nothing in my own process noticed the seal was
+broken, and the machinery refused the transition rather than recording an
+amendment over a baseline that had already moved.

@@ -44,7 +44,7 @@ portability rule forbids the generator knowing them.
 ### Stub — T1 (materialize unchanged at EXECUTE)
 
 ```python
-import importlib.util, pathlib, sys, urllib.parse
+import importlib.util, pathlib, re, sys, urllib.parse
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -107,10 +107,13 @@ def test_a_delimiter_bearing_filename_yields_a_resolving_link(tmp_path):
     assert rows, "no record row rendered"
     row = rows[0]
     dest = row.split(" | ")[1].split("](")[1].rstrip(")")
-    # Decode with the real inverse, not a hard-coded reversal of one
-    # character: the assertion must not depend on which delimiters the
-    # encoder happens to cover.
-    assert (tmp_path / urllib.parse.unquote(dest)).exists()
+    # Three separate properties. exists() alone passes for an empty destination
+    # because `tmp_path / ""` exists; unquote round-tripping alone passes for a
+    # raw `#` because unquote does not touch it, which is how an escaping gap
+    # survived here. The link resolves only if the destination is fully encoded.
+    assert re.fullmatch(r"[A-Za-z0-9._~%-]+", dest), f"destination not encoded: {dest}"
+    assert urllib.parse.unquote(dest) == name
+    assert (tmp_path / name).exists()
 ```
 
 **Validated red — observed, not asserted.** A disposable scratch

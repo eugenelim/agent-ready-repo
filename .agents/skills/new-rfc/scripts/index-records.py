@@ -39,6 +39,9 @@ DESCRIPTORS: dict[str, dict[str, object]] = {
         "sentinel": "<!-- no ADRs yet -->",
         "columns": ("#", "Title", "Status", "Date"),
         "dates": ("Date",),
+        # The one field that may resolve from git history. A record has an add
+        # event; any other date names an event that may not have happened.
+        "history_field": "Date",
     },
     "rfc": {
         "h1": re.compile(r"^#\s+RFC-(\d{4}):\s*(.+?)\s*$"),
@@ -47,6 +50,7 @@ DESCRIPTORS: dict[str, dict[str, object]] = {
         "sentinel": "<!-- no RFCs yet -->",
         "columns": ("#", "Title", "Status", "Opened", "Closed"),
         "dates": ("Date opened", "Date closed"),
+        "history_field": "Date opened",
     },
 }
 
@@ -239,14 +243,12 @@ def render(directory, record_type: str | None = None) -> str:
         cells = [f"{ordinal:04d}",
                  f"[{_escape_cell(title)}]({_escape_destination(name)})",
                  _escape_cell(status)]
-        for index, field in enumerate(spec["dates"]):  # type: ignore[arg-type]
+        for field in spec["dates"]:  # type: ignore[union-attr]
             value = _field(body, field)
-            # Only the record's opening date may ever resolve from history: a
-            # record has an add event, but a later date (a closing date) has no
-            # corresponding event, so filling it would publish a false one. This
-            # holds whether the field is absent, empty, or placeholder-bearing.
-            opening = index == 0
-            if opening and (value is None or value == _UNFILLED):
+            # Only the descriptor's named history field may resolve from git,
+            # whether it is absent, empty, or placeholder-bearing.
+            from_history = field == spec["history_field"]
+            if from_history and (value is None or value == _UNFILLED):
                 # Absent, or an unfilled opening date: a record has an add event,
                 # so git can answer. An unfilled *closing* date cannot -- there was
                 # no closing event, and filling it would publish a false one.

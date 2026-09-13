@@ -15,14 +15,25 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LIVE = ROOT / "docs/specs/README.md"
 SEED = ROOT / "packs/core/seeds/docs/specs/README.md"
-_TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
+# Two shapes, because GFM accepts a pipe table with or without outer pipes. The
+# delimiter row is what makes a table render, so it is the reliable signal; the
+# edge-piped row is kept for a table whose delimiter row is malformed.
+# Not detected, and named so the blind spot is visible: an HTML <table>, and a
+# delimiter row inside a fenced code block.
+_EDGE_PIPED_ROW = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
+_DELIMITER_ROW = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$",
+                            re.MULTILINE)
+
+
+def _table_signals(body: str) -> list[str]:
+    return _EDGE_PIPED_ROW.findall(body) + _DELIMITER_ROW.findall(body)
 
 
 @pytest.mark.parametrize("path", [LIVE, SEED], ids=["live", "seed"])
 def test_the_spec_readme_carries_no_table(path: pathlib.Path) -> None:
     """AC28, AC30: a table here is the thing that was retired."""
-    rows = _TABLE_ROW.findall(path.read_text(encoding="utf-8"))
-    assert rows == [], f"{path} regained a table: {rows[:3]}"
+    signals = _table_signals(path.read_text(encoding="utf-8"))
+    assert signals == [], f"{path} regained a table: {signals[:3]}"
 
 
 @pytest.mark.parametrize("path", [LIVE, SEED], ids=["live", "seed"])
@@ -31,18 +42,38 @@ def test_the_spec_readme_keeps_the_directory_convention(path: pathlib.Path) -> N
     assert "docs/specs/<feature>" in path.read_text(encoding="utf-8")
 
 
+_DENIAL = re.compile(r"\b(no|not|never|without)\b[^.]{0,40}?"
+                     r"(spec index|index to maintain|index table)", re.IGNORECASE)
+
+
 def test_no_shipped_surface_instructs_maintaining_a_spec_index() -> None:
-    """AC24: the instruction ADR-0112 retired must not return to a shipped file."""
+    """AC24: the instruction ADR-0112 retired must not return to a shipped file.
+
+    Detects an instruction naming the index within a two-line whitespace-
+    normalised window, and skips a window that denies the index exists. Not
+    detected, named so the blind spot is visible: an instruction more than two
+    lines from the name, and one that names neither the path nor the phrase.
+    """
+    # A two-line window, whitespace-normalised: the instruction and the path it
+    # names are routinely wrapped across lines in this repository's prose.
+    verbs = re.compile(r"\b(update|add|edit|maintain|index|append|insert|record|list)\b",
+                       re.IGNORECASE)
+    names = re.compile(r"specs/README|spec index|index of specs", re.IGNORECASE)
     offenders = []
     for base in ("packs", "guides"):
         for path in (ROOT / base).rglob("*.md"):
             if "/tests/" in path.as_posix():
                 continue
-            body = path.read_text(encoding="utf-8", errors="replace")
-            for line in body.splitlines():
-                if "specs/README" in line and re.search(r"\b(update|add|maintain)\b",
-                                                        line, re.IGNORECASE):
-                    offenders.append(f"{path.relative_to(ROOT)}: {line.strip()[:90]}")
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            for i in range(len(lines)):
+                window = re.sub(r"\s+", " ", " ".join(lines[i:i + 2]))
+                if not (names.search(window) and verbs.search(window)):
+                    continue
+                # Prose that *denies* the index exists reads the same to a verb
+                # match. The retirement itself had to say so, in this very guide.
+                if _DENIAL.search(window):
+                    continue
+                offenders.append(f"{path.relative_to(ROOT)}:{i + 1}: {window[:90]}")
     assert offenders == [], offenders
 
 
