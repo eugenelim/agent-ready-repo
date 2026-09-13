@@ -244,3 +244,75 @@ def test_a_record_heading_without_a_usable_ordinal_is_warned_about(tmp_path):
     code, err = _main("--check", str(tmp_path))
     assert "0002-big.md" in err
     assert "ordinal" in err
+
+
+# --- regressions for the second security round ---
+
+def test_a_symlinked_record_directory_is_refused(tmp_path):
+    """Resolving a symlinked record directory would index one tree and write another."""
+    import os
+    victim = tmp_path / "victimdir"
+    victim.mkdir()
+    (victim / "README.md").write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
+    _write(victim, "0001-r.md", "ADR-0001: X")
+    try:
+        os.symlink(victim, tmp_path / "linkdir")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    code, err = _main("--type", "adr", str(tmp_path / "linkdir"))
+    assert code != 0
+    assert "symlink" in err
+    assert (victim / "README.md").read_text(encoding="utf-8") == "DO NOT OVERWRITE\n"
+
+
+def test_an_ordinary_directory_under_a_symlinked_ancestor_still_works(tmp_path):
+    """Only the supplied directory is checked: macOS resolves /var through a link."""
+    import os
+    real, link = tmp_path / "real", tmp_path / "link"
+    real.mkdir()
+    inner = real / "recs"
+    inner.mkdir()
+    _write(inner, "0001-r.md", "ADR-0001: Fine")
+    try:
+        os.symlink(real, link)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    assert _main(str(link / "recs"))[0] == 0
+
+
+def test_an_empty_status_does_not_capture_the_following_line(tmp_path):
+    """The `\\s*` defect lived in two patterns; repairing one left the other."""
+    (tmp_path / "0001-a.md").write_text(
+        "# RFC-0001: Empty status\n\n- **Status:**\n- **Date opened:** 2026-01-01\n"
+        "- **Date closed:**\n", encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="rfc").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert "Date opened" not in rows[0], f"status captured the next line: {rows[0]}"
+    assert rows[0].split(" | ")[2] == ""
+
+
+def test_an_unfilled_closing_date_is_not_filled_from_git(tmp_path):
+    """A record has an add event; an unfilled closing date means no closing event."""
+    d = _git_repo(tmp_path)
+    (d / "0001-a.md").write_text(
+        "# RFC-0001: Open\n\n- **Status:** Open\n- **Date opened:** 2026-01-01\n"
+        "- **Date closed:** YYYY-MM-DD\n", encoding="utf-8", newline="\n")
+    subprocess.run(["git", "add", "-A"], cwd=d, check=True)
+    env = {**os.environ, "GIT_COMMITTER_DATE": "2024-04-04T00:00:00"}
+    subprocess.run(["git", "commit", "-qm", "x", "--date=2024-04-04T00:00:00"],
+                   cwd=d, check=True, env=env)
+    rows = [r for r in _load().render(d, record_type="rfc").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[4].rstrip(" |") == "", f"open RFC shown closed: {rows[0]}"
+
+
+def test_cell_text_cannot_open_a_raw_html_tag(tmp_path):
+    """A record-controlled title must not introduce markup in an adopter's renderer."""
+    _write(tmp_path, "0003-x.md", "ADR-0003: <img src=x onerror=alert(1)>")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert "<img" not in rows[0]
+    assert "&lt;img" in rows[0]
