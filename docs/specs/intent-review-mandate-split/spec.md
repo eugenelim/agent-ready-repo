@@ -1,6 +1,6 @@
 # Spec: Intent review mandate split
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0109, RFC-0099

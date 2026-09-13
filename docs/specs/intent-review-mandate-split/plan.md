@@ -1,7 +1,7 @@
 # Plan: Intent review mandate split
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, version
   bump rule, portability rule), `packs/AGENTS.local.md` (projection ownership
   table, release pipeline), `docs/CONVENTIONS.md` § *Superseding a frozen
@@ -473,22 +473,20 @@ unchanged and green, and neither intent mode states a reading the owner does not
 
 **Tests:** visual / manual QA — three dispatches (a malformed intent, a
 well-formed intent, and one adversarial intent pass), each recording the exact
-output observed and the projection hash of the agent it dispatched — the
-adversarial pass names `adversarial-reviewer`'s hash, not the reviewer's — with
-the revision noted as provenance.
+output observed and the projected agent revision it ran against.
 
 **Approach:**
 - Run after T7, not before it. A host dispatches these agents from the adapter
   projection, so a run taken earlier exercises the pre-change bodies while being
   written down as evidence for the new contract.
-- Record the projection's hash alongside each observation, so a later reader
+- Record the projection's revision alongside each observation, so a later reader
   can tell which bytes produced the output.
 - Use a real intent from `docs/product/intents/` for the well-formed case and a
   scratch copy with two conditions broken for the malformed case, so the check
   runs against production-shaped input.
 
-**Done when:** the ledger records each dispatch, the projection hash it ran
-against, the observed output, and whether it matched the contract.
+**Done when:** the ledger records each dispatch, the projected revision
+dispatched, the observed output, and whether it matched the contract.
 
 ### T10: a relation the artifact cannot have is not absent evidence
 
@@ -624,22 +622,20 @@ marketplace manifest, and `web/src/lib/now-highlights.generated.json`
   publishes.
 
 **Approach:**
-- **Corrected 2026-09-12: the premise this bullet rested on expired.** It argued
-  that reusing `2.25.17` was safe because `origin/main` carried `2.25.16` and
-  nothing had published `2.25.17` to contradict. While this branch was in
-  review, main shipped its own core `2.25.17` from an unrelated change. Both
-  sides wrote the identical version string, so `pack.toml` and `plugin.json`
-  merged with no conflict marker and only the changelog showed it. This branch
-  re-derives to `2.25.18` — the bump the rule yields for changed pack content —
-  with its entry above main's `2.25.17`. A reviewer argued for exactly that and
-  was refuted on the expired premise; the refutation does not survive the fact.
+- Correct the `core` entry rather than adding a second one. The bump rule's
+  prohibition is on borrowing an unreleased version *from another change*; this
+  amendment is content inside the same unshipped delivery that produced
+  `2.25.17`, so no consumer-visible version is reused and the harm the rule
+  names does not arise. `origin/main` carries `2.25.16` and this branch has
+  never been pushed, so nothing has published `2.25.17` to contradict.
 - Two bullets carry the reversed rules, not one. The enumeration bullet asking
   "do the children partition the parent" keeps the referent T10 corrects, and
   reads as condition 4's parent rather than the artifact's own outcome. The
   bullet stating that an unsupplied parent fails both the altitude and children
   questions describes behavior this amendment removes before anyone runs it. It is corrected in place rather than left standing with a retraction
   below it, because one release cannot both promise and withdraw a behavior.
-- Ship `2.25.18`, matched in `pack.toml` and `.claude-plugin/plugin.json`.
+- Keep the single `2.25.17` patch bump. The amendment is content change inside
+  an unreleased version, not a second release.
 - Regenerate every projection rather than editing one; `.apm/` is the only
   source.
 - Date both entries the day they ship, not the day they were drafted.
@@ -711,6 +707,43 @@ its expected token set is stated before dispatch, so "observes exactly the
 matching tokens" has something to be measured against. A run that collapses any
 comparison the criterion names, or draws one across two projection hashes,
 closes nothing.
+
+### T14: two completed tasks record premises that later expired
+
+**Depends on:** T11, T12
+
+**Touches:** this task's own body only
+
+**Tests:**
+- Goal-based. A reader of T8 or T11 reaches this correction before acting on
+  either premise, and neither completed section is edited to say it.
+
+**Approach:**
+- The amendment contract seals a completed task's section: a correction is a new
+  task, not an edit. Both corrections below were first made in place, the cohort
+  refused the re-approval with `completed task section changed: T8, T11`, and
+  the sections were restored. That refusal is the rule working.
+- **T8's anchor.** T8 records each observation against "the projected agent
+  revision". This branch was later rebased onto a moved `origin/main`, which left
+  six of the seven revisions recorded in the verification ledger unreachable from
+  this branch and unresolvable in a fresh clone. The anchor that survives is the
+  projection hash, per agent — `shaping-reviewer` for its own dispatches,
+  `adversarial-reviewer` for the adversarial one. The criteria and T12 carry that
+  reading; T8's own wording predates it and stands as written.
+- **T11's version premise.** T11 argued that reusing an unreleased `2.25.17` was
+  safe because `origin/main` carried `2.25.16` and nothing had published
+  `2.25.17` to contradict. While this branch was in review, main shipped its own
+  core `2.25.17` from an unrelated change. Both sides wrote the identical version
+  string, so `pack.toml` and `plugin.json` merged with no conflict marker and only
+  the changelog showed the collision. The branch re-derived to `2.25.18` — the
+  bump the rule yields for changed pack content — with its entry above main's
+  `2.25.17`. A reviewer had argued for exactly that and was refuted on the
+  premise that expired; the refutation does not survive the fact.
+- Change no completed section. This task is the correction's home.
+
+**Done when:** both premises are stated here with what replaced them, T8 and T11
+match their sealed content byte for byte, and the shipped versions are
+`2.25.18` and `0.13.12` matched across `pack.toml` and `.claude-plugin/plugin.json`.
 
 ## Rollout
 
