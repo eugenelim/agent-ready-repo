@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Approved
-- **Repository anchors:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` (`_extract_canonical_memberships`, `_legacy_canonical_alias`, and `run_canonical_reconciliation`); `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py` (additive subcommand routing and JSON emission); analogous construction path `tests/roster/test_workspace_status_projection.py`; governing constraints `packs/AGENTS.md`, ADR-0112, and RFC-0096 2026-09-13 Errata. Named uncertainty: the exact additive CLI subcommand and flag spelling is not established by a prior contract and must be settled during plan approval without changing the spec's selection or result semantics.
+- **Repository anchors:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` (`_extract_canonical_memberships`, `_legacy_canonical_alias`, and `run_canonical_reconciliation`); `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py` (additive subcommand routing and JSON emission); analogous construction path `tests/roster/test_workspace_status_projection.py`; governing constraints `packs/AGENTS.md`, ADR-0114, and RFC-0096 2026-09-13 Errata. Named uncertainty: the exact additive CLI subcommand and flag spelling is not established by a prior contract and must be settled during plan approval without changing the spec's selection or result semantics.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -32,14 +32,14 @@ the later prune protocol.
 
 ## Constraints
 
-- [ADR-0112](../../adr/0112-prune-success-requires-a-two-sided-post-mutation-invariant.md) requires canonical membership identity resolution across duplicate and legacy-alias cases, while assigning mutation closure, participating mutators, baselines, and ABA handling to the later prune slice.
+- [ADR-0114](../../adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md) requires canonical membership identity resolution across duplicate and legacy-alias cases, while assigning mutation closure, participating mutators, baselines, and ABA handling to the later prune slice.
 - [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) 2026-09-13 Errata requires a mechanical re-check of entry-less status before any carved-out spec is deleted and keeps reference-free verification as a separate condition.
 - `packs/AGENTS.md` makes `.apm/` the source, requires self-host projection after edits, forbids internal governance citations in shipped pack content, requires an eval-harness update, and requires matching patch version bumps for non-cosmetic pack changes.
 - `packs/core/AGENTS.md` reserves `tomlkit == 0.15.1` for `repair-apply`; this read-only capability remains standard-library-only.
 - `Makefile` lines 636–650 establish why this slice's tests live in `tests/roster/`: `test-unleased` injects the two `tools/test_workspace_status*.py` modules, but `test-after-build-check-unleased` leaves that macro slot empty, while `pytest tests/` is collected on both routes.
 - Any `.apm/` script output is UTF-8 configured before its first print.
 - Pack tests load the engine under a unique module name containing both pack and skill, such as `core_workspace_status_selection_membership`; they do not add a skill `scripts/` directory to `sys.path` or import the engine by a bare name.
-- No shipped file under `packs/` cites this spec, ADR-0112, RFC-0096, an acceptance-criterion number, or a repository-only path; comments state portable rules directly.
+- No shipped file under `packs/` cites this spec, ADR-0114, RFC-0096, an acceptance-criterion number, or a repository-only path; comments state portable rules directly.
 
 ## Construction tests
 

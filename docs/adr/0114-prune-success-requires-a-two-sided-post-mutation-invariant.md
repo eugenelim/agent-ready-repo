@@ -1,8 +1,9 @@
-# ADR-0112: Prune success requires a two-sided post-mutation invariant
+# ADR-0114: Prune success requires a two-sided post-mutation invariant
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
 - **Decision-makers:** eugenelim
+- **Renumbered:** issued as ADR-0112 and moved to ADR-0114 on 2026-09-13. Another record reached the default branch under 0112 first and keeps the ordinal. Only this record's identifier changed; its decision text is unaltered.
 - **Supersedes:** none
 - **Related:** [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) § *Wave 7 — Historical migration and pruning* and 2026-09-13 Errata; `reclassified-lifecycle-result`; `loop-cohort-state-lock`
 

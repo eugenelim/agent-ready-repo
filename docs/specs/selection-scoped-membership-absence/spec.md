@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0112](../../adr/0112-prune-success-requires-a-two-sided-post-mutation-invariant.md), [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) 2026-09-13 Errata
+- **Constrained by:** [ADR-0114](../../adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md), [RFC-0096](../../rfc/0096-portable-delivery-artifact-lifecycle.md) 2026-09-13 Errata
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -27,7 +27,7 @@
 and reports, for each selected spec, whether any `workspace.toml` membership
 resolves to its canonical artifact identity. Resolution includes canonical,
 duplicate, and supported legacy-alias memberships without widening the default
-reconciliation population. ADR-0112's later prune operation composes this
+reconciliation population. ADR-0114's later prune operation composes this
 read-only result when proving that memberships for selected artifacts are
 absent; this slice does not implement prune mutation, closure observation, or
 exit gating. RFC-0096's 2026-09-13 Errata uses the same mechanical check to
@@ -118,7 +118,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Follow-ons
 
-- eugenelim: ADR-0112 Wave 7c Slice 2 — compose this read-only result with prune mutation, coherent closure observation, participating-mutator rules, baselines, ABA handling, and exit gating.
+- eugenelim: ADR-0114 Wave 7c Slice 2 — compose this read-only result with prune mutation, coherent closure observation, participating-mutator rules, baselines, ABA handling, and exit gating.
 - eugenelim: RFC-0096 Wave 7d execution — combine this membership check with the separately required reference-free mechanical check before selecting or deleting a carved-out spec.
 - workspace-status owner decision: exactly one nested spec exists, `docs/specs/platform-site/self-hosted-fonts/`; it is Shipped and appears in no workspace membership. The canonical path validator cannot represent it, so it is structurally unregisterable; decide its supported identity or disposition in separate work.
 
@@ -128,5 +128,5 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Technical: canonical and supported legacy membership parsing already converge through `parse_workspace_entry`, `parse_legacy_workspace_entry`, and `_legacy_canonical_alias` (source: `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, confirmed 2026-09-13).
 - Technical: the engine remains standard-library-only for this read path; `tomlkit == 0.15.1` is reserved for `repair-apply` (source: `packs/core/AGENTS.md` § Skill dependencies, confirmed 2026-09-13).
 - Technical: focused tests belong in `tests/roster/` so both `make test` and the post-build CI route collect them (source: `Makefile` targets `test-unleased` and `test-after-build-check-unleased`, confirmed 2026-09-13).
-- Product: ADR-0112 Slice 2 and RFC-0096's Wave 7d pre-deletion verification are the two consumers, while deletion and closure remain outside this slice (source: user confirmation 2026-09-13).
+- Product: ADR-0114 Slice 2 and RFC-0096's Wave 7d pre-deletion verification are the two consumers, while deletion and closure remain outside this slice (source: user confirmation 2026-09-13).
 - Process: this artifact remains a Draft spec with a Drafting plan and does not advance the active work-loop (source: user confirmation 2026-09-13).

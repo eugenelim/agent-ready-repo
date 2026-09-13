@@ -384,7 +384,7 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
-  # RFC-0096 Wave 7c slice 1 of 2, registered 2026-09-13 after ADR-0112 chose the
+  # RFC-0096 Wave 7c slice 1 of 2, registered 2026-09-13 after ADR-0114 chose the
   # post-mutation-invariant route. Read-only: it resolves whether any membership
   # points at a selected spec, including duplicate and legacy-alias forms. Slice 2
   # (the prune operation) composes it, and RFC-0096's 2026-09-13 Errata requires it
