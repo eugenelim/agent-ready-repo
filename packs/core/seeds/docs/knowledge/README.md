@@ -96,23 +96,6 @@ the named unavailable/refusal outcome and creates no legacy append or fallback
 file. Capture remains unavailable until a reviewed migration activates that
 map; do not bypass the migration lifecycle by hand-editing the legacy corpus.
 
-## Migrating legacy knowledge
-
-To activate a legacy-only knowledge base:
-
-1. Run `project-knowledge --migrate-legacy`.
-2. Copy the staged `docs/knowledge/` tree into `docs/knowledge/`.
-3. Commit the promoted files.
-4. Run `project-knowledge --activate-staged` with the committed snapshot on stdin.
-
-The commit is required because `--activate-staged` compares the staged map with
-`HEAD`; it is the migration's review boundary.
-
-`--activate-staged` reads that snapshot on stdin and compares it against `HEAD`,
-the staged map, and the worktree; all four must agree or it refuses with
-`map_mismatch`. No shipped command prints the snapshot, so this step is driven
-by the tool that ran the migration rather than typed at a shell.
-
 Existing legacy rows remain raw UTF-8, never `\uXXXX`-escaped. Both forms are
 valid JSON, so a serializer whose ASCII escaping defaults on can drift the
 file silently while it still passes other JSON rules. This is a curation and
@@ -131,6 +114,23 @@ default-ignorable property, and there is a budget on how many may appear at all,
 not just how many may sit together. Persisted evidence follows `AGENTS.md` §
 Privacy: no real names, emails, org hostnames, or user-specific filesystem
 paths — use the placeholders listed there.
+
+## Migrating legacy knowledge
+
+To activate a legacy-only knowledge base:
+
+1. Run `project-knowledge --migrate-legacy`.
+2. Copy the staged `docs/knowledge/` tree into `docs/knowledge/`.
+3. Commit the promoted files.
+4. Run `project-knowledge --activate-staged` with the committed snapshot on stdin.
+
+The commit is required because `--activate-staged` compares the staged map with
+`HEAD`; it is the migration's review boundary.
+
+`--activate-staged` reads that snapshot on stdin and compares it against `HEAD`,
+the staged map, and the worktree; all four must agree or it refuses with
+`map_mismatch`. No shipped command prints the snapshot, so this step is driven
+by the tool that ran the migration rather than typed at a shell.
 
 ## Verify before committing
 
