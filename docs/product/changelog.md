@@ -54,6 +54,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.18] — 2026-09-13
+
+### Highlights
+
+- **The conventions you install now say which projected paths a gate actually
+  watches.** Two entries were wrong: the repo hooks target is adapter-driven but
+  no drift gate reaches it, and several seed-projected paths were described as
+  hand-owned when the pipeline still regenerates them. Membership is decided by
+  the exclusion list, not by the list in the prose.
+
+### Fixed
+
+- `CONVENTIONS.md` § Pack source-of-truth split: corrected the gate coverage
+  claimed for `tools/hooks/<name>.<ext>`, and the set of seed-projected paths
+  described as reclassified Manual.
+
 ## [core][2.25.17] — 2026-09-12
 
 ### Fixed

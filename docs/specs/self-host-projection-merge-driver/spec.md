@@ -100,9 +100,13 @@ have no effect.
   machinery, this repository's `.gitattributes`, and the self-host pipeline — so
   the tests drive real git operations against a real tree rather than asserting
   on the attributes file.
-- **Bootstrap target (AC5): goal-based check.** Running the target and reading
-  the resulting git config is a one-liner; a unit test of the recipe would
-  assert what `make` already proves.
+- **Bootstrap target (AC5): TDD.** Invoking `make bootstrap-git` directly would
+  write into the developer's real git config, so the test reads the recipe's
+  own `git config` commands out of the `Makefile` and runs them twice against a
+  scratch repository. Reading them rather than restating them is the point: it
+  is the only thing joining the recipe to the driver name `.gitattributes`
+  declares, and without that join a typo in the recipe leaves every behaviour
+  test green while every real merge falls back to conflicting.
 
 ## Acceptance Criteria
 

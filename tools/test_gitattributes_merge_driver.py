@@ -36,7 +36,7 @@ from agentbundle.build.self_host import (  # noqa: E402
 
 # `git ls-files -s` mode for a symlink. Git applies no content merge driver to
 # a symlink blob, so declaring one would have no effect; both sides of the
-# equality drop them. `CLAUDE.md` is the only tracked instance today.
+# equality drop them.
 SYMLINK_MODE = "120000"
 
 # Pack trees are the source of truth, never a driver target. Two rails report a
@@ -96,8 +96,11 @@ def _mutated_scratch_tree(root: Path, destination: Path) -> None:
     `packs/` is copied unmutated so the projection the pipeline renders is the
     real one; every other regular file gains a trailing newline, a byte
     difference in every format the tree carries that leaves TOML, JSON and YAML
-    valid. Symlinks are skipped: writing through `CLAUDE.md` would append to
-    `AGENTS.md` instead of mutating a distinct file.
+    valid. Symlinks are copied unmutated. `_tracked_regular_files` already drops
+    mode `120000`, so the repository's three tracked symlinks never arrive here;
+    the guard catches the skew case, where the index calls a path regular and
+    the working tree has since made it a link, which would otherwise append
+    through the link into its target.
     """
     destination.mkdir(parents=True, exist_ok=True)
     missing: list[Path] = []
@@ -108,11 +111,13 @@ def _mutated_scratch_tree(root: Path, destination: Path) -> None:
             continue
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target, follow_symlinks=False)
-        if str(relative).startswith(SOURCE_PREFIX) or target.is_symlink():
+        if source.is_symlink() or str(relative).startswith(SOURCE_PREFIX):
+            shutil.copy2(source, target, follow_symlinks=False)
             continue
-        with target.open("ab") as handle:
-            handle.write(b"\n")
+        # One write, not a copy followed by an append: on a copy-on-write
+        # filesystem the append forces the block copy that copy2 deferred, so
+        # copy-then-mutate costs roughly four times a single write.
+        target.write_bytes(source.read_bytes() + b"\n")
     assert not missing, (
         "tracked files absent from the working tree; the two sides of the "
         f"equality would describe different snapshots: {missing[:10]}"
@@ -172,7 +177,8 @@ def _drifted_paths(scratch: Path) -> set[Path]:
         drifted.add(Path(quoted.group(1)))
     assert parsed == declared_count, (
         f"drift block holds {parsed} lines but the header declared "
-        f"{declared_count}; the report format changed."
+        f"{declared_count}; the report format changed.\n"
+        + "\n".join(lines[index:index + min(parsed, 20) + 1])
     )
     return drifted
 

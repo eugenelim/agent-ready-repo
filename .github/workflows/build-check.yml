@@ -68,8 +68,10 @@ jobs:
     name: gate-main
     runs-on: ubuntu-latest
     # Budget note: the two merge-driver steps below are the heaviest pytest
-    # steps here (~35s and ~32s locally). Both are dominated by a full
-    # self-host run; one also clones the repo and runs `make build-self`.
+    # steps here. Both are dominated by a full self-host run; one also clones
+    # the repo and runs `make build-self`. Timings are machine-dependent and
+    # scale with the tracked file count, so measure rather than trust a number
+    # here: on one 2026 macOS dev machine they were 22s and 33s.
     # 25 minutes: this job runs the drift/lint chain plus ~50 pytest and lint
     # steps. The RFC-0082 sdist budget that used to justify this number travels
     # with gate-export-boundary, which now hosts that gate.

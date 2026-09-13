@@ -874,8 +874,8 @@ seeds) lives under `packs/<pack>/`. The split is:
   `packs/<pack>/.apm/user-libs/`. These rails share the self-host drift gate
   even though they are outside every adapter's native discovery tree.
 - Seed-projected paths: `docs/CONVENTIONS.md`, `AGENT_RULES.md`,
-  `docs/AGENTS.md`, `governance/manifest.example.yaml`, and
-  `.agents/rules/<name>.md`. (Other seed-projected paths from earlier
+  `docs/AGENTS.md`, `governance/manifest.example.yaml`, and the agent-rule
+  files a pack seeds. (Other seed-projected paths from earlier
   phases — `docs/CHARTER.md`, the seed READMEs under `docs/<area>/`,
   `workspace.toml`, and `packages/_example/` — were reclassified as
   *Manual* with placeholder seeds; adopters receive the placeholder on
@@ -888,16 +888,6 @@ seeds) lives under `packs/<pack>/`. The split is:
   Claude-plugin route installs at user scope, so a repo-scoped pack is not
   listed there — it installs with `agentbundle install`.
 - Recreated: `CLAUDE.md → AGENTS.md` symlink.
-
-Every *Projected* path above that a gate actually covers also carries
-`merge=regen` in `.gitattributes`, so a merge settles it instead of halting and
-`make build-self` regenerates it from the merged sources. The exceptions are the
-paths the gate does not reach: `tools/hooks/<name>.<ext>` and
-`.codex/config.toml` per the note above, and the `CLAUDE.md` symlink, because
-git applies no content merge driver to a symlink blob.
-`tools/test_gitattributes_merge_driver.py` measures that correspondence rather
-than trusting this list, so this sentence is a reader's summary and the test is
-the authority.
 
 The pipeline regenerates each from its `packs/*/` upstream; direct
 edits to any *Projected* path are caught by `make build-check` and

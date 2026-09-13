@@ -47,32 +47,62 @@ CONFLICT_MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
 # goal-based check with no artifact, so nothing else joins that recipe to the
 # `merge=regen` attribute. A typo in the recipe would otherwise leave every
 # test below green while every real merge fell back to conflicting.
-_CONFIG_LINE = re.compile(r"git config merge\.([A-Za-z0-9_-]+)\.driver\s+(\S+)")
+# Scopes that would escape the scratch repository. The AC5 test runs the
+# recipe's own commands, so a recipe that grew `--global` would otherwise
+# rewrite the developer's and the runner's real config instead of failing.
+_ESCAPING_SCOPES = ("--global", "--system", "--file", "--blob")
+
+_DRIVER_KEY = re.compile(r"^merge\.([A-Za-z0-9_-]+)\.driver$")
 
 
 def _bootstrap_git_recipe() -> list[list[str]]:
-    """The `git config` commands `make bootstrap-git` runs, in order."""
+    """The `git config` commands `make bootstrap-git` runs, in order.
+
+    Reads the recipe as make does -- every tab-indented line until the rule
+    ends -- rather than splitting on a blank line, which make ignores inside a
+    recipe and which would silently drop a command from the tested set.
+    Tokenised with `shlex` so a driver command containing spaces (every real
+    driver takes `%O %A %B`) round-trips intact.
+    """
     body = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    recipe = body.split("\nbootstrap-git:", 1)
-    assert len(recipe) == 2, "Makefile has no bootstrap-git target"
-    block = recipe[1].split("\n\n", 1)[0]
+    parts = body.split("\nbootstrap-git:", 1)
+    assert len(parts) == 2, "Makefile has no bootstrap-git target"
+
     commands: list[list[str]] = []
-    for line in block.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("git config "):
-            commands.append(shlex.split(stripped))
-    assert commands, f"bootstrap-git runs no git config command:\n{block}"
+    for line in parts[1].splitlines()[1:]:
+        if not line.startswith("\t"):
+            if line.strip() and not line.startswith("#"):
+                break  # the rule ended
+            continue
+        stripped = line.lstrip("\t").lstrip("@-").strip()
+        if not stripped.startswith("git config "):
+            continue
+        tokens = shlex.split(stripped)
+        escaping = [t for t in tokens if t in _ESCAPING_SCOPES]
+        assert not escaping, (
+            f"bootstrap-git runs `git config {escaping[0]}`, which writes "
+            "outside the repository; the AC5 test executes these commands and "
+            "would rewrite real developer config"
+        )
+        commands.append(tokens)
+    assert commands, "bootstrap-git runs no git config command"
     return commands
 
 
 def _driver_from_makefile() -> tuple[str, str]:
-    body = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    recipe = body.split("\nbootstrap-git:", 1)
-    assert len(recipe) == 2, "Makefile has no bootstrap-git target"
-    block = recipe[1].split("\n\n", 1)[0]
-    match = _CONFIG_LINE.search(block)
-    assert match, f"bootstrap-git registers no merge driver:\n{block}"
-    return match.group(1), match.group(2)
+    """The driver name and command the recipe registers.
+
+    Derived from the same parse the AC5 test executes, so the two cannot
+    disagree about what the recipe says.
+    """
+    for tokens in _bootstrap_git_recipe():
+        # `git config <key> <value>`
+        if len(tokens) < 4:
+            continue
+        match = _DRIVER_KEY.match(tokens[2])
+        if match:
+            return match.group(1), tokens[3]
+    raise AssertionError("bootstrap-git registers no merge.<name>.driver")
 
 
 DRIVER_NAME, DRIVER_COMMAND = _driver_from_makefile()
@@ -102,10 +132,20 @@ def _configure(root: Path) -> None:
     _git("config", f"merge.{DRIVER_NAME}.driver", DRIVER_COMMAND, cwd=root)
 
 
-def _commit(root: Path, message: str) -> None:
-    """Commit staged work; a no-op when there is nothing to carry across."""
+def _commit(root: Path, message: str, *, allow_empty: bool = False) -> None:
+    """Commit staged work.
+
+    `allow_empty` is opt-in, and only the clone fixture needs it: the block it
+    copies is already in HEAD once this change has landed. Everywhere else a
+    commit that carried nothing is a fixture failure, because it degrades the
+    merge under test into a fast-forward that never invokes the driver.
+    """
     _git("add", "-A", cwd=root)
     if not _git("status", "--porcelain", cwd=root).stdout.strip():
+        assert allow_empty, (
+            f"nothing to commit for {message!r}; the fixture did not change "
+            "what it meant to, and the merge under test would fast-forward"
+        )
         return
     _git("commit", "-qm", message, cwd=root)
 
@@ -130,6 +170,20 @@ def synthetic_repo(tmp_path: Path) -> Path:
     return root
 
 
+def _assert_real_merge(root: Path) -> None:
+    """HEAD must be a merge commit, not a fast-forward.
+
+    A fast-forward exits 0, leaves the other side's content in place and writes
+    no markers -- indistinguishable from a driver-resolved merge by every other
+    assertion here, and it never invokes the driver at all.
+    """
+    parents = _git("rev-list", "--parents", "-n1", "HEAD", cwd=root).stdout.split()
+    assert len(parents) >= 3, (
+        "HEAD has one parent: the merge fast-forwarded, so no three-way merge "
+        "ran and the driver was never exercised"
+    )
+
+
 def _assert_no_markers(root: Path, relative: Path) -> None:
     body = (root / relative).read_text(encoding="utf-8")
     present = [m for m in CONFLICT_MARKERS if m in body]
@@ -150,6 +204,7 @@ def test_merge_settles_a_projection_without_halting(synthetic_repo: Path) -> Non
     assert merge.returncode == 0, (
         "merge halted on a merge=regen path:\n" + merge.stdout + merge.stderr
     )
+    _assert_real_merge(root)
     _assert_no_markers(root, DRIVER_PATH)
 
 
@@ -195,7 +250,10 @@ def test_pack_source_still_conflicts(synthetic_repo: Path) -> None:
     _commit(root, "main edits the source")
 
     merge = _git("merge", "--no-edit", "feature", cwd=root, check=False)
-    assert merge.returncode != 0, "merge of divergent pack sources did not halt"
+    assert merge.returncode != 0, (
+        "merge of divergent pack sources did not halt; git may have "
+        "fast-forwarded or auto-merged:\n" + merge.stdout + merge.stderr
+    )
     body = (root / SOURCE_PATH).read_text(encoding="utf-8")
     assert all(m in body for m in CONFLICT_MARKERS), (
         f"pack source lacks conflict markers after a halted merge: {body!r}"
@@ -220,7 +278,7 @@ def clone_repo(tmp_path_factory) -> Path:
     # "nothing to commit" as a failure would make this fixture pass only while
     # the block stayed uncommitted -- green now, red on the run that lands it.
     shutil.copy2(REPO_ROOT / ".gitattributes", root / ".gitattributes")
-    _commit(root, "carry the merge=regen block into the fixture")
+    _commit(root, "carry the merge=regen block into the fixture", allow_empty=True)
     assert _git("check-attr", "merge", "--", ".claude/skills/work-loop/SKILL.md",
                 cwd=root).stdout.strip().endswith(f"merge: {DRIVER_NAME}"), (
         f"the clone does not resolve merge={DRIVER_NAME}; the fixture would "
@@ -257,6 +315,7 @@ def test_build_self_converges_after_an_auto_resolved_merge(clone_repo: Path) -> 
         "merge halted on a projection inside the clone fixture:\n"
         + merge.stdout + merge.stderr
     )
+    _assert_real_merge(root)
 
     build = subprocess.run(
         ["make", "build-self"], cwd=root, capture_output=True, text=True,
@@ -309,13 +368,20 @@ def test_bootstrap_git_registers_the_driver_idempotently(tmp_path: Path) -> None
         for command in commands:
             _git(*command[1:], cwd=root)
 
-    driver = _git("config", "--get", f"merge.{DRIVER_NAME}.driver", cwd=root).stdout.strip()
+    probe = _git("config", "--get", f"merge.{DRIVER_NAME}.driver",
+                 cwd=root, check=False)
+    assert probe.returncode == 0, (
+        f"the recipe registered no merge.{DRIVER_NAME}.driver; expected "
+        f"{DRIVER_COMMAND!r}"
+    )
+    driver = probe.stdout.strip()
     assert driver == DRIVER_COMMAND, (
         f"merge.{DRIVER_NAME}.driver is {driver!r}, expected {DRIVER_COMMAND!r}"
     )
     # Set semantics make a rerun idempotent with no guard; a recipe that grew an
     # append (`--add`) would leave two values and fail `--get`.
-    repeated = _git("config", "--get-all", f"merge.{DRIVER_NAME}.driver", cwd=root)
+    repeated = _git("config", "--get-all", f"merge.{DRIVER_NAME}.driver",
+                    cwd=root, check=False)
     assert repeated.stdout.strip().splitlines() == [DRIVER_COMMAND], (
         "a second run changed the value: " + repeated.stdout
     )

@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.18"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.18] — 2026-09-13",
+      "changelogAnchor": "core22518--2026-09-13",
+      "highlights": [
+        {
+          "source": "**The conventions you install now say which projected paths a gate actually watches.** Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The conventions you install now say which projected paths a gate actually watches."
+            },
+            {
+              "type": "text",
+              "value": " Two entries were wrong: the repo hooks target is adapter-driven but no drift gate reaches it, and several seed-projected paths were described as hand-owned when the pipeline still regenerates them. Membership is decided by the exclusion list, not by the list in the prose."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.16"
         }
       ],
