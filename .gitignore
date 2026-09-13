@@ -127,3 +127,6 @@ docs/knowledge/*.lock.stale-*
 /test_state_guard_*.py
 /state_guard_fs_*
 /state_guard_unused*
+
+# Local OpenTelemetry Collector fixture for the exporter round-trip test
+.otelcol-tmp/
