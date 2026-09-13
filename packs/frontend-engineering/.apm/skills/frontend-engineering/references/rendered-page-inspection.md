@@ -46,14 +46,21 @@ taken at, in the same units.
 | Capture | Viewport height | Scroll position |
 | --- | --- | --- |
 | short-at-rest | <=600 | 0 |
-| short-scrolled | <=600 | >0 |
+| short-scrolled | <=600 | >0, or page-scrollable: no |
 | tall-at-rest | >=900 | 0 |
-| tall-scrolled | >=900 | >0 |
+| tall-scrolled | >=900 | >0, or page-scrollable: no |
 
 Two heights, because a layout that holds at one often fails at the other, and a
 reader on a laptop and a reader on a phone are both readers. Two scroll positions
 per height, because the at-rest view is the one nobody scrolls to reach and the
 scrolled view is where sticky and overlay elements land on top of content.
+
+**A page shorter than the viewport has no scrolled view.** When the page does not
+scroll at a given height, record `page-scrollable: no` on that height's at-rest
+capture and the scrolled requirement is satisfied — there is nothing below the
+fold to look at. This is recorded, never inferred: a scroll position of 0 on its
+own means "this capture was taken at the top", which is also what a capture nobody
+scrolled looks like, and those two must stay distinguishable.
 
 A capture set missing any of the four is **incomplete**. An incomplete set cannot
 satisfy a completed inspection — it is not a pass with a gap, and no number of
@@ -62,8 +69,8 @@ welcome and none are required.
 
 ## Capture record
 
-Every capture carries all four fields. They describe the browser state the image
-was taken in, which the image itself does not show.
+Every capture carries all of these. They describe the browser state the image was
+taken in, which the image itself does not show.
 
 | Field | Required |
 | --- | --- |
@@ -71,6 +78,7 @@ was taken in, which the image itself does not show.
 | viewport-width | yes |
 | viewport-height | yes |
 | scroll-position | yes |
+| page-scrollable | yes |
 
 A capture missing any required field is **unusable**: it yields no finding, and
 it is reported as unusable rather than passed over in silence. A judge cannot
@@ -79,8 +87,8 @@ page scrolled to the same pixel are the same picture.
 
 ## Judgement request
 
-The request that goes to the judge restates the same four fields recorded with
-the capture, so the judgement is made about a known browser state.
+The request that goes to the judge restates the same fields recorded with the
+capture, so the judgement is made about a known browser state.
 
 | Field | Required |
 | --- | --- |
@@ -88,6 +96,11 @@ the capture, so the judgement is made about a known browser state.
 | viewport-width | yes |
 | viewport-height | yes |
 | scroll-position | yes |
+| page-scrollable | yes |
+
+`page-scrollable` matters to the judgement, not just to completeness: on a page
+that does not scroll, content meeting the bottom edge is cut off, while on a page
+that does, it simply continues below the fold. Those are the same picture.
 
 ## Step separation
 

@@ -363,9 +363,44 @@ and the selected guide page exists and walks the inspection step end to end agai
 a non-repository surface, which is the closeout condition the durable-output map
 already carries for it.
 
+### T6a: A page that cannot scroll is recorded, not marked incomplete
+
+**Depends on:** T6
+
+Added 2026-09-13 by controlled contract amendment under owner authority. T6's
+end-to-end run measured 17 of 32 captures unable to reach a non-zero scroll
+position because the page is shorter than the viewport, which made every such
+page permanently `incomplete`. T2's completed sections are preserved; this is
+the dependency-ordered correction rather than an edit to them.
+
+**Tests:**
+- A capture set whose scrolled capture is absent but whose record carries
+  `page-scrollable: no` at that height is complete. Verifies the amended
+  scroll criterion's new branch.
+- A capture set whose scrolled capture is absent and whose record carries
+  `page-scrollable: yes` is still incomplete. Without this the amendment would
+  excuse every missing scrolled capture rather than the unscrollable ones.
+- A capture record carries `page-scrollable`, and a record missing it is
+  unusable on the same terms as the other required fields. Verifies the amended
+  capture-state criterion.
+- The shipped fixtures exercise both branches, so the kit covers the case the
+  live run found rather than only the case the unit fixtures modelled.
+
+**Approach:**
+- Add `page-scrollable` to the capture-record table and the `>0, or
+  page-scrollable: no` branch to the required-capture table.
+- Carry the same rule into the skill's capture section.
+- Extend the evaluator to honour the recorded value, never to infer it from a
+  scroll position of 0.
+
+**Done when:** the four assertions are green, the mutation in which
+`page-scrollable: yes` is treated as satisfying the scrolled requirement fails,
+and the end-to-end run is re-executed with every fixture reaching a complete
+capture set.
+
 ### T7: Eval harness, versions, changelog, and dependency surfaces agree with the shipped content
 
-**Depends on:** T1-T6
+**Depends on:** T1-T6a
 
 **Tests:** no stub (goal-based).
 
@@ -415,6 +450,9 @@ dependency-surface comparison shows no newly required dependency.
 
 ## Changelog
 
+- 2026-09-13: amended under owner authority after T6's end-to-end run — added
+  T6a for pages that cannot scroll, which the shipped capture rule marked
+  permanently incomplete.
 - 2026-09-13: initial plan.
 - 2026-09-13: revised from the round-4 adjudications — shrank the judge-severity
   criterion to the provenance claim its check verifies, admitted both valid outcomes

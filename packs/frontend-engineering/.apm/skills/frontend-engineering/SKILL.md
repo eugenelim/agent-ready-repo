@@ -596,9 +596,15 @@ four required states — two viewport heights, each at rest and scrolled:
 | Capture | Viewport height | Scroll position |
 | --- | --- | --- |
 | short-at-rest | ≤600 CSS px | 0 |
-| short-scrolled | ≤600 CSS px | >0 |
+| short-scrolled | ≤600 CSS px | >0, or `page-scrollable: no` |
 | tall-at-rest | ≥900 CSS px | 0 |
-| tall-scrolled | ≥900 CSS px | >0 |
+| tall-scrolled | ≥900 CSS px | >0, or `page-scrollable: no` |
+
+A page shorter than the viewport has no scrolled view. Record
+`page-scrollable: no` on that height's at-rest capture and the scrolled
+requirement is met — there is nothing below the fold to look at. Record it; do
+not infer it. A scroll position of 0 means "taken at the top", which is also what
+a capture nobody scrolled looks like.
 
 Two heights because a layout that holds at one often fails at the other. Two
 scroll positions because the at-rest view is the one nobody scrolls to reach, and
@@ -611,7 +617,7 @@ content. Further heights are welcome; none are required.
 npx playwright screenshot --viewport-size=390,600 <route-or-file> short-at-rest.png
 ```
 
-Record four fields with every capture. The image does not show them, and a judge
+Record five fields with every capture. The image does not show them, and a judge
 cannot recover them by looking harder — a page at rest and the same page scrolled
 to the same offset are the same picture:
 
@@ -621,6 +627,7 @@ to the same offset are the same picture:
 | viewport-width | Viewport width in CSS pixels |
 | viewport-height | Viewport height in CSS pixels |
 | scroll-position | Vertical scroll offset the capture was taken at, in CSS pixels |
+| page-scrollable | Whether the page scrolls at this viewport height — `yes` or `no` |
 
 A capture missing any of the four is **unusable**: it yields no finding, and it
 is reported as unusable rather than passed over. A set missing any of the four

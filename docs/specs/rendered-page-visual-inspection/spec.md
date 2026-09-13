@@ -47,7 +47,8 @@ cannot measure for them.
 
 - Record, with every capture, the route, viewport width and height, and scroll
   position it was taken at, and state that same context to whatever judges the
-  image.
+  image. Record also whether the page was scrollable at that height, so a page
+  with nothing below the fold is distinguishable from one nobody scrolled.
 - Express every instruction against an adopter-supplied route or local file path.
 - Degrade to a named skip when no browser is reachable, and make that skip
   distinguishable from a pass wherever the result is recorded.
@@ -115,13 +116,20 @@ cannot measure for them.
 - [ ] For each inspected route, the capture set contains a capture taken at a
   viewport height of at least 900 CSS pixels, measured the same way.
 - [ ] For each viewport height captured, the capture set contains one capture at
-  scroll position 0 and one at a non-zero scroll position.
+  scroll position 0 and one at a non-zero scroll position, or the page is recorded
+  as not scrollable at that height. Amended 2026-09-13 under owner authority: the
+  end-to-end run measured 17 of 32 captures unable to reach a non-zero scroll
+  position because the page is shorter than the viewport, which made every such
+  page permanently incomplete. A page with nothing below the fold has no scrolled
+  view to inspect. The not-scrollable case is recorded on the capture, never
+  inferred from a scroll position of 0.
 - [ ] A capture set missing any capture the three criteria above require yields an
   incomplete result that cannot satisfy a completed inspection.
 
 <!-- Capture state -->
 - [ ] Every capture carries the route, the viewport width, the viewport height, and
-  the scroll position it was taken at.
+  the scroll position it was taken at, plus whether the page was scrollable at that
+  height.
 - [ ] The judgement request for a capture states the route, the viewport width, the
   viewport height, and the scroll position recorded with that capture.
 - [ ] A capture missing any field the capture-state criterion requires produces no
@@ -233,7 +241,8 @@ cannot measure for them.
 - Technical: consumption is bounded by construction, so no upper bound is
   specified. The capture criteria put a floor of four captures per route — one
   height at most 600 CSS pixels and one at least 900, each at a zero and a non-zero
-  scroll position — and admit further heights without requiring any; the adopter
+  scroll position, the latter satisfied by a recorded not-scrollable page — and
+  admit further heights without requiring any; the adopter
   names the routes, and the
   delivery ships no script, so no input scales captures, image size, or judgement
   calls (source: this spec's capture criteria; `plan.md` § Design decisions,

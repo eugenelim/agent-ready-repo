@@ -44,8 +44,12 @@ ordinary page with nothing reader-visible wrong at any required capture state.
 ## The procedure
 
 1. Capture every fixture in both sets at all four required capture states — two
-   viewport heights, each at rest and scrolled. That is 8 fixtures × 4 captures =
-   32 captures. Record the four fields with each capture, as always.
+   viewport heights, each at rest and scrolled. That is **up to 4 captures per
+   fixture, so at most 8 fixtures × 4 = 32 captures**. Several of these fixtures
+   are shorter than a 900px viewport and do not scroll there, so they produce
+   fewer: record `page-scrollable: no` on that height's at-rest capture and the
+   scrolled requirement for that height is met. Record all five fields with each
+   capture, as always.
 2. Judge each capture with the judge you actually intend to use, asking only what
    the failure is and where it appears. Derive severity from the finding class;
    discard any severity the judge volunteers.

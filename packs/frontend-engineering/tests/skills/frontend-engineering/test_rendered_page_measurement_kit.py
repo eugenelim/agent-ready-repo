@@ -189,13 +189,17 @@ def test_the_stated_denominator_equals_the_known_clean_count(procedure: str) -> 
 
 def test_the_capture_arithmetic_is_right(procedure: str) -> None:
     """The procedure does the multiplication for the reader, so it has to be
-    true: 8 fixtures at 4 required capture states is 32 captures."""
+    true. It is an upper bound, not an exact count: a fixture that does not
+    scroll at a height produces fewer captures, which the live run measured."""
     total = len(_named_fixtures(procedure, "defect")) + len(
         _named_fixtures(procedure, "clean")
     )
     normalized = " ".join(procedure.split())
-    assert f"{total} fixtures × 4 captures = {total * 4} captures" in normalized, (
+    assert f"at most {total} fixtures × 4 = {total * 4} captures" in normalized, (
         f"the procedure's capture arithmetic does not match {total} shipped fixtures"
+    )
+    assert "page-scrollable: no" in normalized, (
+        "the procedure does not tell the reader why a fixture may produce fewer"
     )
 
 

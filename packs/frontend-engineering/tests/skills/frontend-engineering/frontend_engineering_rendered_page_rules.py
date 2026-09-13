@@ -129,6 +129,22 @@ def resolve_severity(
     return severity_by_class(markdown)[finding_class]
 
 
+def _scroll_rule_met(rule: str, capture: dict[str, int | str]) -> bool:
+    """Whether one capture satisfies a scroll-position rule cell.
+
+    A rule may carry an alternative branch, `>0, or page-scrollable: no`. The
+    branch is satisfied only by the value **recorded** on the capture, never
+    inferred from a scroll position of 0 — a page nobody scrolled and a page that
+    cannot scroll both sit at 0, and telling them apart is the whole point.
+    """
+    primary, _, alternative = rule.partition(",")
+    if satisfies(primary, int(capture["scroll-position"])):
+        return True
+    if "page-scrollable: no" in alternative:
+        return str(capture.get("page-scrollable", "")).lower() == "no"
+    return False
+
+
 def evaluate_capture_set(
     markdown: str, captures: list[dict[str, int | str]]
 ) -> tuple[str, list[str]]:
@@ -138,7 +154,7 @@ def evaluate_capture_set(
         for name, (height_rule, scroll_rule) in required_captures(markdown).items()
         if not any(
             satisfies(height_rule, int(c["viewport-height"]))
-            and satisfies(scroll_rule, int(c["scroll-position"]))
+            and _scroll_rule_met(scroll_rule, c)
             for c in captures
         )
     ]

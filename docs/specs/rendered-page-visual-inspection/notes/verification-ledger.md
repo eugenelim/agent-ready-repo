@@ -494,6 +494,86 @@ would have shipped a contract that fails on ordinary short pages.
 Completed-task evidence at the point of amendment: T0–T3 at commit `05d5ca2fa`,
 T4–T5 at commit `efa7dec06`.
 
+The amendment was fired as `contract-amendment` (seq 16), which pinned the prior
+approved contract and the completed task sections, then the ordinary sequence
+re-ran: `spec-ready`, `reviewers-clean`, `spec-approved`, `plan-approved`,
+`approve-plan`, `schedule`, `plan-locked`. The re-sealed baseline is
+`approved_spec_hash=86287a46196b…`, `approved_plan_hash=4337e364778b…` — different
+from the pre-amendment values, as it should be, because the contract changed.
+Rescheduling emitted **only the unfinished tasks**: T6, T6a, T7. T0–T5 stayed
+completed and their sections were not edited; T6a is the dependency-ordered
+correction rather than a rewrite of T2.
+
+### The guide destination decision
+
+The spec carried this as an unresolved closeout blocker to be decided in T6
+against the tree as it then stands. Decided: **a new how-to page**,
+`guides/frontend-engineering/how-to/inspect-the-rendered-page.md`, with a row in
+the guide index.
+
+The tree holds two how-to pages (`run-an-audit`, `page-screen-contract`), two
+reference pages and one tutorial, and the index is keyed by task rather than by
+skill. The inspection is its own task with its own procedure and a measurement
+step. Folding it into `run-an-audit` would bury a step that has to be findable on
+its own, and the reference pages are lookup surfaces, not walkthroughs. A new
+how-to is what the tree's own shape asks for.
+
+Guide gates: `lint-guides-no-repo-only-refs` OK, `lint-guide-titles` OK across
+230 files, `check-guide-index` OK across 21 active packs, and the 40 guide
+authoring/index tests pass. `check-guidebook-walk` needs `build/docs` and belongs
+to the site build, not to a local run.
+
+## 2026-09-13 — T6a: the amendment implemented, and the run repeated
+
+Rule tables: the two `*-scrolled` required captures now read `>0, or
+page-scrollable: no`, and `page-scrollable` joined both the capture record and
+the judgement request.
+
+**Why it is on the judgement request too.** It is not only a completeness field.
+On a page that does not scroll, content meeting the bottom edge is cut off; on a
+page that does, the same pixels mean the content continues below the fold. Those
+are the same picture, so the judge needs the value to tell them apart. The four
+fields the criterion names are still all stated.
+
+**The branch is recorded, never inferred.** `_scroll_rule_met` honours the value
+written on the capture and refuses to read it off a scroll position of 0, because
+a page nobody scrolled sits at 0 too.
+
+**Suite result:** 168 passed (0.48s), including 9 new cases for the amendment.
+
+**Five mutations, all detected:**
+
+| Mutation | Result |
+| --- | --- |
+| `page-scrollable: no` branch removed from `short-scrolled` | The original defect returns — unscrollable page reads `incomplete` |
+| Same branch removed from `tall-scrolled` | Same, at the height where most of the run's misses were |
+| `page-scrollable` dropped from the capture record | Field no longer required |
+| A **scrollable** page with its scrolled captures missing | Stays `incomplete` — the amendment excuses the unscrollable case only |
+| `page-scrollable` left unrecorded on an unscrollable page | Stays `incomplete` — not inferred from scroll 0 |
+
+### The end-to-end run, repeated against the amended rule
+
+| Fixture | Captures | page-scrollable | Result |
+| --- | --- | --- | --- |
+| clean-article.html | 3 | no/yes | complete |
+| clean-card-grid.html | 3 | no/yes | complete |
+| clean-form.html | 2 | no | complete |
+| clean-nav.html | 3 | no/yes | complete |
+| defect-clipped-at-rest-top.html | 2 | no | complete |
+| defect-occlusion.html | 3 | no/yes | complete |
+| defect-overflow.html | 2 | no | complete |
+| defect-target-undersized.html | 2 | no | complete |
+
+**8 of 8 fixtures reach a complete capture set**, against 0 of 8 before the
+amendment. Total captures dropped 32 → 20, because a capture that cannot exist is
+no longer demanded.
+
+The measurement procedure's arithmetic moved with it: it now states **at most**
+8 × 4 = 32 captures and explains why a fixture may produce fewer, rather than
+asserting a flat 32 that the shipped fixtures contradict. The test that checks
+the arithmetic was updated to match and to require the explanation, so the
+procedure cannot silently drift back to a number that is wrong.
+
 ## 2026-09-13 — workspace registration
 
 The spec was in no `workspace.toml` entry, so canonical preflight returned

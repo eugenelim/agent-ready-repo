@@ -21,7 +21,13 @@ from frontend_engineering_rendered_page_rules import (
     step_rules,
 )
 
-REQUIRED = ["route", "viewport-width", "viewport-height", "scroll-position"]
+REQUIRED = [
+    "route",
+    "viewport-width",
+    "viewport-height",
+    "scroll-position",
+    "page-scrollable",
+]
 
 
 @pytest.fixture(scope="module")
@@ -32,10 +38,10 @@ def rules_markdown() -> str:
 def complete_set() -> list[dict[str, int | str]]:
     """One capture at each of the four required combinations."""
     return [
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 0},
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 800},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 0},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 800},
+        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 0, "page-scrollable": "yes"},
+        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 800, "page-scrollable": "yes"},
+        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 0, "page-scrollable": "yes"},
+        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 800, "page-scrollable": "yes"},
     ]
 
 
@@ -114,17 +120,22 @@ def test_a_rejected_set_records_an_incomplete_result(rules_markdown: str) -> Non
 
 # ── capture state ───────────────────────────────────────────────────────────
 
-def test_the_capture_record_names_all_four_fields(rules_markdown: str) -> None:
+def test_the_capture_record_names_every_required_field(rules_markdown: str) -> None:
     """Verifies: every capture carries the route, the viewport width, the
     viewport height, and the scroll position."""
     assert sorted(capture_record_fields(rules_markdown)) == sorted(REQUIRED)
 
 
-def test_the_judgement_request_restates_all_four_fields(rules_markdown: str) -> None:
+def test_the_judgement_request_restates_every_recorded_field(rules_markdown: str) -> None:
     """Verifies: the judgement request states the route, viewport width, viewport
-    height, and scroll position recorded with that capture — all four, not just
-    the scroll position."""
-    assert sorted(judgement_request_fields(rules_markdown)) == sorted(REQUIRED)
+    height, and scroll position recorded with that capture — every one of them,
+    not just the scroll position."""
+    # The four the criterion names, asserted individually so dropping any one is
+    # caught on its own terms rather than as a set-equality diff.
+    stated = judgement_request_fields(rules_markdown)
+    for field in ("route", "viewport-width", "viewport-height", "scroll-position"):
+        assert field in stated, f"the judgement request omits {field}"
+    assert sorted(stated) == sorted(REQUIRED)
     assert sorted(judgement_request_fields(rules_markdown)) == sorted(
         capture_record_fields(rules_markdown)
     ), "the judgement request and the capture record no longer carry the same fields"
