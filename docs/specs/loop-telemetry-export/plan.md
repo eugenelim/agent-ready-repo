@@ -32,14 +32,13 @@ somewhere to live. It ships a console script that resolves configuration, finds
 nothing, and exits 0 — which is the whole off-by-default proof, executable from
 the first task.
 
-The event-line version is deliberately not sequenced with the exporter. It is a
-change to `loop-engine.py` in a different pack with a different test suite, and
-coupling the two would make a `core` version bump wait on a distribution
-release.
+The event-line version is not part of this delivery at all. It ships first as
+`loop-event-schema-version`, so a `packs/core` version bump never waits on a
+PyPI release and a consumer never sees a version appear underneath it.
 
 ## Constraints
 
-- The sender lives only in `packages/loop-telemetry-exporter/`. No pack gains a
+- The sender lives only in `packages/jsonl-otlp-exporter/`. No pack gains a
   network path, so `packs/core` keeps the § 8 invariant intact.
 - Standard library only. `guides/_shared/how-to/author-a-skill.md:104` makes
   Tier 1 the default and prefers stdlib over a pip dependency; adding one needs
@@ -79,12 +78,12 @@ new field — the new cases assert presence and the replay passthrough.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| ADR-0109 (decision rationale) | T8 | Accepted ADR file | Cited by `telemetry.md` § 9 |
+| ADR-0111 (decision rationale) | T8 | Accepted ADR file | Cited by `telemetry.md` § 9 |
 | `docs/architecture/telemetry.md` (architecture) | T8 | §§ 2, 5.2, 5.3, 8 diff | Both `agentbundle.md` anchors resolve |
-| `contracts/jsonschema/loop-run-event.schema.json` (interface) | T3 | Schema validates the recorded corpus | Registry row in `contracts/README.md` |
 | `guides/core/how-to/export-loop-telemetry.md` (user promise) | T8 | Guide with the disclosure sentence | `check-guide-index.py` green |
-| `packages/loop-telemetry-exporter/CHANGELOG.md` + `docs/product/changelog.md` (release) | T9 | Version bump, entries | Tag equals `pyproject` version |
-| `packages/loop-telemetry-exporter/AGENTS.md` (maintainer) | T1 | Test command, release coupling | File accurate |
+| `packages/jsonl-otlp-exporter/CHANGELOG.md` + `docs/product/changelog.md` (release) | T9 | Version bump, entries | Tag equals `pyproject` version |
+| `packages/jsonl-otlp-exporter/AGENTS.md` (maintainer) | T1 | Test command, release coupling | File accurate |
+| Optional-dependency reporting | T7 | Lint run naming the unsatisfied optional dependency | AC-0039 green; behaviour documented |
 | `docs/specs/README.md` (product truth) | T8 | Active-list row | Row present |
 | `project-knowledge` (learning) | closeout | Capture receipt | Receipt or `project-knowledge unavailable` |
 
@@ -95,7 +94,7 @@ new field — the new cases assert presence and the replay passthrough.
 **A separate distribution, not a pack primitive.** `telemetry.md:300` states
 "Nothing in a pack sends." Every pack-resident home breaks it; a PyPI
 distribution keeps it literally true and gives the adopter a package-manager
-guarantee rather than a configuration promise. ADR-0109 records this.
+guarantee rather than a configuration promise. ADR-0111 records this.
 
 **One exporter per engine, no shared emitter.** Confirmed as the prevailing
 architecture across Argo, Dagger, Buildkite and Jenkins. A shared library is
@@ -125,11 +124,29 @@ data copy, so no byte-identical mirror under `agentbundle/_data/` is created.
 
 ### Component / module decomposition
 
-Four modules, split on what each can be tested without: `config` (no I/O beyond
+Five modules, split on what each can be tested without: `config` (no I/O beyond
 reading two files), `encode` (pure — line dicts in, request body out),
 `transport` (the only module that opens a socket), `cli` (argument parsing, exit
-codes, wiring). The split exists so `encode` is golden-testable and `config` is
-provable with no network.
+codes, wiring), and `mappings/` (one module per profile). The split exists so
+`encode` is golden-testable and `config` is provable with no network.
+
+**The mapping seam, and why it exists now rather than later.** A profile declares
+three things: which envelope field becomes `timeUnixNano`, which becomes
+`severityNumber`, and which attributes carry record identity. `mappings/work_loop.py`
+is the only profile v1 ships, and no profile-selection surface is promised — but
+the seam exists from the first commit because the alternative is a second
+consumer needing an amendment to shipped acceptance criteria rather than a new
+file. A design walk against a hypothetical CI-runner consumer found four places
+where the contract had hardcoded the first consumer; the criteria now name the
+active profile and the profile names the fields.
+
+**One scoping limit, stated rather than hidden.** The file route in AC-0002 reads
+`agentbundle-layout.toml`, which only an agentbundle adopter has. That is
+deliberate — it is this repository's integration, not a general mechanism — and
+the environment route is the standard OTel one, so a consumer outside this
+catalogue configures by environment and loses nothing. If a second consumer ever
+needs a file route of its own, that is a new criterion, not a change to this
+one.
 
 ### State & control flow
 
@@ -165,164 +182,219 @@ declaration.
 
 ## Tasks
 
-### T1: Scaffold the distribution
+<!-- Every task below creates or extends `packages/jsonl-otlp-exporter`, which
+     does not exist at plan approval. Per `references/tdd-stubs.md`, a stub may
+     not invent a module or symbol to assert against, so the TDD tasks here carry
+     the `no stub (implementation-discovered)` disposition with their discovery
+     predicate and proof obligation. The sibling spec
+     `loop-event-schema-version` carries a validated stub instead, because its
+     seam — the existing envelope suite — already exists. -->
+
+### T1: Scaffold the distribution and put it inside the gates
 
 **Depends on:** none
 
+**Touches:** `packages/jsonl-otlp-exporter/`, `pyproject.toml`, `Makefile`
+
 **Tests:**
-- Goal-based: `python3 -m build packages/loop-telemetry-exporter` produces a
-  wheel and an sdist; a fresh venv installs the wheel and
-  `loop-telemetry-export --version` prints the version. Mirrors the smoke steps
-  in `release-credbroker.yml`. Verifies AC-0023.
+- Goal-based: `python3 -m build packages/jsonl-otlp-exporter` produces a wheel
+  and sdist; a fresh venv installs it and `jsonl-otlp-export --version` prints
+  the version. Verifies AC-0023.
+- Goal-based: the package name appears in the root `pyproject.toml` `pythonpath`,
+  mypy's `files`, the `Makefile` test-suite invocations, and the pip-audit
+  build-system leg. Each is a literal list, so each is asserted by reading it.
+  Verifies AC-0031.
 
 **Approach:**
-- Copy the structural shape of `packages/credbroker/` — `pyproject.toml`,
-  package directory, `tests/`, `AGENTS.md`, `CHANGELOG.md`, `README.md`,
-  `README-pypi.md`.
-- Declare `[project.scripts]`, the one precedent being
-  `packages/agentbundle/pyproject.toml:31-32`.
-- Add the package to the root `pyproject.toml` `pythonpath` and the `Makefile`
-  `PYTHONPATH`, both of which already enumerate the two existing packages.
+- Mirror `packages/credbroker/`'s structure; declare `[project.scripts]`.
 
-**Done when:** the console script runs from a fresh venv and prints its version.
+**Done when:** the console script runs from a fresh venv, and a deliberate
+failing test added under the new package's `tests/` is reported by `make test` —
+proving the suite is actually reached rather than merely listed.
 
 ### T2: Configuration resolution and the off-by-default proof
 
 **Depends on:** T1
 
-**Tests:**
-- Four-source precedence, one case per source plus the empty case. Verifies AC-0002.
-- Path semantics: signal-specific used as-is, generic gets `/v1/logs`. Verifies
-  AC-0003 and AC-0004.
-- Unconfigured run opens no socket — asserted by a transport seam that fails the
-  test if called, not by inspecting output. Verifies AC-0001.
-- `stub: true` — `test_resolves_nothing_when_unconfigured` compiles against
-  `config.resolve(env, repo_root, user_root) -> Endpoint | None` and asserts
-  `None`.
-
-**Approach:**
-- Read both layout files with `tomllib`; treat each as untrusted, extracting
-  only `[telemetry]` keys.
-
-**Done when:** the unconfigured-path test passes with a transport seam that
-raises if constructed.
-
-### T3: Schema version on the event line
-
-**Depends on:** none
+**Touches:** `packages/jsonl-otlp-exporter/jsonl_otlp_exporter/config.py`, its tests
 
 **Tests:**
-- A transition writes a line carrying `schema: 1`. Verifies AC-0017.
-- A pending record lacking `schema` replays unchanged. Verifies AC-0018. This is
-  the case the existing suite cannot already see.
-- The contract schema validates the recorded corpus. Verifies AC-0019.
+- `no stub (implementation-discovered)`. Discovery predicate: the resolver's
+  callable signature is fixed the moment T1's package layout exists; until then
+  asserting against `config.resolve` would invent the symbol. Constraint:
+  stdlib only, no network, both layout files read as untrusted TOML. Required
+  outcome: the four-source precedence walk and the empty case. Verification
+  mode: TDD. Proof obligation: the first test written in T2 asserts the empty
+  case against a transport seam that fails if constructed, so the off-by-default
+  guarantee is proven before any sending code exists.
+- Four-source precedence, one case per source plus the empty case. Verifies
+  AC-0001, AC-0002, AC-0003, AC-0004.
 
 **Approach:**
-- Add the field in `_cmd_transition`'s `pending_data` literal, above the
-  `_lifecycle_fields` spread so field order stays stable.
-- Author the JSON Schema and its `contracts/README.md` row.
+- Read both layout files with `tomllib`, extracting only `[telemetry]` keys.
 
-**Done when:** `packs/core/tests/skills/work-loop/test_loop_engine_events_jsonl.py`
-passes with the two new cases, and the corpus validates.
+**Done when:** the empty case passes with a transport seam that raises if
+constructed.
 
-### T4: OTLP JSON encoder
+### T3: Input acquisition — confinement, bounds, modes and file lifecycle
 
 **Depends on:** T1
 
+**Touches:** `packages/jsonl-otlp-exporter/jsonl_otlp_exporter/source.py`, its tests
+
 **Tests:**
-- Golden byte comparison for the three-line fixture. Verifies AC-0005.
-- `service.name` present with the documented default. Verifies AC-0007.
-- Malformed line skipped, remainder encoded. Verifies AC-0016.
+- `no stub (implementation-discovered)`. Discovery predicate: the reader's seam
+  is fixed once T1's layout exists. Constraint: the path is canonicalised before
+  opening and confined to `--root`; no durable position state is written.
+  Required outcome: refusal before any read for an unsafe path, and a bounded
+  read otherwise. Verification mode: TDD. Proof obligation: the confinement
+  cases assert the transport seam is never constructed, proving refusal precedes
+  sending rather than following it.
+- A symlink, a FIFO, and a path escaping `--root` are each refused with nothing
+  sent. Verifies AC-0024.
+- A line over 64 KiB is refused before decoding and the rest still send.
+  Verifies AC-0025.
+- Default mode is one-shot; `--follow` delivers an appended line; `--for` ends
+  the run. Verifies AC-0027, AC-0028.
+- Absent file, truncated file, replaced inode, and a trailing line with no
+  newline each exit 0 with no partial or duplicate record. Verifies AC-0029.
 
 **Approach:**
-- Pure function from parsed lines to a request body. The five OTLP JSON rules
-  live here and nowhere else.
+- One reader serving both modes; the offset lives in memory only.
 
-**Done when:** the golden test passes and the fixture is committed.
+**Done when:** every file-lifecycle case passes and no position file is written.
 
-### T5: Transport
+### T4: Encoder and the work-loop mapping profile
+
+**Depends on:** T1
+
+**Touches:** `packages/jsonl-otlp-exporter/jsonl_otlp_exporter/encode.py`, `mappings/work_loop.py`, its tests
+
+**Tests:**
+- `no stub (implementation-discovered)`. Discovery predicate: the encoder's
+  signature follows the profile interface, which T4 defines. Constraint: pure
+  function, no I/O. Required outcome: a byte-stable request body. Verification
+  mode: TDD. Proof obligation: the golden comparison is written first and fails
+  until the mapping exists.
+- Byte-exact golden for the recorded three-line fixture. Verifies AC-0005.
+- `service.name` takes `--service-name`, defaulting to the profile's name.
+  Verifies AC-0007.
+- A non-parsing line is skipped and the remainder encoded. Verifies AC-0016.
+- Records carry the profile's declared identity attributes. Verifies AC-0030.
+
+**Approach:**
+- The five OTLP JSON rules live here and nowhere else; the profile declares the
+  three field destinations.
+
+**Done when:** the golden passes and the profile is the only place field names
+appear.
+
+### T5: Transport — destination policy, retry and batching
 
 **Depends on:** T2, T4
 
+**Touches:** `packages/jsonl-otlp-exporter/jsonl_otlp_exporter/transport.py`, its tests
+
 **Tests:**
-- `partialSuccess` non-empty ⇒ no retry, count on stderr. Verifies AC-0008.
-- 429 and 503 with `Retry-After` ⇒ next attempt not earlier. Verifies AC-0009.
-- Attempt count capped. Verifies AC-0010.
-- Batch cap at 512. Verifies AC-0011.
-- Plaintext permitted to loopback, refused elsewhere.
+- `no stub (implementation-discovered)`. Discovery predicate: the opener's seam
+  is fixed once the config and encoder interfaces exist. Constraint: adapt
+  `https_catalogue.py`'s opener and redirect handling without importing it.
+  Required outcome: every response shape drives its documented behaviour.
+  Verification mode: TDD. Proof obligation: each response fixture asserts a
+  distinct observable, so no single change makes them all pass.
+- Non-empty `partialSuccess` produces no retry and reports the count. Verifies AC-0008.
+- `Retry-After: N` waits `min(N, 30)`; absent, negative or unparseable is 0.
+  Verifies AC-0009.
+- At most three attempts. Verifies AC-0010.
+- At most 512 records per request. Verifies AC-0011.
+- A request body never exceeds 8 MiB, asserted by constructing the worst
+  admissible case rather than trusting the ceiling. Verifies AC-0026.
+- HTTPS accepted at any host; plaintext accepted only to a loopback address;
+  plaintext to a non-loopback host refused before sending; a redirect not
+  followed; user-info in the netloc refused. Verifies AC-0034, AC-0035,
+  AC-0036, AC-0037, AC-0038.
 - Integration, against a live Collector with an `otlp` receiver and a `debug`
-  exporter: three log records land whose attribute sets equal the three input
-  lines' fields. Verifies AC-0006.
+  exporter: three records land with each field at its mapped destination.
+  Verifies AC-0006.
 
 **Approach:**
-- Adapt the opener construction and redirect policy from `https_catalogue.py`;
-  do not import it.
+- Loopback is decided by resolving the host and testing the resolved address,
+  not by string-matching `localhost`.
 
-**Done when:** every response-shape fixture drives its documented behaviour.
+**Done when:** every response-shape and destination fixture drives its documented
+behaviour, and the live round trip lands three records.
 
-### T6: CLI, modes and exit codes
+### T6: CLI, exit codes and degraded completion
 
-**Depends on:** T5
+**Depends on:** T3, T5
+
+**Touches:** `packages/jsonl-otlp-exporter/jsonl_otlp_exporter/cli.py`, its tests
 
 **Tests:**
 - Each exit state from the spec's table, one invocation each. Verifies AC-0012,
   AC-0015.
-- Unknown flag exits 1, not 2 — the `argparse` default must be overridden.
-  Verifies AC-0013.
-- No invocation returns 2 through 9. Verifies AC-0014.
+- An unknown flag exits 1, not 2 — `argparse`'s default must be overridden or it
+  collides with the reserved `USER_ACTION` code. Verifies AC-0013.
+- No invocation returns a code in 2 through 9. Verifies AC-0014.
+- A run whose every line is invalid exits 1. Verifies AC-0032.
+- A non-empty `partialSuccess` exits 1. Verifies AC-0033.
 
 **Approach:**
-- Override `argparse`'s `error()` so a parse failure exits 1.
-- Top-level `except Exception` mapping to 1; never `except BaseException`, so
+- Top-level `except Exception` maps to 1; never `except BaseException`, so
   `SystemExit` and `KeyboardInterrupt` pass through.
-- `--once` and the tail loop share everything downstream of line acquisition.
 
 **Done when:** the exit-code table is exercised end to end.
 
-### T7: Declare the runtime dependency
+### T7: Declare and report the optional runtime dependency
 
 **Depends on:** T1
 
+**Touches:** `packs/core/pack.toml`, the catalogue lint's reporting path, its tests
+
 **Tests:**
-- Goal-based: `agentbundle catalogue lint --root . --deep` accepts the new
-  `[[pack.runtime-dependencies]]` entry, and the reporting path names the
-  distribution as an optional, absent dependency.
+- With the distribution absent, `agentbundle catalogue lint` names
+  `jsonl-otlp-exporter` as an optional unsatisfied runtime dependency of `core`
+  and exits 0, invoking no package manager. Verifies AC-0039.
 
 **Approach:**
-- Declare in `packs/core/pack.toml`; write the first reader for a schema surface
-  that has none. Report only — never install, per Tier 1.
+- Report only. Tier 1 detect → fail clean; the installer never acquires.
 
-**Done when:** a lint run reports the optional dependency without failing.
+**Done when:** a lint run reports the optional dependency without failing and
+without invoking pip, npm, uv or pipx.
 
 ### T8: Records, architecture and disclosure
 
-**Depends on:** T3, T6
+**Depends on:** T6
+
+**Touches:** `docs/adr/0109-*.md`, `docs/architecture/telemetry.md`, `guides/core/how-to/export-loop-telemetry.md`, `docs/specs/README.md`
 
 **Tests:**
-- Goal-based: `python3 tools/check-guide-index.py` green; every
-  `agentbundle.md` anchor cited by `telemetry.md` resolves to a live heading.
-  Verifies AC-0020, AC-0021, AC-0022.
+- The guide states the capability, its payload and its destination. Verifies AC-0020.
+- `telemetry.md` § 5.3 carries no claim that the catalogue default cannot work,
+  and every `agentbundle.md` anchor resolves. Verifies AC-0021.
+- §§ 2 and 8 describe a sender that exists and installs separately. Verifies AC-0022.
 
 **Approach:**
-- Author ADR-0109. Confirm the ordinal is free at authoring time; 0106 is
-  already duplicated, so a reserved number is not a guarantee.
-- Rewrite `telemetry.md` §§ 2, 5.2, 5.3 and 8 against the shipped tool.
+- ADR-0111 is already authored; T8 reconciles the architecture text to the
+  shipped tool and indexes the guide.
 
-**Done when:** the guide is indexed and no dead anchor remains.
+**Done when:** `check-guide-index.py` is green and no dead anchor remains.
 
 ### T9: Release
 
-**Depends on:** T1-T8
+**Depends on:** T7, T8
+
+**Touches:** `.github/workflows/`, `packages/jsonl-otlp-exporter/CHANGELOG.md`, `docs/product/changelog.md`
 
 **Tests:**
 - Manual QA: the real console script, installed from the built wheel, is run
-  against a real `events.jsonl` and a real Collector; stdout, stderr and exit
-  code are recorded in the verification ledger.
+  against a real event file and a real Collector; stdout, stderr and exit code
+  are recorded in the verification ledger. Re-exercises AC-0023 and AC-0006 on
+  the built artifact rather than the source tree.
 
 **Approach:**
-- Add `.github/workflows/release-loop-telemetry-exporter.yml` modelled on the
-  credbroker workflow, keeping the SHA-pinned publish action.
-- Bump versions, write both changelog entries, tag.
+- A release workflow modelled on `release-credbroker.yml`, keeping the SHA-pinned
+  publish action.
 
 **Done when:** the tagged workflow publishes and a fresh `uv tool install`
 produces a working command.
@@ -335,8 +407,9 @@ yanking the release and reverting one field.
 
 **Infrastructure:** none owned here. The adopter runs the Collector.
 
-**Deployment sequencing:** `core`'s version bump (T3) and the distribution
-release (T9) are independent; neither blocks the other.
+**Deployment sequencing:** this delivery depends on `loop-event-schema-version`
+shipping first, so a consumer never sees the version appear underneath it. The
+distribution release is the last step and depends on every task before it.
 
 ## Risks
 

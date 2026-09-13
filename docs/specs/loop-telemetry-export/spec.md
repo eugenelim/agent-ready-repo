@@ -3,10 +3,11 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0109 (authored by this delivery — separate sender distribution, versioned event line)
+- **Constrained by:** [ADR-0111](../../adr/0111-loop-telemetry-sender-is-a-separately-installed-distribution.md)
+- **Depends on:** [`loop-event-schema-version`](../loop-event-schema-version/spec.md) — ships first
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** [`contracts/jsonschema/loop-run-event.schema.json`](../../../contracts/jsonschema/loop-run-event.schema.json)
+- **Contract:** none — the event-line schema is owned by `loop-event-schema-version`
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -24,7 +25,7 @@
 
 An adopter who wants their work-loop runs visible in an observability backend
 installs one small tool, points it at an OpenTelemetry Collector, and sees a log
-record per phase transition. The tool is `loop-telemetry-export`, a separately
+record per phase transition. The tool is `jsonl-otlp-export`, a separately
 installed Python distribution. Nothing in any installed pack can send: an
 adopter who never installs the tool has a structural guarantee, not a
 configuration promise. An adopter who installs it but configures no endpoint
@@ -32,9 +33,9 @@ still sends nothing, and the tool says so rather than failing.
 
 Success for that adopter is a Splunk, Honeycomb, Grafana or Datadog view of
 where a run spent its time and which gates it failed, reached by running a
-Collector they already know how to run. Success for the repository is that the
-event line gains a version, so the format can change later without breaking a
-reader that is already consuming it.
+Collector they already know how to run. The event line's version is a
+precondition rather than part of this delivery: it ships first, in
+[`loop-event-schema-version`](../loop-event-schema-version/spec.md).
 
 The exporter reads `.loop-run/events.jsonl` and emits OTLP logs over HTTP with
 JSON encoding. It targets a Collector rather than a vendor endpoint: Splunk's
@@ -49,7 +50,12 @@ Collector in front of it.
 | ---: | --- |
 | 0 | Records sent |
 | 0 | No endpoint configured — nothing sent |
-| 1 | Usage error, unreadable or malformed input, configuration error, send failure after the retry budget, or an unhandled exception |
+| 0 | Some lines invalid, the rest sent |
+| 1 | Unreadable or confined-refused input file |
+| 1 | Every line invalid |
+| 1 | Usage error, configuration error, refused endpoint, or an unhandled exception |
+| 1 | Send failure after the retry budget, or a non-empty `partialSuccess` |
+| 0 | Send failure after the retry budget, under `--best-effort` |
 | 2–9 | Never returned — reserved credential/auth band owned by [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md) |
 | 130 | Interrupted by SIGINT |
 
@@ -59,10 +65,10 @@ Collector in front of it.
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Applicable — a sender outside every pack, and a versioned line, are both reversals of stated current architecture | `docs/adr/0109-*.md` | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
 | Current architecture | Applicable — `telemetry.md` § 2 states "No exporter ships", § 5.3 carries a stale blockquote, and two anchors to `agentbundle.md § 7.1` are dead | `docs/architecture/telemetry.md` | spec owner | § 2, § 5.2, § 5.3 and § 8 read true against the shipped tool; both anchors resolve | Anchors resolve; no claim contradicts the shipped tool |
-| Interface compatibility | Applicable — the event line becomes a versioned wire format with readers outside this repository | `contracts/jsonschema/loop-run-event.schema.json` + a row in `contracts/README.md` | spec owner | Schema validates a recorded corpus of real event lines | Schema committed, registry row present |
-| User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` + `packages/loop-telemetry-exporter/README-pypi.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed; PyPI README renders |
-| Release history | Applicable — a new published distribution and a `core` content change | `docs/product/changelog.md` + `packages/loop-telemetry-exporter/CHANGELOG.md` | release workflow | Version bump with changelog entry; tag matches `pyproject` | Tag published, both changelogs updated |
-| Maintainer procedure | Applicable — a third distribution with its own release path | `packages/loop-telemetry-exporter/AGENTS.md` | spec owner | Test command and release-coupling note | File present and accurate |
+| User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` + `packages/jsonl-otlp-exporter/README-pypi.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed; PyPI README renders |
+| Release history | Applicable — a new published distribution and a `core` content change | `docs/product/changelog.md` + `packages/jsonl-otlp-exporter/CHANGELOG.md` | release workflow | Version bump with changelog entry; tag matches `pyproject` | Tag published, both changelogs updated |
+| Maintainer procedure | Applicable — a third distribution with its own release path | `packages/jsonl-otlp-exporter/AGENTS.md` | spec owner | Test command and release-coupling note | File present and accurate |
+| Optional-dependency reporting | Applicable — T7 writes the first reader of `[[pack.runtime-dependencies]]`, changing what a lint run reports | `packs/core/pack.toml` + the catalogue lint's reporting path | spec owner | Lint run naming the unsatisfied optional dependency | AC-0039 green and the behaviour documented |
 | Current product truth | Applicable — the spec must be discoverable | `docs/specs/README.md` | spec owner | Row in the active list | Row present |
 | Reusable learning | Applicable — the checkpoint validation and the argparse/exit-code collision generalise | `project-knowledge` public seam | work-loop closeout | Capture receipt | Receipt recorded or `project-knowledge unavailable` |
 | Operations | Not applicable — the tool runs on a developer machine or in CI, owns no deployed infrastructure, and has no runbook surface in this repository | — | — | — | — |
@@ -78,6 +84,9 @@ Collector in front of it.
   rewrites `.loop-run/events.jsonl` or any engine state.
 - Treat every line of the input file as untrusted data: bound its size, reject
   what does not parse, and continue past a malformed line rather than aborting.
+- Canonicalise the input path before opening it, and refuse anything that is
+  not a regular file inside the repository root.
+- Require HTTPS for any endpoint whose host is not a loopback address.
 
 ### Ask first
 
@@ -99,49 +108,25 @@ Collector in front of it.
 - Write a checkpoint, position file, or any other durable state under
   `.loop-run/` or elsewhere.
 - Ship a catalogue-level `[pack.layout.*]` default for telemetry.
+- Follow an HTTP redirect, or send to an endpoint carrying user-info.
 
 ## Testing Strategy
 
-- **Off-by-default and endpoint resolution (AC-0001, AC-0002, AC-0003,
-  AC-0004):** TDD. Pure precedence logic over an environment mapping and two
-  files, so the cases compress into assertions and none of them needs a network.
-  The unconfigured case is asserted against a transport seam that fails if
-  constructed, rather than by reading output — an assertion on stderr would pass
-  for a build that sent first and printed afterwards.
-- **OTLP encoding (AC-0005, AC-0007, AC-0016):** TDD. The encoder is a pure
-  function from parsed lines to a request body, so a byte-exact golden pins the
-  layout and a diff shows any drift. Measured against a live Collector
-  (`telemetry.md` § 10.3), structural errors return HTTP 400, so the golden is
-  not defending against silent rejection — it is the only written form of the
-  emitted layout, which is what attribute drift would otherwise slip past.
-- **A real receiver accepts and parses what we emit (AC-0006):** goal-based
-  check, exercised by an integration test against a live Collector. This is the
-  only check that observes attribute *naming*: a structurally valid payload
-  carrying wrong names is accepted and stored, so neither a 400 nor the golden
-  can see it. It takes its own group rather than joining the encoder's, because
-  it fails on a different input — the golden can be self-consistently wrong
-  while the encoder's own cases stay green.
-- **Transport obligations (AC-0008, AC-0009, AC-0010, AC-0011):** TDD, over a
-  seam in front of `urlopen`. Each response shape — 200 with `partialSuccess`,
-  429 and 503 with `Retry-After`, connection refused — is a fixture rather than
-  a live condition, so the retry, backoff and batching rules are assertions.
-- **Exit codes (AC-0012, AC-0013, AC-0014, AC-0015):** goal-based check. Each
-  state is one invocation and one observed status. AC-0013 and AC-0014 take
-  cases of their own because they fail on inputs the others cannot reach: a
-  parse error exercises `argparse`'s own exit path, and the band claim is a
-  statement over every invocation rather than any single one.
-- **The event line's version (AC-0017, AC-0018):** TDD, in the existing
-  `loop-engine` envelope suite. A field on a dict and a replay passthrough, both
-  observable from the written file.
-- **The event-line contract schema (AC-0019):** goal-based check. The schema is
-  validated against a recorded corpus of real lines rather than a synthesised
-  one, so a line shape the engine actually emits cannot pass by construction.
-- **Disclosure and the architecture records (AC-0020, AC-0021, AC-0022):**
-  goal-based check over the authored files. Anchor resolution is mechanical;
-  the disclosure sentence is checked for presence, not for wording.
-- **The installed tool, end to end (AC-0023):** visual / manual QA. The real
-  console script, installed from the built wheel, is invoked and its stdout,
-  stderr and exit code recorded. A passing unit gate does not satisfy this.
+- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and two files, so the cases compress into assertions and none needs a network. The unconfigured case is asserted against a transport seam that fails if constructed, not by reading output — an assertion on stderr would pass for a build that sent first and printed afterwards.
+- **VI-0002 — OTLP encoding (AC-0005, AC-0007, AC-0016):** TDD. The encoder is a pure function from parsed lines to a request body, so a byte-exact golden pins the layout and a diff shows drift. Measured against a live Collector (`telemetry.md` § 10.3) structural errors return HTTP 400, so the golden is not defending against silent rejection — it is the only written form of the emitted layout.
+- **VI-0003 — a real receiver parses what we emit (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a 400 nor the golden can see it.
+- **VI-0004 — retry and batching, as the criteria state them (AC-0008, AC-0009, AC-0010, AC-0011):** TDD over a seam in front of `urlopen`. Scope is exactly the four criteria — partial-success suppression, the bounded `Retry-After` wait, the attempt cap and the record cap. Backoff shape and jitter are deliberately unpromised in v1 and therefore unasserted here.
+- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015):** goal-based check. Each state is one invocation and one observed status. AC-0013 and AC-0014 take cases of their own: a parse error exercises `argparse`'s own exit path, and the band claim is a statement over every invocation rather than any single one.
+- **VI-0006 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording.
+- **VI-0007 — the installed tool, end to end (AC-0023):** visual / manual QA. The real console script, installed from the built wheel, is invoked and its stdout, stderr and exit code recorded. A passing unit gate does not satisfy this.
+- **VI-0008 — input-path confinement (AC-0024):** TDD. A symlink, a FIFO and a path escaping the root are three fixtures over one predicate, and the assertion is that the transport seam is never constructed — proving refusal happens before sending, not after.
+- **VI-0009 — size bounds (AC-0025, AC-0026):** TDD. Both are functions over constructed input, so an oversized line and an oversized batch are fixtures. AC-0026's arithmetic is asserted, not assumed: the test constructs the worst admissible case rather than trusting the stated ceiling.
+- **VI-0010 — modes and file lifecycle (AC-0027, AC-0028, AC-0029):** TDD. Mode selection and `--for` are observable from process behaviour; AC-0029's four file states are one predicate substituted at each member, checkable as written at every one.
+- **VI-0011 — record identity for deduplication (AC-0030):** TDD, over the encoder's output. Delivery is at-least-once, so this is the attribute pair a consumer needs; the criterion is about what the record carries, not about suppressing a resend.
+- **VI-0012 — the repository's gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one of them is a literal list rather than a glob.
+- **VI-0013 — degraded completion (AC-0032, AC-0033):** goal-based check. Both are outcome classes the exit table now partitions, and both were previously unstated.
+- **VI-0014 — destination policy (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038):** TDD over the opener construction. Five separate failure modes with five separate remedies, so they do not collapse: an accepted HTTPS target, an accepted loopback plaintext target, a refused non-loopback plaintext target, a refused redirect, and a refused user-info netloc.
+- **VI-0015 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 
 ## Acceptance Criteria
 
@@ -158,21 +143,26 @@ Collector in front of it.
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` is requested with `/v1/logs` appended.
 - [ ] **AC-0005.** For the recorded three-line fixture, the emitted request body
   equals `tests/fixtures/otlp-logs-golden.json` byte for byte.
-- [ ] **AC-0006.** A Collector running an `otlp` receiver and a `debug` exporter
-  records three log records whose attribute sets equal the three input lines'
-  fields.
+- [ ] **AC-0006.** Under the `work-loop` mapping profile, a Collector running an
+  `otlp` receiver and a `debug` exporter records three log records in which
+  `at` appears as `timeUnixNano`, `result` as `severityNumber`, and every
+  remaining envelope field as a log-record attribute.
+
 - [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
-  attribute, defaulting to `work-loop` when none is configured. Splunk renders a
-  record without it as `unknown_service`.
+  attribute taking the value of `--service-name`, defaulting to the active
+  mapping profile's declared name, which is `work-loop` for the only profile
+  v1 ships. Splunk renders a record without it as `unknown_service`.
+
 - [ ] **AC-0008.** A response carrying a non-empty `partialSuccess` produces no
   retry, and its `rejectedLogRecords` count appears on stderr.
-- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request is
-  issued before N seconds have elapsed.
+- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no
+  request is issued before `min(N, 30)` seconds have elapsed, and a value
+  that is absent, negative or unparseable is treated as 0.
+
 - [ ] **AC-0010.** A send is attempted at most 3 times.
-- [ ] **AC-0011.** A single request carries at most 512 log records. The OTLP 64
-  MiB request limit is non-binding on this route: 512 records of this envelope
-  cannot reach it, and the record count is what fires first. Measured from the
-  count of parsed lines in the input file.
+- [ ] **AC-0011.** A single request carries at most 512 log records, counted
+  from the parsed lines of the input file.
+
 - [ ] **AC-0012.** Send failure after the retry budget exits 1, and exits 0 when
   `--best-effort` is passed.
 - [ ] **AC-0013.** An unrecognised command-line flag exits 1, not 2. The 2–9 band
@@ -182,12 +172,7 @@ Collector in front of it.
 - [ ] **AC-0015.** SIGINT exits 130.
 - [ ] **AC-0016.** A line that does not parse as JSON is skipped with a stderr
   note, and the remaining lines are still sent.
-- [ ] **AC-0017.** Every event line `loop-engine` writes carries `schema` with
-  integer value 1.
-- [ ] **AC-0018.** An `events.pending` record lacking `schema` is appended to
-  `events.jsonl` unchanged, carrying no `schema` field.
-- [ ] **AC-0019.** `contracts/jsonschema/loop-run-event.schema.json` validates every
-  line of the recorded event corpus, and `contracts/README.md` carries its row.
+
 - [ ] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` states that the
   capability exists, what the payload contains, and that it reaches the
   configured endpoint — while the tool ships sending nothing.
@@ -196,9 +181,69 @@ Collector in front of it.
   cites resolves to a heading that exists.
 - [ ] **AC-0022.** `docs/architecture/telemetry.md` § 2 and § 8 describe a sender
   that exists and is installed separately.
-- [ ] **AC-0023.** `loop-telemetry-export --version` prints the installed
+- [ ] **AC-0023.** `jsonl-otlp-export --version` prints the installed
   distribution version, and the published tag equals `pyproject.toml`'s
   `version`.
+
+- [ ] **AC-0024.** The exporter reads only a regular file at the path given by
+  `--input`, defaulting to `.loop-run/events.jsonl`, canonicalised before
+  opening, and sends nothing when that path is a symlink, a non-regular file,
+  or resolves outside the directory given by `--root`, which itself defaults to
+  the working directory.
+
+- [ ] **AC-0025.** A line longer than 64 KiB is refused before it is decoded,
+  skipped with a note on stderr, and the remaining lines are still sent.
+- [ ] **AC-0026.** A request body is at most 8 MiB. The 64 MiB OTLP protocol
+  limit is not binding on this route because the per-line bound in AC-0025 and
+  the record cap in AC-0011 together admit at most 32 MiB, and the 8 MiB body
+  bound is therefore the limit that fires first.
+- [ ] **AC-0027.** With no mode flag the exporter runs one-shot: it reads the
+  file once, sends, and exits without waiting for further lines.
+- [ ] **AC-0028.** Under `--follow`, a line appended after start is sent without
+  restarting the process, and `--for <duration>` ends the run at that elapsed
+  time.
+- [ ] **AC-0029.** For each of an absent file, a file truncated to zero, a file
+  replaced by a new inode, and a trailing line with no newline, the exporter
+  exits 0 and sends no partial or duplicate record for that condition.
+- [ ] **AC-0030.** Every emitted log record carries the attributes the active
+  mapping profile declares as its record identity, which for the `work-loop`
+  profile are `run_id` and `seq`, together identifying a record for a consumer
+  deduplicating at-least-once delivery.
+
+- [ ] **AC-0031.** `packages/jsonl-otlp-exporter` appears in the root
+  `pyproject.toml` `pythonpath`, mypy's `files`, the `Makefile` test-suite
+  invocations, and the pip-audit build-system leg, so its tests and type checks
+  are run by the repository's gates.
+- [ ] **AC-0032.** A run in which every line is invalid exits 1.
+- [ ] **AC-0033.** A response carrying a non-empty `partialSuccess` exits 1,
+  consistent with the degraded-completion ruling in
+  [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
+- [ ] **AC-0034.** An `https` endpoint is accepted at any host.
+- [ ] **AC-0035.** An `http` endpoint is accepted only when its host resolves to
+  a loopback address.
+- [ ] **AC-0036.** An `http` endpoint whose host does not resolve to a loopback
+  address is refused before any request is sent, with a message naming the
+  endpoint, and exits 1.
+- [ ] **AC-0037.** A redirect response is not followed, and the run exits 1 with
+  a message naming the redirect target.
+- [ ] **AC-0038.** An endpoint whose netloc carries user-info is refused before
+  any request is sent and exits 1.
+- [ ] **AC-0039.** With the distribution absent, `agentbundle catalogue lint`
+  reports `jsonl-otlp-exporter` as an optional, unsatisfied runtime
+  dependency of `core` and exits 0.
+
+## Retired identifiers
+
+<!-- Identity is append-only: a retired identifier is never reused. Entries are
+     bare identifiers; the narrative belongs above, not on the entry line. -->
+
+Retired 2026-09-12 when the event-line version was split into
+[`loop-event-schema-version`](../loop-event-schema-version/spec.md), where they
+are re-authored under that spec's own identifiers. They are not reused here.
+
+- AC-0017
+- AC-0018
+- AC-0019
 
 ## Follow-ons
 
