@@ -153,7 +153,7 @@ and conventions don't show up in the diff.
 ## Attack along the relevant checklist
 
 For mixed-mode PRs, run both the spec-stage and implementation-stage
-checklists; verification-mode awareness applies to every review.
+checklists; verification-mode awareness applies to every review that carries a verification mode, which the intent modes do not.
 
 ### Spec-stage checks (when a spec or plan changed in this PR)
 
@@ -309,7 +309,7 @@ checklists; verification-mode awareness applies to every review.
    mapped convention sources are first-class checks. Cite the owning source by
    name when you flag a violation.
 
-### Verification-mode awareness (every review)
+### Verification-mode awareness (every review that carries a verification mode)
 
 When evaluating verification artifacts, check only their declared mode,
 named artifact, and placement at the contracted boundary. Quality-engineer
@@ -330,7 +330,9 @@ authority, reachability, existing handling, consequence, and proposed
 mechanism. In particular, establish the observation, check existing handling,
 and trace the claimed consequence rather than asserting it. A finding with a
 real observation but an untraced consequence still emits, downgraded with that
-gap named; this does not add a suppressible category.
+gap named; this does not add a suppressible category. In a mode whose output
+carries no severity, there is no bucket to downgrade into: the finding emits in
+that mode's own shapes with the gap named, and the self-check still binds.
 
 ## Cross-lens referrals
 
