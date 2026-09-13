@@ -326,3 +326,65 @@ def test_angle_brackets_inside_a_code_span_are_left_alone(tmp_path):
     assert rows, "no record row rendered"
     assert "`packs/<pack>/tests/`" in rows[0]
     assert "&lt;pack&gt;" not in rows[0]
+
+
+# --- regressions for the third round: every one of these was a repair-origin defect ---
+
+def test_a_symlinked_scratch_path_cannot_be_written_through(tmp_path):
+    """The first atomic-write fix created the unguarded twin of the target check."""
+    import os
+    victim = tmp_path / "victim.txt"
+    victim.write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
+    recs = tmp_path / "recs"
+    recs.mkdir()
+    _write(recs, "0001-r.md", "ADR-0001: X")
+    try:
+        os.symlink(victim, recs / ".README.md.index-records")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    assert _main(str(recs))[0] == 0
+    assert victim.read_text(encoding="utf-8") == "DO NOT OVERWRITE\n"
+    index = recs / "README.md"
+    assert index.is_file() and not index.is_symlink()
+
+
+def test_a_successful_write_leaves_no_scratch_file(tmp_path):
+    """A unique scratch must not become litter in an adopter's record directory."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: X")
+    assert _main(str(tmp_path))[0] == 0
+    assert [p.name for p in tmp_path.iterdir() if "index-records-" in p.name] == []
+
+
+def test_an_absent_closing_date_is_not_filled_from_git(tmp_path):
+    """The opening-only rule must hold for absence, not only for the placeholder."""
+    d = _git_repo(tmp_path)
+    (d / "0001-a.md").write_text(
+        "# RFC-0001: Open\n\n- **Status:** Open\n- **Date opened:** 2026-01-01\n",
+        encoding="utf-8", newline="\n")
+    subprocess.run(["git", "add", "-A"], cwd=d, check=True)
+    env = {**os.environ, "GIT_COMMITTER_DATE": "2024-04-04T00:00:00"}
+    subprocess.run(["git", "commit", "-qm", "x", "--date=2024-04-04T00:00:00"],
+                   cwd=d, check=True, env=env)
+    rows = [r for r in _load().render(d, record_type="rfc").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[4].rstrip(" |") == "", f"open RFC shown closed: {rows[0]}"
+
+
+def test_an_unclosed_code_span_does_not_suppress_html_escaping(tmp_path):
+    """An odd backtick count leaves the trailing segment outside a span."""
+    _write(tmp_path, "0005-b.md", "ADR-0005: Use `npm audit <img src=x onerror=alert(1)>")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert "<img" not in rows[0]
+    assert "&lt;img" in rows[0]
+
+
+def test_an_unreadable_index_target_is_named_not_a_traceback(tmp_path):
+    """The target read was the one read outside every handler."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: X")
+    (tmp_path / "README.md").write_bytes(b"\xff\xfe not utf-8")
+    code, err = _main("--check", str(tmp_path))
+    assert code != 0
+    assert "cannot read" in err
