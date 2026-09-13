@@ -5,6 +5,44 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.19"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.19] — 2026-09-13",
+      "changelogAnchor": "core22519--2026-09-13",
+      "highlights": [
+        {
+          "source": "You can now ask `workspace-status` which explicitly selected specs still have workspace membership and which do not, without changing `workspace.toml` or treating absence as permission to delete anything.",
+          "segments": [
+            {
+              "type": "text",
+              "value": "You can now ask "
+            },
+            {
+              "type": "code",
+              "value": "workspace-status"
+            },
+            {
+              "type": "text",
+              "value": " which explicitly selected specs still have workspace membership and which do not, without changing "
+            },
+            {
+              "type": "code",
+              "value": "workspace.toml"
+            },
+            {
+              "type": "text",
+              "value": " or treating absence as permission to delete anything."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.18"
         }
       ],
