@@ -2980,7 +2980,7 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
                 "membership_present": bool(occurrences_by_path[artifact_path]),
                 "occurrences": occurrences_by_path[artifact_path],
             }
-            for selector, artifact_path in zip(selectors, selected_artifact_paths)
+            for selector, artifact_path in zip(selectors, selected_artifact_paths, strict=True)
         ]
     }
 
