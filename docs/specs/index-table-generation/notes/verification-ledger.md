@@ -115,3 +115,31 @@ generated — without a destination that dangles in a core-only tree.
 **Generalizable lesson.** A criterion naming a cross-reference must say which
 install shapes the destination exists in. "Link X" is a claim about the tree, not
 just about the text.
+
+## 2026-09-13 — link-destination escaping vs the approved stub (amendment AM-003)
+
+**Observation.** A security review verified that `_escape_destination` left `(`
+and `)` unencoded, so a record named `0002-evil) [x](javascript:alert(1)).md`
+ends its destination early and injects a second link into a published index.
+Closing it means encoding the delimiters. The approved T1 stub then fails,
+because it reverses the encoding with `dest.replace("%20", " ")` — a decode for
+exactly one character.
+
+**Why no alternative avoids the amendment.** Not encoding parens reopens the
+injection. Encoding only `)` still leaves a destination the stub's decode cannot
+reverse. CommonMark angle-bracket destinations are parens-safe but the stub
+extracts the brackets too. Refusing an unsafe filename drops an adopter's record
+from their own index. Every correct escaping breaks that assertion.
+
+**Remedy.** The decode becomes `urllib.parse.unquote(dest)`, which reverses
+whatever the encoder produced. No acceptance criterion changes; AC6 still reads
+"renders as a single well-formed cell whose link resolves to that record", and
+this verifies it without depending on which characters the encoder chose.
+
+**Generalizable lesson — the third time on this stub.** AM-001, AM-002 and
+AM-003 are all the same root cause: an assertion authored against an expected
+value the author never observed. A stub proven only red is proven only to fail.
+Where an expected value is authored rather than observed, the PLAN-time scratch
+must also drive it green once, or the assertion is a guess with a test's
+authority. Hard-coding the inverse of a transformation — rather than applying the
+real inverse — is the specific shape that failed here.

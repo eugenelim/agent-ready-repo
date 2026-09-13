@@ -3,7 +3,7 @@
 Materialized unchanged from docs/specs/index-table-generation/plan.md
 ## Construction tests, per the tdd-stubs stub-to-EXECUTE handoff.
 """
-import importlib.util, pathlib, sys
+import importlib.util, pathlib, sys, urllib.parse
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -66,7 +66,10 @@ def test_a_delimiter_bearing_filename_yields_a_resolving_link(tmp_path):
     assert rows, "no record row rendered"
     row = rows[0]
     dest = row.split(" | ")[1].split("](")[1].rstrip(")")
-    assert (tmp_path / dest.replace("%20", " ")).exists()
+    # Decode with the real inverse, not a hard-coded reversal of one
+    # character: the assertion must not depend on which delimiters the
+    # encoder happens to cover.
+    assert (tmp_path / urllib.parse.unquote(dest)).exists()
 
 import os, subprocess
 
@@ -158,3 +161,86 @@ def test_an_unfilled_date_placeholder_is_not_a_date(tmp_path):
             if r.startswith("| 0")]
     assert rows, "no record row rendered"
     assert rows[0].split(" | ")[3].rstrip(" |") == ""
+
+
+# --- main(): the CLI surface the plan declared and the first pass never landed ---
+
+def _main(*argv):
+    """Run the CLI in-process and return (exit_code, stderr)."""
+    import contextlib, io
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        code = _load().main(list(argv))
+    return code, err.getvalue()
+
+
+def test_check_writes_nothing_and_reports_zero_when_the_index_matches(tmp_path):
+    """AC16 + AC17."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T")
+    assert _main(str(tmp_path)) [0] == 0
+    before = (tmp_path / "README.md").read_bytes()
+    code, _ = _main("--check", str(tmp_path))
+    assert code == 0
+    assert (tmp_path / "README.md").read_bytes() == before
+
+
+def test_check_reports_nonzero_and_names_the_first_differing_line(tmp_path):
+    """AC18: divergence is reported, and --check still writes nothing."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T")
+    _main(str(tmp_path))
+    (tmp_path / "README.md").write_text("# Wrong\n", encoding="utf-8", newline="\n")
+    code, err = _main("--check", str(tmp_path))
+    assert code != 0
+    assert "line 1 differs" in err
+    assert (tmp_path / "README.md").read_text(encoding="utf-8") == "# Wrong\n"
+
+
+def test_an_index_target_that_is_a_symlink_is_refused_and_named(tmp_path):
+    """AC13 at the write path: the reader refusing a link is not enough."""
+    import os
+    victim = tmp_path / "victim.txt"
+    victim.write_text("DO NOT OVERWRITE\n", encoding="utf-8", newline="\n")
+    recs = tmp_path / "recs"
+    recs.mkdir()
+    _write(recs, "0001-r.md", "ADR-0001: T")
+    try:
+        os.symlink(victim, recs / "README.md")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    code, err = _main(str(recs))
+    assert code != 0
+    assert "symlink" in err
+    assert victim.read_text(encoding="utf-8") == "DO NOT OVERWRITE\n"
+
+
+def test_an_untyped_empty_directory_refuses_and_writes_nothing(tmp_path):
+    """AC15a: a directory with no records carries no evidence of its own type."""
+    code, err = _main(str(tmp_path))
+    assert code != 0
+    assert "record type" in err
+    assert not (tmp_path / "README.md").exists()
+
+
+def test_an_empty_field_does_not_capture_the_following_line(tmp_path):
+    """AC3 + AC9: `\\s*` after a label matches a newline; this is the regression."""
+    (tmp_path / "0001-r.md").write_text(
+        "# RFC-0001: T\n\n- **Status:** Open\n- **Date opened:** 2026-01-01\n"
+        "- **Date closed:**\n- **Decision weight:** heavy\n",
+        encoding="utf-8", newline="\n")
+    rows = [r for r in _load().render(tmp_path, record_type="rfc").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    cells = rows[0].split(" | ")
+    assert "Decision weight" not in rows[0]
+    assert cells[4].rstrip(" |") == "", f"open RFC carries a closed date: {rows[0]}"
+
+
+def test_a_record_heading_without_a_usable_ordinal_is_warned_about(tmp_path):
+    """AC11's other half: the class was empty, so its warning could not fire."""
+    _write(tmp_path, "0001-ok.md", "ADR-0001: Fine")
+    (tmp_path / "0002-big.md").write_text(
+        "# ADR-10000: Too many digits\n\n- **Status:** Accepted\n",
+        encoding="utf-8", newline="\n")
+    code, err = _main("--check", str(tmp_path))
+    assert "0002-big.md" in err
+    assert "ordinal" in err

@@ -1,7 +1,7 @@
 # Plan: Index table generation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py` — the script-in-skill precedent this generator follows: argparse over a record directory, a `--check <dir>` mode, stdlib only, one `lstat` per entry with a record-shaped-symlink refusal (`:162-170`), and git-root resolution for its repository-relative work (`:115-123`). `tools/repo/build_gate_chain.py:267-271` (`check-adr-ordinals`) is the projection-invoked `--check` precedent. `tests/roster/test_decision_record_ordinal_uniqueness.py` is the roster-suite shape for a records-directory walk.
 
 ## Approach
@@ -44,7 +44,7 @@ portability rule forbids the generator knowing them.
 ### Stub — T1 (materialize unchanged at EXECUTE)
 
 ```python
-import importlib.util, pathlib, sys
+import importlib.util, pathlib, sys, urllib.parse
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -107,7 +107,10 @@ def test_a_delimiter_bearing_filename_yields_a_resolving_link(tmp_path):
     assert rows, "no record row rendered"
     row = rows[0]
     dest = row.split(" | ")[1].split("](")[1].rstrip(")")
-    assert (tmp_path / dest.replace("%20", " ")).exists()
+    # Decode with the real inverse, not a hard-coded reversal of one
+    # character: the assertion must not depend on which delimiters the
+    # encoder happens to cover.
+    assert (tmp_path / urllib.parse.unquote(dest)).exists()
 ```
 
 **Validated red — observed, not asserted.** A disposable scratch
@@ -530,3 +533,10 @@ generator reads files and writes one file per directory.
   tree, and the live file cannot link while its seed does not, so the criterion
   was unsatisfiable. The verb becomes *names*, with the reason stated on the
   criterion. Observation and lesson in `notes/verification-ledger.md`.
+- 2026-09-13 — **AM-003, controlled amendment under owner authority.** Closing a
+  verified link-injection defect required encoding the destination's delimiters,
+  which the T1 stub's one-character decode could not reverse. The decode becomes
+  `urllib.parse.unquote`. No acceptance criterion changes. This is the third
+  amendment to the same stub and they share one root cause, recorded in
+  `notes/verification-ledger.md`: an assertion authored against an expected value
+  the author never observed.

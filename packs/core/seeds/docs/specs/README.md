@@ -15,11 +15,10 @@ docs/specs/<feature>/
 
 ## Why there is no index
 
-Specs are discovered by listing this directory. There is no index table, because
-an index over a document corpus is generated from that corpus or it does not
-exist, and a spec index had no reader: nothing in the repository instructed an
-agent to read one, while 216 instructions told it to write one. See
-[ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md).
+Specs are discovered by listing this directory. An index over a document
+corpus is generated from that corpus or it does not exist — a hand-maintained
+one drifts from the specs it describes, and every change to it collides with
+every other branch that touches a spec.
 
 ## Adding a new spec
 

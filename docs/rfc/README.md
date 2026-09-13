@@ -49,7 +49,7 @@
 | 0045 | [ground the architect *design* phase in platform reality (serverless lens + dual-consumed contract grounding)](0045-ground-architect-design-in-platform-reality.md) | Accepted | 2026-06-24 | 2026-06-24 |
 | 0046 | [Convenient install defaults — resolve the catalogue source from install context](0046-convenient-install-defaults.md) | Accepted | 2026-06-25 | 2026-06-25 |
 | 0047 | [Default the catalogue source on the discovery verbs (`list-packs` / `list-profiles`)](0047-default-source-on-discovery-verbs.md) | Accepted | 2026-06-25 | 2026-06-25 |
-| 0048 | [The autonomous product-team operating model — gate doctrine, the `experience` pack, and a child-effort roadmap](0048-autonomous-product-team-operating-model.md) | Accepted | 2026-06-25 | - **Decision weight:** heavy |
+| 0048 | [The autonomous product-team operating model — gate doctrine, the `experience` pack, and a child-effort roadmap](0048-autonomous-product-team-operating-model.md) | Accepted | 2026-06-25 |  |
 | 0049 | [The release loop — deployed e2e validation, the minimum-regret deploy carve, and the company-OS composition](0049-the-release-loop-and-company-os.md) | Accepted | 2026-06-25 | 2026-06-30 |
 | 0050 | [the `experience` pack — rename `design-craft`, add the connective UX skills, and ground taste](0050-the-experience-pack.md) | Accepted | 2026-06-25 | 2026-06-29 |
 | 0051 | [the self-coverage gate — non-skippable coverage doctrine, realized loop-appropriately (full in `discovery-loop`, a thin slice in `work-loop`)](0051-the-self-coverage-gate.md) | Accepted | 2026-06-25 | 2026-06-29 |
@@ -81,7 +81,7 @@
 | 0077 | [Project knowledge lifecycle](0077-distill-knowledge.md) | Accepted | 2026-08-02 | 2026-08-13 |
 | 0078 | [workspace-mcp — ACP-observable skill runtime for the core pack](0078-workspace-mcp.md) | Accepted | 2026-08-03 | 2026-08-03 |
 | 0079 | [`codebase-context` Pack — Semantic Graph Indexing as an Optional Add-On](0079-codebase-context-pack.md) | Draft | 2026-08-03 | — |
-| 0080 | [Local scope install](0080-local-scope-install.md) | Accepted | 2026-08-04 | - **Decision weight:** standard |
+| 0080 | [Local scope install](0080-local-scope-install.md) | Accepted | 2026-08-04 |  |
 | 0082 | [Test ownership boundaries and per-surface inclusion](0082-test-ownership-boundaries-and-inclusion.md) | Accepted | 2026-08-07 | 2026-08-08 |
 | 0083 | [Work intake and artifact routing](0083-work-intake-and-artifact-routing.md) | Accepted | 2026-08-08 | 2026-08-08 |
 | 0084 | [Single sign-on destination trust boundary](0084-sso-destination-trust-boundary.md) | Accepted | 2026-08-11 | 2026-08-11 |

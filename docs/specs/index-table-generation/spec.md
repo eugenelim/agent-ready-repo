@@ -1,6 +1,6 @@
 # Spec: Index table generation
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md); [ADR-0006](../../adr/0006-doc-drift-construction-and-judgment.md) (no fail-closed adopter gate); [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md) (skill-script delivery route); [RFC-0002](../../rfc/0002-self-hosting.md) 2026-09-13 erratum
@@ -111,21 +111,21 @@ never the definition.
 
 - [x] **AC1.** The generated index lists one row per record, ordered by parsed ordinal ascending, independent of filesystem iteration order.
 - [x] **AC2.** A record is a `*.md` file in the record directory whose first heading matches the record type's H1 form and yields an ordinal; any other entry yields no row.
-- [x] **AC3.** An ADR row carries ordinal, linked title, status, and date. An RFC row carries ordinal, linked title, status, date opened, and date closed.
+- [ ] **AC3.** An ADR row carries ordinal, linked title, status, and date. An RFC row carries ordinal, linked title, status, date opened, and date closed.
 - [x] **AC4.** A row's title text equals its record's H1 title, read from the record and from no other source.
 - [x] **AC5.** A row's status equals its record's status token, with any qualifying clause following that token removed.
-- [x] **AC6.** A title or filename containing a Markdown table or link delimiter renders as a single well-formed cell whose link resolves to that record.
+- [ ] **AC6.** A title or filename containing a Markdown table or link delimiter renders as a single well-formed cell whose link resolves to that record.
 
 **Dates**
 
 - [x] **AC7.** When a record carries its date field, the row's date is that value.
 - [x] **AC8.** When a record omits its date field and git history is available, the row's date is that file's first-commit date.
-- [x] **AC9.** When a record omits its date field and git history is unavailable, the row's date is empty.
+- [ ] **AC9.** When a record omits its date field and git history is unavailable, the row's date is empty.
 - [x] **AC10.** The case in AC9 emits a warning naming the file and the missing field.
 
 **Refusals, warnings, and the empty corpus**
 
-- [x] **AC11.** A `*.md` entry whose H1 matches the record form but yields no ordinal, or which carries no status field, emits a warning naming the file and the missing field.
+- [ ] **AC11.** A `*.md` entry whose H1 matches the record form but yields no ordinal, or which carries no status field, emits a warning naming the file and the missing field.
 - [x] **AC12.** The run in AC11 writes the index and exits 0.
 - [x] **AC13.** A record-shaped symlink, or any entry resolving outside the supplied record directory, is refused and named, and contributes no row.
 - [x] **AC14.** A record directory containing no records, invoked with `--type`, yields an index whose table body is that record type's placeholder sentinel.
@@ -151,13 +151,13 @@ never the definition.
 - [x] **AC24.** No shipped skill, reference, or seed instructs updating an index by hand.
 - [x] **AC25.** The repository gate chain invokes the generator in `--check` mode, through the installed `.claude/skills/` projection, for `docs/adr` and for `docs/rfc`.
 - [x] **AC26.** `docs/adr/README.md` and `docs/rfc/README.md` each equal the generator's output for their directory.
-- [x] **AC27.** A generated index is the record type's heading followed by its table, and contains no path outside the record directory.
+- [ ] **AC27.** A generated index is the record type's heading followed by its table, and contains no path outside the record directory.
 
 **Retirement**
 
 - [x] **AC28.** `docs/specs/README.md` contains no Markdown table.
 - [x] **AC29.** `docs/specs/README.md` retains its description of the `docs/specs/<feature>/` directory convention.
-- [x] **AC30.** `packs/core/seeds/docs/specs/README.md` contains no Markdown table.
+- [ ] **AC30.** `packs/core/seeds/docs/specs/README.md` contains no Markdown table.
 - [x] **AC31.** The seed placeholder map requires no spec-index sentinel.
 - [x] **AC32.** The seed placeholder map requires the ADR sentinel and the RFC sentinel.
 - [x] **AC32a.** The ADR and RFC seeds each contain the record type's heading and its table carrying the placeholder sentinel, and no other section.
