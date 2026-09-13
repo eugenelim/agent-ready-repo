@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jsonl-otlp-exporter"
+version = "0.1.0"
+description = "Send JSONL records to an OpenTelemetry Collector as OTLP logs, with the field mapping supplied as a declarative profile."
+requires-python = ">=3.11"
+dependencies = []
+authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]
+license = { text = "Apache-2.0 OR MIT" }
+readme = "README-pypi.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Logging",
+]
+
+# The standard library is the only runtime dependency, and there is no extra
+# that changes that. OTLP/HTTP JSON is a documented wire format reachable with
+# `urllib.request` and `json`; taking the OpenTelemetry SDK would add a
+# dependency tree to a tool whose whole job is one POST.
+
+[project.scripts]
+jsonl-otlp-export = "jsonl_otlp_exporter.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/eugenelim/agent-ready-repo"
+Source = "https://github.com/eugenelim/agent-ready-repo"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jsonl_otlp_exporter*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
