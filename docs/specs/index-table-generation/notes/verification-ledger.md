@@ -205,3 +205,28 @@ whatever was on disk, so it is a re-approval in substance. Baseline moved
 The guard did the work here: nothing in my own process noticed the seal was
 broken, and the machinery refused the transition rather than recording an
 amendment over a baseline that had already moved.
+
+## 2026-09-13 — the six re-opened criteria, and what now justifies each
+
+They were ticked once on inspection and four proved false. Each is re-ticked on
+an executing test, not a reading:
+
+| Criterion | Evidence |
+| --- | --- |
+| AC3 | RFC rows carry five cells; `0087` shows both dates. Empty-field regression covers the leak that made this false. |
+| AC6 | `test_a_delimiter_bearing_filename_yields_a_resolving_link` asserts the destination is fully encoded, round-trips, and resolves. Mutation-proved against an empty destination and against the old hand-maintained encoder. |
+| AC9 | `test_absent_date_without_git_warns_and_leaves_the_cell_empty` plus the absent- and unfilled-closing-date cases. |
+| AC11 | Both halves: no-status and record-heading-without-a-usable-ordinal. The second class was unreachable when this was first ticked. |
+| AC27 | The generated ADR index has 0 non-table non-heading lines and 0 `../` references. |
+| AC30 | `test_the_spec_readme_carries_no_table[seed]`, mutation-proved with a pipe-less GFM table. |
+
+Full gate at this state: 2725 passed, 8 skipped, pytest exit 0; catalogue verify
+ok; catalogue lint 0 errors; spec-status clean across 447 specs.
+
+**Environment note.** `catalogue verify` failed once here on a stale
+`agentbundle` install that had reverted from editable to site-packages, so it
+read the pre-change placeholder map while `lint` read the new one. Two gates
+disagreeing was the signal. Fixed at the install. A CI that installs
+`agentbundle` from a published wheel rather than from the tree would see the same
+`CAT-V-002`; the map change ships in 0.44.1 and the bump is in place, but that
+ordering is an assumption this session did not verify.

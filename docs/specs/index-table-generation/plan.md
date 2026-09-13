@@ -1,7 +1,7 @@
 # Plan: Index table generation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py` — the script-in-skill precedent this generator follows: argparse over a record directory, a `--check <dir>` mode, stdlib only, one `lstat` per entry with a record-shaped-symlink refusal (`:162-170`), and git-root resolution for its repository-relative work (`:115-123`). `tools/repo/build_gate_chain.py:267-271` (`check-adr-ordinals`) is the projection-invoked `--check` precedent. `tests/roster/test_decision_record_ordinal_uniqueness.py` is the roster-suite shape for a records-directory walk.
 
 ## Approach
