@@ -5,7 +5,7 @@ one file per entry and assembled at build, closing the open question left by
 [the append-log fragmentation survey](append-log-fragmentation-survey.md).
 
 - **Run date:** 2026-09-13
-- **Owner:** Platform Core maintainer
+- **Owner:** eugenelim, Platform Core maintainer
 - **Base:** `4c924e068`, 273 parsed release entries, 465,239 bytes
 - **Verdict:** feasible, with one design constraint the survey did not anticipate —
   see [Verdict](#verdict)
