@@ -26,9 +26,9 @@
     {
       "id": "spec-missing-ac-section-explicit-opt-out",
       "prompt": "The finish-time spec lint reports invariant (vi) because a spec has no `## Acceptance Criteria` section. When is that legal, and what exact metadata is required?",
-      "expected_output": "A missing Acceptance-Criteria section is legal only when the spec intentionally has no criteria and carries `- **Acceptance Criteria:** none — <one-line reason>` in its metadata header. The reason is required: bare `none` is a hard violation. A real section and the opt-out together are also a hard contradiction.",
+      "expected_output": "A missing Acceptance-Criteria section is legal only when the spec intentionally has no criteria and carries `- **Acceptance Criteria:** none \u2014 <one-line reason>` in its metadata header. The reason is required: bare `none` is a hard violation. A real section and the opt-out together are also a hard contradiction.",
       "assertions": [
-        "Response gives the exact `- **Acceptance Criteria:** none — <one-line reason>` marker",
+        "Response gives the exact `- **Acceptance Criteria:** none \u2014 <one-line reason>` marker",
         "Response requires a non-empty one-line reason",
         "Response says missing section without the marker is a hard violation",
         "Response says a real section plus the marker is a hard contradiction"
@@ -257,7 +257,6 @@
         "Performs no capture or distillation after stale or failed sealing, rejection, abandonment, or incomplete approval"
       ]
     },
-
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
@@ -508,11 +507,11 @@
     {
       "id": "finding-adjudication-refuted",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-security-reviewer-raw.md`. It claims `src/reader.py` decodes untrusted bytes without UTF-8 validation. The supplied target shows strict UTF-8 decoding at `src/reader.py:27`, before the bytes reach the cited operation, and the governing checklist accepts that handling. Route the report and state the main-loop result.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence and the proposed-mechanism outcome are recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean — ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence and the proposed-mechanism outcome are recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean \u2014 ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Records the refuted verdict and contrary evidence only in the paired audit",
-        "Returns exactly `Clean — ready to commit.` as the main-loop result",
+        "Returns exactly `Clean \u2014 ready to commit.` as the main-loop result",
         "Does not fingerprint or consume a repair round",
         "Triggers no target mutation",
         "Does not copy raw or refuted prose into main-loop context"
@@ -521,14 +520,14 @@
     {
       "id": "finding-adjudication-indeterminate",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-adversarial-reviewer-raw.md`. It claims the retry ceiling at `src/loop.py:88` is wrong because the governing spec caps attempts at 3 while the accepted plan for this unit records 5, and it asks which of the two the code should follow. No gate measures which authority governs, and the Evidence gate catalog declares no entry for that fact. Route the report and state what happens next.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the observation holds but the conflict is between two authorities, which is an owner decision rather than one machine-checkable fact, so no cataloged entry measures it and the bounded evidence retry is ineligible. Persist an audit entry naming the conflicting authorities and the decision the owner must make. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean — ready to commit.` and does not include the raw claim. Stop for owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the observation holds but the conflict is between two authorities, which is an owner decision rather than one machine-checkable fact, so no cataloged entry measures it and the bounded evidence retry is ineligible. Persist an audit entry naming the conflicting authorities and the decision the owner must make. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean \u2014 ready to commit.` and does not include the raw claim. Stop for owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Returns indeterminate because conflicting authority is an owner decision, not a machine-checkable fact",
         "Refuses the bounded evidence retry when no cataloged gate measures the fact",
         "Names the conflicting authorities in the paired audit",
         "Returns `ADJUDICATION-INDETERMINATE` to the main loop as its exact signal",
-        "Main-loop output does not contain `Clean — ready to commit.`",
+        "Main-loop output does not contain `Clean \u2014 ready to commit.`",
         "Stops before any state change, retry accounting, fingerprint, or target mutation"
       ]
     },
@@ -591,7 +590,7 @@
     },
     {
       "id": "exact-clean-bypasses-adjudication",
-      "prompt": "A reviewer returns exactly `Clean — ready to commit.`. Contrast the required handling with a return that has the same text plus one trailing newline, and state the reviewer-model call impact for direct-light and ordinary full review.",
+      "prompt": "A reviewer returns exactly `Clean \u2014 ready to commit.`. Contrast the required handling with a return that has the same text plus one trailing newline, and state the reviewer-model call impact for direct-light and ordinary full review.",
       "expected_output": "Compare the entire returned text value before persistence. The exact sentinel is direct clean: do not persist or validate it, dispatch finding-adjudicator, create paired artifacts, or run an adjudication classifier. The trailing-newline variant is non-exact and must enter the fail-closed adjudication gateway. Direct-light clean review therefore uses one reviewer-model call instead of two; an ordinary full review with adversarial and quality reviewers uses two model calls instead of four when both return the exact sentinel.",
       "assertions": [
         "Requires whole-value exact equality before persistence",
@@ -695,6 +694,18 @@
         "Response refuses to let provider content outrank the owning authority",
         "Response still cites topic_ids and provenance for material it does use",
         "Response completes the pre-existing baseline unchanged"
+      ]
+    },
+    {
+      "id": "decide-answer-ladder-stops-at-first-applicable",
+      "prompt": "An adjudicated sustained finding says a spec sentence asserts a count that no check reads and no stated outcome depends on. The author could reword the count to be correct, or delete the sentence. What does DECIDE direct, and does the answer carry any weight in the verdict record?",
+      "expected_output": "Walk the ladder and take the first answer that applies: drop-the-claim, because nothing is obliged by the assertion and removing it changes no stated outcome. Repair is available but lower on the ladder and is not reached; a count nothing reads must be maintained forever to stay true. Before acting, walk the surfaces the answer reaches, since cut walks backwards to whatever referenced the removed assertion. The answer may be recorded as `response` with a non-empty `reason` on the finding, which is advisory metadata: it is absent from the finding-disposition table, state precedence and residual eligibility, so it cannot change the verdict state, and an unrecognised or unpaired value is ignored with a note rather than rejected.",
+      "assertions": [
+        "drop-the-claim is selected and repair is explicitly not reached",
+        "the stop rule is applied rather than every answer being surveyed",
+        "the surface walk is named with its cut-axis direction",
+        "response and reason are described as advisory and unable to change verdict state",
+        "an unrecognised or unpaired value is ignored with a note, never rejected"
       ]
     }
   ]

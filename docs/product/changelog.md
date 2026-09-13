@@ -54,6 +54,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.21] — 2026-09-13
+
+### Added
+
+- A `review-verdict.v1` finding can record `response` and `reason`: which answer
+  a sustained finding was given, and the ground for choosing it. Both are
+  optional and recorded as a pair. An unrecognised value, a `response` without a
+  non-empty `reason`, and a `reason` without a `response` are each ignored with a
+  note, leaving the entry and the record valid. Neither field appears in the
+  finding-disposition table, state precedence, or residual eligibility, so
+  nothing that decides a verdict can read them.
+
+### Changed
+
+- The work-loop's DECIDE step states the answers to a sustained finding as an
+  ordered ladder in four axes — cut, route, fix, hold — walked until one applies,
+  then stopped. Cut leads because a review that can only add or hold cannot let a
+  contract shrink, which is how rounds run long without converging.
+- Two answers are new. `drop-the-claim` removes an assertion nothing is obliged
+  by, operating on an assertion rather than a sentence or item.
+  `demote-the-claim` moves an obligation out of the contract into working
+  material with a content pin, which needs owner authority and is never free.
+- Every answer walks its surfaces before it is taken, and the direction differs:
+  cut walks backwards to what referenced the removed thing, route outwards then
+  back to leave one home, fix sideways across other instances and their pins, and
+  hold forwards so the next round can see the decision. It is a walk rather than
+  a text search, because a companion usually paraphrases and shares no string,
+  and it continues until the frontier is empty.
+## [core][2.25.20] — 2026-09-13
+
+### Highlights
+
+- **A legacy-only repository can activate its knowledge base even when the
+  migration has nothing to import.** Activating was the first command such a
+  repository runs, and it crashed on the state those repositories are actually
+  in: an empty `patterns.jsonl`. The migration now produces the canonical empty
+  topic map instead of a traceback.
+
+### Fixed
+
+- `project-knowledge --migrate-legacy` raised an unhandled `FileNotFoundError`
+  instead of staging a result whenever a migration yielded zero importable
+  topics. The stage directory was created only as a side effect of writing the
+  first topic, so an empty import set never created it and the map write failed.
+  It surfaced as a raw traceback rather than a typed `knowledge-diagnostic.v1`
+  refusal, so callers handling every documented refusal still broke. Two inputs
+  reach it: an empty legacy corpus, and a corpus whose rows are all refused.
+
+### Added
+
+- The migration lifecycle is documented on the skill body and the
+  `docs/knowledge/README.md` seed. Promoting the staged map into
+  `docs/knowledge/` and committing it is a required step between
+  `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
+  only by reading the source.
 ## [frontend-engineering][0.2.3] — 2026-09-13
 
 ### Highlights

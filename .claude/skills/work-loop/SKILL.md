@@ -657,6 +657,69 @@ independently reviewed unit in the same session: use the existing human-gate
 
 **Execution-path check.** Before routing any finding to `apply`: confirm the fix reaches a live code path — grep for callers or trace the entry point. A guard that no caller exercises doesn't close a finding; a test that drives a mock seam instead of the real entry point doesn't count.
 
+An author answering a sustained finding walks this ladder in order. Take the
+first answer that applies, then stop; do not evaluate the rest. A sustained
+finding does not by itself require an edit.
+
+### Cut
+
+- `drop-the-claim` — the assertion is not obliged by anything, so removing it
+  changes no stated outcome. It operates on an assertion, not a sentence or item,
+  and applies only to an assertion no surviving contract obligation depends on.
+  When the assertion is the whole obligation, removing it removes the obligation,
+  and that is `cut-the-item`. When removing it reduces a surviving obligation's
+  reach, that is `narrow-the-claim`.
+- `cut-the-item` — the obligation itself stops existing.
+- `demote-the-claim` — the obligation survives but stops being contract, moving
+  to working material with a content pin. It applies when the obligation's only
+  check is that a sentence exists. It is inapplicable when an adequate owner
+  already exists, and when the target was never contract. Its reason records the
+  destination that now owns the obligation, the pin that catches its removal, and
+  the owner authority permitting the removal.
+- `narrow-the-claim` — the obligation stays contract and in place; only its
+  stated reach shrinks to what a check reaches.
+
+### Route
+
+- `route-to-owner` — an existing owner already covers it.
+- `bound-out-of-scope` — it leaves this scope with a named follow-on owner.
+
+### Fix
+
+Before repairing, walk the surfaces the repair reaches and repair them in one
+action.
+
+- `repair-the-generator` — what produces the artifact is at fault, not this
+  instance.
+- `repair-the-artifact` — edit so the finding no longer holds.
+
+### Hold
+
+- `dismiss-and-re-present` — declined, reason recorded, and re-presented next
+  round.
+- `accept-as-proportionate` — left as it is, reason recorded.
+
+Demotion versus narrowing turns on one question: should this still be an
+obligation a completion gate reads? If yes and only its reach is wrong, narrow.
+If no, demote. Demotion removes an accepted obligation, so it needs owner
+authority and stays unresolved until that owner-authorized amendment lands; it
+is never free.
+
+Every walk starts from the cited location and expands to every other instance of
+the same claim, the companion statements that describe it, and anything that pins
+any of those.
+
+Every answer walks its surfaces before it is taken, and the direction differs:
+cut walks backwards to what referenced the removed thing; route walks outwards
+to confirm the owner covers the whole claim, then back to remove what still
+states it locally; fix walks sideways across other instances, the companions
+describing them, and anything pinning those; hold walks forwards so the next
+round can see the decision. This is a walk, not a text search: a companion
+usually paraphrases and shares no string. Each change opens its own frontier, so
+continue until the frontier is empty. What the walk finds feeds back into the
+choice of rung: a claim living on many surfaces is evidence for repairing its
+generator or dropping it.
+
 - **Blockers** → include the correction required by the accepted intent. Re-run
   GATES and REVIEW after each fix; use the next review unit when it cannot
   safely share this one.
