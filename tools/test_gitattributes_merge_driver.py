@@ -27,9 +27,12 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AGENTBUNDLE = REPO_ROOT / "packages" / "agentbundle"
-sys.path.insert(0, str(AGENTBUNDLE))
 
-from agentbundle.build.self_host import (  # noqa: E402
+# No sys.path mutation here: pyproject.toml's [tool.pytest.ini_options]
+# pythonpath already pins `packages/agentbundle` for this suite, and inserting
+# it again leaks a packaged source tree into the collecting process, which
+# tools/test_import_time_path_leaks.py refuses.
+from agentbundle.build.self_host import (
     _runtime_projections,
     _self_host_projection_paths,
 )
