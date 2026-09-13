@@ -406,13 +406,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   - leaf level, `Draft` — differs in both, attributes nothing by itself, and is
     in the set because it is the state the authoring pipeline produces most
     often and must pass.
-- [ ] Every observation this section requires is recorded against the same
-  `shaping-reviewer` projection hash, and that hash is recorded beside it. The
-  hash is the anchor because it names the bytes the reviewer ran; the revision
-  is recorded as provenance and may differ between observations, since a commit
-  can move the tree without moving the projection. A comparison drawn across two
-  different projection hashes is not an attribution, because the body may have
-  moved in the paragraph the compared respect keys on.
+- [ ] Every observation this section requires is recorded against the projection
+  hash of the agent that produced it — `shaping-reviewer` for its own dispatches,
+  `adversarial-reviewer` for the adversarial ones — and that hash is recorded
+  beside it. Within one agent's set the hash must be the same throughout. The
+  hash is the anchor because it names the bytes that agent ran; the revision is
+  recorded as provenance and may differ between observations, since a commit can
+  move the tree without moving a projection. A comparison drawn across two
+  different projection hashes of the same agent is not an attribution, because
+  the body may have moved in the paragraph the compared respect keys on.
 - [ ] A recorded manual-QA run observes the unplaceable-level cases against
   fixtures that satisfy every other trigger of the absence branch — no listed
   decomposition, and `Status: Accepted` — one declaring no level and one
