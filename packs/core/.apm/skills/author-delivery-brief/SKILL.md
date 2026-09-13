@@ -287,11 +287,15 @@ plans.
 A brief's parts are not equal, and where a finding lands decides what may be done
 about it.
 
-**Contract** — the fields the Ready gate reads, named in stage 1 above. A finding
-against one of them bears on whether the brief can become `Ready`.
+**Deciding sections** — the fields the Ready gate reads, named in stage 1 above.
 
-**Working material** — every other section the brief carries, including `Rabbit
-holes`, `Design artifacts`, and `Ready gaps`.
+**Recording sections** — every other section the brief carries, including
+`Rabbit holes`, `Design artifacts`, and `Ready gaps`.
+
+Both labels are local to choosing a demotion destination. They are not the
+contract and working-material tiers a spec carries, and nothing reads them to
+grade a finding: every finding this skill's shaping review sustains blocks
+`Ready` exactly as it did.
 
 The answers available to a sustained finding are stated once, in the `work-loop`
 skill's DECIDE step. They are not restated here. `demote-the-claim` lands

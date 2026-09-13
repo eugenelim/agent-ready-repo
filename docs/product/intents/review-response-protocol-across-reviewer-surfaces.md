@@ -192,18 +192,30 @@ step. Each of the three shaping surfaces gains a short section that points there
 and adds only what the pointer cannot carry: what contract and working material
 mean for that artifact, which is where `demote-the-claim` moves an assertion.
 
-- **An intent's contract** is `Outcome`, `Boundary`, `Owner`, `Projection` and
-  `Source`; its working material is `Opportunity`, `Unresolved questions` and
-  `Assumptions`. Demotion moves an assertion out of `Outcome` or `Boundary`, and
-  the destination follows what the assertion was doing: a settled ground for the
-  outcome or the boundary goes to `Opportunity`, and a matter the assertion
-  decided without the authority to decide it goes to `Unresolved questions`.
-- **A brief's contract** is the field set the Ready gate reads; its working
-  material is every other section. Demotion moves an assertion into a section the
-  gate does not read — `Rabbit holes` for a design trap, `Design artifacts` for
-  provenance that only informed the brief. `Ready gaps` is not a destination,
-  because the brief drops it on leaving `Draft`, so demoting into it is deletion
-  with a delay.
+- **An intent's deciding sections** are `Outcome`, `Boundary`, `Owner`,
+  `Projection` and `Source`; its recording sections are `Opportunity`,
+  `Unresolved questions` and `Assumptions`. Demotion moves an assertion out of
+  `Outcome` or `Boundary`, and the destination follows what the assertion was
+  doing: a settled ground for the outcome or the boundary goes to `Opportunity`,
+  and a matter the assertion decided without the authority to decide it goes to
+  `Unresolved questions`.
+- **A brief's deciding sections** are the field set the Ready gate reads; its
+  recording sections are every other section. Demotion moves an assertion into a
+  section the gate does not read — `Rabbit holes` for a design trap, `Design
+  artifacts` for provenance that only informed the brief. `Ready gaps` is not a
+  destination, because the brief drops it on leaving `Draft`, so demoting into it
+  is deletion with a delay.
+
+**The labels are deliberately not the spec's tiers.** An earlier draft called
+these groups contract and working material, borrowing the vocabulary a spec
+template uses. Review sustained that as a defect twice over. In prose it implied
+a finding against the second group is advisory, which is false upstream: a
+missing riskiest assumption blocks `Accepted`, and delivery-brief review blocks
+`Ready` on checks reaching outside the Ready field set. Operationally it was
+worse — `finding-adjudicator` caps a finding at advisory severity when every
+cited surface is working material, so the borrowed label would have graded down
+findings that block. The surfaces now use local labels that nothing reads to
+grade a finding.
 - **A spec's split is already stated** by `new-spec`'s bundled `assets/spec.md`,
   which is its single owner. That surface gains the pointer and nothing else.
 

@@ -58,11 +58,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- **Authors can now answer sustained shaping findings without turning every
-  response into more contract prose.** Intent, delivery-brief, and spec
-  guidance points to the work-loop's ordered response ladder while keeping
-  lifecycle gates unchanged, and it states where a demoted claim belongs in
-  each upstream artifact.
+- **A sustained shaping finding no longer reads as an instruction to edit.**
+  Intent, delivery-brief and spec authoring point at the work-loop's ordered
+  response ladder — cut, route, fix, hold, walked until one applies — so an
+  author can answer a finding by dropping a claim nothing is obliged by rather
+  than writing more careful prose. The lifecycle gates are unchanged: whatever
+  blocked before still blocks.
+- **Each upstream artifact states where a demoted claim belongs.** An intent
+  sends a settled ground to `Opportunity` and a matter decided without the
+  authority to decide it to `Unresolved questions`. A brief sends a design trap
+  to `Rabbit holes` and informing provenance to `Design artifacts`, and never to
+  `Ready gaps`, which it drops on leaving `Draft`.
+- **A shaping reviewer no longer reopens a decision the artifact records as
+  settled.** A pre-existing defect stays reviewable however late it is found, so
+  an author can refuse a reopened decision without dismissing a real defect from
+  the same round.
 
 ### Changed
 
@@ -120,19 +130,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the file's first-commit date.
 
 ## [core][2.25.21] — 2026-09-13
-
-### Highlights
-
-- **A sustained review finding no longer reads as an instruction to edit.** The
-  work-loop's DECIDE step states the answers available to one as an ordered
-  ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut
-  leads, so an author asks whether a claim needs to exist before tracing what
-  checks it, and a review round can shrink a contract rather than only add to
-  it.
-- **A review record can carry which answer was given and why.** A
-  `review-verdict.v1` finding takes an optional `response` and `reason`. Nothing
-  that decides a verdict reads them, so recording one never changes whether a
-  change is ready.
 
 ### Added
 

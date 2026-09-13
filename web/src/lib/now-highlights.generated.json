@@ -13,78 +13,89 @@
       "changelogAnchor": "core22522--2026-09-13",
       "highlights": [
         {
-          "source": "**Authors can now answer sustained shaping findings without turning every response into more contract prose.** Intent, delivery-brief, and spec guidance points to the work-loop's ordered response ladder while keeping lifecycle gates unchanged, and it states where a demoted claim belongs in each upstream artifact.",
+          "source": "**A sustained shaping finding no longer reads as an instruction to edit.** Intent, delivery-brief and spec authoring point at the work-loop's ordered response ladder — cut, route, fix, hold, walked until one applies — so an author can answer a finding by dropping a claim nothing is obliged by rather than writing more careful prose. The lifecycle gates are unchanged: whatever blocked before still blocks.",
           "segments": [
             {
               "type": "strong",
-              "value": "Authors can now answer sustained shaping findings without turning every response into more contract prose."
+              "value": "A sustained shaping finding no longer reads as an instruction to edit."
             },
             {
               "type": "text",
-              "value": " Intent, delivery-brief, and spec guidance points to the work-loop's ordered response ladder while keeping lifecycle gates unchanged, and it states where a demoted claim belongs in each upstream artifact."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "core",
-          "version": "2.25.21"
-        }
-      ],
-      "date": "2026-09-13",
-      "heading": "[core][2.25.21] — 2026-09-13",
-      "changelogAnchor": "core22521--2026-09-13",
-      "highlights": [
-        {
-          "source": "**A sustained review finding no longer reads as an instruction to edit.** The work-loop's DECIDE step states the answers available to one as an ordered ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut leads, so an author asks whether a claim needs to exist before tracing what checks it, and a review round can shrink a contract rather than only add to it.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "A sustained review finding no longer reads as an instruction to edit."
-            },
-            {
-              "type": "text",
-              "value": " The work-loop's DECIDE step states the answers available to one as an ordered ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut leads, so an author asks whether a claim needs to exist before tracing what checks it, and a review round can shrink a contract rather than only add to it."
+              "value": " Intent, delivery-brief and spec authoring point at the work-loop's ordered response ladder — cut, route, fix, hold, walked until one applies — so an author can answer a finding by dropping a claim nothing is obliged by rather than writing more careful prose. The lifecycle gates are unchanged: whatever blocked before still blocks."
             }
           ]
         },
         {
-          "source": "**A review record can carry which answer was given and why.** A `review-verdict.v1` finding takes an optional `response` and `reason`. Nothing that decides a verdict reads them, so recording one never changes whether a change is ready.",
+          "source": "**Each upstream artifact states where a demoted claim belongs.** An intent sends a settled ground to `Opportunity` and a matter decided without the authority to decide it to `Unresolved questions`. A brief sends a design trap to `Rabbit holes` and informing provenance to `Design artifacts`, and never to `Ready gaps`, which it drops on leaving `Draft`.",
           "segments": [
             {
               "type": "strong",
-              "value": "A review record can carry which answer was given and why."
+              "value": "Each upstream artifact states where a demoted claim belongs."
             },
             {
               "type": "text",
-              "value": " A "
+              "value": " An intent sends a settled ground to "
             },
             {
               "type": "code",
-              "value": "review-verdict.v1"
+              "value": "Opportunity"
             },
             {
               "type": "text",
-              "value": " finding takes an optional "
+              "value": " and a matter decided without the authority to decide it to "
             },
             {
               "type": "code",
-              "value": "response"
+              "value": "Unresolved questions"
             },
             {
               "type": "text",
-              "value": " and "
+              "value": ". A brief sends a design trap to "
             },
             {
               "type": "code",
-              "value": "reason"
+              "value": "Rabbit holes"
             },
             {
               "type": "text",
-              "value": ". Nothing that decides a verdict reads them, so recording one never changes whether a change is ready."
+              "value": " and informing provenance to "
+            },
+            {
+              "type": "code",
+              "value": "Design artifacts"
+            },
+            {
+              "type": "text",
+              "value": ", and never to "
+            },
+            {
+              "type": "code",
+              "value": "Ready gaps"
+            },
+            {
+              "type": "text",
+              "value": ", which it drops on leaving "
+            },
+            {
+              "type": "code",
+              "value": "Draft"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        },
+        {
+          "source": "**A shaping reviewer no longer reopens a decision the artifact records as settled.** A pre-existing defect stays reviewable however late it is found, so an author can refuse a reopened decision without dismissing a real defect from the same round.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A shaping reviewer no longer reopens a decision the artifact records as settled."
+            },
+            {
+              "type": "text",
+              "value": " A pre-existing defect stays reviewable however late it is found, so an author can refuse a reopened decision without dismissing a real defect from the same round."
             }
           ]
         }

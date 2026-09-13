@@ -138,6 +138,10 @@ def test_spec_template_owns_the_contract_working_material_split() -> None:
     assert (
         "the bundled `assets/spec.md`, their single owner" in section
     ), "spec: assets/spec.md is no longer the single owner"
+    assert (
+        "The template owns that split and nothing else about the move; what the "
+        "move costs is stated in the DECIDE step" in section
+    ), "spec: the template is named as the owner of what demotion costs"
 
 
 def test_reviewer_does_not_reopen_settled_decisions_or_hide_defects() -> None:
@@ -151,9 +155,12 @@ def test_reviewer_does_not_reopen_settled_decisions_or_hide_defects() -> None:
         "late it is found." in section
     ), "reviewer: pre-existing defect carve-out is missing"
     assert (
-        "any obligation the supplied evidence carries, whether it sits in the "
-        "same artifact or in the governing material beside it" in section
-    ), "reviewer: conflict scope narrowed back to the artifact alone"
+        "an applicable governing obligation the supplied evidence carries" in section
+    ), "reviewer: conflict scope is no longer an applicable governing obligation"
+    assert (
+        "A superseded, rejected, or lower-authority obligation does not qualify."
+        in section
+    ), "reviewer: superseded obligations may reopen a settled decision"
     assert (
         "A recorded ground never settles a conflict with a non-waivable control."
         in section
@@ -249,9 +256,10 @@ def test_new_sections_are_count_neutral(label: str) -> None:
     assert not re.search(r"one of the \w+ answers", section), (
         f"{label}: contains a counted answer-set construction"
     )
-    assert "both destinations" not in section, (
-        f"{label}: counts the destinations it enumerates"
-    )
+    for counted in ("both destinations", "the two destinations", "two destinations"):
+        assert counted not in section, (
+            f"{label}: counts the destinations it enumerates ({counted!r})"
+        )
     assert not re.search(
         r"\ball (?:\w+|\d+) (?:answers|responses|destinations)\b", section
     ), f"{label}: contains a counted set beside its enumeration"
@@ -284,7 +292,14 @@ def test_upstream_sections_do_not_redefine_what_demotion_costs(label: str) -> No
     """
     section = _flat(_new_section(label))
     lowered = section.lower()
-    for contradiction in ("no new pin", "needs no pin", "without a pin"):
+    for contradiction in (
+        "no new pin",
+        "needs no pin",
+        "no pin is required",
+        "pin is not required",
+        "requires no pin",
+        "without a pin",
+    ):
         assert contradiction not in lowered, (
             f"{label}: redefines demotion's cost with {contradiction!r}"
         )
@@ -294,24 +309,27 @@ def test_upstream_sections_do_not_redefine_what_demotion_costs(label: str) -> No
 
 
 @pytest.mark.parametrize("label", ("intent", "brief"))
-def test_upstream_sections_do_not_call_a_finding_advisory(label: str) -> None:
-    """Keep the destination map from claiming what a shaping gate blocks on.
+def test_upstream_sections_do_not_borrow_the_spec_tier_labels(label: str) -> None:
+    """Keep the spec's tier vocabulary off surfaces whose findings block.
 
-    Working material is advisory in a spec, whose own template says so. Upstream
-    it is not: intent mode blocks `Accepted` on a missing riskiest assumption,
-    and delivery-brief mode blocks `Ready` on checks reaching outside the Ready
-    field set. The map says where a demoted assertion goes and nothing about
-    what blocks.
+    `working material` is operative elsewhere in this pack: a finding whose every
+    cited surface is working material sustains at advisory severity at most. An
+    upstream section labelled that way would let a finding that blocks `Accepted`
+    or `Ready` be graded down, which is the same defect as calling it advisory in
+    prose. These surfaces use their own local labels instead.
     """
-    section = _flat(_new_section(label)).lower()
-    for claim in (
-        "working material is advisory",
-        "against working material is advisory",
-        "material is advisory",
-    ):
-        assert claim not in section, (
+    section = _flat(_new_section(label))
+    for borrowed in ("**Working material**", "**Contract**"):
+        assert borrowed not in section, (
+            f"{label}: labels a group with the spec tier term {borrowed!r}"
+        )
+    assert "**Deciding sections**" in section, f"{label}: lost its deciding-sections label"
+    assert "**Recording sections**" in section, f"{label}: lost its recording-sections label"
+    assert "nothing reads them to grade a finding" in section, (
+        f"{label}: no longer disclaims that the labels grade a finding"
+    )
+    lowered = section.lower()
+    for claim in ("material is advisory", "finding against working material"):
+        assert claim not in lowered, (
             f"{label}: claims a finding against working material is advisory"
         )
-    # "advisory" itself stays legal: both sections correctly describe the
-    # recorded answer as advisory, which is a statement about the record and
-    # not about what a shaping gate blocks on.

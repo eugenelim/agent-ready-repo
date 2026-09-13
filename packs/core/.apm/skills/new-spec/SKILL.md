@@ -690,8 +690,9 @@ is unchanged by them: it reads what it already read.
 
 Which parts of a spec are contract and which are working material is stated by
 the bundled `assets/spec.md`, their single owner. `demote-the-claim` moves an
-obligation from the first into the second, so that template is where to read what
-the move costs.
+obligation from the first into the second. The template owns that split and
+nothing else about the move; what the move costs is stated in the DECIDE step,
+as it is for every other surface.
 
 Record the answer and the reason for it beside the finding. That record is
 advisory: it informs the next round, and nothing else reads it.
