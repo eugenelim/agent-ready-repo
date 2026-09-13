@@ -10,8 +10,10 @@
 - **Decision:** the component that sends work-loop telemetry ships as its own
   PyPI distribution, `jsonl-otlp-exporter`, installed by the adopter with
   `uv tool install` or `pipx`. It is named for the capability — a JSONL event
-  log in, OTLP logs out — not for its first consumer, and the work-loop's field
-  mapping is one named profile inside it. No pack gains a network path. `packs/core`
+  log in, OTLP logs out — not for its first consumer. The mapping profile is
+  consumer-supplied declarative TOML selected at invocation; the distribution
+  bundles no consumer's profile. See the 2026-09-13 amendment below, which
+  governs where this summary and it differ. No pack gains a network path. `packs/core`
   declares it as an optional runtime dependency and reports on it; it never
   installs it.
 - **Because:** `telemetry.md` § 8 states "Nothing in a pack sends. Anything that

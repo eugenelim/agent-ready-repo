@@ -111,15 +111,24 @@ reaches every backend that has a Collector in front of it.
 carries a validated stub, and all four carry `no stub
 (implementation-discovered)` with a discovery predicate and proof obligation,
 because the package does not exist at plan approval and `tdd-stubs.md` forbids
-inventing a module to assert against. The remaining tasks are goal-based or
-manual QA and take no stub.
+inventing a module to assert against. T1, T6, T7 and T8 each carry their own
+`no stub (mode)` record naming the mode and the reason.
 
-- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
+Across the 61 criteria: **0** are covered by a validated stub; **47** sit under
+`no stub (implementation-discovered)` in the four TDD tasks (VI-0001, VI-0002,
+VI-0004, VI-0006, VI-0007, VI-0008, VI-0009, VI-0010 and VI-0013); **14** are
+goal-based or manual QA and take no stub (VI-0003, VI-0005, VI-0011 and
+VI-0012). Every criterion appears in exactly one of the three groups, and the
+zero is the number to argue with: it is a consequence of the package not
+existing at plan approval, not an omission, and it is the single largest
+assurance gap this plan carries into EXECUTE.
+
+- **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0060, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
 - **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0053):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
 - **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0054, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
-- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted against the mapping function rather than over every invocation, which is what makes the universal claim checkable.
-- **VI-0006 — input confinement (AC-0017, AC-0043):** TDD. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
+- **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted by walking the `### Exit codes` table's closed set of states, one invocation per row, and requiring each observed status to be in `{0, 1, 130}` — that closure is what makes the universal claim checkable without an unbounded quantifier, and it is strictly stronger than excluding the reserved 2–9 band.
+- **VI-0006 — input confinement (AC-0017, AC-0043, AC-0061):** TDD. A symlinked leaf, a non-regular file, a path escaping the root, and a component swapped between resolution and open are fixtures over one predicate, all asserting the transport seam is never constructed. The swap case is the one that distinguishes descriptor validation from path validation.
 - **VI-0007 — size and time bounds (AC-0018, AC-0019, AC-0040, AC-0055, AC-0041, AC-0056):** TDD. Each bound is a function over constructed input. AC-0019 is asserted on encoded bytes by constructing a batch that encodes above the ceiling, not by trusting the input-side arithmetic — the encoding expands the payload, so an input-side bound cannot establish an output-side limit.
 - **VI-0008 — modes and file lifecycle (AC-0020, AC-0021, AC-0042, AC-0022):** TDD. AC-0022 names its mode, its starting state, the mutation applied, the termination trigger and the records expected, so a build that observes nothing and exits fails it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
@@ -132,8 +141,10 @@ manual QA and take no stub.
 
 - [ ] **AC-0001.** With no endpoint resolvable from any source, the command opens
   no socket.
-- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits
-  0 and writes a line to stderr naming that no endpoint is configured.
+- [ ] **AC-0033.** With no endpoint resolvable from any source, the command exits 0.
+- [ ] **AC-0060.** With no endpoint resolvable from any source, the command writes
+  a line to stderr naming that no endpoint is configured.
+
 - [ ] **AC-0002.** The endpoint used is the first present of, in order:
   `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, then
   `[telemetry].endpoint` in the TOML file given by `--config`.
@@ -171,9 +182,11 @@ manual QA and take no stub.
   rejected-record count on stderr.
 - [ ] **AC-0054.** A response carrying a non-empty `partialSuccess` exits 1.
 
-- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, no request
-  is issued before `min(N, 30)` seconds have elapsed, and a value that is
-  absent, negative or unparseable is treated as 0.
+- [ ] **AC-0009.** After an HTTP 429 or 503 carrying `Retry-After: N`, the next
+  request is issued no earlier than `min(N, 30)` seconds after that response was
+  received, measured on a monotonic clock, and no later than the run bound in
+  AC-0055 permits. An absent, negative or unparseable value is treated as 0.
+
 - [ ] **AC-0010.** At most 3 send attempts are made per run, counted across all
   requests the run issues.
 - [ ] **AC-0037.** A run whose send attempts are exhausted stops issuing requests
@@ -208,10 +221,10 @@ manual QA and take no stub.
 - [ ] **AC-0040.** A single request is abandoned 30 seconds after that request's
   destination resolution begins, measured on a monotonic clock and covering
   resolution, connection setup, write and read.
-- [ ] **AC-0055.** A run stops issuing requests 120 seconds after its first
-  destination resolution begins, measured on a monotonic clock and covering
-  every request, every retry and every inter-attempt wait. Both bounds apply
-  under `--best-effort`.
+- [ ] **AC-0055.** A run issues no request after 120 seconds from its first
+  destination resolution, and abandons any request still in flight at that
+  deadline, measured on a monotonic clock. Both bounds apply under
+  `--best-effort`.
 
 - [ ] **AC-0041.** At most 1 MiB plus one byte of a response body is read; a body
   that reaches that length is refused without further reading and without
@@ -274,8 +287,11 @@ manual QA and take no stub.
 - [ ] **AC-0049.** A `timestamp_format` value other than `rfc3339`,
   `epoch-millis` or `epoch-seconds` is refused before any request is sent and
   exits 1.
-- [ ] **AC-0050.** A `severity_map` whose every value is not an integer is
-  refused before any request is sent and exits 1.
+- [ ] **AC-0050.** A profile whose `timestamp_field` or `severity_field` is not a
+  string, whose `severity_map` has any non-integer value, or whose `identity` or
+  `allowlist` is not a list of strings, is refused before any request is sent and
+  exits 1.
+
 - [ ] **AC-0051.** A profile file larger than 64 KiB, or one that does not parse
   as TOML, is refused before any request is sent and exits 1.
 - [ ] **AC-0052.** With no `--profile` given, the command sends nothing and exits
@@ -289,6 +305,8 @@ manual QA and take no stub.
   a full-length commit SHA.
 - [ ] **AC-0059.** The release workflow installs the built wheel into a fresh
   virtual environment and runs the console script before publishing.
+- [ ] **AC-0061.** After any run, the input file's content, size and modification
+  time are unchanged from before the run.
 
 ## Retired identifiers
 
@@ -302,6 +320,25 @@ None.
   integration that supplies the `work_loop` profile, declares this distribution
   as an optional dependency, and wires its configuration. It depends on this
   spec; this spec does not depend on it.
+
+- **Conversion semantics — an owner decision, not a contract gap.** This spec
+  pins a profile's *form* (AC-0035, AC-0049 through AC-0052) and the *routing* of
+  the fields it names (AC-0034, AC-0053), and deliberately stops short of four
+  value-level questions: which timestamp input types `timestamp_format` admits
+  beyond RFC 3339; the exact `result`-to-`severityNumber` pairs; what a severity
+  value absent from `severity_map` does; and the canonical JSON-to-OTLP
+  `AnyValue` rules for each admissible JSON type, including what happens to a
+  record that parses as JSON but carries a shape none of those rules covers. This
+  is not hypothetical: the work-loop envelope's `budgets` field is a nested
+  object, measured on a real emitted line on 2026-09-13, so the first consumer
+  already exercises the unanswered nested-value case.
+  These are product decisions about meaning, not omissions of rigour, and writing
+  contract text before they are settled would pin the wrong answer in a published
+  interface. **Owner: the ADR-0111 decision owner (eugenelim).** They gate
+  EXECUTE for T4, not spec approval: until they are answered, a valid profile's
+  transformation behaviour and the continuation behaviour for a syntactically
+  valid but semantically uncovered record are both unpinned, and this spec says
+  so rather than implying coverage it does not have.
 
 ## Assumptions
 

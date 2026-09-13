@@ -7,7 +7,9 @@
 - **Depends on:** [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) — the sender, which ships first
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** none — the package's public surface is owned by `jsonl-otlp-exporter`
+- **Contract:** [`contracts/jsonschema/loop-run-event.schema.json`](../../../contracts/jsonschema/loop-run-event.schema.json)
+  — the event envelope this repository emits. The *sender's* public surface is
+  owned by `jsonl-otlp-exporter` and is not a contract of this spec.
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -84,22 +86,32 @@ distribution an adopter installs on purpose.
 
 ## Testing Strategy
 
-**TDD stub dispositions.** Three plan tasks are TDD: T1, T2 and T6. T6 carries a
-validated stub with its recorded compile and intended-red results, because its
-seam — the existing envelope suite — already exists. T1 and T2 carry `no stub
-(implementation-discovered)` with a discovery predicate and proof obligation,
-because both depend on interfaces `jsonl-otlp-exporter` publishes and that
-package does not exist at plan approval. The remaining tasks are goal-based and
+**TDD stub dispositions.** Three plan tasks are TDD: T1, T2 and T6. T6 carries
+two validated stubs with their recorded compile and intended-red results, because
+its seam — the existing envelope suite — already exists. T1 is split: AC-0040 is
+a validated stub, because ADR-0111 makes the profile a TOML *file* at a path this
+spec fixes rather than a symbol in the unshipped package, while AC-0044 stays
+`no stub (implementation-discovered)` because it depends on the sender's flag
+spelling. T2 carries `no stub (implementation-discovered)` throughout, for the
+same reason. Every no-stub record names its discovery predicate and proof
+obligation. The remaining tasks are goal-based and
 take no stub.
+
+Across the 20 live criteria: **3** are covered by a validated stub (AC-0040 in
+T1, AC-0046 and AC-0047 in T6); **3** sit under `no stub
+(implementation-discovered)` (AC-0044 in T1, AC-0041 and AC-0043 in T2); **13**
+are goal-based and take no stub (AC-0020, AC-0021, AC-0022, AC-0031, AC-0039, AC-0042, AC-0045,
+AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053). Every live criterion
+appears in exactly one of the three groups.
 
 - **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
 - **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
 - **VI-0003 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 - **VI-0004 — the gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one is a literal list rather than a glob.
 - **VI-0007 — the event line carries its version (AC-0046, AC-0047):** TDD, in the existing envelope suite. A field on a dict and a replay passthrough, both observable from the written file. AC-0047 is the case the rest of the suite cannot see: a build that retro-stamps every replayed record passes everything else.
-- **VI-0008 — the event-line contract schema (AC-0048, AC-0049, AC-0050):** goal-based check. The corpus is recorded from real transitions rather than authored, so a line shape the engine emits cannot pass by construction, and the rejection cases stop an empty schema from satisfying the validation half.
-- **VI-0009 — an owned reader treats absence as v1 (AC-0051, AC-0052):** goal-based check over the one reader this repository owns besides the engine.
-- **VI-0005 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022, AC-0045):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording.
+- **VI-0008 — the event-line contract schema (AC-0048, AC-0049, AC-0050, AC-0053):** goal-based check. The corpus is recorded from real transitions rather than authored, so a line shape the engine emits cannot pass by construction, and the rejection cases stop an empty schema from satisfying the validation half.
+- **VI-0009 — an owned reader treats absence as v1 (AC-0052):** goal-based check over the one reader this repository owns besides the engine. AC-0051 is not here: a reader test cannot observe a field count written in an architecture document, so that criterion sits with the document verification in VI-0005.
+- **VI-0005 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022, AC-0045, AC-0051, AC-0054):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording; the § 5.1 field count is compared against a line the engine emitted in the same run.
 - **VI-0006 — exit-band compatibility (AC-0042):** goal-based check. The package reserves 2 through 9; this asserts that reservation is compatible with the band this catalogue's credentialed CLIs already own, so a consumer reading an exit code is never misled.
 
 ## Acceptance Criteria
@@ -128,21 +140,28 @@ take no stub.
 - [ ] **AC-0040.** This repository ships a profile at
   `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` declaring
   `timestamp_field = "at"`, `timestamp_format = "rfc3339"`,
-  `severity_field = "result"`, a `severity_map` covering every value in
+  `severity_field = "result"`, a `severity_map` whose keys include every value in
   `loop-engine.py`'s `_GATE_RESULTS`, `identity = ["run_id", "seq"]`, and an
-  `allowlist` naming every envelope field this catalogue intends to send.
+  `allowlist` whose members are exactly the keys of a line the engine emits, less
+  `at`, `result`, `run_id` and `seq`. The allowlist is stated against an emitted
+  line rather than as a name list, so a field added to the envelope fails this
+  criterion instead of being dropped silently.
 
 - [ ] **AC-0043.** The documented invocation resolves `--input` to the
   repository root's `.loop-run/events.jsonl`.
-- [ ] **AC-0044.** The documented invocation selects the registered `work_loop`
-  profile, and a line the engine actually emitted reaches the Collector with its
-  `at`, `result`, `run_id` and `seq` at the destinations that profile declares.
+- [ ] **AC-0044.** The documented invocation passes
+  `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` to the sender's
+  `--profile` flag, and a line the engine actually emitted reaches the Collector
+  with its `at`, `result`, `run_id` and `seq` at the destinations that file
+  declares. The profile is supplied as data by this consumer; the sender
+  registers no profile of its own.
 - [ ] **AC-0041.** The documented invocation resolves each `[telemetry]` setting
   from the repository `agentbundle-layout.toml` when that file declares it, and
   from the user `agentbundle-layout.toml` when the repository file exists but
   declares no value for it.
 
-- [ ] **AC-0042.** No exit code this catalogue documents for the exporter falls in
+- [ ] **AC-0042.** No exit code named in
+  `guides/core/how-to/export-loop-telemetry.md` falls in
   the 2–9 band reserved by
   [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
 
@@ -167,6 +186,16 @@ take no stub.
 - [ ] **AC-0052.** `workspace_mcp.py`'s events poller yields the same parsed
   result for a legacy record carrying no `schema` as for the otherwise identical
   record carrying `schema: 1`.
+
+- [ ] **AC-0054.** `docs/architecture/telemetry.md` § 2 contains each of the
+  literal strings `jsonl-otlp-exporter`, `separately installed` and `sends
+  nothing until an endpoint is configured`. AC-0021 and AC-0022 delete stale
+  claims; this criterion is what makes the section say something, so a § 2 gutted
+  to an empty heading cannot satisfy all three.
+
+- [ ] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
+  `$comment` whose value contains the literal string
+  `docs/specs/loop-telemetry-export/spec.md`.
 
 ## Retired identifiers
 

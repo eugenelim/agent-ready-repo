@@ -72,28 +72,92 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
 
 **Depends on:** none (the package's profile interface is a published contract)
 
-**Touches:** the package's `mappings/work_loop.py`, its tests
+**Touches:** `packs/core/.apm/skills/work-loop/profiles/work-loop.toml`,
+`packs/core/tests/skills/work-loop/test_work_loop_profile.py`
 
 **Tests:**
-- `no stub (implementation-discovered)`. Discovery predicate: the profile
-  interface is published in the package's `docs/profiles.md`, but the module
-  path is fixed only once the package exists. Constraint: declaration only, no
-  logic. Required outcome: the three declarations match `telemetry.md` § 5.1.
-  Verification mode: TDD. Proof obligation: the profile's declared fields are
-  asserted against the envelope the engine actually emits, not against a
-  restated list.
-- The profile declares `at`, `result`, `run_id` with `seq`, and its allowlist.
-  Verifies AC-0040.
-- The documented invocation selects the registered profile and a real emitted
-  line reaches a live Collector at the declared destinations. Verifies AC-0044.
+- `stub: true` — three compilable assertions for AC-0040, validated in disposable
+  scratch. **The profile is data, not code** (ADR-0111): it is a TOML file at a
+  path AC-0040 fixes, with keys AC-0040 fixes, so the assertion needs no symbol
+  from the unshipped package and the earlier `no stub
+  (implementation-discovered)` record was wrong. Compile: `python -m py_compile`
+  OK. Intended red: all three fail with `FileNotFoundError` on the profile path,
+  because the file does not exist yet (3 failed). Proof the red is the assertion
+  rather than a broken harness: pointed at a profile generated from a line the
+  engine actually emitted, the same three pass (3 passed). That run also measured
+  the envelope — **13 keys today**: `at`, `awaiting_input`, `budgets`, `event`,
+  `from`, `phase_s`, `phase_started_at`, `result`, `run_id`, `seq`, `spec`, `to`,
+  `waived`, becoming 14 once T6 adds `schema`, which is why T5 now depends on T6.
+  Disposable copies removed.
 
-**Done when:** the profile's declarations are asserted against a real emitted line.
+```python
+def _engine_module():
+    """The engine loaded by path — the same recipe the envelope suite uses."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "core_work_loop_loop_engine_profile_under_test",
+        _REPO / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _one_emitted_line(tmp_path: Path) -> dict:
+    """Drive one real transition and return the line it appended."""
+    from test_loop_engine_events_jsonl import (
+        _engine_init, _init_git_repo, _make_spec_dir, _run, _LOOP_ENGINE,
+    )
+
+    repo = _init_git_repo(tmp_path)
+    spec_dir = _make_spec_dir(repo)
+    _engine_init(repo, spec_dir)
+    _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+    return json.loads((repo / ".loop-run" / "events.jsonl").read_text().splitlines()[-1])
+
+
+class TestWorkLoopProfile:
+    def test_profile_declares_the_envelope_fields(self) -> None:
+        # STUB: AC-0040
+        profile = tomllib.loads(_PROFILE.read_text(encoding="utf-8"))
+        assert profile["timestamp_field"] == "at"
+        assert profile["timestamp_format"] == "rfc3339"
+        assert profile["severity_field"] == "result"
+        assert profile["identity"] == ["run_id", "seq"]
+
+    def test_severity_map_covers_every_gate_result(self, tmp_path) -> None:
+        # STUB: AC-0040
+        profile = tomllib.loads(_PROFILE.read_text(encoding="utf-8"))
+        missing = set(_engine_module()._GATE_RESULTS.values()) - set(profile["severity_map"])
+        assert not missing, f"severity_map omits {sorted(missing)}"
+
+    def test_allowlist_is_exactly_the_unrouted_emitted_keys(self, tmp_path) -> None:
+        # STUB: AC-0040
+        profile = tomllib.loads(_PROFILE.read_text(encoding="utf-8"))
+        emitted = set(_one_emitted_line(tmp_path))
+        routed = {"at", "result", "run_id", "seq"}
+        assert set(profile["allowlist"]) == emitted - routed
+```
+
+- `no stub (implementation-discovered)` for AC-0044. Discovery predicate: the
+  invocation's flag spelling is fixed only once `jsonl-otlp-exporter` ships.
+  Constraint: the profile is passed as a file through `--profile`; nothing is
+  registered inside the package. Required outcome: a line the engine emitted
+  reaches a live Collector with each declared field at its declared destination.
+  Verification mode: TDD. Proof obligation: the assertion reads the Collector's
+  received record, not the sender's own log of what it intended to send.
+
+**Done when:** the three AC-0040 assertions pass against the shipped profile, and
+a real emitted line is observed at the Collector.
 
 ### T2: Configuration wiring
 
 **Depends on:** none
 
-**Touches:** `guides/core/how-to/export-loop-telemetry.md`, the wiring tests
+**Touches:** `packages/agentbundle/agentbundle/telemetry_layout.py` (new — the
+per-setting resolver and the invocation it renders),
+`guides/core/how-to/export-loop-telemetry.md`, the wiring tests
 
 **Tests:**
 - `no stub (implementation-discovered)`. Discovery predicate: the wiring seam is
@@ -113,9 +177,18 @@ reports only — naming an unsatisfied optional dependency and exiting 0.
 
 **Approach:**
 - The package reads one `--config` path; repository-before-user precedence is
-  this catalogue's wiring, not the package's behaviour.
+  this catalogue's wiring, not the package's behaviour. So the precedence needs a
+  caller that can be asserted: `telemetry_layout.resolve(repo_root, user_path)`
+  reads both `agentbundle-layout.toml` files and returns the merged `[telemetry]`
+  settings plus the `--config`/`--input` arguments the documented invocation uses.
+- The merge is **per setting**, not per file. `workspace_mcp.py:1576-1620` is the
+  precedent for reading these files but not for merging them: its
+  `_read_layout_bases` picks a whole scope per section, so reusing it would pass
+  the first fixture case and fail the second. The guide documents the resolver's
+  output; it does not restate the precedence rule.
 
-**Done when:** the precedence is asserted over two fixture layout files.
+**Done when:** the precedence is asserted over two fixture layout files, through
+the resolver rather than through prose.
 
 ### T3: Declare and report the optional runtime dependency
 
@@ -170,9 +243,40 @@ class TestSchemaVersionStub:
         assert event["schema"] == 1
 ```
 
-- A pending record carrying no `schema` key replays unchanged. Verifies AC-0047.
-  This is the case the rest of the suite cannot see: a retro-stamping build
-  passes everything else.
+- `stub: true` — one compilable assertion for AC-0047, validated in disposable
+  scratch. This is the case the rest of the suite cannot see: a retro-stamping
+  build passes everything else.
+
+  **Its red is a mutation, not an absence, and that is deliberate.** AC-0047
+  preserves a property that already holds at HEAD, so no feature-absence red
+  exists: run against the current engine the assertion is green (4 passed).
+  Non-vacuity was proved instead by mutating the replay branch at
+  `loop-engine.py:626` to `pending["schema"] = 1` before the append, against
+  which it fails (`1 failed, 3 passed`, the three being the harness's own copied
+  cases). The `len(lines) == 2` assertion is load-bearing: without it a pending
+  record the engine *discards* rather than replays still satisfies the key check,
+  and the mutant passes — which is how the first draft of this stub failed its
+  own mutation run. Compile: `python -m py_compile` OK. Disposable copies removed.
+
+```python
+class TestReplayPreservesLegacyRecord:
+    def test_replayed_pending_without_schema_stays_without_schema(self, tmp_path) -> None:
+        # STUB: AC-0047
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        run_id = _engine_init(repo, spec_dir)
+        state = json.loads((spec_dir / "engine-state.json").read_text())
+        legacy = {
+            "seq": state["transition_sequence"], "run_id": run_id,
+            "spec": "docs/specs/test-spec", "from": "INIT", "event": "init",
+            "to": state["state"], "at": "2026-01-01T00:00:00Z",
+        }
+        (repo / ".loop-run" / "events.pending").write_text(json.dumps(legacy))
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        lines = (repo / ".loop-run" / "events.jsonl").read_text().splitlines()
+        assert len(lines) == 2, f"replay must precede the new record: {lines}"
+        assert "schema" not in json.loads(lines[0])
+```
 
 **Approach:**
 - Add the key to `_cmd_transition`'s `pending_data` literal; leave the replay
@@ -185,7 +289,7 @@ pass unchanged.
 
 **Depends on:** T6
 
-**Touches:** `contracts/jsonschema/loop-run-event.schema.json`, `contracts/README.md`, `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl`
+**Touches:** `contracts/jsonschema/loop-run-event.schema.json`, `contracts/README.md`, `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl`, `packages/agentbundle/tests/unit/test_workspace_mcp_events_poller.py`
 
 **Tests:**
 - The corpus holds a versioned and a legacy record, and the schema validates
@@ -194,16 +298,22 @@ pass unchanged.
   Verifies AC-0049.
 - `contracts/README.md`'s table names the schema. Verifies AC-0050.
 - The events poller yields the same parsed result for a legacy record and an
-  explicit `schema: 1` record. Verifies AC-0052.
+  explicit `schema: 1` record. Verifies AC-0052. The two records are fed to
+  `workspace_mcp.py`'s poller and its two parsed results compared to each other,
+  so the assertion fails if the poller ever branches on the key's presence.
+- The schema's `$comment` names this spec's path. Verifies AC-0053.
 
 **Approach:**
 - Record the corpus by driving real transitions, not by authoring lines.
 
-**Done when:** the corpus validates and the registry row is present.
+**Done when:** the corpus validates, the registry row is present, and the poller
+returns equal parsed results for the legacy and versioned records.
 
 ### T5: Records, architecture and disclosure
 
-**Depends on:** T1, T2, T3, T4
+**Depends on:** T1, T2, T3, T4, T6, T7 — T6 creates the `schema` key that AC-0051's
+field count measures, and T7 records the corpus the count is read from, so running
+T5 first would pin § 5.1 to a field count one short of what ships.
 
 **Touches:** `docs/architecture/telemetry.md`, `guides/core/how-to/export-loop-telemetry.md`, `docs/specs/README.md`, `docs/product/changelog.md`
 
@@ -213,7 +323,13 @@ pass unchanged.
 - § 2 carries neither retired string. Verifies AC-0022.
 - Every `agentbundle.md` anchor resolves. Verifies AC-0045.
 - The field count in § 5.1 equals the emitted key count. Verifies AC-0051.
-- No documented exit code falls in the 2–9 reserved band. Verifies AC-0042.
+- No exit code named in `guides/core/how-to/export-loop-telemetry.md` falls in
+  the 2–9 reserved band. Verifies AC-0042. The guide is the named set: an
+  assertion over "documented" codes has no file to read.
+- § 2 names the sender, states that it is separately installed, and states that
+  nothing is sent until an endpoint is configured. Verifies AC-0054. This is the
+  positive half: AC-0021 and AC-0022 only delete stale claims, and a § 2 reduced
+  to a bare heading satisfies both of them.
 
 **Done when:** `check-guide-index.py` is green and no dead anchor remains.
 

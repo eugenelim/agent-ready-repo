@@ -104,6 +104,9 @@ durable state anywhere.
 **Touches:** `packages/jsonl-otlp-exporter/`
 
 **Tests:**
+- `no stub (goal-based)`. Reason: the outcome is a build artifact and a process
+  status, which the build command and the installed console script already prove;
+  a test asserting what `python3 -m build` just demonstrated adds no signal.
 - Goal-based: `python3 -m build` produces a wheel and sdist; a fresh venv
   installs it and `jsonl-otlp-export --version` prints the version. Verifies AC-0029.
 
@@ -128,7 +131,8 @@ durable state anywhere.
   code exists.
 - Three-source precedence, one case per source plus the empty case. Verifies
   AC-0001, AC-0002, AC-0003, AC-0004.
-- The unconfigured run exits 0 with the not-configured note. Verifies AC-0033.
+- The unconfigured run exits 0. Verifies AC-0033.
+- It writes the not-configured note to stderr. Verifies AC-0060.
 
 **Done when:** the empty case passes with a transport seam that raises if constructed.
 
@@ -144,6 +148,7 @@ durable state anywhere.
   to `--root`, write no position state. Required outcome: refusal before any read
   for an unsafe path. Verification mode: TDD. Proof obligation: confinement cases
   assert the transport seam is never constructed.
+- The input file's content, size and mtime are unchanged after a run. Verifies AC-0061.
 - A symlink leaf, a non-regular file, and a path escaping `--root` are refused
   with nothing sent. Verifies AC-0017.
 - A directory component swapped between resolution and open is refused: the walk
@@ -157,8 +162,12 @@ durable state anywhere.
 - An absent `--input` path sends nothing and exits 1. Verifies AC-0043.
 - Default mode is one-shot; `--follow` delivers an appended line. Verifies AC-0020, AC-0021.
 - `--for` takes integer seconds from the first read. Verifies AC-0042.
-- Absent file, truncated file, replaced inode, and a trailing line with no newline
-  each exit 0 with no partial or duplicate record. Verifies AC-0022.
+- Under `--follow` against a file holding one valid record, then truncated to
+  zero, then replaced by a new inode, then given a trailing line with no newline:
+  the first record sends exactly once, none of the three conditions produces a
+  record, and the run exits 0 when `--for` elapses. Verifies AC-0022. The absent
+  file is **not** here — it exits 1 under AC-0043, and pairing the two in one
+  assertion is how the earlier contradiction between them survived two rounds.
 
 **Done when:** every file-lifecycle case passes and no position file is written.
 
@@ -166,7 +175,12 @@ durable state anywhere.
 
 **Depends on:** T1
 
-**Touches:** `jsonl_otlp_exporter/encode.py`, `jsonl_otlp_exporter/mappings/`, its tests
+**Touches:** `jsonl_otlp_exporter/encode.py`, `jsonl_otlp_exporter/profile.py`
+(parsing, schema validation and confined loading of a `--profile` file), its
+tests and their profile fixtures. **No `mappings/` package.** ADR-0111 makes a
+profile data the consumer supplies, so the distribution bundles none: the
+profiles this task's tests use are fixtures under the test tree, never importable
+package data, and nothing in the package resolves a profile by name.
 
 **Tests:**
 - `no stub (implementation-discovered)`. Discovery predicate: the encoder's
@@ -177,20 +191,26 @@ durable state anywhere.
 - Byte-exact golden for the recorded three-line fixture. Verifies AC-0005.
 - `service.name` takes `--service-name`, defaulting to the profile's name. Verifies AC-0007.
 - Records carry the profile's declared identity attributes. Verifies AC-0023.
-- A field outside the allowlist appears nowhere in the body. Verifies AC-0034.
+- A field that is outside the allowlist *and* is not the profile's
+  `timestamp_field`, `severity_field` or an `identity` member appears nowhere in
+  the body. Verifies AC-0034. The carve-out is load-bearing: an assertion over
+  every non-allowlisted field contradicts AC-0053, which requires the declared
+  fields through.
 - A profile declares exactly the six keys; a missing or extra key is refused.
   Verifies AC-0035.
 - A profile whose content would execute if imported is parsed as data and
   refused on schema. Verifies AC-0047.
 - `--profile` is opened under AC-0017's discipline. Verifies AC-0048.
-- A bad `timestamp_format`, a non-integer `severity_map` value, an oversized or
+- A bad `timestamp_format`, a wrong-typed value in any of the six keys, an oversized or
   unparseable profile, and no `--profile` at all are each refused before any
   request. Verifies AC-0049, AC-0050, AC-0051, AC-0052.
 - A declared timestamp, severity or identity field reaches its destination whether
   or not the allowlist names it, and is not duplicated as an attribute.
   Verifies AC-0053.
 
-**Done when:** the golden passes and field names appear only in a profile.
+**Done when:** the golden passes, field names appear only in a profile, and the
+installed wheel contains no profile file — the check that keeps a fixture from
+drifting back into shipped data.
 
 ### T5: Transport — destination policy, retry, batching
 
@@ -208,25 +228,31 @@ durable state anywhere.
 - Non-empty `partialSuccess` produces no retry. Verifies AC-0008.
 - It reports the rejected count. Verifies AC-0036.
 - It exits 1. Verifies AC-0054.
-- `Retry-After: N` waits `min(N, 30)`; absent, negative or unparseable is 0. Verifies AC-0009.
+- `Retry-After: N` delays the next request by `min(N, 30)` from response receipt on
+  a monotonic clock; absent, negative or unparseable is 0. Verifies AC-0009.
 - At most three attempts per run, and an exhausted run stops issuing requests.
   Verifies AC-0010, AC-0037.
 - A request abandoned 30s after its own resolution begins, on a monotonic clock.
   Verifies AC-0040.
-- A run that stops issuing 120s after its first resolution, covering retries and
-  inter-attempt waits. Verifies AC-0055.
+- A run that stops issuing at 120s from its first resolution AND abandons a
+  request still in flight at that deadline — a fixture whose request begins at
+  119s proves the second half, which an issuance-only cutoff fails. Verifies AC-0055.
 - A response refused at 1 MiB plus one byte without further reading. Verifies AC-0041.
 - An oversized `--config` refused before parsing. Verifies AC-0056.
 - At most 512 records per request. Verifies AC-0011.
 - A request body never exceeds 8 MiB, asserted by constructing the worst
-  admissible case rather than trusting the ceiling. Verifies AC-0019.
+  admissible case rather than trusting the ceiling, **and** a batch that would
+  exceed it is split rather than dropped or truncated — the split half is what
+  distinguishes a correct encoder from one that silently discards the overflow.
+  Verifies AC-0019.
 - HTTPS accepted at any host with chain and hostname verified; a non-http(s)
   scheme refused; plaintext accepted only when EVERY resolved address is
   loopback and issued to a verified address without re-resolution; plaintext to
   any non-loopback resolution refused; a redirect not followed; user-info
-  refused; and no message carrying an endpoint or redirect target includes a
-  user-info component. Verifies AC-0024, AC-0044, AC-0025, AC-0026, AC-0027,
-  AC-0028, AC-0045.
+  refused; and every message naming an endpoint or redirect target renders it
+  through one representation carrying no user-info, no query, no fragment and no
+  C0 or C1 control character. Verifies AC-0024, AC-0044, AC-0025, AC-0026,
+  AC-0027, AC-0028, AC-0045.
 - The loopback fixture uses a stateful resolver whose first answer is loopback
   and whose second answer is routable, so a build that re-resolves at connect
   time reaches the routable address and fails. A fixture returning both addresses
@@ -251,10 +277,16 @@ behaviour, and the live round trip lands three records.
 **Touches:** `jsonl_otlp_exporter/cli.py`, its tests
 
 **Tests:**
+- `no stub (goal-based)`. Reason: every criterion here is one invocation and one
+  observed process status, so the check is the invocation itself; there is no
+  in-process contract nearer the surface to stub against.
 - Send failure exits 1; `--best-effort` exits 0. Verifies AC-0012.
 - An unknown flag exits 1, not 2 — the argument parser's default must be
   overridden or it collides with the reserved band. Verifies AC-0013.
-- No invocation returns a code in 2 through 9. Verifies AC-0014.
+- Every invocation in the `### Exit codes` table's closed set returns a status
+  in exactly `{0, 1, 130}` — the set is read from the table and walked case by
+  case, so a status of 42 fails as surely as a status of 3. Verifies AC-0014. An
+  assertion that merely excludes the 2–9 band passes a build returning 42.
 - SIGINT exits 130. Verifies AC-0015.
 - A run in which no line yields a valid record exits 1. Verifies AC-0039.
 
@@ -271,6 +303,9 @@ behaviour, and the live round trip lands three records.
 **Touches:** `README-pypi.md`, `docs/profiles.md`
 
 **Tests:**
+- `no stub (goal-based)`. Reason: these criteria are structural properties of
+  authored prose files — a heading, a parseable fenced block, a named string —
+  checked by reading the file rather than by exercising a code path.
 - `README-pypi.md` states what is sent, what the payload contains, and the
   destination. Verifies AC-0030.
 - `docs/profiles.md` carries a fenced `toml` block parsing as a profile that
@@ -289,6 +324,11 @@ from `docs/profiles.md` alone.
 **Touches:** `.github/workflows/`, `CHANGELOG.md`
 
 **Tests:**
+- `no stub (manual QA)` for the end-to-end run, and `no stub (goal-based)` for
+  AC-0046, AC-0057, AC-0058 and AC-0059. Reason: the manual case exercises a
+  published artifact against a live service, which no in-process assertion
+  reaches; the workflow criteria are properties of a YAML file and of a tagged
+  run, read rather than executed.
 - Manual QA: the console script installed from the built wheel is run against a
   real JSONL file and a real Collector; stdout, stderr and exit code recorded in
   the verification ledger.
