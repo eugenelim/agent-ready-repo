@@ -175,8 +175,8 @@ skill's DECIDE step. They are not restated here. Some of them land differently o
 an intent, because an intent carries no criterion set and almost nothing in it
 has a check beyond the sentence existing.
 
-`demote-the-claim` moves an assertion out of `Outcome` or `Boundary` and into
-working material, and the destination follows what the assertion was doing. A
+`demote-the-claim` moves an assertion out of a deciding section and into a
+recording one, and the destination follows what the assertion was doing. A
 settled ground for the outcome or the boundary goes to `Opportunity`. A matter
 the assertion decided without the authority to decide it goes to `Unresolved
 questions`. What demotion costs — the pin it carries and the authority it needs —
