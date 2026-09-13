@@ -129,3 +129,39 @@ Walked against all eight distinguishing cases, 0 mismatches:
 End to end against both real shipped surfaces, each mutation reverted by
 editing: backup destination **red**, destination removed **red**, wrong
 destination **red**, unmutated **pass**.
+
+### T6, third round — the operand claim was unmechanizable, so it was cut
+
+The `quality-engineer` re-review of the second repair returned two inputs, both
+reproduced before acting:
+
+| Input | Should be | Was |
+| --- | --- | --- |
+| "Do not copy the staged `docs/knowledge/` tree into `docs/knowledge/`." | no match | **match** |
+| "Copy the staged `docs/knowledge/` tree, replacing the current `docs/knowledge/` directory." | match | **no match** |
+
+A predicate that admits a negation and refuses a valid synonym is not measuring
+the property it names. The reviewer's verdict was SHRINK, and it is right:
+regex cannot decide prose-level operand semantics, and a third tightening would
+have produced a fourth hole.
+
+The copy step is now matched on its action alone. The check decides what it can
+decide — that the four steps are present and ordered — and the plan no longer
+claims it validates operands. Whether the copy step names the right source and
+destination rests on review, against the wording AC6 states. AC6 itself is
+unchanged: it is a documentation-content criterion, and both shipped surfaces
+do carry the sequence it specifies.
+
+Mutations after the shrink, each reverted by editing:
+
+| Mutation | Expected | Observed |
+| --- | --- | --- |
+| unmutated | pass | `1 passed` |
+| delete the migration section | red | `1 failed` |
+| replace the copy step with "Promote the tree." | red | `1 failed` |
+| move the commit step after activate | red | `1 failed` |
+| reword with "replacing the current `docs/knowledge/` directory" | pass | pass |
+
+Three rounds on one control is itself the finding: the first two rounds moved
+the control between too tight and too loose, and only the third asked whether
+the property was decidable at all. Ask that question earlier.

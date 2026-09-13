@@ -129,15 +129,17 @@ _MIGRATION_HEADING = re.compile(r"^##\s+migrating legacy knowledge\s*$", re.I | 
 _MIGRATION_STEPS = (
     # the two invocations are literal CLI surface and are meant to be exact
     re.compile(r"--migrate-legacy"),
-    # The copy step has to name both ends: a staged source, and `docs/knowledge/`
-    # as the destination. The destination is required *after* a directional word,
-    # because a single `docs/knowledge/` operand is satisfied by the source alone
-    # -- "Copy the staged `docs/knowledge/` tree to a backup" would otherwise
-    # pass while the step it documents is wrong. Line-scoped so ordering is real.
-    re.compile(
-        r"copy\b[^\n]*\bstaged\b[^\n]*\b(?:into|onto|over|to)\b[^\n]*docs/knowledge/",
-        re.I,
-    ),
+    # The copy step is matched on the action only, deliberately. Two rounds of
+    # review established that a regex cannot decide this step's operands from
+    # prose: requiring a destination after a directional word still accepts
+    # "Do not copy the staged `docs/knowledge/` tree into `docs/knowledge/`"
+    # and rejects the correct "…tree, replacing the current `docs/knowledge/`
+    # directory". A check that both admits a negation and refuses a synonym is
+    # not measuring what it claims to. This asserts what it can actually
+    # decide -- that the four steps are present and ordered. Whether the copy
+    # step names the right source and destination rests on review, and AC6
+    # states the wording that review is against.
+    re.compile(r"copy\b[^\n]*\bstaged\b", re.I),
     re.compile(r"\bcommit\b", re.I),
     re.compile(r"--activate-staged"),
 )

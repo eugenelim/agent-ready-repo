@@ -285,9 +285,16 @@ activation cases still pass.
   passes on a document where the terms survive scattered across unrelated
   paragraphs and the sequence itself is gone, while a byte- or line-pinned check
   reds on any nearby rewording and gets deleted rather than maintained.
-- The copy step is the one AC6 clause a token search flattens: it names a source
-  and a destination, so the assertion has to see both, not just
-  `docs/knowledge/`.
+- The copy step is matched on its action only, and the check does not claim to
+  validate its operands. Two review rounds established that a regex cannot
+  decide them from prose: requiring a destination after a directional word still
+  admits "Do not copy the staged `docs/knowledge/` tree into `docs/knowledge/`"
+  and refuses the correct "…tree, replacing the current `docs/knowledge/`
+  directory". A predicate that admits a negation and refuses a synonym is not
+  measuring what it claims. The proxy is named rather than the stronger
+  property: the check decides presence and order; whether the copy step names
+  the right source and destination rests on review, against the wording AC6
+  states.
 
 **Approach:**
 - Resolve both paths from the harness's existing `PACK_ROOT` anchor rather than
@@ -368,3 +375,9 @@ crashing path produce the artifact the lifecycle already specified.
 - 2026-09-13: T7 corrected in place. Self-host does refuse a dirty tree
   (`build/self_host.py:1307`), so the plan now names the commit-before-projection
   sequence that round 1 asked for and the supervisor wrongly dismissed.
+- 2026-09-13: T6's check shrunk after three quality-engineer rounds on that one
+  control. Rounds 1 and 2 were real defects; round 3 proved the operand claim
+  unmechanizable in prose and advised SHRINK. The control now asserts presence
+  and order, which it can decide, and the operand wording moved to review. Two
+  holes in one control across two rounds is the signal to shrink the claim
+  rather than harden it a third time.
