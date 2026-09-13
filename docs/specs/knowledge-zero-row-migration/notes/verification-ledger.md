@@ -145,9 +145,9 @@ the property it names. The reviewer's verdict was SHRINK, and it is right:
 regex cannot decide prose-level operand semantics, and a third tightening would
 have produced a fourth hole.
 
-The copy step is now matched on its action alone. The check decides what it can
-decide — that the four steps are present and ordered — and the plan no longer
-claims it validates operands. Whether the copy step names the right source and
+The copy step is now matched on its action alone. The check decides the weaker
+thing it can actually decide — that four matching *mentions* occur in this
+order — and the plan no longer claims it validates operands. Whether the copy step names the right source and
 destination rests on review, against the wording AC6 states. AC6 itself is
 unchanged: it is a documentation-content criterion, and both shipped surfaces
 do carry the sequence it specifies.
@@ -165,3 +165,51 @@ Mutations after the shrink, each reverted by editing:
 Three rounds on one control is itself the finding: the first two rounds moved
 the control between too tight and too loose, and only the third asked whether
 the property was decidable at all. Ask that question earlier.
+
+### T6, fourth round — one finding sustained, one remedy refuted
+
+A final independent reviewer raised two Concerns on the shrunk control.
+
+**Sustained — the wording still overclaimed.** The check was described, in the
+test comment and here, as deciding "the four steps are present and ordered". It
+does not: none of the patterns is sensitive to negation, so this section passes
+while prescribing nothing.
+
+```markdown
+## Migrating legacy knowledge
+Do not run `--migrate-legacy`.
+Do not copy the staged tree.
+Do not commit it.
+Do not run `--activate-staged`.
+```
+
+What it actually decides is that four matching *mentions* occur in that order.
+Both surfaces now say exactly that. This is the same error the shrink was meant
+to fix — naming the stronger property instead of the proxy — reintroduced one
+level up while fixing it at the operand level. The rule is easy to apply to the
+claim you are looking at and easy to miss in the sentence describing it.
+
+**Refuted — the prescribed remedy.** The reviewer proposed asserting that the
+matched copy line contains `docs/knowledge/` at least twice, and reported
+checking it against the shipped lines and the earlier counterexamples. Probed
+against the fuller case set before adopting, it fails on valid wording:
+
+| Input | Should be | Predicate gives |
+| --- | --- | --- |
+| shipped line | accept | accept |
+| "…tree, replacing the current `docs/knowledge/` directory." | accept | accept |
+| "…tree to a backup." | reject | reject |
+| "…into `docs/archive/`." | reject | reject |
+| "Copy the staged tree over your `docs/knowledge/` directory." | accept | **reject** |
+| "Copy the staged output onto docs/knowledge/ in your repo." | accept | **reject** |
+
+The two failures are wordings that name the destination without repeating the
+source path. The first is the exact rewording recorded as must-pass in the
+first repair. Adopting this would reinstate the round-1 defect — a check that
+reds on reasonable prose, and so gets deleted rather than maintained.
+
+The finding underneath it is fair: a syntactic sub-property of AC6 is decidable
+in principle. It is not adopted, because every predicate tried for it has cost
+more in false negatives than it bought, across four rounds on one control. The
+operands stay a review responsibility. That is a deliberate, recorded limit,
+not an oversight.

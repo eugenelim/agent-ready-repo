@@ -135,10 +135,13 @@ _MIGRATION_STEPS = (
     # "Do not copy the staged `docs/knowledge/` tree into `docs/knowledge/`"
     # and rejects the correct "…tree, replacing the current `docs/knowledge/`
     # directory". A check that both admits a negation and refuses a synonym is
-    # not measuring what it claims to. This asserts what it can actually
-    # decide -- that the four steps are present and ordered. Whether the copy
-    # step names the right source and destination rests on review, and AC6
-    # states the wording that review is against.
+    # not measuring what it claims to. This asserts the weaker thing it can
+    # actually decide: that four matching *mentions* occur in this order. It is
+    # not sensitive to negation -- a section reading "Do not run
+    # `--migrate-legacy`. Do not copy the staged tree." passes -- and it does
+    # not check the copy step's operands. Both rest on review, against the
+    # wording AC6 states. The check's job is to catch a step silently dropped
+    # or reordered by an edit, which it does.
     re.compile(r"copy\b[^\n]*\bstaged\b", re.I),
     re.compile(r"\bcommit\b", re.I),
     re.compile(r"--activate-staged"),
