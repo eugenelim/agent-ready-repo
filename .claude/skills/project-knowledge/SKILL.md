@@ -29,6 +29,11 @@ To activate a legacy-only knowledge base:
 The commit is required: `--activate-staged` compares the staged map with
 `HEAD`, making review part of the migration boundary.
 
+`--activate-staged` reads that snapshot on stdin and compares it against `HEAD`,
+the staged map, and the worktree; all four must agree or it refuses with
+`map_mismatch`. No shipped command prints the snapshot, so this step is driven
+by the tool that ran the migration rather than typed at a shell.
+
 ## Producer profiles
 
 `--producer-profile work-loop` lets work-loop submit only semantic judgment.
