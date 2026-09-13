@@ -622,20 +622,22 @@ marketplace manifest, and `web/src/lib/now-highlights.generated.json`
   publishes.
 
 **Approach:**
-- Correct the `core` entry rather than adding a second one. The bump rule's
-  prohibition is on borrowing an unreleased version *from another change*; this
-  amendment is content inside the same unshipped delivery that produced
-  `2.25.17`, so no consumer-visible version is reused and the harm the rule
-  names does not arise. `origin/main` carries `2.25.16` and this branch has
-  never been pushed, so nothing has published `2.25.17` to contradict.
+- **Corrected 2026-09-12: the premise this bullet rested on expired.** It argued
+  that reusing `2.25.17` was safe because `origin/main` carried `2.25.16` and
+  nothing had published `2.25.17` to contradict. While this branch was in
+  review, main shipped its own core `2.25.17` from an unrelated change. Both
+  sides wrote the identical version string, so `pack.toml` and `plugin.json`
+  merged with no conflict marker and only the changelog showed it. This branch
+  re-derives to `2.25.18` — the bump the rule yields for changed pack content —
+  with its entry above main's `2.25.17`. A reviewer argued for exactly that and
+  was refuted on the expired premise; the refutation does not survive the fact.
 - Two bullets carry the reversed rules, not one. The enumeration bullet asking
   "do the children partition the parent" keeps the referent T10 corrects, and
   reads as condition 4's parent rather than the artifact's own outcome. The
   bullet stating that an unsupplied parent fails both the altitude and children
   questions describes behavior this amendment removes before anyone runs it. It is corrected in place rather than left standing with a retraction
   below it, because one release cannot both promise and withdraw a behavior.
-- Keep the single `2.25.17` patch bump. The amendment is content change inside
-  an unreleased version, not a second release.
+- Ship `2.25.18`, matched in `pack.toml` and `.claude-plugin/plugin.json`.
 - Regenerate every projection rather than editing one; `.apm/` is the only
   source.
 - Date both entries the day they ship, not the day they were drafted.
@@ -667,13 +669,9 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
   observe it — the reason T8 was blocked once already.
 - Run the four cases the criterion names, all carrying no decomposition: leaf at
   `Draft`, leaf at `Accepted`, above-leaf at `Draft`, above-leaf at `Accepted`.
-  Only the last emits `MALFORMED(children)`. The set is the evidence — a single
-  case cannot distinguish a repair from a removal, and three of the four are the
-  states the authoring pipeline actually produces, so a rule that fires on them
-  is a rule that blocks the pipeline. Two of those three carry the isolation:
-  leaf-at-`Accepted` differs from the firing case in level alone and
-  above-leaf-at-`Draft` differs in status alone, while leaf-at-`Draft` differs
-  in both and is there as the baseline.
+  Only the last emits `MALFORMED(children)`. The criterion states which case
+  attributes which respect; do not restate that mapping here, because two
+  phrasings of it in one task is what the last repair removed from the spec.
 - Run the two unplaceable-level cases against fixtures that satisfy every other
   trigger of the absence branch — no listed decomposition, `Status: Accepted` —
   so each differs from the firing case in the level alone. A fixture left at
@@ -698,11 +696,8 @@ and each matches:
 | level outside the recognized set, `Accepted`, no decomposition | no token |
 
 The three re-run T8 observations are recorded against the amended revision
-alongside them. Two comparisons carry the trigger: leaf-at-`Accepted` against
-the firing row isolates the level, and above-leaf-at-`Draft` against it isolates
-the status. The two unplaceable-level rows also differ from the firing row in
-the level alone. A run that collapses any of those comparisons, or that draws
-one across two revisions, closes nothing.
+alongside them. A run that collapses any comparison the criterion names, or
+draws one across two revisions, closes nothing.
 
 ## Rollout
 

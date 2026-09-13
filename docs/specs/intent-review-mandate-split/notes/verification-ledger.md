@@ -497,7 +497,8 @@ argued to be unreachable by the delta. Raised by the quality reviewer.
 
 The body did not move between the fixture 6 run and this batch: still
 `fc24f59725b03ae45f0ec3c14a2dbd35cf3cc900c50b41872711896e7beaa418`, verified
-before dispatch. `7614a38a0` is HEAD, and it changed other files.
+before dispatch. The revision current when this batch ran changed other files
+only.
 
 All three were dispatched in one batch at that hash. Verbatim outputs:
 
@@ -665,12 +666,28 @@ and wait for the reviewer to finish before creating any commit.
 
 ## T12 — final observation batch, 2026-09-12
 
-Nine dispatches, one batch, one revision, one pair of hashes. This batch
-supersedes the earlier T8 and T12 observations rather than supplementing them:
-those sections were correct about the bytes they read, but each ran from a
-session whose definitions predate a later edit to the `shaping-reviewer` body.
-This session's definitions loaded after the last edit settled, so it is the
-first run whose "at current bytes" claim is sourced rather than assumed.
+Nine dispatches, one batch, one revision, one pair of hashes.
+
+**What this batch supersedes, stated precisely.** It supersedes every earlier
+observation taken against a `shaping-reviewer` body *older* than
+`fc24f59725b03ae4…`. It does not supersede the fixture 4, 5 and 3 batch above,
+which ran against that same hash — that record stands, and this batch
+corroborates it. The distinction matters because an over-broad supersession
+would strand the criteria those observations close.
+
+What this batch adds that no earlier one had: every session before it started
+before at least one edit to the body it was observing, so its "at current bytes"
+claim rested on a disk read rather than on what the host served. This session
+started after the last edit settled.
+
+**Revision anchors in this ledger are content hashes, not commit ids.** This
+branch was rebased onto a moved `origin/main` after most of these observations
+were taken, so the short ids recorded in the earlier sections — `8d20edb9a`,
+`05962652e`, `2ddede5ed`, `077d7d64f`, `d4438daf8`, `7614a38a0` — are objects in
+the local store but are no longer ancestors of this branch and will not resolve
+in a fresh clone. The projection hashes recorded beside them do resolve, because
+they name bytes rather than history. Read the hashes as the anchor and the ids
+as provenance.
 
 ### What was dispatched
 
