@@ -868,3 +868,96 @@ reconciles as `impossible_transition`, which was observed once and corrected.
 From `queue`, the entry evaluates as `canonical.ready` with `dispatchable: true`
 and no findings. It moves to `active` when EXECUTE bumps the spec to
 `Implementing`.
+
+## 2026-09-13 — Specialist reviews, and an owner-authorised scope expansion
+
+### What the specialists found
+
+`security-reviewer` (Codex, routed to the `llm-agent` and `agentic-skills`
+boundary modules): 2 findings, **1 sustained**.
+
+- **Sustained — the prompt-injection boundary never reaches the judge.** The
+  pack states that captured content is untrusted evidence with no instruction
+  authority, but that binds the agent *reading the skill*. The judgement request
+  carries five fields and no such declaration, and the spec deliberately supports
+  routing captures to a separate adopter-chosen judge that never reads the skill.
+  `llm-agent.md:39-42` (LLM01) requires untrusted content to be delimited **and**
+  the prompt to instruct the model not to treat it as instructions. Blast radius
+  is capped — a steered judge cannot change classes or severity — but it can
+  return *no* findings, producing a `completed` inspection over a broken page.
+- **Refuted — pin `npx playwright`.** The identical unpinned `npx` pattern is
+  pre-existing accepted pack content (`html-validate`, `pa11y`, `axe`), the line
+  is explicitly an example, and pinning would require an adopter-installed driver
+  — colliding with the `Ask first` on runtime dependencies *and* the release
+  criterion that dependency surfaces gain nothing. Recorded because this session
+  had called it a real finding before adjudication; it is not.
+
+`quality-engineer` (spec-level pass): 4 findings, **3 sustained**.
+
+- **Blocking — a Blocker finding does not stop the surface completing.** See
+  below; this is the headline gap.
+- **Blocking — the every-captured-height rule is enforced but never shipped.**
+  This one is self-inflicted. Fixing round 1's Blocker put Rule 2 inside
+  `evaluate_capture_set`, which checks "every height this route actually
+  captured". The shipped reference never says that, and still says "Further
+  heights are welcome and none are required". So the control authors the rule it
+  checks — contradicting this module's own "Nothing in this module states a rule"
+  docstring and the plan's design decision that rules are data the checks read.
+  **A repair instantiated the exact defect class the delivery exists to prevent.**
+- **Advisory — the rule-table reader accepts malformed tables silently.** A
+  duplicate class row is collapsed by a dict comprehension, so "every class has
+  exactly one severity" cannot fail on that mutation; a literal pipe shifts a
+  cell; a repeated heading is read only once.
+- **Refuted — required diagnostic context on every failure state.** The criteria
+  oblige distinguishability and naming the missing capability, "and no other".
+
+### The Objective-to-criteria gap
+
+Three adversarial rounds checked *criteria → checks*. None checked *Objective →
+criteria*. The Objective promises "a completion signal that cannot be green while
+the page is visibly broken" (`spec.md:27-28`) and **no acceptance criterion
+implemented it**: every "cannot satisfy a completed inspection" rule is about
+execution failure — a missing capture, an unusable record, a navigation, capture
+or judgement error — never about findings. A run that captures all four states,
+judges them, finds an `occlusion` Blocker and records it reports `completed`.
+
+### Owner decision, 2026-09-13: take all four parts
+
+The owner authorised a scope expansion covering the whole holistic fix, which
+takes three items the spec routes to `Ask first`:
+
+1. **Consequence.** An unresolved reader-visible finding of blocking severity
+   yields a state that is not a completed inspection, with execution state kept
+   separate from the inspection verdict.
+2. **Reviewer seed.** `frontend-reviewer` is seeded with the capture set and the
+   observations, so the independent check can see the page. This was Follow-on 3.
+3. **Reviewer lens.** A sixth lens for reader-visible layout failure, taking
+   severity from the shipped class table so reviewer and step agree.
+4. **Capture-time independence.** `frontend-reviewer` gains Bash so it captures
+   its own evidence rather than trusting the author's.
+
+Residual risk recorded rather than hidden: part 4 puts a Bash-capable reviewer in
+the loop, and this repository has been bitten by reviewers mutating the tree. The
+agent definition will constrain it to capture-only invocation against
+adopter-named routes and state that it must not write to the repository. That is
+a mitigation, not a guarantee.
+
+### Discovery for the new scope, measured
+
+| Question | Measured |
+| --- | --- |
+| Is `.claude/skills/work-loop/SKILL.md` editable? | No — a projection, byte-identical to `packs/core/.apm/skills/work-loop/SKILL.md`. The dispatch line is a **core pack** edit, so this delivery ships **two** pack releases |
+| Room in that file? | `CAT-S003` at **874 of 1,000** — 126 lines of headroom |
+| Does anything pin `frontend-reviewer`'s tools? | No. Two core tests name it — one lists reviewer roles, one tests finding-format parsing. Neither asserts tools |
+| Is `frontend-reviewer` projected here? | No; the pack source is the only copy |
+| What regenerates? | `.claude/skills/work-loop/` and `.agents/skills/work-loop/` |
+
+### Also folded in
+
+The session's own visual-fuzz pass (24 generated pages, 87 captures, zero
+invariant failures) surfaced one thing the eight hand-written fixtures cannot:
+**no class-precedence rule**. Each shipped fixture declares exactly one failure
+by construction, but a real page carries several — `fuzz-002` shows occlusion and
+overflow together. Nothing says which class wins, and they carry different
+severities. That was cosmetic before; under part 1 severity decides whether the
+gate passes, so it becomes load-bearing and is in scope.
