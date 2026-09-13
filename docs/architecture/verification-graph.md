@@ -272,7 +272,11 @@ receipt is distinct evidence: the two answer different questions.
 
 **The complete test corpus.** `test-corpus.yml` runs `make test`, but only
 on `workflow_dispatch` — so no *automatic* run of any kind reaches it, and no
-job runs `make test-after-build-check` at all. Read the row below as describing
+job runs `make test-after-build-check` at all. Since
+spec/test-corpus-sharding it runs the target across four matrix jobs, each
+invoking `make test SHARD=<n> SHARDS=4`; the Makefile stays the single roster
+and the workflow enumerates no suite, so what a green run proves is unchanged
+and only the wall clock moved (about 15 minutes serial to about 4). Read the row below as describing
 what a pull request does, which is unchanged: reaching the corpus still takes a
 deliberate dispatch. `gate-main` runs `make build-check … SAST_DELEGATED=1`
 plus ruff and mypy, and `build-check.yml` then wires curated
