@@ -1,6 +1,6 @@
 # ADR-0113: The SAST/SCA guarantee moves from the local gate to `gate-sast`
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-13
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (Codex, read-only)
