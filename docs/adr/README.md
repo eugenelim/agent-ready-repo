@@ -114,3 +114,4 @@
 | 0110 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted | 2026-09-03 |
 | 0111 | [Intent review splits into a mechanical well-formedness check and a narrowed assumption attack](0111-intent-review-splits-well-formedness-from-assumption-attack.md) | Accepted | 2026-09-11 |
 | 0112 | [Index tables over a document corpus are generated or absent, never hand-maintained](0112-index-tables-are-generated-or-absent.md) | Accepted | 2026-09-13 |
+| 0114 | [Prune success requires a two-sided post-mutation invariant](0114-prune-success-requires-a-two-sided-post-mutation-invariant.md) | Accepted | 2026-09-13 |
