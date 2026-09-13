@@ -14,7 +14,11 @@ import itertools
 import pytest
 
 from frontend_engineering_rendered_page_rules import (
+    PACK_ROOT,
     SEVERITY_ORDER,
+    inspection_section,
+    read_skill,
+    shipped_severity_order,
     capture_set_rules,
     inspection_result,
     is_completed_inspection_result,
@@ -128,10 +132,40 @@ def test_a_failure_fitting_two_classes_takes_the_more_severe(md: str) -> None:
     pairs = [(a, b) for a, b in itertools.combinations(sorted(mapping), 2)
              if mapping[a] != mapping[b]]
     assert pairs, "no two classes carry differing severities"
+
+    # The expected ordering is read from SHIPPED CONTENT, never from the
+    # module under test. Deriving `worst` from `SEVERITY_ORDER` — which
+    # `resolve_class` also uses — made every pair hold under any permutation of
+    # that constant, so the check could not fail on a reorder.
+    shipped = shipped_severity_order(md)
+    # Read through the module, not through a from-import: a from-import binds a
+    # separate name, so patching the module's constant would leave this
+    # comparison looking at a stale copy and the mutation below would not bite.
+    import frontend_engineering_rendered_page_rules as mod
+    assert shipped == mod.SEVERITY_ORDER, (
+        f"the module's SEVERITY_ORDER {mod.SEVERITY_ORDER} disagrees with the "
+        f"order the reference states, {shipped} — the reference is the authority"
+    )
     for a, b in pairs:
-        worst = min((a, b), key=lambda c: SEVERITY_ORDER.index(mapping[c]))
+        worst = min((a, b), key=lambda c: shipped.index(mapping[c]))
         assert resolve_class(md, [a, b]) == worst
         assert resolve_class(md, [b, a]) == worst, "precedence must not depend on order"
+
+
+def test_a_reordered_severity_constant_fails_the_precedence_check(md: str) -> None:
+    """The mutation that proves the check above can fail.
+
+    Reversing the module's ordering must now be caught, because the expectation
+    comes from the reference rather than from the same constant.
+    """
+    import frontend_engineering_rendered_page_rules as mod
+    original = mod.SEVERITY_ORDER
+    try:
+        mod.SEVERITY_ORDER = tuple(reversed(original))
+        with pytest.raises(AssertionError, match="disagrees with the order"):
+            test_a_failure_fitting_two_classes_takes_the_more_severe(md)
+    finally:
+        mod.SEVERITY_ORDER = original
 
 
 def test_precedence_makes_a_blocking_class_reachable_through_a_minor_one(md: str) -> None:
@@ -243,3 +277,97 @@ def test_every_rule_table_in_the_reference_is_well_formed(md: str) -> None:
         unique_keyed(rows, h)
         checked += 1
     assert checked >= 8, f"expected to walk the pack's rule tables; walked {checked}"
+
+
+# ── the verdict on the SHIPPED surfaces, not only in the helper ─────────────
+#
+# Round 4 found the verdict living in the reference table and this module and
+# nowhere an adopter looks. Every check below reads a shipped artifact, because
+# a rule the helper enforces and the pack does not state is the defect T10
+# exists to close — and it recurred here one task later.
+
+def test_the_skill_states_the_verdict_alongside_the_result_state() -> None:
+    """Verifies the criterion that the result distinguishes executed from
+    passed, on the surface an adopter actually reads."""
+    section = inspection_section(read_skill())
+    assert "Verdict" in section, "SKILL.md 5c does not name the verdict"
+    assert "unresolved finding of `Blocker` severity" in section
+    assert "completed` state and a `pass`" in section, (
+        "SKILL.md does not say a completed inspection needs both"
+    )
+
+
+def test_the_skill_completed_row_is_conditional_on_the_verdict() -> None:
+    """The result-state table graded `completed` as a completed inspection
+    unconditionally, which is what contradicted the reference."""
+    skill = read_skill()
+    row = next(ln for ln in skill.splitlines() if ln.strip().startswith("| completed |"))
+    assert "verdict" in row.lower(), (
+        f"the skill's completed row still grades completion by state alone: {row}"
+    )
+
+
+def test_the_manifest_row_carries_the_verdict() -> None:
+    """Verifies: the verdict reaches the evidence manifest, which is one of the
+    three surfaces the result contract names."""
+    skill = read_skill()
+    row = next(ln for ln in skill.splitlines()
+               if ln.strip().startswith("| inspection observations |"))
+    assert "verdict" in row.lower(), (
+        f"the manifest row records only the result state: {row}"
+    )
+
+
+def test_the_acceptance_gate_is_told_to_check_the_verdict() -> None:
+    """Verifies: the `accept-frontend-evidence` gate is told to check the
+    inspection verdict, not only that observations are present.
+
+    This is the criterion the amendment wrote and the amendment failed to
+    implement — the gate is where the promise either binds a human or does not.
+    """
+    journey = (PACK_ROOT / "JOURNEY.md").read_text(encoding="utf-8")
+    block = journey.split("- id: accept-frontend-evidence", 1)[1].split("\n  - id: ", 1)[0]
+    assert "verdict" in block.lower(), (
+        "the acceptance gate never mentions the verdict, so a blocking finding "
+        "reaches no human decision"
+    )
+    assert "`pass`" in block, "the gate does not say which verdict it expects"
+
+
+def test_the_verdict_reaches_all_three_result_surfaces() -> None:
+    """The result contract names three surfaces. Before this fix the verdict
+    reached none of them; walk each rather than sampling one."""
+    skill = read_skill()
+    journey = (PACK_ROOT / "JOURNEY.md").read_text(encoding="utf-8")
+    surfaces = {
+        "evidence-manifest": any(
+            ln.strip().startswith("| inspection observations |") and "verdict" in ln.lower()
+            for ln in skill.splitlines()
+        ),
+        "step-output": "Verdict" in inspection_section(skill),
+        "acceptance-gate-input": "verdict" in journey.split(
+            "- id: accept-frontend-evidence", 1)[1].split("\n  - id: ", 1)[0].lower(),
+    }
+    missing = [name for name, present in surfaces.items() if not present]
+    assert not missing, f"the verdict never reaches: {missing}"
+
+
+def test_the_verdict_severity_row_is_read_without_a_default() -> None:
+    """Fail closed. Deleting the row must raise rather than let this module
+    substitute its own value — the fail-open defect round 4 found."""
+    without = md_without = read_rules().replace(
+        "| verdict-blocking-severity | Blocker |", "", 1)
+    assert without != read_rules()
+    with pytest.raises(AssertionError, match="verdict-blocking-severity"):
+        inspection_result(without, complete_set(), [{"class": "occlusion"}])
+
+
+def test_a_duplicate_capture_set_rule_row_is_rejected() -> None:
+    """The capture-set rule table bypassed the duplicate-rejecting reader, so a
+    second row whose last value was `required` passed unnoticed."""
+    md = read_rules()
+    row = "| every-captured-height-needs-the-pair | required |"
+    mutated = md.replace(row, row + "\n| every-captured-height-needs-the-pair | not-required |", 1)
+    assert mutated != md
+    with pytest.raises(AssertionError, match="more than once"):
+        capture_set_rules(mutated)

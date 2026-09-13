@@ -458,6 +458,23 @@ def judgement_request_route(markdown: str, url: str) -> str:
 SEVERITY_ORDER = ("Blocker", "Major", "Minor", "Note")
 
 
+def shipped_severity_order(markdown: str) -> tuple[str, ...]:
+    """The severity order as the reference states it, most severe first.
+
+    The reference states it in prose — "in the order Blocker, Major, Minor,
+    Note" — so this reads that sentence. It exists so a test's expectation can
+    come from shipped content rather than from `SEVERITY_ORDER`, which the
+    implementation also uses: sharing that constant made the precedence check
+    hold under any permutation of it.
+    """
+    match = re.search(r"in the order ([A-Za-z, ]+?)\.", markdown)
+    if match is None:
+        raise AssertionError(
+            "the reference no longer states the severity precedence order"
+        )
+    return tuple(s.strip() for s in match.group(1).split(",") if s.strip())
+
+
 def verdict_rules(markdown: str) -> dict[str, str]:
     rows = unique_keyed(table_rows(markdown, "Inspection verdict"), "Inspection verdict")
     return {key: row[1] for key, row in rows.items()}
@@ -465,14 +482,22 @@ def verdict_rules(markdown: str) -> dict[str, str]:
 
 def capture_set_rules(markdown: str) -> dict[str, str]:
     """The extra rules stated under `Required captures` beyond the four rows."""
-    section = markdown.split("\n## Required captures\n", 1)[1]
-    out: dict[str, str] = {}
+    section = markdown.split("\n## Required captures\n", 1)[1].split("\n## ", 1)[0]
+    rows: list[list[str]] = []
     for line in section.splitlines():
         s = line.strip()
-        if s.startswith("| every-captured-height-needs-the-pair |"):
-            cells = [c.strip() for c in s.strip("|").split("|")]
-            out[cells[0]] = cells[1]
-    return out
+        # The four required-capture rows are three cells wide; the rule rows
+        # below them are two. Take the two-cell rows only.
+        if not s.startswith("|") or re.fullmatch(r"\|[\s:|-]+\|", s):
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if len(cells) == 2 and cells[0] != "Rule":
+            rows.append(cells)
+    # Routed through the duplicate-rejecting reader for the same reason every
+    # other rule table is: a dict comprehension keeps the last duplicate and
+    # discards the first in silence.
+    keyed = unique_keyed(rows, "Required captures (rule rows)")
+    return {key: row[1] for key, row in keyed.items()}
 
 
 def resolve_class(markdown: str, fitting: list[str]) -> str:
@@ -507,7 +532,15 @@ def inspection_result(
     state = "completed" if set_status == "complete" else set_status
     rules = verdict_rules(markdown)
 
-    blocking = rules.get("verdict-blocking-severity", "Blocker")
+    # No default. A default makes this module state the rule when the reference
+    # stops stating it — the same fail-open defect T10 exists to close, and
+    # every sibling reader here already raises on an absent row.
+    if "verdict-blocking-severity" not in rules:
+        raise AssertionError(
+            "the Inspection verdict table no longer states "
+            "verdict-blocking-severity; the rule is the data, not this module"
+        )
+    blocking = rules["verdict-blocking-severity"]
     unresolved = [
         f for f in findings
         if not f.get("resolved")

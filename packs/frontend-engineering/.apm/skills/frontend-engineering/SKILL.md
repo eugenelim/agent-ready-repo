@@ -681,14 +681,27 @@ redesign produces no findings at all.
 
 #### 5c. What the run reports
 
-Every run ends in exactly one result state, and the same state is written to all
-three places a result reaches: the evidence manifest, the step's own reported
-output, and what the acceptance gate is given. Only `completed` is a completed
-inspection.
+Every run answers **two** questions, and both are written to all three places a
+result reaches: the evidence manifest, the step's own reported output, and what
+the acceptance gate is given.
+
+- **Result state** — did the step run? Exactly one of the seven below.
+- **Verdict** — is the page all right? `pass`, or `fail` when the run holds an
+  unresolved finding of `Blocker` severity.
+
+**A completed inspection needs both: the `completed` state and a `pass`
+verdict.** A run that captured everything, judged it, and found a banner
+covering the heading reports `completed` / `fail` — it ran, and the surface has
+not passed. Keeping the two apart is what makes each readable: "the browser
+would not start" and "the page is broken" are both not-a-pass, and only one of
+them is fixed by the page.
+
+A finding is resolved when the adopter accepts it as an exception at the
+acceptance gate, or when the page stops exhibiting it.
 
 | Result state | Completed inspection | When |
 | --- | --- | --- |
-| completed | yes | Every required capture taken, judged, observations recorded |
+| completed | yes, if the verdict is `pass` | Every required capture taken, judged, observations recorded |
 | incomplete | no | A required capture is missing from the set |
 | unusable-capture | no | A capture arrived without every required field |
 | skipped-no-browser | no | No browser reachable — name the missing capability |
@@ -750,7 +763,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
-| inspection observations | What was seen in the captures, plus the rendered-page inspection result state. A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
+| inspection observations | What was seen in the captures, plus the rendered-page inspection **result state and verdict** (`completed`/`pass`, `completed`/`fail`, or a non-completed state). A value naming only filenames does not satisfy this field — `screenshots` already records that images exist; this field records what looking at them found. A completed inspection with nothing wrong is recorded as such, naming the routes and states inspected |
 | a11y result | Output of the accessibility gate (pa11y/axe-core); include manual-check outcome for WCAG 2.4.11 and 2.5.8 |
 | perf result | CWV measurement or Lighthouse score; include mobile and desktop values where available |
 | console/network result | No console errors; network requests match expected; no unexpected third-party calls |

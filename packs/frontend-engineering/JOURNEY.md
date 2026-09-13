@@ -82,7 +82,8 @@ humanGates:
     duration: "10-20 minutes"
     whatToCheck:
       - "Routes, viewports, browsers, states, screenshots, inspection observations, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
-      - "Inspection observations say what was seen in the captures and name the result state; a list of screenshot filenames does not satisfy the field, and a skipped or failed inspection is not a completed one."
+      - "Inspection observations say what was seen in the captures and name the result state AND the verdict; a list of screenshot filenames does not satisfy the field, and a skipped or failed inspection is not a completed one."
+      - "The inspection verdict is `pass`. A `fail` verdict means the run looked at the page and found a blocking reader-visible failure: accept it as a known exception with a named owner, or send it back. A completed run is not a passing one."
       - "Core Web Vitals use p75 targets, with mobile and desktop separated where field data exists."
       - "Known exceptions are explicit decisions, not hidden missing work."
     whatGoodLooksLike: "The manifest names what was tested, what passed, what could not be tested, and what remains accepted risk."
@@ -94,7 +95,7 @@ humanGates:
     trigger: "After gates and manifest are ready, before merge or handoff"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance, WCAG 2.2 Target Size Minimum, and Core Web Vitals regression signals were reviewed."
+      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance, WCAG 2.2 Target Size Minimum, Core Web Vitals regression signals, and reader-visible layout failure read from the rendered captures were reviewed."
       - "Security, reliability, or product-design concerns were routed to the appropriate reviewer instead of claimed as covered here."
     whatGoodLooksLike: "The reviewer finds no blocking frontend regressions, or the findings are fixed and rerun."
     whatBadLooksLike: "The same author judges their own UI diff complete without an independent read."
@@ -176,7 +177,7 @@ Common requests:
 ### 6. Get an independent frontend review
 
 - **You provide:** the diff and evidence manifest.
-- **Reviewer does:** reads the HTML/CSS/JS diff for token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 manual-verification items, and Core Web Vitals regression signals. Security, reliability, and broader product-design findings route to their own reviewers instead of being claimed here.
+- **Reviewer does:** reads the HTML/CSS/JS diff for token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 manual-verification items, and Core Web Vitals regression signals, and reads the rendered-page captures for what a diff cannot show — something covering something else, text out of its container, a control too small to hit — taking its own captures where the set it was given does not cover what the diff makes it suspicious of. Security, reliability, and broader product-design findings route to their own reviewers instead of being claimed here.
 - **You do:** review findings and decide whether each one blocks the handoff.
 - **You decide:** merge after clean review, or send the work back through implementation and gates.
 - **Output:** reviewed frontend work with the contract, gates, manifest, and reviewer disposition connected.

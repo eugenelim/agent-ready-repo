@@ -961,3 +961,97 @@ by construction, but a real page carries several — `fuzz-002` shows occlusion 
 overflow together. Nothing says which class wins, and they carry different
 severities. That was cosmetic before; under part 1 severity decides whether the
 gate passes, so it becomes load-bearing and is in scope.
+
+## 2026-09-13 — Review round 4, and the defect this delivery kept reproducing
+
+Three reviewers ran against the amendment. 14 findings, **9 sustained**, 4
+refuted, 1 indeterminate settled on supplied evidence.
+
+### The blocking one, found by two reviewers independently
+
+**The inspection verdict reached no human surface.** T8 put it in the reference
+rule table and in the test helper. `SKILL.md` § 5c graded `completed` by state
+alone, the `inspection observations` manifest row recorded only the state, and
+the `accept-frontend-evidence` gate checked observations and state and never the
+verdict. T8's own Done-when named the gate assertion; no test made it.
+
+So the amendment that existed to make the Objective's promise true left the
+promise untrue on every surface an adopter reads — and 200 tests stayed green,
+because they exercised the helper rather than the shipped contract.
+
+**This is the third instance of one defect class in this delivery:** a rule
+living where the check can see it and the adopter cannot. The round-1 Blocker
+repair introduced it, T10 was written to close it, and T8 reproduced it one task
+later. Writing the task did not inoculate the next task. The durable lesson is
+mechanical, not attitudinal: **a check that reads a helper proves nothing about
+shipped content, so every rule now needs an assertion that opens the shipped
+artifact.** Five such assertions were added, one per surface, plus a walk that
+fails if the verdict is missing from any of the three.
+
+### What was fixed
+
+| Finding | Fix |
+| --- | --- |
+| Verdict absent from shipped surfaces | § 5c states both axes; the `completed` row is conditional on the verdict; the manifest row carries it; the gate checks it and says what `fail` obliges |
+| Reviewer's global diff-confirmation rule voided Lens 6 | Confirmation scoped per lens — diff for 1-5, a capture for 6, with the reason stated so the next editor does not re-impose it |
+| Two surviving "five lenses" statements | Corrected; "The other five lenses" inside Lens 6 is accurate and kept |
+| Journey still described a diff-only reviewer | Reviewer step and review gate name the captures and the new lens |
+| Target-size reachable from two lenses at two severities | The finding-class table wins for an overlapping control, one finding emitted; the glossary no longer grades target size |
+| Seeded observations reached a Bash-capable reviewer as trusted input | The untrusted-data clause now covers the observations field, capture records and routes — LLM05, model output as untrusted input to the next sink |
+| `verdict-blocking-severity` read with a default | Fails closed; deleting the row raises |
+| `capture_set_rules` bypassed duplicate rejection | Routed through `unique_keyed` |
+| Precedence expectation shared `SEVERITY_ORDER` with its implementation | The expected order is parsed from the reference's own sentence, and the module constant is asserted against it; a reorder now fails, proven by a mutation |
+
+### Refuted, with reasons worth keeping
+
+- **`Bash` has no portable containment.** The containment gap is the
+  platform's, not this delivery's. Every Bash-capable agent in this repository
+  carries generic `Bash` with no sandbox, and the two peer reviewers carry no
+  no-write clause at all — `frontend-reviewer` is the strictest of them. No
+  browser-specific capture capability exists in the declared tool vocabulary.
+  **This corrects a claim made earlier in this session** that the risk was one
+  this change introduced.
+- **An undisclosed second recipient.** `frontend-reviewer` is a forked subagent
+  inside the adopter's own work-loop, not the adopter's judge; nothing leaves
+  the environment on that hop.
+- **Capture paths need confinement.** The reviewer already holds `Read` over the
+  tree, so no marginal disclosure exists, and routing shipped pack content
+  through this repository's own helper would violate `packs/AGENTS.md`.
+- **An incomplete run labelled `pass`.** The verdict is not a completion signal
+  alone; `is_completed_inspection_result` already refuses an incomplete state.
+  Collapsing the axes would undo the distinction the amendment created.
+- **The version was reused.** Settled on supplied git evidence: `origin/main`
+  carries 0.2.2 in both manifests and zero 0.2.3 changelog entries; 0.2.3 was
+  first set by this delivery at `8b95e6a99` and is unreleased. Further content
+  from the same unreleased change accumulates into it correctly.
+
+### T8-T12 completion evidence
+
+**Suite:** 213 passed. **Gates:** `catalogue lint --deep --pack
+frontend-engineering` exit 0, one finding — `CAT-S003` at **848** body lines
+against the 1,000 ceiling, **152 of headroom**. `catalogue verify` ok.
+`lint-pack-test-boundary` 8 of 8. `lint-journey-contract` all 20 conform;
+`lint-web-journey-parity` all 20 in parity. Self-host regenerated the work-loop
+projections from `packs/core/.apm`, and a test asserts projection and source
+match.
+
+**Dependency surfaces, re-measured against T0's set:** `[pack.dependencies]`
+absent; `first-value.prerequisites` `[]`; `plugin.json` fields
+`description, name, version`; skill frontmatter still only `name`/`description`;
+**0** `.py` and **0** `scripts/` under either pack's `.apm/`. No new dependency.
+
+**The end-to-end rerun the adjudication required**, over the 20 real captures
+from the shipped fixtures with the judgements recorded earlier in this session:
+
+| Fixture | State | Verdict | Completed inspection? |
+| --- | --- | --- | --- |
+| clean-article / card-grid / form / nav | completed | pass | yes |
+| defect-occlusion | completed | **fail** | **no** |
+| defect-clipped-at-rest-top | completed | **fail** | **no** |
+| defect-overflow | completed | pass | yes |
+| defect-target-undersized | completed | pass | yes |
+
+Both `Blocker`-class defects now stop the surface completing while still
+reporting that the step ran. The two `Major` defects are reported and do not
+block, which is the intended gradient — a step that blocked on every finding
+would be turned off, and the intent's guardrail names that outcome directly.
