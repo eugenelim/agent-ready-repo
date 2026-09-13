@@ -117,6 +117,7 @@
 | 0109 | [Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline](0109-starlight-replaces-mkdocs-for-reference-docs.md) | Accepted |
 | 0110 | [A cooled child's parent scope is declared on its workspace entry, and an undeclared value fails closed rather than reading as "no parent"](0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md) | Accepted |
 | 0111 | [Intent review splits into a mechanical well-formedness check and a narrowed assumption attack](0111-intent-review-splits-well-formedness-from-assumption-attack.md) | Accepted |
+| 0113 | [The SAST/SCA guarantee moves from the local gate to `gate-sast`](0113-sast-guarantee-moves-from-the-local-gate-to-gate-sast.md) | Proposed |
 
 ## Adding a new ADR
 

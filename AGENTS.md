@@ -48,7 +48,7 @@ python3 -m pytest <only the suite you touched> -q  # targeted; `make test` is ~8
 git push -u origin HEAD && B="$(git branch --show-current)"  # then open the PR: of 10 PR workflows only build-check + ci-security always run; 8 are path-filtered
 gh workflow run test-corpus.yml --ref "$B"  # `make test` — DISPATCH-ONLY, no PR trigger
 gh workflow run test-roster.yml --ref "$B"  # the roster suite — DISPATCH-ONLY. Both: partial evidence, never required
-# make ci — do NOT run to pre-check a push: the PR runs build-check.yml, and the 2 dispatches cover the rest of what make ci would. Offline / CI-repro / gate-chain only
+# make ci — do NOT run to pre-check a push: the PR runs build-check.yml, and the 2 dispatches cover the rest of what make ci would. Only to reproduce a CI failure or to edit the gate chain
 make build-self && make bootstrap-sites  # local: these WRITE files you then read
 ```
 

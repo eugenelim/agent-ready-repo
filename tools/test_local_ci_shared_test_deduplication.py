@@ -570,7 +570,12 @@ APPROVED_COMPOSED_PLAN_DIGEST = (
 # the same time and are unchanged, so the move is confined to the two blocks the
 # change deliberately edits.
 MAKE_BASELINE_DIGESTS = {
-    "build-check-unleased": "f9df737082cf0a4f1ee554ca3eac710da77623a447c8ef62a3678c8a7d8ad4ca",
+    # Bumped 2026-09-13 for ADR-0113: the comment above the SAST branch was
+    # restated (dogfooding -> local reproduction path). Verified before the bump
+    # by diffing the extracted surface against HEAD — 9 changed lines, 0 of them
+    # non-comment, so the scanner commands, their order, and the verdicts this
+    # digest exists to pin are byte-identical.
+    "build-check-unleased": "4299c65f68880e4f2e67e4cbf4ac6103154340ccd25ab98c8fca5e574a92b3b9",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
     "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",

@@ -9,8 +9,13 @@ ADR-0086 moves the SAST/SCA leg into its own `gate-sast` CI job, and `gate-main`
 invokes `make build-check` with `SAST_DELEGATED=1` on the command line. After that
 change **no CI path executes the `$(MAKE) sast` branch inside `build-check`** — so
 deleting that branch would go green everywhere, and ADR-0086's central claim (the
-Makefile chain survives, which is what ADR-0017's dogfooding rationale actually
-required) would be true only by assertion.
+Makefile chain survives) would be true only by assertion.
+
+ADR-0113 supersedes ADR-0017's dogfooding sub-decision: `gate-sast` is now the
+enforcement point, not a developer's local run. This pin is retained for the
+reason that outlives it — `make build-check` stays a faithful reproduction of
+`gate-main`'s anchor step plus the SAST leg, which is what reproducing a CI
+failure locally needs. Reachability is still the property to hold.
 
 This pins it. It asserts **reachability**, not text presence: grepping the Makefile
 for `$(MAKE) sast` passes even when the branch has been made unreachable, e.g. by
@@ -149,14 +154,16 @@ def main(argv: list[str]) -> int:
     ok, out = _reaches_sast()
     if ok:
         print("✓ make build-check still reaches the SAST/SCA leg "
-              "(ADR-0086 keeps the Makefile chain intact for local dogfooding)")
+              "(ADR-0086 keeps the Makefile chain intact; ADR-0113 keeps it as "
+              "the local reproduction path)")
         return 0
     print("✖ make build-check no longer reaches its `$(MAKE) sast` branch.\n"
           f"   Expected {MARKER!r} in the output of `make -n build-check`.\n"
           "   No CI path executes that branch since ADR-0086, so this check is the\n"
           "   only thing standing between the local gate and a silent regression.\n"
-          "   If the branch was intentionally removed, ADR-0086's rationale no longer\n"
-          "   holds and needs revisiting — do not delete this check to go green.",
+          "   ADR-0113 retains this chain as the local reproduction path. Removing it\n"
+          "   deliberately needs a new superseding ADR — do not delete this check to\n"
+          "   go green.",
           file=sys.stderr)
     sys.stderr.write(out[-1500:] if out else "(no output)\n")
     return 1
