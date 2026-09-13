@@ -153,16 +153,36 @@ A genuinely fresh context or an independent human reviewing that same packet is
 the only fallback to the isolated reviewer. Warm self-review is advisory and
 cannot satisfy this optional review. If Core, `shaping-reviewer`, or a suitable
 independent route is unavailable, report `Optional Core intent shaping review:
-unavailable`; continue authoring the intent without claiming `Clean`.
+unavailable`; continue authoring the intent and claim no review result.
 
-Bind a `Clean` or `Findings` result to the reviewed revision. Return every
-`Findings` result to this skill for revision; unresolved findings block a
-reviewed handoff or lifecycle transition. This caller retains lifecycle
-authority: `Clean` alone changes no status or decision. A material change to
-the outcome, opportunity, assumptions, altitude, evidence, or projection
-invalidates the prior result and needs a fresh optional review. A wording,
-format, or evidence-link correction may retain the result only when this
-caller records it as nonmaterial.
+Intent mode returns one `MALFORMED(<field>)` token per failed condition, or
+nothing at all. Record the intent revision you dispatched — you own that
+binding, because an empty pass state carries no bytes to carry it — and read
+completion from your own host rather than from the output. A dispatch that did
+not complete reports `Optional Core intent shaping review: dispatch did not
+complete`, which is a different cause from an unavailable route and does not
+borrow its report.
+
+Return every `MALFORMED` token to this skill for revision; an unresolved token
+blocks a reviewed handoff or lifecycle transition. This caller retains lifecycle
+authority: a review result alone changes no status or decision. A material
+change to the outcome, opportunity, assumptions, altitude, evidence, or
+projection invalidates the prior result and needs a fresh optional review. A
+wording, format, or evidence-link correction may retain the result only when
+this caller records it as nonmaterial.
+
+## Optional adversarial read of the bet
+
+Once the intent is well-formed, `adversarial-reviewer` in `intent` mode may
+attack its riskiest assumption and its non-goals. It returns an open question
+with a named decider, a validation hook — a kill condition plus the real-world
+activity that would trigger it — or nothing at all.
+
+That output is advisory and establishes nothing: it does not show that the
+dispatch completed or that the bet was attacked, and no status or handoff rests
+on it. Return each open question and validation hook to the author. A hook
+belongs to `de-risk-intent`, which authors the kill condition itself and never
+dispatches this reviewer.
 
 ## Where the intent lives — config-driven, elicit when not configured
 

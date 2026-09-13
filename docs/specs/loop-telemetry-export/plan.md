@@ -43,7 +43,7 @@ package to one added it to all.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| ADR-0111 (decision rationale) | T5 | Accepted ADR file | Cited by `telemetry.md` § 9 |
+| ADR-0112 (decision rationale) | T5 | Accepted ADR file | Cited by `telemetry.md` § 9 |
 | `docs/architecture/telemetry.md` | T5 | §§ 2, 5.2, 5.3, 8 diff | Anchors resolve |
 | `guides/core/how-to/export-loop-telemetry.md` | T5 | Guide with the disclosure sentence | `check-guide-index.py` green |
 | `packs/core/pack.toml` + lint reporting | T3 | Lint naming the unsatisfied dependency | AC-0039 green |
@@ -83,7 +83,7 @@ prose before the first `(`, so an identifier named there becomes a dependency.)
 
 **Tests:**
 - `stub: true` — three compilable assertions for AC-0040, validated in disposable
-  scratch. **The profile is data, not code** (ADR-0111): it is a TOML file at a
+  scratch. **The profile is data, not code** (ADR-0112): it is a TOML file at a
   path AC-0040 fixes, with keys AC-0040 fixes, so the assertion needs no symbol
   from the unshipped package and the earlier `no stub
   (implementation-discovered)` record was wrong. Compile: `python -m py_compile`

@@ -54,6 +54,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.21] — 2026-09-13
+
+### Added
+
+- A `review-verdict.v1` finding can record `response` and `reason`: which answer
+  a sustained finding was given, and the ground for choosing it. Both are
+  optional and recorded as a pair. An unrecognised value, a `response` without a
+  non-empty `reason`, and a `reason` without a `response` are each ignored with a
+  note, leaving the entry and the record valid. Neither field appears in the
+  finding-disposition table, state precedence, or residual eligibility, so
+  nothing that decides a verdict can read them.
+
+### Changed
+
+- The work-loop's DECIDE step states the answers to a sustained finding as an
+  ordered ladder in four axes — cut, route, fix, hold — walked until one applies,
+  then stopped. Cut leads because a review that can only add or hold cannot let a
+  contract shrink, which is how rounds run long without converging.
+- Two answers are new. `drop-the-claim` removes an assertion nothing is obliged
+  by, operating on an assertion rather than a sentence or item.
+  `demote-the-claim` moves an obligation out of the contract into working
+  material with a content pin, which needs owner authority and is never free.
+- Every answer walks its surfaces before it is taken, and the direction differs:
+  cut walks backwards to what referenced the removed thing, route outwards then
+  back to leave one home, fix sideways across other instances and their pins, and
+  hold forwards so the next round can see the decision. It is a walk rather than
+  a text search, because a companion usually paraphrases and shares no string,
+  and it continues until the frontier is empty.
+## [core][2.25.20] — 2026-09-13
+
+### Highlights
+
+- **A legacy-only repository can activate its knowledge base even when the
+  migration has nothing to import.** Activating was the first command such a
+  repository runs, and it crashed on the state those repositories are actually
+  in: an empty `patterns.jsonl`. The migration now produces the canonical empty
+  topic map instead of a traceback.
+
+### Fixed
+
+- `project-knowledge --migrate-legacy` raised an unhandled `FileNotFoundError`
+  instead of staging a result whenever a migration yielded zero importable
+  topics. The stage directory was created only as a side effect of writing the
+  first topic, so an empty import set never created it and the map write failed.
+  It surfaced as a raw traceback rather than a typed `knowledge-diagnostic.v1`
+  refusal, so callers handling every documented refusal still broke. Two inputs
+  reach it: an empty legacy corpus, and a corpus whose rows are all refused.
+
+### Added
+
+- The migration lifecycle is documented on the skill body and the
+  `docs/knowledge/README.md` seed. Promoting the staged map into
+  `docs/knowledge/` and committing it is a required step between
+  `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
+  only by reading the source.
+
+## [core][2.25.19] — 2026-09-13
+
+### Highlights
+
+- **The conventions you install now say which projected paths a gate actually
+  watches.** Two entries were wrong: the repo hooks target is adapter-driven but
+  no drift gate reaches it, and several seed-projected paths were described as
+  hand-owned when the pipeline still regenerates them. Membership is decided by
+  the exclusion list, not by the list in the prose.
+
+### Fixed
+
+- `CONVENTIONS.md` § Pack source-of-truth split: corrected the gate coverage
+  claimed for `tools/hooks/<name>.<ext>`, and the set of seed-projected paths
+  described as reclassified Manual.
+
+## [core][2.25.18] — 2026-09-12
+
+### Changed
+
+- The shaping reviewer's `intent` mode now checks whether an intent is
+  well-formed instead of reviewing its craft. It asks six questions — is the
+  statement an outcome rather than a solution, are non-goals present, is the
+  riskiest assumption named, is the altitude consistent with the parent it
+  names, does the decomposition partition the artifact's own outcome, is the
+  owner the artifact's own — and answers
+  with one `MALFORMED(<field>)` token per failed question, or nothing at all.
+  The failure-mode table stays with `delivery-brief` and `spec` mode, which
+  review contracts.
+- `MALFORMED(owner)` is emitted alone and suppresses the other five tokens: a
+  wrong owner outranks everything else, and the rest of the artifact is not the
+  reviewer's to assess until it is settled.
+- A condition the supplied packet cannot settle emits its token rather than
+  passing quietly, so an intent that names a parent the packet never supplied
+  cannot pass the altitude question by default.
+- Two of the six questions are asked only when the artifact can answer them, so
+  a thing that cannot have a relation is not malformed for lacking it. The
+  altitude question is asked only of an intent that names a parent — naming none
+  is not a fault at any level. Where an intent lists no decomposition, the
+  children question is asked only above the leaf of the recognized ladder
+  (`product-vision › product-strategy › capability › feature`) once the intent
+  is `Accepted`: you frame an intent before you decompose it, and this review
+  runs at framing, so an empty decomposition at that point is a stage and not a
+  defect. A level the reviewer cannot place on that ladder skips only that
+  absence check rather than guessing; a decomposition you have listed is still
+  measured for overlap and gaps.
+- The adversarial reviewer gains an optional `intent` mode that attacks a bet
+  instead of auditing an artifact. It returns an open question with a named
+  decider, or a validation hook — a kill condition plus the real-world activity
+  that would trigger it — and nothing else. Having nothing to say returns empty,
+  which is a complete answer here.
+- `intake-intent` now reads "no `MALFORMED` token" plus your explicit
+  confirmation as the gate for `Accepted`, and records the revision it
+  dispatched itself. A dispatch that starts and dies gets its own receipt
+  instead of borrowing the one that means no independent reviewer was available.
+
+### Highlights
+
+- Shaping an intent no longer draws spec-grade craft findings on a
+  four-paragraph artifact. The intent review answers one question — is this
+  well-formed enough to shape further — in a vocabulary that cannot express a
+  rewrite of your bet.
+- A second, optional read attacks the bet itself and may only hand back an open
+  question with a named decider or a kill condition with its real-world trigger.
+  It cannot ask you to reword anything, and an empty answer is a real answer.
+
+## [product-engineering][0.13.12] — 2026-09-12
+
+### Changed
+
+- `frame-intent` reads the intent review's `MALFORMED` tokens, owns the revision
+  binding an empty pass cannot carry, and may dispatch the adversarial reviewer's
+  `intent` mode as a second, advisory read that settles no status.
+- `de-risk-intent` states that it never dispatches the adversarial reviewer.
+  Naming the riskiest assumption and predeclaring its kill condition is the work
+  this skill is accountable for; a reviewer handing it a hook would leave it
+  marking that reviewer's homework rather than taking a verdict.
+
+### Highlights
+
+- After framing an intent, you can have the bet attacked rather than the wording
+  reviewed — and whatever comes back is advisory, so it never moves the intent's
+  status on its own.
+
 ## [core][2.25.17] — 2026-09-12
 
 ### Fixed

@@ -118,6 +118,13 @@ runs it. A surviving bet whose only evidence is desk-grounding still carries a
 
 - **Declaring the kill condition after seeing the result.** Post-hoc thresholds
   rationalize whatever happened. The line is set *before* the test, full stop.
+- **Dispatching `adversarial-reviewer` to find the risk for you.** This skill
+  never dispatches it. Naming the riskiest assumption and predeclaring its kill
+  condition is the whole of the work here; a reviewer that handed you a
+  validation hook would be doing the part you are accountable for, and you would
+  be marking its homework rather than taking a verdict. If an upstream review
+  already produced hooks, treat them as input to your own choice, not as the
+  choice.
 - **Testing the cheapest assumption instead of the riskiest.** Comfort-testing
   produces a green light that wouldn't have changed the decision. Test the one
   that sinks the bet.

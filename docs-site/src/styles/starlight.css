@@ -688,3 +688,187 @@ main h1 {
   --ds-state-neutral-fg: #2b3444;
   --ds-state-neutral-border: #c4c9d2;
 }
+
+/* ---------------------------------------------------------------------------
+ * Guidebook chat exchanges
+ *
+ * A step shows what the reader types and what the agent replies. Both are
+ * blockquotes, so they rendered as one slab behind a single left rule and the
+ * turn boundary -- the only thing making the block a conversation rather than a
+ * quotation -- was invisible.
+ *
+ * `rehype-chat-turns` tags each paragraph with its speaker at build time, from
+ * the `**You:**` / `**Agent:**` lead the step contract already requires. The
+ * source stays plain Markdown because `guides/` also renders on GitHub, where
+ * this degrades to an ordinary blockquote with bold speaker labels.
+ *
+ * Speakers are separated by indent and rule colour, not colour alone: the two
+ * turns must stay distinguishable without colour vision, and the accent rule is
+ * the reader's own turn because that is the line they act on.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content blockquote.chat-exchange {
+  border-inline-start: none;
+  padding-inline-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sl-markdown-content .chat-turn {
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border-inline-start: 3px solid var(--sl-color-gray-5);
+  border-radius: 0 6px 6px 0;
+  background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+}
+
+.sl-markdown-content .chat-turn--you {
+  border-inline-start-color: var(--sl-color-accent);
+  background: color-mix(in srgb, var(--sl-color-accent) 8%, transparent);
+}
+
+.sl-markdown-content .chat-turn--agent {
+  /* Indented, so the reply reads as a response to the turn above it rather
+     than as a second statement at the same level. */
+  margin-inline-start: 1.25rem;
+}
+
+.sl-markdown-content .chat-turn > strong:first-child {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: var(--sl-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sl-color-gray-3);
+}
+
+.sl-markdown-content .chat-turn--you > strong:first-child {
+  color: var(--sl-color-text-accent);
+}
+
+@media (prefers-contrast: more) {
+  .sl-markdown-content .chat-turn {
+    border-inline-start-width: 4px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Guidebook code blocks wrap
+ *
+ * A guidebook's code blocks are not source: they are the prompt a reader types
+ * and an excerpt of the artifact they get back. Unwrapped they scrolled
+ * horizontally, and the longest prompt ran 1,775px past the edge of its own
+ * block -- so the end of the sentence the reader is meant to copy verbatim was
+ * off screen, in the one place the guide asks them to copy something exactly.
+ *
+ * Written here rather than through Expressive Code's `defaultProps: { wrap }`,
+ * which emitted byte-identical markup with and without it in this
+ * configuration -- a setting that silently does nothing is worse than no
+ * setting, because it reads as covered.
+ *
+ * `overflow-wrap: anywhere` rather than `break-word`: a templated path like
+ * `<output_dir>/screens/<slug>-informational.md` is one unbroken token and is
+ * the specific case that overflowed furthest.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content .expressive-code pre,
+.sl-markdown-content .expressive-code .ec-line .code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+ * A guidebook step's position line
+ *
+ * `**Step 3 of 5 — Establish design intent**` is the first thing on the page
+ * and the reader's only in-body orientation, and it rendered as an ordinary
+ * bold paragraph — indistinguishable from the fifteen other bold labels below
+ * it, in the one place a reader arriving from search needs to know where they
+ * have landed.
+ *
+ * `rehype-step-position` splits it at build time from the same declaration the
+ * sidebar numbering and the right-hand rail read, so all three agree by
+ * construction. On GitHub, where the plugin does not run, it stays a plain
+ * bold line.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content .step-position {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-block: 0 1.25rem;
+  padding: 0.6rem 0.9rem;
+  border-inline-start: 3px solid var(--sl-color-accent);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--sl-color-accent) 7%, transparent);
+}
+
+.sl-markdown-content .step-position__count {
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--sl-color-text-accent);
+}
+
+.sl-markdown-content .step-position__title {
+  font-size: var(--sl-text-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sl-color-white);
+  text-wrap: balance;
+}
+
+:root {
+  /* The product orientation band above the nav. The sticky header is this band
+     plus `--sl-nav-height`, and it translates up by exactly this much as the
+     page scrolls. Declared here rather than on `.header`, where it was: a
+     value scoped to one component is invisible to the right sidebar, and an
+     unreadable `var()` makes the whole `calc()` invalid — so the padding that
+     depended on it silently became 0 instead of erroring. */
+  --docs-orientation-band-height: 2.25rem;
+  /* The band's own bottom rule. It sits outside the declared band height, so a
+     clearance calculated from the height alone is one pixel short -- which is
+     exactly how much of the rail stayed covered, and what CI caught after this
+     looked right locally. */
+  --docs-orientation-band-rule: 1px;
+  /* The sticky header at rest: the band, its rule, and the nav. Anything that
+     must sit clear of the header reads this one value. */
+  --docs-header-height: calc(
+    var(--sl-nav-height) + var(--docs-orientation-band-height) +
+      var(--docs-orientation-band-rule)
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * The right-hand rail must clear the header at its tallest
+ *
+ * The sticky header is the product orientation band plus the nav, and it
+ * translates up by exactly the band's height as the page scrolls: 101px tall at
+ * rest, 65px once moved. Starlight pads the right sidebar by `--sl-nav-height`
+ * alone, which is the *condensed* height — so at the top of the page the header
+ * covered the first 36px of the rail, and whatever sat there was invisible until
+ * the reader scrolled.
+ *
+ * Measured, not guessed: at 1440x900 and page-scroll 0 the header's bottom edge
+ * was 101 and the rail's first content spanned 89–107, with
+ * `elementFromPoint` at its centre returning the header.
+ *
+ * This is the whole rail, not the guidebook panel — Starlight's own "On this
+ * page" heading was equally covered. Padding for the tallest state costs a band
+ * of space once scrolled, which reads as breathing room; being hidden at the
+ * top of every page does not.
+ * ------------------------------------------------------------------------- */
+
+.right-sidebar {
+  /* Inset below the header, not padded away from it. The rail is a fixed,
+     full-height scroll container, so padding only moved its *first* content
+     clear — everything after it still scrolled up underneath the header, which
+     at 1280x600 on the eight-skill step hid four of the five entries. Insetting
+     shortens the scrollport instead, so the rail's own top edge is where its
+     content stops. */
+  top: var(--docs-header-height);
+  height: calc(100vh - var(--docs-header-height));
+  padding-top: 1rem;
+}
