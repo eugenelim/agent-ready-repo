@@ -698,7 +698,18 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
         `docs disclosure ${expected.product_navigation[index].id}`
       );
     }
-    expect(home.querySelectorAll('starlight-menu-button button[aria-controls="starlight__sidebar"]').length).toBe(1);
+    // Starlight 0.42 moved the mobile menu to the popover API: the trigger is a bare
+    // `button[popovertarget]` and the pane is an `sl-sidebar-pane[popover]`, so the
+    // old `starlight-menu-button` / `aria-controls` pair no longer exists. Assert the
+    // WIRING, not just the button's presence — `popovertarget` is inert unless it
+    // names an element that actually carries `popover`, and when docs-site's
+    // PageFrame override still emitted a plain `<div>` the menu could not open at
+    // all while a presence-only check stayed green.
+    const menuTrigger = home.querySelectorAll<HTMLButtonElement>('button.sl-menu-button');
+    expect(menuTrigger.length).toBe(1);
+    const sidebarPane = home.querySelector('#starlight__sidebar');
+    expect(menuTrigger[0].getAttribute('popovertarget')).toBe('starlight__sidebar');
+    expect(sidebarPane?.hasAttribute('popover')).toBe(true);
     expect(home.querySelectorAll('.sl-skip-link').length).toBe(1);
     expect(home.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link')).toBe(true);
     // `.header` is not a singularity proxy. Starlight's own Header renders a
@@ -733,7 +744,7 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       // Ownership is proved at the override seam below, not by a generated Astro
       // scope hash: a hash is brittle, and a docs-local replacement emitted by any
       // other component would carry a different one and pass.
-      only('starlight-menu-button');        // Docs menu trigger
+      only('button.sl-menu-button');        // Docs menu trigger (popover invoker)
       only('#starlight__sidebar');          // sidebar
       only('nav.sidebar');
       only('.sl-skip-link');                // skip link

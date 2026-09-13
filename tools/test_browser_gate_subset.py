@@ -9,7 +9,8 @@ unbound-helper-identifier check and the tap-target audit arithmetic below — is
 value that tracked site files must keep in a fixed relation, where nothing else
 would notice them diverging: the `base` the docs config must derive from the
 marketing one, and the `@astrojs/markdown-remark` version that
-`docs-site/package.json`, the lockfile and astro's optional peer must agree on.
+`docs-site/package.json` and the lockfile's two copies must agree on while
+satisfying the optional peer astro and Starlight each declare.
 They live here because this module runs from `gate-main`, a required context;
 `pages.yml` is not one, so a pin gate placed there could not block the merge that
 broke it.
@@ -173,6 +174,73 @@ EXACT_VERSION = re.compile(r"\d+\.\d+\.\d+")
 CARET_RANGE = re.compile(r"\^(\d+)\.(\d+)\.(\d+)")
 
 
+def _satisfies(pin: str, spec: str) -> bool:
+    """Does the exact version `pin` satisfy `spec`?
+
+    `spec` is a dependency declaration made by someone else — astro or Starlight —
+    so this understands exactly the two shapes they have been observed to use: an
+    exact version, and a caret range on a non-zero major. Anything else raises
+    rather than returning a verdict, because the alternative to "I do not know this
+    shape" is approximating it into a pass, and a check that silently widens to
+    accommodate an unrecognised declaration is not a check.
+
+    Caret on major 0 raises too: there caret semantics pin the minor instead of the
+    major, so treating it like the non-zero case would accept an incompatible pin.
+
+    Stdlib-only by construction, like the rest of this module — it runs in
+    `gate-main`, and a check that can fail on a missing `semver` import is one
+    someone import-guards away under pressure.
+    """
+    if EXACT_VERSION.fullmatch(spec):
+        return pin == spec
+    caret = CARET_RANGE.fullmatch(spec)
+    if not caret:
+        raise ValueError(
+            f"{spec!r} is neither an exact version nor an `^X.Y.Z` caret range. "
+            "Re-derive this comparison against the shape actually declared rather "
+            "than widening it to pass."
+        )
+    floor = tuple(int(group) for group in caret.groups())
+    if floor[0] == 0:
+        raise ValueError(
+            f"caret range {spec!r} is on major 0, where caret semantics pin the "
+            "minor instead of the major — re-derive this comparison."
+        )
+    got = tuple(int(part) for part in pin.split("."))
+    return got[0] == floor[0] and got >= floor
+
+
+def test_satisfies_accepts_and_refuses_the_shapes_the_peer_checks_rely_on() -> None:
+    """`_satisfies` is the whole re-derivation, so pin its behaviour directly.
+
+    The two checks below read live manifest and lockfile values, so on a healthy
+    tree they exercise exactly one point of this predicate and would keep passing
+    if it were widened into `return True`. These cases are the criterion that can
+    fail: the exact-declaration rows are the contract astro had before 7.2.10 and
+    must keep working, and the refusal rows are what stops an unrecognised
+    declaration from passing vacuously.
+    """
+    # Exact declaration — the pre-7.2.10 astro contract, which still has to hold.
+    assert _satisfies("7.3.0", "7.3.0")
+    assert not _satisfies("7.2.4", "7.3.0")
+    # Caret on a non-zero major — what astro and Starlight declare now.
+    assert _satisfies("7.3.0", "^7.3.0")
+    assert _satisfies("7.4.1", "^7.3.0")
+    assert not _satisfies("7.2.4", "^7.3.0")  # below the floor
+    assert not _satisfies("8.0.0", "^7.3.0")  # wrong major
+    # Shapes this predicate refuses to guess at, rather than widening to accept.
+    # Written without `pytest.raises` to keep this module's stdlib-only import list.
+    for unsupported in ("*", "^0.3.0", ">=7.3.0 <8", "~7.3.0", "latest", ""):
+        try:
+            _satisfies("7.3.0", unsupported)
+        except ValueError:
+            continue
+        raise AssertionError(
+            f"_satisfies accepted {unsupported!r} instead of refusing a shape it "
+            "does not understand"
+        )
+
+
 def _docs_site_versions() -> dict[str, str | None]:
     """Every recorded copy of the `@astrojs/markdown-remark` version, and astro's.
 
@@ -209,14 +277,27 @@ def _docs_site_versions() -> dict[str, str | None]:
     }
 
 
-def test_the_markdown_remark_pin_equals_astros_optional_peer() -> None:
-    """One `@astrojs/markdown-remark` version, agreed by all four files recording it.
+def test_the_markdown_remark_pin_satisfies_astros_optional_peer() -> None:
+    """One `@astrojs/markdown-remark` version, agreed by the three files we own,
+    and satisfying the peer astro declares.
 
-    astro declares it an *optional* peer at an exact version, so npm neither
-    installs it nor complains when the two drift — but `astro.config.ts` needs it
-    resolvable at the root, and a mismatched copy is a resolution failure at build
-    time, not an install-time warning. The duty to move both together was prose in
-    `docs-site/AGENTS.md` that no gate read.
+    astro declares it an *optional* peer, so npm neither installs it nor complains
+    when the two drift — but `astro.config.ts` needs it resolvable at the root, and
+    a mismatched copy is a resolution failure at build time, not an install-time
+    warning. The duty to move both together was prose in `docs-site/AGENTS.md` that
+    no gate read.
+
+    This check used to assert that all FOUR recorded versions were equal, because
+    astro declared the peer at an exact version (7.2.9 declared `7.2.4`). astro
+    7.2.10 changed the declaration's shape to the caret range `^7.3.0`, which made
+    equality unstateable rather than merely false. Equality was never the
+    requirement; it was what satisfaction collapsed to while the declaration was
+    exact. So the contract is split along the line of who controls each value: the
+    three copies this repository writes must still agree exactly and be exact, and
+    the pin must satisfy whatever astro declares. `_satisfies` refuses any
+    declaration shape it does not recognise, so this is a re-derivation and not a
+    loosening — a `*` or an unrecognised range fails here rather than passing
+    vacuously.
 
     Read from the lockfile rather than `node_modules/astro/package.json`: this
     module runs in `gate-main`, which installs no Node, and a check that skips
@@ -245,18 +326,19 @@ def test_the_markdown_remark_pin_equals_astros_optional_peer() -> None:
         "before concluding anything about the duty."
     )
 
-    # Exact equality is the whole contract. A range on any of the three means the
-    # premise changed, and "make them equal" would be the wrong instruction.
+    # The versions THIS repository writes stay exact. A range in either would make
+    # the installed version a resolution outcome rather than a recorded decision,
+    # which is the whole point of pinning them. astro's peer is deliberately absent
+    # from this loop: astro owns its own declaration's shape, and `_satisfies` is
+    # what judges it.
     for key, what in (
         ("manifest_pin", "the markdown-remark pin"),
-        ("astro_peer", "astro's declared peer"),
         ("manifest_astro", "the astro pin"),
     ):
         assert EXACT_VERSION.fullmatch(v[key] or ""), (
-            f"{what} is {v[key]!r}, not an exact version. This test asserts exact "
-            "equality because astro declared an exact optional peer; a range means "
-            "that premise no longer holds and the check needs re-deriving, not "
-            "loosening."
+            f"{what} is {v[key]!r}, not an exact version. docs-site pins both "
+            "exactly so the installed version is a decision this repository "
+            "records, not whatever resolution happens to produce."
         )
 
     # The peer range is evidence about the pinned astro only if the lockfile still
@@ -270,13 +352,21 @@ def test_the_markdown_remark_pin_equals_astros_optional_peer() -> None:
         "docs-site/package.json": v["manifest_pin"],
         "package-lock.json root dependencies": v["lock_root_pin"],
         "package-lock.json resolved version": v["installed"],
-        f"astro {v['installed_astro']} optional peer": v["astro_peer"],
     }
     assert len(set(agreed.values())) == 1, (
-        f"the four recorded `{MARKDOWN_REMARK}` versions disagree: "
+        f"the three recorded `{MARKDOWN_REMARK}` versions disagree: "
         + ", ".join(f"{where} = {ver!r}" for where, ver in agreed.items())
         + " — they move together, or `astro build` fails to resolve the package "
         "astro.config.ts imports"
+    )
+
+    # `_satisfies` raises on a declaration shape it does not recognise; let that
+    # surface rather than converting it into a pass.
+    assert _satisfies(v["manifest_pin"], v["astro_peer"]), (
+        f"docs-site pins `{MARKDOWN_REMARK}` {v['manifest_pin']!r}, which does not "
+        f"satisfy astro {v['installed_astro']}'s declared optional peer "
+        f"{v['astro_peer']!r} — move the pin to a version that does, and keep the "
+        "lockfile's two copies with it"
     )
 
 
@@ -288,11 +378,9 @@ def test_starlight_also_accepts_the_markdown_remark_pin() -> None:
     equal to astro's peer, this site's other guard green, and Starlight's
     requirement unsatisfied. Checking only astro would miss it.
 
-    Caret satisfaction is computed here rather than pulled from a semver library:
-    this module is stdlib-only by construction, it runs in a required job, and a
-    test that can fail on a missing import is one someone import-guards under
-    pressure. Any range shape other than a caret on a non-zero major fails loudly
-    instead of being approximated.
+    Satisfaction is computed by `_satisfies`, the same predicate the astro check
+    uses, so the two consumers are judged by one rule. Any shape it does not
+    recognise fails loudly instead of being approximated.
     """
     v = _docs_site_versions()
     # Guard the early return: "Starlight is installed and stopped declaring the
@@ -305,27 +393,15 @@ def test_starlight_also_accepts_the_markdown_remark_pin() -> None:
     )
     spec = v["starlight_peer"]
     if spec is None:
-        return  # Starlight stopped declaring it; astro's exact peer is the contract.
+        return  # Starlight stopped declaring it; astro's declared peer is the contract.
 
-    caret = CARET_RANGE.fullmatch(spec)
-    assert caret, (
-        f"Starlight {v['starlight_version']} declares `{MARKDOWN_REMARK}` as "
-        f"{spec!r}, which is not the `^X.Y.Z` shape this check understands — "
-        "re-derive the comparison rather than widening it to pass."
-    )
-    floor = tuple(int(g) for g in caret.groups())
-    assert floor[0] != 0, (
-        f"Starlight's range {spec!r} is a caret on major 0, where caret semantics "
-        "pin the minor instead of the major — re-derive this comparison."
-    )
     pin = v["manifest_pin"] or ""
     assert EXACT_VERSION.fullmatch(pin), f"the pin is {pin!r}, not an exact version"
-    got = tuple(int(part) for part in pin.split("."))
-    assert got[0] == floor[0] and got >= floor, (
+    assert _satisfies(pin, spec), (
         f"docs-site pins `{MARKDOWN_REMARK}` {pin!r}, which does not satisfy "
         f"Starlight {v['starlight_version']}'s declared range {spec!r} — a "
         "Starlight bump moved the floor and the pin has to follow it too, not "
-        "only astro's exact peer"
+        "only astro's declared peer"
     )
 
 
