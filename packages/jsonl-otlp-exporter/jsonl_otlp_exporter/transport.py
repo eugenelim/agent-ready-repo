@@ -163,7 +163,27 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
     path = parts.path or "/"
 
     if parts.scheme == "https":
-        # Accepted at any host; the chain and hostname are verified at connect.
+        # Accepted at any host, with the chain and hostname verified at connect.
+        #
+        # The lookup is bounded here even though the address is NOT pinned. The
+        # http branch pins its address because re-resolving would reopen the
+        # loopback check (AC-0025); https must connect by hostname or TLS
+        # verification has nothing to check against (AC-0024), so pinning is the
+        # wrong trade. What this call buys is failing fast on a resolver that
+        # never answers: during `connect` there is no socket yet, so the watchdog
+        # has nothing to shut down and a stalled lookup would outrun both bounds.
+        # The connect's own resolution then hits the OS cache this warmed.
+        try:
+            _resolve_bounded(resolver, parts.hostname, port, REQUEST_TIMEOUT_SECONDS)
+        except DestinationRefused:
+            raise
+        except OSError as exc:
+            # A host that does not resolve cannot be sent to. Refusing here gives
+            # the operator the endpoint and the reason; letting `gaierror` escape
+            # would surface as an unhandled failure instead.
+            raise DestinationRefused(
+                f"endpoint host does not resolve: {render_endpoint(url)}"
+            ) from exc
         return Destination(url, "https", parts.hostname, port, path,
                            parts.hostname, parts.query)
 
@@ -279,6 +299,7 @@ def send_batches(
     best_effort: bool = False,
     run_started: float | None = None,
     for_seconds: int | None = None,
+    first_read_at: Callable[[], float | None] | None = None,
 ) -> SendOutcome:
     """POST each batch, honouring the attempt, retry and time bounds.
 
@@ -294,13 +315,19 @@ def send_batches(
     # another 120 sending.
     run_started = clock() if run_started is None else run_started
     run_deadline = run_started + RUN_TIMEOUT_SECONDS
-    if for_seconds is not None:
-        # `--for` bounds the RUN, and the sender is part of it. The reader's own
-        # deadline cannot fire during a retry backoff because the reader is not
-        # running then -- so `--follow --for 1` against a `Retry-After: 30` slept
-        # thirty seconds and reissued, ending neither at one second nor before
-        # the request.
-        run_deadline = min(run_deadline, run_started + for_seconds)
+    def _deadline() -> float:
+        """The effective deadline: the run bound, and `--for` if one is set.
+
+        AC-0042 anchors `--for` at the instant the FIRST READ begins, not at the
+        run's start. Anchoring it at `run_started` made a run whose destination
+        resolution took two seconds exceed `--for 1` before a single record was
+        pulled, so nothing was sent at all. The reader stamps its own first read
+        and this asks for it, falling back to `run_started` until it exists.
+        """
+        if for_seconds is None:
+            return run_deadline
+        anchor = first_read_at() if first_read_at is not None else None
+        return min(run_deadline, (run_started if anchor is None else anchor) + for_seconds)
 
     for records, body in batches:
         while True:
@@ -314,7 +341,7 @@ def send_batches(
             # not "expired" to `http.client`, it is non-blocking mode, so the
             # request is issued anyway and consumes one of the three attempts.
             now = clock()
-            remaining = run_deadline - now
+            remaining = _deadline() - now
             if remaining <= 0:
                 out.status = out.status or 1
                 out.reason = out.reason or "run time bound reached"
@@ -325,7 +352,7 @@ def send_batches(
             # budget is measured from `run_started`, not from now -- otherwise a
             # 29-second resolution grants a fresh 30 seconds on top of it.
             request_anchor = run_started if out.attempts == 0 else now
-            deadline = min(request_anchor + REQUEST_TIMEOUT_SECONDS, run_deadline)
+            deadline = min(request_anchor + REQUEST_TIMEOUT_SECONDS, _deadline())
             timeout = max(0.0, deadline - now)
             if timeout <= 0:
                 out.status = out.status or 1
@@ -372,7 +399,7 @@ def send_batches(
                 # the request was issued: the two differ by the request's own
                 # duration, and the server's instruction is about now.
                 wake = received_at + delay
-                if wake >= run_deadline:
+                if wake >= _deadline():
                     out.status = 1
                     out.reason = "retry would exceed the run bound"
                     return out
@@ -487,7 +514,19 @@ class _Watchdog:
         self._timer = threading.Timer(max(0.0, seconds), self._abandon)
         self._timer.daemon = True
         self._connection = connection
+        self._socket = None
         self.fired = False
+
+    def attach(self, sock) -> None:
+        """Retain the connected socket.
+
+        Looking `connection.sock` up when the timer fires is too late: a
+        `Connection: close` response makes `getresponse()` clear it while the
+        response keeps reading through its own file object, so the watchdog would
+        find nothing to shut down and closing alone does not wake a blocked
+        reader. Retained here, the reference survives that.
+        """
+        self._socket = sock
 
     def _abandon(self):
         self.fired = True
@@ -498,7 +537,7 @@ class _Watchdog:
         # tears the connection down underneath the reader and the call returns.
         # Measured: without this the request blocked for the full 120s socket
         # timeout despite a 1s deadline.
-        sock = getattr(self._connection, "sock", None)
+        sock = self._socket or getattr(self._connection, "sock", None)
         if sock is not None:
             with contextlib.suppress(OSError):
                 sock.shutdown(socket.SHUT_RDWR)
@@ -555,7 +594,7 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
     )
     try:
         with watchdog:
-            return _exchange(destination, body, connection, deadline, clock)
+            return _exchange(destination, body, connection, deadline, clock, watchdog)
     except OSError as exc:
         if getattr(watchdog, "fired", False):
             raise DestinationRefused(
@@ -566,7 +605,7 @@ def _post(destination: Destination, body: bytes, connection_factory, timeout: fl
         connection.close()
 
 
-def _exchange(destination, body, connection, deadline, clock):
+def _exchange(destination, body, connection, deadline, clock, watchdog=None):
     """The exchange itself. The caller owns the deadline and the connection."""
     connection.request(
         "POST",
@@ -580,6 +619,12 @@ def _exchange(destination, body, connection, deadline, clock):
             "Content-Length": str(len(body)),
         },
     )
+    # The connect has happened, so the socket exists now. Hand it to the
+    # watchdog BEFORE reading the response: `getresponse()` clears
+    # `connection.sock` for a `Connection: close` reply while the response keeps
+    # reading through its own file object.
+    if watchdog is not None and hasattr(watchdog, "attach"):
+        watchdog.attach(getattr(connection, "sock", None))
     response = connection.getresponse()
     # One byte past the ceiling is read on purpose: reading exactly the
     # ceiling cannot distinguish "at the limit" from "over it".

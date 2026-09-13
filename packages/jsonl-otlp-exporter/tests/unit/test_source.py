@@ -395,34 +395,38 @@ class TestRound2Regressions:
 
 
 class TestRound3Regressions:
-    def test_one_shot_terminates_against_a_file_that_keeps_growing(self, tmp_path):
-        """AC-0020 says one-shot reads the file ONCE and exits.
+    def test_one_shot_reads_only_what_was_there_when_it_opened(self, tmp_path, monkeypatch):
+        """AC-0020: one-shot reads the file ONCE and exits.
 
-        Against a writer appending faster than the reader drains, `os.read` never
-        returns empty, so the only one-shot exit was unreachable: nothing was
-        sent and the process did not terminate. The pass is now bounded by the
-        size the descriptor had when it was opened.
+        Driven through a substituted `os.read` rather than a racing writer. The
+        earlier version spawned a thread appending while the reader drained, and
+        could pass for the wrong reason -- if the reader reached EOF first, a
+        build with no budget passed too -- or hang forever if the writer stayed
+        ahead, since no pytest timeout is configured. Neither is a reliable
+        failure. Here the substitute never returns empty, so a build without the
+        size budget cannot terminate at all and the test fails on the call count
+        instead of hanging.
         """
-        import threading
-
-        line = json.dumps({"a": 1}) + "\n"
-        target = _write(tmp_path / "e.jsonl", line * 100)
+        line = (json.dumps({"a": 1}) + "\n").encode()
+        target = _write(tmp_path / "e.jsonl", line.decode() * 10)
         fd = src.open_input(target, tmp_path)
-        stop = threading.Event()
+        real_read = os.read
+        calls = []
 
-        def keep_appending():
-            with target.open("a", encoding="utf-8") as handle:
-                while not stop.is_set():
-                    handle.write(line * 200)
-                    handle.flush()
+        def endless_read(descriptor, size):
+            if descriptor != fd:
+                return real_read(descriptor, size)
+            calls.append(size)
+            if len(calls) > 50:
+                raise AssertionError(
+                    "one-shot kept reading past the size the file had at open"
+                )
+            return line * 100 if size else b""
 
-        writer = threading.Thread(target=keep_appending, daemon=True)
-        writer.start()
-        try:
-            records = list(src.iter_records(fd))     # must terminate
-        finally:
-            stop.set()
-            writer.join(timeout=5)
-            os.close(fd)
+        monkeypatch.setattr(os, "read", endless_read)
+        records = list(src.iter_records(fd))
+        os.close(fd)
         assert records, "the records present at open must still be delivered"
-        assert len(records) < 5000, "one-shot must not keep following the writer"
+        assert sum(calls) <= target.stat().st_size + 65536, (
+            f"read {sum(calls)} bytes from a {target.stat().st_size}-byte file"
+        )

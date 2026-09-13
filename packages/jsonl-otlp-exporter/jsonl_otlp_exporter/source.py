@@ -193,6 +193,7 @@ def iter_records(
     stream=None,
     poll_interval: float = 0.05,
     clock=time.monotonic,
+    on_first_read=None,
 ) -> Iterator[dict[str, Any]]:
     """Yield one parsed record per well-formed line, skipping the rest.
 
@@ -222,8 +223,16 @@ def iter_records(
     # it would shift every later line number by one and make every subsequent
     # report point at the wrong line.
     discarding = False
+    stamped = False
 
     while True:
+        if not stamped:
+            # AC-0042 measures `--for` from here. The sender needs the same
+            # instant, because its own bound cannot be anchored at the run's
+            # start: resolution happens before any read.
+            stamped = True
+            if on_first_read is not None:
+                on_first_read(clock())
         # Checked on EVERY pass, not only when the file went quiet. A file being
         # appended at least as fast as it is parsed never reaches the no-bytes
         # branch, so a deadline tested only there is never evaluated at all and

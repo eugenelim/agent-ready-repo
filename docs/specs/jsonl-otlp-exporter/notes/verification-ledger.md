@@ -245,3 +245,51 @@ names the stem as the *default*, so a supplied empty string is a value. The
 opposite reading is defensible — `config._present` deliberately treats an empty
 environment variable as absent — and the criterion does not decide between them.
 If the fallback reading is wanted, AC-0007 needs the words.
+
+## Fourth implementation review — and what mutation found that review did not
+
+8 findings raised, 7 sustained, 1 refuted.
+
+| Round | Raised | Sustained |
+| --- | ---: | ---: |
+| 1 | 29 | 25 |
+| 2 | 20 | 18 |
+| 3 | 13 | 8 |
+| 4 | 8 | 7 |
+
+The partial-surface pattern recurred a sixth time: `_resolve_bounded` was called
+from the `http` branch and never from the `https` one, so a stalled resolver ran
+past both bounds on TLS endpoints — and the watchdog cannot cover it, because
+during `connect` there is no socket to shut down.
+
+The refutation is worth recording as a result in itself. The real-socket watchdog
+test was challenged as passing on connection *refusal* rather than on the
+watchdog firing; it does not, because the listener is bound and listening in the
+same process before the destination resolves, so the kernel completes the
+handshake from the backlog whatever the accept thread is doing.
+
+## Mutation caught three controls that review did not
+
+After repairing, each repair was reverted in turn to see whether anything failed.
+Three survived — they were controls that could not fail:
+
+| Reverted | Why nothing caught it |
+| --- | --- |
+| the first-read anchor, at the CLI | the transport test supplies `first_read_at` itself, so it never covers the wiring |
+| the watchdog's retained socket | the existing test uses a server that never answers, so the fallback lookup still finds a socket |
+| the bounded `https` lookup | no test resolved an `https` host at all |
+
+All three now have controls that fail when the behaviour is removed. **This is
+the wiring class for the third time**: a keyword argument dropped at one call
+site while the function it feeds is thoroughly tested on its own.
+
+## A test that could not fail because it never ran
+
+The new CLI control was appended at four-space indentation after a module-level
+helper, which made it a nested function inside that helper rather than a method
+on the test class. `--collect-only` showed zero matches: it was never collected,
+so it passed the suite by not existing. Moved into its class, it now fails when
+the wiring is dropped.
+
+Worth stating plainly because the suite gives no signal for this: a test that is
+never collected looks exactly like a test that passes.

@@ -191,3 +191,39 @@ class TestTransportSeamIsReal:
         )
         assert status is None, "a configured run is not this function's case"
         assert built == ["https://base:4318/v1/logs"]
+
+
+class TestShortRead:
+    """A short read must not be parsed as if it were the whole file.
+
+    `os.read` is one `read(2)` and may return fewer bytes than requested. A
+    prefix of a TOML file can itself be valid TOML, so parsing one would accept
+    an incomplete config as complete -- and enable sending from a file whose full
+    content does not parse.
+
+    A real short read cannot be forced on a local regular file, which is why the
+    defect is recorded as unreachable there and reachable on a network or FUSE
+    mount. It is driven through a substituted read instead, so the length
+    comparison cannot be deleted silently.
+    """
+
+    def test_a_valid_prefix_shorter_than_the_file_is_refused(self, tmp_path, monkeypatch):
+        config = _write(
+            tmp_path / "c.toml",
+            '[telemetry]\nendpoint = "https://c:4318"\n[oops\nnot valid toml at all\n',
+        )
+        prefix = b'[telemetry]\nendpoint = "https://c:4318"\n'
+        real_read = os.read
+
+        def short_read(fd, size):
+            return prefix if size >= len(prefix) else real_read(fd, size)
+
+        monkeypatch.setattr(os, "read", short_read)
+        with pytest.raises(cfg.ConfigRefused) as excinfo:
+            cfg.read_config_file(config)
+        assert "bytes" in str(excinfo.value)
+
+    def test_a_complete_read_is_still_accepted(self, tmp_path):
+        """The other half: the comparison must not reject a normal file."""
+        config = _write(tmp_path / "c.toml", '[telemetry]\nendpoint = "https://c:4318"\n')
+        assert cfg.read_config_file(config)["telemetry"]["endpoint"] == "https://c:4318"

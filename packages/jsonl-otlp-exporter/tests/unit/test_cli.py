@@ -412,3 +412,68 @@ class TestRound3Regressions:
         attrs = json.loads(sent[0])["resourceLogs"][0]["resource"]["attributes"]
         name = next(a["value"]["stringValue"] for a in attrs if a["key"] == "service.name")
         assert name == "p"
+
+
+class TestRound4Regressions:
+    def test_the_cli_forwards_the_for_bound_to_the_sender(self, workspace):
+        """`--for` must bound the SENDER, not only the reader.
+
+        The reader's own deadline cannot fire during a retry backoff, because the
+        reader is not running then. Nothing pinned the wiring, so deleting
+        `for_seconds=args.for_seconds` from cli.py left the suite green -- the
+        transport test calls send_batches directly and supplies it itself.
+        """
+        attempts = []
+
+        def counting_factory(scheme, host, port, timeout, context):
+            attempts.append(clock_now())
+            return _Connection([_Response(429, {"retry-after": "30"}),
+                                _Response(200)], [])
+
+        import time as _time
+        clock_now = _time.monotonic
+        code, _ = _run_raw(workspace, ["--for", "1"], env=ENV,
+                           connection_factory=counting_factory)
+        assert len(attempts) == 1, (
+            f"{len(attempts)} requests issued; --for 1 must stop the sender "
+            "before the 30s backoff elapses"
+        )
+        assert code == 1
+
+
+    def test_the_cli_forwards_the_first_read_anchor(self, workspace, monkeypatch):
+        """AC-0042 measures `--for` from the first READ, not from the run's start.
+
+        The wiring needs its own control: the transport test supplies
+        `first_read_at` itself, so deleting the keyword from cli.py left the
+        suite green -- the same class of gap that made two earlier repairs inert.
+
+        Resolution is made to take longer than `--for` so the two anchors give
+        different answers: anchored at the run's start the budget is already
+        spent and nothing is sent; anchored at the first read it is intact.
+        """
+        import time as _time
+
+        from jsonl_otlp_exporter import transport as _tp
+
+        real_resolve = _tp.resolve_destination
+
+        def slow_resolve(url, resolver=None):
+            _time.sleep(1.2)          # longer than the --for below
+            return real_resolve(url, resolver=lambda *a, **k: [
+                (2, 1, 6, "", ("127.0.0.1", 4318))])
+
+        monkeypatch.setattr(cli, "resolve_destination", slow_resolve)
+        sent = []
+        code, err = _run(workspace, "--for", "1", responses=[_Response(200)], sent=sent)
+        assert sent, (
+            "nothing was sent: --for was measured from the run's start, so a "
+            f"1.2s resolution consumed the one-second budget ({err.strip()})"
+        )
+        assert code == 0
+
+def _run_raw(workspace, extra, env, connection_factory):
+    err = io.StringIO()
+    code = cli.main(_argv(workspace, *extra), env=env, stream=err,
+                    connection_factory=connection_factory)
+    return code, err.getvalue()

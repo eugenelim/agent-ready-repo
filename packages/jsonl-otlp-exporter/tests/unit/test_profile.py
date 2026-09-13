@@ -223,3 +223,26 @@ def test_the_accepted_format_set_is_exactly_the_three_the_contract_names():
     assert prof.TIMESTAMP_FORMATS == frozenset(
         {"rfc3339", "epoch-millis", "epoch-seconds"}
     )
+
+
+class TestShortRead:
+    """Same reasoning as the config file, and the profile decides what is sent."""
+
+    def test_a_valid_prefix_shorter_than_the_file_is_refused(self, tmp_path, monkeypatch):
+        body = (FIXTURES / "reference.toml").read_text(encoding="utf-8")
+        target = _write(tmp_path / "p.toml", body + "\n[oops\nnot valid toml\n")
+        prefix = body.encode("utf-8")
+        real_read = os.read
+
+        def short_read(fd, size):
+            return prefix if size >= len(prefix) else real_read(fd, size)
+
+        monkeypatch.setattr(os, "read", short_read)
+        with pytest.raises(prof.ProfileRefused) as excinfo:
+            prof.load_profile(target, tmp_path)
+        assert "bytes" in str(excinfo.value)
+
+    def test_a_complete_read_is_still_accepted(self, tmp_path):
+        body = (FIXTURES / "reference.toml").read_text(encoding="utf-8")
+        target = _write(tmp_path / "p.toml", body)
+        assert prof.load_profile(target, tmp_path).timestamp_field == "at"

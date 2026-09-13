@@ -138,8 +138,10 @@ def _run(args, env, stream, connection_factory) -> int:
         return json.dumps(body).encode("utf-8")
 
     try:
+        first_read: list[float | None] = [None]
         records = iter_records(
-            fd, follow=args.follow, for_seconds=args.for_seconds, stream=stream
+            fd, follow=args.follow, for_seconds=args.for_seconds, stream=stream,
+            on_first_read=lambda at: first_read.__setitem__(0, at),
         )
         outcome = send_batches(
             batch_records(records, encode, on_oversize=lambda size: print(
@@ -153,6 +155,7 @@ def _run(args, env, stream, connection_factory) -> int:
             best_effort=args.best_effort,
             run_started=run_started,
             for_seconds=args.for_seconds,
+            first_read_at=lambda: first_read[0],
         )
     finally:
         os.close(fd)

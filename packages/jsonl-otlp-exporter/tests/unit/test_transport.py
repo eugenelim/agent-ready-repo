@@ -89,7 +89,8 @@ class TestSchemeAndUserInfo:
             tp.resolve_destination(url, resolver=lambda *a, **k: _addrinfo("127.0.0.1"))
 
     def test_https_is_accepted_at_any_host(self):
-        d = tp.resolve_destination("https://collector.example.com/v1/logs")
+        d = tp.resolve_destination("https://collector.example.com/v1/logs",
+                                   resolver=lambda *a, **k: _addrinfo("203.0.113.10"))
         assert d.scheme == "https" and d.connect_host == "collector.example.com"
 
     def test_https_verifies_the_chain_and_hostname(self):
@@ -97,7 +98,8 @@ class TestSchemeAndUserInfo:
         connect_log = []
         tp.send_batches(
             [([], b"{}")],
-            tp.resolve_destination("https://collector.example.com/v1/logs"),
+            tp.resolve_destination("https://collector.example.com/v1/logs",
+                                   resolver=lambda *a, **k: _addrinfo("203.0.113.10")),
             _factory([], [_FakeResponse()], connect_log),
             clock=_Clock(),
         )
@@ -616,3 +618,105 @@ class TestRound3Regressions:
         )
         assert len(connect_log) == 1, "no second request may be issued past --for"
         assert out.status == 1
+
+
+class TestRound4Regressions:
+    """Three controls that mutation showed were missing entirely."""
+
+    def test_the_for_bound_is_measured_from_the_first_read(self):
+        """AC-0042 anchors `--for` at the instant the first read begins.
+
+        Anchored at the run's start instead, a run whose resolution took longer
+        than `--for` exceeded the bound before a single record was pulled and
+        sent nothing at all. Here resolution notionally took five seconds and the
+        first read has just happened, so the run still has its full second.
+        """
+        clock = _Clock()
+        clock.now = 5.0
+        connect_log = []
+        tp.send_batches(
+            [([], b"{}")], _dest(), _factory([], [_FakeResponse()], connect_log),
+            clock=clock, stream=io.StringIO(), run_started=0.0, for_seconds=1,
+            first_read_at=lambda: 5.0,
+        )
+        assert connect_log, (
+            "the record was dropped: --for was measured from the run's start, "
+            "so a five-second resolution consumed a one-second budget"
+        )
+
+    def test_without_a_first_read_stamp_the_bound_falls_back_to_run_start(self):
+        """The fallback must still bound a run that never read anything."""
+        clock = _Clock()
+        clock.now = 5.0
+        connect_log = []
+        out = tp.send_batches(
+            [([], b"{}")], _dest(), _factory([], [_FakeResponse()], connect_log),
+            clock=clock, stream=io.StringIO(), run_started=0.0, for_seconds=1,
+            first_read_at=lambda: None,
+        )
+        assert not connect_log and out.status == 1
+
+    def test_a_stalled_https_resolver_is_refused(self, monkeypatch):
+        """The https branch never called the bounded lookup, so a resolver that
+        never answers ran past both bounds -- and the watchdog cannot help,
+        because during `connect` there is no socket to shut down yet."""
+        import threading as _t
+
+        monkeypatch.setattr(tp, "REQUEST_TIMEOUT_SECONDS", 1)
+        started = _t.Event()
+
+        def never_answers(*args, **kwargs):
+            started.set()
+            _t.Event().wait()
+
+        with pytest.raises(tp.DestinationRefused) as excinfo:
+            tp.resolve_destination("https://stalled.example/v1/logs", resolver=never_answers)
+        assert started.is_set()
+        assert "did not answer" in str(excinfo.value)
+
+    def test_the_watchdog_shuts_down_the_socket_it_retained(self):
+        """A `Connection: close` reply makes `getresponse()` clear
+        `connection.sock` while the response keeps reading through its own file
+        object -- so a watchdog that looks the socket up when it FIRES finds
+        nothing, and closing alone does not wake a blocked reader.
+
+        This pins the mechanism rather than trying to reproduce `http.client`'s
+        exact blocking: the connection reports no socket, and the watchdog must
+        still tear down the one it was handed. The peer's blocking `recv`
+        returning is the observable -- that is precisely what a blocked reader
+        being woken looks like.
+        """
+        import socket as _s
+        import threading as _t
+
+        near, far = _s.socketpair()
+
+        class ClearedConnection:
+            sock = None      # as http.client leaves it for `Connection: close`
+            closed = False
+
+            def close(self):
+                self.closed = True
+
+        woke = _t.Event()
+
+        def blocked_peer():
+            far.recv(1)      # blocks until the near end is shut down
+            woke.set()
+
+        _t.Thread(target=blocked_peer, daemon=True).start()
+        time.sleep(0.1)
+        assert not woke.is_set(), "the peer should still be blocked"
+
+        watchdog = tp._Watchdog(ClearedConnection(), 0.05)
+        watchdog.attach(near)
+        with watchdog:
+            woke.wait(timeout=5)
+
+        assert watchdog.fired
+        assert woke.is_set(), (
+            "the retained socket was never shut down, so a blocked reader would "
+            "keep waiting past the deadline"
+        )
+        near.close()
+        far.close()
