@@ -197,37 +197,27 @@ def _has_order(frontmatter: str) -> bool:
 STEP_DECLARATION = re.compile(r"^\*\*Step \d+ of \d+ — ", re.M)
 
 
-def is_guidebook(directory: Path) -> bool:
-    """True when any page under `directory` declares itself a guidebook step.
+def _is_step(frontmatter: str, body: str) -> bool:
+    """True when an ordered page is a guidebook step rather than a reading thread.
 
-    The discriminator is at directory level, not page level, and both halves
-    matter.
+    Two signals, either of which is enough, because each covers the other's
+    blind spot.
 
-    It cannot be `order:` alone: that frontmatter carries two different things,
-    the steps of a guidebook and a cross-kind reading thread whose members are
-    a tutorial, a how-to, a reference and an explanation. Those are not steps,
-    have no skill to run, and holding them to the step contract reported four
-    findings against a pack that had done nothing wrong.
+    `order:` alone cannot decide it: that frontmatter also carries a cross-kind
+    reading thread — a tutorial, a how-to, a reference and an explanation read
+    in sequence — whose members are not steps and have no skill to run. Holding
+    those to the step contract reported ninety findings against pages that had
+    done nothing wrong, in a directory that happens to contain both.
 
-    It cannot be the page's own declaration either, because `position` is one
-    of the obligations: a page that dropped it would stop being a step and its
-    omission would go unreported -- the check disappearing exactly when it was
-    needed. A sibling's declaration is what keeps the directory in scope.
+    The page's own `**Step N of M**` line cannot decide it alone either, because
+    `position` is one of the obligations: a step that dropped it would stop
+    being a step and its omission would go unreported — the check disappearing
+    exactly when it is needed. A `## Run` block is the other half of the step
+    shape, so a page carrying one stays in scope and is told what it is missing.
     """
-    for path in sorted(directory.rglob("*.md")):
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if not text.startswith("---\n"):
-            continue
-        try:
-            frontmatter, body = _frontmatter_body(text)
-        except ValueError:
-            continue
-        if _has_order(frontmatter) and STEP_DECLARATION.search(body):
-            return True
-    return False
+    if not _has_order(frontmatter):
+        return False
+    return bool(STEP_DECLARATION.search(body)) or bool(RUN_HEADING.search(body))
 
 
 def _label_variants(label: str) -> tuple[str, ...]:
@@ -640,7 +630,7 @@ def check_step(path: Path, contract: Contract) -> list[Finding]:
     if not text.startswith("---\n"):
         return []
     frontmatter, body = _frontmatter_body(text)
-    if not _has_order(frontmatter):
+    if not _is_step(frontmatter, body):
         return []
     step = path.stem
     findings = [
@@ -662,8 +652,6 @@ def lint(directories: list[Path], contract: Contract) -> list[Finding]:
     """Lint all ordered Markdown steps under the selected directories."""
     findings: list[Finding] = []
     for directory in directories:
-        if not is_guidebook(directory):
-            continue
         for path in sorted(directory.rglob("*.md")):
             findings.extend(check_step(path, contract))
     return findings
