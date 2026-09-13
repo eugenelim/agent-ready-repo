@@ -39,7 +39,6 @@ _FROZEN_DOC_DIRS = ("docs/specs/", "docs/rfc/", "docs/adr/")
 _SEED_VENDOR_ROOT_BACKLOG = frozenset({
     "packs/core/seeds/docs/architecture/overview.md",
     "packs/core/seeds/docs/knowledge/README.md",
-    "packs/core/seeds/docs/specs/README.md",
 })
 _SEED_PATH_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9_.-])\.[A-Za-z0-9_-]+(?:/[^\s`'\"<>()\[\]{}]+)+"
