@@ -389,25 +389,34 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   hook carrying both a kill condition and its triggering activity.
 - [ ] A recorded manual-QA run observes that the same mode emits no Blocker,
   Concern, Nit, rewrite, or "consider also" item on that dispatch.
+- [ ] **Isolation rule, stated once and referenced by the criteria below.** An
+  observation set that attributes a silence to a rule must contain, for every
+  field that rule keys on, a passing case differing from the failing case in
+  that field alone. A set missing such a case settles nothing about that field,
+  whatever else it shows, because another field's difference already explains
+  the silence.
 - [ ] A recorded manual-QA run dispatches four intents against the rebuilt
-  projection, each carrying no decomposition, and observes that only the last
-  emits `MALFORMED(children)`: one at the leaf level at `Draft`, one at the leaf
-  level at `Accepted`, one above the leaf at `Draft`, and one above the leaf at
-  `Accepted`. The first three are states the authoring pipeline produces and
-  must pass; the last is the condition's reachable failing state. Each of the
-  first three differs from it in exactly one field, so its silence is
-  attributable: the leaf-at-`Accepted` case isolates the level and the
-  above-leaf-at-`Draft` case isolates the status. A set whose passing cases
-  differ from the failing one in two fields at once settles nothing, because
-  either field alone would explain the silence.
+  projection, each carrying no decomposition, and observes that only the
+  above-leaf `Accepted` case emits `MALFORMED(children)`. The other three are
+  states the authoring pipeline produces and must pass: leaf at `Draft`, leaf at
+  `Accepted`, and above the leaf at `Draft`.
+- [ ] That set satisfies the isolation rule for both fields the absence branch
+  keys on: the leaf-at-`Accepted` case differs from the failing case in level
+  alone, and the above-leaf-at-`Draft` case differs from it in status alone. The
+  leaf-at-`Draft` case differs in both and attributes nothing on its own; it is
+  in the set as the pipeline's baseline state, which must pass.
+- [ ] All four cases and the firing case are observed at one revision, against
+  one `shaping-reviewer` hash recorded with them. A comparison drawn across two
+  revisions is not an isolation, because the body may have moved in the
+  paragraph the compared field keys on.
 - [ ] A recorded manual-QA run observes the unplaceable-level cases against
   fixtures that satisfy every other trigger of the absence branch — no listed
   decomposition, and `Status: Accepted` — one declaring no level and one
   declaring a level outside the recognized set. Neither emits
-  `MALFORMED(children)`, and because each fixture differs from the firing case
-  in the level alone, the missing token is attributable to the suppression and
-  to nothing else. A fixture that would pass with the suppression removed does
-  not close this criterion.
+  `MALFORMED(children)`, and each fixture differs from the firing case in the
+  level alone, which is what the isolation rule above requires for the field
+  this branch keys on. A fixture that would pass with the suppression removed
+  does not close this criterion.
 
 ## Follow-ons
 

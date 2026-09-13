@@ -665,12 +665,15 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
 - Dispatch from a session that loads the rebuilt projection. A host serves the
   agent body it read at session start, so a session that edited the body cannot
   observe it — the reason T8 was blocked once already.
-- Run the three cases the criterion names, all carrying no decomposition: leaf
-  level, above-leaf at `Draft`, above-leaf at `Accepted`. Only the third emits
-  `MALFORMED(children)`. The set is the evidence — a single case cannot
-  distinguish a repair from a removal, and the first two are the states the
-  authoring pipeline actually produces, so a rule that fires on them is a rule
-  that blocks the pipeline.
+- Run the four cases the criterion names, all carrying no decomposition: leaf at
+  `Draft`, leaf at `Accepted`, above-leaf at `Draft`, above-leaf at `Accepted`.
+  Only the last emits `MALFORMED(children)`. The set is the evidence — a single
+  case cannot distinguish a repair from a removal, and three of the four are the
+  states the authoring pipeline actually produces, so a rule that fires on them
+  is a rule that blocks the pipeline. Two of those three carry the isolation:
+  leaf-at-`Accepted` differs from the firing case in level alone and
+  above-leaf-at-`Draft` differs in status alone, while leaf-at-`Draft` differs
+  in both and is there as the baseline.
 - Run the two unplaceable-level cases against fixtures that satisfy every other
   trigger of the absence branch — no listed decomposition, `Status: Accepted` —
   so each differs from the firing case in the level alone. A fixture left at
@@ -681,8 +684,9 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
   the ledger as the before-state — it was correct about the bytes it read, and
   the hashes are what make that legible.
 
-**Done when:** the ledger records all five observations with their observed
-output and the revision that produced them, and each matches:
+**Done when:** the ledger records every observation below with its verbatim
+output and the one revision and `shaping-reviewer` hash that produced them all,
+and each matches:
 
 | Fixture | Expected |
 | --- | --- |
@@ -694,10 +698,11 @@ output and the revision that produced them, and each matches:
 | level outside the recognized set, `Accepted`, no decomposition | no token |
 
 The three re-run T8 observations are recorded against the amended revision
-alongside them. The two `Draft`-versus-`Accepted` rows are the pair that
-establishes the trigger, and the last two differ from the firing row in the
-level alone, so a run that collapses any of those three distinctions closes
-nothing.
+alongside them. Two comparisons carry the trigger: leaf-at-`Accepted` against
+the firing row isolates the level, and above-leaf-at-`Draft` against it isolates
+the status. The two unplaceable-level rows also differ from the firing row in
+the level alone. A run that collapses any of those comparisons, or that draws
+one across two revisions, closes nothing.
 
 ## Rollout
 
