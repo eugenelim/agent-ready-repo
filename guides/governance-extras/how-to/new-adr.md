@@ -155,7 +155,15 @@ None of these is mandatory. The skill pushes back on hand-wavy *required* sectio
 
 ## Step 6 — Update the ADR index
 
-The skill adds a row to the resolved destination's sibling index so the new ADR appears in its established table. For the catalogue fallback only, that index is `docs/adr/README.md`.
+The skill regenerates the resolved destination's sibling index so the new ADR
+appears in it, by running the bundled generator over that directory:
+
+```bash
+python3 "$SKILL/scripts/index-records.py" <adr-dir>
+```
+
+The index is derived from the records themselves, so it cannot drift from them.
+Run the same command with `--check` to find out whether it would change.
 
 ## Step 7 — Get sign-off, then mark Accepted (or Rejected)
 

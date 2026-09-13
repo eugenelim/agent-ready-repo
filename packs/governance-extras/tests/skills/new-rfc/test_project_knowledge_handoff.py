@@ -22,7 +22,7 @@ def test_rfc_gate_follows_every_mandatory_check_and_index_write() -> None:
     text = SKILL.read_text(encoding="utf-8")
     assert "boundaries: [filesystem_read_untrusted, filesystem_write]" in text
     checks = text.index("6. **Pre-handoff gate — mandatory")
-    index = text.index("8. Update the RFC index table")
+    index = text.index("8. Regenerate the RFC index from the records")
     gate = text.index("### Project-knowledge gate: `rfc-handoff-ready`")
     receipt = text.index("9. **Return a completion receipt**")
 

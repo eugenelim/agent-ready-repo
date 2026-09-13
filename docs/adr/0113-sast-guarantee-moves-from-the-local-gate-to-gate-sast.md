@@ -5,7 +5,6 @@
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review (Codex, read-only)
 - **Supersedes:** the **dogfooding sub-decision** in [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) only — that the SAST/SCA leg is chained into `make build-check` so that a developer running the local gate scans. That ADR's tool choices, severity floor, three-way real-fix-first ladder, and the requirement that the scanners stay CI-only dev dependencies all stand
-- **Note:** ordinal 0112 is skipped deliberately — two unmerged branches claimed it concurrently on 2026-09-13; the gap closes when the first of them merges
 - **Related:** [ADR-0086](0086-split-the-sast-gate-into-its-own-ci-job.md), [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md), PR #1285
 
 ## Decision summary
