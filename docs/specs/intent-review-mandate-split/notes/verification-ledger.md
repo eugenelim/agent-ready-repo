@@ -729,16 +729,18 @@ no parent is named or supplied for A-G, and to retrieve nothing else.
 ### Fixtures A-F — the condition 5 branches, one body, two varying fields
 
 A-F share a single well-formed body and vary only `Level` and `Status`, so a
-token can only be about the condition under test.
+token can only be about the condition under test. None carries a decomposition —
+the criteria make that a required property of every fixture in the set, so it is
+recorded here rather than inferred from the outputs.
 
-| # | Level | Status | Expected | Observed | Match |
-| --- | --- | --- | --- | --- | --- |
-| A | `feature` | `Draft` | no token | no tokens | yes |
-| B | `feature` | `Accepted` | no token | no tokens | yes |
-| C | `capability` | `Draft` | no token | no tokens | yes |
-| D | `capability` | `Accepted` | `MALFORMED(children)` | `MALFORMED(children)` | yes |
-| E | no `Level:` line | `Accepted` | no token | no tokens | yes |
-| F | `epic` | `Accepted` | no token | no tokens | yes |
+| # | Level | Status | Decomposition | Expected | Observed | Match |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | `feature` | `Draft` | none | no token | no tokens | yes |
+| B | `feature` | `Accepted` | none | no token | no tokens | yes |
+| C | `capability` | `Draft` | none | no token | no tokens | yes |
+| D | `capability` | `Accepted` | none | `MALFORMED(children)` | `MALFORMED(children)` | yes |
+| E | no `Level:` line | `Accepted` | none | no token | no tokens | yes |
+| F | `epic` | `Accepted` | none | no token | no tokens | yes |
 
 Verbatim outputs:
 

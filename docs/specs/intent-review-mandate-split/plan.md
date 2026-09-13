@@ -473,20 +473,21 @@ unchanged and green, and neither intent mode states a reading the owner does not
 
 **Tests:** visual / manual QA — three dispatches (a malformed intent, a
 well-formed intent, and one adversarial intent pass), each recording the exact
-output observed and the projected agent revision it ran against.
+output observed and the `shaping-reviewer` projection hash it ran against, with
+the revision noted as provenance.
 
 **Approach:**
 - Run after T7, not before it. A host dispatches these agents from the adapter
   projection, so a run taken earlier exercises the pre-change bodies while being
   written down as evidence for the new contract.
-- Record the projection's revision alongside each observation, so a later reader
+- Record the projection's hash alongside each observation, so a later reader
   can tell which bytes produced the output.
 - Use a real intent from `docs/product/intents/` for the well-formed case and a
   scratch copy with two conditions broken for the malformed case, so the check
   runs against production-shaped input.
 
-**Done when:** the ledger records each dispatch, the projected revision
-dispatched, the observed output, and whether it matched the contract.
+**Done when:** the ledger records each dispatch, the projection hash it ran
+against, the observed output, and whether it matched the contract.
 
 ### T10: a relation the artifact cannot have is not absent evidence
 
@@ -683,8 +684,10 @@ cannot see an omission, which is how the rule would otherwise ship unannounced.
   the hashes are what make that legible.
 
 **Done when:** the ledger records every observation below with its verbatim
-output and the one revision and `shaping-reviewer` hash that produced them all,
-and each matches:
+output, against one `shaping-reviewer` projection hash recorded beside it, with
+the revision noted as provenance. The hash is the anchor: a commit can move the
+tree without moving the projection, and this branch's rebase left most recorded
+revisions unresolvable in a fresh clone. Each must match:
 
 | Fixture | Expected |
 | --- | --- |
@@ -694,10 +697,16 @@ and each matches:
 | above the leaf, `Accepted`, no decomposition | `MALFORMED(children)` |
 | no level declared, `Accepted`, no decomposition | no token |
 | level outside the recognized set, `Accepted`, no decomposition | no token |
+| multiple violations, owner a named individual, expectation stated before dispatch | exactly `MALFORMED(statement)`, `MALFORMED(non-goals)`, `MALFORMED(riskiest-assumption)`, `MALFORMED(children)` |
 
-The three re-run T8 observations are recorded against the amended revision
-alongside them. A run that collapses any comparison the criterion names, or
-draws one across two revisions, closes nothing.
+The three re-run T8 observations are recorded alongside them. The last row is
+what closes the multi-violation criterion, and it carries two properties the
+earlier malformed dispatch lacked: its owner is a named individual, so
+`MALFORMED(owner)` cannot suppress the conditions the criterion is about, and
+its expected token set is stated before dispatch, so "observes exactly the
+matching tokens" has something to be measured against. A run that collapses any
+comparison the criterion names, or draws one across two projection hashes,
+closes nothing.
 
 ## Rollout
 
