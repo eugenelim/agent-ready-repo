@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.17"
+          "version": "2.25.18"
         }
       ],
       "date": "2026-09-12",
-      "heading": "[core][2.25.17] — 2026-09-12",
-      "changelogAnchor": "core22517--2026-09-12",
+      "heading": "[core][2.25.18] — 2026-09-12",
+      "changelogAnchor": "core22518--2026-09-12",
       "highlights": [
         {
           "source": "Shaping an intent no longer draws spec-grade craft findings on a four-paragraph artifact. The intent review answers one question — is this well-formed enough to shape further — in a vocabulary that cannot express a rewrite of your bet.",
