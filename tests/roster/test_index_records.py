@@ -139,3 +139,22 @@ FROZEN = ("docs/adr", "docs/rfc", "docs/specs", "agent-ready-repo", "eugenelim")
 def test_the_generator_source_holds_no_frozen_literal(literal):
     """AC20: the script carries nothing drawn from this repository."""
     assert literal not in SCRIPT.read_text(encoding="utf-8")
+
+
+def test_a_sentence_after_the_status_token_is_a_qualifying_clause(tmp_path):
+    """AC5: `Superseded by ADR-0042. ADR-0042 keeps ...` renders as the token."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T",
+           status="Superseded by [ADR-0042](0042-x.md). It keeps the core holding.")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[2] == "Superseded by ADR-0042"
+
+
+def test_an_unfilled_date_placeholder_is_not_a_date(tmp_path):
+    """A record still carrying the template's placeholder has no date."""
+    _write(tmp_path, "0001-r.md", "ADR-0001: T", date="YYYY-MM-DD")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert rows[0].split(" | ")[3].rstrip(" |") == ""
