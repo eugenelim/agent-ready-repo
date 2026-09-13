@@ -59,6 +59,17 @@ a fixture rather than a live condition.
 
 ## Design (LLD)
 
+### Interfaces & contracts — the profile format
+
+A profile is a TOML document declaring six keys: `timestamp_field`,
+`timestamp_format` (from the closed set `rfc3339` / `epoch-millis` /
+`epoch-seconds`), `severity_field`, `severity_map` (literal value to integer),
+`identity`, and `allowlist`. It is data, never code: loading executes nothing,
+which is what keeps the extension point's threat model to bounded untrusted-input
+parsing rather than arbitrary execution. A selected profile is trusted to define
+the payload; selecting one is the operator's act, and ADR-0111 records why an
+invocation-level cap was declined.
+
 ### Component / module decomposition
 
 Five modules, split on what each can be tested without: `config` (no I/O beyond
@@ -161,8 +172,15 @@ durable state anywhere.
 - Byte-exact golden for the recorded three-line fixture. Verifies AC-0005.
 - `service.name` takes `--service-name`, defaulting to the profile's name. Verifies AC-0007.
 - Records carry the profile's declared identity attributes. Verifies AC-0023.
-- A profile declares four things, and a field outside the allowlist appears
-  nowhere in the body. Verifies AC-0035, AC-0034.
+- A field outside the allowlist appears nowhere in the body. Verifies AC-0034.
+- A profile declares exactly the six keys; a missing or extra key is refused.
+  Verifies AC-0035.
+- A profile whose content would execute if imported is parsed as data and
+  refused on schema. Verifies AC-0047.
+- `--profile` is opened under AC-0017's discipline. Verifies AC-0048.
+- A bad `timestamp_format`, a non-integer `severity_map` value, an oversized or
+  unparseable profile, and no `--profile` at all are each refused before any
+  request. Verifies AC-0049, AC-0050, AC-0051, AC-0052.
 
 **Done when:** the golden passes and field names appear only in a profile.
 

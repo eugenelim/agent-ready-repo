@@ -143,6 +143,62 @@ invoking pip, npm, uv or pipx.
 **Done when:** a deliberate failing test inside the package is reported by
 `make test` — proving the suite is reached rather than merely listed.
 
+### T6: The event line carries its version
+
+**Depends on:** none
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`, `packs/core/tests/skills/work-loop/test_loop_engine_events_jsonl.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`
+
+**Tests:**
+- `stub: true` — one compilable red contract-surface assertion for AC-0046,
+  validated in disposable scratch (compile: `python -m py_compile` OK; intended
+  red: `KeyError: 'schema'`, 1 failed / 3 passed, the three passing being the
+  harness's own copied cases, which proves the red is the assertion and not a
+  broken fixture). Disposable copy removed.
+
+```python
+class TestSchemaVersionStub:
+    def test_event_line_carries_schema_version_one(self, tmp_path) -> None:
+        # STUB: AC-0046
+        repo = _init_git_repo(tmp_path)
+        spec_dir = _make_spec_dir(repo)
+        _engine_init(repo, spec_dir)
+        _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+        event = json.loads((repo / ".loop-run" / "events.jsonl").read_text().strip())
+        assert event["schema"] == 1
+```
+
+- A pending record carrying no `schema` key replays unchanged. Verifies AC-0047.
+  This is the case the rest of the suite cannot see: a retro-stamping build
+  passes everything else.
+
+**Approach:**
+- Add the key to `_cmd_transition`'s `pending_data` literal; leave the replay
+  path at `loop-engine.py:626` alone.
+
+**Done when:** both new cases pass and the pre-existing cases in that file still
+pass unchanged.
+
+### T7: Record the corpus and author the contract schema
+
+**Depends on:** T6
+
+**Touches:** `contracts/jsonschema/loop-run-event.schema.json`, `contracts/README.md`, `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl`
+
+**Tests:**
+- The corpus holds a versioned and a legacy record, and the schema validates
+  every line. Verifies AC-0048.
+- The schema rejects a bad `schema` value and a record missing an identity field.
+  Verifies AC-0049.
+- `contracts/README.md`'s table names the schema. Verifies AC-0050.
+- The events poller yields the same parsed result for a legacy record and an
+  explicit `schema: 1` record. Verifies AC-0052.
+
+**Approach:**
+- Record the corpus by driving real transitions, not by authoring lines.
+
+**Done when:** the corpus validates and the registry row is present.
+
 ### T5: Records, architecture and disclosure
 
 **Depends on:** T1, T2, T3, T4
@@ -152,14 +208,17 @@ invoking pip, npm, uv or pipx.
 **Tests:**
 - The guide states the capability, payload and destination. Verifies AC-0020.
 - § 5.3 carries no stale claim and every `agentbundle.md` anchor resolves. Verifies AC-0021.
-- §§ 2 and 8 describe a sender that exists and installs separately. Verifies AC-0022.
+- § 2 carries neither retired string. Verifies AC-0022.
+- Every `agentbundle.md` anchor resolves. Verifies AC-0045.
+- The field count in § 5.1 equals the emitted key count. Verifies AC-0051.
 - No documented exit code falls in the 2–9 reserved band. Verifies AC-0042.
 
 **Done when:** `check-guide-index.py` is green and no dead anchor remains.
 
 ## Rollout
 
-Depends on `jsonl-otlp-exporter` and `loop-event-schema-version` shipping first.
+Depends on `jsonl-otlp-exporter` shipping first; the event-line version (T6, T7)
+is internal to this spec and sequenced ahead of the integration tasks.
 Nothing here changes existing behaviour: the declaration is optional and the
 documentation describes a tool the adopter installs deliberately.
 
@@ -171,7 +230,11 @@ documentation describes a tool the adopter installs deliberately.
 
 ## Changelog
 
+- 2026-09-13 — The separate event-line-version spec was folded back in on the
+  owner's ruling: both it and this spec are catalogue-scoped, and their
+  separation was a sequencing constraint that task order expresses. Its seven
+  criteria return as AC-0046 through AC-0052.
 - 2026-09-12 — Reduced to this catalogue's integration when the sender's contract
   was split into `jsonl-otlp-exporter`. Thirty-four criteria were retired to that
-  spec and to `loop-event-schema-version`; identity is append-only, so none is
+  spec; identity is append-only, so none is
   reused here.

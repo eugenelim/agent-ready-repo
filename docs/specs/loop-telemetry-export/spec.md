@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0111](../../adr/0111-loop-telemetry-sender-is-a-separately-installed-distribution.md)
-- **Depends on:** [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) (the sender) and [`loop-event-schema-version`](../loop-event-schema-version/spec.md) (the versioned line) — both ship first
+- **Depends on:** [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) — the sender, which ships first
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — the package's public surface is owned by `jsonl-otlp-exporter`
@@ -88,19 +88,28 @@ distribution an adopter installs on purpose.
 - **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
 - **VI-0003 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 - **VI-0004 — the gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one is a literal list rather than a glob.
-- **VI-0005 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording.
+- **VI-0007 — the event line carries its version (AC-0046, AC-0047):** TDD, in the existing envelope suite. A field on a dict and a replay passthrough, both observable from the written file. AC-0047 is the case the rest of the suite cannot see: a build that retro-stamps every replayed record passes everything else.
+- **VI-0008 — the event-line contract schema (AC-0048, AC-0049, AC-0050):** goal-based check. The corpus is recorded from real transitions rather than authored, so a line shape the engine emits cannot pass by construction, and the rejection cases stop an empty schema from satisfying the validation half.
+- **VI-0009 — an owned reader treats absence as v1 (AC-0051, AC-0052):** goal-based check over the one reader this repository owns besides the engine.
+- **VI-0005 — disclosure and the architecture records (AC-0020, AC-0021, AC-0022, AC-0045):** goal-based check over the authored files. Anchor resolution is mechanical; the disclosure sentence is checked for presence, not wording.
 - **VI-0006 — exit-band compatibility (AC-0042):** goal-based check. The package reserves 2 through 9; this asserts that reservation is compatible with the band this catalogue's credentialed CLIs already own, so a consumer reading an exit code is never misled.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` states that the
-  capability exists, what the payload contains, and that it reaches the
-  configured endpoint — while the catalogue ships sending nothing.
-- [ ] **AC-0021.** `docs/architecture/telemetry.md` § 5.3 carries no claim that
-  the catalogue-level default does not work, and every `agentbundle.md` anchor it
-  cites resolves to a heading that exists.
-- [ ] **AC-0022.** `docs/architecture/telemetry.md` §§ 2 and 8 describe a sender
-  that exists and is installed separately.
+- [ ] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` contains a
+  level-2 heading `## What leaves your machine`, and the section under it
+  contains each of the literal strings `.loop-run/events.jsonl`, `OTLP logs`,
+  and `nothing is sent until you configure an endpoint`.
+
+- [ ] **AC-0021.** `docs/architecture/telemetry.md` contains neither the literal
+  string `does not work today` nor `writes nothing for any pack`.
+- [ ] **AC-0045.** Every `agentbundle.md` anchor cited by
+  `docs/architecture/telemetry.md` resolves to a heading present in
+  `docs/architecture/agentbundle.md`.
+
+- [ ] **AC-0022.** `docs/architecture/telemetry.md` § 2 contains neither the
+  literal string `No exporter ships` nor `Nothing transmits`.
+
 - [ ] **AC-0031.** `jsonl-otlp-exporter` appears in the root `pyproject.toml`
   `pythonpath`, mypy's `files`, the `Makefile` test-suite invocations, and the
   pip-audit build-system leg, so its tests and type checks are run by this
@@ -108,10 +117,13 @@ distribution an adopter installs on purpose.
 - [ ] **AC-0039.** With the distribution absent, `agentbundle catalogue lint`
   reports `jsonl-otlp-exporter` as an optional, unsatisfied runtime dependency of
   `core` and exits 0, invoking no package manager.
-- [ ] **AC-0040.** The `work_loop` mapping profile declares `at` as its timestamp
-  field, `result` as its severity field, `run_id` with `seq` as its
-  record-identity attributes, and an allowlist naming every envelope field this
-  catalogue intends to send.
+- [ ] **AC-0040.** This repository ships a profile at
+  `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` declaring
+  `timestamp_field = "at"`, `timestamp_format = "rfc3339"`,
+  `severity_field = "result"`, a `severity_map` covering every value in
+  `loop-engine.py`'s `_GATE_RESULTS`, `identity = ["run_id", "seq"]`, and an
+  `allowlist` naming every envelope field this catalogue intends to send.
+
 - [ ] **AC-0043.** The documented invocation resolves `--input` to the
   repository root's `.loop-run/events.jsonl`.
 - [ ] **AC-0044.** The documented invocation selects the registered `work_loop`
@@ -123,14 +135,36 @@ distribution an adopter installs on purpose.
   the 2–9 band reserved by
   [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
 
+- [ ] **AC-0046.** Every event line `loop-engine` appends to
+  `.loop-run/events.jsonl` on a transition carries `schema` with integer value 1.
+- [ ] **AC-0047.** An `events.pending` record that carries no `schema` key is
+  appended to `events.jsonl` unchanged, still carrying no `schema` key.
+- [ ] **AC-0048.** The recorded corpus at
+  `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl` holds at least
+  one record carrying `schema` and at least one legacy record carrying none, and
+  `contracts/jsonschema/loop-run-event.schema.json` validates every line of it.
+- [ ] **AC-0049.** That schema rejects a record whose `schema` is any value other
+  than a positive integer, and rejects a record missing any of the seven identity
+  fields `seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`.
+- [ ] **AC-0050.** `contracts/README.md`'s file table names
+  `contracts/jsonschema/loop-run-event.schema.json`.
+- [ ] **AC-0051.** The integer written as the field count in
+  `docs/architecture/telemetry.md` § 5.1 equals the number of keys on a line the
+  engine emits.
+- [ ] **AC-0052.** `workspace_mcp.py`'s events poller yields the same parsed
+  result for a legacy record carrying no `schema` as for the otherwise identical
+  record carrying `schema: 1`.
+
 ## Retired identifiers
 
 <!-- Identity is append-only: a retired identifier is never reused. Entries are
      bare identifiers; the narrative belongs above, not on the entry line. -->
 
-AC-0017 through AC-0019 were retired 2026-09-12 to
-[`loop-event-schema-version`](../loop-event-schema-version/spec.md). The
-remainder were retired the same day to
+AC-0017 through AC-0019 were retired 2026-09-12 when the event-line version was
+carved into a separate spec. That spec was folded back here on 2026-09-13, so
+their obligations live in this spec again under AC-0046 through AC-0052 — new
+identifiers, because identity is append-only and a retired one is never revived.
+The remainder were retired on 2026-09-12 to
 [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) when the sender's
 behaviour was separated from this catalogue's integration of it, and are
 re-authored there under that spec's own identifiers. None is reused here.
@@ -183,7 +217,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 
 - Technical: gate enumeration in this repository is literal, not glob-based (source: `Makefile:515-516`, `pyproject.toml:16`, `pyproject.toml:94-96`, `Makefile:361-366`)
 - Technical: `[[pack.runtime-dependencies]]` exists in the pack schema and has no reader (source: `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`)
-- Technical: the envelope carries fourteen fields once `loop-event-schema-version` ships, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
+- Technical: the envelope carries fourteen fields once AC-0046 ships, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
 - Process: Tier 1 detect → fail-clean is mandatory and the default (source: `guides/_shared/how-to/author-a-skill.md:104-117`)
 - Process: an ADR is sufficient governance here; no RFC is required (source: user confirmation 2026-09-12)
 - Product: the sender's contract is capability-scoped and may not name this consumer (source: user confirmation 2026-09-12)

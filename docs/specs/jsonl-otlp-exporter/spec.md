@@ -108,7 +108,7 @@ reaches every backend that has a Collector in front of it.
 ## Testing Strategy
 
 - **VI-0001 — off-by-default and endpoint resolution (AC-0001, AC-0033, AC-0002, AC-0003, AC-0004):** TDD. Pure precedence logic over an environment mapping and one file; none of it needs a network. AC-0001 asserts the transport seam is never constructed, and AC-0033 asserts the exit and the note separately — a single joined criterion would pass for a build that sent first and printed afterwards.
-- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034, AC-0035):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
+- **VI-0002 — encoding and the allowlist (AC-0005, AC-0007, AC-0016, AC-0038, AC-0034):** TDD. The encoder is pure, so a byte-exact golden pins the layout. AC-0034 is the default-deny case and takes its own assertion over a field present in the input and absent from the profile: an encoder that forwards unknown fields passes every other case here.
 - **VI-0003 — a real receiver parses what is emitted (AC-0006):** goal-based check, exercised by an integration test against a live Collector. The only check that observes attribute *naming*: a structurally valid payload with wrong names is accepted and stored, so neither a rejection nor the golden can see it.
 - **VI-0004 — retry and batching (AC-0008, AC-0036, AC-0009, AC-0010, AC-0037, AC-0011):** TDD over a seam in front of the transport. Each response shape is a fixture. AC-0008 and AC-0036 are separated because no-retry and exit-1 fail independently, and a build that suppresses the retry while reporting success passes the first alone.
 - **VI-0005 — exit codes (AC-0012, AC-0013, AC-0014, AC-0015, AC-0029, AC-0039):** goal-based check. Each state is one invocation and one observed status. AC-0014 is asserted against the mapping function rather than over every invocation, which is what makes the universal claim checkable.
@@ -118,6 +118,7 @@ reaches every backend that has a Collector in front of it.
 - **VI-0009 — record identity (AC-0023):** TDD over the encoder's output. Delivery is at-least-once, so this is the attribute set a consumer deduplicates on.
 - **VI-0010 — destination policy (AC-0024, AC-0044, AC-0025, AC-0026, AC-0045, AC-0027, AC-0028):** TDD over the opener construction. Seven separate failure modes with seven separate remedies. AC-0025's fixture resolves a host to both a loopback and a routable address, which is the case that distinguishes validating a resolution from binding the connection to it.
 - **VI-0011 — the published contract (AC-0030, AC-0031, AC-0032):** goal-based check over the authored files. Presence and structure are mechanical; wording is not asserted.
+- **VI-0013 — profile form and validation (AC-0035, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052):** TDD. A profile is TOML, so every case is a fixture file and the whole group runs with no network. AC-0047 is asserted by driving a profile file whose content would execute if it were ever imported or evaluated, and observing that it is parsed as data and refused on schema rather than taking effect — an implementation that imports would pass a key-shape check but fail this one. AC-0052 takes its own case because "no profile" and "a bad profile" fail differently and a build defaulting to a built-in profile passes every other case here.
 - **VI-0012 — release integrity (AC-0046):** goal-based check over the release workflow, exercised by a tag whose version disagrees with `pyproject.toml` and asserting the workflow refuses it.
 
 ## Acceptance Criteria
@@ -142,9 +143,11 @@ reaches every backend that has a Collector in front of it.
   log-record attribute.
 - [ ] **AC-0034.** A field present in the input but absent from the active
   profile's allowlist appears nowhere in the emitted request body.
-- [ ] **AC-0035.** A mapping profile declares four things: its timestamp field,
-  its severity field, its record-identity attributes, and the allowlist of fields
-  that may be sent.
+- [ ] **AC-0035.** A profile declares exactly these six keys and no others:
+  `timestamp_field`, `timestamp_format`, `severity_field`, `severity_map`,
+  `identity`, `allowlist`. A profile missing any of them, or carrying any
+  additional key, is refused before any request is sent and exits 1.
+
 - [ ] **AC-0007.** Every emitted log record carries a `service.name` resource
   attribute taking the value of `--service-name`, defaulting to the active
   profile's declared name.
@@ -223,14 +226,32 @@ reaches every backend that has a Collector in front of it.
 - [ ] **AC-0029.** `--version` prints the installed distribution version.
 - [ ] **AC-0046.** A release whose git tag names a version differing from
   `pyproject.toml`'s is refused by the release workflow.
-- [ ] **AC-0030.** `README-pypi.md` states what the command sends, what the
-  payload contains, and that it reaches the configured endpoint — while the
-  command ships sending nothing.
-- [ ] **AC-0031.** `docs/profiles.md` states the four things a mapping profile
-  declares and shows a worked profile.
-- [ ] **AC-0032.** `README-pypi.md` states that the distribution is versioned by
-  semantic versioning and that the mapping-profile interface is provisional in
-  0.x, so a consumer knows what may change under it.
+- [ ] **AC-0030.** `README-pypi.md` contains a level-2 heading `## What this
+  sends`, and the section under it contains each of the literal strings
+  `OTLP logs`, `--config`, and `sends nothing until an endpoint is configured`.
+
+- [ ] **AC-0031.** `docs/profiles.md` contains a fenced `toml` block that parses
+  as a profile satisfying AC-0035, and names each of the six keys outside that
+  block.
+
+- [ ] **AC-0032.** `README-pypi.md` contains the literal strings `semantic
+  versioning` and `the profile format is provisional while the version is 0.x`.
+
+
+- [ ] **AC-0047.** The command imports no Python module as a profile and
+  evaluates no part of a profile; a profile is parsed as TOML and nothing else.
+- [ ] **AC-0048.** `--profile` selects a profile file, which is opened under the
+  same discipline AC-0017 requires of `--input`: no-follow open, and the opened
+  descriptor proven a regular file inside the resolved root.
+- [ ] **AC-0049.** A `timestamp_format` value other than `rfc3339`,
+  `epoch-millis` or `epoch-seconds` is refused before any request is sent and
+  exits 1.
+- [ ] **AC-0050.** A `severity_map` whose every value is not an integer is
+  refused before any request is sent and exits 1.
+- [ ] **AC-0051.** A profile file larger than 64 KiB, or one that does not parse
+  as TOML, is refused before any request is sent and exits 1.
+- [ ] **AC-0052.** With no `--profile` given, the command sends nothing and exits
+  1; no profile is built in.
 
 ## Retired identifiers
 

@@ -116,11 +116,43 @@ Jenkins, none of which routes telemetry through a shared in-process component.
 Naming and shared abstraction are separable, though, and only the first is
 irreversible: a PyPI name cannot be reclaimed, so a consumer-scoped name would
 force a second package and a migration the day a second engine needed to emit,
-while a capability-scoped name costs nothing if that day never comes. The field
-mapping therefore sits behind a named seam from v1, with `work_loop` as the only
-shipped profile. A second engine adds a profile; it does not fork a package. No
-profile-selection surface is promised in v1, so this is a structural choice
-rather than a published contract.
+while a capability-scoped name costs nothing if that day never comes.
+
+**The mapping profile is a published extension point, selectable from outside the
+package.** *(Amended 2026-09-13. This paragraph replaces an earlier statement
+that no profile-selection surface was promised in v1 and that the seam was
+structural rather than contractual. The owner reversed that on 2026-09-13 so a
+consumer can own and ship its own profile rather than have one bundled into a
+capability-scoped distribution. The earlier reading is recorded here because a
+round-1 security finding was refuted on its premise, and that refutation is void
+under this amendment.)*
+
+A profile declares five things: its timestamp field and that field's format, its
+severity field and that field's mapping, its record-identity attributes, and the
+allowlist of fields that may be sent. A consumer supplies a profile; the package
+does not bundle a consumer's.
+
+**A profile is declarative data, never code, and that is what makes the
+extension point affordable.** Everything a profile declares is a name or a
+literal — two field names, a format drawn from a closed enum, a literal
+value-to-number map, and two lists of field names. None of it requires
+execution. A profile is therefore a TOML document, read with the same bounded,
+confined discipline as any other input this distribution reads, and loading one
+executes nothing. An implementation that imports a Python module as a profile,
+or evaluates any part of a profile, is non-conforming.
+
+That choice is what collapses the threat model. Had a profile been code, loading
+would have been arbitrary execution in a process that reads untrusted files and
+holds a network endpoint, and a hostile profile would have disabled the very
+payload control it exists to declare. As data, the residual threat is ordinary
+untrusted-input parsing, bounded by file size and a closed format enum.
+
+**The residual boundary is stated rather than engineered away.** A profile
+defines the payload, so a selected profile is trusted: selecting one is the
+operator's act, the same trust they extend to a config file. An
+invocation-level cap that could only narrow a profile's allowlist was considered
+and declined — it adds a second control and a concept every operator must learn,
+to constrain a file the operator already chose.
 
 ## Alternatives considered
 
