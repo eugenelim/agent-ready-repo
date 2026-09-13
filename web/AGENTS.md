@@ -5,8 +5,12 @@ Applies to `web/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 ## Site boundary
 
 `web/` is the marketing site served at `/`. Package manifests own dependencies;
-`tools/build-site.py --journeys-only` generates committed journeys and highlights
-used by this site. Do not edit generated inputs by hand.
+`tools/build-site.py --journeys-only` generates the committed journeys this site
+uses. The `*.generated.json` renderer inputs are gitignored, not committed: a
+`pre*` hook regenerates them, so npm scripts here need `python3` as well as Node.
+Use `npm run <script>` — a direct `npx astro build` skips npm's lifecycle, so it
+skips generation and fails on an unresolved import. Never hand-edit a generated
+input.
 
 ## Action-changing traps
 

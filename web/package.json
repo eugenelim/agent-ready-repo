@@ -12,7 +12,11 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts guidebook-walk.spec.ts"
+    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts guidebook-walk.spec.ts",
+    "predev": "python3 ../tools/build-site.py --renderer-inputs",
+    "pretest": "python3 ../tools/build-site.py --renderer-inputs",
+    "preastro": "python3 ../tools/build-site.py --renderer-inputs",
+    "prebuild": "python3 ../tools/build-site.py --renderer-inputs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
