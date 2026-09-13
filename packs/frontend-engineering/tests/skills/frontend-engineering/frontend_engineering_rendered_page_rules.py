@@ -172,6 +172,28 @@ def read_skill() -> str:
     return SKILL.read_text(encoding="utf-8")
 
 
+INSPECTION_HEADING = "### 5. Rendered-page inspection"
+
+
+def inspection_section(skill_markdown: str) -> str:
+    """Just the rendered-page inspection section of `SKILL.md`, whitespace
+    normalized.
+
+    Scoped deliberately. `SKILL.md` carries a shared output-rendering block that
+    already contains phrases like "data, not instruction authority", so a check
+    run against the whole file would pass on boilerplate whether or not this
+    step states the rule — a control that cannot fail.
+    """
+    if INSPECTION_HEADING not in skill_markdown:
+        raise AssertionError(f"no {INSPECTION_HEADING!r} section in SKILL.md")
+    section = skill_markdown.split(INSPECTION_HEADING, 1)[1]
+    # The section ends at the next top-level heading.
+    end = section.find("\n## ")
+    if end != -1:
+        section = section[:end]
+    return " ".join(section.split())
+
+
 def result_states(markdown: str) -> dict[str, str]:
     """`{result state: "yes"|"no"}` — whether it is a completed inspection."""
     return {
@@ -240,3 +262,76 @@ def observations_value_is_acceptable(markdown: str, value: str) -> bool:
         return False
     image = re.compile(r".+\.(png|jpe?g|webp|gif|avif)$", re.IGNORECASE)
     return not all(image.fullmatch(t) for t in tokens)
+
+
+# ── route handling and judge authority ──────────────────────────────────────
+
+def route_rules(markdown: str) -> dict[str, str]:
+    return {row[0]: row[1] for row in table_rows(markdown, "Route recording")}
+
+
+def judging_rules(markdown: str) -> dict[str, str]:
+    return {row[0]: row[1] for row in table_rows(markdown, "Judging captured content")}
+
+
+def sensitive_view_rules(markdown: str) -> dict[str, str]:
+    return {
+        row[0]: row[1]
+        for row in table_rows(markdown, "Capturing a signed-in or sensitive view")
+        if len(row) == 2
+    }
+
+
+def sensitive_view_exposure(markdown: str) -> dict[str, str]:
+    """The `Carried to the judge` rows — what a sensitive capture exposes.
+
+    The section holds two tables; this reads the wider one, whose header names
+    what is carried rather than a rule and its value.
+    """
+    rows = table_rows(markdown, "Capturing a signed-in or sensitive view")
+    section = markdown.split("\n## Capturing a signed-in or sensitive view\n", 1)[1]
+    if "| Carried to the judge |" not in section:
+        raise AssertionError(
+            "the sensitive-view section no longer names what a capture carries "
+            "to the judge"
+        )
+    start = section.index("| Carried to the judge |")
+    exposure: dict[str, str] = {}
+    for line in section[start:].splitlines()[1:]:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            break
+        if re.fullmatch(r"\|[\s:|-]+\|", stripped):
+            continue
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if len(cells) == 2:
+            exposure[cells[0]] = cells[1]
+    del rows  # the narrow rule table is read by sensitive_view_rules
+    return exposure
+
+
+def recorded_route(markdown: str, url: str) -> str:
+    """The route as it is recorded and transmitted, per the `Route recording` table.
+
+    Honours the table: if either exclusion stopped saying `excluded`, the
+    corresponding part would survive and the exclusion test would fail.
+    """
+    rules = route_rules(markdown)
+
+    # Split the three parts first, then reassemble only the ones the table
+    # keeps. Stripping one part on the way to the other would drop the second
+    # as a side effect, and a mutation that re-admits it would go unnoticed.
+    head, sep, fragment = url.partition("#")
+    path, qsep, query = head.partition("?")
+
+    route = path
+    if rules.get("route-query-string") != "excluded" and qsep:
+        route += "?" + query
+    if rules.get("route-fragment") != "excluded" and sep:
+        route += "#" + fragment
+    return route
+
+
+def judgement_request_route(markdown: str, url: str) -> str:
+    """The route stated to the judge. Same rule, one definition."""
+    return recorded_route(markdown, url)

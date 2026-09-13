@@ -245,6 +245,180 @@ nothing missing, and both field tables carry all four fields.
 1,000, so **227 lines of headroom remain** for T3, T4 and T7. Still the warn tier,
 which the pack was already in before this delivery.
 
+## 2026-09-13 — T3: the manifest field and the seven result states
+
+The reference gained `Result states`, `Result surfaces` and `Observations
+field`. `SKILL.md` gained section 5c and the `inspection observations` row in the
+evidence-manifest table.
+
+**Suite result:** 19 passed for result recording, 44 for the directory (0.57s).
+
+**The manifest's own field counts were stale and are now correct.** The table
+said "all 11 must be present" and "2 more, 13 in total"; adding a twelfth field
+made both false. They now read 12 and 14, and a test asserts the heading count
+equals the number of rows, so the next person to add a field cannot leave the
+surface contradicting itself.
+
+**Eleven mutations, all detected:**
+
+| Mutation | Detected by |
+| --- | --- |
+| `inspection observations` renamed out of the manifest | Field-presence check |
+| Field-count heading left at 11 while the table holds 12 | Count-matches-table check |
+| `filenames-only` `rejected` → `accepted` | A bare filename list started passing |
+| `skipped-no-browser` marked a completed inspection | Skip-distinguishability check |
+| `failed-navigation` marked completed | Failure check |
+| `failed-capture` marked completed | Failure check |
+| `failed-judgement` marked completed | Failure check |
+| `incomplete` also marked completed | Exactly-one-pass-state check |
+| `step-output` stops carrying the result state | Three-surface check |
+| `acceptance-gate-input` row deleted | Three-surface check |
+| Skip row stops naming the missing capability | Capability-naming check |
+
+**One check was rewritten after it failed for the wrong reason.** It first
+asserted a sentence from `SKILL.md` ("no Chromium reachable"), which broke
+because the prose wraps across lines. That is the brittleness the plan's design
+decision exists to avoid, so the check now reads the `skipped-no-browser` row in
+both the reference and the skill's result table. Rows do not rewrap; sentences do.
+
+### Self-host produced no diff, and that is the correct outcome
+
+`catalogue self-host --root . --write` returned ok with an empty `git diff`.
+This is not a skipped step: **`frontend-engineering` has no in-repo projection.**
+Neither `.claude/skills/frontend-engineering/` nor
+`.agents/skills/frontend-engineering/` exists — this repository self-hosts only
+the core, catalogue-curation and governance-extras skills, 26 in total. A pack
+with no projection has nothing for self-host to regenerate.
+
+So for this pack the projection gates that carry weight are `catalogue lint
+--deep` and `catalogue verify`, both green, not a self-host diff. T4's identical
+Done-when clause resolves the same way.
+
+Recorded because it is a trap: a zero diff from self-host reads like the command
+did nothing, and the wrong conclusion is to go looking for the projection that
+failed to update.
+
+`catalogue self-host --write` also **refuses a dirty tree** ("working tree is
+dirty — refusing to write. Pass --force to override"), so T0–T3 were committed
+first, at `05d5ca2fa`.
+
+**Gates:** deep lint exit 0 (`CAT-S003` now **800** body lines, 200 of headroom
+left); `catalogue verify --root .` ok.
+
+## 2026-09-13 — T4: the judge boundary
+
+The reference gained `Route recording`, `Judging captured content` and
+`Capturing a signed-in or sensitive view`. `SKILL.md` gained the matching clauses
+in sections 5a and 5b.
+
+**Suite result:** 62 passed for the directory (0.26s).
+
+**A check that could not fail was found and fixed.** The first version asserted
+`"data, not instruction authority"` against the whole of `SKILL.md`. It passed —
+but not because the judgement section said it. `SKILL.md` carries the shared
+output-rendering block, which already contains that exact phrase at line 32. The
+check would have stayed green with the new clause deleted outright.
+
+The mutation battery is what caught it: mutation 9 came back GREEN when every
+other mutation went red. The fix is `inspection_section()`, which narrows the
+haystack to section 5 — 6,250 characters of the file's 46,880. All three
+skill-prose checks are now scoped to it, and all three go red when their clause
+is removed from the section while the boilerplate stays put.
+
+**Route exclusion is checked independently for each part.** `recorded_route`
+splits path, query and fragment and reassembles only what the table keeps.
+Stripping one on the way to the other would have dropped the fragment as a side
+effect of the query rule, and a mutation re-admitting it would have gone
+unnoticed. Verified: flipping `route-query-string` alone leaks
+`/orders/2481?token=abc`; flipping `route-fragment` alone leaks
+`/orders/2481#receipt`.
+
+**Eleven mutations, all detected** (after the fix above):
+
+| Mutation | Detected by |
+| --- | --- |
+| `route-query-string` `excluded` → `kept` | Recorded route retained `?token=abc` |
+| `route-fragment` `excluded` → `kept` | Recorded route retained `#receipt` |
+| Either flip, on the judgement-request route | Asserted separately from the recorded route |
+| `route-source` → `discovered` | Adopter-supplied check |
+| `captured-content-instruction-authority` → `full` | Authority check |
+| `captured-content` → `trusted` | Untrusted-evidence check |
+| `sensitive-view-capture` → `automatic` | Adopter-decision check |
+| `The page as rendered` exposure row deleted | Exposure-named check |
+| Untrusted-data clause cut from section 5 | Scoped skill check |
+| Adopter-routes sentence cut from section 5 | Scoped skill check |
+| Adopter's-decision sentence cut from section 5 | Scoped skill check |
+
+Control: the five leaky routes strip to their paths, three already-clean routes
+pass through unchanged (the rule removes secrets without mangling ordinary
+routes), and every rule row reads as authored.
+
+**Gates:** deep lint exit 0 (`CAT-S003` **822** body lines, 178 of headroom left
+for T7); `catalogue verify --root .` ok; `lint-pack-test-boundary` 8 of 8. The
+self-host clause in this task's Done-when resolves as recorded under T3 — this
+pack has no in-repo projection.
+
+## 2026-09-13 — T5: the journey promise, and a stale projection that hid a failure
+
+`JOURNEY.md` step 4 now names the rendered-page inspection, its observations
+output, and its named skip; the `accept-frontend-evidence` gate's `whatToCheck`
+now names the `inspection observations` field and what does not satisfy it.
+
+**Suite result:** 71 passed for the directory (0.31s).
+
+**Written red first.** The guard suite was authored before the journey was
+touched: its five skip-cost pins passed (confirming the baseline was captured
+correctly) and its four promise assertions failed. Both halves moved for the
+right reason.
+
+### The skip cost is byte-pinned, and the pin holds
+
+The spec lists "changing what a named skip costs at the
+`accept-frontend-evidence` gate" under `Ask first`, and **nothing else reads that
+text** — not `catalogue verify`, not the journey lints. Without a pin the
+boundary could be crossed with no signal. Four strings are pinned byte-exact: the
+gate's `whatGoodLooksLike`, `whatBadLooksLike`, `consequence`, and the
+known-exceptions clause, plus the `unverified items` manifest row.
+
+All four mutations go red (rewording the consequence, rewording
+`whatGoodLooksLike`, cutting the known-exceptions clause, removing the gate
+itself), and the unmutated control passes. The pin is deliberately brittle: a
+reworded line is a failure by design, and the response is to get the decision
+made and then update the constant.
+
+This delivery makes a skip **visible**. It does not make it cost more.
+
+### A stale web projection hid a real lint failure
+
+`web/src/content/journeys/frontend-engineering.md` is generated from the pack's
+`JOURNEY.md` by `tools/build-site.py --journeys-only`. After editing the pack
+journey, all three journey lints passed — **against the stale projection**.
+
+Regenerating turned one red immediately:
+
+```
+lint-journey-contract: structural violations:
+  frontend-engineering.md: stage '### 4. Run verification gates':
+  unknown label `Named skip` (not in the fixed set)
+```
+
+`tools/lint-journey-contract.py:45-52` holds a closed label set — `You provide`,
+`<Actor> does`, `You do`, `You decide`, `Output`, `State` — in fixed order. The
+`**Named skip:**` bullet was a new label and not permitted. The named-skip text
+now sits inside `Output`, which is where a result belongs anyway.
+
+Note that `lint-web-journey-parity.py` would never have caught this: it compares
+**skill counts only**, not bodies, so a body-level drift between a pack journey
+and its web projection is invisible to it.
+
+The sequence that matters: edit `packs/<pack>/JOURNEY.md` → run
+`tools/build-site.py --journeys-only` → *then* run the journey lints. Linting
+before regenerating grades the old file.
+
+**Gates:** `lint-journey-contract` all 20 conform; `lint-pack-journeys` all 14
+valid; `lint-web-journey-parity` all 20 in parity; `catalogue verify --root .`
+ok; 71 tests pass.
+
 ## 2026-09-13 — workspace registration
 
 The spec was in no `workspace.toml` entry, so canonical preflight returned

@@ -81,7 +81,8 @@ humanGates:
     trigger: "After implementation, audit, or verify mode produces gate results"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Routes, viewports, browsers, states, screenshots, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Routes, viewports, browsers, states, screenshots, inspection observations, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Inspection observations say what was seen in the captures and name the result state; a list of screenshot filenames does not satisfy the field, and a skipped or failed inspection is not a completed one."
       - "Core Web Vitals use p75 targets, with mobile and desktop separated where field data exists."
       - "Known exceptions are explicit decisions, not hidden missing work."
     whatGoodLooksLike: "The manifest names what was tested, what passed, what could not be tested, and what remains accepted risk."
@@ -153,10 +154,10 @@ Common requests:
 
 ### 4. Run verification gates
 
-- **You provide:** a runnable local route, static file, or completed surface, plus any browser or environment constraints.
-- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, CSS token enforcement when configured, and visual QA against applicable states. It records Core Web Vitals targets at p75 and separates mobile and desktop where field data exists.
-- **You do:** provide access or manual evidence for any browser-only check the agent cannot run.
-- **Output:** gate results with pass, fail, or unverified status for each required check.
+- **You provide:** a runnable local route, static file, or completed surface, plus any browser or environment constraints, and the routes you want inspected.
+- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, CSS token enforcement when configured, and visual QA against applicable states. It then runs the **rendered-page inspection**: it opens each route you named at two viewport heights, at rest and scrolled, and judges what the page actually looks like — content covering other content, text running out of its container, a control too small to hit. It records Core Web Vitals targets at p75 and separates mobile and desktop where field data exists.
+- **You do:** provide access or manual evidence for any browser-only check the agent cannot run, and decide whether any signed-in or sensitive view should be captured at all.
+- **Output:** gate results with pass, fail, or unverified status for each required check, plus the inspection's **observations** — what was seen in the captures and the result state — which carry into the evidence manifest. A filename is not an observation. When no browser is reachable the inspection takes its named skip, recording `skipped-no-browser` and naming the missing capability; a skip stays visibly different from a completed inspection everywhere the result is read, so it reaches you as a decision rather than passing as a pass.
 - **State:** read-only
 
 ---
