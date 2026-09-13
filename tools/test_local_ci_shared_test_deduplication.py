@@ -197,6 +197,12 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_sidebar.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
+    # spec/self-host-projection-merge-driver: both suites gate the
+    # `merge=regen` block, and `lint-ci-parity` disposes their gate-main steps
+    # as LOCAL("test-after-build-check") -- which is only true while this batch
+    # runs them.
+    "tools/test_gitattributes_merge_driver.py",
+    "tools/test_merge_driver_behaviour.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -520,11 +526,34 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # modules; no other line moves, is reordered, or is dropped. Line counts are
 # unchanged — that batch is one continued command, so the modules lengthen an
 # existing line rather than adding one.
+# Re-pinned 2026-09-13 for the two merge-driver modules
+# (spec/self-host-projection-merge-driver), which join the final tools batch.
+# They gate the `merge=regen` block, and `lint-ci-parity` disposes their
+# gate-main steps as LOCAL("test-after-build-check"), which is only true while
+# this batch runs them.
+#
+# Dispositioned both ways, through `_effective_composition_errors` itself
+# rather than a hand-rolled recomputation. Reproducing a pinned value needs the
+# whole path, not just `_normalized_command_plan`: standalone is
+# `_plan_digest(_without_construction_addition(plan))`, and composed first
+# strips ` --ignore=<path>` for every `COMPOSED_EXCLUSIONS` member from each
+# line and re-joins on whitespace. Stopping at the normalized plan yields a
+# different hash and sends the next re-pinner chasing a phantom move.
+#
+# (1) Sole cause: the same path run against this worktree's Makefile and
+# against `5c96716d8:Makefile` (before the batch line changed) keeps both line
+# counts — 62 standalone, 61 composed — with exactly one line differing in each
+# at index 47, gaining exactly the two new module tokens; no other line moves,
+# is reordered, or is dropped. (2) Prior pins were current: with the superseded
+# digests swapped back in, that same path against the reverted Makefile
+# reports no drift, reproducing `d29b113d…` and `61120874…` exactly. This
+# second half matters more here than in earlier entries, because this re-pin
+# sits on a merge of origin/main that could itself have moved the plan.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d29b113d9479b7a8e3c7fcbf450e65c0fe2c215ac657050fa1f79511f88124d8"
+    "7fadaf203076cf15c3f39820828443ebf14ea9d76216051595a037cf4e5c73b8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "61120874532d1206b49526f368feafd1cd090290a96abb2d12e4903902e7313a"
+    "e48c8b01613f6570a2ed6895a4629b0f12bea62839a12f731bb32c741b2f7722"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
