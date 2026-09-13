@@ -72,7 +72,7 @@
 | 0068 | [Notification namespace — _agentbundle.core/](0068-notification-namespace-x-core.md) | Accepted | 2026-08-03 |
 | 0069 | [Threading model — daemon threads and bounded worker pool](0069-threading-model-daemon-threads-bounded-pool.md) | Accepted | 2026-08-03 |
 | 0070 | [Local scope install — `.git/info/exclude` exclusion, whole-install abort, per-worktree keyed blocks, and deferred concurrent-write lock](0070-local-scope-install-decisions.md) | Accepted | 2026-08-04 |
-| 0071 | [`.apm/` is the runtime export boundary; pack tests live at `packs/<pack>/tests/`](0071-pack-runtime-export-boundary-and-test-placement.md) | Accepted | 2026-08-06 |
+| 0071 | [`.apm/` is the runtime export boundary; pack tests live at `packs/&lt;pack&gt;/tests/`](0071-pack-runtime-export-boundary-and-test-placement.md) | Accepted | 2026-08-06 |
 | 0072 | [The derived plugin manifest mirrors Claude Code's schema; the real client is the oracle](0072-derived-plugin-manifest-mirrors-upstream-schema.md) | Accepted | 2026-08-06 |
 | 0073 | [Zensical is the v1 binder renderer — chosen for foundation continuity, not footprint](0073-zensical-as-the-v1-binder-renderer.md) | Accepted | 2026-08-06 |
 | 0074 | [The work-loop owns its state lock; agentbundle's stays separate](0074-the-work-loop-owns-its-state-lock.md) | Accepted | 2026-08-07 |

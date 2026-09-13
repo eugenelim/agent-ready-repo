@@ -103,8 +103,13 @@ def _escape_cell(text: str) -> str:
     for char in ("\\", "|", "[", "]"):
         text = text.replace(char, "\\" + char)
     # Record-controlled text must not open a raw HTML tag in an adopter's
-    # renderer; the destination path already refuses these for the same reason.
-    return text.replace("<", "&lt;").replace(">", "&gt;")
+    # renderer. Only outside a code span: CommonMark already treats raw HTML as
+    # literal inside backticks, and escaping there would corrupt a legitimate
+    # placeholder such as `packs/<pack>/tests/`.
+    parts = text.split("`")
+    for i in range(0, len(parts), 2):  # even indices are outside a code span
+        parts[i] = parts[i].replace("<", "&lt;").replace(">", "&gt;")
+    return "`".join(parts)
 
 
 def _escape_destination(name: str) -> str:

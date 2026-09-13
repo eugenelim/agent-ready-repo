@@ -50,13 +50,19 @@ DESCRIPTORS: dict[str, dict[str, object]] = {
 }
 
 # A qualifying clause may follow the lifecycle token; the table carries the token.
-_STATUS = re.compile(r"^-?\s*\*\*Status:\*\*\s*(.+?)\s*$", re.MULTILINE)
+# Spaces and tabs, never `\s`: under MULTILINE that matches a newline, so an
+# empty Status captures the following field line as its value. Same class as
+# the defect in _field -- both patterns had it, and only one was repaired.
+_STATUS = re.compile(r"^-?[ \t]*\*\*Status:\*\*[ \t]*(.*?)[ \t]*$", re.MULTILINE)
 _TOKEN_END = re.compile(r"\.\s|\s+(?:—|--|\(|<!--)")
 
 
 # The bundled record templates ship this literal for an unfilled date, so a
 # record still carrying it has no date rather than a date of that text.
 _DATE_PLACEHOLDER = "YYYY-MM-DD"
+
+# A field that is present and still carries the template placeholder.
+_UNFILLED = "\x00unfilled"
 
 
 def _field(text: str, name: str) -> str | None:
@@ -72,8 +78,10 @@ def _field(text: str, name: str) -> str | None:
         return None
     value = match.group(1).split("<!--")[0].strip()
     if value == _DATE_PLACEHOLDER:
-        # An unfilled template placeholder is not a value.
-        return None
+        # Present but unfilled. Distinct from absent: only the record's opening
+        # date may fall back to git, because a record has an add event but an
+        # unfilled closing date means no closing event happened.
+        return _UNFILLED
     return value
 
 
@@ -94,7 +102,9 @@ def _escape_cell(text: str) -> str:
     """Escape the delimiters that would otherwise split or break a table cell."""
     for char in ("\\", "|", "[", "]"):
         text = text.replace(char, "\\" + char)
-    return text
+    # Record-controlled text must not open a raw HTML tag in an adopter's
+    # renderer; the destination path already refuses these for the same reason.
+    return text.replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _escape_destination(name: str) -> str:
@@ -129,6 +139,9 @@ def _git_added(directory: pathlib.Path, name: str) -> str:
              "--format=%ad", "--date=short", "--", name],
             cwd=directory, env=environment, stdin=subprocess.DEVNULL,
             capture_output=True, text=True, check=False, shell=False, timeout=30,
+            # Pin the decode: the locale default raises UnicodeDecodeError on a
+            # non-ASCII byte, and that is a ValueError the handler below misses.
+            encoding="utf-8", errors="surrogateescape",
         )
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -214,13 +227,18 @@ def render(directory, record_type: str | None = None) -> str:
         cells = [f"{ordinal:04d}",
                  f"[{_escape_cell(title)}]({_escape_destination(name)})",
                  _escape_cell(status)]
-        for field in spec["dates"]:  # type: ignore[union-attr]
+        for index, field in enumerate(spec["dates"]):  # type: ignore[arg-type]
             value = _field(body, field)
-            if value is None:
-                # Absent entirely: a legacy record predating the field. Ask git.
+            opening = index == 0
+            if value is None or (value == _UNFILLED and opening):
+                # Absent, or an unfilled opening date: a record has an add event,
+                # so git can answer. An unfilled *closing* date cannot -- there was
+                # no closing event, and filling it would publish a false one.
                 value = _git_added(directory, name)
                 if not value:
                     _warn(f"{name}: no {field} field and no git history")
+            elif value == _UNFILLED:
+                value = ""
             elif not value:
                 # Present and deliberately empty — an RFC with no terminal status.
                 # Never fill this from a commit date: that would label an open
@@ -247,7 +265,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("dir")
     args = parser.parse_args(argv)
 
-    directory = pathlib.Path(args.dir)
+    supplied = pathlib.Path(args.dir)
+    try:
+        directory = supplied.resolve(strict=True)
+    except OSError as error:
+        _warn(f"{args.dir}: cannot resolve ({error})")
+        return 1
+    # Resolving is not enough on its own: following a symlinked record directory
+    # would index one tree and write into another, which is the same escape as a
+    # symlinked target. Refuse rather than silently indexing somewhere else.
+    # Only the supplied directory itself: an ancestor symlink is ordinary (macOS
+    # resolves /var through one), and refusing those would reject every normal
+    # invocation under a temp or home path.
+    if supplied.is_symlink():
+        _warn(f"{args.dir}: record directory resolves through a symlink; refusing")
+        return 1
     if not directory.is_dir():
         _warn(f"{args.dir}: not a directory")
         return 1
@@ -258,9 +290,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     target = directory / "README.md"
-    # The reader refusing a record-shaped symlink while the writer follows one is
-    # how an index target pointing outside the directory gets overwritten with
-    # record-derived content. Re-check the target itself, and abort rather than warn.
+    # The reader refusing a record-shaped symlink while the writer followed one is
+    # how an index target outside the directory got overwritten. Check the target
+    # itself, and prove its parent is the resolved record directory.
     try:
         mode = target.lstat().st_mode
     except FileNotFoundError:
@@ -275,6 +307,9 @@ def main(argv: list[str] | None = None) -> int:
         if not stat.S_ISREG(mode):
             _warn(f"{target}: index target is not a regular file")
             return 1
+        if target.resolve().parent != directory:
+            _warn(f"{target}: index target resolves outside the record directory")
+            return 1
     current = target.read_text(encoding="utf-8") if mode is not None else ""
     if args.check:
         if current == generated:
@@ -286,7 +321,17 @@ def main(argv: list[str] | None = None) -> int:
         _warn(f"{target}: differs in length ({len(current.splitlines())} vs "
               f"{len(generated.splitlines())} lines)")
         return 1
-    target.write_text(generated, encoding="utf-8", newline="\n")
+    # Create-and-replace, never truncate-in-place: the object written is the one
+    # just checked, a pre-existing hardlinked inode is not reused, and an encode
+    # failure cannot leave the index destroyed.
+    scratch = target.with_name(f".{target.name}.index-records")
+    try:
+        scratch.write_text(generated, encoding="utf-8", newline="\n")
+        os.replace(scratch, target)
+    except (OSError, UnicodeEncodeError) as error:
+        scratch.unlink(missing_ok=True)
+        _warn(f"{target}: could not write ({error})")
+        return 1
     return 0
 
 

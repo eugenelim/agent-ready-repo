@@ -316,3 +316,13 @@ def test_cell_text_cannot_open_a_raw_html_tag(tmp_path):
     assert rows, "no record row rendered"
     assert "<img" not in rows[0]
     assert "&lt;img" in rows[0]
+
+
+def test_angle_brackets_inside_a_code_span_are_left_alone(tmp_path):
+    """CommonMark treats raw HTML as literal in a code span; escaping corrupts it."""
+    _write(tmp_path, "0004-y.md", "ADR-0004: `packs/<pack>/tests/` is the home")
+    rows = [r for r in _load().render(tmp_path, record_type="adr").splitlines()
+            if r.startswith("| 0")]
+    assert rows, "no record row rendered"
+    assert "`packs/<pack>/tests/`" in rows[0]
+    assert "&lt;pack&gt;" not in rows[0]
