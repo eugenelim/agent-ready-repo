@@ -4,10 +4,9 @@
 output-producing packs write their durable work. It is never shipped into a
 projected path; you create it by hand (or an `agentbundle install` step appends a
 default section to one you already have — **append-if-exists / never-create /
-never-overwrite**). On the rare append of a *missing* section, the installer
-re-emits the file and does **not** preserve freeform comments or off-schema keys;
-an existing section is left byte-identical (the re-emit runs only when your
-section is absent). This page documents the `[research]`
+never-overwrite**). On the append of a *missing* section, the installer adds that one table and
+leaves every other byte of the file unchanged — comments, key order, quoting
+style and line endings included. An existing section is never replaced. This page documents the `[research]`
 section that `desk-research-project-start` reads.
 
 ## The `[research]` table
@@ -15,8 +14,18 @@ section that `desk-research-project-start` reads.
 One key:
 
 ```toml
+# ./agentbundle-layout.toml  (repo scope — the installed default)
 [research]
-output_dir = "~/research-projects"   # a base directory; project folders go *under* it
+output_dir = "docs/product/research"   # a base directory; project folders go *under* it
+```
+
+The same key at user scope takes an absolute path, since one profile serves
+many repositories:
+
+```toml
+# ~/.agentbundle/agentbundle-layout.toml  (user scope)
+[research]
+output_dir = "~/research-projects"
 ```
 
 - **`output_dir` is a base, not the leaf.** Each project gets its own topic-named

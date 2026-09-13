@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.15.7"
+version = "0.15.8"
 description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"
@@ -37,7 +37,8 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 # the user-scope install append is a no-op (adopters write an [architecture] section
 # by hand; see the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
-output_dir = "docs/design"
+section    = "architecture"
+output_dir = "docs/architecture"
 
 # Pack activation evals: each user-facing workflow ships evals/eval_queries.json
 # and is measured by tools/run-pack-evals.py. The generated
