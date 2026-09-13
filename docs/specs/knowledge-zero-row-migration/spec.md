@@ -152,8 +152,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Process: a `.apm/**` content change bumps `pack.toml` and
   `.claude-plugin/plugin.json` by a patch level; both read 2.25.18, so this
   ships as 2.25.20 (source: `packs/AGENTS.md` § Version bump rule).
-- Process: packs keep no `CHANGELOG.md` — only published packages do — so no
-  changelog surface is in scope (source: `docs/CONVENTIONS.md:720`).
+- Process: the version bump's release surface is `docs/product/changelog.md`,
+  which carries a per-pack `## [core][<version>]` entry that must be topmost
+  beneath `[Unreleased]` and match the manifests (source: six roster gates,
+  including `test_verification_ledger_contract.py`). A superseded bullet here
+  claimed packs keep no changelog, generalising from `packages/*/CHANGELOG.md`;
+  that was false and cost a CI round.
 - Process: no content pin blocks this change. The `project-knowledge` skill body
   is 47 lines against the `CAT-S003` 500-line advisory, and the shared-test
   deduplication guard pins no project-knowledge node ID (source: line count and
