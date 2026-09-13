@@ -43,12 +43,12 @@ required artifacts, planning, verification, review, recovery, and completion.
 ## Build and test commands
 
 ```bash
-make lint-ruff lint-mypy  # ~8s, no lease. Under load run only this locally — not make ci, build-check or test
+make lint-ruff lint-mypy  # ~8s, no lease. This IS the local gate — everything heavier belongs on CI, below
 python3 -m pytest <only the suite you touched> -q  # targeted; `make test` is ~80 suites, minutes
 git push -u origin HEAD && B="$(git branch --show-current)"  # then open the PR: of 10 PR workflows only build-check + ci-security always run; 8 are path-filtered
 gh workflow run test-corpus.yml --ref "$B"  # `make test` — DISPATCH-ONLY, no PR trigger
 gh workflow run test-roster.yml --ref "$B"  # the roster suite — DISPATCH-ONLY. Both: partial evidence, never required
-make ci  # fullest local gate; covers build-check.yml only, and a local green can still meet a red CI job. Idle machines only; SKIP_SAST=1 is INCOMPLETE, not a pass
+# make ci — do NOT run to pre-check a push: the PR runs build-check.yml, and the 2 dispatches cover the rest of what make ci would. Offline / CI-repro / gate-chain only
 make build-self && make bootstrap-sites  # local: these WRITE files you then read
 ```
 
