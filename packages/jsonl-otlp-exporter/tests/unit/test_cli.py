@@ -253,3 +253,49 @@ class TestSignalNumbering:
 
     def test_the_interrupt_status_matches_the_convention(self):
         assert cli.EXIT_INTERRUPTED == 128 + int(signal.SIGINT)
+
+
+class TestDryRun:
+    """A profile that was supplied is validated even with nothing configured.
+
+    `docs/profiles.md` tells a reader to check a profile by running with no
+    endpoint set. That instruction is only true if validation happens before the
+    unconfigured early return -- and the first version of this CLI returned
+    first, so the documented check silently passed any profile at all.
+    """
+
+    def test_an_invalid_profile_is_reported_with_no_endpoint_configured(self, workspace):
+        (workspace / "p.toml").write_text('timestamp_field = "at"\n', encoding="utf-8")
+        code, err = _run(workspace, env={})
+        assert code == 1, "the documented dry run must catch a broken profile"
+        assert "missing required key" in err
+
+    def test_a_valid_profile_with_no_endpoint_still_exits_zero_and_sends_nothing(self, workspace):
+        sent = []
+        code, err = _run(workspace, env={}, sent=sent)
+        assert code == 0
+        assert sent == []
+        assert "no endpoint is configured" in err
+
+    def test_no_profile_and_no_endpoint_is_not_an_error(self, workspace):
+        """AC-0033 and AC-0052 collide here; off-by-default wins.
+
+        AC-0052 exists to stop a built-in profile deciding the payload, which is
+        not a question when nothing is being sent. Recorded in the verification
+        ledger for the owner.
+        """
+        err = io.StringIO()
+        code = cli.main(
+            ["--input", str(workspace / "e.jsonl"), "--root", str(workspace)],
+            env={}, stream=err, connection_factory=_factory(),
+        )
+        assert code == 0
+
+    def test_no_profile_with_an_endpoint_configured_is_refused(self, workspace):
+        err = io.StringIO()
+        code = cli.main(
+            ["--input", str(workspace / "e.jsonl"), "--root", str(workspace)],
+            env=ENV, stream=err, connection_factory=_factory(),
+        )
+        assert code == 1
+        assert "no built-in profile" in err.getvalue()

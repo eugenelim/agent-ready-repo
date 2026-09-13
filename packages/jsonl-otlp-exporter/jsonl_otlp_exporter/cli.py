@@ -65,8 +65,6 @@ def _connection_factory(scheme, connect_host, port, timeout, context):
 
 
 def _run(args, env, stream, connection_factory) -> int:
-    # The endpoint is resolved FIRST, and an unconfigured run stops here.
-    #
     # AC-0033 ("no endpoint -> exit 0") and AC-0052 ("no --profile -> exit 1")
     # are both unconditional and collide when neither is supplied. Off-by-default
     # wins: it is the Boundaries' first "Always do", and AC-0052 exists to stop a
@@ -74,6 +72,13 @@ def _run(args, env, stream, connection_factory) -> int:
     # when nothing is being sent. Checking the profile first would demand one
     # from a user who has not enabled sending at all.
     endpoint = resolve_endpoint(env, args.config)
+
+    # A profile that WAS supplied is validated even when nothing is configured,
+    # which is what makes the documented dry run real: run with no endpoint to
+    # check a profile, send nothing, and hear about any mistake in it. Returning
+    # before this point would report success for a profile that cannot work.
+    profile = load_profile(args.profile, args.root) if args.profile is not None else None
+
     if endpoint is None:
         print(
             "jsonl-otlp-export: no endpoint is configured; nothing was sent. "
@@ -83,7 +88,8 @@ def _run(args, env, stream, connection_factory) -> int:
         )
         return EXIT_OK
 
-    profile = load_profile(args.profile, args.root)
+    if profile is None:
+        profile = load_profile(None, args.root)  # raises: there is no default
     service_name = args.service_name or default_service_name(args.profile)
     destination = resolve_destination(endpoint)
     fd = open_input(args.input, args.root)
