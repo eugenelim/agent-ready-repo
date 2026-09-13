@@ -35,7 +35,7 @@ that the staged map must first be promoted into `docs/knowledge/` and committed.
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — the migration lifecycle is a documented user journey with an undocumented mandatory step | `packs/core/.apm/skills/project-knowledge/SKILL.md` and `packs/core/seeds/docs/knowledge/README.md` | Pack maintainer | AC6's order-aware section check green | Both surfaces carry the four-step sequence and the check runs in the pack's pytest suite |
 | Current product truth | Applicable — the same journey text ships into every adopter repository as a seed | `packs/core/seeds/docs/knowledge/README.md` | Pack maintainer | Seed diff reviewed alongside the skill body | Seed and skill body agree on the four-step sequence |
-| Release history | Applicable — a `.apm/**` change is a pack release | `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` | Pack maintainer | Both files read 2.25.19 | Versions match and the PR description names 2.25.19 for the adopter to pin |
+| Release history | Applicable — a `.apm/**` change is a pack release | `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` | Pack maintainer | Both files read 2.25.20 | Versions match and the PR description names 2.25.20 for the adopter to pin |
 | Decision rationale | Not applicable — ADR-0081 and ADR-0082 already own the migration lifecycle's authority model, and this change alters no decision | — | — | — | — |
 | Interface compatibility | Not applicable — no CLI flag, helper signature, or contract schema changes | — | — | — | — |
 
@@ -50,7 +50,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Edit `packs/core/.apm/` as the source of truth, then regenerate the `.claude/`
   and `.agents/` projections with `agentbundle catalogue self-host --root . --write`.
 - Bump `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
-  together to 2.25.19.
+  together to 2.25.20.
 
 ### Ask first
 
@@ -128,7 +128,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Pack maintainer: the adopter repository's temporary in-repo divergence
   (the one-line fix applied to both projections with re-pinned
   `.agentbundle-state.toml` SHAs) is dropped and the projections restored to
-  upstream once 2.25.19 is released. Tracked outside this repository.
+  upstream once 2.25.20 is released. Tracked outside this repository.
 
 ## Assumptions
 
@@ -151,7 +151,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `test_migration.py:45`).
 - Process: a `.apm/**` content change bumps `pack.toml` and
   `.claude-plugin/plugin.json` by a patch level; both read 2.25.18, so this
-  ships as 2.25.19 (source: `packs/AGENTS.md` § Version bump rule).
+  ships as 2.25.20 (source: `packs/AGENTS.md` § Version bump rule).
 - Process: packs keep no `CHANGELOG.md` — only published packages do — so no
   changelog surface is in scope (source: `docs/CONVENTIONS.md:720`).
 - Process: no content pin blocks this change. The `project-knowledge` skill body

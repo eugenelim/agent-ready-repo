@@ -105,7 +105,7 @@ user-invoked-artifact item is not satisfied by a passing unit test.
 | --- | --- | --- | --- |
 | User-facing promise — skill body and README seed | T5, T6 | T6's content pin green in the pack suite | Both surfaces name the promote-and-commit step |
 | Current product truth — README seed | T5 | Seed and skill body reviewed in one diff | The four-step sequence reads the same in both |
-| Release history — pack version | T7 | `pack.toml` and `plugin.json` both read 2.25.19 | PR description names 2.25.19 |
+| Release history — pack version | T7 | `pack.toml` and `plugin.json` both read 2.25.20 | PR description names 2.25.20 |
 | Reusable learning | closeout | Capture receipt at `plan-locked`, or a recorded `project-knowledge unavailable` | The learning is admitted or explicitly discarded |
 
 ## Design (LLD)
@@ -314,7 +314,7 @@ removed or reordered.
 re-run produces no further diff.
 
 **Approach:**
-- Bump both version files to 2.25.19 once every `.apm/` and `seeds/` edit from T1
+- Bump both version files to 2.25.20 once every `.apm/` and `seeds/` edit from T1
   and T5 is in place.
 - **Commit the source changes before running self-host.** `agentbundle catalogue
   self-host --write` refuses a dirty working tree — `build/self_host.py:1307`,
@@ -326,7 +326,7 @@ re-run produces no further diff.
   regenerated projections. Delivery is therefore: source commit, projection
   commit, and the documentation commit, in that order.
 
-**Done when:** both version files read 2.25.19, a second self-host run is a
+**Done when:** both version files read 2.25.20, a second self-host run is a
 zero diff, and the catalogue gates pass.
 
 ## Rollout
