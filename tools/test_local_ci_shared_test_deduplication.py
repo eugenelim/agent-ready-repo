@@ -1021,7 +1021,10 @@ def _composition_errors(makefile: str, chain_source: str) -> list[str]:
         errors.append("build ownership drift")
 
     ci_deps, _ci_recipe = _target_rule(makefile, "ci")
-    if ci_deps != ["build-check", "lint-ruff", "lint-mypy", "test-after-build-check"]:
+    # Linters lead: they are lease-free and finish in seconds, so they must not
+    # sit behind build-check's network-bound SAST/SCA leg. build-check keeps its
+    # position ahead of test-after-build-check, which also declares it directly.
+    if ci_deps != ["lint-ruff", "lint-mypy", "build-check", "test-after-build-check"]:
         errors.append("ci graph drift")
 
     composed_deps, composed_recipe = _target_rule(makefile, "test-after-build-check")

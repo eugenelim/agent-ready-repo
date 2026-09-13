@@ -669,7 +669,11 @@ test-after-build-check-unleased: lint-editable-install
 # build-check already runs pre_pr_catalogue.py --skip-verify after its one
 # portable verification and persistent build. A direct pre-pr prerequisite here
 # would repeat both the aggregator and portable verification in the same CI run.
-ci: build-check lint-ruff lint-mypy test-after-build-check
+# Linters first: they take no lease and finish in seconds, while build-check ends
+# in the network-bound SAST/SCA leg. Behind build-check, the cheapest feedback in
+# the repo arrived last. build-check still runs — test-after-build-check declares
+# it as its own prerequisite — and its internal order is unchanged.
+ci: lint-ruff lint-mypy build-check test-after-build-check
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────
