@@ -30,6 +30,13 @@ For bare `python -m agentbundle`, `pytest packages/credbroker`, or `pytest tests
 `PYTHONPATH=packages/agentbundle:packages/credbroker` instead of installing.
 A global install can silently shadow the tree, so a domain-looking error may be a stale import.
 
+Once per clone, run `make bootstrap-git`. It registers the `regen` merge driver
+that `.gitattributes` declares for self-host projections, so a merge settles
+them instead of halting. Git config lives in the shared common directory, so one
+run covers every linked worktree — but a fresh clone needs its own. Without it
+git reports `Unknown merge driver: regen` and falls back to a normal conflicting
+merge: degraded, never wrong.
+
 ## Sources and projections
 
 Edit sources, not generated catalogue-scaffold projections. For changes under
@@ -47,3 +54,20 @@ Do not put `# AC10:`, `# AC36:`, or similar spec-AC citation comments in `.apm/*
 ## Landing changes
 
 Auto-merge is disabled and branches must be current with `main`: update a behind branch before merging, then return to merge it manually. In a busy period, update it again if `main` moves.
+
+Self-host projections carry `merge=regen`, so an update settles them instead of
+halting. They are then stale, not correct — the side git kept was generated from
+one branch's sources. Regenerate before committing:
+
+```bash
+git merge --no-ff origin/main   # or rebase; projections resolve silently
+make build-self                 # expected to write; that is the point
+git add -A                      # without this the amend drops what it wrote
+git commit --amend --no-edit
+```
+
+Run `make bootstrap-git` once per clone or the driver is not registered and the
+merge conflicts normally. Never pass `FORCE=1` from automation: the dirty-tree
+refusal is fail-closed by design, and a scripted override defeats it. Pack
+sources under `packs/*/.apm/` and `packs/*/seeds/` still conflict — those merges
+carry decisions, so they are meant to reach you.
