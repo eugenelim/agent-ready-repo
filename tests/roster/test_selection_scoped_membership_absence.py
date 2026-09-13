@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import importlib.util
+import inspect
 import io
 import json
 import sys
@@ -176,6 +177,15 @@ def _result(fixture: RepositoryFixture, selector: str | None = None) -> dict[str
     return matches[0]
 
 
+def _tree_snapshot(root: Path) -> dict[str, bytes]:
+    """Return every regular fixture file keyed by repository-relative path."""
+    return {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
 def _invoke_cli(
     fixture: RepositoryFixture,
     selectors: Iterable[str],
@@ -261,7 +271,7 @@ def legacy_work_collection_matrix(tmp_path: Path) -> RepositoryFixture:
         tmp_path / "legacy-work-matrix",
         ("docs/specs/legacy-queue", "docs/specs/legacy-active", "docs/specs/legacy-shipped"),
         initiatives={
-            "ini-legacy": {
+            "ini-001": {
                 "work.queue": ("spec/legacy-queue",),
                 "work.active": ("spec/legacy-active",),
                 "work.shipped": ("spec/legacy-shipped",),
@@ -285,7 +295,7 @@ def legacy_shaping_membership(tmp_path: Path) -> RepositoryFixture:
         ("docs/specs/shared-name", "docs/specs/known-present"),
         backlog_open=(_canonical_target("known-present"),),
         initiatives={
-            "ini-shaping": {"shaping_queue.active": (_legacy_shaping("shared-name"),)}
+            "ini-002": {"shaping_queue.active": (_legacy_shaping("shared-name"),)}
         },
     )
 
@@ -303,7 +313,7 @@ def duplicate_mixed_membership(tmp_path: Path) -> RepositoryFixture:
     return _write_repository(
         tmp_path / "duplicate-mixed", ("docs/specs/duplicate",),
         backlog_open=(_canonical_target("duplicate"),),
-        initiatives={"ini-mixed": {"work.active": ("spec/duplicate",)}},
+        initiatives={"ini-003": {"work.active": ("spec/duplicate",)}},
     )
 
 
@@ -330,7 +340,7 @@ def canonical_collection_matrix(tmp_path: Path) -> RepositoryFixture:
         ),
         backlog_open=(_canonical_target("top-level"),),
         initiatives={
-            "ini-collections": {
+            "ini-004": {
                 "work.queue": (_canonical_target("queued"),),
                 "work.active": (_canonical_target("active"),),
                 "work.shipped": (_canonical_target("shipped"),),
@@ -360,7 +370,7 @@ def absence_occurrence_class_matrix(tmp_path: Path) -> RepositoryFixture:
             "docs/specs/absent",
         ),
         backlog_open=(_canonical_target("canonical"), invalid),
-        initiatives={"ini-classes": {"work.queue": ("spec/legacy",)}},
+        initiatives={"ini-005": {"work.queue": ("spec/legacy",)}},
     )
 
 
@@ -379,7 +389,7 @@ def occurrence_provenance_matrix(tmp_path: Path) -> RepositoryFixture:
             _legacy_backlog_spec("top-legacy"),
         ),
         initiatives={
-            "ini-provenance": {
+            "ini-006": {
                 "work.active": (
                     _canonical_target("initiative-canonical"),
                     "spec/initiative-legacy",
@@ -466,8 +476,62 @@ def duplicate_legacy_membership(tmp_path: Path) -> RepositoryFixture:
     return _write_repository(
         tmp_path / "duplicate-legacy", ("docs/specs/duplicate",),
         backlog_open=(_legacy_backlog_spec("duplicate"),),
-        initiatives={"ini-legacy-duplicate": {"work.shipped": ("spec/duplicate",)}},
+        initiatives={"ini-007": {"work.shipped": ("spec/duplicate",)}},
     )
+
+
+@pytest.fixture
+def read_only_snapshot(tmp_path: Path) -> RepositoryFixture:
+    fixture = _write_repository(
+        tmp_path / "read-only",
+        ("docs/specs/present", "docs/specs/absent"),
+        backlog_open=(_canonical_target("present"),),
+        existing_specs=("present",),
+    )
+    (fixture.root / "unrelated.txt").write_text("unchanged\n", encoding="utf-8")
+    return fixture
+
+
+def test_engine_rejects_empty_selection(empty_selection: RepositoryFixture) -> None:
+    payload = _engine_surface()(empty_selection.root, [])
+
+    assert payload == {"error": {"code": "empty_selection"}}
+
+
+def test_engine_validates_selector_grammar_and_confinement(
+    invalid_selectors: tuple[RepositoryFixture, tuple[str, ...]],
+) -> None:
+    fixture, invalid = invalid_selectors
+
+    assert _payload(fixture)["results"][0]["membership_present"] is False
+    assert all(
+        _engine_surface()(fixture.root, [selector])
+        == {"error": {"code": "invalid_selector"}}
+        for selector in invalid
+    )
+
+
+def test_engine_reuses_canonical_extraction_and_alias_resolution() -> None:
+    source = inspect.getsource(ENGINE.selected_membership_status)
+
+    assert "_extract_canonical_memberships(" in source
+    assert "_legacy_canonical_alias(" in source
+    assert "parse_workspace(" in source
+    assert "tomllib.load" not in source
+
+
+def test_membership_check_performs_no_writes(
+    read_only_snapshot: RepositoryFixture,
+) -> None:
+    before = _tree_snapshot(read_only_snapshot.root)
+
+    payload = _payload(read_only_snapshot)
+
+    assert [result["membership_present"] for result in payload["results"]] == [
+        True,
+        False,
+    ]
+    assert _tree_snapshot(read_only_snapshot.root) == before
 
 
 def test_empty_selection_is_rejected_by_recognized_route(
@@ -647,7 +711,7 @@ def test_result_and_occurrence_provenance_is_complete_and_repository_relative(
     assert all(not Path(result["canonical_artifact_path"]).is_absolute() for result in results)
     assert all(not Path(item["canonical_artifact_path"]).is_absolute() for item in occurrences)
     assert all({"initiative", "collection", "entry_index", "form"} <= set(item) for item in occurrences)
-    assert {item["initiative"] for item in occurrences} == {None, "ini-provenance"}
+    assert {item["initiative"] for item in occurrences} == {None, "ini-006"}
     assert {item["form"] for item in occurrences} == {"canonical", "legacy"}
 
 
