@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,7 @@ from typing import Any
 
 import pytest
 from knowledge_test_support import (
+    PACK_ROOT,
     PROJECT_KNOWLEDGE_SCRIPT,
     load_knowledge_store_module,
     valid_capture_request,
@@ -104,6 +106,124 @@ def _semantic_bytes(repo: Path) -> bytes:
 
 def _git(repo: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+
+def _assert_canonical_empty_staged_map(repo: Path, store) -> None:
+    stage = repo / "docs/knowledge/.migration-stage"
+    assert [
+        path.relative_to(stage).as_posix() for path in store.staged_migration_files(repo)
+    ] == ["docs/knowledge/topics.index.json"]
+    assert store.staged_map_bytes(repo) == (
+        b"{\n"
+        b'  "entries": [],\n'
+        b'  "schema_version": "knowledge-topic-map.v1"\n'
+        b"}\n"
+    )
+
+
+# AC6 requires the promotion *sequence*, not any particular wording for it, so
+# each step is matched by the action it names rather than by a quoted sentence.
+# A pin on exact prose reds on ordinary clarity edits, and a check that reds on
+# innocuous rewording gets deleted rather than maintained.
+_MIGRATION_HEADING = re.compile(r"^##\s+migrating legacy knowledge\s*$", re.I | re.M)
+_MIGRATION_STEPS = (
+    # the two invocations are literal CLI surface and are meant to be exact
+    re.compile(r"--migrate-legacy"),
+    # The copy step is matched on the action only, deliberately. Two rounds of
+    # review established that a regex cannot decide this step's operands from
+    # prose: requiring a destination after a directional word still accepts
+    # "Do not copy the staged `docs/knowledge/` tree into `docs/knowledge/`"
+    # and rejects the correct "…tree, replacing the current `docs/knowledge/`
+    # directory". A check that both admits a negation and refuses a synonym is
+    # not measuring what it claims to. This asserts the weaker thing it can
+    # actually decide: that four matching *mentions* occur in this order. It is
+    # not sensitive to negation -- a section reading "Do not run
+    # `--migrate-legacy`. Do not copy the staged tree." passes -- and it does
+    # not check the copy step's operands. Both rest on review, against the
+    # wording AC6 states. The check's job is to catch a step silently dropped
+    # or reordered by an edit, which it does.
+    re.compile(r"copy\b[^\n]*\bstaged\b", re.I),
+    re.compile(r"\bcommit\b", re.I),
+    re.compile(r"--activate-staged"),
+)
+
+
+def _migration_section(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    heading = _MIGRATION_HEADING.search(text)
+    assert heading is not None, f"{path} has no migration section"
+    return text[heading.end() :].split("\n## ", maxsplit=1)[0]
+
+
+def test_ac1_ac2_zero_byte_legacy_corpus_stages_canonical_empty_map(
+    repo: Path, store
+) -> None:
+    _write_legacy(repo, [])
+
+    result = store.stage_legacy_migration(repo)
+
+    assert result["counts"] == {
+        "input_rows": 0,
+        "active_import": 0,
+        "needs_review_import": 0,
+        "refused": 0,
+    }
+    assert result["diagnostics"] == []
+    _assert_canonical_empty_staged_map(repo, store)
+
+
+def test_ac3_all_refused_legacy_corpus_stages_canonical_empty_map(
+    repo: Path, store
+) -> None:
+    rows = copy.deepcopy(_legacy_rows()[:2])
+    rows[0]["title"] = "Refuse blank bodies"
+    rows[0]["body"] = ""
+    rows[1]["title"] = "Refuse whitespace bodies"
+    rows[1]["body"] = "   "
+    _write_legacy(repo, rows)
+
+    result = store.stage_legacy_migration(repo)
+
+    assert result["counts"] == {
+        "input_rows": 2,
+        "active_import": 0,
+        "needs_review_import": 0,
+        "refused": 2,
+    }
+    _assert_canonical_empty_staged_map(repo, store)
+
+
+def test_ac4_zero_row_migration_activates_and_clears_stage(repo: Path, store) -> None:
+    _write_legacy(repo, [])
+    store.stage_legacy_migration(repo)
+    stage = repo / "docs/knowledge/.migration-stage/docs/knowledge"
+    knowledge = repo / "docs/knowledge"
+    shutil.copy2(stage / "topics.index.json", knowledge / "topics.index.json")
+    _git(repo, "add", "docs/knowledge/patterns.jsonl", "docs/knowledge/topics.index.json")
+    _git(repo, "commit", "-m", "test: activate empty project knowledge")
+
+    activation = store.activate_staged_migration(
+        repo,
+        committed_snapshot=store.committed_knowledge_snapshot(repo),
+    )
+
+    assert activation["state"] == "activated"
+    assert not (repo / "docs/knowledge/.migration-stage").exists()
+
+
+def test_ac6_shipped_migration_sections_document_promotion_order() -> None:
+    surfaces = [
+        PACK_ROOT / ".apm/skills/project-knowledge/SKILL.md",
+        PACK_ROOT / "seeds/docs/knowledge/README.md",
+    ]
+    for surface in surfaces:
+        section = _migration_section(surface)
+        matches = [pattern.search(section) for pattern in _MIGRATION_STEPS]
+        assert all(
+            match is not None for match in matches
+        ), f"{surface} is missing a promotion step: {matches}"
+        positions = [match.start() for match in matches if match is not None]
+        assert positions == sorted(positions), f"{surface} states the steps out of order"
 
 
 def test_ac20_migration_strictly_prevalidates_every_row_before_staging(

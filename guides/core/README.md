@@ -15,6 +15,31 @@ Start work on adding export retention controls for workspace owners.
 
 New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) is the *why* — the leverage has moved off the prompt and onto the loop. [The `core` pack as a system](explanation/core-pack.md) is the full map. Then build something with [plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md).
 
+## Walk the guidebook
+
+Four steps, in order. Each shows what to type, what the agent replies, what it
+writes and where it lands.
+
+1. [Start the work](how-to/start-the-work.md)
+2. [Write the contract](how-to/write-the-contract.md)
+3. [Run the loop](how-to/run-the-loop.md)
+4. [Close it out](how-to/close-it-out.md)
+
+**The walk covers the main thread, not every skill.** The pack ships eighteen;
+these four steps run ten. The other eight are supported and simply not on the
+path a first walk takes:
+
+| Skill | When you reach for it |
+| --- | --- |
+| `init-project` | Standing up a repository from nothing, before any of this applies |
+| `author-delivery-brief`, `receive-brief` | Work arriving as a brief from outside this repository |
+| `capture-work` | Recording something to start later, rather than starting it now |
+| `contract-acquisition` | Establishing a contract this repository does not yet own |
+| `operational-safety`, `security-checklists`, `security-checklists-reference` | A change crossing a security or operational boundary — the reviewers read these; you rarely run them |
+
+`work-intake` routes to whichever your request needs, which is why the walk
+starts there rather than asking you to choose.
+
 ## Tutorials
 
 Learning-oriented, start-to-finish.
