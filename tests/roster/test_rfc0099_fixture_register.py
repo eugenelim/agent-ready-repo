@@ -15,7 +15,6 @@ REGISTER = (
     / "fixture-register.md"
 )
 SPEC = REGISTER.with_name("spec.md")
-SPECS_INDEX = REPOSITORY_ROOT / "docs" / "specs" / "README.md"
 SHAPING_QA = SPEC.parent / "notes" / "shaping-efficacy-qa.md"
 SHAPING_EVIDENCE = SPEC.parent / "notes" / "shaping-evidence.md"
 EXPECTED_HEADER = (
@@ -104,17 +103,16 @@ def test_register_evidence_paths_are_confined_regular_files() -> None:
             assert candidate.is_file(), (fixture_id, relative_path)
 
 
-def test_register_discloses_late_creation_and_is_indexed() -> None:
+def test_register_discloses_late_creation() -> None:
     """The late register is explicit and its active owner keeps it discoverable."""
     register = REGISTER.read_text(encoding="utf-8")
     spec = SPEC.read_text(encoding="utf-8")
-    index = SPECS_INDEX.read_text(encoding="utf-8")
 
     assert "**Version:** 1.0.0" in register
     assert "written after RFC-0099 acceptance" in register
     assert "required it before acceptance" in register
     assert "[`fixture-register.md`](fixture-register.md)" in spec
-    assert "rfc0099-migration-validation-record/spec.md" in index
+    # ADR-0112 retired the spec index; the spec itself is the record.
 
 
 def test_shaping_keys_resolve_to_sanitized_adjudication_evidence() -> None:

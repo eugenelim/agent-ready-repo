@@ -1027,9 +1027,11 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir.mkdir()
             pack = packs_dir / "core"
             (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
-            # Placeholder seed (what ships to adopters).
+            # Placeholder seed (what ships to adopters). ADR-0112 retired the
+            # spec index, so this seed carries convention prose and no table.
             (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
-                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8", newline="\n"
+                "# Specs\n\nWork that needs a durable delivery contract gets a"
+                " directory.\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "core"\nversion = "0.1.0"\n'

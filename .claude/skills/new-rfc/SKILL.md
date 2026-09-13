@@ -194,8 +194,14 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 7. Set status to `Draft` until the user is ready to circulate, then `Open`.
 
-8. Update the RFC index table (`docs/rfc/README.md` by default, or the resolved sibling
-   index; create the standard header if absent).
+8. Regenerate the RFC index from the records, so the new file appears in it:
+
+   ```bash
+   python3 scripts/index-records.py <resolved-rfc-directory>
+   ```
+
+   The index is derived from the records, so no row is written by hand. Use
+   `--check` to report whether it would change without writing.
 
    ### Project-knowledge gate: `rfc-handoff-ready`
 

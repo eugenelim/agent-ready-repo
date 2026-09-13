@@ -13,22 +13,12 @@ docs/specs/<feature>/
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```
 
-## Active specs
+## Why there is no index
 
-<!-- Update this list as features are added. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no specs yet -->
-
-## Shipped specs (archived)
-
-<!-- Once a feature is shipped, move its row here. The spec stays in place
-     as documentation of the feature's contract. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no shipped specs yet -->
+Specs are discovered by listing this directory. An index over a document
+corpus is generated from that corpus or it does not exist — a hand-maintained
+one drifts from the specs it describes, and every change to it collides with
+every other branch that touches a spec.
 
 ## Adding a new spec
 

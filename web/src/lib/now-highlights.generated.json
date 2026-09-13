@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.25.22"
+          "version": "2.25.23"
         }
       ],
       "date": "2026-09-13",
-      "heading": "[core][2.25.22] — 2026-09-13",
-      "changelogAnchor": "core22522--2026-09-13",
+      "heading": "[core][2.25.23] — 2026-09-13",
+      "changelogAnchor": "core22523--2026-09-13",
       "highlights": [
         {
           "source": "**A frontend review now gets the pictures, not just the diff.** When a surface has been inspected, the work-loop hands `frontend-reviewer` the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about.",
