@@ -293,3 +293,55 @@ the wiring is dropped.
 
 Worth stating plainly because the suite gives no signal for this: a test that is
 never collected looks exactly like a test that passes.
+
+## A mutation sweep over the pattern, rather than a fifth review round
+
+Six times across four rounds, a rule was applied at one call site and not its
+sibling. Rather than look for a seventh instance by reading, the sweep in
+`packages/jsonl-otlp-exporter/tests/wiring_sweep.py` removes every cross-module
+keyword argument in turn and runs the suite. Anything that still passes is a
+wiring with no control behind it.
+
+**Nine survivors and one hang, over 63 mutations.**
+
+| Surface | Unprotected |
+| --- | --- |
+| `cli.py` | the TLS context, the socket timeout, `--follow`, the reader's `--for`, the run-clock anchor, the unmapped-severity report |
+| `transport.py` | the request headers, `diagnostics=False` on a re-encode |
+| `transport.py` | `daemon=True` on the watchdog timer — removing it makes the suite HANG rather than fail |
+
+Two structural causes, not nine accidents. **Every CLI test injects its own
+`connection_factory`**, so the real one — where the TLS context and the socket
+timeout live — was never exercised by anything; and **no CLI test ever passed
+`--follow`**. That is why AC-0024's chain-and-hostname verification had no
+control on the shipped path after four review rounds looked at this code.
+
+Two survivors were repairs made *during* those rounds: the run-clock anchor and
+the double-counting suppression. Both landed correctly and neither had a control,
+which is exactly how they could have regressed without anyone noticing.
+
+## Writing the controls reproduced the same mistake twice
+
+The first TLS control asserted `verify_mode == CERT_REQUIRED` on the returned
+connection. That **cannot fail**: with `context=` dropped, `HTTPSConnection`
+builds its own default context, which verifies too. It now asserts the
+connection uses the exact object it was handed — identity, not properties.
+
+And the first oversize control asserted a CLI behaviour that cannot happen.
+AC-0018 caps a line at 64 KiB and AC-0019 caps a request at 8 MiB; even at a
+worst-case six-byte escape per input byte, one record reaches ~388 KiB, about
+twenty times under the ceiling. **The singleton-refusal branch is unreachable
+through the command** — a dominated bound. The branch stays, because
+`batch_records` is public and the transport suite covers it directly, but the
+CLI test now pins the *relationship*: if the line ceiling rises or the body
+ceiling falls far enough for one record to exceed a request, it fails and the
+unreachability claim gets revisited rather than quietly becoming false.
+
+## The sweep's own two failures, and what they cost
+
+The first attempt printed results only after its loop, and one mutation made the
+suite hang for the full 1800-second subprocess timeout and took the script down
+with it: thirty minutes for no output. Results are now flushed per case, each run
+is bounded at 90 seconds, and a hang is recorded as its own outcome. A suite that
+hangs gives a developer no signal at all, which is the third time that hazard has
+appeared in this package.

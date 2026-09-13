@@ -477,3 +477,124 @@ def _run_raw(workspace, extra, env, connection_factory):
     code = cli.main(_argv(workspace, *extra), env=env, stream=err,
                     connection_factory=connection_factory)
     return code, err.getvalue()
+
+
+class TestWiringSweepGaps:
+    """CLI wirings a mutation sweep found had no control behind them.
+
+    The common cause is structural: every other CLI test injects its own
+    `connection_factory`, so the real one -- where the TLS context and the socket
+    timeout live -- was never exercised; and no CLI test used `--follow` at all.
+    """
+
+    def test_the_real_connection_factory_verifies_tls_and_applies_the_timeout(self):
+        """AC-0024's chain-and-hostname verification had no control on the
+        shipped path. Removing `context=context` from `_connection_factory`
+        survived the entire suite, and so did removing `timeout=timeout`."""
+        import ssl
+
+        # Identity, not properties. Asserting `verify_mode == CERT_REQUIRED`
+        # cannot fail: with `context=` dropped, HTTPSConnection builds its OWN
+        # default context, which verifies too -- so the assertion passes on a
+        # build that ignores the caller's context entirely. Mutation caught that;
+        # this asserts the connection uses the exact object it was handed.
+        supplied = ssl.create_default_context()
+        https = cli._connection_factory("https", "collector.example.com", 443, 12.5, supplied)
+        try:
+            assert https.timeout == 12.5
+            assert https._context is supplied, (
+                "the connection built its own context instead of using the "
+                "caller's, so the destination policy's context is not what "
+                "verifies the peer"
+            )
+            assert supplied.verify_mode == ssl.CERT_REQUIRED
+            assert supplied.check_hostname is True
+        finally:
+            https.close()
+
+        plain = cli._connection_factory("http", "127.0.0.1", 4318, 7.5, None)
+        try:
+            assert plain.timeout == 7.5
+        finally:
+            plain.close()
+
+    def test_follow_reaches_the_reader(self, workspace, monkeypatch):
+        """`--follow` was never wired-tested: removing `follow=args.follow` from
+        the reader call survived, because no CLI test passed the flag."""
+        seen = {}
+        real = cli.iter_records
+
+        def spy(fd, **kwargs):
+            seen.update(kwargs)
+            return real(fd, **kwargs)
+
+        monkeypatch.setattr(cli, "iter_records", spy)
+        _run(workspace, "--follow", "--for", "0", responses=[_Response(200)])
+        assert seen.get("follow") is True, f"follow was not forwarded: {seen}"
+
+    def test_the_for_bound_reaches_the_reader_too(self, workspace, monkeypatch):
+        """Distinct from the sender's bound, which has its own control: the
+        reader takes `for_seconds` separately and nothing checked that wiring."""
+        seen = {}
+        real = cli.iter_records
+
+        def spy(fd, **kwargs):
+            seen.update(kwargs)
+            return real(fd, **kwargs)
+
+        monkeypatch.setattr(cli, "iter_records", spy)
+        _run(workspace, "--for", "3", responses=[_Response(200)])
+        assert seen.get("for_seconds") == 3, f"for_seconds not forwarded: {seen}"
+
+    def test_the_run_clock_anchor_reaches_the_sender(self, workspace, monkeypatch):
+        """The round-2 repair that anchors the run clock at first resolution had
+        no control: removing `run_started=run_started` survived."""
+        seen = {}
+        real = cli.send_batches
+
+        def spy(batches, destination, factory, **kwargs):
+            seen.update(kwargs)
+            return real(batches, destination, factory, **kwargs)
+
+        monkeypatch.setattr(cli, "send_batches", spy)
+        _run(workspace, responses=[_Response(200)])
+        assert seen.get("run_started") is not None, f"run_started not forwarded: {seen}"
+
+    def test_an_unmapped_severity_is_reported_at_the_cli(self, workspace):
+        """AC-0068's report had no CLI control: removing the
+        `on_unmapped_severity` callback survived."""
+        (workspace / "e.jsonl").write_text(
+            '{"at":"2026-09-13T05:52:24Z","result":"nosuchvalue","run_id":"r","seq":1,"event":"e"}\n',
+            encoding="utf-8")
+        code, err = _run(workspace, responses=[_Response(200)])
+        assert code == 0
+        assert "nosuchvalue" in err and "severity_map" in err
+
+    def test_the_oversize_path_is_unreachable_through_the_cli(self):
+        """The `on_oversize` wiring survived the sweep, and it cannot be closed
+        with a CLI test -- because the branch is unreachable from here.
+
+        AC-0018 caps an input line at 64 KiB and AC-0019 caps a request body at
+        8 MiB. Even at a worst-case six-byte escape per input byte plus wrapper
+        overhead, one record reaches ~388 KiB: about twenty times under the
+        request ceiling. A batch that exceeds the ceiling always splits down to
+        records that fit, so the singleton-refusal branch never fires through the
+        command.
+
+        The branch stays: `batch_records` is a public function and a caller with
+        no line ceiling can reach it, and `test_transport.py` covers it directly.
+        What this test pins is the RELATIONSHIP -- if the line ceiling rises or
+        the body ceiling falls far enough for one record to exceed a request,
+        this fails and the unreachability claim gets revisited rather than
+        quietly becoming false.
+        """
+        from jsonl_otlp_exporter import transport as _tp
+        from jsonl_otlp_exporter.source import MAX_LINE_BYTES
+
+        worst_single_record = MAX_LINE_BYTES * 6 + 4096   # 6x escaping + wrapper
+        assert worst_single_record < _tp.MAX_BODY_BYTES, (
+            f"one {MAX_LINE_BYTES}-byte line can now encode to "
+            f"{worst_single_record} bytes, at or over the "
+            f"{_tp.MAX_BODY_BYTES}-byte request ceiling: the oversize branch is "
+            "reachable through the CLI again and needs a control there"
+        )

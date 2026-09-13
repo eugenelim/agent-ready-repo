@@ -720,3 +720,62 @@ class TestRound4Regressions:
         )
         near.close()
         far.close()
+
+
+class TestWiringSweepGaps:
+    """Wirings a mutation sweep found had no control behind them.
+
+    Six times across four review rounds a rule was applied at one call site and
+    not its sibling. The sweep removes each cross-module keyword in turn and runs
+    the suite; anything that still passes is a wiring nothing protects. These are
+    the transport-side survivors.
+    """
+
+    def test_the_request_carries_its_content_type_and_host(self):
+        """Removing the whole `headers=` dict survived the suite: the fakes
+        record headers and no assertion read them. A request with no
+        `Content-Type: application/json` is not an OTLP/JSON request at all."""
+        log = []
+        tp.send_batches([([], b'{"x":1}')], _dest(), _factory(log, [_FakeResponse()]),
+                        clock=_Clock(), stream=io.StringIO())
+        assert log, "no request was recorded"
+        headers = log[0]["headers"]
+        assert headers["Content-Type"] == "application/json"
+        assert headers["Host"] == "localhost:4318"
+        assert headers["Content-Length"] == str(len(b'{"x":1}'))
+
+    def test_splitting_a_batch_does_not_repeat_per_record_diagnostics(self):
+        """The round-2 repair for double-counting had no control.
+
+        `_emit` re-encodes halves when a batch is too large, and the parent's
+        callbacks have already fired for exactly those records -- so without
+        `diagnostics=False` on the recursive calls, 400 affected records are
+        reported as 800.
+        """
+        seen = []
+
+        def encode(batch, diagnostics=True):
+            if diagnostics:
+                seen.extend(r["i"] for r in batch)
+            return json.dumps([dict(r) for r in batch]).encode()
+
+        payload = "x" * 40_000
+        records = [{"i": i, "pad": payload} for i in range(400)]
+        batches = list(tp.batch_records(records, encode))
+        assert len(batches) > 1, "the fixture must actually split"
+        assert len(seen) == 400, f"each record must be counted once, got {len(seen)}"
+        assert len(set(seen)) == 400
+
+    def test_the_watchdog_timer_is_a_daemon(self):
+        """Removing `daemon=True` made the whole suite HANG rather than fail: a
+        non-daemon timer keeps the interpreter alive until it fires. The watchdog
+        only lets a process exit because of that flag."""
+        class _Conn:
+            sock = None
+
+            def close(self):
+                pass
+
+        watchdog = tp._Watchdog(_Conn(), 300)
+        assert watchdog._timer.daemon is True
+        watchdog._timer.cancel()
