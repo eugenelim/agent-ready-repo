@@ -5,6 +5,95 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.22"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.22] — 2026-09-13",
+      "changelogAnchor": "core22522--2026-09-13",
+      "highlights": [
+        {
+          "source": "**Authors can now answer sustained shaping findings without turning every response into more contract prose.** Intent, delivery-brief, and spec guidance points to the work-loop's ordered response ladder while keeping lifecycle gates unchanged, and it states where a demoted claim belongs in each upstream artifact.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Authors can now answer sustained shaping findings without turning every response into more contract prose."
+            },
+            {
+              "type": "text",
+              "value": " Intent, delivery-brief, and spec guidance points to the work-loop's ordered response ladder while keeping lifecycle gates unchanged, and it states where a demoted claim belongs in each upstream artifact."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.21"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.21] — 2026-09-13",
+      "changelogAnchor": "core22521--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A sustained review finding no longer reads as an instruction to edit.** The work-loop's DECIDE step states the answers available to one as an ordered ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut leads, so an author asks whether a claim needs to exist before tracing what checks it, and a review round can shrink a contract rather than only add to it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A sustained review finding no longer reads as an instruction to edit."
+            },
+            {
+              "type": "text",
+              "value": " The work-loop's DECIDE step states the answers available to one as an ordered ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut leads, so an author asks whether a claim needs to exist before tracing what checks it, and a review round can shrink a contract rather than only add to it."
+            }
+          ]
+        },
+        {
+          "source": "**A review record can carry which answer was given and why.** A `review-verdict.v1` finding takes an optional `response` and `reason`. Nothing that decides a verdict reads them, so recording one never changes whether a change is ready.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A review record can carry which answer was given and why."
+            },
+            {
+              "type": "text",
+              "value": " A "
+            },
+            {
+              "type": "code",
+              "value": "review-verdict.v1"
+            },
+            {
+              "type": "text",
+              "value": " finding takes an optional "
+            },
+            {
+              "type": "code",
+              "value": "response"
+            },
+            {
+              "type": "text",
+              "value": " and "
+            },
+            {
+              "type": "code",
+              "value": "reason"
+            },
+            {
+              "type": "text",
+              "value": ". Nothing that decides a verdict reads them, so recording one never changes whether a change is ready."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.20"
         }
       ],

@@ -121,6 +121,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.25.21] — 2026-09-13
 
+### Highlights
+
+- **A sustained review finding no longer reads as an instruction to edit.** The
+  work-loop's DECIDE step states the answers available to one as an ordered
+  ladder — cut, route, fix, hold — walked until one applies, then stopped. Cut
+  leads, so an author asks whether a claim needs to exist before tracing what
+  checks it, and a review round can shrink a contract rather than only add to
+  it.
+- **A review record can carry which answer was given and why.** A
+  `review-verdict.v1` finding takes an optional `response` and `reason`. Nothing
+  that decides a verdict reads them, so recording one never changes whether a
+  change is ready.
+
 ### Added
 
 - A `review-verdict.v1` finding can record `response` and `reason`: which answer
