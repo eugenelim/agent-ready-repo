@@ -83,8 +83,9 @@ __all__ = [
     "validate_run_id",
     "contained",
     "contained_reason",
-    # retry caps
+    # shared state defaults
     "DEFAULTS",
+    "SCHEMA_VERSION",
     # the six read-only guards
     "check_identity",
     "check_plan_current",
@@ -96,6 +97,10 @@ __all__ = [
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
+# Each standalone CLI retains a local declaration so its schema validation gains no
+# new load dependency. The alignment test keeps these declarations and the template
+# on one schema version.
+SCHEMA_VERSION = 1
 
 
 # ── result type ───────────────────────────────────────────────────────────
@@ -869,9 +874,10 @@ def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None
     with two different message sets, which must not be merged.
     """
     sv = state.get("schema_version")
-    if sv != 1:
+    if sv != SCHEMA_VERSION:
         return (
-            f"{verb}: unsupported schema_version={_scalar(sv)} (expected 1); run reset pair"
+            f"{verb}: unsupported schema_version={_scalar(sv)} "
+            f"(expected {SCHEMA_VERSION}); run reset pair"
         )
     stored = state.get("run_id")
     if stored != expect_run_id:
@@ -1015,11 +1021,14 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
     state, reason = _state_or_reason(spec_dir)
     if reason is not None:
         return GuardResult(ok=False, reason=reason)
-    if state.get("schema_version") != 1:
+    if state.get("schema_version") != SCHEMA_VERSION:
         sv = state.get("schema_version")
         return GuardResult(
             ok=False,
-            reason=f"identity: unsupported schema_version={_scalar(sv)} (expected 1)",
+            reason=(
+                f"identity: unsupported schema_version={_scalar(sv)} "
+                f"(expected {SCHEMA_VERSION})"
+            ),
         )
     stored = state.get("run_id")
     if expect_run_id is not None and stored != expect_run_id:
@@ -1198,11 +1207,14 @@ def check_phase(spec_dir: Path, *, phase: str,
 
     # The `implement` phase skips schema validation so pre-Phase-1 state files do not
     # break the hook; phases that actually evaluate counters reject incompatible state.
-    if phase != "implement" and state.get("schema_version") != 1:
+    if phase != "implement" and state.get("schema_version") != SCHEMA_VERSION:
         sv = state.get("schema_version")
         return GuardResult(
             ok=False,
-            reason=f"check: unsupported schema_version={_scalar(sv)} (expected 1); run reset pair",
+            reason=(
+                f"check: unsupported schema_version={_scalar(sv)} "
+                f"(expected {SCHEMA_VERSION}); run reset pair"
+            ),
         )
 
     if phase == "implement":

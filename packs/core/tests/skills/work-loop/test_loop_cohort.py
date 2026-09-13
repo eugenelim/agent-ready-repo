@@ -865,6 +865,13 @@ def test_schedule_rejects_alternate_plan_path(tmp: Path) -> None:
         ok(name)
 
 
+def test_schedule_help_states_canonical_plan_path() -> None:
+    """The option help must not imply an alternate plan path is accepted."""
+    rc, out, err = run_cohort("schedule", "--help")
+    assert rc == 0, err
+    assert "path to plan.md (must be <spec-dir>/plan.md)" in out
+
+
 # ── T1: disabled Phase-1 verbs ────────────────────────────────────────────
 
 

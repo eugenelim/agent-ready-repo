@@ -2,6 +2,16 @@
   "skill_name": "work-loop",
   "evals": [
     {
+      "id": "schedule-plan-is-canonical",
+      "prompt": "I want to schedule work-loop using an alternate plan file. Can I pass its path with `loop-cohort schedule --plan`?",
+      "expected_output": "No. The `--plan` value must be `<spec-dir>/plan.md`. Passing that canonical path is equivalent to omitting the option; an alternate path is refused because schedule checks and hashes the canonical plan file.",
+      "assertions": [
+        "Response says `--plan` must be `<spec-dir>/plan.md`",
+        "Response says an alternate path is refused",
+        "Response does not claim the option selects a different plan"
+      ]
+    },
+    {
       "id": "capture-learnings-quality-attributes",
       "prompt": "You have completed a work-loop and are at Capture learnings. What should you ask, and is speed the deciding criterion?",
       "expected_output": "Ask what would have made the work materially better across relevant quality attributes: correctness or completeness, reliability or recoverability, security or privacy, determinism or reproducibility, operability, maintainability or reviewability, efficiency, and independence from hidden context. Speed is one useful signal, not the objective. Capture a generalizable learning only when it would materially change a future approach.",
