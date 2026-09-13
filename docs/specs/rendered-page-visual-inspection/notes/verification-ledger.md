@@ -834,8 +834,15 @@ Narrowing an approved contract is the owner's call and the controlled-amendment
 path's job, not a repair to slip in during a review round. The narrowed reach is
 fully stated in
 `packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_shipped_content_limits.py`,
-which is the artifact a reviewer actually inspects. **Surfaced to the owner as an
-open decision.**
+which is the artifact a reviewer actually inspects.
+
+**Owner decision, 2026-09-13: leave the spec unchanged; keep the narrowing in
+the test module.** No second amendment, and `approved_spec_hash` stays at
+`86287a46196b…`. The accepted cost is recorded rather than hidden: the spec's
+Testing Strategy still describes the guard's reach as the vocabulary alone, so
+it understates the blind spot slightly against the test module, which states
+both the vocabulary and the adjacency window. A future reader who takes the
+spec's wording as the whole reach will overestimate what the guard catches.
 
 ### The disclosure fix
 
