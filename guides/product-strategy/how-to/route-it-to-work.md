@@ -77,33 +77,34 @@ Cascade our company OKRs to team level, identify the gaps, and route them to the
 <!-- rung: packs/product-strategy/.apm/skills/run-okr-cascade/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: docs/product/pack-walks/samples/product-strategy/okr-cascade.md -->
 
 ```markdown
 ---
 type: okr-cascade
 ---
-# OKR cascade — <cycle>
+# OKR cascade — FY27 H1
 
 ## Company OKRs
 
-### O1: <objective, verbatim from the company set>
-- KR1.1 <metric> — baseline <x> → target <y>
+### O1: Win the Midwest corridor spot market
+
+- KR1.1 Spot-market win rate in corridor — baseline 11% → target 25%
+- KR1.2 Carrier retention, corridor — baseline 68% → target 80%
+
+### O2: Reduce cost to serve per load
+
+- KR2.1 Support minutes per load — baseline 14 → target 6
 
 ## Team OKRs
 
-### <team> — rolls up to O1
-- **Objective:** <what this team would do differently>
-- KR <measurable at team scope> → <target>
+### Booking — rolls up to O1
 
-## Gap registry
-
-| Gap slug | Description | Blocks |
-| --- | --- | --- |
-| <kebab-slug> | <no owner, no delivery path, or a current-vs-target delta> | <KR id> |
+- **Objective:** Make a quote something a shipper can act on in the moment
+- KR Median quote latency — 40 min → under 60 s
 ```
 
-*Section shape only. The gap registry is the deliverable, not the alignment table: OKR practice warns against mechanical top-down derivation, so a company key result with no credible team-level expression is the finding. This pack ships no template — confirm the shape against what you get back.*
+*A real artifact, not a section list: the opening of one produced by running the skill against a fictional scenario. Yours will differ in content and follow the same form.*
 
 ## Run `define-ux-strategy` — the experience anchor
 

@@ -75,34 +75,34 @@ Write the PRFAQ for this concept — press release first, then the customer and 
 <!-- rung: packs/product-strategy/.apm/skills/write-prfaq/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: docs/product/pack-walks/samples/product-strategy/prfaq.md -->
 
 ```markdown
-# <Headline: product name and customer benefit, one sentence>
+# Northwind quotes freight in under a minute
 
-### <Subheadline: target customer and key differentiator>
+### Shippers moving loads in the Midwest corridor get a firm, carrier-backed price without waiting for a broker to call back.
 
-<Summary — dateline, what it is, who it is for, why it matters.>
-<Problem — the customer's pain, in the customer's words.>
-<Solution — what it does, and why it beats the alternative.>
+CHICAGO — 14 May 2027 — Northwind Logistics today opened instant quoting to all
+shippers in its Midwest corridor. A shipper enters a lane, a date and a trailer
+type, and receives a firm price backed by a contracted carrier in under sixty
+seconds.
 
-> "<Leadership quote naming the strategic rationale>" — <role>
+Booking freight on the spot market still means sending a request and waiting.
+Median quote turnaround across the corridor is over half an hour, and by the time
+a price arrives the capacity behind it may be gone. Shippers told us they book
+with whoever answers first, not whoever is cheapest.
 
-<How to get started — the customer's next action.>
+Northwind prices against eight years of settled loads and its own contracted
+carrier base, so the number a shipper sees is one a carrier has already agreed to
+haul for. There is no follow-up call to confirm.
 
-> "<Customer quote — a beta customer's outcome>" — <customer, title>
+> "We had the carrier relationships and the pricing history. What we did not have
+> was a way for a shipper to see either of them in the moment they were deciding."
+> — VP Product, Northwind Logistics
 
-## Customer FAQ
-
-**<Q: pricing, switching cost, or how it compares to what I use today>**
-<honest answer, including the trade-off>
-
-## Internal FAQ
-
-**<Q: riskiest assumption, hardest technical problem, success metric>**
 ```
 
-*Section shape only, following Amazon's Working Backwards PR/FAQ. Its hard conventions: the press release is one page, the whole document about six, and it is written as if the product already shipped. This pack ships no template — confirm the shape against what you get back.*
+*A real artifact, not a section list: the opening of one produced by running the skill against a fictional scenario. Yours will differ in content and follow the same form.*
 
 ## Where this leads
 

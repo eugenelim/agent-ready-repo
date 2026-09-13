@@ -326,33 +326,34 @@ Synthesize this into a SWOT for our situation, and reference the PESTLE and five
 <!-- rung: packs/product-strategy/.apm/skills/run-swot/SKILL.md -->
 
 **What it looks like:**
-<!-- rung: authored -->
+<!-- rung: docs/product/pack-walks/samples/product-strategy/swot-analysis.md -->
 
 ```markdown
 ---
 type: swot-analysis
 ---
-# SWOT — <entity>
+# SWOT — Northwind Logistics, freight-booking product line
 
-Scope: <org | product line | market entry> · Horizon: <near | medium | long>
+**Scope:** the freight-booking product line, not the whole company
+**Horizon:** medium-term (12–24 months)
+**Competitive reference point:** venture-funded digital freight brokers
 
 ## Strengths
-- <internal capability a competitor cannot quickly replicate>
+
+- **Carrier density in the Midwest corridor.** 4,100 contracted carriers against
+  the nearest competitor's ~900 in the same lanes. A competitor would need years
+  of contracting to match it, not a product release.
+- **Existing EDI integrations with 14 of the top 20 shippers.** Already built,
+  already certified; new entrants quote 6–9 months per integration.
+- **Pricing data from eight years of settled loads.** The dataset is the moat,
+  not the pricing model built on it.
+
 ## Weaknesses
-- <internal gap>
-## Opportunities
-- <external condition> — source: <PESTLE entry, research finding>
-## Threats
-- <external risk> (<near-term | medium-term>)
 
-## Strategic implications
-
-| Pairing | Implication |
-| --- | --- |
-| SO | <use a strength to capture an opportunity> |
+- **No mobile surface for drivers.** Every status update is a phone call to a
 ```
 
-*Section shape only. The four quadrants are the classic scan; the implications table is the TOWS pairing (Weihrich, 1982), which is what makes it a written artifact rather than a 2×2. This pack ships no template — confirm the shape against what you get back.*
+*A real artifact, not a section list: the opening of one produced by running the skill against a fictional scenario. Yours will differ in content and follow the same form.*
 
 ## Where this leads
 
