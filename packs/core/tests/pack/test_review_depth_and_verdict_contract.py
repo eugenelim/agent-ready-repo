@@ -520,3 +520,30 @@ def test_adjudication_evals_cover_gateway_verdicts_and_hostile_input() -> None:
             assert "optional adjudicator" not in combined, (
                 f"Eval {ev['id']!r} treats the adjudicator as optional"
             )
+
+
+def test_the_two_section_slicers_have_not_diverged() -> None:
+    """A divergence in this helper fails nothing and silently widens every
+    slice its file's assertions are measured against. The two copies already
+    diverged once on this branch: one raised on an unbalanced fence while the
+    other returned the whole file, growing an RFC-mode assertion's scope from
+    1,088 to 18,388 characters with the suite green.
+    """
+    def definition(path: Path) -> str:
+        """The `_heading_bound` definition as written, by text.
+
+        Read rather than imported: these suites are siblings with no package,
+        and the pack rules forbid binding one to the other by bare module name.
+        """
+        text = path.read_text(encoding="utf-8")
+        start = text.index("def _heading_bound(")
+        end = text.index("\ndef ", start)
+        return text[start:end].rstrip()
+
+    here = Path(__file__).resolve()
+    sibling = here.parent / "test_shaping_review_contract.py"
+    assert definition(here) == definition(sibling), (
+        "the two _heading_bound definitions have diverged; a divergence here "
+        "fails no other test and silently widens every slice this file's "
+        "assertions are measured against"
+    )

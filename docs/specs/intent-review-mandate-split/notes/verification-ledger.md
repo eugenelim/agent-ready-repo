@@ -377,6 +377,17 @@ across an addition from an unrelated change is a slightly stronger result than a
 repeat would have been. The `shaping-reviewer` pair is what isolates this
 amendment: its +31 −8 falls inside the sections the amendment touches.
 
+**The adversarial body moved again after re-run 3, and the table above predates
+it.** `7bb8f433…` is correct for `077d7d64f`, the revision this table names. The
+shipped projection at HEAD hashes `abe20ccf…`, and the blob delta between them is
++5 −3: a rescoped checklist trailer, a rescoped `Verification-mode awareness`
+heading, and two appended sentences saying that a mode with no severity has no
+bucket to downgrade into. None of the three falls inside the `Intent review
+mode` branch, so re-run 3's observation — the two output shapes, no severity, no
+`Fix:` — still reads true against the bytes that ship. Recorded here in the same
+blob-to-blob form as the earlier boundary, because a reader checking freshness at
+HEAD otherwise finds a mismatch with nothing explaining it.
+
 **Definition source is established, not assumed.** The freshness grep for
 `product-vision › product-strategy › capability › feature` returns 1 in
 `.claude/agents/shaping-reviewer.md`, and no reply below contains

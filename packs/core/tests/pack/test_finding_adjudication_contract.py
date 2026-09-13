@@ -108,7 +108,10 @@ def test_finding_adjudicator_source_contract() -> None:
     # Two reviewer modes now emit findings with no severity at all, so the
     # predicate has to state its reading for them here, at the source that owns
     # it -- a consumer-side narrowing would be a second home that can drift.
-    assert "no severity" in body
+    assert (
+        "Where the source finding's vocabulary carries no severity, test the "
+        "consequence alone" in flat(body)
+    )
     # The strict consumer rejects a multi-anchor sustained entry and stops the
     # loop, so the producer must state the constraint rather than leave it to
     # be inferred from the template.

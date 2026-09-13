@@ -81,8 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`product-vision › product-strategy › capability › feature`) once the intent
   is `Accepted`: you frame an intent before you decompose it, and this review
   runs at framing, so an empty decomposition at that point is a stage and not a
-  defect. A level the reviewer cannot place on that ladder skips the question
-  rather than guessing.
+  defect. A level the reviewer cannot place on that ladder skips only that
+  absence check rather than guessing; a decomposition you have listed is still
+  measured for overlap and gaps.
 - The adversarial reviewer gains an optional `intent` mode that attacks a bet
   instead of auditing an artifact. It returns an open question with a named
   decider, or a validation hook — a kill condition plus the real-world activity

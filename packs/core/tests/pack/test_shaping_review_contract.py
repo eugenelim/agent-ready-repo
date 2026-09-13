@@ -559,9 +559,10 @@ def test_intent_mode_states_the_level_ordering_it_keys_on() -> None:
     # which intents the absence branch fires on: read the other way, a leaf
     # feature intent at Accepted fires and the original defect returns.
     assert "`product-vision › product-strategy › capability › feature`" in rubric
-    assert "root\nfirst and leaf last" in rubric or "root first and leaf last" in re.sub(
-        r"\s+", " ", rubric
-    )
+    # `rubric` is already whitespace-flattened, so the wrapped form cannot
+    # appear here; asserting both would leave a dead half for a later edit to
+    # keep.
+    assert "root first and leaf last" in rubric
 
 
 def test_an_unplaceable_level_suppresses_only_the_absence_branch() -> None:
