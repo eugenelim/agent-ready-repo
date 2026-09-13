@@ -23,6 +23,7 @@ import re
 import stat
 import subprocess
 import sys
+import urllib.parse
 
 # Git reads these from the environment and would answer for another repository.
 _GIT_REDIRECT_VARIABLES = (
@@ -103,6 +104,14 @@ def _status_token(text: str) -> str | None:
     return re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", raw).strip()
 
 
+_BACKTICK_RUN = re.compile(r"`+")
+
+
+def _escape_html(text: str) -> str:
+    """Neutralize the characters that open a raw HTML tag."""
+    return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _escape_cell(text: str) -> str:
     """Escape the delimiters that would otherwise split or break a table cell."""
     for char in ("\\", "|", "[", "]"):
@@ -111,16 +120,25 @@ def _escape_cell(text: str) -> str:
     # renderer. Only outside a code span: CommonMark already treats raw HTML as
     # literal inside backticks, and escaping there would corrupt a legitimate
     # placeholder such as `packs/<pack>/tests/`.
-    parts = text.split("`")
-    # Even indices sit outside a code span. With an odd number of backticks the
-    # final run is unclosed, so its trailing segment is outside one too, and a
-    # renderer parses what follows as raw HTML.
-    outside = set(range(0, len(parts), 2))
-    if len(parts) % 2 == 0:
-        outside.add(len(parts) - 1)
-    for i in outside:
-        parts[i] = parts[i].replace("<", "&lt;").replace(">", "&gt;")
-    return "`".join(parts)
+    # A code span opens at a backtick run and closes at the next run of EQUAL
+    # length; anything else is ordinary text. Counting backticks, or their parity,
+    # does not model that -- runs of differing length left live segments behind.
+    out, position = [], 0
+    for run in _BACKTICK_RUN.finditer(text):
+        if run.start() < position:
+            continue
+        closer = None
+        for candidate in _BACKTICK_RUN.finditer(text, run.end()):
+            if candidate.group(0) == run.group(0):
+                closer = candidate
+                break
+        if closer is None:
+            break  # unclosed run: the remainder is ordinary text
+        out.append(_escape_html(text[position:run.start()]))
+        out.append(text[run.start():closer.end()])  # a real span, left verbatim
+        position = closer.end()
+    out.append(_escape_html(text[position:]))
+    return "".join(out)
 
 
 def _escape_destination(name: str) -> str:
@@ -130,11 +148,10 @@ def _escape_destination(name: str) -> str:
     a table row, or break it across lines. The result still resolves: a reader
     percent-decodes it back to the filename on disk.
     """
-    for char, encoded in (("%", "%25"), (" ", "%20"), ("(", "%28"), (")", "%29"),
-                          ("<", "%3C"), (">", "%3E"), ("|", "%7C"),
-                          ("\n", "%0A"), ("\r", "%0D")):
-        name = name.replace(char, encoded)
-    return name
+    # quote with an empty safe set, not a hand-maintained replacement list: that
+    # list was a per-character judgement and omitted `#`, `?`, tab and backslash.
+    # Everything outside the unreserved set is encoded.
+    return urllib.parse.quote(name, safe="")
 
 
 def _warn(message: str) -> None:
@@ -359,6 +376,16 @@ def main(argv: list[str] | None = None) -> int:
         scratch = pathlib.Path(scratch_name)
         with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
             stream.write(generated)
+        # mkstemp creates 0600 by contract, and os.replace moves that inode onto
+        # the target -- so without this the generated index is less readable than
+        # a hand-written one. Keep an existing target's mode; otherwise use the
+        # umask-derived mode a normal create would have produced.
+        if mode is not None:
+            os.chmod(scratch, stat.S_IMODE(mode))
+        else:
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(scratch, 0o666 & ~umask)
         os.replace(scratch, target)
     except (OSError, UnicodeEncodeError) as error:
         if scratch is not None:
