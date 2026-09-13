@@ -1,0 +1,12 @@
+# The reference profile used by the golden. A FIXTURE, not shipped package data:
+# this distribution bundles no profile, because a bundled one would decide what
+# leaves a caller's machine on their behalf.
+timestamp_field = "at"
+timestamp_format = "rfc3339"
+severity_field = "result"
+identity = ["run_id", "seq"]
+allowlist = ["event", "phase_s", "budgets", "note"]
+
+[severity_map]
+success = 9
+failure = 17
