@@ -508,6 +508,19 @@ def test_intent_mode_fails_closed_on_evidence_it_cannot_settle() -> None:
     assert "An absence that blocks no condition is not consequential" in rubric
 
 
+def test_the_enumeration_states_the_referents_the_rules_below_it_use() -> None:
+    """Changed bytes. The bare word "partition" was green against the superseded
+    wording of both lines, so the enumeration could drift from the spec, the ADR
+    and the changelog with the suite green -- and it had."""
+    rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
+
+    assert "Altitude is consistent with the parent it names" in rubric
+    assert "The decomposition partitions the artifact's own outcome" in rubric
+    # Condition 5's superseded referent was condition 4's parent, which is the
+    # opposite of what the rule below the list measures against.
+    assert "Children partition the parent" not in rubric
+
+
 def test_condition_four_applies_only_to_an_intent_that_names_a_parent() -> None:
     """Changed bytes. A parent is an optional attribution at every level."""
     rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
@@ -524,10 +537,14 @@ def test_condition_five_absence_branch_is_keyed_on_level_and_status() -> None:
     """Changed bytes. The absence branch must keep a reachable failing state."""
     rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
 
-    assert "above the leaf" in rubric
-    assert "Accepted" in rubric
-    # Without the firing half, the repair would replace a condition that cannot
-    # pass with one that cannot fire -- the defect this rule exists to avoid.
+    # Pinned as the one conjoined clause it is. Asserting "above the leaf" and
+    # "Accepted" separately is green against a body reading "above the leaf OR a
+    # status of Accepted", which fires on every above-leaf Draft intent -- the
+    # state the authoring pipeline produces and the repair exists to protect.
+    assert (
+        "only when the artifact declares a level above the "
+        "leaf and a status of `Accepted`" in rubric
+    )
     assert "emits `MALFORMED(children)`" in rubric
     assert "measured against the artifact's own outcome" in rubric
 
@@ -537,8 +554,14 @@ def test_intent_mode_states_the_level_ordering_it_keys_on() -> None:
     keyed on an ordering stated only elsewhere is undecidable where it applies."""
     rubric = re.sub(r"\s+", " ", _section("intent mode", level=3)).strip()
 
-    for rung in ("product-vision", "product-strategy", "capability", "feature"):
-        assert rung in rubric, rung
+    # Pinned as the literal ordering, not as four names present somewhere. The
+    # token form is green against a reversed ladder, and the direction decides
+    # which intents the absence branch fires on: read the other way, a leaf
+    # feature intent at Accepted fires and the original defect returns.
+    assert "`product-vision › product-strategy › capability › feature`" in rubric
+    assert "root\nfirst and leaf last" in rubric or "root first and leaf last" in re.sub(
+        r"\s+", " ", rubric
+    )
 
 
 def test_an_unplaceable_level_suppresses_only_the_absence_branch() -> None:
@@ -547,6 +570,11 @@ def test_an_unplaceable_level_suppresses_only_the_absence_branch() -> None:
 
     assert "cannot place" in rubric
     assert "emits no token of its own" in rubric
+    # The scoping half. Without these, suppression can widen from the absence
+    # branch to all of condition 5 with the suite green, and neither recorded
+    # unplaceable-level fixture can see it because neither carries members.
+    assert "suppresses that absence branch alone" in rubric
+    assert "A listed decomposition is still measured" in rubric
 
 
 def test_the_unsupplied_parent_no_longer_binds_the_children_condition() -> None:

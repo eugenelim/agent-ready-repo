@@ -104,6 +104,12 @@ def _heading_bound(text: str, start: int, level: int) -> int:
             if 0 < hashes <= level and line[hashes : hashes + 1] == " ":
                 return offset
         offset += len(line)
+    if fenced:
+        raise AssertionError(
+            f"unbalanced code fence while bounding a level-{level} section; "
+            "the slice would run to end of file and any assertion on it could "
+            "be satisfied by unrelated text"
+        )
     return len(text)
 
 

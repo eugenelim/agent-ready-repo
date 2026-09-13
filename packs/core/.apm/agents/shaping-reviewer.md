@@ -29,7 +29,7 @@ supplied packet.
 1. The statement is an outcome, not a solution.
 2. Non-goals are present.
 3. The riskiest assumption is named.
-4. Altitude is consistent with the parent.
+4. Altitude is consistent with the parent it names.
 5. The decomposition partitions the artifact's own outcome, with no overlap and no gap.
 6. The owner is the artifact's own.
 
@@ -52,9 +52,10 @@ is this mode's only way to say so. An absence that blocks no condition is not
 consequential here.
 
 Whether a condition applies is settled before that rule runs. The recognized
-levels run `product-vision › product-strategy › capability › feature`, stated
-here because this mode retrieves nothing and a rule keyed on an ordering it
-cannot read is undecidable where it applies. The set stays open: a level outside
+levels run `product-vision › product-strategy › capability › feature`, root
+first and leaf last, so `feature` is the leaf and every other rung is above it.
+The ordering is stated here because this mode retrieves nothing and a rule keyed
+on an ordering it cannot read is undecidable where it applies. The set stays open: a level outside
 it is placed by the rule below, not rejected.
 
 Condition 4 applies only to an intent that names a parent. A parent is an

@@ -346,8 +346,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   other line changed.
 - [ ] `core` and `product-engineering` each ship the bump level the owning
   version-bump rule yields for changed pack content, matched between `pack.toml`
-  and `.claude-plugin/plugin.json`, and the regenerated marketplace manifest
-  carries both.
+  and `.claude-plugin/plugin.json`. The regenerated marketplace manifest carries
+  the new `product-engineering` version and does not carry `core` at all,
+  because the manifest aggregates only packs whose `allowed-scopes` admits
+  `user` and `core` is repo-scoped. A criterion demanding a `core` entry would
+  be unsatisfiable while the implementation is correct.
 - [ ] The `intake-intent` and `frame-intent` eval harnesses state the shipped
   intent-review vocabulary, and no eval expectation in either names a `Clean`
   result for intent mode.
