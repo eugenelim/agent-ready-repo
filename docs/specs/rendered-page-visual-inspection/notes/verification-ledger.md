@@ -419,6 +419,81 @@ before regenerating grades the old file.
 valid; `lint-web-journey-parity` all 20 in parity; `catalogue verify --root .`
 ok; 71 tests pass.
 
+## 2026-09-13 — T6: the end-to-end run found a defect the unit tests could not
+
+This is the manual-QA observation the spec's Testing Strategy requires, and the
+reason it requires one.
+
+### The run
+
+8 fixtures × 4 required capture states = **32 captures**, driven with headless
+Chromium through Playwright against `file://` URLs. The capture step produced the
+images and their records and never called a judge; the judgement step then read a
+capture set it had not produced. Both halves of the separability rule held in
+practice, not just in the tables.
+
+**Detection — 4 of 4 defect fixtures produced a finding naming their recorded
+defect:**
+
+| Fixture | Recorded defect | Observed at short-at-rest |
+| --- | --- | --- |
+| defect-occlusion.html | occlusion | The blue announcement bar sits across the h1, cutting "scales with you" in half — unreadable |
+| defect-overflow.html | overflow | `ws-8f41c2ae-…` runs past the right edge of its card and off the viewport; the end is unreadable |
+| defect-clipped-at-rest-top.html | clipped-at-rest-top | The page opens on "A receipt is on its way…" — the h1 and order number are above the content area at rest |
+| defect-target-undersized.html | target-undersized | The three dismiss controls render at roughly 10 CSS px square |
+
+**False positives — 0 of 4 known-clean fixtures produced a finding.** Denominator
+4, matching the shipped known-clean set. `clean-nav.html` was the one to watch: it
+has a sticky header, the same structure that makes `defect-occlusion.html` fail,
+and its content area is offset by the header's own height, so nothing is covered
+at rest or scrolled.
+
+This count is a local measurement with this judge and these viewport sizes. It is
+not a rate, and it is not published in any shipped pack content.
+
+### The defect the run exposed
+
+**17 of the 32 captures could not reach a non-zero scroll position**, because the
+fixture is shorter than the viewport and there is nothing to scroll to. Affected:
+all four known-clean fixtures at the tall height, three of the four defect
+fixtures, and `clean-form.html` at both heights.
+
+Under the `Required captures` rule as T2 shipped it, `*-scrolled` requires
+`scroll-position > 0`, so **every one of those pages is permanently
+`incomplete`** and can never satisfy a completed inspection.
+
+The unit suite did not catch this and could not have: its `complete_set()` fixture
+asserts `scroll-position: 800` unconditionally, so nothing in it modelled a page
+that cannot scroll. A passing test for the record shape is not evidence that the
+inspection works — which is exactly what the spec's Testing Strategy says about
+this step.
+
+The consequence is not confined to these fixtures. Adopters routinely inspect
+surfaces shorter than a viewport — a sign-in form, a 404, a settings panel — and
+the shipped contract would mark each one incomplete forever.
+
+### Owner decision and amendment
+
+Surfaced to the owner with the numbers above. **Authorised 2026-09-13:** amend the
+acceptance criterion so that a height at which the page does not scroll satisfies
+the scrolled requirement, recorded explicitly rather than inferred.
+
+- The capture record gains `page-scrollable`.
+- The `*-scrolled` required captures read `>0, or page-scrollable: no`.
+- The AC gains "…or the page is recorded as not scrollable at that height."
+
+A page with nothing below the fold has no scrolled view to inspect, so the
+requirement is vacuously satisfied rather than unmeetable. Recording it keeps the
+distinction visible: "did not scroll because the page does not scroll" is a
+different fact from "nobody scrolled", and only the first is acceptable.
+
+Declined alternatives, for the record: making the fixtures taller alone would
+have hidden the defect behind a kit that no longer exercises it, and deferring it
+would have shipped a contract that fails on ordinary short pages.
+
+Completed-task evidence at the point of amendment: T0–T3 at commit `05d5ca2fa`,
+T4–T5 at commit `efa7dec06`.
+
 ## 2026-09-13 — workspace registration
 
 The spec was in no `workspace.toml` entry, so canonical preflight returned

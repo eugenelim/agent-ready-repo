@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>What changed in the audit log</title>
+<meta name="inspection-fixture" content="clean">
+<meta name="inspection-fixture-defect" content="none">
+<style>
+  body { font: 16px/1.6 system-ui, sans-serif; margin: 0; color: #16181d; background: #fff; }
+  main { max-width: 42rem; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+  .meta { color: #5b6068; margin: 0 0 28px; }
+  h2 { font-size: 21px; margin: 32px 0 8px; }
+  p { margin: 0 0 16px; overflow-wrap: break-word; }
+</style>
+<main>
+  <h1>What changed in the audit log</h1>
+  <p class="meta">Product notes — six minute read</p>
+  <p>The audit log now records the actor, the workspace, and the object for every write, and keeps them for thirteen months.</p>
+  <h2>Why the retention changed</h2>
+  <p>Thirteen months covers a full year plus the month teams usually spend closing it out, which is when most people go looking.</p>
+  <p>Older entries are removed on a rolling basis rather than in one sweep, so the log stays a predictable size.</p>
+  <h2>What you need to do</h2>
+  <p>Nothing. Existing exports keep working, and the new fields appear alongside the ones already there.</p>
+  <p>If you parse the export, treat unknown fields as optional — more will be added.</p>
+</main>
