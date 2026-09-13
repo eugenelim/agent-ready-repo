@@ -407,10 +407,20 @@ Verbatim outputs:
 
 **The three distinctions hold, so the run settles something.** Fixtures 2 and 3
 differ in `Status` alone and their outputs differ, so `Accepted` is what arms the
-absent-decomposition branch — a leaf or an unsealed intent no longer fails
-condition 5, which is the defect the amendment was taken to fix. Fixtures 4 and 5
-differ from fixture 3 in the level alone and both fall silent, so a level the mode
-cannot place suppresses the branch rather than defaulting either way.
+absent-decomposition branch: an unsealed intent no longer fails condition 5.
+Fixtures 4 and 5 differ from fixture 3 in the level alone and both fall silent, so
+a level the mode cannot place suppresses the branch rather than defaulting either
+way.
+
+**What fixtures 1-5 do not establish, and fixture 6 below does.** Fixture 1 is
+`feature`/`Draft` and the firing fixture 3 is `capability`/`Accepted` — two
+variables apart, so fixture 1's silence is fully explained by `Draft` and
+attributes nothing to the level. Under a rule of "`Accepted` arms the branch,
+level ignored", all five outputs above would be identical to what was observed,
+and a leaf intent at `Accepted` would still be permanently malformed — the exact
+defect this amendment exists to repair. The "above the leaf" half of condition 5
+therefore had no evidence on either side until the fixture below. Raised by both
+post-gates reviewers independently.
 
 **The conformance question recorded under T8 is unchanged and now has four more
 instances.** Fixtures 2, 4 and 5 returned a parenthetical sentence asserting
@@ -420,6 +430,49 @@ completed dispatch carrying no bytes and a gloss the host collapsed are not
 distinguishable from this side, so fixture 1 is not evidence either way. Both
 callers gate on token absence, so all five parse as passes today; what "emit
 nothing at all" obliges is still undefined. Decider: the spec owner.
+
+### Fixture 6 — the leaf at `Accepted`, the amendment's modal case
+
+Dispatched later the same day, after the control repairs moved the reviewer body.
+
+| Field | Value |
+| --- | --- |
+| Revision | `d4438daf8` |
+| `.claude/agents/shaping-reviewer.md` | `fc24f59725b03ae45f0ec3c14a2dbd35cf3cc900c50b41872711896e7beaa418` |
+
+Fixture 6 is `feature` level, `Status: Accepted`, no decomposition. **It differs
+from fixture 3 in the level alone** — same absent decomposition, same `Accepted`
+status, same five other conditions well-formed.
+
+**Expected:** no token. **Observed**, entire output:
+
+```
+(no tokens emitted — every applicable condition holds)
+```
+
+**Match, and the distinction is contemporaneous.** Fixture 3 was re-dispatched in
+the same batch against the same body and returned `MALFORMED(children)` again. So
+the two outputs differ under a one-variable change at the same revision, rather
+than being compared across a body that moved between them. The leaf half of
+condition 5 is implemented: a `feature` intent at `Accepted` with no decomposition
+passes, which is the artifact shape the amendment was taken to repair and the one
+that was permanently malformed before it.
+
+**Freshness, and one false alarm worth recording.** A line-based
+`grep -c 'root first and leaf last'` over the body returns 0, which reads as a
+stale definition under the check that was specified. The phrase is present and
+unbroken — it spans a line break at `.claude/agents/shaping-reviewer.md:53-54`, so
+`grep` cannot match it a line at a time. Normalising newlines first returns 1. The
+body is current; the check was wrong. A freshness predicate keyed to a wrapped
+prose phrase will keep producing this, so key it to a phrase that fits one line or
+normalise before matching.
+
+**What an empty expected output cannot prove.** Fixtures 4, 5 and 6 all expect no
+token, and a reply carrying no tokens carries no vocabulary either, so it cannot
+be checked for the deleted phrases that establish which body a host served. The
+contemporaneous fixture 3 re-run is what closes that gap here: it emits a token,
+and the token it emits is the one the current body specifies. Nothing weaker than
+a firing control can source a silent observation.
 
 ### T8 re-run 1 — malformed intent, `shaping-reviewer` `intent` mode
 
