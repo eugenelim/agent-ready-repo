@@ -54,6 +54,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.20] — 2026-09-13
+
+### Highlights
+
+- **A legacy-only repository can activate its knowledge base even when the
+  migration has nothing to import.** Activating was the first command such a
+  repository runs, and it crashed on the state those repositories are actually
+  in: an empty `patterns.jsonl`. The migration now produces the canonical empty
+  topic map instead of a traceback.
+
+### Fixed
+
+- `project-knowledge --migrate-legacy` raised an unhandled `FileNotFoundError`
+  instead of staging a result whenever a migration yielded zero importable
+  topics. The stage directory was created only as a side effect of writing the
+  first topic, so an empty import set never created it and the map write failed.
+  It surfaced as a raw traceback rather than a typed `knowledge-diagnostic.v1`
+  refusal, so callers handling every documented refusal still broke. Two inputs
+  reach it: an empty legacy corpus, and a corpus whose rows are all refused.
+
+### Added
+
+- The migration lifecycle is documented on the skill body and the
+  `docs/knowledge/README.md` seed. Promoting the staged map into
+  `docs/knowledge/` and committing it is a required step between
+  `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
+  only by reading the source.
+
 ## [core][2.25.19] — 2026-09-13
 
 ### Highlights
