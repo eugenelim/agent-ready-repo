@@ -2246,10 +2246,7 @@ def project_guidebooks_group(records: list[dict], guide_groups: list[dict],
     for pack in sorted(steps, key=lambda p: labels.get(p, p).casefold()):
         walk = sorted(steps[pack], key=lambda r: r["step"])
         label = labels.get(pack, pack.replace("-", " ").title())
-        items.append({
-            "label": f"{label} — {len(walk)} steps",
-            "slug": walk[0]["slug"],
-        })
+        items.append({"label": label, "slug": walk[0]["slug"]})
     return {"label": "Guidebooks", "items": items}
 
 

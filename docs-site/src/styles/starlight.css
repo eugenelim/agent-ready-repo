@@ -777,3 +777,45 @@ main h1 {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ---------------------------------------------------------------------------
+ * A guidebook step's position line
+ *
+ * `**Step 3 of 5 — Establish design intent**` is the first thing on the page
+ * and the reader's only in-body orientation, and it rendered as an ordinary
+ * bold paragraph — indistinguishable from the fifteen other bold labels below
+ * it, in the one place a reader arriving from search needs to know where they
+ * have landed.
+ *
+ * `rehype-step-position` splits it at build time from the same declaration the
+ * sidebar numbering and the right-hand rail read, so all three agree by
+ * construction. On GitHub, where the plugin does not run, it stays a plain
+ * bold line.
+ * ------------------------------------------------------------------------- */
+
+.sl-markdown-content .step-position {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-block: 0 1.25rem;
+  padding: 0.6rem 0.9rem;
+  border-inline-start: 3px solid var(--sl-color-accent);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--sl-color-accent) 7%, transparent);
+}
+
+.sl-markdown-content .step-position__count {
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--sl-color-text-accent);
+}
+
+.sl-markdown-content .step-position__title {
+  font-size: var(--sl-text-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sl-color-white);
+  text-wrap: balance;
+}

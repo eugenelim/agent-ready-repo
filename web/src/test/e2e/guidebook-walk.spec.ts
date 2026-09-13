@@ -63,7 +63,7 @@ test.describe('guidebook step layout', () => {
         // The rail may overflow -- that is fine, it scrolls. What must not
         // happen is the reader's only statement of which guidebook they are in
         // scrolling away first.
-        const name = page.locator('.guidebook-walk .walk-name');
+        const name = page.locator('.guidebook-walk .walk-title');
         await expect(name).toBeVisible();
         await page.evaluate(() => {
           const rail = document.querySelector('.right-sidebar');
@@ -79,18 +79,24 @@ test.describe('guidebook step layout', () => {
     }
   }
 
-  test('every step names its position identically on the rail and in the body', async ({
+  test('every step states its position in the body and marks it in the rail', async ({
     page,
   }) => {
+    // The two say it in different ways on purpose: the body states the number,
+    // the rail marks the entry. Both derive from one declaration in the source,
+    // so this checks they still agree about which step this is.
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const [index, slug] of STEPS.entries()) {
       await page.goto(stepUrl(slug));
-      const expected = `Step ${index + 1} of ${STEPS.length}`;
-      await expect(page.locator('.guidebook-walk .walk-position')).toHaveText(expected);
-      await expect(
-        page.getByText(new RegExp(`${expected} —`)).first(),
-        `the body must state ${expected} on ${slug}`,
-      ).toBeVisible();
+      await expect(page.locator('.step-position__count')).toHaveText(
+        `Step ${index + 1} of ${STEPS.length}`,
+      );
+      const current = page.locator('.guidebook-walk a[aria-current="page"]');
+      await expect(current, `the rail must mark exactly one entry on ${slug}`).toHaveCount(1);
+      await expect(current).toHaveText(
+        new RegExp(`^${index + 1}`),
+        `the rail's marked entry must be step ${index + 1} on ${slug}`,
+      );
     }
   });
 

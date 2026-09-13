@@ -34,8 +34,14 @@ from urllib.parse import urlsplit
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RAIL = re.compile(r'<nav class="guidebook-walk.*?</nav>', re.S)
 MOBILE = re.compile(r'<p class="guidebook-position.*?</p>', re.S)
-BODY_STEP = re.compile(r"<strong>Step (\d+) of (\d+) —")
+# The body's position line is split into spans by `rehype-step-position`,
+# from the same `**Step N of M — <title>**` the source declares. Read the
+# rendered form, because that is what a reader is shown.
+BODY_STEP = re.compile(
+    r'<span class="step-position__count">Step (\d+) of (\d+)</span>'
+)
 RAIL_STEP = re.compile(r"Step (\d+) of (\d+)")
+GUIDEBOOK_NAME = re.compile(r"\bguidebook\b", re.I)
 ANCHOR = re.compile(r'<a href="([^"]*)"([^>]*)>(.*?)</a>', re.S)
 CANONICAL = re.compile(r'<link rel="canonical" href="([^"]*)"')
 
@@ -119,16 +125,27 @@ def check_guidebook(pages: list[Path], build: Path, base: str) -> list[Finding]:
             findings.append(Finding(
                 name, "body", f"says `of {total}` but the guidebook has {len(pages)} steps"))
 
-        for surface, match in (("rail", rail), ("mobile bar", mobile)):
-            if match is None:
-                findings.append(Finding(name, surface, "is absent from a step page"))
-                continue
-            stated = RAIL_STEP.search(_text(match.group(0)))
+        # The two surfaces carry different halves of the same orientation, so
+        # they are checked for different things. The rail names the guidebook
+        # and marks the current entry in its list below; restating "Step 4 of 5"
+        # there was a third rendering of what the marked entry already says. The
+        # mobile bar has no list -- it is one fixed row -- so it carries the
+        # position instead.
+        if rail is None:
+            findings.append(Finding(name, "rail", "is absent from a step page"))
+        elif not GUIDEBOOK_NAME.search(_text(rail.group(0))):
+            findings.append(
+                Finding(name, "rail", "does not name the guidebook it is showing"))
+
+        if mobile is None:
+            findings.append(Finding(name, "mobile bar", "is absent from a step page"))
+        else:
+            stated = RAIL_STEP.search(_text(mobile.group(0)))
             if stated is None:
-                findings.append(Finding(name, surface, "names no position"))
+                findings.append(Finding(name, "mobile bar", "names no position"))
             elif (int(stated.group(1)), int(stated.group(2))) != (step, total):
                 findings.append(Finding(
-                    name, surface,
+                    name, "mobile bar",
                     f"says {stated.group(1)} of {stated.group(2)}; "
                     f"the body says {step} of {total}"))
 

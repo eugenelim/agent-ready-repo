@@ -52,11 +52,11 @@ def _page(slug: str, title: str, step: int, total: int, walk: list[tuple[int, st
 <link rel="canonical" href="https://example.test{BASE}/{slug}/">
 </head><body>
 <p class="guidebook-position"><strong>Step {step} of {total}</strong></p>
-<nav class="guidebook-walk" aria-label="fixture guidebook, step {step} of {total}">
-<h2 class="walk-heading">Step {step} of {total}</h2>
+<nav class="guidebook-walk" aria-label="fixture guidebook">
+<h2 class="walk-title"><code>fixture</code> guidebook</h2>
 <ol>{items}</ol>
 </nav>
-<p><strong>Step {step} of {total} —</strong> {title}</p>
+<p class="step-position"><span class="step-position__count">Step {step} of {total}</span><span class="step-position__title">{title}</span></p>
 {next_link}
 </body></html>"""
 
@@ -100,10 +100,15 @@ def test_the_unmutated_site_is_clean(site: Path) -> None:
     assert _sweep(site) == []
 
 
-def test_the_body_and_the_rail_must_agree(site: Path) -> None:
-    _mutate(site, "two", '<h2 class="walk-heading">Step 2 of 2</h2>',
-            '<h2 class="walk-heading">Step 1 of 2</h2>')
-    assert any("rail" in f and "says 1 of 2" in f for f in _sweep(site))
+def test_the_rail_must_name_its_guidebook(site: Path) -> None:
+    """The rail's job is orientation, and an unnamed walk gives none.
+
+    It carries no step number by design: the entry marked current in its own
+    list already says which step this is, and restating it was a third
+    rendering of one fact in the panel with the least room for any of them.
+    """
+    _mutate(site, "two", "<code>fixture</code> guidebook", "<code>fixture</code>")
+    assert any("does not name the guidebook" in f for f in _sweep(site))
 
 
 def test_the_body_and_the_mobile_bar_must_agree(site: Path) -> None:
@@ -117,13 +122,12 @@ def test_the_total_must_match_the_pages_that_exist(site: Path) -> None:
         # Only the body's own declaration, which is the surface that states the
         # total. Replacing every "of 2" on the page would trip the rail and
         # mobile-bar agreement checks first and prove nothing about this one.
-        _mutate(site, slug, f"<strong>Step {number} of 2 —</strong>",
-                f"<strong>Step {number} of 3 —</strong>")
+        _mutate(site, slug, f'__count">Step {number} of 2<', f'__count">Step {number} of 3<')
     assert any("the guidebook has 2 steps" in f for f in _sweep(site))
 
 
 def test_a_repeated_step_number_is_reported(site: Path) -> None:
-    _mutate(site, "two", "<strong>Step 2 of 2 —</strong>", "<strong>Step 1 of 2 —</strong>")
+    _mutate(site, "two", '__count">Step 2 of 2<', '__count">Step 1 of 2<')
     assert any("also claimed by" in f for f in _sweep(site))
 
 
