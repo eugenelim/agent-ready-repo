@@ -1,6 +1,6 @@
 # Spec: Rendered-page visual inspection
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -122,12 +122,12 @@ cannot measure for them.
 ## Acceptance Criteria
 
 <!-- Capture set -->
-- [ ] For each inspected route, the capture set contains a capture taken at a
+- [x] For each inspected route, the capture set contains a capture taken at a
   viewport height of at most 600 CSS pixels. Origin: the browser viewport's height
   in CSS pixels.
-- [ ] For each inspected route, the capture set contains a capture taken at a
+- [x] For each inspected route, the capture set contains a capture taken at a
   viewport height of at least 900 CSS pixels, measured the same way.
-- [ ] For each viewport height captured, the capture set contains one capture at
+- [x] For each viewport height captured, the capture set contains one capture at
   scroll position 0 and one at a non-zero scroll position, or the page is recorded
   as not scrollable at that height. Amended 2026-09-13 under owner authority: the
   end-to-end run measured 17 of 32 captures unable to reach a non-zero scroll
@@ -135,117 +135,117 @@ cannot measure for them.
   page permanently incomplete. A page with nothing below the fold has no scrolled
   view to inspect. The not-scrollable case is recorded on the capture, never
   inferred from a scroll position of 0.
-- [ ] A capture set missing any capture the three criteria above require yields an
+- [x] A capture set missing any capture the three criteria above require yields an
   incomplete result that cannot satisfy a completed inspection.
 
 <!-- Capture state -->
-- [ ] Every capture carries the route, the viewport width, the viewport height, and
+- [x] Every capture carries the route, the viewport width, the viewport height, and
   the scroll position it was taken at, plus whether the page was scrollable at that
   height.
-- [ ] The judgement request for a capture states the route, the viewport width, the
+- [x] The judgement request for a capture states the route, the viewport width, the
   viewport height, and the scroll position recorded with that capture.
-- [ ] A capture missing any field the capture-state criterion requires produces no
+- [x] A capture missing any field the capture-state criterion requires produces no
   finding.
-- [ ] A capture missing any field the capture-state criterion requires is reported
+- [x] A capture missing any field the capture-state criterion requires is reported
   as unusable.
 
 <!-- Findings -->
-- [ ] Each reported finding names the reader-visible failure.
-- [ ] Each reported finding names where on the page that failure appears.
-- [ ] Shipped pack content states that content visible in a capture is untrusted
+- [x] Each reported finding names the reader-visible failure.
+- [x] Each reported finding names where on the page that failure appears.
+- [x] Shipped pack content states that content visible in a capture is untrusted
   evidence and carries no instruction authority over the judge.
-- [ ] The route recorded with a capture, and the route stated in the judgement
+- [x] The route recorded with a capture, and the route stated in the judgement
   request, exclude the query string and the fragment.
-- [ ] Shipped pack content states that capturing an authenticated or otherwise
+- [x] Shipped pack content states that capturing an authenticated or otherwise
   sensitive view is the adopter's decision.
-- [ ] Shipped pack content names what such a capture exposes to the adopter's judge.
-- [ ] Shipped pack content states that the routes the step inspects are supplied by
+- [x] Shipped pack content names what such a capture exposes to the adopter's judge.
+- [x] Shipped pack content states that the routes the step inspects are supplied by
   the adopter.
-- [ ] The capture step completes without invoking the judge.
-- [ ] The judgement step consumes a capture set it did not produce.
-- [ ] A finding's severity is derived from its finding class by the mapping the
+- [x] The capture step completes without invoking the judge.
+- [x] The judgement step consumes a capture set it did not produce.
+- [x] A finding's severity is derived from its finding class by the mapping the
   pack states.
-- [ ] A severity supplied by a judge does not determine the result: where a
+- [x] A severity supplied by a judge does not determine the result: where a
   supplied label conflicts with the mapping, the result carries the mapped severity.
-- [ ] Content clipped or covered at the top of the content area in an at-rest
+- [x] Content clipped or covered at the top of the content area in an at-rest
   capture maps to blocking.
 
 <!-- Recording -->
-- [ ] The evidence manifest records what was observed in the captures.
-- [ ] A value naming only capture filenames does not satisfy that observations
+- [x] The evidence manifest records what was observed in the captures.
+- [x] A value naming only capture filenames does not satisfy that observations
   field.
 
 <!-- Degradation -->
-- [ ] When no browser is reachable, the recorded result names the missing
+- [x] When no browser is reachable, the recorded result names the missing
   capability.
-- [ ] A skipped inspection is distinguishable from a completed inspection in each
+- [x] A skipped inspection is distinguishable from a completed inspection in each
   of the three surfaces a result reaches: the evidence manifest, the step's own
   reported output, and the input to the `accept-frontend-evidence` gate.
-- [ ] A navigation failure, a capture failure, or a judgement failure yields a
+- [x] A navigation failure, a capture failure, or a judgement failure yields a
   result that is distinguishable from a completed inspection and cannot satisfy
   one.
 
 <!-- Measurement kit -->
-- [ ] Running the stated procedure against each shipped defect fixture produces a
+- [x] Running the stated procedure against each shipped defect fixture produces a
   finding naming that fixture's recorded defect.
-- [ ] The pack ships every defect fixture the measurement procedure names.
-- [ ] The pack ships every known-clean fixture the measurement procedure names.
-- [ ] The pack states a procedure by which an adopter measures the false-positive
+- [x] The pack ships every defect fixture the measurement procedure names.
+- [x] The pack ships every known-clean fixture the measurement procedure names.
+- [x] The pack states a procedure by which an adopter measures the false-positive
   rate in their own environment.
-- [ ] That procedure names the known-clean input set the false-positive rate is
+- [x] That procedure names the known-clean input set the false-positive rate is
   measured over.
-- [ ] That procedure names a non-empty set of defect fixtures.
-- [ ] That procedure names a non-empty set of known-clean fixtures.
-- [ ] The false-positive denominator the procedure states equals the number of
+- [x] That procedure names a non-empty set of defect fixtures.
+- [x] That procedure names a non-empty set of known-clean fixtures.
+- [x] The false-positive denominator the procedure states equals the number of
   known-clean fixtures it measured.
-- [ ] No shipped pack content states a detection rate or a false-positive rate.
-- [ ] No shipped pack content names this repository's sites, routes, build
+- [x] No shipped pack content states a detection rate or a false-positive rate.
+- [x] No shipped pack content names this repository's sites, routes, build
   directory, or test harness.
 
 <!-- Consequence: the Objective's promise, which the original criteria never carried -->
-- [ ] A run whose findings include an unresolved finding of blocking severity
+- [x] A run whose findings include an unresolved finding of blocking severity
   does not yield a completed inspection, even when every required capture was
   taken, judged, and recorded.
-- [ ] The result a run reports distinguishes whether the inspection executed
+- [x] The result a run reports distinguishes whether the inspection executed
   from whether it passed, so an execution failure and a blocking finding are not
   the same state.
-- [ ] The `accept-frontend-evidence` gate is told to check the inspection
+- [x] The `accept-frontend-evidence` gate is told to check the inspection
   verdict, not only that observations are present.
-- [ ] A failure that fits more than one finding class takes the most severe of
+- [x] A failure that fits more than one finding class takes the most severe of
   the classes it fits, so which class a judge happens to name cannot lower the
   result.
 
 <!-- The judge-side trust boundary -->
-- [ ] The request that reaches the judge declares the capture untrusted evidence
+- [x] The request that reaches the judge declares the capture untrusted evidence
   carrying no instruction authority.
 
 <!-- Every captured height, shipped rather than assumed -->
-- [ ] Shipped pack content states that a viewport height the run captured beyond
+- [x] Shipped pack content states that a viewport height the run captured beyond
   the required bands carries the same at-rest and scrolled requirement, with the
   recorded not-scrollable branch.
-- [ ] No check enforces a capture-set rule that shipped pack content does not
+- [x] No check enforces a capture-set rule that shipped pack content does not
   state.
 
 <!-- The independent reviewer can see the page -->
-- [ ] `frontend-reviewer` is seeded with the capture set and the recorded
+- [x] `frontend-reviewer` is seeded with the capture set and the recorded
   observations for the surface under review.
-- [ ] `frontend-reviewer` carries a lens for reader-visible layout failure whose
+- [x] `frontend-reviewer` carries a lens for reader-visible layout failure whose
   severity comes from the pack's finding-class mapping.
-- [ ] `frontend-reviewer` can capture a rendered page itself rather than relying
+- [x] `frontend-reviewer` can capture a rendered page itself rather than relying
   only on captures the author supplied.
-- [ ] Shipped reviewer content states that the reviewer does not write to the
+- [x] Shipped reviewer content states that the reviewer does not write to the
   repository under review.
 
 <!-- Rule-table integrity -->
-- [ ] A duplicate row key in a rule table is rejected rather than silently
+- [x] A duplicate row key in a rule table is rejected rather than silently
   collapsed, so the one-severity-per-class rule can fail.
 
 <!-- Release -->
-- [ ] The pack's declared dependency surfaces require no dependency they did not
+- [x] The pack's declared dependency surfaces require no dependency they did not
   require before this delivery.
-- [ ] `pack.toml` and `.claude-plugin/plugin.json` carry matching bumped versions.
-- [ ] `docs/product/changelog.md` carries the entry for that version.
-- [ ] The frontend-engineering skill's eval harness carries a query exercising the
+- [x] `pack.toml` and `.claude-plugin/plugin.json` carry matching bumped versions.
+- [x] `docs/product/changelog.md` carries the entry for that version.
+- [x] The frontend-engineering skill's eval harness carries a query exercising the
   inspection step this delivery adds.
 
 ## Follow-ons

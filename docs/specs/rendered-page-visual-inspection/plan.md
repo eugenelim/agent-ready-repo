@@ -1,7 +1,7 @@
 # Plan: Rendered-page visual inspection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (pack export boundary, version-bump
   rule, portability rule) and `packs/frontend-engineering/AGENTS.md`; analogous
   implementations — `packs/core/tests/` and `packs/catalogue-curation/tests/` are
