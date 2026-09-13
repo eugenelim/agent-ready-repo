@@ -819,3 +819,37 @@ main h1 {
   color: var(--sl-color-white);
   text-wrap: balance;
 }
+
+:root {
+  /* The product orientation band above the nav. The sticky header is this band
+     plus `--sl-nav-height`, and it translates up by exactly this much as the
+     page scrolls. Declared here rather than on `.header`, where it was: a
+     value scoped to one component is invisible to the right sidebar, and an
+     unreadable `var()` makes the whole `calc()` invalid — so the padding that
+     depended on it silently became 0 instead of erroring. */
+  --docs-orientation-band-height: 2.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * The right-hand rail must clear the header at its tallest
+ *
+ * The sticky header is the product orientation band plus the nav, and it
+ * translates up by exactly the band's height as the page scrolls: 101px tall at
+ * rest, 65px once moved. Starlight pads the right sidebar by `--sl-nav-height`
+ * alone, which is the *condensed* height — so at the top of the page the header
+ * covered the first 36px of the rail, and whatever sat there was invisible until
+ * the reader scrolled.
+ *
+ * Measured, not guessed: at 1440x900 and page-scroll 0 the header's bottom edge
+ * was 101 and the rail's first content spanned 89–107, with
+ * `elementFromPoint` at its centre returning the header.
+ *
+ * This is the whole rail, not the guidebook panel — Starlight's own "On this
+ * page" heading was equally covered. Padding for the tallest state costs a band
+ * of space once scrolled, which reads as breathing room; being hidden at the
+ * top of every page does not.
+ * ------------------------------------------------------------------------- */
+
+.right-sidebar {
+  padding-top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height));
+}

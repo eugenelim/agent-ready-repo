@@ -58,7 +58,12 @@ const walk = await guidebookWalk(Astro.locals.starlightRoute.entry);
 
   .walk-header {
     position: sticky;
-    top: 0;
+    /* The header at its TALLEST. It is 101px at rest and 65px once the page
+       has scrolled, and CSS sticky cannot track a moving offset — so pinning to
+       the condensed height left this hidden behind the header in the one state
+       that combines both: page at the top, rail scrolled. Pinning to the tall
+       height costs a band of space in the other states and is never hidden. */
+    top: calc(var(--sl-nav-height) + var(--docs-orientation-band-height));
     z-index: 1;
     margin-bottom: 0.6rem;
     padding: 0.5rem 0.7rem;

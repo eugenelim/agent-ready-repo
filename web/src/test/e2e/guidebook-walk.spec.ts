@@ -62,22 +62,76 @@ test.describe('guidebook step layout', () => {
 
         // The rail may overflow -- that is fine, it scrolls. What must not
         // happen is the reader's only statement of which guidebook they are in
-        // scrolling away first.
+        // becoming unreadable, in any combination of page and rail scroll.
+        //
+        // Occlusion, not position. An earlier version asserted `y >= 0`, which
+        // passed while the header sat *behind* the site header: that header is
+        // 101px tall at rest and 65px once moved, and the rail was padded for
+        // the condensed height, so the panel was covered at the top of every
+        // page -- the exact state a reader starts in.
         const name = page.locator('.guidebook-walk .walk-title');
         await expect(name).toBeVisible();
-        await page.evaluate(() => {
-          const rail = document.querySelector('.right-sidebar');
-          if (rail) rail.scrollTop = rail.scrollHeight;
-        });
-        const box = await name.boundingBox();
-        expect(box, `the guidebook name must render (${size}, ${slug})`).not.toBeNull();
-        expect(
-          box!.y,
-          `the guidebook name must stay on screen when the rail is scrolled (${size}, ${slug})`,
-        ).toBeGreaterThanOrEqual(0);
+
+        for (const pageScroll of [0, 1200, 99999]) {
+          for (const railScroll of [0, 99999]) {
+            await page.evaluate(
+              ([py, ry]) => {
+                window.scrollTo(0, py);
+                const rail = document.querySelector('.right-sidebar');
+                if (rail) rail.scrollTop = ry;
+              },
+              [pageScroll, railScroll],
+            );
+            const covered = await name.evaluate((node) => {
+              const box = node.getBoundingClientRect();
+              const front = document.elementFromPoint(
+                box.x + box.width / 2,
+                box.y + box.height / 2,
+              );
+              return !front || !front.closest('.guidebook-walk');
+            });
+            expect(
+              covered,
+              `the guidebook name must not be covered (${size}, ${slug}, ` +
+                `page=${pageScroll}, rail=${railScroll})`,
+            ).toBe(false);
+          }
+        }
       });
     }
   }
+
+  test('the right rail clears the site header at its tallest', async ({ page }) => {
+    // Asserted structurally, because the occlusion check above cannot reach
+    // this: the rail only overflows at one viewport, so scrolling it is a
+    // no-op elsewhere and a wrong sticky offset never engages. Both mutations
+    // of the fix passed that check, which is how a control that cannot fail
+    // looks from the outside.
+    //
+    // The rule: the sticky header is the orientation band plus the nav and
+    // translates up by the band's height as the page scrolls, so it is tallest
+    // at rest -- which is the state every reader starts in. A rail padded for
+    // the condensed height hides its own first 36px there.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(stepUrl('design-each-screen'));
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    const { headerBottom, railPadding } = await page.evaluate(() => {
+      const header = document.querySelector('header');
+      const rail = document.querySelector('.right-sidebar');
+      return {
+        headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+        railPadding: rail ? parseFloat(getComputedStyle(rail).paddingTop) : 0,
+      };
+    });
+
+    expect(headerBottom, 'the site header must render').toBeGreaterThan(0);
+    expect(
+      railPadding,
+      `the rail's top padding (${railPadding}px) must clear the header at rest ` +
+        `(${headerBottom}px), or its first content is covered on arrival`,
+    ).toBeGreaterThanOrEqual(headerBottom);
+  });
 
   test('every step states its position in the body and marks it in the rail', async ({
     page,
