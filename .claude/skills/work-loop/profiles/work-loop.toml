@@ -1,0 +1,40 @@
+# Work-loop event mapping for `jsonl-otlp-exporter`.
+#
+# Data, not code (ADR-0115): this catalogue supplies the profile as a file
+# through the sender's `--profile` flag. The sender registers no profile of its
+# own and never names this consumer.
+#
+# The envelope this maps is `docs/architecture/telemetry.md` section 5.1.
+
+timestamp_field = "at"
+timestamp_format = "rfc3339"
+
+severity_field = "result"
+
+# 9 is INFO and 17 is ERROR in OpenTelemetry's severity numbering, and these are
+# the only two values `loop-engine.py`'s `_GATE_RESULTS` produces. The other five
+# FSM events emit `result: null` and are sent with no severity rather than being
+# dropped -- they are routing steps, neither a pass nor a failure.
+# Inline on purpose: a `[severity_map]` table header would capture `identity`
+# and `allowlist` below it into that table instead of leaving them top-level.
+severity_map = { success = 9, failure = 17 }
+
+# `run_id` with `seq` is what a consumer deduplicates on.
+identity = ["run_id", "seq"]
+
+# Exactly the emitted keys, less the four routed above. Derived from a line the
+# engine actually emitted, not hand-listed: the test re-derives it the same way,
+# so a field added to the envelope fails that test rather than being dropped from
+# the payload in silence.
+allowlist = [
+    "awaiting_input",
+    "budgets",
+    "event",
+    "from",
+    "phase_s",
+    "phase_started_at",
+    "schema",
+    "spec",
+    "to",
+    "waived",
+]
