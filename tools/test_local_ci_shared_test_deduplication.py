@@ -2993,9 +2993,24 @@ def test_shard_every_main_call_site_clears_the_reentry_marker() -> None:
     # function is.
     tree = ast.parse(source)
     unguarded: list[int] = []
-    for node in ast.walk(tree):
+    # Only module-level test functions. Walking nested defs separately would
+    # report one whose wrapper lives in its enclosing function.
+    for node in tree.body:
         if not isinstance(node, ast.FunctionDef):
             continue
+        # Receivers are BOUND, not assumed to be named `shard`: `sel =
+        # _shard_module(); sel.main(...)` is the same call and evaded an earlier
+        # version of this check that hardcoded the name.
+        receivers = {
+            target.id
+            for child in ast.walk(node)
+            if isinstance(child, ast.Assign)
+            for target in child.targets
+            if isinstance(target, ast.Name)
+            and isinstance(child.value, ast.Call)
+            and isinstance(child.value.func, ast.Name)
+            and child.value.func.id == "_shard_module"
+        }
         calls = [
             child
             for child in ast.walk(node)
@@ -3003,16 +3018,16 @@ def test_shard_every_main_call_site_clears_the_reentry_marker() -> None:
             and isinstance(child.func, ast.Attribute)
             and child.func.attr == "main"
             and isinstance(child.func.value, ast.Name)
-            and child.func.value.id == "shard"
+            and child.func.value.id in receivers
         ]
         if not calls:
             continue
-        names = {
+        called = {
             child.func.id
             for child in ast.walk(node)
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Name)
         }
-        if "_shard_outside_a_shard" in names:
+        if "_shard_outside_a_shard" in called:
             continue
         # The case that deliberately re-enters keeps the marker on purpose.
         if any(
