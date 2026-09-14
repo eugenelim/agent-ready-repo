@@ -42,7 +42,23 @@ placeholder data the same way it breaks on real data.
 
 ## 1. Capture
 
-Take four captures per route: two viewport heights, each at rest and scrolled.
+Take four captures per route **in every channel**: two viewport heights, each at
+rest and scrolled.
+
+A **channel** is a band of viewport widths. Which bands your surface has comes
+from the breakpoints you declare for it — one below the lowest, one above the
+highest, one between each adjacent pair, each boundary value belonging to the
+wider band. Declare none and two apply:
+
+| Channel | Viewport width |
+|---|---|
+| narrow | ≤480 CSS px |
+| wide | ≥1024 CSS px |
+
+Take each channel's captures at the width its band's lower bound names, or where
+it has none, the widest its upper bound admits. Declare `1152` and you capture at
+`1151` and `1152` — the two sides of that breakpoint. Record which basis you
+used, declared or fallback.
 
 | Capture | Viewport height | Scroll position |
 |---|---|---|
@@ -51,18 +67,30 @@ Take four captures per route: two viewport heights, each at rest and scrolled.
 | tall-at-rest | ≥900 CSS px | 0 |
 | tall-scrolled | ≥900 CSS px | >0 |
 
+That is eight captures per route on the fallback bands, and four times *n + 1*
+where you declare *n* breakpoints.
+
 Two heights, because a layout that holds at one often fails at the other. Two
 scroll positions, because the at-rest view is the one nobody scrolls to reach,
 and the scrolled view is where sticky headers and overlays come to rest on top
-of content.
+of content. Every channel, because a rule written for one side of a breakpoint
+does nothing on the other side — capture only from the side it applies to and
+you have looked at it exactly where it was always going to be fine.
 
-Extra heights are welcome and none beyond these two is required — but a height
-you **do** capture owes the same pair. A third height captured only at rest looks
-like coverage and is not.
+**What the fallback bands do not reach.** `narrow` and `wide` leave 481–1023
+uncaptured, and that is where a great many real breakpoints sit. If your surface
+switches layout anywhere in that range — a sidebar that becomes a rail, a nav
+that collapses — the fallback never captures either side of it. Declaring your
+breakpoints is what closes that gap, and it is the reason the run records which
+basis it used.
+
+Extra widths and heights are welcome and none beyond the channels and these two
+heights is required — but a size you **do** capture owes the same pair. A third
+size captured only at rest looks like coverage and is not.
 
 **If the page is shorter than the viewport it has no scrolled view.** Record
-`page-scrollable: no` on that height's at-rest capture and the scrolled
-requirement for that height is met. Record it rather than leaving it to be
+`page-scrollable: no` on that size's at-rest capture and the scrolled
+requirement for that size is met. Record it rather than leaving it to be
 guessed: a scroll position of 0 is also what a capture nobody scrolled looks
 like, and those two need to stay apart.
 
@@ -74,7 +102,7 @@ Record five fields with every capture. The image does not show any of them:
 | viewport-width | Width in CSS pixels |
 | viewport-height | Height in CSS pixels |
 | scroll-position | Vertical offset the capture was taken at |
-| page-scrollable | Whether the page scrolls at this height — `yes` or `no` |
+| page-scrollable | Whether the page scrolls at this size — `yes` or `no` |
 
 **Cut the query string and the fragment from the route** before you write it down
 and before you send it anywhere. Tokens, reset links and signed URLs live there,

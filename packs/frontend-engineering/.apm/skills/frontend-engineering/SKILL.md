@@ -591,7 +591,8 @@ Read it rather than working from this summary.
 #### 5a. Capture
 
 The routes to inspect are the ones the adopter names. Capture each one at all
-four required states — two viewport heights, each at rest and scrolled:
+four required states — two viewport heights, each at rest and scrolled — **in
+every required channel**:
 
 | Capture | Viewport height | Scroll position |
 | --- | --- | --- |
@@ -599,6 +600,21 @@ four required states — two viewport heights, each at rest and scrolled:
 | short-scrolled | ≤600 CSS px | >0, or `page-scrollable: no` |
 | tall-at-rest | ≥900 CSS px | 0 |
 | tall-scrolled | ≥900 CSS px | >0, or `page-scrollable: no` |
+
+A **channel** is a band of viewport widths. The channels a surface has come from
+the breakpoints you declare for it: the bands those breakpoints bound, one below
+the lowest, one above the highest, and one between each adjacent pair, with each
+boundary value belonging to the wider band. Declare none and two apply —
+`narrow` at ≤480 CSS px and `wide` at ≥1024 CSS px. Record which of the two you
+used.
+
+That makes eight captures per route with the default bands, and four times
+*n + 1* where you declare *n* breakpoints. Take each channel's captures at the
+width its band's lower bound names, or where it has none, the largest width its
+upper bound admits — so breakpoints at `1152` are captured at `1151` and `1152`.
+A rule scoped to one side of a breakpoint does nothing on the other side, so a
+capture set that never leaves one band only ever exercises that rule where it
+already applies.
 
 A page shorter than the viewport has no scrolled view. Record
 `page-scrollable: no` on that height's at-rest capture and the scrolled
@@ -609,30 +625,44 @@ a capture nobody scrolled looks like.
 Two heights because a layout that holds at one often fails at the other. Two
 scroll positions because the at-rest view is the one nobody scrolls to reach, and
 the scrolled view is where sticky headers and overlays come to rest on top of
-content. Further heights are welcome, and none beyond the two bands is
-required — but a height you **do** capture carries the same obligation: at
-every captured height, including one beyond the two required bands, that
-route needs an at-rest capture and a scrolled one, or a recorded
-`page-scrollable: no`. A third height captured only at rest looks like
-coverage and is not.
+content. Every channel because a rule that applies on only one side of a
+breakpoint is exercised only by a capture taken from that side. Further widths and heights are welcome, and none beyond the required
+channels and the two height bands is required — but a size you **do** capture
+carries the same obligation: at every captured width and height, including one
+beyond the required channels and bands, that route needs an at-rest capture and
+a scrolled one, or a recorded `page-scrollable: no`. A third size captured only
+at rest looks like coverage and is not.
 
 `npx playwright screenshot` takes an at-rest capture and cannot scroll, so it
 covers only half the set. Drive the browser directly for the rest — any driver
 works, and this is the shape whatever you use has to produce:
 
 ```js
-// One capture. Repeat for each row of the table above.
-const page = await browser.newPage({ viewport: { width: 390, height: 600 } });
-await page.goto(route);                     // route as the adopter named it
-const scrollable = await page.evaluate(
-  () => document.documentElement.scrollHeight > window.innerHeight);
-if (scrollable) await page.evaluate(y => window.scrollTo(0, y), 400);
-const attained = await page.evaluate(() => window.scrollY);   // record THIS
-await page.screenshot({ path: 'short-scrolled.png' });
+// The channels for this surface. Two here because no breakpoints were declared;
+// derive them from your own breakpoints when you have them.
+const channels = [{ name: 'narrow', width: 480 }, { name: 'wide', width: 1024 }];
+
+// One capture. Repeat for each channel AND each row of the table above.
+for (const channel of channels) {
+  const page = await browser.newPage({
+    viewport: { width: channel.width, height: 600 },   // width comes from the channel
+  });
+  await page.goto(route);                   // route as the adopter named it
+  const scrollable = await page.evaluate(
+    () => document.documentElement.scrollHeight > window.innerHeight);
+  if (scrollable) await page.evaluate(y => window.scrollTo(0, y), 400);
+  const attained = await page.evaluate(() => window.scrollY);   // record THIS
+  const width = await page.evaluate(() => window.innerWidth);   // and THIS
+  await page.screenshot({ path: `${channel.name}-short-scrolled.png` });
+}
 ```
 
-Three things that command has to do and a one-shot screenshot does not:
+Four things that command has to do and a one-shot screenshot does not:
 
+- **Open each channel**, taking the width from the channel rather than writing
+  one in. A scrollbar-inclusive layout viewport can put a media query on the
+  other side of the number you handed the driver, which is why the width the page
+  reports is recorded rather than the width you asked for.
 - **Scroll**, for the two scrolled rows.
 - **Record the offset it actually reached**, not the one you asked for. They
   differ whenever the page is shorter than the scroll you requested, and the
@@ -654,7 +684,7 @@ to the same offset are the same picture:
 
 A capture missing any of the five is **unusable**: it yields no finding, and it
 is reported as unusable rather than passed over. A set missing any of the four
-required captures is **incomplete**, and an incomplete set cannot satisfy a
+required captures in any required channel is **incomplete**, and an incomplete set cannot satisfy a
 completed inspection — findings from the captures that are present do not make it
 one.
 
@@ -780,7 +810,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | Field | What to record |
 |---|---|
 | routes | List of routes/URLs or file paths tested |
-| viewports | Viewport widths tested (e.g. 375px mobile, 768px tablet, 1280px desktop) |
+| viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands |
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |

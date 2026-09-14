@@ -10,6 +10,7 @@ execution failure. These are the checks for the criteria that closed that.
 from __future__ import annotations
 
 import itertools
+import re
 from pathlib import Path
 
 import pytest
@@ -37,14 +38,33 @@ def md() -> str:
     return read_rules()
 
 
-def _capture(height: int, scroll: int, scrollable: str = "yes") -> dict[str, int | str]:
-    return {"route": "/a", "viewport-width": 390 if height <= 600 else 1280,
+NARROW, WIDE = 390, 1280
+
+
+def _capture(
+    height: int, scroll: int, scrollable: str = "yes", width: int = NARROW
+) -> dict[str, int | str]:
+    """Width and height are independent arguments.
+
+    They used to be one: width was `390 if height <= 600 else 1280`, so a set
+    covering both heights covered each channel at exactly one height and no rule
+    could see it. Defaulting width rather than deriving it keeps the callers that
+    only care about height short, while making the coupling impossible to
+    reintroduce by accident.
+    """
+    return {"route": "/a", "viewport-width": width,
             "viewport-height": height, "scroll-position": scroll,
             "page-scrollable": scrollable}
 
 
 def complete_set() -> list[dict[str, int | str]]:
-    return [_capture(600, 0), _capture(600, 400), _capture(900, 0), _capture(900, 400)]
+    """The four height-and-scroll captures in each of the two fallback channels."""
+    return [
+        _capture(height, scroll, width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+        for scroll in (0, 400)
+    ]
 
 
 # ── T8: a Blocker finding stops the surface completing ──────────────────────
@@ -190,12 +210,16 @@ def test_the_judgement_request_declares_the_capture_untrusted(md: str) -> None:
 
 # ── T10: the every-captured-height rule is shipped, not authored by the check ─
 
-def test_the_every_captured_height_rule_is_shipped(md: str) -> None:
-    """Verifies: shipped pack content states that a captured height beyond the
-    required bands carries the same at-rest and scrolled requirement."""
-    assert capture_set_rules(md).get("every-captured-height-needs-the-pair") == "required"
+def test_the_every_captured_size_rule_is_shipped(md: str) -> None:
+    """Verifies: shipped pack content states that a captured width and height
+    beyond the required channels and bands carries the same at-rest and scrolled
+    requirement."""
+    assert (
+        capture_set_rules(md).get("every-captured-width-and-height-needs-the-pair")
+        == "required"
+    )
     section = " ".join(md.split("\n## Required captures\n", 1)[1].split("\n## ", 1)[0].split())
-    assert "beyond the two required bands" in section
+    assert "beyond the required channels and bands" in section
     assert "page-scrollable: no" in section
 
 
@@ -206,24 +230,45 @@ def test_the_contradicting_sentence_is_gone(md: str) -> None:
     assert "none are required" not in read_skill()
 
 
-def test_no_check_enforces_a_capture_rule_the_pack_does_not_state(md: str) -> None:
-    """Verifies: no check enforces a capture-set rule shipped content does not state.
+ROW = "| every-captured-width-and-height-needs-the-pair | required |"
 
-    Removing the rule from the reference must stop the evaluator enforcing it.
-    If the quantifier were still hard-coded in the evaluator, this would fail —
-    which is exactly the defect this task exists to close.
+
+def test_a_rule_the_pack_switches_off_stops_being_enforced(md: str) -> None:
+    """Verifies: no check enforces a capture-set rule shipped content switches off.
+
+    A row that is *present* and says something other than `required` is a stated
+    decision, and the evaluator honours it. If the quantifier were hard-coded in
+    the evaluator this would fail, which is the defect the rule-is-the-data
+    discipline exists to close.
     """
     from frontend_engineering_rendered_page_rules import evaluate_capture_set
     extra = complete_set() + [_capture(750, 0)]
     assert evaluate_capture_set(md, extra)[0] == "incomplete"
 
-    without = md.replace("| every-captured-height-needs-the-pair | required |",
-                         "| every-captured-height-needs-the-pair | not-required |", 1)
-    assert without != md
-    assert evaluate_capture_set(without, extra)[0] == "complete", (
-        "the evaluator still enforced the every-captured-height rule after the "
-        "reference stopped stating it — the check is authoring its own rule"
+    off = md.replace(
+        ROW, "| every-captured-width-and-height-needs-the-pair | not-required |", 1
     )
+    assert off != md
+    assert evaluate_capture_set(off, extra)[0] == "complete", (
+        "the evaluator still enforced the every-captured-size rule after the "
+        "reference switched it off — the check is authoring its own rule"
+    )
+
+
+def test_an_absent_rule_row_raises_rather_than_skipping(md: str) -> None:
+    """Verifies: deleting the rule row fails the check rather than passing it.
+
+    This is the other half of the rule-is-the-data discipline and it pulls the
+    opposite way from the case above. A row switched *off* is a stated decision;
+    a row that is *gone* states nothing, and a reader that skips the rule it
+    governs is fail-open — the deletion would leave every check green, so the
+    guard could never fail on the one mutation it exists to catch.
+    """
+    from frontend_engineering_rendered_page_rules import evaluate_capture_set
+    gone = md.replace(ROW + "\n", "", 1)
+    assert gone != md
+    with pytest.raises(AssertionError, match="every-captured-width-and-height"):
+        evaluate_capture_set(gone, complete_set())
 
 
 # ── T11: rule-table integrity ───────────────────────────────────────────────
@@ -444,8 +489,12 @@ def test_a_duplicate_capture_set_rule_row_is_rejected() -> None:
     """The capture-set rule table bypassed the duplicate-rejecting reader, so a
     second row whose last value was `required` passed unnoticed."""
     md = read_rules()
-    row = "| every-captured-height-needs-the-pair | required |"
-    mutated = md.replace(row, row + "\n| every-captured-height-needs-the-pair | not-required |", 1)
+    row = "| every-captured-width-and-height-needs-the-pair | required |"
+    mutated = md.replace(
+        row,
+        row + "\n| every-captured-width-and-height-needs-the-pair | not-required |",
+        1,
+    )
     assert mutated != md
     with pytest.raises(AssertionError, match="more than once"):
         capture_set_rules(mutated)
@@ -482,6 +531,80 @@ def test_the_guide_tells_the_adopter_to_declare_the_capture_untrusted() -> None:
     guide = " ".join(_guide().split())
     assert "untrusted evidence" in guide
     assert "no instruction authority over the judgement" in guide
+
+
+# ── the guide teaches the channel axis ──────────────────────────────────────
+
+
+def test_the_guide_walks_both_fallback_channels() -> None:
+    """Verifies AC-0018's positive half: the guide names both fallback channels,
+    the band between them no fallback capture reaches, and the per-channel floor.
+    """
+    from frontend_engineering_rendered_page_rules import fallback_channels
+
+    guide = " ".join(_guide().split())
+    # Derived from the shipped band table, and word-bounded. A bare `"wide" in
+    # guide` was already satisfied by "the widest its upper bound admits" and by
+    # a pre-existing Related-links line reading "the wider audit this step sits
+    # inside" -- so that half could not fail, and the guide could stop teaching
+    # the `wide` channel entirely with the suite green.
+    for name, _, _ in fallback_channels(read_rules()):
+        assert re.search(rf"\b{re.escape(name)}\b", guide), (
+            f"the guide does not name the {name!r} channel the reference declares"
+        )
+    assert "481–1023" in guide or "481-1023" in guide, (
+        "the guide does not name the band the fallback channels leave uncaptured"
+    )
+    assert "eight captures per route" in guide, (
+        "the guide does not state the per-channel floor"
+    )
+
+
+# The demoted obligation. AC-0021, AC-0022 and AC-0025 were cut because no token
+# predicate can decide "teaches the superseded floor": three of the five shipped
+# strings that stated it carry no completeness word at all, and the token that
+# would red them also reds the guide's unscrollable-branch sentence, which must
+# survive. A literal pin is what is left, and its reach is exactly these strings.
+# This is the GUIDE half. The harness half lives in
+# `test_rendered_page_reviewer_sight.py`'s `HARNESS_SUPERSEDED_FLOOR`, which pins
+# the two `evals.json` strings. Between them the pin reaches four of the five
+# strings `plan.md` § Design decisions names; the fifth, the guide's height-keyed
+# capture table, is not pinned because it was not superseded — the prose above it
+# now frames it as the matrix taken in every channel, so the table itself still
+# states the contract. That divergence from the plan is recorded in
+# `notes/verification-ledger.md`.
+SUPERSEDED_FLOOR = (
+    "Take four captures per route: two viewport heights",
+    "none beyond these two is required",
+    "Whether the page scrolls at this height",
+)
+
+MUST_SURVIVE = (
+    "page-scrollable: no",
+    "no scrolled view",
+)
+
+
+def test_the_guide_no_longer_states_the_superseded_floor() -> None:
+    """A content pin, not a predicate.
+
+    Reach: exactly the strings below. A reworded height-only floor is NOT caught,
+    and that is the accepted limit of this control — asking a text search to
+    decide the general property is what three review rounds failed to make work.
+    """
+    guide = _guide()
+    for stale in SUPERSEDED_FLOOR:
+        assert stale not in guide, (
+            f"the guide still states the superseded floor: {stale!r}"
+        )
+
+
+def test_the_pin_spares_the_sentences_that_must_survive() -> None:
+    """The other polarity. A guard tuned until the strings above red is worthless
+    if it also removed the unscrollable branch, which is a live rule."""
+    guide = _guide()
+    for kept in MUST_SURVIVE:
+        assert kept in guide, f"the guide lost {kept!r}, which is a live rule"
 
 
 # ── every adopter surface, DERIVED rather than listed ───────────────────────
