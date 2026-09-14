@@ -84,11 +84,20 @@ row. Two row keys are shipped content the suites read by name:
 | --- | --- | --- |
 | `every-captured-width-and-height-needs-the-pair` | Required captures, rule rows | replaces `every-captured-height-needs-the-pair` |
 | `channel-basis-recorded` | Channels, rule rows | the AC-0003 record |
+| `channel-name-forbids` | Channels, rule rows | the AC-0012 token list |
 
-The fallback channel table itself is the two-cell name-and-predicate shape
-`capture_set_rules()` already parses, so the `## Channels` section carries a
-two-cell rule-row block and a two-cell band block and the reader separates them
-by heading, not by width.
+The `## Channels` section carries **three-cell band rows** — name, lower bound,
+upper bound, either bound cell empty for unbounded — and two-cell rule rows. Cell
+width separates them, which is how `capture_set_rules()` already separates the
+rule rows under `Required captures` from that table's three-cell rows
+(`:485-502`). Heading separation would not work: `table_rows()` returns only the
+first pipe table under a `## ` heading and breaks at the first non-pipe line once
+rows have started (`:51-59`), so a second block under one heading is unreachable
+and a `###` sub-heading is invisible to it.
+
+Two cells rather than one because `satisfies()` parses one operator and one bound
+per cell (`:143`) and raises on `>=480 <1024`. The reader conjoins the pair; the
+per-cell grammar is untouched.
 
 `required_captures()`'s return shape gains the channel dimension; its three
 callers in the module migrate with it.
@@ -125,8 +134,9 @@ AC-0001, AC-0002, AC-0003 and AC-0004 are stated here and asserted there; nothin
 in this task asserts them itself.
 
 **Approach:** add a `## Channels` section to the reference carrying the fallback
-channel table (name, width predicate), the breakpoint-derived rule, and the
-channel-basis recording rule as two-cell rule rows in the established shape.
+band table (name, lower bound, upper bound), and the breakpoint-derived rule, the
+channel-basis recording rule, and the forbidden device-name tokens as two-cell
+rule rows in the established shape.
 Generalize the `every-captured-height-needs-the-pair` row and the prose stating
 the required set. State the axis's reason without naming any surface outside the
 pack.
@@ -171,8 +181,9 @@ channels; a case asserting incompleteness names which channel it is short of.
 suite with one taking width and height as separate arguments. Do not narrow an
 assertion to accommodate a set that is now short — the expected red is the defect.
 
-**Done when:** the pack's rendered-page suites are green with no assertion
-weakened, shown by the diff carrying no relaxed predicate.
+**Done when:** each of the three suites builds a capture from separate width and
+height arguments, and no call site of the `390 if height <= 600 else 1280` helper
+remains anywhere in the pack's test tree.
 
 ### T4: `SKILL.md` states the channel axis and teaches it by example
 
@@ -188,8 +199,8 @@ axis, and rewrite the worked capture snippet so the viewport it opens is
 parameterised over channel and height rather than hard-coded to one width. Keep
 the section inside the `CAT-S003` body ceiling.
 
-**Done when:** the AC-0009 and AC-0010 cases are green, and the drift guard reds
-when either copy is edited alone.
+**Done when:** § 5a's body stays inside the `CAT-S003` ceiling, measured rather
+than assumed, and `make build-self` leaves no projection diff.
 
 ### T5: The evidence manifest records channels
 
@@ -197,18 +208,21 @@ when either copy is edited alone.
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
 
 **Tests:** TDD for AC-0011 and AC-0012, in
-`test_rendered_page_shipped_content_limits.py` — extend the
-existing shipped-content guard pattern with the device-name vocabulary search the
-spec's prohibition criterion names. State the vocabulary in the open, as the two
-existing guards state theirs.
+`test_rendered_page_shipped_content_limits.py`. The guard **reads** the forbidden
+token list from the reference rather than stating it, which is what makes AC-0012
+delete-and-red the way AC-0008 requires of the other rows; stating it in the test
+module would be the self-supplied quantifier the spec's `Always do` forbids. The
+two existing guards in this module state their own vocabularies because theirs
+describe repository policy, not a rule an adopter is held to.
 
 **Approach:** restate the manifest `viewports` field as channels covered, given as
 width predicates, in `SKILL.md` and in the journey's manifest inventory — AC-0011
 reaches both. `SKILL.md`'s current example line names three devices and is inside
 AC-0012's scope, so it is rewritten here rather than left.
 
-**Done when:** no device name survives in either manifest viewports field or the
-channel table, shown by the AC-0012 vocabulary run over both.
+**Done when:** `SKILL.md:783`'s three-device example line no longer names a
+device, and the journey's manifest inventory states the same channel set as
+`SKILL.md`'s.
 
 ### T6: The reviewer and the eval harness read the width axis
 
@@ -261,8 +275,10 @@ exists and carries the four values AC-0017 names.
 **Depends on:** T1-T8
 **Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md, docs/specs/rendered-page-visual-inspection/spec.md
 
-**Tests:** goal-based check for AC-0014 and AC-0015 — compare the two manifests'
-version fields, confirm
+**Tests:** AC-0019 is TDD in `test_rendered_page_capture_contract.py`, comparing
+the frozen spec to its pre-change bytes so the body-unchanged half is observed
+rather than assumed. AC-0014 and AC-0015 are a goal-based check — compare the two
+manifests' version fields, confirm
 the changelog entry is this pack's topmost release heading, and compare the pack's
 declared dependency surfaces before and after to show none was added.
 
@@ -300,6 +316,10 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Shaping review round 2: 10 findings, all taken; eight were
+  consequences of round 1's own repairs. The Blocker was the repaired AC-0001
+  needing a two-sided interval that `satisfies()` raises on, fixed by three-cell
+  band rows the reader conjoins.
 - 2026-09-13 — Shaping review round 1: 17 findings, all taken. Blockers were a
   self-contradicting AC-0003, an unstated band-boundary convention, and a T2
   guard instruction pointing at the module's fail-open shape.
