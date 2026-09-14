@@ -141,8 +141,8 @@ borrow its receipt.
 Return every `MALFORMED` token to this skill for revision; every unresolved
 token keeps the intent at `Draft` and blocks `Accepted`. A material edit
 invalidates prior review evidence and returns an `Accepted` intent to `Draft`
-before a fresh review. For an intent, material means a change to outcome,
-boundary, owner, assumptions or altitude, unresolved questions, source
+before a fresh review. For an intent, material means a change to opportunity,
+outcome, boundary, owner, assumptions or altitude, unresolved questions, source
 authority, or projection. Before sealing, this lifecycle owner may record a
 wording, format, or evidence-link correction as nonmaterial and retain the bound
 result; otherwise redispatch.

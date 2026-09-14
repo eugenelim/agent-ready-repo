@@ -60,6 +60,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.27] — 2026-09-13
+
+### Highlights
+
+- **When a review finding says a claim promises more than its test checks, you
+  now have two answers instead of one.** Previously the only available answer was
+  to shrink the claim, so the easy move was to weaken what you promised until the
+  existing test covered it — quietly dropping the property from what anyone
+  checks. Now: if any test can be made to cover the full promise, improve the
+  test; shrink the claim only when none can.
+- **After fixing a review finding, search twice.** Guidance used to say this
+  search was "a walk, not a text search", which read as permission to skip
+  searching for exact strings. You now do both: search for the repeated words and
+  names, and read for the places that say the same thing in different words.
+  After a fix, also re-run the search for tests that pin file contents, across
+  every file you touched — that is when an edit breaks a test in a file you never
+  opened.
+- **You can now move an obligation out of an intent or brief and still have
+  something catch its deletion.** Moving it requires something that fails if it
+  is removed, and three of the four places you were told to move it to had
+  nothing watching them. Editing `Opportunity` on an intent, or `Rabbit holes` or
+  `Design artifacts` on a delivery brief, now counts as a material change, which
+  cancels that artifact's approved review and sends it back for a fresh one.
+- **How to prove a test actually catches a bug is now written down.** To prove
+  it, put back the original broken code — not an empty placeholder — and confirm
+  the test fails. Undo it by editing, not with `git checkout`, `reset`, or
+  `stash`. A test that still passes while the bug is back has proved nothing.
+  This rule previously existed only if your own process happened to supply it.
+
+### Added
+
+- `work-loop`: `references/mutation-proof.md` states what a mutation proof
+  records, why reverting to a do-nothing stub proves nothing about a
+  sub-property, and that restoration is by editing. One conditional-routing row
+  loads it when a repair or claimed fix needs proof.
+
+### Changed
+
+- `work-loop`: `narrow-the-claim` carries both directions of a claim/check
+  mismatch; the Fix axis requires a repair's check to assert the repaired
+  property rather than a consequence of it; a review round names a literal sweep
+  and a semantic walk as separate instruments and obliges both after a repair;
+  and `demote-the-claim` distinguishes an upstream revision-bound lifecycle pin
+  from a downstream content test.
+- `intake-intent`: editing `Opportunity` is a material change to an accepted
+  intent.
+- `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
+  material change to a ready brief.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights

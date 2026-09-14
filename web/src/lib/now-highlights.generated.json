@@ -5,6 +5,153 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.27"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.27] — 2026-09-13",
+      "changelogAnchor": "core22527--2026-09-13",
+      "highlights": [
+        {
+          "source": "**When a review finding says a claim promises more than its test checks, you now have two answers instead of one.** Previously the only available answer was to shrink the claim, so the easy move was to weaken what you promised until the existing test covered it — quietly dropping the property from what anyone checks. Now: if any test can be made to cover the full promise, improve the test; shrink the claim only when none can.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "When a review finding says a claim promises more than its test checks, you now have two answers instead of one."
+            },
+            {
+              "type": "text",
+              "value": " Previously the only available answer was to shrink the claim, so the easy move was to weaken what you promised until the existing test covered it — quietly dropping the property from what anyone checks. Now: if any test can be made to cover the full promise, improve the test; shrink the claim only when none can."
+            }
+          ]
+        },
+        {
+          "source": "**After fixing a review finding, search twice.** Guidance used to say this search was \"a walk, not a text search\", which read as permission to skip searching for exact strings. You now do both: search for the repeated words and names, and read for the places that say the same thing in different words. After a fix, also re-run the search for tests that pin file contents, across every file you touched — that is when an edit breaks a test in a file you never opened.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "After fixing a review finding, search twice."
+            },
+            {
+              "type": "text",
+              "value": " Guidance used to say this search was \"a walk, not a text search\", which read as permission to skip searching for exact strings. You now do both: search for the repeated words and names, and read for the places that say the same thing in different words. After a fix, also re-run the search for tests that pin file contents, across every file you touched — that is when an edit breaks a test in a file you never opened."
+            }
+          ]
+        },
+        {
+          "source": "**You can now move an obligation out of an intent or brief and still have something catch its deletion.** Moving it requires something that fails if it is removed, and three of the four places you were told to move it to had nothing watching them. Editing `Opportunity` on an intent, or `Rabbit holes` or `Design artifacts` on a delivery brief, now counts as a material change, which cancels that artifact's approved review and sends it back for a fresh one.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can now move an obligation out of an intent or brief and still have something catch its deletion."
+            },
+            {
+              "type": "text",
+              "value": " Moving it requires something that fails if it is removed, and three of the four places you were told to move it to had nothing watching them. Editing "
+            },
+            {
+              "type": "code",
+              "value": "Opportunity"
+            },
+            {
+              "type": "text",
+              "value": " on an intent, or "
+            },
+            {
+              "type": "code",
+              "value": "Rabbit holes"
+            },
+            {
+              "type": "text",
+              "value": " or "
+            },
+            {
+              "type": "code",
+              "value": "Design artifacts"
+            },
+            {
+              "type": "text",
+              "value": " on a delivery brief, now counts as a material change, which cancels that artifact's approved review and sends it back for a fresh one."
+            }
+          ]
+        },
+        {
+          "source": "**How to prove a test actually catches a bug is now written down.** To prove it, put back the original broken code — not an empty placeholder — and confirm the test fails. Undo it by editing, not with `git checkout`, `reset`, or `stash`. A test that still passes while the bug is back has proved nothing. This rule previously existed only if your own process happened to supply it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "How to prove a test actually catches a bug is now written down."
+            },
+            {
+              "type": "text",
+              "value": " To prove it, put back the original broken code — not an empty placeholder — and confirm the test fails. Undo it by editing, not with "
+            },
+            {
+              "type": "code",
+              "value": "git checkout"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "reset"
+            },
+            {
+              "type": "text",
+              "value": ", or "
+            },
+            {
+              "type": "code",
+              "value": "stash"
+            },
+            {
+              "type": "text",
+              "value": ". A test that still passes while the bug is back has proved nothing. This rule previously existed only if your own process happened to supply it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.26"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.26] — 2026-09-13",
+      "changelogAnchor": "core22526--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A frontend review now gets the pictures, not just the diff.** When a surface has been inspected, the work-loop hands `frontend-reviewer` the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A frontend review now gets the pictures, not just the diff."
+            },
+            {
+              "type": "text",
+              "value": " When a surface has been inspected, the work-loop hands "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.25"
         }
       ],
@@ -168,6 +315,100 @@
             {
               "type": "text",
               "value": ". The migration now produces the canonical empty topic map instead of a traceback."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "frontend-engineering",
+          "version": "0.2.3"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[frontend-engineering][0.2.3] — 2026-09-13",
+      "changelogAnchor": "frontend-engineering023--2026-09-13",
+      "highlights": [
+        {
+          "source": "**The pack now looks at the page, and writes down what it saw.** Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an `inspection observations` field that a list of screenshot filenames does not satisfy.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The pack now looks at the page, and writes down what it saw."
+            },
+            {
+              "type": "text",
+              "value": " Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an "
+            },
+            {
+              "type": "code",
+              "value": "inspection observations"
+            },
+            {
+              "type": "text",
+              "value": " field that a list of screenshot filenames does not satisfy."
+            }
+          ]
+        },
+        {
+          "source": "**A skipped inspection can no longer pass as a completed one.** Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A skipped inspection can no longer pass as a completed one."
+            },
+            {
+              "type": "text",
+              "value": " Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick."
+            }
+          ]
+        },
+        {
+          "source": "**Measure the noise yourself.** Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Measure the noise yourself."
+            },
+            {
+              "type": "text",
+              "value": " Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer."
+            }
+          ]
+        },
+        {
+          "source": "**A visible defect now costs something.** A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A visible defect now costs something."
+            },
+            {
+              "type": "text",
+              "value": " A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding."
+            }
+          ]
+        },
+        {
+          "source": "**The independent reviewer can finally see the page.** `frontend-reviewer` is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The independent reviewer can finally see the page."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another."
             }
           ]
         }

@@ -676,8 +676,13 @@ finding does not by itself require an edit.
   already exists, and when the target was never contract. Its reason records the
   destination that now owns the obligation, the pin that catches its removal, and
   the owner authority permitting the removal.
-- `narrow-the-claim` — the obligation stays contract and in place; only its
-  stated reach shrinks to what a check reaches.
+  An upstream pin may be revision-bound lifecycle invalidation at its
+  destination. A downstream pin remains a content test of the destination
+  that owns it.
+- `narrow-the-claim` — the obligation stays contract and in place. When
+  no check can reach the claimed property, only its stated reach shrinks to
+  what a check reaches. When some check can reach the claimed property, do not
+  narrow it; strengthen the check until it reaches the stated obligation.
 
 ### Route
 
@@ -687,7 +692,8 @@ finding does not by itself require an edit.
 ### Fix
 
 Before repairing, walk the surfaces the repair reaches and repair them in one
-action.
+action. A repair's check asserts the repaired property itself, not only a
+consequence of it.
 
 - `repair-the-generator` — what produces the artifact is at fault, not this
   instance.
@@ -714,11 +720,14 @@ cut walks backwards to what referenced the removed thing; route walks outwards
 to confirm the owner covers the whole claim, then back to remove what still
 states it locally; fix walks sideways across other instances, the companions
 describing them, and anything pinning those; hold walks forwards so the next
-round can see the decision. This is a walk, not a text search: a companion
-usually paraphrases and shares no string. Each change opens its own frontier, so
-continue until the frontier is empty. What the walk finds feeds back into the
-choice of rung: a claim living on many surfaces is evidence for repairing its
-generator or dropping it.
+round can see the decision. Every review round closes with two traversal
+instruments rather than one: a literal sweep for repeated text and named
+references, and a semantic walk for paraphrased companions that share no
+string. After a repair, run both instruments again, then re-run the step-8a
+anchor-test sweep over every file the repair touched. Each change opens its own
+frontier, so continue until the frontier is empty. What the walk finds feeds
+back into the choice of rung: a claim living on many surfaces is evidence for
+repairing its generator or dropping it.
 
 - **Blockers** → include the correction required by the accepted intent. Re-run
   GATES and REVIEW after each fix; use the next review unit when it cannot
@@ -879,6 +888,7 @@ Load when the predicate fires; don't load speculatively.
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
+| A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |
