@@ -43,9 +43,12 @@ Every criterion is verified in `tools/test_workspace_status_cli.py`, which
 already owns this projection's CLI surface and runs the real script as a
 subprocess through its `_run_cli` helper.
 
-- AC-0001 is carried by the two converted tests. Their fixture values are
-  copied from this repository's own active initiatives, so the charset under
-  test is the corpus rather than invented input.
+- AC-0001 is carried by the two converted tests. Their fixture values were
+  copied from this repository's own active initiatives on 2026-09-14, so the
+  charset under test is the corpus rather than invented input. That is a dated
+  snapshot: `ini-009`'s milestone is re-narrated whenever a slice closes, so the
+  fixtures will drift from the file. The invariant that must survive the drift
+  is the character coverage, which the test asserts directly.
 - The retired `AC-0002`'s design decision is pinned by one new regression case;
   no existing test supplies a non-string.
 - AC-0003 is a content assertion over the shipped `SKILL.md`, placed with the

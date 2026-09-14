@@ -786,11 +786,17 @@ backlog = []
     def test_initiative_display_fields_project_as_authored(self) -> None:
         """AC-0001: both display fields project unchanged, over the real charset.
 
-        The two fixtures are copied from this repository's own `workspace.toml`
-        rather than invented, so the characters under test are the ones real
-        milestones carry. Between them they cover the middle dot, the en dash,
-        the em dash, a semicolon and a straight apostrophe -- the set a slug or
-        path filter would mangle.
+        The two fixtures were copied verbatim from this repository's
+        `workspace.toml` on 2026-09-14 -- `ini-002` and `ini-009` -- so the
+        characters under test are the ones real milestones carry. Between them
+        they cover the middle dot, the en dash, the em dash, a semicolon and a
+        straight apostrophe: the set a slug or path filter would mangle.
+
+        That is a dated snapshot, not a live link. `ini-009`'s milestone is
+        re-narrated whenever a slice closes, so these strings will drift from
+        the file and that is fine. What must keep holding is the character
+        coverage, which the loop at the end of this method asserts directly
+        rather than trusting the provenance note above it.
 
         Equality is measured against the decoded JSON value. The emitter
         serialises with `ensure_ascii` at its default, so a non-ASCII character

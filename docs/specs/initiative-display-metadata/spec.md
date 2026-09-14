@@ -114,10 +114,13 @@ These were taken as a discovery snapshot on 2026-09-14, before implementation.
 Two of them name identifiers this delivery itself changed; both are recorded
 as they were observed, with their current form beside them.
 
-- Technical: the sentinel was emitted from one source emitter, then at
-  `workspace_status.py:915,917` and now at `:920,922` after the rationale
-  comment landed, plus two generated adapter projections (repo-wide grep for
-  `"name": "workspace.toml"` returned 3 hits, all the same file).
+- Technical: the sentinel was emitted from one source emitter plus its two
+  generated adapter projections — three copies of the same `workspace_status.py`
+  under `packs/core/.apm/`, `.agents/` and `.claude/`, which is what the
+  repo-wide grep for `"name": "workspace.toml"` returned as 3 hits. It was at
+  `:915,917` in each when this snapshot was taken. It is now emitted nowhere:
+  those lines, `:920,922` after the rationale comment landed, hold the coerced
+  reads that replaced it.
 - Technical: three tests pinned the sentinel —
   `test_initiative_display_prose_is_not_projected`, since renamed to
   `test_initiative_display_prose_projects_verbatim`;
