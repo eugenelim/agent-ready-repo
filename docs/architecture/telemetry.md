@@ -321,6 +321,13 @@ help someone work out what happened.
   and its [counterpoints](../product/research/loop-telemetry-export-counterpoints.md)
   — where a sender may live, why it is a separately installed distribution, and
   which of the survey's findings did not survive review.
+- [Loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md)
+  — which of INI-005's eight telemetry events these thirteen fields can answer.
+  Six of them. Of the rest, one needs a token count this process never sees and
+  one names a fact the loop does not have, so no new event would carry either.
+  Supersedes most of the standards survey's "needs an envelope change" verdicts,
+  and carries the commands to re-run the core measurement plus what each further
+  claim needs to reproduce.
 
 ## 10. Getting these lines to a backend
 
@@ -427,6 +434,60 @@ profiles signal. This is why the event line carries a version.
 
 ## 11. Last verified against commit
 
-`ec6b94f91`. §§ 5.2, 5.3, 7 and 10 re-verified 2026-09-12 against primary
-vendor and specification sources plus the live measurement in § 10.3. Earlier
-sections carry forward from `bd8b69443`.
+`f0a04a223`, re-verified 2026-09-13. The previous pin, `ec6b94f91`, was 160
+commits behind `main`.
+
+**What the re-verification checked, and what it found.** The distance turned out
+not to matter for the parts of this page that describe what the engine emits:
+`git diff ec6b94f91..HEAD -- packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
+is **empty**, so the emission path has not changed at all. `loop-cohort.py` did
+change, but only to hoist a `SCHEMA_VERSION` constant and reword one `--help`
+string, which leaves § 5.1's "`budgets` is a copy" behaviour intact.
+
+- **§ 5.1 — re-measured, holds.** Thirteen fields, confirmed by driving a real
+  29-transition run against `core` 2.25.26 rather than by reading the source. The
+  one-round `budgets` lag this section describes was reproduced directly.
+- **§§ 6, 7, 8 — carry forward** on the unchanged emission path.
+- **§ 10.3 — holds**, and now has stronger evidence than when it was written: the
+  same boundary was re-measured through a live Collector on 2026-09-13 by
+  `jsonl-otlp-exporter`'s round trip, recorded in its
+  [verification ledger](../specs/jsonl-otlp-exporter/notes/verification-ledger.md).
+- **New:** which of the roadmap's eight telemetry events these fields can answer
+  is measured in
+  [loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md).
+
+**What no longer holds.** A sender now exists in this repository as the
+separately installed `jsonl-otlp-exporter` distribution, and it reads this log.
+Every statement on this page asserting that no sender exists or that nothing
+reads the log is therefore stale. That is **five** statements — the complete set
+for that claim, not a sample. A sixth row is listed with them because it is also
+a false claim about current behaviour, though it belongs to a different subject:
+
+| Where | Stale claim | Pinned by a criterion? |
+| --- | --- | --- |
+| § 1, line 7 | "sending anything anywhere is a separate, absent component" | no |
+| § 1, line 11 | "Anything that reads the result is outside the repository" | no |
+| § 2 | "No exporter ships. Nothing transmits." | yes — AC-0022, AC-0054 |
+| § 5.2 | "Nothing like that ships today." | no |
+| § 10 | "Nothing here ships a sender yet (§ 2)." | no |
+| § 10.4 *(different subject: the schema version, not the sender)* | "This is why the event line carries a version." | yes — AC-0046 (the `schema` key is not emitted yet) |
+
+All six sit inside `docs/architecture/telemetry.md`, which
+[`loop-telemetry-export`'s plan](../specs/loop-telemetry-export/plan.md) names in
+T5's `Touches:` line — the whole file, not selected sections — so every row has
+an owner. Two are additionally pinned by acceptance criteria.
+
+They are left in place deliberately rather than half-corrected. § 2's exact
+wording is what AC-0022 and AC-0054 are checked against and § 10.4's is AC-0046's
+subject, so editing them here would settle those criteria before the tasks that
+own them run. The four unpinned rows are listed so T5 corrects the whole set
+rather than only the sentences a criterion names.
+
+**One further inconsistency, of a different kind.** § 5.1's second bullet says
+"How many attempts a run has taken is not on the line", while its third bullet
+describes `budgets` copying the retry counters onto every line — and a measured
+line does carry `implementation_retry_count` and `review_retry_count`. Both
+bullets cannot be read literally at once. This is not a sender claim and not
+covered above; it is pre-existing prose drift inside a section whose *field
+count* is pinned by AC-0051 but whose prose is not. Recorded rather than edited,
+because § 5.1 is the section that criterion measures.
