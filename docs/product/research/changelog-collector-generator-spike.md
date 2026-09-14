@@ -306,6 +306,12 @@ The separator gate from the fragmentation spike remains worth doing independentl
 of all three, and is cheaper than any of them: eight defects are live on `main`
 and no located gate detects them.
 
+> **Done on 2026-09-13**, after this spike: the defects were normalized and
+> `tools/test_build_site_routing.py::test_every_changelog_section_is_separated`
+> gates the class at every heading in `docs/product/changelog.md`. The sentence
+> above describes this document's base revision. It changes none of the three
+> options, which stay open.
+
 ## What this spike did not test
 
 - **Generated output quality.** No entry was actually generated and compared to

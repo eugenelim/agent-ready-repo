@@ -34,6 +34,16 @@ Repository maintainers.
   requires one mutation per assertion *family*, not per indexed instance, so a
   per-job assertion over a multi-job workflow needs either one job or a mutation
   per instance.
+
+  This is no longer hypothetical. `test-corpus.yml` became a four-job matrix in
+  [`docs/specs/test-corpus-sharding/`](../../specs/test-corpus-sharding/spec.md),
+  which shards `make test` across parallel runners. That spec is one concrete
+  instance of the question above: its own matrix assertion pins the shard list
+  against the `SHARDS=` literal in the run command and drives two mutations —
+  a gapped matrix and a duplicated index — rather than one mutation per job.
+  It deliberately asserts only that narrow agreement, not the posture families
+  this intent owns (token, timeout, triggers, dispatch inputs, runner label),
+  which remain unpinned on both workflows and remain this intent's work.
 - **How wide must the key grammar be?** "No job-level `permissions` key under
   any spelling" cannot be held by matching the spellings someone thought of. The
   existing workflow check needed a quote-aware key matcher plus explicit

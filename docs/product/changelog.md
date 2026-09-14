@@ -15,8 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > nested inside it. The level is load-bearing rather than cosmetic — a
 > versioned entry nested under `[Unreleased]` is invisible to the `/now/`
 > projection permanently, not until some later release step, because nothing
-> ever moves it out. Writing it at the right level is the whole of the
-> obligation.
+> ever moves it out.
+>
+> **Leave exactly one blank line above and below every heading.** This one is
+> about the source text you and a reviewer read, not about output: CommonMark
+> renders a welded or double-spaced heading identically to a correct one, and
+> `/now/` is blank-line blind too, so nothing downstream will tell you.
+> `tools/test_build_site_routing.py` checks it on any pull request into `main`
+> and names the line.
 >
 > Entries can be drafted from conventional commits: `git log --oneline`
 > filtered to `feat:` and `fix:` since the last tag is a starting point,
@@ -100,20 +106,73 @@ updates but never removes:
    working: the new `AGENTS.md` reads the router unconditionally, so your rows
    are still reached.
 
+## [core][2.25.27] — 2026-09-13
+
+### Highlights
+
+- **When a review finding says a claim promises more than its test checks, you
+  now have two answers instead of one.** Previously the only available answer was
+  to shrink the claim, so the easy move was to weaken what you promised until the
+  existing test covered it — quietly dropping the property from what anyone
+  checks. Now: if any test can be made to cover the full promise, improve the
+  test; shrink the claim only when none can.
+- **After fixing a review finding, search twice.** Guidance used to say this
+  search was "a walk, not a text search", which read as permission to skip
+  searching for exact strings. You now do both: search for the repeated words and
+  names, and read for the places that say the same thing in different words.
+  After a fix, also re-run the search for tests that pin file contents, across
+  every file you touched — that is when an edit breaks a test in a file you never
+  opened.
+- **You can now move an obligation out of an intent or brief and still have
+  something catch its deletion.** Moving it requires something that fails if it
+  is removed, and three of the four places you were told to move it to had
+  nothing watching them. Editing `Opportunity` on an intent, or `Rabbit holes` or
+  `Design artifacts` on a delivery brief, now counts as a material change, which
+  cancels that artifact's approved review and sends it back for a fresh one.
+- **How to prove a test actually catches a bug is now written down.** To prove
+  it, put back the original broken code — not an empty placeholder — and confirm
+  the test fails. Undo it by editing, not with `git checkout`, `reset`, or
+  `stash`. A test that still passes while the bug is back has proved nothing.
+  This rule previously existed only if your own process happened to supply it.
+
+### Added
+
+- `work-loop`: `references/mutation-proof.md` states what a mutation proof
+  records, why reverting to a do-nothing stub proves nothing about a
+  sub-property, and that restoration is by editing. One conditional-routing row
+  loads it when a repair or claimed fix needs proof.
+
+### Changed
+
+- `work-loop`: `narrow-the-claim` carries both directions of a claim/check
+  mismatch; the Fix axis requires a repair's check to assert the repaired
+  property rather than a consequence of it; a review round names a literal sweep
+  and a semantic walk as separate instruments and obliges both after a repair;
+  and `demote-the-claim` distinguishes an upstream revision-bound lifecycle pin
+  from a downstream content test.
+- `intake-intent`: editing `Opportunity` is a material change to an accepted
+  intent.
+- `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
+  material change to a ready brief.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights
+
 - **A frontend review now gets the pictures, not just the diff.** When a surface
   has been inspected, the work-loop hands `frontend-reviewer` the capture set and
   what was observed in it, alongside the diff. A reviewer that only ever saw a
   diff could not see one element covering another, which is the class of defect
   it was most often asked about.
+
 ### Changed
+
 - `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
   capture set, its recorded observations, and the adopter-named routes, and names
   the reviewer's reader-visible-layout lens.
 
 ## [core][2.25.25] — 2026-09-13
+
 ### Added
 
 - `workspace-status` can now check an explicit list of spec directories and
@@ -168,6 +227,7 @@ updates but never removes:
   seeds, and the seed comes off the portable-citation cleanup list.
 
 ## [core][2.25.22] — 2026-09-13
+
 ### Changed
 
 - `docs/specs/README.md` describes the spec directory convention and carries no
@@ -257,6 +317,7 @@ updates but never removes:
   `docs/knowledge/` and committing it is a required step between
   `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
   only by reading the source.
+
 ## [frontend-engineering][0.2.3] — 2026-09-13
 
 ### Highlights
@@ -1038,7 +1099,6 @@ updates but never removes:
   rejects, which reaches closeout through its own parse and so could reproduce
   any value the exclusion matched on.
 
-
 ## [core][2.25.3] — 2026-09-08
 
 ### Highlights
@@ -1079,7 +1139,6 @@ updates but never removes:
 - Light mode's procedure, eligibility and durability routing, review rounds,
   and trims moved into a reference the skill loads only when light mode is
   selected, so a full-mode run no longer carries them.
-
 
 ## [core][2.25.1] — 2026-09-04
 
@@ -1211,7 +1270,6 @@ mode, corpus topic, or provider contract moved.
   adopters, so a consumer quoting the conformance fixture would have quoted
   literals an adopter never receives.
 
-
 ## [core][2.25.0] — 2026-09-04
 
 ### Highlights
@@ -1228,7 +1286,6 @@ mode, corpus topic, or provider contract moved.
 
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
-
 
 ## [core][2.24.4] — 2026-09-04
 
@@ -1495,7 +1552,6 @@ mode, corpus topic, or provider contract moved.
   its mandatory footer made the report structurally incapable of matching the
   expected sentence.
 
-
 ## [core][2.19.0] — 2026-09-01
 
 ### Highlights
@@ -1516,7 +1572,6 @@ mode, corpus topic, or provider contract moved.
 - Tracker refresh locks Withdrawn and Cancelled requirements with the stable
   result codes `withdrawn_requirements_locked` and
   `cancelled_requirements_locked` across every supported profile.
-
 
 ## [core][2.18.2] — 2026-09-01
 
@@ -3594,7 +3649,6 @@ Published package bytes are unchanged for all three routes.
 - **Risk-trigger documentation is explicitly single-sourced.** ADR-0088 records
   the `work-loop` skill as the sole block home without changing mode selection.
 
-
 ### [core][2.9.2] — 2026-08-19
 
 #### Changed
@@ -3626,7 +3680,6 @@ Published package bytes are unchanged for all three routes.
   `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
   init` starts catalogues with leaner instructions. No CLI verb, flag, or output
   format changed.
-
 
 ### [core][2.9.1] — 2026-08-19
 
@@ -3753,6 +3806,7 @@ Published package bytes are unchanged for all three routes.
   `compile-okf` authoring skill ships a confined script that projects pack-local
   OKF source into generated router and reviewed procedure Skills, with write and
   read-only check modes for committed-output drift.
+
 ### Fixed
 
 - **The Claude-plugin marketplace now advertises the branch it is published to.**
@@ -3838,6 +3892,7 @@ Published package bytes are unchanged for all three routes.
   rendered pointer field is authoritative, and `none` values with explanatory
   annotations or ordinary punctuation no longer become dangling pointers when
   a repository adds its first discovery anchor.
+
 ### [agentbundle][0.37.2] — 2026-08-17
 
 #### Added
@@ -3894,6 +3949,7 @@ Published package bytes are unchanged for all three routes.
 - **IaC Terraform now declares the governance-extras minor it actually supports.**
   Dependency validation no longer relies on treating `^0.6` as compatible with
   `0.9.x`.
+
 ### [core][2.7.1] — 2026-08-17
 
 #### Added
@@ -4410,6 +4466,7 @@ Published package bytes are unchanged for all three routes.
   timeout, and server failures never trigger recovery. Crawls and token-based
   authentication keep their existing behavior. When automatic recovery cannot
   proceed, the error tells the user which existing manual setup action to run.
+
 ### [core][2.5.1] — 2026-08-09
 
 #### Changed
@@ -5588,6 +5645,7 @@ project page and the swept docstrings actually reach installers.
 - Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
 
 ## [Unreleased]
+
 ### Added
 
 - **58 guide pages that were published but unreachable now appear in the docs
@@ -5636,7 +5694,6 @@ project page and the swept docstrings actually reach installers.
   published and the repo-root marketplace now validate every entry against a
   dedicated schema, so a malformed `source` fails the build instead of reaching
   adopters.
-
 
 ### Added
 

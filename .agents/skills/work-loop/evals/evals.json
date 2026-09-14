@@ -707,6 +707,16 @@
         "response and reason are described as advisory and unable to change verdict state",
         "an unrecognised or unpaired value is ignored with a note, never rejected"
       ]
+    },
+    {
+      "id": "decide-repair-traversal",
+      "prompt": "A review repair changes several files. What traversal and retesting must close the repair?",
+      "expected_output": "Close the repair with both a literal sweep and a semantic walk, then re-run the step-8a anchor-test sweep over every file the repair touched.",
+      "assertions": [
+        "Names both a literal sweep and a semantic walk",
+        "Re-runs the step-8a anchor-test sweep",
+        "Limits the anchor-test sweep to every file the repair touched"
+      ]
     }
   ]
 }

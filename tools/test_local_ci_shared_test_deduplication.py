@@ -2396,3 +2396,683 @@ if __name__ == "__main__":
     raise SystemExit(
         _verify_approved_compatibility_class(Path(tempfile.gettempdir()))
     )
+
+
+def _shard_module() -> ModuleType:
+    """Load the shard selector from its repository path."""
+    return _load_module("tools/shard_test_roster.py", "_shard_test_roster")
+
+
+def _shard_fixture_lines() -> list[str]:
+    """Return a small roster with every precondition and three work units."""
+    return [
+        "python3 tools/repo/editable_install_guard.py",
+        (
+            'command -v npm >/dev/null 2>&1 || { echo "npm missing" >&2; '
+            "exit 1; }"
+        ),
+        (
+            'test -d docs-site/node_modules || { echo "deps missing" >&2; '
+            "exit 1; }"
+        ),
+        'python3 -c "import httpx"',
+        "python3 -m pytest tests/one/ -q",
+        "npm run test:plugins --prefix docs-site",
+        "python3 tools/test-pages-workflow.py",
+    ]
+
+
+class _ShardRecordingExecutor:
+    """Record each subprocess boundary and return configured status codes."""
+
+    def __init__(self, failures: dict[str, int] | None = None) -> None:
+        """Configure optional command-to-status failures."""
+        self.calls: list[str] = []
+        self.failures = failures or {}
+
+    def __call__(
+        self,
+        command: str,
+        *,
+        cwd: Path,
+        check: bool,
+    ) -> subprocess.CompletedProcess[bytes]:
+        """Record one command with the production executor's call shape."""
+        assert cwd == REPO_ROOT
+        assert check is False
+        self.calls.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            self.failures.get(command, 0),
+        )
+
+
+@contextlib.contextmanager
+def _shard_outside_a_shard() -> Iterator[None]:
+    """Run a `main()` case as if not already inside a shard.
+
+    These tests are themselves part of the roster, so under
+    `make test SHARD=n SHARDS=m` the selector's own re-entry marker is present
+    in the environment and `main()` would refuse by design. Clearing it is what
+    lets the same case mean the same thing sharded and unsharded -- without it
+    the suite passes locally and fails only on a sharded runner.
+    """
+    shard = _shard_module()
+    with mock.patch.dict(os.environ):
+        os.environ.pop(shard.REENTRY_MARKER, None)
+        yield
+
+
+def test_shard_classifies_preconditions_work_and_ignored_lines() -> None:
+    """All live line classes are explicit, and unknown lines fail closed."""
+    shard = _shard_module()
+    preconditions = _shard_fixture_lines()[:4]
+    for line in preconditions:
+        assert shard.classify(line) == "precondition", line
+    assert shard.classify("python3 -m pytest tests/ -q") == "work"
+    assert shard.classify("# roster explanation") == "ignore"
+    assert shard.classify("   ") == "ignore"
+
+    offending = "ruby unexpected_runner.rb"
+    with unittest.TestCase().assertRaises(shard.RosterError) as caught:
+        shard.classify(offending)
+    assert offending in str(caught.exception)
+
+
+def test_shard_unit_key_uses_path_arguments_and_normalized_fallback() -> None:
+    """Interpreter paths do not hide weighted targets; npm uses its command."""
+    shard = _shard_module()
+    assert (
+        shard.unit_key("/usr/bin/python3 -m pytest tests/ -q")
+        == "tests/"
+    )
+    assert (
+        shard.unit_key(" npm   run test:plugins   --prefix docs-site ")
+        == "npm run test:plugins --prefix docs-site"
+    )
+
+
+def test_shard_refuses_recursive_make_lines_before_make_runs() -> None:
+    """Recursive and forced recipe lines are rejected before expansion."""
+    shard = _shard_module()
+    fixtures = {
+        "recursive": """override define run-test-suite
+$(MAKE) observable
+endef
+test-unleased:
+\t$(call run-test-suite)
+""",
+        "recursive-braced": """override define run-test-suite
+${MAKE} observable
+endef
+test-unleased:
+\t$(call run-test-suite)
+""",
+        "forced": """override define run-test-suite
+echo safe
+endef
+test-unleased:
+\t+echo observable
+""",
+    }
+    for name, makefile_text in fixtures.items():
+        make_run = mock.Mock()
+        with (
+            mock.patch.object(shard.subprocess, "run", make_run),
+            unittest.TestCase().assertRaises(shard.RosterError),
+        ):
+            shard.roster_lines(makefile_text)
+        # The refusal must PRECEDE the subprocess, not report it afterwards:
+        # GNU Make would already have run these lines under `-n`.
+        assert make_run.call_args_list == [], name
+
+
+def test_shard_refuses_nonzero_roster_expansion_without_execution() -> None:
+    """A partial dry-run roster never reaches the command executor."""
+    shard = _shard_module()
+    # The truncated stdout must be lines that classify CLEANLY, so the only
+    # thing that can refuse them is the non-zero status. An unclassifiable
+    # payload would make this test pass via the classifier even with the status
+    # check deleted -- proven: that mutation survived until this fixture changed.
+    make_result = subprocess.CompletedProcess(
+        ["make"],
+        9,
+        stdout=(
+            "python3 -m pytest tests/ -q\n"
+            "python3 -m pytest packs/core/tests/pack/ -q\n"
+        ),
+        stderr="expansion failed\n",
+    )
+    recorder = _ShardRecordingExecutor()
+    with _shard_outside_a_shard(), mock.patch.object(
+        shard.subprocess, "run", return_value=make_result
+    ):
+        result = shard.main(["--shard", "1", "--shards", "1"], executor=recorder)
+    assert result != 0
+    assert recorder.calls == []
+
+
+def test_shard_selector_validation_records_zero_execution() -> None:
+    """Data-driven invalid selectors all fail before a roster unit executes."""
+    shard = _shard_module()
+    invalid_selectors = (
+        ("negative shard", ["--shard", "-1", "--shards", "2"]),
+        ("zero shard", ["--shard", "0", "--shards", "2"]),
+        ("non-integer shard", ["--shard", "one", "--shards", "2"]),
+        ("negative shards", ["--shard", "1", "--shards", "-2"]),
+        ("zero shards", ["--shard", "1", "--shards", "0"]),
+        ("non-integer shards", ["--shard", "1", "--shards", "two"]),
+        ("shard exceeds shards", ["--shard", "3", "--shards", "2"]),
+        # Make cannot tell unset from empty: `make test SHARD=1` arrives here
+        # as an empty --shards, and must be refused rather than defaulted.
+        ("shard only", ["--shard", "1", "--shards", ""]),
+        ("shards only", ["--shard", "", "--shards", "2"]),
+        ("whitespace shard", ["--shard", "  ", "--shards", "2"]),
+        ("missing selector", []),
+        ("shard flag only", ["--shard", "1"]),
+        ("shards flag only", ["--shards", "2"]),
+        ("unknown flag", ["--shrd", "1", "--shards", "2"]),
+        ("duplicate flag", ["--shard", "1", "--shard", "2", "--shards", "2"]),
+        ("flag without value", ["--shard", "1", "--shards"]),
+        ("shards exceed work", ["--shard", "1", "--shards", "4"]),
+    )
+    for name, argv in invalid_selectors:
+        recorder = _ShardRecordingExecutor()
+        with _shard_outside_a_shard(), mock.patch.object(
+            shard,
+            "roster_lines",
+            return_value=_shard_fixture_lines(),
+        ):
+            result = shard.main(argv, executor=recorder)
+        assert result != 0, name
+        assert recorder.calls == [], name
+
+
+def test_shard_live_roster_partitions_are_complete_and_deterministic() -> None:
+    """Every supported shard count is a non-empty partition of the live roster."""
+    shard = _shard_module()
+    units = [
+        line for line in shard.roster_lines() if shard.classify(line) == "work"
+    ]
+    for shard_count in range(1, 9):
+        first = shard.partition(units, shard_count)
+        second = shard.partition(units, shard_count)
+        flattened = [unit for selected in first for unit in selected]
+        assert Counter(flattened) == Counter(units), shard_count
+        assert all(selected for selected in first), shard_count
+        assert first == second, shard_count
+
+        dropped = [list(selected) for selected in first]
+        dropped[-1].pop()
+        assert Counter(unit for part in dropped for unit in part) != Counter(units)
+        duplicated = [list(selected) for selected in first]
+        duplicated[0].append(units[0])
+        assert Counter(unit for part in duplicated for unit in part) != Counter(units)
+
+
+def test_shard_weights_separate_the_two_heaviest_units() -> None:
+    """The two heaviest LIVE invocations land in different shards.
+
+    Derived from `_unit_weight`, never named here: an earlier version hardcoded
+    a suite that measurement later demoted from first to third, so the assertion
+    could have stayed green while the actual heaviest pair shared a shard.
+    """
+    shard = _shard_module()
+    work = [line for line in shard.roster_lines() if shard.classify(line) == "work"]
+    ranked = sorted(work, key=lambda unit: -shard._unit_weight(unit))
+    heaviest, second = ranked[0], ranked[1]
+    assert shard._unit_weight(heaviest) > shard._unit_weight(second) * 0.5
+
+    assignments = shard.partition(work, 4)
+    home = {
+        unit: index
+        for index, selected in enumerate(assignments)
+        for unit in selected
+    }
+    assert home[heaviest] != home[second], (
+        shard.unit_key(heaviest),
+        shard.unit_key(second),
+    )
+    # A constant weight collapses this: LPT degenerates to roster order.
+    assert len({shard._unit_weight(unit) for unit in work}) > 1
+
+
+def test_shard_execution_keeps_unit_boundaries_and_all_preconditions() -> None:
+    """Each shard runs every precondition, then its exact work-unit list."""
+    shard = _shard_module()
+    lines = _shard_fixture_lines()
+    preconditions = [line for line in lines if shard.classify(line) == "precondition"]
+    work_units = [line for line in lines if shard.classify(line) == "work"]
+    assignments = shard.partition(work_units, 2)
+
+    for shard_index, assigned in enumerate(assignments, start=1):
+        recorder = _ShardRecordingExecutor()
+        with _shard_outside_a_shard(), mock.patch.object(
+            shard, "roster_lines", return_value=lines
+        ):
+            result = shard.main(
+                ["--shard", str(shard_index), "--shards", "2"],
+                executor=recorder,
+            )
+        assert result == 0
+        assert recorder.calls == [*preconditions, *assigned]
+        assert recorder.calls[: len(preconditions)] == preconditions
+
+
+def test_shard_execution_fails_fast_before_later_work_units() -> None:
+    """A failed work process propagates its status and stops the shard."""
+    shard = _shard_module()
+    lines = _shard_fixture_lines()
+    preconditions = [line for line in lines if shard.classify(line) == "precondition"]
+    work_units = [line for line in lines if shard.classify(line) == "work"]
+    recorder = _ShardRecordingExecutor({work_units[1]: 7})
+
+    with _shard_outside_a_shard(), mock.patch.object(
+        shard, "roster_lines", return_value=lines
+    ):
+        result = shard.main(["--shard", "1", "--shards", "1"], executor=recorder)
+    assert result == 7
+    assert recorder.calls == [*preconditions, work_units[0], work_units[1]]
+
+
+# ── test-corpus.yml shard-matrix contract ────────────────────────────────────
+# The matrix list and the `SHARDS=` literal in the run command are two
+# independent pieces of text. If they disagree -- a matrix of [1,2,3] against
+# SHARDS=4 -- every job goes green while one shard's suites never run. That is
+# the failure class docs/product/intents/gates-that-read-clean-while-gating-
+# nothing.md tracks, so the two are pinned against each other here.
+
+SHARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "test-corpus.yml"
+
+
+def _shard_workflow_run_scalars(text: str) -> list[str]:
+    """Return every executable ``run:`` body, inline and block, from a workflow."""
+    lines = text.splitlines()
+    scalars: list[str] = []
+    index = 0
+    while index < len(lines):
+        match = re.match(r"^(\s*)run:\s*(\|-?|>-?)?\s*(.*)$", lines[index])
+        if match is None:
+            index += 1
+            continue
+        indent, block, inline = match.group(1), match.group(2), match.group(3)
+        if block is None:
+            scalars.append(inline)
+            index += 1
+            continue
+        body: list[str] = []
+        index += 1
+        while index < len(lines):
+            line = lines[index]
+            if line.strip() and not line.startswith(indent + " "):
+                break
+            body.append(line)
+            index += 1
+        scalars.append("\n".join(body))
+    return scalars
+
+
+def _shard_matrix_errors(text: str) -> list[str]:
+    """Return disagreement between the shard matrix and the ``SHARDS=`` literal."""
+    errors: list[str] = []
+    matrix_match = re.search(r"(?m)^\s*shard:\s*\[([^\]]*)\]\s*$", text)
+    # Read SHARDS= from the EXECUTABLE run scalars only. The surrounding
+    # comments explain the contract and contain `SHARDS=4` in prose; a
+    # whole-file search matches the backtick-quoted comment first and compares
+    # the matrix against a literal nothing executes.
+    # Read SHARDS= from the ONE `make test` scalar, not the first scalar that
+    # happens to contain the token: an unrelated earlier step containing
+    # `SHARDS=4` would otherwise satisfy this check while the real command ran
+    # `SHARDS=3`, leaving a shard unrun with every job green.
+    make_test = [
+        scalar
+        for scalar in _shard_workflow_run_scalars(text)
+        if re.search(r"(?m)^\s*make\s+test(\s|$)", scalar)
+    ]
+    if len(make_test) != 1:
+        return [f"expected exactly one `make test` run scalar, found {len(make_test)}"]
+    shards_match = re.search(r"SHARDS=(\S+)", make_test[0])
+    if matrix_match is None:
+        return ["no shard matrix found"]
+    if shards_match is None:
+        return ["no SHARDS= literal found"]
+
+    entries = [item.strip() for item in matrix_match.group(1).split(",") if item.strip()]
+    if not all(entry.isdigit() for entry in entries):
+        return [f"non-integer matrix entry in {entries}"]
+    indexes = [int(entry) for entry in entries]
+    try:
+        declared = int(shards_match.group(1))
+    except ValueError:
+        return [f"SHARDS= is not an integer: {shards_match.group(1)!r}"]
+
+    if len(set(indexes)) != len(indexes):
+        errors.append(f"duplicate shard index in {indexes}")
+    if sorted(indexes) != list(range(1, declared + 1)):
+        errors.append(
+            f"matrix {sorted(indexes)} is not exactly 1..{declared} (SHARDS={declared})"
+        )
+    return errors
+
+
+def test_shard_workflow_matrix_is_exactly_one_through_shards() -> None:
+    """The shipped matrix and its SHARDS literal cannot disagree."""
+    assert _shard_matrix_errors(SHARD_WORKFLOW.read_text(encoding="utf-8")) == []
+
+
+def test_shard_workflow_matrix_drift_is_caught() -> None:
+    """A gap or a duplicate in the matrix is reported, not tolerated."""
+    text = SHARD_WORKFLOW.read_text(encoding="utf-8")
+    gapped = text.replace("shard: [1, 2, 3, 4]", "shard: [1, 2, 3]", 1)
+    assert gapped != text
+    assert _shard_matrix_errors(gapped) != []
+
+    duplicated = text.replace("shard: [1, 2, 3, 4]", "shard: [1, 2, 2, 4]", 1)
+    assert duplicated != text
+    assert _shard_matrix_errors(duplicated) != []
+
+
+def _shard_roster_leaks(scalars: list[str]) -> list[str]:
+    """Return run scalars that enumerate a suite instead of invoking the target.
+
+    Scoped to executable ``run:`` bodies on purpose. The file's COMMENTS
+    legitimately mention ``tests/`` and a test-case name while executing
+    neither, so a whole-file text scan would report the shipped workflow.
+    Installing pytest is likewise not invoking it, so the check looks for an
+    invocation shape rather than the bare word.
+    """
+    leaks: list[str] = []
+    for scalar in scalars:
+        if re.search(r"(?m)(^|\s)-m\s+pytest(\s|$)", scalar):
+            leaks.append(f"invokes pytest: {scalar!r}")
+        if re.search(r"(?m)^\s*pytest(\s|$)", scalar):
+            leaks.append(f"invokes pytest: {scalar!r}")
+        if re.search(r"test_[A-Za-z0-9_]*\.py", scalar):
+            leaks.append(f"names a test file: {scalar!r}")
+        # With OR without a trailing slash: `make check packs/core/tests` names
+        # a suite just as `tests/` does, and requiring the slash let it through.
+        if re.search(r"(^|[\s'\"=/])tests(/|\s|$)", scalar):
+            leaks.append(f"names a suite directory: {scalar!r}")
+    return leaks
+
+
+def test_shard_workflow_run_scalars_enumerate_no_suite() -> None:
+    """No executable step in test-corpus.yml carries a second roster."""
+    scalars = _shard_workflow_run_scalars(SHARD_WORKFLOW.read_text(encoding="utf-8"))
+    assert scalars, "no run: scalars parsed — the parser, not the file, is wrong"
+    assert _shard_roster_leaks(scalars) == []
+
+
+def test_shard_workflow_roster_leak_detector_catches_each_shape() -> None:
+    """Each forbidden enumeration shape is actually detected."""
+    for leaked in (
+        "python -m pytest tools/test_build_gate_chain.py -q",
+        "pytest packs/core/tests/pack/ -q",
+        "make check tools/test_check_artifact_contents.py",
+        "make test tests/",
+    ):
+        assert _shard_roster_leaks([leaked]), leaked
+
+
+def test_shard_workflow_runs_one_test_step_on_the_exact_runner() -> None:
+    """One `make test` step, and the runner label stays an exact literal."""
+    text = SHARD_WORKFLOW.read_text(encoding="utf-8")
+    scalars = _shard_workflow_run_scalars(text)
+    make_test = [s for s in scalars if re.search(r"(?m)^\s*make\s+test(\s|$)", s)]
+    assert len(make_test) == 1, make_test
+    assert re.fullmatch(
+        r"make test SHARD=\$\{\{ matrix\.shard \}\} SHARDS=\d+", make_test[0].strip()
+    ), make_test[0]
+    assert re.search(r"(?m)^\s*runs-on:\s*ubuntu-latest\s*$", text)
+
+
+def test_shard_expansion_carries_no_make_chatter_under_hostile_flags() -> None:
+    """The dry run stays clean, so `classify` needs no exemption for chatter.
+
+    Regression: run 34789996081 failed all four shards on
+    `make[1]: Entering directory ...`. roster_lines runs `make -n` from inside a
+    make recipe, so MAKELEVEL is non-zero and GNU Make announces the directory
+    on stdout. macOS make stayed quiet; Linux did not.
+
+    The first fix added BOTH `--no-print-directory` and a `make[N]: ` exemption
+    in `classify`. The exemption was a hole in a fail-closed classifier, so it is
+    gone: this asserts the flag alone is sufficient, including when an ambient
+    `-w` in MAKEFLAGS asks for the opposite. Any such line now REFUSES, as an
+    unrecognised roster line should.
+    """
+    shard = _shard_module()
+    for environment in (
+        {"MAKELEVEL": "1"},
+        {"MAKELEVEL": "2", "MAKEFLAGS": "w"},
+        {"MAKELEVEL": "1", "MAKEFLAGS": "w --"},
+    ):
+        with mock.patch.dict(os.environ, environment):
+            lines = shard.roster_lines()
+        chatter = [
+            line
+            for line in lines
+            if line.lstrip().startswith("make[")
+            or "Entering directory" in line
+            or "Leaving directory" in line
+        ]
+        assert not chatter, (environment, chatter[:2])
+
+    # And the classifier no longer excuses it, so a regression is loud.
+    for diagnostic in (
+        "make[1]: Entering directory '/home/runner/work/x/x'",
+        "make[2]: Leaving directory '/tmp/x'",
+    ):
+        try:
+            shard.classify(diagnostic)
+        except shard.RosterError:
+            continue
+        raise AssertionError(f"should have been refused: {diagnostic!r}")
+
+
+def test_shard_expansion_passes_no_print_directory() -> None:
+    """The dry run suppresses the diagnostic at source, not only on read."""
+    shard = _shard_module()
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(argv, **kwargs):  # type: ignore[no-untyped-def]
+        captured["argv"] = list(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard.roster_lines()
+    assert "--no-print-directory" in captured["argv"], captured["argv"]
+
+
+def test_shard_refuses_combined_force_recipe_prefixes() -> None:
+    """`@+cmd` forces execution under -n exactly as `+cmd` does."""
+    shard = _shard_module()
+    for prefix in ("+", "@+", "-+", "+@", "@-+"):
+        makefile_text = (
+            "override define run-test-suite\necho safe\nendef\n"
+            f"test-unleased:\n\t{prefix}echo observable\n"
+        )
+        make_run = mock.Mock()
+        with (
+            mock.patch.object(shard.subprocess, "run", make_run),
+            unittest.TestCase().assertRaises(shard.RosterError),
+        ):
+            shard.roster_lines(makefile_text)
+        assert make_run.call_args_list == [], prefix
+
+    # `@` and `-` alone do NOT force execution and must stay allowed, or the
+    # refusal would reject the roster's own silenced guard lines.
+    allowed = (
+        "override define run-test-suite\n@echo safe\n-echo safe\nendef\n"
+        "test-unleased:\n\t$(call run-test-suite)\n"
+    )
+    with mock.patch.object(
+        shard.subprocess,
+        "run",
+        return_value=subprocess.CompletedProcess(["make"], 0, stdout="", stderr=""),
+    ):
+        shard.roster_lines(allowed)
+
+
+def test_shard_pytest_shape_outranks_a_precondition_substring() -> None:
+    """A suite whose PATH contains a precondition marker is still work.
+
+    Otherwise it leaves the union's work multiset and runs in every shard
+    instead of exactly one -- a suite that is over-run and under-proved at once.
+    """
+    shard = _shard_module()
+    line = "python3 -m pytest tools/repo/editable_install_guard.py -q"
+    assert shard.classify(line) == "work"
+    # The real precondition, which is not a pytest invocation, still classifies.
+    assert shard.classify("python3 tools/repo/editable_install_guard.py") == "precondition"
+
+
+def test_shard_matrix_check_reads_only_the_make_test_scalar() -> None:
+    """An unrelated step mentioning SHARDS= cannot satisfy the matrix check."""
+    text = SHARD_WORKFLOW.read_text(encoding="utf-8")
+    decoyed = text.replace(
+        "      - name: make test\n",
+        "      - name: decoy\n        run: echo SHARDS=4\n\n      - name: make test\n",
+        1,
+    ).replace("make test SHARD=${{ matrix.shard }} SHARDS=4", "make test SHARD=${{ matrix.shard }} SHARDS=3", 1)
+    assert decoyed != text
+    assert _shard_matrix_errors(decoyed) != []
+
+
+def test_shard_roster_leak_detector_catches_slashless_suite_paths() -> None:
+    """A suite directory named without a trailing slash is still a leak."""
+    assert _shard_roster_leaks(["make check packs/core/tests"])
+    assert _shard_roster_leaks(["make check tests"])
+    # And the legitimate shipped steps still read clean.
+    assert _shard_roster_leaks(["python -m pip install pytest -r tools/requirements.txt"]) == []
+    assert _shard_roster_leaks(["npm ci --prefix docs-site"]) == []
+
+
+def test_shard_child_environment_cannot_reselect_a_shard() -> None:
+    """A roster command that runs `make test` must not inherit the selector.
+
+    Regression: run 34789473362 shard 4 recursed until killed at its timeout,
+    producing no output. Make exports command-line variables through MAKEFLAGS,
+    so the Makefile harnesses in this very file re-entered the sharded branch.
+    """
+    shard = _shard_module()
+    hostile = {
+        "SHARD": "4",
+        "SHARDS": "4",
+        "MAKEFLAGS": "w -- SHARD=4 SHARDS=4 FOO=keep",
+        "PATH": os.environ.get("PATH", ""),
+    }
+    with mock.patch.dict(os.environ, hostile, clear=True):
+        env = shard.child_environment()
+    assert "SHARD" not in env
+    assert "SHARDS" not in env
+    assert "SHARD=4" not in env["MAKEFLAGS"]
+    assert "SHARDS=4" not in env["MAKEFLAGS"]
+    # Unrelated MAKEFLAGS content survives — this scrubs the selector, not the
+    # caller's whole Make configuration.
+    assert "FOO=keep" in env["MAKEFLAGS"]
+    assert "w" in env["MAKEFLAGS"].split()
+    assert env[shard.REENTRY_MARKER] == "1"
+
+
+def test_shard_refuses_to_run_nested_inside_another_shard() -> None:
+    """Residual nesting fails immediately rather than hanging."""
+    shard = _shard_module()
+    recorder = _ShardRecordingExecutor()
+    with mock.patch.dict(os.environ, {shard.REENTRY_MARKER: "1"}):
+        result = shard.main(["--shard", "1", "--shards", "2"], executor=recorder)
+    assert result != 0
+    assert recorder.calls == []
+
+
+def test_shard_executor_and_expansion_both_use_the_scrubbed_environment() -> None:
+    """Both the dry run and every work unit run with the selector stripped."""
+    shard = _shard_module()
+    seen: list[dict[str, str]] = []
+
+    def fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        seen.append(kwargs.get("env") or {})
+        return subprocess.CompletedProcess(args[0] if args else [], 0, stdout="", stderr="")
+
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard.roster_lines()
+        shard._default_executor("true", cwd=REPO_ROOT, check=False)
+    assert len(seen) == 2
+    for env in seen:
+        assert "SHARD" not in env and "SHARDS" not in env
+        assert env.get(shard.REENTRY_MARKER) == "1"
+
+
+NESTED_SHARD_SUITE = "SHARD_SUITE_NESTED"
+
+
+def test_shard_suite_passes_with_the_reentry_marker_set() -> None:
+    """Run the shard cases as a SHARDED RUNNER runs them, and require green.
+
+    This suite is itself in the roster, so under `make test SHARD=n SHARDS=m`
+    the selector's re-entry marker is already in the environment and any case
+    calling `main()` without `_shard_outside_a_shard()` is refused. That
+    asymmetry passes on a developer's machine and fails only on a sharded
+    runner -- it cost run 34790977529 shard 4.
+
+    Three earlier attempts checked this by reading the source: a six-line
+    lexical window (which reported itself, twice, and also reported a correctly
+    guarded case whose wrapper sat further up), then an AST walk keyed to a
+    hardcoded receiver name (which an alias evaded), then one that bound
+    receivers (which still only proved a wrapper existed SOMEWHERE in the
+    function, not that it enclosed the call). Each round moved the check without
+    settling it, because the property is about what happens at RUN time and the
+    source cannot decide it.
+
+    So this executes the real thing instead. Every evasion the source-reading
+    versions argued about -- aliased loaders, chained receivers, a wrapper in
+    the wrong branch -- fails here for the same reason a plain omission does.
+    """
+    if os.environ.get(NESTED_SHARD_SUITE):
+        raise unittest.SkipTest("inner run: this case is what spawned it")
+
+    environment = dict(os.environ)
+    environment[_shard_module().REENTRY_MARKER] = "1"
+    environment[NESTED_SHARD_SUITE] = "1"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(Path(__file__)),
+            "-q",
+            "--no-header",
+            "-k",
+            "shard",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-2000:]
+    # Guard the guard: a run that collected nothing would pass vacuously.
+    assert " passed" in result.stdout, result.stdout[-2000:]
+
+
+def test_shard_executor_names_the_shell_and_runs_one_command() -> None:
+    """Each unit runs as `sh -c <line>`: Make's own model, one line per call.
+
+    Pinned because the argv shape is load-bearing twice over. It must stay a
+    SHELL invocation -- roster lines carry `||`, redirections and brace groups
+    that only a shell understands -- and it must stay ONE line per call, since
+    joining two would merge invocations the Makefile requires to be separate.
+    """
+    shard = _shard_module()
+    captured: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):  # type: ignore[no-untyped-def]
+        captured.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0)
+
+    line = 'command -v npm >/dev/null 2>&1 || { echo "missing" >&2; exit 1; }'
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard._default_executor(line, cwd=REPO_ROOT, check=False)
+
+    assert captured == [["sh", "-c", line]], captured
+    # The command is one argv element, never split or concatenated.
+    assert captured[0][2] == line

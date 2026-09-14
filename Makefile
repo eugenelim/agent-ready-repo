@@ -532,8 +532,35 @@ lint-mypy:
 # desk-research floor lines are separate from the six-member class.
 #
 # See ADR-0101 and catalogue-authoring-standards.md § 4.
+# Sharding is strictly ADDITIVE. With neither SHARD nor SHARDS set — the
+# standalone form, and the only one every caller used before sharding — this
+# target is byte-for-byte what it always was, and `make test` remains the
+# complete public gate. test-corpus.yml is now a selector-bearing caller.
+#
+# With both set, the same roster runs split across parallel runners. Selection
+# lives here rather than in the workflow on purpose: the Makefile is the single
+# roster, and tools/shard_test_roster.py SELECTS from the roster this file
+# already declares by reading `make -n test-unleased`. Nothing re-enumerates a
+# suite, so test-corpus.yml still runs one undecomposed command per job and
+# stays out of lint-ci-parity's scope for the reason recorded there.
+#
+# Routed on $(origin ...), NOT on the values. `make test SHARD=` assigns an
+# EMPTY value from the command line: testing the value would take the serial
+# branch and quietly run the whole roster for a caller who asked for a shard.
+# Testing the ORIGIN sends every explicit assignment — empty or not — to the
+# selector, which owns all validation and refuses an empty value by name.
+SHARD ?=
+SHARDS ?=
+shard_selector_given := $(strip \
+  $(filter command line environment,$(origin SHARD)) \
+  $(filter command line environment,$(origin SHARDS)))
+
 test:
+ifeq ($(shard_selector_given),)
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
+else
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(PYTHON) tools/shard_test_roster.py --shard '$(SHARD)' --shards '$(SHARDS)'
+endif
 
 override define run-test-suite
 $(PYTHON) -m pytest packages/agentbundle/tests/ -q -p tools.pytest_collection_floor --minimum-collected=3200 --collection-floor-suite=packages/agentbundle/tests/
