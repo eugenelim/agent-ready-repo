@@ -162,3 +162,26 @@ closeout actually tests: both step-name strings are unchanged, so
 `lint-ci-parity.py`'s pinned dict keys still resolve. Only the line numbers in
 the plan's prose are stale, and this table is where a reader finds the current
 ones.
+
+## The /now/ projection, answered against the post-merge tree (2026-09-13)
+
+The second sync pulled in changes to `tools/build-site.py` and 118 lines of
+`tools/test_build_site_routing.py`, which is the suite the original request
+asked about. Re-checked, because the earlier answer rested on the file being
+untracked and that premise had already failed once.
+
+- The suite **is** in a required check: `build-check.yml:339` runs it in
+  `gate-main`.
+- It does **not** assert the committed file is current. Every `now_highlights`
+  case calls `build_site.project_now_highlights(text)` against inline fixtures;
+  `grep -rn "now-highlights.generated" tools/` returns exactly one hit, the
+  write path in `build-site.py`.
+- The only other readers are `web/src/pages/now/index.astro`, which consumes the
+  file at build time, and `web/src/test/rendered-output.test.ts`, a web vitest
+  suite `build-check.yml` does not run.
+
+So the path fails the rule for the reason the rule exists: exercising a
+generator is not gating its output. A required check that tests the projection
+function would stay green while the committed blob rotted, and the driver would
+discard a real edit with nothing to notice. It stays out, and the
+`.gitattributes` header names it among the eligible-looking ineligible paths.

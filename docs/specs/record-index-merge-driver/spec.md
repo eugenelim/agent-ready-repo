@@ -274,11 +274,17 @@ widens what the gates cover, never what a maintainer may declare by hand.
   #1292). Its ignore entry is still listed at `.gitignore:146` and is inert only
   because the path is tracked again, so the earlier reason for excluding it —
   that an untracked file cannot conflict — no longer holds. The reason that does
-  hold is the rule itself: `tools/build-site.py` writes it and has no `--check`
-  mode, no `build-check` chain step runs it, and only `pages.yml` and `docs.yml`
-  do — neither a required PR check. Nothing would red if a merge left it stale,
-  so the driver would discard a real edit unnoticed (source: `build-site.py`'s
-  argument parser; the chain's collected argv; those two workflows, 2026-09-13)
+  hold is the rule itself: no required check compares the committed bytes to a
+  regeneration. `tools/test_build_site_routing.py` is in `gate-main`
+  (`build-check.yml:339`), but every one of its `now_highlights` cases calls
+  `build_site.project_now_highlights(text)` on inline fixtures and never reads
+  the committed file; `tools/build-site.py` writes it and has no `--check` mode;
+  and the only other readers are `web/src/pages/now/index.astro`, which consumes
+  it at build time, and `web/src/test/rendered-output.test.ts`, a web vitest
+  suite `build-check.yml` does not run. Exercising the generator is not the same
+  as gating its output, so nothing would red if a merge left the file stale and
+  the driver would discard a real edit unnoticed (source: those files, and
+  `grep -rn now-highlights.generated tools/`, 2026-09-13)
 - Process: the superseded spec's body is frozen and takes no amendment — a
   supersession Status pointer must cite an ADR, not a spec (source:
   `docs/CONVENTIONS.md:162-163` rule 2, and rule 4 at `:171-176`). The owner ruled on
