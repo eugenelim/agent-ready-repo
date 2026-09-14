@@ -603,3 +603,113 @@ def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:
     assert without_tokens != md
     with pytest.raises(AssertionError, match="forbidden channel-name tokens"):
         forbidden_channel_name_tokens(without_tokens)
+
+
+# ── superseded capture claims ───────────────────────────────────────────────
+
+# Eight anchors, each with the files it must match in and the literal that
+# conditions it. The map IS the control's reach, stated in the open so its blind
+# spot is inspectable: a claim on a surface no anchor names ships unconditioned.
+#
+# Per-anchor carrier sets, not "matches somewhere": anchors 3, 4 and 5 have two
+# or three carriers each, so an existential check would let a rephrase in one of
+# them pass on the strength of the others while putting that carrier outside the
+# control's reach entirely.
+REFERENCE = "references/rendered-page-inspection.md"
+SKILL = "SKILL.md"
+HOW_TO = "how-to/inspect-the-rendered-page.md"
+EVALS = "evals/evals.json"
+
+SUPERSEDED_CLAIMS = (
+    ("these two apply", (REFERENCE,), "no declared minimum"),
+    ("For breakpoints `b1 < ... < bn`", (REFERENCE,), "before the declared minimum"),
+    ("Declare none and two apply", (SKILL, HOW_TO), "no declared minimum"),
+    ("eight captures per route", (REFERENCE, SKILL, HOW_TO), "no declared minimum"),
+    (
+        "four times *n + 1* where you declare *n* breakpoints",
+        (SKILL, HOW_TO),
+        "above the declared minimum",
+    ),
+    ("needs four times", (REFERENCE,), "above the declared minimum"),
+    (
+        "the narrow and wide fallback bands when none are declared",
+        (EVALS,),
+        "no declared minimum",
+    ),
+    ("Two here because no breakpoints were declared", (SKILL,), "no declared minimum"),
+)
+
+
+def _swept_files() -> dict[str, str]:
+    """Every `.md` and `.json` under `.apm/`, plus the shipped how-to."""
+    out = {}
+    for path in shipped_files():
+        out[str(path)] = path.read_text(encoding="utf-8", errors="replace")
+    guide = (
+        PACK_ROOT.parents[1] / "guides" / "frontend-engineering" / "how-to"
+        / "inspect-the-rendered-page.md"
+    )
+    out[str(guide)] = guide.read_text(encoding="utf-8")
+    return out
+
+
+def _sentences(text: str) -> list[str]:
+    """Paragraph units first, then whitespace-normalized within a unit, then
+    sentences.
+
+    The order decides whether this control can fail. Normalizing before splitting
+    would erase every blank-line boundary, collapse "the enclosing paragraph" to
+    the whole file, and reduce the predicate to "this file mentions the minimum
+    somewhere" — which every file this delivery touches satisfies whatever its
+    anchor paragraphs say.
+
+    The negative lookbehind keeps `b1 < ... < bn` in one piece: a period adjacent
+    to another period is an ellipsis, not a sentence end.
+    """
+    units = []
+    for paragraph in text.split("\n\n"):
+        normalized = " ".join(paragraph.split())
+        units.extend(re.split(r"(?<!\.)\. |; |: ", normalized))
+    return units
+
+
+def test_no_shipped_surface_states_a_superseded_capture_claim() -> None:
+    """Every anchor sits only in sentences that carry its conditioning literal.
+
+    Sentence scope, not paragraph scope: naming the minimum anywhere in a
+    paragraph is co-location, not conditioning, and appending one unrelated
+    sentence is the cheapest way to discharge a paragraph-scoped predicate.
+    """
+    swept = _swept_files()
+    for anchor, _carriers, conditioner in SUPERSEDED_CLAIMS:
+        for label, text in swept.items():
+            for sentence in _sentences(text):
+                if anchor in sentence:
+                    assert conditioner in sentence, (
+                        f"{label}: {anchor!r} states a superseded capture claim "
+                        f"without {conditioner!r} in its own sentence:\n  "
+                        f"{sentence.strip()[:200]}"
+                    )
+
+
+def test_every_superseded_claim_anchor_still_matches_its_carriers() -> None:
+    """Each anchor matches in exactly the files the map lists.
+
+    Without this the sweep is disarmed by the very edits it schedules: rephrasing
+    a claim instead of conditioning it leaves the anchor matching nothing and the
+    control reporting green. Removing a carrier deliberately is an amendment to
+    this map, not a green run.
+    """
+    swept = {k: " ".join(v.split()) for k, v in _swept_files().items()}
+    for anchor, carriers, _conditioner in SUPERSEDED_CLAIMS:
+        found = {
+            suffix
+            for suffix in (REFERENCE, SKILL, HOW_TO, EVALS)
+            for label, text in swept.items()
+            if label.endswith(suffix) and anchor in text
+        }
+        assert found == set(carriers), (
+            f"{anchor!r} matches in {sorted(found)}, but the map names "
+            f"{sorted(carriers)}; a rephrase in one carrier cannot hide behind "
+            f"another, and a removed carrier is an amendment"
+        )
