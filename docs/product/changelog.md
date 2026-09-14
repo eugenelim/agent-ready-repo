@@ -60,6 +60,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.2] — 2026-09-14
+
+### Highlights
+
+- **`workspace-status` shows you which initiative is which again.** Orientation
+  used to list bare slugs, because the projection replaced each initiative's
+  name and milestone with a stand-in meaning "this value was not safe to hand
+  to an agent." That guard was added when display text from `workspace.toml`
+  was treated as untrusted input. It is not: `workspace.toml` lives inside the
+  repository it describes, so anyone who can reach it already has the source,
+  and the guard was costing readability for a risk that was not there. A
+  session now opens with `ini-002 — Platform Core (milestone: P5 · Adopt (M1–M5
+  shipped))`.
+
+### Changed
+
+- `workspace-status`: `initiatives[].name` and `initiatives[].milestone` carry
+  the values `workspace.toml` assigns, as authored. Non-string values are
+  coerced to their text form, so the fields are always JSON strings. `SKILL.md`
+  describes and renders both fields and no longer instructs the consumer to
+  render the slug alone.
+
 ## [core][2.26.1] — 2026-09-14
 
 ### Highlights
