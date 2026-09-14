@@ -82,8 +82,12 @@ def test_the_successors_state_the_criteria_that_supersede_them() -> None:
     """The pointer has to point at something. Both successors must exist and hold
     the rules the pointer attributes to them: the drop and the raising clamp."""
     successor = SUCCESSOR.read_text(encoding="utf-8")
-    ac_0002 = next((l for l in successor.splitlines() if "**AC-0002.**" in l), "")
-    ac_0003 = next((l for l in successor.splitlines() if "**AC-0003.**" in l), "")
+    ac_0002 = next(
+        (line for line in successor.splitlines() if "**AC-0002.**" in line), ""
+    )
+    ac_0003 = next(
+        (line for line in successor.splitlines() if "**AC-0003.**" in line), ""
+    )
     assert ac_0002, "the successor spec states no AC-0002"
     assert ac_0003, "the successor spec states no AC-0003"
     assert "below the declared minimum is not a required channel" in ac_0002, (
