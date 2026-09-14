@@ -32,8 +32,12 @@ EXPECTED_DISPOSITION_ROWS = (
 )
 
 
-def _section(path: Path, heading: str) -> str:
+def _section(path: Path | str, heading: str | None = None) -> str:
     """Return exactly one Markdown section, refusing anything ambiguous."""
+    if heading is None:
+        heading = str(path)
+        path = WORK_LOOP
+    assert isinstance(path, Path)
     text = path.read_text(encoding="utf-8")
     level = len(heading) - len(heading.lstrip("#"))
     starts = [m.start() for m in re.finditer(rf"^{re.escape(heading)}\s*$", text, re.M)]
@@ -41,6 +45,44 @@ def _section(path: Path, heading: str) -> str:
     start = starts[0]
     nxt = re.search(rf"^#{{1,{level}}} ", text[start + len(heading) :], re.M)
     return text[start:] if nxt is None else text[start : start + len(heading) + nxt.start()]
+
+
+def _flat(text: str) -> str:
+    """Collapse presentation-only whitespace."""
+    return " ".join(text.split())
+
+
+def _answer_bodies(section: str) -> dict[str, str]:
+    """Return every answer bullet and its complete body from one axis."""
+    matches = re.finditer(
+        r"^- `(?P<answer>[^`]+)` — (?P<body>.*?)(?=^- `|\Z)",
+        section,
+        re.M | re.S,
+    )
+    answers = {match.group("answer"): _flat(match.group("body")) for match in matches}
+    assert len(answers) == sum(1 for line in section.splitlines() if line.startswith("- `"))
+    return answers
+
+
+def _sentences(text: str) -> list[str]:
+    """Return normalized prose sentences from a bounded Markdown region."""
+    return [sentence for sentence in re.split(r"(?<=\.) (?=[A-Z])", _flat(text)) if sentence]
+
+
+def _prose_outside_answer_bullets(section: str) -> str:
+    """Return all prose in an axis except its named answer bullets."""
+    prose: list[str] = []
+    in_answer = False
+    for line in section.splitlines()[1:]:
+        if line.startswith("- `"):
+            in_answer = True
+        elif in_answer and line.startswith("  "):
+            continue
+        else:
+            in_answer = False
+            if line.strip():
+                prose.append(line)
+    return "\n".join(prose)
 
 
 def _response_metadata() -> str:
@@ -211,6 +253,44 @@ def test_narrow_the_claim_keeps_the_obligation_in_contract() -> None:
     assert "stated reach shrinks to what a check reaches" in cut
 
 
+# STUB: test_claim_check_mismatch_covers_both_reachable_and_unreachable_checks — claim reach selects strengthen or narrow
+def test_claim_check_mismatch_covers_both_reachable_and_unreachable_checks() -> None:
+    answers = _answer_bodies(_section("### Cut"))
+    exception_map = {
+        "drop-the-claim": "removes an assertion without changing a surviving claim's reach",
+        "cut-the-item": "removes the obligation instead of changing its reach",
+        "demote-the-claim": "changes contract tier instead of a surviving claim's reach",
+    }
+
+    assert set(answers) == set(ANSWERS_BY_AXIS["### Cut"])
+    assert set(answers) - set(exception_map) == {"narrow-the-claim"}
+    claim_check_rule = answers["narrow-the-claim"]
+    assert "some check can reach the claimed property" in claim_check_rule
+    assert "strengthen the check" in claim_check_rule
+    assert "no check can reach the claimed property" in claim_check_rule
+    assert "stated reach shrinks to what a check reaches" in claim_check_rule
+
+
+# STUB: test_fix_requires_a_check_of_the_property_not_a_consequence — a repair check asserts the property itself
+def test_fix_requires_a_check_of_the_property_not_a_consequence() -> None:
+    fix = _section("### Fix")
+    answer_exceptions = {
+        "repair-the-generator": "selects the repair target rather than the property asserted",
+        "repair-the-artifact": "selects the repair target rather than the property asserted",
+    }
+    answers = _answer_bodies(fix)
+    check_requirements = [
+        sentence
+        for sentence in _sentences(_prose_outside_answer_bullets(fix))
+        if re.search(r"\bcheck\b", sentence)
+    ]
+
+    assert set(answers) == set(answer_exceptions)
+    assert len(check_requirements) == 1
+    assert "check asserts the repaired property itself" in check_requirements[0]
+    assert "not only a consequence" in check_requirements[0]
+
+
 def test_demotion_or_narrowing_uses_the_completion_gate_question() -> None:
     """Keep the easily confused cut answers governed by their decisive question."""
     decide = " ".join(_decide().split())
@@ -260,10 +340,43 @@ def test_every_walk_starts_with_the_required_frontier() -> None:
     assert "Every walk starts from the cited location and expands to every other instance of the same claim, the companion statements that describe it, and anything that pins any of those." in decide
 
 
-def test_surface_walk_follows_relationships_not_text_search() -> None:
-    """Keep paraphrasing companions in scope even when they share no string."""
-    decide = " ".join(_decide().split())
-    assert "This is a walk, not a text search: a companion usually paraphrases and shares no string." in decide
+# STUB: test_post_repair_traversal_uses_literal_and_semantic_instruments — post-repair traversal has both instruments
+def test_post_repair_traversal_uses_literal_and_semantic_instruments() -> None:
+    decide = _section("## Step 5. DECIDE")
+    traversal = decide.split("Every walk starts", 1)[1].split("\n- **Blockers**", 1)[0]
+    statements = _sentences("Every walk starts" + traversal)
+    exception_map = {
+        "Every walk starts": "defines the initial frontier rather than an instrument",
+        "Each change opens its own frontier": "defines empty-frontier termination rather than an instrument",
+    }
+    exceptions = [
+        statement
+        for statement in statements
+        if any(statement.startswith(prefix) for prefix in exception_map)
+    ]
+    instruments = [statement for statement in statements if statement not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    assert all(
+        "walk" in statement
+        or "literal sweep" in statement
+        or "semantic walk" in statement
+        or "After a repair, run both instruments again" in statement
+        for statement in instruments
+    )
+    # Pin the per-round obligation as a property, not as one blessed sentence
+    # opener. A guard keyed to exact phrasing reds on a faithful rewrite and
+    # stays green when the same claim is reworded away — the failure this
+    # section's own guidance exists to stop.
+    round_scope = " ".join(statement for statement in instruments if "review round" in statement)
+    assert "literal sweep" in round_scope
+    assert "semantic walk" in round_scope
+    repair_reruns = [
+        statement for statement in instruments if "After a repair, run both instruments again" in statement
+    ]
+    assert len(repair_reruns) == 1
+    assert "step-8a anchor-test sweep" in repair_reruns[0]
+    assert "every file the repair touched" in repair_reruns[0]
 
 
 def test_surface_walk_continues_until_its_frontier_is_empty() -> None:
