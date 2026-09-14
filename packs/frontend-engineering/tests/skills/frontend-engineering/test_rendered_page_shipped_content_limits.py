@@ -333,13 +333,9 @@ CHANNEL_NAME_SHAPES = {
     "snippet-name-field": re.compile(
         r"const channels\s*=\s*\[(?P<body>.*?)\]", re.S
     ),
-    # A band row in the reference's `## Channels` table: `| narrow |  | <=480 |`.
-    # `[^|\n]` and not `[^|]`: a class excluding only the pipe still matches a
-    # newline, so the three-cell pattern spanned lines and swallowed the
-    # one-column forbidden-token table, reporting `mobile` as a declared channel.
-    # A band row in a `## Channels` table. Scoped to that section: the pack ships
-    # many unrelated three-cell tables, and the reference's own forbidden-token
-    # table sits in the same section.
+    # A `## Channels` section, whose three-cell band rows `INNER_BAND_ROW` then
+    # reads. Scoped to that section rather than to any three-cell table: the pack
+    # ships many unrelated ones.
     "band-row": re.compile(
         r"\n## Channels\n(?P<body>.*?)(?:\n## |\Z)", re.S
     ),
