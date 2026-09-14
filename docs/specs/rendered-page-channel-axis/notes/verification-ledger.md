@@ -197,3 +197,72 @@ edited here: satisfying #1296's rule belongs to that change's follow-through, an
 editing a `packs/core/` seed from this delivery would route around the cause
 rather than address it. **This branch needs a rebase onto `origin/main` before
 merge, and the seed update is rebase work.**
+
+
+## Post-gates rounds 2 and 3
+
+Round 2: 13 findings across the two reviewers, **one refuted**. Round 3: 7, none
+a blocker. Both rounds are the same story as round 1 told smaller — each repair
+was narrower than the claim it carried, and the reviewers kept finding the gap
+between them.
+
+### The refutation, which is the round's most useful result
+
+`adversarial-reviewer` raised as a Blocker that "the commit asserts both that the
+pack has shipped and that its contract has not" — four criteria reopened to
+`- [ ]` while `pack.toml`, both plugin manifests and the topmost changelog
+heading carry `0.2.4`. It was accepted here and was wrong.
+`docs/CONVENTIONS.md:489` governs: "No new shipped acceptance debt" applies to a
+spec *newly transitioning* to `Shipped`, and directs that a spec with remaining
+accepted work "stays `Implementing` across sessions" — the exact observed state.
+A deferral marker is required only for work *removed* from the AC set, and none
+was. The version bump is obliged by `packs/AGENTS.md` § *Version bump rule* for
+pack content already changed, unconditionally on criteria state. No work was done
+on it.
+
+### Controls that degraded silently
+
+Three rounds produced one recurring shape, and it is the shape this whole
+delivery exists to remove:
+
+| Mutation | before | after |
+| --- | --- | --- |
+| Copyedit `\`narrow\` at ≤480` → `\`narrow\`, covering ≤480` | 285 passed | 1 failed |
+| …then rename those channels to `mobile` / `desktop` | 285 passed | 3 failed |
+| Ship a rule row nothing requires | 285 passed | 2 failed |
+| Rewrite `SKILL.md`'s declaring prose to device names | 275 passed | 2 failed |
+| Delete any of the six shipped rule rows | 3 of 5 green | 44–49 failed each |
+
+The first pair is the sharpest. An ordinary copyedit that changed no channel name
+killed the `prose-declaration` shape outright, and a device rename then shipped
+green *behind the dead shape*. A guard that stops matching in silence is worse
+than no guard, because the suite keeps reporting coverage it no longer has. Two
+of the three shapes were anchored only incidentally, by controls written for
+other reasons; "happens to be anchored" is not a control, so `SHAPE_LIVE_SITES`
+pins each shape to the shipped site it was written for.
+
+### A claim settled instead of hardened
+
+`WALK_RULE_ROWS` carried a comment saying a newly shipped row "inherits the
+delete-and-red discipline instead of needing to be remembered into a hand-written
+list" — while being that list. Three rounds argued the claim. The fix was not a
+better list: it is `REQUIRED_RULE_ROWS`, named for what it holds, plus an
+equality control comparing it against the keys the shipped tables actually state.
+The asymmetry the quality reviewer named — over-listing already caught,
+under-listing not — is now symmetric.
+
+### A process error of the orchestrator's
+
+The first adjudication of round 2 returned two findings **indeterminate** because
+this session edited the cited file while the adjudicator was reading it: it saw
+`CHANNEL_NAME_SITES` as a three-entry tuple, re-read the same path minutes later
+and found it gone. The remedy was to commit, quiesce, and re-adjudicate against a
+fixed basis, where both came back refuted — the repairs had discharged them. A
+review target must hold still for the length of its review.
+
+### Criteria verified rather than recalled
+
+All 18 construction tests the criteria name were collected by name and run: every
+one resolves. Four criteria had previously been ticked against test names that
+did not exist, which is what reopening AC-0008, AC-0011, AC-0012 and AC-0013 was
+for.
