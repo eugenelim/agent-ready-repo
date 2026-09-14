@@ -5,8 +5,9 @@
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, pack test
   loader naming, version bump rule, no internal-governance citations in shipped
   content); `packs/frontend-engineering/AGENTS.md`;
-  `docs/CONVENTIONS.md` § *Version bump rule* (what counts as an
-  adapter-projected primitive).
+  `docs/CONVENTIONS.md` § *Pack source-of-truth split* (what counts as an
+  adapter-projected primitive; the bump rule itself is `packs/AGENTS.md`
+  § *Version bump rule*, which names the term without defining it).
   Analogous implementation: the channel axis itself — the `## Channels` rule rows
   in `.apm/skills/frontend-engineering/references/rendered-page-inspection.md`,
   their reader `required_channels()` in
