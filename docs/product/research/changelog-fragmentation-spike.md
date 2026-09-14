@@ -80,7 +80,14 @@ at `4c924e068`:
 | 5344 | `[Unreleased]` (third of four) | no blank line after the heading |
 
 The first row is the same defect class described as having reached the published
-page this session. It is live on `main` right now, and so are seven others.
+page this session. All eight were live on `main` at this spike's base.
+
+> **Superseded on 2026-09-13.** The instances live at this spike's base were
+> normalized, and
+> `tools/test_build_site_routing.py::test_every_changelog_section_is_separated`
+> now gates the class at every heading in `docs/product/changelog.md`. Every
+> statement in this section about live defects and about no gate existing
+> describes the base revision, not the current tree.
 
 **No located gate detects any of them.** Stated precisely, because the broader
 negative is false: the docs site *does* configure remark, via `remarkPlugins` in
@@ -102,9 +109,15 @@ publishable payload of 99 entries carrying `Highlights`.
 This also sharpens where the free-standing invariant actually bites. The eight
 separator defects change **nothing** in the `/now/` projection — its parser is
 structural and blank-line blind. The harm is at the Markdown rendering and human
-review layer, not the projection. Any future gate must therefore check the
-rendered artifact; a `/now/` parity assertion would pass straight through all
-eight defects.
+review layer, not the projection. Any future gate must therefore read the
+Markdown rather than the projection; a `/now/` parity assertion would pass
+straight through all eight defects.
+
+> **Corrected on 2026-09-13.** The rendering half of that sentence is wrong.
+> Rendered through CommonMark, a welded heading and a double-spaced one produce
+> byte-identical HTML, so the harm is at the source-text and human-review layer
+> only. This answers the known-unknown below, and it is why the gate that
+> shipped that day reads source text.
 
 ## Result 3 — the invariant holds only if the *renderer* normalizes
 
@@ -255,10 +268,13 @@ did not examine.
 - **Known-unknown:** How many of the 216 monthly changelog commits actually
   produced a merge conflict or forced a rebase? Would be closed by: replaying
   merged and abandoned branches over the period, rather than counting touches.
-- **Known-unknown:** Do the eight separator defects change rendered HTML on the
-  published page? Would be closed by: running `make site-build` and diffing the
-  emitted changelog route. Not run here — the spike had no site build, and the
-  `/now/` parity result does not answer it.
+- **Answered on 2026-09-13, No.** Do the separator defects change rendered HTML
+  on the published page? Rendered through CommonMark, both defect shapes — a
+  heading welded to its neighbour, and one preceded by a doubled blank line —
+  produce byte-identical HTML to the correct form. Blank lines between blocks
+  and blank lines around an ATX heading are both insignificant in CommonMark.
+  The harm is therefore confined to the source text and human review, which is
+  what the gate added that day checks.
 - **Known-unknown:** Is the ordering judgement actually made at release time in
   this repository, as the hypothesis above assumes? Would be closed by: reading
   the release workflow and checking, across the 10 date inversions, whether the

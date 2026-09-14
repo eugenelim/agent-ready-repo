@@ -3,8 +3,9 @@
 Covers: shared-chrome contract validation and projection, frontmatter parsing,
 guide-metadata stripping, slug-override routing, alias redirect-stub generation,
 docs/guides/ exclusion, generation's independence from the marketing
-design-token file, and the released-changelog Highlights projection that feeds
-the public `/now/` route.
+design-token file, the released-changelog Highlights projection that feeds
+the public `/now/` route, and the blank-line separation of every heading in
+`docs/product/changelog.md`.
 """
 from __future__ import annotations
 
@@ -2213,6 +2214,119 @@ def test_the_real_changelog_parser_keeps_a_sane_release_population():
         "remaining release history — inspect HTML-comment and fenced-code handling "
         "in tools/build-site.py::parse_changelog_releases"
     )
+
+
+def _unseparated_sections(text: str) -> list[str]:
+    """Every heading not surrounded by exactly one blank line.
+
+    Deliberately NOT called "free-standing". RFC-0095 D3 defines that term as a
+    heading-LEVEL property — a released entry is written at `##` rather than
+    nested under `[Unreleased]` — and the ratchet in
+    tests/roster/test_workspace_status_projection.py already guards it with that
+    meaning. Separation is an adjacent, unratified property, so it gets its own
+    name rather than silently widening a governed one.
+
+    Heading positions come from `build_site.parse_changelog_releases`; the
+    reason is on `ParsedChangelog.headings`, which owns it.
+    """
+    lines = text.splitlines()
+    problems: list[str] = []
+    for heading in build_site.parse_changelog_releases(text).headings:
+        if heading.level < 2:
+            continue
+        index = heading.lineno - 1
+        # Each side is guarded against its OWN boundary. Skipping the whole
+        # heading when it starts the file would also skip the `after` check, so
+        # a `##` on line 1 welded to line 2 would pass; a heading on the last
+        # line would symmetrically be reported for a blank line that cannot
+        # exist.
+        if index > 0:
+            before = 0
+            cursor = index - 1
+            while cursor >= 0 and lines[cursor].strip() == "":
+                before += 1
+                cursor -= 1
+            if before != 1:
+                problems.append(
+                    f"{heading.lineno}: '## {heading.title}' has {before} blank "
+                    "lines above it, not 1"
+                )
+        if index < len(lines) - 1:
+            after = 0
+            cursor = index + 1
+            while cursor < len(lines) and lines[cursor].strip() == "":
+                after += 1
+                cursor += 1
+            if after != 1:
+                problems.append(
+                    f"{heading.lineno}: '## {heading.title}' has {after} blank "
+                    "lines below it, not 1"
+                )
+    return problems
+
+
+def test_every_changelog_section_is_separated():
+    """No `##` section may be welded to its neighbour or double-spaced from it.
+
+    Scoped to `docs/product/changelog.md`, at every heading level. The package
+    changelogs under `packages/*/CHANGELOG.md` are peer artifacts under
+    CONVENTIONS.md § 5b and are deliberately not covered: their instances sit in
+    already-published release sections, which `tools/test_guide_typed_asides.py`
+    treats as immutable history.
+
+    Why a `/now/` assertion cannot substitute:
+    [the fragmentation spike](../docs/product/research/changelog-fragmentation-spike.md)
+    owns that evidence — the projection parser is blank-line blind, so the
+    payload and every release record are byte-identical whether these separators
+    are right or wrong. Covers `[Unreleased]` openers as well as released
+    sections.
+    """
+    problems = _unseparated_sections(_CHANGELOG.read_text(encoding="utf-8"))
+    rel = _CHANGELOG.relative_to(_REPO_ROOT).as_posix()
+    assert not problems, (
+        "changelog sections need exactly one blank line above and below each "
+        f"heading — see the maintenance header in {rel}:\n"
+        + "\n".join(f"  {rel}:{p}" for p in problems)
+    )
+
+
+def test_the_separation_check_detects_both_defect_shapes():
+    """Mutation proof for the gate above, in the two shapes that actually occur.
+
+    Without this, the gate passes vacuously if `headings` ever comes back empty
+    or the arithmetic inverts, and a green run would mean nothing.
+    """
+    clean = (
+        "# Changelog\n\n"
+        "## [Unreleased]\n\n"
+        "### Added\n\n"
+        "- thing\n\n"
+        "## [core][1.0.0] — 2026-01-01\n\n"
+        "### Added\n\n"
+        "- other thing\n"
+    )
+    assert _unseparated_sections(clean) == []
+
+    doubled = clean.replace(
+        "- thing\n\n## [core][1.0.0]", "- thing\n\n\n## [core][1.0.0]"
+    )
+    assert any("2 blank lines above" in p for p in _unseparated_sections(doubled))
+
+    welded = clean.replace("## [Unreleased]\n\n### Added", "## [Unreleased]\n### Added")
+    assert any("0 blank lines below" in p for p in _unseparated_sections(welded))
+
+    # A heading inside a fenced block is sample text, so moving it next to its
+    # neighbour must NOT trip the gate — this is the false-positive half.
+    fenced = clean + "\n```markdown\n## [sample][9.9.9] — 2026-01-01\n### Added\n```\n"
+    assert _unseparated_sections(fenced) == []
+
+    # Both file boundaries. A heading opening the file is still checked BELOW,
+    # and a heading closing it is not reported for the blank line it cannot have.
+    assert any(
+        "0 blank lines below" in p
+        for p in _unseparated_sections("## [core][1.0.0] — 2026-01-01\n### Added\n")
+    )
+    assert _unseparated_sections("# Changelog\n\n## [Unreleased]") == []
 
 
 def test_no_projected_release_heading_lives_under_an_unreleased_region():
