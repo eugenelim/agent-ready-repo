@@ -65,8 +65,41 @@ two channels against a real surface, its observations recorded (T8).
 
 ### Design decisions
 
+**The height-only floor is removed by hand and pinned, not asserted by a
+predicate.** `AC-0021`, `AC-0022` and `AC-0025` were demoted on 2026-09-13 under
+owner authority; the spec's Retired identifiers section records why. The
+obligation stands and this is where it lives. Five shipped strings state the
+superseded floor and all five are rewritten:
+
+| Artifact | Site | Text |
+| --- | --- | --- |
+| `evals/evals.json` | `assertions[0]` | "Captures at a viewport height of at most 600 CSS pixels and at least 900, each at rest and scrolled" |
+| `evals/evals.json` | `expected_output` | opening sentence, "The capture set covers both required viewport heights…" |
+| the how-to | `:45` | "Take four captures per route: two viewport heights, each at rest and scrolled." |
+| the how-to | `:47-52` | the height-keyed capture table |
+| the how-to | `:59` | "Extra heights are welcome and none beyond these two is required" |
+
+The protection is a content pin asserting those five strings are absent, not a
+general predicate. No token list decides the class: three of the five carry no
+completeness word at all, and the token that would red them also reds the guide's
+`:62-64` unscrollable-branch sentence, which must survive. A criterion claiming
+the general property would be a control that cannot fail on the class it names.
+
 The spec's Objective and Assumptions own why the axis is breakpoint-derived and
 why the fallback bands leave a dead zone. What is not recoverable from there:
+
+**The capture width is the band's edge, and that is a deliberate trade.** AC-0024
+returns the lower bound where a band has one, so a declared `[480, 768, 1024]`
+yields 479, 480, 768 and 1024 — two of them one pixel apart, and 481–767 never
+captured. The edge is chosen because the defect class this delivery names is a
+rule scoped to one side of a breakpoint reaching the other, and only widths
+straddling the breakpoint exercise both scopes: a declared 1152 yields 1151 and
+1152. What it gives up is a rule that misbehaves in a band's interior, which is a
+different class and stays invisible. One operational caveat for the implementer:
+a scrollbar-inclusive layout viewport can put a media query on the other side of
+the number the driver was handed, so a capture taken at the boundary needs its
+attained width read back from the page, the way the attained scroll offset
+already is.
 
 **The absent-row guard is the raise, not the skip.** The rule reader guards an
 absent row two incompatible ways today — `inspection_result` raises
@@ -86,7 +119,6 @@ row. Two row keys are shipped content the suites read by name:
 | `channel-basis-recorded` | Channels, rule rows | the AC-0003 record |
 | `channel-name-forbids` | Channels, rule rows | `required` — the switch AC-0012's guard reads before enforcing |
 | `channel-capture-width` | Channels, rule rows | the AC-0024 derivation |
-| `completeness-vocabulary` | Channels, rule rows | `required` — the switch AC-0025's guards read |
 
 The forbidden device-name tokens ship as a **one-column table** under their own
 heading, mirroring the `## Rate vocabulary` table the measurement reference
@@ -140,23 +172,25 @@ and after (T9).
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/references/rendered-page-inspection.md
 
 **Tests:** goal-based check — this task ships content that T2's assertions read.
-AC-0001, AC-0002, AC-0003 and AC-0004 are stated here and asserted there; nothing
-in this task asserts them itself.
+AC-0001, AC-0002, AC-0003, AC-0004 and AC-0024 are stated here and asserted
+there; nothing in this task asserts them itself.
 
 **Approach:** add a `## Channels` section to the reference carrying the fallback
 band table (name, lower bound, upper bound), and the breakpoint-derived rule, the
-capture-width rule, the channel-basis recording rule, and the completeness
-vocabulary as rule rows in the established shape, plus the forbidden device-name
-tokens as their own one-column table.
+capture-width rule and the channel-basis recording rule as two-cell rule rows in
+the established shape, plus the forbidden device-name tokens as their own
+one-column table — the only shape in this reference that holds a token list.
 Generalize the `every-captured-height-needs-the-pair` row and the prose stating
 the required set. State the axis's reason without naming any surface outside the
 pack.
 
 **Done when:** the reference's new tables satisfy `table_rows`'s cell-count rule
 and `unique_keyed`'s duplicate-key rule, and a search for the literal
-`every-captured-height-needs-the-pair` across the whole pack test tree returns
-every site the rename has to reach. `test_rendered_page_verdict.py` holds two
-(`:196` and `:220-222`); the search is what proves there is no third.
+`every-captured-height-needs-the-pair` across `packs/frontend-engineering/`
+returns no remaining site. The search output is the enumeration — do not write a
+count here and check against it. A run of that search on 2026-09-13 returned
+seven sites across three files, where an earlier hand-written count in this same
+Done-when said two.
 
 ### T2: The rule reader derives the channel requirement from the reference
 
@@ -261,8 +295,9 @@ required-field table no longer names a device, and the only changed line in
 **Depends on:** T1
 **Touches:** packs/frontend-engineering/.apm/agents/frontend-reviewer.md, packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json
 
-**Tests:** TDD for AC-0013, AC-0016, AC-0021 and AC-0025, in
-`test_rendered_page_reviewer_sight.py`.
+**Tests:** TDD for AC-0013 and AC-0016, in `test_rendered_page_reviewer_sight.py`.
+Rewriting the harness's two height-only strings is this task's work and is pinned
+by the content pin in § Design decisions, not by a criterion.
 Scope the lens read to the lens section rather than the whole agent file, the way
 that suite already scopes its reads; the whole-file read passes on the shared
 output-rendering block. AC-0016 parses `evals/evals.json` in the same module.
@@ -282,21 +317,21 @@ agent and harness, and `make build-self` leaves no projection diff for either.
 **Depends on:** T4
 **Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md
 
-**Tests:** goal-based check for AC-0018 and AC-0022 — a search over the guide for
-both fallback channel names, the band between them that no fallback capture
-reaches, and the per-channel floor, plus its negative half: no sentence or table
-states a complete set by viewport height alone. The positive search alone passes
-on a guide that keeps "Take four captures per route" two lines above the new
-paragraph. The repository's documentation gates stay a separate well-formedness
-check.
+**Tests:** goal-based check for AC-0018 — a search over the guide for both
+fallback channel names, the band between them that no fallback capture reaches,
+and the per-channel floor. The negative half is the content pin in § Design
+decisions over the guide's three height-only strings; it is not a criterion,
+because no predicate reds those three while sparing `:62-64`. The repository's
+documentation gates stay a separate well-formedness check.
 
 **Approach:** take the guide's worked walk across both channels — its capture
 table and the prose under it (`:45-65`), and its capture-record table (`:74-77`) —
 and state what a reader records when no breakpoints are declared, plus the band
 between the two fallback channels that no fallback capture reaches. The three
-lines that state the superseded floor are `:45` ("Take four captures per route"),
-the height-keyed table at `:47-52`, and `:59` ("none beyond these two is
-required"); AC-0022 fails while any of them stands.
+guide lines that state the superseded floor are `:45` ("Take four captures per
+route"), the height-keyed table at `:47-52`, and `:59` ("none beyond these two
+is required"); all three are in the content pin recorded in § Design decisions,
+and the guide's `:62-64` unscrollable-branch sentence must survive the rewrite.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates.
@@ -363,6 +398,13 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Adversarial round 2: 9 findings, 3 blockers, two of them round 1's
+  own repairs failing. The rename Done-when had replaced a sweep with a
+  hand-written count of two against seven real sites. The AC-0021/AC-0022
+  predicate could not red three of the five fixtures those criteria named. Owner
+  demoted AC-0021, AC-0022 and AC-0025; the obligation is now design material
+  plus a content pin, which is the rung the spec template prescribes for an
+  obligation whose only check is that a sentence exists.
 - 2026-09-13 — Adversarial spec-mode review, adjudicated: 11 findings, all
   sustained, none refuted. Three blockers. The rename breaks two pins in
   `test_rendered_page_verdict.py` that no task owned, and one of them ratifies
