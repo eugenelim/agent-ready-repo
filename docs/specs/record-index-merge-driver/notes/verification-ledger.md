@@ -185,3 +185,33 @@ generator is not gating its output. A required check that tests the projection
 function would stay green while the committed blob rotted, and the driver would
 discard a real edit with nothing to notice. It stays out, and the
 `.gitattributes` header names it among the eligible-looking ineligible paths.
+
+## The /now/ renderer input: untracked again, and no gate is owed (2026-09-13)
+
+Owner confirmed PR #1292 re-tracked `web/src/lib/now-highlights.generated.json`
+by mistake. The shape corroborates it: `.gitignore:131-146` names three renderer
+inputs, and that PR re-tracked one while leaving
+`web/src/lib/shared-chrome.generated.json`, on the next line, untracked.
+
+Restored with `git rm --cached`. After it: the path is untracked, the file is
+still in the working tree, `git check-ignore` matches it at `.gitignore:146`
+again, and `git ls-files '*.generated.json'` is empty, so all three inputs agree.
+The `.gitattributes` header entry added for it was reverted and the count went
+back to four, because an untracked path does not look eligible.
+
+**Is a staleness gate needed? No, and adding one would be the wrong repair.**
+`.gitignore:131-145` states the design: every build path that reads a renderer
+input regenerates it first, and the single route that skips generation —
+invoking Astro directly — "fails loudly with an unresolved import rather than
+silently publishing stale content". The safety property is that no second copy
+exists, not that a check catches one; absence fails loudly, staleness fails
+silently. `tools/test_build_site_routing.py:2113-2121` retired the old
+committed-copy staleness gate on exactly that premise, keeping only what the
+gate uniquely covered — that the projection survives the real corpus.
+
+That retirement was sound before PR #1292 and is sound again now. It was unsound
+only in the window where a tracked copy existed with no check comparing it — a
+real coverage hole, closed here at its cause rather than by reinstating a gate
+to police a copy that should not exist. Two documented statements that were
+false while the window was open are true again: `.gitignore:131-145` and the
+docstring's "That copy is no longer tracked".

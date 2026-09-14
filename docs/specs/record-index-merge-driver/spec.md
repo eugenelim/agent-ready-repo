@@ -3,6 +3,7 @@
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
+- **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) — also carries the citations `plan.md` cannot correct, because `loop-cohort` pins it at `approve-plan`; `plan.md:62`'s closeout cell says `tools/lint-ci-parity.py:377-380` and the current range is `:378-381`
 - **Constrained by:** ADR-0112
 - **Brief:** none
 - **Discovery:** none
@@ -268,23 +269,25 @@ widens what the gates cover, never what a maintainer may declare by hand.
 - Technical: `docs/specs/README.md` is tracked but no `build-check` chain step
   generates it, so the rule excludes it (source: no `index-records.py` step
   names `docs/specs` in the collected chain argv)
-- Technical: `web/src/lib/now-highlights.generated.json` is tracked and
-  generated but carries no required-check coverage, so it stays out of the
-  driver. It was untracked by `da10ba428` and re-added by `081c26209` (PR
-  #1292). Its ignore entry is still listed at `.gitignore:146` and is inert only
-  because the path is tracked again, so the earlier reason for excluding it —
-  that an untracked file cannot conflict — no longer holds. The reason that does
-  hold is the rule itself: no required check compares the committed bytes to a
-  regeneration. `tools/test_build_site_routing.py` is in `gate-main`
-  (`build-check.yml:339`), but every one of its `now_highlights` cases calls
-  `build_site.project_now_highlights(text)` on inline fixtures and never reads
-  the committed file; `tools/build-site.py` writes it and has no `--check` mode;
-  and the only other readers are `web/src/pages/now/index.astro`, which consumes
-  it at build time, and `web/src/test/rendered-output.test.ts`, a web vitest
-  suite `build-check.yml` does not run. Exercising the generator is not the same
-  as gating its output, so nothing would red if a merge left the file stale and
-  the driver would discard a real edit unnoticed (source: those files, and
-  `grep -rn now-highlights.generated tools/`, 2026-09-13)
+- Technical: `web/src/lib/now-highlights.generated.json` is untracked, so it can
+  neither conflict nor carry the driver. `da10ba428` untracked it and
+  `081c26209` (PR #1292) re-added it by mistake — confirmed by the owner on
+  2026-09-13, and corroborated by shape: of the three renderer inputs
+  `.gitignore:131-146` names, that PR re-tracked one and left
+  `web/src/lib/shared-chrome.generated.json` on the next line untracked. This
+  change restores the intended state with `git rm --cached`; the file stays in
+  the working tree and `.gitignore:146` is effective again.
+- Technical: no staleness gate is owed for that file, and adding one would be
+  the wrong repair. `.gitignore:131-145` records the design: every build path
+  that reads a renderer input regenerates it first, and the one route that skips
+  generation — invoking Astro directly — "fails loudly with an unresolved import
+  rather than silently publishing stale content". The safety property is that no
+  second copy exists, not that a gate catches one, which is why
+  `tools/test_build_site_routing.py:2113-2121` retired the old committed-copy
+  staleness gate explicitly. That retirement is sound while the file is
+  untracked and was unsound only while PR #1292's tracked copy existed; the
+  untracking closes the gap at its cause (source: that rationale block and that
+  docstring, 2026-09-13)
 - Process: the superseded spec's body is frozen and takes no amendment — a
   supersession Status pointer must cite an ADR, not a spec (source:
   `docs/CONVENTIONS.md:162-163` rule 2, and rule 4 at `:171-176`). The owner ruled on
