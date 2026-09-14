@@ -493,46 +493,37 @@ Each was caught by someone else. The first two changed conclusions other people
 were relying on; the third only wasted a message. None was caught by a test,
 because none was the kind of claim a test covers.
 
-## The package was never type-checked, and the count was the only evidence
+## I measured the wrong tree, and it cost a reverted commit
 
-`tools/lint-mypy.py` passes `TYPED_PACKAGES` as positional arguments, and
-positional arguments override the `files` setting in `pyproject.toml`. The list
-named `agentbundle` and `credbroker`, so `make lint-mypy` printed `Success: no
-issues found in 139 source files` while never opening a line of this package.
-The only signal that anything was missing was the file count, and a count nobody
-reads is not a control.
+`make lint-mypy` reported `Success: no issues found in 139 source files` while
+never opening a line of this package, because `tools/lint-mypy.py` passes
+`TYPED_PACKAGES` as positional arguments and positional arguments override the
+`files` setting in `pyproject.toml`. I repaired it, and had to revert the repair.
 
-Adding the package surfaced two type lies in one stream. `iter_records` was
-annotated `Iterator[dict[str, Any]]` and also yields the `IDLE` sentinel, and
-`batch_records` declared `Iterable[Mapping[str, Any]]` for the same stream. One
-alias, `RecordOrIdle`, now names the union in the one place both sides read, so
-the reader's annotation and the batcher's parameter cannot drift apart while
-both describe the same stream.
+The gap was real. What I got wrong was **which tree had it.** I measured `main`
+(freshly merged into my branch) and reported four gate sites as absent. All of
+them were already present on the `loop-telemetry-export` session's branch, along
+with two more I had not identified: `Makefile`'s own `PYTHONPATH`, without which
+the suite reports eight collection errors because each `packages/*/` suite's own
+`[tool.pytest.ini_options]` is the nearer pytest configfile and the root
+`pythonpath` never reaches it — the reason my 279-test run only ever worked from
+inside the package directory. Their work was **unpushed**, so `origin` agreed
+with me and the branch that mattered did not.
 
-The narrowing needed a second change: `if record is IDLE` is correct at runtime
-but narrows nothing, because `IDLE` is a module-level instance rather than a
-type, so the checker still believed `pending.append` could receive the
-sentinel. `isinstance(record, _Idle)` says the same thing and is checkable.
+A measurement is only as good as the ref it was taken against. Reporting `main`
+as though it were the delivery state produced a real defect claim, a real
+repair, an overlapping test file, and a three-way collision in
+`tools/lint-mypy.py`, the two annotation sites, and the Makefile's tools batch.
+Before claiming a gate site is missing, name the ref — and when a peer session
+owns the criterion, read their branch, not the trunk.
 
-**The repair that matters is not either annotation.** A defect whose only
-symptom was a number in passing output will recur the moment a fourth package
-lands, so `tools/test_lint_mypy_covers_every_package.py` derives the expected
-set from each distribution's own `pyproject.toml` `[project] name` and fails
-when the gate's argument list does not cover it. It is mutation-proven: with the
-new entry removed from `TYPED_PACKAGES`, the test fails; restored, it passes.
-
-Sourcing from the manifest rather than from "every directory holding an
-`__init__.py`" was deliberate — the filesystem rule also returns
-`packages/agentbundle/tests`, which is a published tree but is not a
-distribution's import package, and excluding it by name would put a
-hard-coded directory name in the guard for it to keep remembering.
-
-Registering the test cost two re-pins, both verified the way the pinning block
-requires: the plan digests moved at exactly one index each (standalone 61,
-composed 60 — the final tools batch line) by exactly the one added path, with
-no line inserted, dropped, or reordered, and the superseded digests reproduced
-with zero errors against the pre-change Makefile, so the re-pin replaced live
-values rather than papering over someone else's move. A `tools/` test absent
-from the Makefile's enumerated batches is executed by nothing at all — the open
-`tools-test-runner-boundary` class — so skipping the registration would have
-left a control that cannot fail.
+Two things survive the revert. The AC-0031 critique holds: the criterion names
+`[tool.mypy] files`, which a positional argument overrides, so it can be
+satisfied literally while the gate still checks nothing and still prints
+`Success`. That session reached the same conclusion independently from the other
+direction, kept the criterion's wording to avoid widening an in-flight
+amendment, and recorded in their ledger that its four named sites do not achieve
+its own purpose clause and that six are required. And both of us, separately,
+landed on `isinstance(record, _Idle)` over `record is IDLE` — identity against a
+module-level instance reads correctly at runtime and narrows nothing for a type
+checker, so `pending.append` still looks reachable by the sentinel.

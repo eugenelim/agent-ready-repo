@@ -670,7 +670,6 @@ $(PYTHON) -m pytest \
 	tools/test_conformance_portability.py \
 	tools/test_lint_direct_code_table.py \
 	tools/test_lint_guides_no_repo_only_refs.py \
-	tools/test_lint_mypy_covers_every_package.py \
 	tools/test_okf_pre_pr.py \
 	tools/test_pack_test_compatibility.py \
 	tools/test_check_distribution_route_decisions.py \

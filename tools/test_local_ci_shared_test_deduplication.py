@@ -233,7 +233,6 @@ FINAL_TOOL_BATCH = (
     "tools/test_scaffold_projection.py",
     "tools/test_conformance_portability.py",
     "tools/test_lint_guides_no_repo_only_refs.py",
-    "tools/test_lint_mypy_covers_every_package.py",
     "tools/test_okf_pre_pr.py",
     # Added 2026-08-28 with the pack-test compatibility classes (ADR-0101).
     # Nothing globs `tools/test_*.py`, so a module absent from this batch is
@@ -566,23 +565,11 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # the pre-change Makefile with the superseded digests still in place reports no
 # drift at all, reproducing `7fadaf20…` and `e48c8b01…` exactly, so this re-pin
 # is not sitting on a move someone else already made.
-# Bumped 2026-09-14 for tools/test_lint_mypy_covers_every_package.py, which is
-# registered in the final tools batch. Verified before the bump through
-# `_effective_composition_errors` itself, both ways the block above requires.
-#
-# (1) Sole cause: the same path against this worktree's Makefile and against
-# `HEAD:Makefile` (before the registration landed) produces plans of identical
-# length -- standalone 63, composed 62 -- differing at exactly one index
-# (standalone 61, composed 60: the final tools batch line), by exactly the one
-# added path. No line was inserted, dropped, or reordered, so no later index
-# shifted. (2) Prior pins were current: `_effective_composition_errors` run
-# over the pre-change Makefile with the superseded digests still in place
-# reports zero errors, so this re-pin supersedes live values, not stale ones.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "02b748f469ac26ed852c26178ab6bcdb8f8479473aa7e6d448996a705538a0da"
+    "8f32abf234db484ed12269e7b4182a34e5db5ea21764556e852e4d96f17c7583"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "8089f59c92299c994c2c7da01c7c744c8b9459b988934edf7ab06df9f68018dc"
+    "de0cadbf5e920afe80eb4ffb024474afa59af915b26e5ab014fdb008bb1c5390"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

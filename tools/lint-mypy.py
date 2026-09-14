@@ -16,14 +16,9 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-# Positional arguments OVERRIDE the `files` setting in pyproject.toml, so this
-# list -- not the config -- decides what the gate checks. A package absent from
-# here is not checked and nothing says so; `test_lint_mypy_covers_every_package.py`
-# is what turns that silence into a failure.
 TYPED_PACKAGES = [
     "packages/agentbundle/agentbundle",
     "packages/credbroker/credbroker",
-    "packages/jsonl-otlp-exporter/jsonl_otlp_exporter",
 ]
 
 
