@@ -255,3 +255,83 @@ def test_the_journey_metadata_no_longer_advertises_a_diff_only_reviewer() -> Non
         "the pack summary still describes the reviewer as reading only the diff"
     )
     assert "independent diff read" not in what_changes
+
+
+# ── the width axis reaches the reviewer and the harness ─────────────────────
+
+import json  # noqa: E402
+
+EVALS = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "frontend-engineering"
+    / "evals"
+    / "evals.json"
+)
+
+
+def _lens_six(reviewer: str) -> str:
+    return _normalized(reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0])
+
+
+def test_reviewer_lens_reads_the_width_axis(reviewer: str) -> None:
+    """Verifies: lens 6 carries an imperative to use the capture's viewport
+    width, saying what the width decides.
+
+    Scoped to the lens, not the whole file. The field-listing sentence already
+    named "viewport width and height" before this delivery, so a check that only
+    looked for the words would have passed on the unchanged agent — a control
+    that cannot fail on the thing it names.
+    """
+    lens = _lens_six(reviewer)
+    assert "**Use the viewport width.**" in reviewer.split("### Lens 6", 1)[1], (
+        "lens 6 carries no imperative to use the viewport width, only the "
+        "pre-existing sentence that lists it among the recorded fields"
+    )
+    assert "breakpoint" in lens, (
+        "lens 6 does not say what the viewport width decides"
+    )
+    # The pre-change lens must red: it listed the field and told the reviewer to
+    # use the scroll position, and nothing else.
+    pre_change = lens.replace("**Use the viewport width.**", "")
+    assert "**Use the viewport width.**" not in pre_change
+
+
+def test_the_lens_still_tells_the_reviewer_to_use_the_scroll_position(
+    reviewer: str,
+) -> None:
+    """The width joins the scroll position; it does not replace it."""
+    assert "**Use the scroll position.**" in reviewer
+
+
+def _inspection_case() -> dict:
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    cases = data if isinstance(data, list) else data.get("evals", data.get("cases"))
+    return next(c for c in cases if c.get("id") == "rendered-page-inspection")
+
+
+def test_the_harness_expects_channel_coverage() -> None:
+    """Verifies: the pack's eval harness names channel coverage among the
+    behaviours it expects of a completed inspection."""
+    case = _inspection_case()
+    assert any("channel" in a.lower() for a in case["assertions"]), (
+        "no assertion mentions channel coverage"
+    )
+    assert "channel" in case["expected_output"].lower()
+
+
+def test_the_harness_no_longer_grades_against_a_height_only_floor() -> None:
+    """The harness used to define a complete set by height alone, in its first
+    assertion and its expected_output opening. A run matching those exactly is
+    incomplete after this delivery, so leaving them would grade a correct run
+    against the superseded floor.
+    """
+    case = _inspection_case()
+    assert case["assertions"][0] == (
+        "Captures, in every required channel, at a viewport height of at most 600 "
+        "CSS pixels and at least 900, each at rest and scrolled"
+    )
+    assert not case["expected_output"].startswith(
+        "The capture set covers both required viewport heights,"
+    )
