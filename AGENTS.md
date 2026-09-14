@@ -31,7 +31,7 @@ backlog items, agent rules, skills, code, and comments.
 - When choices help, offer no more than three. Put the best choice first.
 - Pick a form that fits the facts. Use one sentence for one fact. Use prose for linked facts, bullets for items that stand alone, and numbered steps for a true sequence.
 - Use clear heads, one fact per sentence, and short parts that are easy to stop and resume. Stress at most one load-bearing point in each part.
-- Group long lists by theme. Keep all asked-for depth, proof, limits, warnings, code, diffs, errors, exact names, paths, and counts.
+- Group long lists by theme. Keep all asked-for depth, proof, limits, warnings, code, commands, diffs, errors, exact names, paths, counts, and tech terms.
 - Use a table, tree, flow, or other view only when it makes a link or pattern much easier to grasp.
 - For common chat prose, aim for a Flesch Reading Ease score of at least 70 and a US school grade of at most 8. A score is a clue. It is not a reason to cut needed facts.
 - Keep test proof short: pass or fail, count, and run time. Name a suite if it failed or if its name changes the next step.

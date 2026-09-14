@@ -469,11 +469,17 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
             "proof",
             "limits",
             "warnings",
+            # `commands` and `tech terms` were dropped when the retired clause
+            # "Keep exact code, commands, errors, and tech terms when they
+            # matter" merged into this one. This list not naming them is why the
+            # loss stayed green through three review rounds.
+            "commands",
             "diffs",
             "errors",
             "exact names",
             "paths",
             "counts",
+            "tech terms",
         ),
         "visuals only when useful": ("table, tree, flow", "much easier to grasp"),
         "readability without gaming": (

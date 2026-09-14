@@ -65,4 +65,3 @@ Read packs/core/pack.toml, then read the SKILL.md of one skill it ships. Describ
 ```text
 Read docs/specs/README.md and then open one active spec it lists. Describe how specs work in this repository and what that spec changes.
 ```
-

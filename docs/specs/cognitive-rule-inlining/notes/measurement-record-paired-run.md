@@ -17,8 +17,14 @@ against. The design cannot tell a small effect from noise, and this run did not.
   `60f4f292be36bab3727c5bc2c2bb622b2e44b671100d09ef5799dd3717004da6`
   (committed in `45ee4db3d`, before the first reply; carries a dated amendment
   note for the one bullet changed after the pilot)
-- **Protocol SHA-256:**
+- **Protocol SHA-256, as run:**
   `2ee255f54203a1e539a9842c91fcaa66df6f4309789b42ffab95aa5ddc73d6c9`
+- **Protocol SHA-256, as committed:**
+  `37ffd0f5a3e4ad8e05794b295351875d6e6ab627dddff84b6d8c8b81e98b5d5c` — a review
+  found a trailing blank line at EOF that failed `git diff --check`, and removing
+  it after the run changed the hash. The two files differ by that one line and
+  nothing else; every prompt is byte-identical. Both hashes are recorded because
+  citing only the second would claim the run used a file it did not.
 - **Control arm SHA:** `dac83a5afb4f7409fbd4115211f3080a7640748d`
 - **Treatment arm SHA:** `45ee4db3d`. This is the finished state of the two
   `AGENTS.md` files, which are the whole surface the measurement reads — not the
