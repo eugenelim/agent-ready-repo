@@ -183,10 +183,12 @@ anyone rereading this spec's notes.
   `test-corpus.yml`. Owner: the repository's gate chain, not this pack — the work
   touches `build-check.yml` and the Makefile and does not belong in a
   pack-content delivery. Registered in `workspace.toml` under `[backlog].open`
-  against `tools/repo/build_gate_chain.py`. Evidence, and the measurements this
-  bullet deliberately does not restate:
+  against `tools/repo/build_gate_chain.py`. The `292` above is the one measurement
+  this bullet keeps, because it scopes the obligation; every other figure — what
+  else is PR-gated, and how — belongs to
   `notes/verification-ledger.md` § *What runs on a PR, and what this delivery
-  therefore owes*.
+  therefore owes*, which is this bullet's evidence and the register entry's
+  `source.ref`.
 
 ## Assumptions
 

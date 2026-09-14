@@ -381,14 +381,22 @@ The spec's own Testing Strategy describes AC-0014's check as "compare the two
 manifests' version fields", which *is* the agreement predicate — so the
 criterion's text and its verification differ in strength by exactly this much,
 and the Testing Strategy is the honest half. The gap is in the criterion's
-wording, which names a literal no check reads.
+wording, which names a literal **no PR-reachable check** reads. The literal was
+read — by the goal-based check this delivery ran at T9, recorded below — so the
+gap is in what CI would catch on a future edit, not in what was verified here.
 
-Not repaired here for two reasons. Pinning `0.2.4` anywhere would create a
-surface that must be edited on every subsequent release of this pack, which is
-the version-bump-collision hazard the release convention already warns about. And
-a criterion whose only defect is that it names a value its check does not read is
-a wording matter on a `Shipped` spec, not a behaviour defect: both manifests do
-carry `0.2.4`, verified by direct read at delivery.
+Not repaired here for two reasons. The first is an **assumption, not a cited
+rule**: pinning `0.2.4` anywhere would create a surface that must be edited on
+every subsequent release of this pack, which seems a poor trade for the coverage
+it buys. `packs/AGENTS.md` § *Version bump rule* warns only against borrowing an
+unreleased version from another change, and no convention in
+`docs/CONVENTIONS.md`, `packs/AGENTS.md`, `docs/adr/` or `guides/` warns about a
+per-release pinning surface — an earlier draft of this section attributed the
+judgement to a convention that does not carry it. The second reason does not rest
+on a citation: a criterion whose only defect is that it names a value its
+PR-reachable check does not read is a wording matter on a `Shipped` spec, not a
+behaviour defect, and both manifests do carry `0.2.4`, verified by direct read at
+delivery.
 
 Recorded because a future reader of AC-0014 has no other way to discover it. This
 was single-copy in the spec's `Follow-ons` bullet — grepped across all three
