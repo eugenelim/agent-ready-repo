@@ -6,6 +6,7 @@ from pathlib import Path
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP = PACK_ROOT / ".apm/skills/work-loop/SKILL.md"
 VERDICT = PACK_ROOT / ".apm/skills/work-loop/references/review-verdict-record.md"
+REFERENCE = PACK_ROOT / ".apm/skills/work-loop/references/mutation-proof.md"
 
 AXES = ("### Cut", "### Route", "### Fix", "### Hold")
 
@@ -32,8 +33,12 @@ EXPECTED_DISPOSITION_ROWS = (
 )
 
 
-def _section(path: Path, heading: str) -> str:
+def _section(path: Path | str, heading: str | None = None) -> str:
     """Return exactly one Markdown section, refusing anything ambiguous."""
+    if heading is None:
+        heading = str(path)
+        path = WORK_LOOP
+    assert isinstance(path, Path)
     text = path.read_text(encoding="utf-8")
     level = len(heading) - len(heading.lstrip("#"))
     starts = [m.start() for m in re.finditer(rf"^{re.escape(heading)}\s*$", text, re.M)]
@@ -41,6 +46,44 @@ def _section(path: Path, heading: str) -> str:
     start = starts[0]
     nxt = re.search(rf"^#{{1,{level}}} ", text[start + len(heading) :], re.M)
     return text[start:] if nxt is None else text[start : start + len(heading) + nxt.start()]
+
+
+def _flat(text: str) -> str:
+    """Collapse presentation-only whitespace."""
+    return " ".join(text.split())
+
+
+def _answer_bodies(section: str) -> dict[str, str]:
+    """Return every answer bullet and its complete body from one axis."""
+    matches = re.finditer(
+        r"^- `(?P<answer>[^`]+)` — (?P<body>.*?)(?=^- `|\Z)",
+        section,
+        re.M | re.S,
+    )
+    answers = {match.group("answer"): _flat(match.group("body")) for match in matches}
+    assert len(answers) == sum(1 for line in section.splitlines() if line.startswith("- `"))
+    return answers
+
+
+def _sentences(text: str) -> list[str]:
+    """Return normalized prose sentences from a bounded Markdown region."""
+    return [sentence for sentence in re.split(r"(?<=\.) (?=[A-Z])", _flat(text)) if sentence]
+
+
+def _prose_outside_answer_bullets(section: str) -> str:
+    """Return all prose in an axis except its named answer bullets."""
+    prose: list[str] = []
+    in_answer = False
+    for line in section.splitlines()[1:]:
+        if line.startswith("- `"):
+            in_answer = True
+        elif in_answer and line.startswith("  "):
+            continue
+        else:
+            in_answer = False
+            if line.strip():
+                prose.append(line)
+    return "\n".join(prose)
 
 
 def _response_metadata() -> str:
@@ -211,6 +254,44 @@ def test_narrow_the_claim_keeps_the_obligation_in_contract() -> None:
     assert "stated reach shrinks to what a check reaches" in cut
 
 
+# STUB: test_claim_check_mismatch_covers_both_reachable_and_unreachable_checks — claim reach selects strengthen or narrow
+def test_claim_check_mismatch_covers_both_reachable_and_unreachable_checks() -> None:
+    answers = _answer_bodies(_section("### Cut"))
+    exception_map = {
+        "drop-the-claim": "removes an assertion without changing a surviving claim's reach",
+        "cut-the-item": "removes the obligation instead of changing its reach",
+        "demote-the-claim": "changes contract tier instead of a surviving claim's reach",
+    }
+
+    assert set(answers) == set(ANSWERS_BY_AXIS["### Cut"])
+    assert set(answers) - set(exception_map) == {"narrow-the-claim"}
+    claim_check_rule = answers["narrow-the-claim"]
+    assert "some check can reach the claimed property" in claim_check_rule
+    assert "strengthen the check" in claim_check_rule
+    assert "no check can reach the claimed property" in claim_check_rule
+    assert "stated reach shrinks to what a check reaches" in claim_check_rule
+
+
+# STUB: test_fix_requires_a_check_of_the_property_not_a_consequence — a repair check asserts the property itself
+def test_fix_requires_a_check_of_the_property_not_a_consequence() -> None:
+    fix = _section("### Fix")
+    answer_exceptions = {
+        "repair-the-generator": "selects the repair target rather than the property asserted",
+        "repair-the-artifact": "selects the repair target rather than the property asserted",
+    }
+    answers = _answer_bodies(fix)
+    check_requirements = [
+        sentence
+        for sentence in _sentences(_prose_outside_answer_bullets(fix))
+        if re.search(r"\bcheck\b", sentence)
+    ]
+
+    assert set(answers) == set(answer_exceptions)
+    assert len(check_requirements) == 1
+    assert "check asserts the repaired property itself" in check_requirements[0]
+    assert "not only a consequence" in check_requirements[0]
+
+
 def test_demotion_or_narrowing_uses_the_completion_gate_question() -> None:
     """Keep the easily confused cut answers governed by their decisive question."""
     decide = " ".join(_decide().split())
@@ -260,10 +341,56 @@ def test_every_walk_starts_with_the_required_frontier() -> None:
     assert "Every walk starts from the cited location and expands to every other instance of the same claim, the companion statements that describe it, and anything that pins any of those." in decide
 
 
-def test_surface_walk_follows_relationships_not_text_search() -> None:
-    """Keep paraphrasing companions in scope even when they share no string."""
-    decide = " ".join(_decide().split())
-    assert "This is a walk, not a text search: a companion usually paraphrases and shares no string." in decide
+# STUB: test_post_repair_traversal_uses_literal_and_semantic_instruments — post-repair traversal has both instruments
+def test_post_repair_traversal_uses_literal_and_semantic_instruments() -> None:
+    decide = _section("## Step 5. DECIDE")
+    traversal = decide.split("Every walk starts", 1)[1].split("\n- **Blockers**", 1)[0]
+    statements = _sentences("Every walk starts" + traversal)
+    exception_map = {
+        "Every walk starts": "defines the initial frontier rather than an instrument",
+        "Each change opens its own frontier": "defines empty-frontier termination rather than an instrument",
+    }
+    exceptions = [
+        statement
+        for statement in statements
+        if any(statement.startswith(prefix) for prefix in exception_map)
+    ]
+    instruments = [statement for statement in statements if statement not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    # Report the offending sentences rather than a bare `all(...)` is False:
+    # pytest does not unroll a generator expression, so the failure would name
+    # neither the sentence nor the obligation, and whoever added prose here in
+    # six months would have to reconstruct both.
+    unclassified = [
+        statement
+        for statement in instruments
+        if not (
+            "walk" in statement
+            or "literal sweep" in statement
+            or "semantic walk" in statement
+            or "a repair" in statement
+        )
+    ]
+    assert not unclassified, (
+        "traversal sentences matched no instrument and no named exception; "
+        "classify each one or add it to the exception map: " + repr(unclassified)
+    )
+    # Pin the per-round obligation as a property, not as one blessed sentence
+    # opener. A guard keyed to exact phrasing reds on a faithful rewrite and
+    # stays green when the same claim is reworded away — the failure this
+    # section's own guidance exists to stop.
+    round_scope = " ".join(statement for statement in instruments if "review round" in statement)
+    assert "literal sweep" in round_scope
+    assert "semantic walk" in round_scope
+    # Select the post-repair statement by its SUBJECT, not by a blessed opener,
+    # at the same seam `round_scope` uses above. Keying on the exact opener reds
+    # on a faithful rewrite ("Following a repair, ...") while proving nothing
+    # about the obligation itself.
+    repair_reruns = [statement for statement in instruments if "a repair" in statement]
+    assert len(repair_reruns) == 1
+    assert "step-8a anchor-test sweep" in repair_reruns[0]
+    assert "every file the repair touched" in repair_reruns[0]
 
 
 def test_surface_walk_continues_until_its_frontier_is_empty() -> None:
@@ -331,3 +458,122 @@ def test_demotion_reason_records_destination_pin_and_authority() -> None:
         "Its reason records the destination that now owns the obligation, the pin "
         "that catches its removal, and the owner authority permitting the removal."
     ) in " ".join(_decide().split())
+
+
+# STUB: AC-0001 — upstream and downstream pins stay distinct for intent demotion
+# STUB: AC-0002 — upstream and downstream pins stay distinct for brief demotion
+# STUB: AC-0003 — upstream and downstream pins stay distinct for brief demotion
+def test_demotion_pin_guidance_distinguishes_upstream_and_downstream() -> None:
+    cut = _section("### Cut")
+    demotion = _answer_bodies(cut)["demote-the-claim"]
+    pin_types = {
+        pin_type: sentence
+        for sentence in _sentences(demotion)
+        for pin_type in ("upstream", "downstream")
+        if pin_type in sentence.casefold()
+    }
+    exception_map = {
+        "downstream": "downstream lifecycle material retains a content test",
+    }
+
+    assert set(pin_types) == {"upstream", "downstream"}
+    assert set(pin_types) - set(exception_map) == {"upstream"}
+    assert "revision-bound lifecycle invalidation" in pin_types["upstream"]
+    assert "content test" in pin_types["downstream"]
+
+
+# STUB: test_mutation_proof_reference_carries_every_obligation — the reference carries every proof field
+def test_mutation_proof_reference_carries_every_obligation() -> None:
+    proof_record = _section(REFERENCE, "## Proof record")
+    fields = {
+        match.group("field").casefold(): _flat(match.group("body"))
+        for match in re.finditer(
+            r"^- \*\*(?P<field>[^*]+):\*\* (?P<body>.+)$",
+            proof_record,
+            re.M,
+        )
+    }
+    required_fields = {
+        "invariant",
+        "catching test",
+        "exact mutation",
+        "expected failure",
+        "observed failure",
+    }
+    exception_map = {
+        "placement": "the linked verification-ledger owner governs observation placement",
+    }
+
+    assert set(fields) - set(exception_map) == required_fields
+    assert set(fields) & set(exception_map) == set(exception_map)
+    assert all(fields[field] for field in required_fields)
+
+    mutation = _section(REFERENCE, "## Mutation and restoration")
+    statements = _sentences(" ".join(mutation.splitlines()[1:]))
+    target_rules = [statement for statement in statements if "do-nothing stub" in statement]
+    assert len(target_rules) == 1
+    assert "pre-fix implementation" in target_rules[0]
+    assert re.search(
+        r"(?:never|must not|do not|cannot) (?:use |substitute )?(?:a )?do-nothing stub"
+        r"|do-nothing stub (?:is|remains) (?:forbidden|disallowed|not permitted)",
+        target_rules[0],
+        re.I,
+    )
+    construct_rules = [statement for statement in statements if "sub-property" in statement]
+    assert len(construct_rules) == 1
+    assert "deletes a whole construct" in construct_rules[0]
+    assert "proves nothing" in construct_rules[0]
+    passing_mutations = [statement for statement in statements if "still passes" in statement]
+    assert len(passing_mutations) == 1
+    assert "not proof" in passing_mutations[0]
+
+
+# STUB: test_mutation_proof_requires_edit_restore — implementation restoration is edit-only
+def test_mutation_proof_requires_edit_restore() -> None:
+    restoration = _section(REFERENCE, "## Mutation and restoration")
+    statements = _sentences(" ".join(restoration.splitlines()[1:]))
+    restore_statements = [
+        statement for statement in statements if re.search(r"\brestor(?:e|es|ed|ation)\b", statement, re.I)
+    ]
+    exception_map = {
+        "Removing a temporary mutation copy": "cleanup does not restore the implementation",
+    }
+    exceptions = [
+        statement
+        for statement in restore_statements
+        if any(statement.startswith(prefix) for prefix in exception_map)
+    ]
+    methods = [statement for statement in restore_statements if statement not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    assert len(methods) == 1
+    assert "implementation" in methods[0]
+    assert "editing" in methods[0]
+    assert "only" in methods[0]
+    assert "never" in methods[0]
+    assert all(f"git {operation}" in methods[0] for operation in ("checkout", "reset", "stash"))
+
+
+# STUB: test_mutation_proof_reference_is_conditionally_routed — repair verification routes to this owner
+def test_mutation_proof_reference_is_conditionally_routed() -> None:
+    routing = _section(WORK_LOOP, "## Conditional-reference routing")
+    rows: list[tuple[str, str]] = []
+    for line in routing.splitlines():
+        if not line.startswith("|") or line.startswith(("| Predicate", "|---")):
+            continue
+        predicate, reference = [cell.strip() for cell in line.strip("|").split("|", 1)]
+        if re.search(r"\b(?:repair|fix|mutation)\b", predicate, re.I):
+            rows.append((predicate, reference))
+    exception_map = {
+        "references/state-schema.md": "owns loop state rather than proof discipline",
+    }
+    exceptions = [row for row in rows if any(owner in row[1] for owner in exception_map)]
+    owner_rows = [row for row in rows if row not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    assert len(owner_rows) == 1
+    predicate, reference = owner_rows[0]
+    assert "repair" in predicate.casefold()
+    assert "claimed fix" in predicate.casefold()
+    assert "mutation proof" in predicate.casefold()
+    assert "references/mutation-proof.md" in reference

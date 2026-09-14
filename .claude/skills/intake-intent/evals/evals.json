@@ -83,6 +83,16 @@
         "Does not borrow the unavailable-route receipt",
         "Leaves the intent at Draft"
       ]
+    },
+    {
+      "id": "intent-opportunity-materiality",
+      "prompt": "An accepted intent's Opportunity changes. Does the existing review remain bound, and what is the intent's status?",
+      "expected_output": "Opportunity is material: the edit invalidates the bound review and returns the intent to Draft until the changed revision receives fresh review.",
+      "assertions": [
+        "Treats Opportunity as a material intent change",
+        "Invalidates the bound review",
+        "Returns the intent to Draft"
+      ]
     }
   ]
 }

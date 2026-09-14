@@ -279,16 +279,33 @@ jobs:
       - name: pytest make-free gate chains (windows-build-gate-chain)
         run: python -m pytest tools/test_build_gate_chain.py
 
-      # AC1 of docs/specs/self-host-projection-merge-driver: the `merge=regen`
-      # set must equal the gate-covered projection set. Over-scope is silently
-      # destructive -- a driver on an ungated path discards a real edit with
-      # nothing to catch it -- so this cannot be left to a local run.
+      # Collector-level guard: no test file may duplicate a packaged source
+      # tree on sys.path at import time, which silently changes which copy of
+      # agentbundle or credbroker every later test in the session imports.
+      # It runs immediately above the step it protects: gate-main already ran
+      # test_gitattributes_merge_driver.py on every PR while the guard that
+      # catches its violations was dispatch-only, so a test that broke the
+      # guard reached main green and sat there five days (c12b39ead ->
+      # 6354fda45). Cheap enough to be unconditional: the five-file batch this
+      # file shares in `make test` took 8s in CI. make build-check runs no
+      # pytest; wire it explicitly.
+      - name: pytest import-time path leaks (collector sys.path guard)
+        run: python -m pytest tools/test_import_time_path_leaks.py -q
+
+      # AC1 of docs/specs/record-index-merge-driver: the `merge=regen` set
+      # must equal the union over every required gate-main generator rail.
+      # Over-scope is silently destructive -- a driver on an ungated path
+      # discards a real edit with nothing to catch it -- so this cannot be
+      # left to a local run.
       # make build-check runs no pytest; wire it explicitly.
       - name: pytest gitattributes merge-driver scope (AC1)
         run: python -m pytest tools/test_gitattributes_merge_driver.py
 
-      # AC2-AC4 of the same spec: what the driver does to a real merge and a
-      # real rebase, and that `make build-self` converges afterwards. Drives
+      # AC2-AC4 of docs/specs/self-host-projection-merge-driver: what the driver
+      # does to a real merge and a real rebase, and that `make build-self`
+      # converges afterwards. Also AC4-AC5 of
+      # docs/specs/record-index-merge-driver: that a contested index merge is
+      # driver-resolved, and that `index-records.py` recovers the lost row. Drives
       # git rather than asserting on .gitattributes, so it catches a block that
       # was written but is not honoured. make build-check runs no pytest.
       - name: pytest merge-driver behaviour (AC2-AC4)

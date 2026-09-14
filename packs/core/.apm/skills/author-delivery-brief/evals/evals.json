@@ -64,6 +64,16 @@
         "Distinguishes pre-execution Withdrawn from post-execution Cancelled",
         "Preserves child statuses and requires explicit closeout"
       ]
+    },
+    {
+      "id": "brief-materiality-destinations",
+      "prompt": "A Ready brief changes its Rabbit holes or Design artifacts. Is the edit material, and what status follows?",
+      "expected_output": "Both Rabbit holes and Design artifacts are material. Either edit invalidates the bound review and returns the brief to Draft until the changed revision receives fresh review.",
+      "assertions": [
+        "Treats Rabbit holes as material",
+        "Treats Design artifacts as material",
+        "Invalidates the bound review and returns the brief to Draft"
+      ]
     }
   ]
 }

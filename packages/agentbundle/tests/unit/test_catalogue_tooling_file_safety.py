@@ -42,7 +42,7 @@ def test_symlink_and_hardlink_are_refused(tmp_path):
     (
         ("AGENT_RULES.md", "."),
         ("docs/AGENTS.md", "docs"),
-        (".agents/rules/cognitive-load.md", ".agents"),
+        (".agents/rules/example.md", ".agents"),
     ),
 )
 def test_lookup_reads_refuse_linked_parent_components(
@@ -82,7 +82,7 @@ def test_lookup_reads_refuse_linked_parent_components(
     (
         ("AGENT_RULES.md", "."),
         ("docs/AGENTS.md", "docs"),
-        (".agents/rules/cognitive-load.md", ".agents/rules"),
+        (".agents/rules/example.md", ".agents/rules"),
     ),
 )
 def test_lookup_reads_refuse_reparse_like_parent_components(
@@ -119,7 +119,7 @@ def test_lookup_reads_refuse_reparse_like_parent_components(
     (
         "AGENT_RULES.md",
         "docs/AGENTS.md",
-        ".agents/rules/cognitive-load.md",
+        ".agents/rules/example.md",
     ),
 )
 def test_lookup_reads_bind_each_component_to_parent_descriptors(
@@ -156,7 +156,7 @@ def test_lookup_reads_bind_each_component_to_parent_descriptors(
     (
         "AGENT_RULES.md",
         "docs/AGENTS.md",
-        ".agents/rules/cognitive-load.md",
+        ".agents/rules/example.md",
     ),
 )
 def test_lookup_reads_refuse_dot_segment_escape_before_open(

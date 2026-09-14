@@ -60,6 +60,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.0] — 2026-09-13
+
+### Changed
+
+- The cognitive-load rules are inline in `AGENTS.md` instead of routed. Root
+  `AGENTS.md` used to tell an agent to read `AGENT_RULES.md` and then every
+  `always` rule there; those are model-directed reads with no error, no log and
+  no failed gate when they do not happen, and they were skipped for a whole
+  session while the rule they route to was breached throughout. The clauses now
+  sit in the file every host already loads, beside the cut-before-adding ladder
+  that was already there.
+- `AGENT_RULES.md` ships with an empty routing table and is read every time,
+  with one bounded operation; you then follow only the rows whose `when` matches
+  the work. The condition is inside the file, not in the instruction to open it,
+  because a rule that activates only when you already know it applies never
+  activates — which is the failure this whole release is about. It survives as
+  the extension point for conditional rules, and the catalogue lint now accepts
+  a pack-shipped `.agents/rules/*.md` seed so a pack can supply one.
+
+### Removed
+
+- `.agents/rules/cognitive-load.md` is retired. Its chat clauses moved inline;
+  its instruction-authority clauses moved with them, because that posture
+  reached a session only through the routing chain this change removes.
+
+### Upgrading
+
+Four things an update does not do for you, because seed delivery adds and
+updates but never removes:
+
+1. **Delete `.agents/rules/cognitive-load.md` from your tree by hand.** A
+   retired seed is never removed, so yours stays on disk, orphaned, with its
+   routing row gone.
+2. **Merge `AGENT_RULES.upstream.md`.** Your `AGENT_RULES.md` differs from the
+   new seed, so the empty table arrives as a companion rather than replacing the
+   live file — and until you merge it, your old `always` row stays live.
+3. **Merge `AGENTS.upstream.md`.** Root `AGENTS.md` is a delivered seed too, so
+   a customised one takes the same companion treatment. The inlined clauses are
+   in that companion, not in the file your host loads.
+4. **Add a routing row if you want one.** The shipped table is empty, so there
+   is no example to copy. A row reads
+   `| <when> | `.agents/rules/<name>.md` | <purpose> |`, and the file it names
+   must exist and carry no routing table of its own. Rows you already have keep
+   working: the new `AGENTS.md` reads the router unconditionally, so your rows
+   are still reached.
+
+## [core][2.25.27] — 2026-09-13
+
+### Highlights
+
+- **When a review finding says a claim promises more than its test checks, you
+  now have two answers instead of one.** Previously the only available answer was
+  to shrink the claim, so the easy move was to weaken what you promised until the
+  existing test covered it — quietly dropping the property from what anyone
+  checks. Now: if any test can be made to cover the full promise, improve the
+  test; shrink the claim only when none can.
+- **After fixing a review finding, search twice.** Guidance used to say this
+  search was "a walk, not a text search", which read as permission to skip
+  searching for exact strings. You now do both: search for the repeated words and
+  names, and read for the places that say the same thing in different words.
+  After a fix, also re-run the search for tests that pin file contents, across
+  every file you touched — that is when an edit breaks a test in a file you never
+  opened.
+- **You can now move an obligation out of an intent or brief and still have
+  something catch its deletion.** Moving it requires something that fails if it
+  is removed, and three of the four places you were told to move it to had
+  nothing watching them. Editing `Opportunity` on an intent, or `Rabbit holes` or
+  `Design artifacts` on a delivery brief, now counts as a material change, which
+  cancels that artifact's approved review and sends it back for a fresh one.
+- **How to prove a test actually catches a bug is now written down.** To prove
+  it, put back the original broken code — not an empty placeholder — and confirm
+  the test fails. Undo it by editing, not with `git checkout`, `reset`, or
+  `stash`. A test that still passes while the bug is back has proved nothing.
+  This rule previously existed only if your own process happened to supply it.
+
+### Added
+
+- `work-loop`: `references/mutation-proof.md` states what a mutation proof
+  records, why reverting to a do-nothing stub proves nothing about a
+  sub-property, and that restoration is by editing. One conditional-routing row
+  loads it when a repair or claimed fix needs proof.
+
+### Changed
+
+- `work-loop`: `narrow-the-claim` carries both directions of a claim/check
+  mismatch; the Fix axis requires a repair's check to assert the repaired
+  property rather than a consequence of it; a review round names a literal sweep
+  and a semantic walk as separate instruments and obliges both after a repair;
+  and `demote-the-claim` distinguishes an upstream revision-bound lifecycle pin
+  from a downstream content test.
+- `intake-intent`: editing `Opportunity` is a material change to an accepted
+  intent.
+- `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
+  material change to a ready brief.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights
