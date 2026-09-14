@@ -55,11 +55,12 @@ subprocess through its `_run_cli` helper.
 
 ## Durable-output map
 
-| Spec durable output | Task | Evidence at closeout |
-| --- | --- | --- |
-| User-facing promise (`SKILL.md`) | T2 | AC-0003 content assertion green |
-| Release history (`changelog.md`) | T4 | Released `[core]` entry present |
-| Interface compatibility (pack version) | T4 | `check-release-impact` passes |
+| Durable output | Tasks | Implementation evidence | Closeout evidence |
+| --- | --- | --- | --- |
+| User-facing promise (`SKILL.md`) | T2 | AC-0003 content assertions green | No redaction statement survives in any letter case |
+| Release history (`changelog.md`) | T4 | Released `[core]` entry with one `Highlights` bullet | Entry free-standing directly beneath `[Unreleased]` |
+| Interface compatibility (pack version) | T4 | Both files incremented together | `catalogue verify` version parity green, run after the bump |
+| Activation eval harness (`evals/evals.json`) | T5 | Recorded disposition of the `Example Initiative` assertions | Every initiative-name assertion satisfiable under shipped behavior |
 
 ## Design (LLD)
 
@@ -99,10 +100,13 @@ An absent `name` or `milestone` key already yields `""` from the parser's
 default, and `str("")` is `""`, so an initiative that declares neither projects
 two empty strings. That is the pre-redaction behavior and needs no new rule.
 
-A newline inside a value would break the single-line rendering template. No
-corpus value contains one, the spec's `Ask first` boundary covers adding a
-bound, and the sibling `summary` has the same exposure and no bound — so this
-is recorded as a known shape, not handled.
+A newline inside a value would break the single-line rendering template, and a
+backtick would close the code span that is the template's only structural
+isolation of authored prose. No corpus value contains either, the spec's
+`Ask first` boundary covers adding a bound, and the sibling `summary` has the
+same newline exposure and no bound — so both are recorded as known shapes, not
+handled. The backtick's ground differs slightly: `summary` renders without a
+code span, so that comparison does not carry for it.
 
 ## Tasks
 
@@ -122,7 +126,11 @@ is recorded as a known shape, not handled.
   a semicolon and a straight apostrophe. Their union is all five characters,
   and two initiatives also give the criterion's quantifier something to range
   over. `stub: true` — the red is the equality assertions against
-  `"workspace.toml"` failing against those authored values.
+  `"workspace.toml"` failing against those authored values. The conversion
+  covers the method's ten-line docstring, which currently states the sentinel
+  contract and would otherwise survive above a body asserting the opposite. No
+  gate reads a docstring, and keeping the decision legible in the suite is the
+  stated reason for converting rather than deleting.
 - Convert `test_initiative_display_prose_is_not_projected` into
   `test_initiative_display_prose_projects_verbatim`, keeping its unusual input
   and asserting the value arrives unchanged. This is the case that records the
@@ -149,10 +157,16 @@ is recorded as a known shape, not handled.
 **Approach:**
 - Replace the two literals in `_build_json` with `str()` reads of the parsed
   initiative.
-- Run `catalogue self-host --write` and confirm all three copies hash equal.
+- Run `catalogue self-host --root . --write --force`. The bare `--write` returns
+  2 on a dirty tree, which is the state this task leaves; `--force` overrides
+  the dirty-tree check only.
 
-**Done when:** the four cases named in this task's `Tests` are green and
-`tools/test_workspace_status_cli.py` passes whole.
+**Done when:** the cases named in this task's `Tests` are green,
+`tools/test_workspace_status_cli.py` passes whole, and
+`catalogue self-host --check` reports no drift — that check, not
+`catalogue verify`, is the byte-identity evidence for the two adapter copies,
+which neither AC reaches because both verification surfaces resolve to `.apm/`
+only.
 
 ### T2: bring the skill contract back in line with the behavior
 
@@ -161,14 +175,18 @@ is recorded as a known shape, not handled.
 **Verification mode:** goal-based check
 
 **Tests:** (`tools/test_workspace_status_cli.py`, `SkillWiringTests`)
-- New content assertions for AC-0003 over the shipped `SKILL.md`, one per
-  conjunct: `name` and `milestone` both appear in the `initiatives` summary
+- **One** new test method carrying AC-0003's assertions — the count that
+  matters for the dedup re-pin is methods, not assertions, and this task adds
+  exactly one. Inside it, one assertion per conjunct: `name` and `milestone` both appear in the `initiatives` summary
   row; both per-field rows describe a value read from `workspace.toml` rather
   than a sentinel; the rendering template line is present; and both the
   `Redacted display fields` phrase and the separate "Render the initiative
   slug alone" instruction are absent. The absence conjunct needs both checks —
   those two sentences sit at different lines, so one phrase check passes with
-  the instruction still shipped.
+  the instruction still shipped. The absence check runs case-insensitively over
+  the whole file: `SKILL.md:130-131` carry `see "redacted display fields"
+  below` in lower case, which a check on the capitalised heading misses, and
+  those rows are not a paragraph.
 
 **Approach:**
 - Restore the `Active initiatives` template line and remove the
@@ -223,8 +241,37 @@ assertion would duplicate an existing gate.
 - Add the released `[core]` changelog entry with one `Highlights` bullet,
   free-standing directly beneath `[Unreleased]`.
 
-**Done when:** `check-release-impact --base origin/main` passes and
+**Done when:** `catalogue verify` reports `ok` — its version-parity step, not
+`check-release-impact`, is what compares the two version values, and it must
+run *after* this task's bump rather than in T2 — plus
+`check-release-impact --base origin/main` passes and
 `tools/test_build_site_routing.py` is green.
+
+### T5: disposition the pack's activation eval harness
+
+**Depends on:** T1
+
+**Verification mode:** goal-based check
+
+**Tests:** none — the recorded disposition is the evidence. An activation eval
+measures whether a prompt triggers the skill, which this change does not touch.
+
+**Approach:**
+- Read `packs/core/.apm/skills/workspace-status/evals/evals.json`. Its first
+  eval asserts at line 10 that the agent "Reports the active initiative name
+  from the JSON output ('Example Initiative')" and lists `Example Initiative`
+  in `expect.output_contains` at line 21.
+- Those assertions are unsatisfiable under the shipped redaction, which can
+  only surface `workspace.toml`, and become satisfiable after T1. Record that
+  the harness therefore needs no edit, and that it was independent evidence of
+  the defect this change fixes rather than a casualty of it.
+- If any other assertion in the file names an initiative name, disposition it
+  the same way.
+
+**Done when:** every assertion in `evals.json` naming an initiative name is
+satisfiable under the shipped behavior, with the disposition recorded in the
+verification ledger. `packs/AGENTS.md`'s eval-harness obligation is discharged
+by that record, not by an edit made for its own sake.
 
 ## Rollout
 
@@ -253,6 +300,16 @@ assertion would duplicate an existing gate.
   boolean-rendering decision out of the criterion (F4), dropped the unframed
   107-character length (F5), and made T3's exit condition a property rather
   than four corpus literals (F6).
+- 2026-09-14 — spec-stage reviews adjudicated: 11 sustained findings applied.
+  Two Blockers — the eval harness had no owner (T5 now disposes it, and its
+  `Example Initiative` assertions turn out to be independent evidence of the
+  defect), and AC-0003's absence conjunct could not reach the lowercase
+  key-list cross-reference, so a dangling pointer could have shipped green.
+  Four Concerns — T1 named `self-host --write`, which refuses in the state T1
+  leaves; the parity condition was paired with a gate that never compares the
+  versions; T2's added-test count was stated two incompatible ways; and the
+  converted test's docstring would have survived stating the reversed decision.
+  Four Nits plus the security review's backtick shape.
 - 2026-09-14 — round 3: AC-0002 demoted to a design decision with a regression
   pin, on owner authority. The deletion pass had reshaped it to assert
   `isinstance(value, str)`, which passes against the pre-change emitter because

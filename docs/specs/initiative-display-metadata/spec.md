@@ -26,9 +26,10 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| User-facing promise | Applicable — the change alters what an adopter's agent prints at session start | `packs/core/.apm/skills/workspace-status/SKILL.md` | maintainer | AC-0003's content assertions over the key list and rendering template | Template renders the two values and no redaction paragraph remains |
+| User-facing promise | Applicable — the change alters what an adopter's agent prints at session start | `packs/core/.apm/skills/workspace-status/SKILL.md` | maintainer | AC-0003's content assertions over the key list and rendering template | Template renders the two values and no redaction statement survives in any letter case |
 | Release history | Applicable — adopter-visible behavior change | `docs/product/changelog.md` | maintainer | Released `[core]` entry with a `Highlights` bullet | Entry is free-standing directly beneath `[Unreleased]` |
-| Interface compatibility | Applicable — two projected field meanings change | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | maintainer | Matching incremented versions | `check-release-impact` passes |
+| Interface compatibility | Applicable — two projected field meanings change | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | maintainer | Matching incremented versions | `catalogue verify`'s version-parity step green, run after the bump |
+| Activation eval harness | Applicable — a non-cosmetic pack update owes its eval harness a disposition | `packs/core/.apm/skills/workspace-status/evals/evals.json` | maintainer | T5's recorded disposition of the `Example Initiative` assertions | Every assertion naming an initiative name is satisfiable under the shipped behavior |
 
 ## Boundaries
 
@@ -60,11 +61,8 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   into it. This changes what the projection emits, nothing upstream of it.
 - Weaken, delete, or narrow any assertion in the touched test files other than
   the display-field assertions inside the three named tests, which invert. The
-  `assertNotIn(str(root), ...)` repository-root guard stays exactly as it is:
-  it catches a path leaked from the running process, which no decision here
-  touches. An absolute path a fixture itself authored into `name` or
-  `milestone` is a display-field assertion and inverts with the rest, because
-  projecting authored content verbatim is the decision.
+  `assertNotIn(str(root), ...)` repository-root guard stays exactly as it is.
+  `plan.md` T1 owns which assertions invert and why.
 
 ## Testing Strategy
 
@@ -74,8 +72,9 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   over the real charset rather than inspected by hand. Two altitudes, one
   outcome: `workspace-status` is a skill a user invokes, so the real script also
   runs against this repository's own `workspace.toml` and the observed
-  `initiatives[]` output is recorded. A passing unit gate does not establish
-  what a session actually prints.
+  `initiatives[]` output is recorded. Both altitudes observe the JSON the script
+  emits. The line an agent finally renders from that JSON is documented by the
+  template AC-0003 pins and is not exercised here.
 - **Contract text matches behavior (AC-0003): goal-based check.** The outcome is
   the presence and absence of specific strings in a shipped file. A content
   assertion answers it exactly; a behavioral test cannot see prose.
@@ -86,13 +85,17 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   projected `initiatives[].name` and `initiatives[].milestone` equal the string
   that initiative's `workspace.toml` section assigns, unchanged — including a
   value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
+  Equality is measured against the decoded JSON value, not raw stdout bytes:
+  the emitter serialises with `ensure_ascii` at its default, so a non-ASCII
+  character reaches stdout escaped.
 - [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
   fields as values read from `workspace.toml`, enumerates `name` and `milestone`
   in the `initiatives` summary row alongside `slug`, `status`, `brief_queue` and
   `queue_empty`, renders active initiatives as
-  `` `<ini-slug>` — `<name>` (milestone: `<milestone>`) ``, and contains no
-  paragraph instructing the consumer to render the slug alone or to treat either
-  field as redacted.
+  `` `<ini-slug>` — `<name>` (milestone: `<milestone>`) ``, and retains no
+  statement anywhere in the file — paragraph, heading, or key-list row, in any
+  letter case — that either field is redacted, is the literal `workspace.toml`,
+  or should be rendered as the slug alone.
 
 ## Retired identifiers
 
