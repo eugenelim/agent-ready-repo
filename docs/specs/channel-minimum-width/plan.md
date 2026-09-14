@@ -5,7 +5,8 @@
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, pack test
   loader naming, version bump rule, no internal-governance citations in shipped
   content); `packs/frontend-engineering/AGENTS.md`;
-  `docs/CONVENTIONS.md:858-864` (what counts as an adapter-projected primitive).
+  `docs/CONVENTIONS.md` § *Version bump rule* (what counts as an
+  adapter-projected primitive).
   Analogous implementation: the channel axis itself — the `## Channels` rule rows
   in `.apm/skills/frontend-engineering/references/rendered-page-inspection.md`,
   their reader `required_channels()` in
@@ -18,8 +19,8 @@
 The minimum is a filter over the bands the existing derivation already produces,
 applied after them rather than inside them. `required_channels` keeps deriving
 `<b1`, `>=bk <bk+1`, `>=bn` from the breakpoints; a second pass drops a band
-whose whole range is below the minimum and rewrites the lowest survivor's lower
-bound to the minimum. Keeping the two separable is what lets the existing
+whose whole range is below the minimum and raises the lowest survivor's lower
+bound to the minimum where its own bound sits below it. Keeping the two separable is what lets the existing
 five-case derivation tests stand unchanged and the new cases test only the
 filter.
 
@@ -75,10 +76,16 @@ the band construction would make every existing derivation case a
 minimum-of-`None` case and put two rules in one loop. Separating them means the
 shipped five-case derivation tests keep testing the derivation.
 
-**Clamp, rather than drop-and-reconstruct.** A surviving band keeps its upper
-bound and takes the minimum as its lower bound. The capture-width rule then
-yields the minimum for that band without a special case, because the rule already
-reads the lower bound first.
+**The clamp raises a bound and never lowers one.** A surviving band keeps its
+upper bound, and its lower bound becomes the greater of the minimum and its own —
+not the minimum outright. Assigning the minimum would lower `wide >=1024` to
+`>=600` under a 600 minimum and demand a capture at 600, a width the reference
+states satisfies neither fallback channel by deliberate design; raising leaves
+that band alone and captures at 1024. Only the lowest survivor can be affected,
+because any band above it whose lower bound sat below the minimum would have an
+upper bound below the minimum too, and would already have been dropped. The
+capture-width rule then needs no special case, since it reads the lower bound
+first.
 
 **Two recorded fields, not a third basis value.** A minimum composes with either
 basis, so a third value could not express a surface that declares both. The
@@ -103,17 +110,24 @@ move together or the control reds.
 
 `required_channels(markdown, declared_breakpoints, minimum=None)` derives bands
 as today, then applies the filter. A band is dropped when its upper bound admits
-no width at or above the minimum. The lowest survivor's lower bound becomes
-`>=minimum`. Breakpoints below the minimum are collected as they are dropped, so
-the discarded list is a by-product of the filter rather than a second pass.
+no width at or above the minimum — `u <= minimum` for `<u`, and `u < minimum` for
+`<=u`, so the operator is load-bearing and `<=480` survives a 480 minimum. The
+lowest survivor's lower bound becomes `>=max(minimum, its own)`. Breakpoints
+strictly below the minimum are collected as they are dropped, so the discarded
+list is a by-product of the filter rather than a second pass; a breakpoint equal
+to the minimum still bounds a surviving channel and is not discarded.
 
 ### Failure, edge cases & resilience
 
-A minimum below every band's range changes nothing and is not an error. A minimum
-above every band leaves exactly one channel, and every discarded breakpoint is
-recorded. A minimum equal to a declared breakpoint leaves that breakpoint's band
-intact, because the boundary belongs to the wider band and the band starts at the
-minimum either way.
+A minimum below every breakpoint drops no band and is not an error, and it still
+raises the lowest band's lower bound to the minimum — with breakpoints
+`[400, 800]` and a minimum of 100 the lowest band becomes `>=100 <400`, captured
+at 100 rather than 399. A minimum that falls in the fallback bands' deliberate
+481–1023 gap drops `narrow` and leaves `wide` untouched, so no capture lands in
+the gap and the reference's gap sentence stays true. A minimum above every band
+leaves exactly one channel, and every discarded breakpoint is recorded. A minimum
+equal to a declared breakpoint leaves that breakpoint's band intact and discards
+nothing, because the boundary belongs to the wider band.
 
 ### Dependencies & integration
 
@@ -170,7 +184,7 @@ vocabulary.
 
 **Done when:** a repository-wide search for `required_channels` returns no caller
 still passing two positional arguments where three are meaningful, and the
-equality control at `test_rendered_page_capture_contract.py:811` is green with
+control `test_the_required_rule_rows_match_what_the_tables_state` is green with
 eight keys.
 
 ### T3: `SKILL.md` and the journey state the input
@@ -288,6 +302,18 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 2. Corrected the clamp from an assignment to a
+  raise: assigning the minimum lowered `wide >=1024` to `>=600` under a 600
+  minimum and demanded a capture inside the fallback bands' deliberate 481–1023
+  gap, contradicting shipped reference prose. AC-0003 now states the raise and
+  carries the 600 and low-minimum fixtures. Added the inclusive-upper-bound
+  fixture to AC-0002 (a filter ignoring the bound's operator wrongly dropped
+  `<=480` under a 480 minimum) and the equality fixture to AC-0007, which had
+  contradicted AC-0002 on `[768, 1024]` under a 768 minimum. Gave AC-0006
+  expected values and an exact-equality basis assertion, closing a
+  minimum-conditional basis suffix the inherited control cannot see. AC-0016 now
+  binds per reader rather than per row. AC-0005 kept on the reviewer's KEEP
+  verdict. Replaced two decaying line citations with test and section names.
 - 2026-09-14 — Shaping round 1. Split AC-0005 into presence inheritance plus two
   new criteria (AC-0015, AC-0016) whose mutation edits a row's value cell,
   because the walk's presence loop reds on a deletion regardless of whether any
