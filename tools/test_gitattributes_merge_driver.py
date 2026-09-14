@@ -1,6 +1,10 @@
-"""AC1: the `merge=regen` set equals the gate-covered projection set.
+"""AC1: the `merge=regen` set equals the gate-covered set.
 
-Spec: docs/specs/self-host-projection-merge-driver/spec.md
+Spec: docs/specs/record-index-merge-driver/spec.md, which owns this equality.
+It widened the covered set from the self-host pipeline alone to the union over
+every required `gate-main` generator rail. The narrower form shipped in
+docs/specs/self-host-projection-merge-driver/spec.md, whose AC1 this replaces
+and whose frozen body still states it.
 
 A path may carry the `regen` merge driver only where a required `gate-main`
 check would catch a bad regeneration, because the driver discards one merge
@@ -16,12 +20,16 @@ the failure mode a hand-maintained list always has.
 
 from __future__ import annotations
 
+import argparse
+import importlib.util
 import os
 import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -188,6 +196,58 @@ def _drifted_paths(scratch: Path) -> set[Path]:
     return drifted
 
 
+INDEX_SCRIPT_NAME = "index-records.py"
+
+
+def _record_index_paths(argvs: Iterable[Sequence[str]]) -> set[Path]:
+    """README paths the record-index gate steps cover, read from chain argv.
+
+    Derived from the chain rather than listed, so removing or renaming a
+    record-index gate step removes its README from the covered set and the AC1
+    equality then reds as over-scope. A literal pair or a `docs/*/README.md`
+    glob would stay green after the gate that justified the path was deleted --
+    exactly the state the driver must never be left in.
+
+    The record directory is the last positional: `index-records.py` takes one,
+    and reading it positionally survives a flag being added ahead of it.
+    """
+    covered: set[Path] = set()
+    for argv in argvs:
+        parts = [str(part) for part in argv]
+        if not any(part.endswith(INDEX_SCRIPT_NAME) for part in parts):
+            continue
+        if "--check" not in parts:
+            continue
+        positionals = [p for p in parts[2:] if not p.startswith("-")]
+        if positionals:
+            covered.add(Path(positionals[-1]) / "README.md")
+    return covered
+
+
+def _build_check_argv(root: Path) -> list[list[str]]:
+    """Every argv `build_check` spawns, collected without running a step.
+
+    `build_check` builds no in-process handler step, so faking `subprocess.run`
+    intercepts the whole chain and nothing touches the tree. Same harness as
+    `test_spawned_script_paths_in_order` in `tools/test_build_gate_chain.py`.
+    """
+    location = root / "tools" / "repo" / "build_gate_chain.py"
+    spec = importlib.util.spec_from_file_location("_gate_chain_probe", location)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    seen: list[list[str]] = []
+
+    def _fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+        seen.append([str(part) for part in argv])
+        # `--collect-only` output for any wired collection floor.
+        return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
+
+    with mock.patch.object(module.subprocess, "run", _fake_run):
+        module.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+    return seen
+
+
 def rail_set(root: Path, scratch: Path) -> set[Path]:
     """Tracked regular files a required `gate-main` check covers."""
     behavioural = {
@@ -203,7 +263,12 @@ def rail_set(root: Path, scratch: Path) -> set[Path]:
     # Skipped by the dry run, which says so, and covered instead by the
     # packaged-runtime byte-identity gate in `make build-check`.
     runtime = {b.relative_to(root) for _, b in _runtime_projections(root)}
-    return (behavioural | special | runtime) & _tracked_regular_files(root)
+    # Second generator, second rail: the record indexes `index-records.py`
+    # writes, which `_is_excluded` hides from every rail above.
+    record_index = _record_index_paths(_build_check_argv(root))
+    return (
+        behavioural | special | runtime | record_index
+    ) & _tracked_regular_files(root)
 
 
 @pytest.fixture(scope="module")
@@ -261,3 +326,107 @@ def test_pack_sources_never_carry_the_driver() -> None:
         "pack sources carry merge=regen: "
         + str(sorted(str(p) for p in probed - {control})[:20])
     )
+
+
+def test_record_index_rail_is_empty_without_a_gate_step() -> None:
+    """AC2: no `index-records.py --check` step contributes no path.
+
+    The empty case is the one that matters: a derivation that fell back to a
+    literal pair would return the two READMEs here, and the AC1 equality would
+    then stay green after the gate justifying them was deleted.
+    """
+    assert _record_index_paths([]) == set()
+    assert _record_index_paths([
+        ["python", "tools/lint-build.py"],
+        ["python", "-m", "pytest", "tools/test_build_gate_chain.py", "-q"],
+        # Named but not checking: the write mode maintains no gate.
+        ["python", ".claude/skills/new-adr/scripts/index-records.py", "docs/adr"],
+    ]) == set()
+
+
+def test_record_index_rail_follows_the_steps_it_is_given() -> None:
+    """AC2: each checking step contributes its own directory's README."""
+    argvs = [
+        ["python", ".claude/skills/new-adr/scripts/index-records.py", "--check", "docs/adr"],
+        ["python", ".claude/skills/new-rfc/scripts/index-records.py", "--check", "docs/rfc"],
+        # A third record type wired later is picked up with no edit here.
+        ["python", ".claude/skills/new-xyz/scripts/index-records.py", "--check", "docs/xyz"],
+    ]
+    assert _record_index_paths(argvs) == {
+        Path("docs/adr/README.md"),
+        Path("docs/rfc/README.md"),
+        Path("docs/xyz/README.md"),
+    }
+
+
+def test_record_index_rail_reads_the_real_build_check_chain() -> None:
+    """AC2: against the chain this repository actually runs."""
+    assert _record_index_paths(_build_check_argv(REPO_ROOT)) == {
+        Path("docs/adr/README.md"),
+        Path("docs/rfc/README.md"),
+    }
+
+
+def _synthetic_record_dir(tmp_path: Path) -> Path:
+    """One ADR carrying an explicit `Date:`, with its index generated.
+
+    Explicit dates are load-bearing. `index-records.py` resolves a missing date
+    from the record's add-commit, so a directory copied out of this repository
+    reds regardless of its README -- a control with no passing state. A record
+    with no date at all is the opposite trap: the empty cell renders on both
+    sides of a generate-then-check, so the pair passes proving nothing. The
+    date-cell assertion below is what distinguishes a fixture reading its own
+    records from one that has silently degraded into either.
+    """
+    directory = tmp_path / "adr"
+    directory.mkdir()
+    (directory / "0001-a-synthetic-record.md").write_text(
+        "# ADR-0001: A synthetic record\n\n"
+        "- **Status:** Accepted\n"
+        "- **Date:** 2026-01-01\n\n"
+        "Body.\n",
+        encoding="utf-8",
+    )
+    _index_records(directory)
+    return directory
+
+
+def _index_records(directory: Path, *check: str) -> subprocess.CompletedProcess:
+    """Run the projected script the `check-adr-index` gate step runs."""
+    return subprocess.run(
+        [sys.executable,
+         str(REPO_ROOT / ".claude/skills/new-adr/scripts/index-records.py"),
+         *check, str(directory)],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+
+
+def test_index_check_is_clean_when_the_readme_matches(tmp_path: Path) -> None:
+    """AC3: the rail has a passing state, so its red means something."""
+    directory = _synthetic_record_dir(tmp_path)
+    result = _index_records(directory, "--check")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_index_table_carries_the_records_own_date(tmp_path: Path) -> None:
+    """AC3: the fixture reads its records rather than an empty fallback.
+
+    Without this the suite cannot tell a sound fixture from one whose records
+    lost their dates, because that degradation renders identically on both
+    sides of the generate-then-check above.
+    """
+    directory = _synthetic_record_dir(tmp_path)
+    table = (directory / "README.md").read_text(encoding="utf-8")
+    assert "2026-01-01" in table, table
+
+
+def test_index_check_reds_and_names_the_readme(tmp_path: Path) -> None:
+    """AC3: the gate step's red names the path the driver is declared on."""
+    directory = _synthetic_record_dir(tmp_path)
+    readme = directory / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + "drift\n", encoding="utf-8")
+
+    result = _index_records(directory, "--check")
+    assert result.returncode != 0, result.stdout + result.stderr
+    combined = result.stdout + result.stderr
+    assert str(readme) in combined, combined
