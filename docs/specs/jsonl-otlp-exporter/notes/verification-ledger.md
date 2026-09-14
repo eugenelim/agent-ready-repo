@@ -394,3 +394,50 @@ original pull-request description; the description is corrected, the commit
 messages are not rewritten. The number was mine and was repeated rather than
 re-measured — the failure is not the first wrong reading but that nothing ever
 re-derived it.
+
+## Why this spec's engine run is left at CODE-IMPLEMENTATION
+
+The run (`2bc90de4-…`) never reached DONE, and that is a deliberate stop rather
+than an omission.
+
+`loop-cohort schedule check-current` refuses:
+
+```
+plan.md no longer matches the scheduled baseline
+stored='0e581ed5b99a…'  current='dc2c73bb1f9d…'
+```
+
+**The cause is this spec's own ADR renumbering, not the tool's suggested one.**
+The message offers "pinned before canonical hashing landed"; the truth is more
+specific and is visible in git. Three merge commits touched the locked `plan.md`
+after the baseline was pinned — `fce136e17`, `ae1c8e21a`, `13415caf0` — and every
+one of them changed the same sentence:
+
+```
+ADR-0111 -> ADR-0112 -> ADR-0114 -> ADR-0115
+```
+
+Upstream claimed this decision's ordinal five times, and each recovery edited a
+plan that was already frozen. So the cost of an ordinal collision is not only the
+renumber: **it invalidates a locked plan baseline**, and nothing warns you at the
+time because the rename is a correctness fix that must happen.
+
+The recovery is a cohort reset followed by `approve-plan`, which re-pins whatever
+is on disk. That is a re-approval in substance, not a repair: it clears the retry
+counters and the stasis baseline that four implementation review rounds produced.
+
+Weighed against what completing the run buys — `engine-state.json` and
+`state.json` are untracked, so DONE would be recorded in a local file that is
+never committed and that lives in a worktree another session is building in —
+the trade is bad. **Destroying a four-round audit trail to make an untracked
+local file say DONE is not worth it.** This ledger is the tracked artifact and
+the durable record, so the outcome is recorded here instead.
+
+State as left: engine `CODE-IMPLEMENTATION`, last event `findings-remain`, four
+implementation review rounds applied and merged as #1293, CI green at 35 checks.
+The code shipped; only the state machine is unfinished.
+
+Anyone resuming should re-derive the baseline deliberately rather than treating
+the mismatch as corruption — and should NOT run `loop-engine reset`, because
+`plan-locked` is legal only from `SPEC-PLAN-APPROVED` and the engine has no
+state-setting verb, so resetting strands the run.
