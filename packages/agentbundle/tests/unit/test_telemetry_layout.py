@@ -120,6 +120,30 @@ def test_resolve_refuses_a_setting_the_sender_cannot_receive(tmp_path: Path) -> 
         resolve(repo_root, user_path)
 
 
+def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
+    tmp_path: Path,
+) -> None:
+    """AC-0055 says "a `[telemetry]` setting", not "a repository setting".
+
+    The merge pulls a user-scope value in whenever the repository file omits it,
+    so a setting with no route can arrive from either side. A control that only
+    exercised the repository side would leave the user side silently dropping it
+    — and the user file is the one this catalogue trusts less.
+    """
+    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    (repo_root / "agentbundle-layout.toml").write_text(
+        '[telemetry]\nendpoint = "https://repo.example:4318"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    user_path.write_text(
+        '[telemetry]\ncompression = "gzip"\n', encoding="utf-8", newline="\n"
+    )
+
+    with pytest.raises(ValueError, match="compression"):
+        resolve(repo_root, user_path)
+
+
 def test_resolve_uses_user_config_when_repo_omits_endpoint(tmp_path: Path) -> None:
     """The one-config sender receives the file that owns the endpoint setting."""
     repo_root, user_path = _copy_layout_fixtures(tmp_path)

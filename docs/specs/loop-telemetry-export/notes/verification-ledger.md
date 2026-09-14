@@ -682,3 +682,29 @@ fingerprints recorded against that sequence first.
 Cost accepted by the owner: the run returns to `SPEC-PLAN-DRAFTING` and walks
 back up through both human approval gates, a re-approval and a re-schedule.
 Review retry count stands at 3 of 5.
+
+## Amendment review round 1 — the amendment repeated the defect it was fixing
+
+One blocker, two concerns, all sustained.
+
+**The blocker is the partial-surface class, inside the repair for it.** Amendment
+1 removed the `docs/specs/README.md` obligation from T5's `Touches` and from
+`spec.md`'s Durable Outputs table — and left it standing in `plan.md`'s own
+**Durable-output map** at line 51, a third table carrying the same obligation.
+Two surfaces out of three, in an amendment whose entire purpose was correcting an
+impossible obligation. The walk was performed on the spec and on the task, and not
+on the plan's own summary table.
+
+**Two working-material claims still said "four".** The Repository anchors listed
+four literal enumerations and the Risks section warned that "adding the package to
+three of four leaves a hole". Six are required, and the risk is sharper than it was
+written: two of the six are not surfaces AC-0031 names, so satisfying the criterion
+literally is not sufficient. Both are working material under the plan's own header
+and were corrected in place without a second amendment.
+
+**AC-0055's control only proved half of what the criterion says.** The criterion
+says "a `[telemetry]` setting"; the test only supplied an undeliverable setting
+from the repository scope. The merge pulls a user value in whenever the repository
+file omits the key, so the same refusal must hold from either side — and the user
+file is the one this catalogue trusts less. A second case now covers it, and
+narrowing the implementation to `set(repo_settings)` kills it.

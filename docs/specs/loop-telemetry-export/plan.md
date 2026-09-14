@@ -10,8 +10,12 @@
 - **Repository anchors:** `packs/core/pack.toml` (where the optional dependency is
   declared); `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`
   (the dormant `[[pack.runtime-dependencies]]` shape this activates);
-  `Makefile:515-516`, `pyproject.toml:16`, `pyproject.toml:94-96`,
-  `Makefile:361-366` (the four literal enumerations a new distribution must join);
+  `pyproject.toml` `pythonpath` and `[tool.mypy] files`, the `Makefile`'s
+  `PYTHONPATH` assignment and its test-suite invocations, the pip-audit
+  `--build-system` leg, and `tools/lint-mypy.py`'s `TYPED_PACKAGES`
+  (**six** literal enumerations a new distribution must join — AC-0031 names
+  four of them, and four do not achieve its own purpose clause; see the
+  verification ledger);
   `docs/architecture/telemetry.md` (the architecture this reconciles);
   `packages/agentbundle/agentbundle/workspace_mcp.py:1576-1620` (the existing
   layout-file reader, for precedence precedent). Named uncertainty: nothing reads
@@ -48,7 +52,6 @@ package to one added it to all.
 | `guides/core/how-to/export-loop-telemetry.md` | T5 | Guide with the disclosure sentence | `check-guide-index.py` green |
 | `packs/core/pack.toml` + lint reporting | T3 | Lint naming the unsatisfied dependency | AC-0039 green |
 | `docs/product/changelog.md` | T5 | Version bump with entry | Entry present |
-| `docs/specs/README.md` | T5 | Active-list row | Row present |
 | `project-knowledge` | closeout | Capture receipt | Receipt or `project-knowledge unavailable` |
 
 ## Design (LLD)
@@ -379,9 +382,11 @@ documentation describes a tool the adopter installs deliberately.
 
 ## Risks
 
-- **The gate enumeration is four separate literal lists.** Adding the package to
-  three of four leaves a hole that `make test` reports green. T4's `Done when`
-  is deliberately a deliberate-failure probe rather than a grep.
+- **The gate enumeration is six separate literal lists.** Adding the package to
+  five of six leaves a hole that `make test` reports green — and two of the six
+  are not the surfaces the criterion names, so satisfying AC-0031 literally is
+  not sufficient. T4's `Done when` is deliberately a deliberate-failure probe
+  rather than a grep, because a grep would have passed at four.
 
 ## Changelog
 
