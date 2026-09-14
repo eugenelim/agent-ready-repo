@@ -241,6 +241,14 @@ active  = [
   {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
 ]
 shipped = [
+  # Shipped 2026-09-13. The routed cognitive-load rule was skipped for a whole
+  # session and breached throughout, so it is inline in both `AGENTS.md` files
+  # and the routed topic file is retired. `AGENT_RULES.md` survives as a
+  # conditional extension point, read unconditionally so its rows can actually
+  # activate. Nine review rounds, sixteen findings. The paired measurement was
+  # inconclusive by its own pre-registered rule and gates nothing; the change
+  # rests on the structural argument, which the record states plainly.
+  {path = "docs/specs/cognitive-rule-inlining/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Inline the cognitive-load chat clauses into both AGENTS.md files, empty the routing table, retire the routed topic file and every declaration of it, and record a paired measurement that gates nothing", needs = []},
   # The frozen-case run A6 cut unbuilt, scoped by owner decision to the
   # repair-response arm only. The instrument works; its first output is that the
   # arm comparison is not decisive at one session per cell, so it licenses no
@@ -391,15 +399,6 @@ queue   = [
   # to re-verify each carved-out candidate before any deletion. Draft; requires
   # human approval before dispatch.
   {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
-  # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
-  # 2026-09-09 and registered after a clean shaping review and the
-  # owner-authorized fourth adversarial round. It remains Draft and requires
-  # human approval before dispatch.
-  # Registered 2026-09-13 after eleven review rounds across two reviewers plus an
-  # independent Codex readiness judgment. The routed cognitive-load rule was
-  # skipped for a whole session and breached throughout; this inlines it into the
-  # files hosts already load and retires the router hop.
-  {path = "docs/specs/cognitive-rule-inlining/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Inline the cognitive-load chat clauses into both AGENTS.md files, empty the routing table, retire the routed topic file and every declaration of it, and record a paired measurement that gates nothing", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached
