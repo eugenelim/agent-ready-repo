@@ -659,3 +659,22 @@ def test_every_manifest_describing_surface_names_the_inspection() -> None:
         f"these shipped surfaces describe the evidence manifest without the "
         f"inspection: {stale}"
     )
+
+
+def test_the_how_to_walks_a_single_channel_surface() -> None:
+    """Verifies AC-0010: the guide walks a surface that declares a minimum.
+
+    The literal is `four captures per route in its one channel`, and both of the
+    obvious shorter strings are deliberately avoided. `four captures per route`
+    alone is satisfied by the shipped guide, which already reads "Take four
+    captures per route **in every channel**". And `declared minimum` is a
+    substring of all three of AC-0021's conditioning literals, which this same
+    file must carry anyway — keyed on that, this would go green without the guide
+    ever walking a single-channel surface.
+    """
+    guide = " ".join(_guide().split())
+    assert "four captures per route in its one channel" in guide, (
+        "the guide states no per-route floor for a surface with one channel, so "
+        "an adopter with a desktop-only surface cannot produce a complete set "
+        "from it"
+    )
