@@ -410,3 +410,60 @@ already declared in `tools/requirements.txt`, so no dependency was added.
 the repository root. Every path-reading test failed at once with a
 `FileNotFoundError` naming the wrong path, so it was loud rather than silent —
 but a test that had happened to find a file there would have pinned the wrong one.
+
+## T5 — a literal string does not care about Markdown
+
+**AC-0054's third string was introduced wrapped, and passed nothing.** Written as
+`it **sends nothing until an endpoint is\nconfigured**`, the phrase reads
+correctly to a person and is simply absent to a criterion that greps for it. The
+check caught it immediately; a reviewer reading the rendered page would not have.
+The test now says so in its docstring, and mutation M5 re-wraps a guide literal
+to keep that lesson executable.
+
+**AC-0051 is the only one of T5's criteria that prose cannot satisfy on its own.**
+The integer in § 5.1 is compared against the key count of a line the engine
+actually emits, so the sentence cannot drift from the envelope. It moved from
+thirteen to fourteen when `schema` shipped, and mutation M1 puts it back to
+thirteen to prove the comparison is live.
+
+Six mutations, each killing its own control: the § 5.1 count, a retired claim
+returning to § 2, § 2 losing its positive claim, a dead `agentbundle.md` anchor,
+a wrapped guide literal, and a reserved exit code named in the guide.
+
+**§ 10.4 needed no edit.** It said "this is why the event line carries a version"
+while nothing carried one, and the earlier § 11 inventory listed it as stale.
+T6 made the sentence true, so the repair was shipping the key, not changing the
+prose. Worth recording because the inventory's own remedy would have been wrong.
+
+**§ 5.1's internal contradiction is resolved.** Its second bullet said attempt
+counts were not on the line while the third described `budgets` copying the retry
+counters onto every line. The first now says what it meant: `result` reports one
+transition's decision; the counters live in `budgets`.
+
+## The spec asks for a row in an index that deliberately does not exist
+
+**A contract observation for the owner, not a silent choice.**
+
+The spec's Durable Outputs table names `docs/specs/README.md` with expected
+evidence "Row in the active list" and closeout condition "Row present". That file
+has a section headed **"Why there is no index"**, and it is explicit:
+
+> Specs are discovered by listing this directory. There is no index table,
+> because an index over a document corpus is generated from that corpus or it
+> does not exist, and a spec index had no reader.
+
+It cites **ADR-0112**, an accepted decision. Adding a row would recreate exactly
+what that ADR removed, and would be the only such row in the file.
+
+No row was added. Durable Outputs is working material under this spec's own
+header — correctable in place without an amendment — but `spec.md` is frozen by
+`approve-plan`'s hash mid-execution, so the correction is recorded here instead
+of edited there. The owner's call: either that row leaves the table, or ADR-0112
+is revisited. Nothing else in T5 depends on it.
+
+## One pre-existing gate failure, confirmed rather than assumed
+
+`docs/product/changelog.md` fails the readability threshold at 58.68. Measured
+against `HEAD` before the entry was added: **58.62**. The entry moved it up, not
+down. Not this delivery's to fix, and confirmed by measurement rather than by the
+file-not-in-diff shortcut, because the file *is* in the diff.

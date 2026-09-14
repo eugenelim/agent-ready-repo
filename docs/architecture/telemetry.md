@@ -4,11 +4,12 @@
 
 A pack records what its own execution did, so an operator can see where a run
 spent its time and which gates it failed. Recording is local and unconditional;
-sending anything anywhere is a separate, absent component.
+sending anything anywhere is a separate, separately installed component.
 
 This spans several parts of the system rather than belonging to one. The code
 that records sits in a pack. The settings come through the catalogue and the
-installer. Anything that reads the result is outside the repository. One line
+installer. What reads the result is a distribution an adopter installs on
+purpose, never a pack. One line
 divides what is possible from what is not. **A pack records what its own
 code did. It cannot record what the model did**, because the tool running the
 session makes the model call and a pack never sees the reply.
@@ -24,7 +25,12 @@ the runtime and is described in § 4.
 line per phase change to `.loop-run/events.jsonl`. That file sits at the
 repository root, is gitignored, and is not meant to last.
 
-No exporter ships. Nothing transmits.
+A sender exists, and it is not part of any pack. `jsonl-otlp-exporter` is
+**separately installed**, and it
+sends nothing until an endpoint is configured.
+Nothing an adopter installs from this catalogue can transmit, because the thing
+that transmits is a separate distribution they choose to install. § 5.2 owns why
+that is structural rather than a setting.
 
 ## 3. Owned state and write authority
 
@@ -76,10 +82,10 @@ purpose.
 
 ### 5.1 What a line holds
 
-Each line carries thirteen fields: the seven that identify the transition
-(`seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`) and six that describe it
-(`phase_started_at`, `phase_s`, `result`, `awaiting_input`, `waived`,
-`budgets`).
+Each line carries fourteen fields: the seven that identify the transition
+(`seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
+(`schema`), and six that describe it (`phase_started_at`, `phase_s`, `result`,
+`awaiting_input`, `waived`, `budgets`).
 
 Three rules govern the shape.
 
@@ -87,9 +93,10 @@ Three rules govern the shape.
    to anything adding up durations or comparing a counter against a limit. So a
    field the engine cannot work out is still there, holding `null`.
 - **A decision, not a count.** `result` records what a gate decided. It uses
-   OpenTelemetry's CI/CD result words rather than ones we made up. How many
-   attempts a run has taken is not on the line. Counting the lines answers
-   that, and putting a count on each one would give the same fact two homes.
+   OpenTelemetry's CI/CD result words rather than ones we made up. It says what
+   one transition decided and never how many have happened; counting the lines
+   answers that. The retry counters are a different thing and they *are* on the
+   line, in `budgets` — see the next rule.
 - **`budgets` is a copy, not the original.** `loop-cohort` owns the retry
   counters and changes them in a later step, so the line shows where they stood
   one round ago. The pack's `state-schema.md` spells out what follows from that.
@@ -105,8 +112,9 @@ service — is not part of the code that writes them. The pack writes a file.
 Anything that sends is a separate piece of software, and it decides separately
 what it is allowed to send.
 
-Nothing like that ships today. Three things are already decided for whenever it
-does. The [standards survey](../product/research/agent-loop-otel-envelope-survey.md)
+That separate piece of software now exists — `jsonl-otlp-exporter`, installed
+deliberately and never by a pack. Three things were decided before it was built,
+and it follows all three. The [standards survey](../product/research/agent-loop-otel-envelope-survey.md)
 and the [vocabulary comparison](../product/research/workflow-lifecycle-vocabulary-comparison-matrix.md)
 carry the evidence.
 
@@ -321,6 +329,9 @@ help someone work out what happened.
   and its [counterpoints](../product/research/loop-telemetry-export-counterpoints.md)
   — where a sender may live, why it is a separately installed distribution, and
   which of the survey's findings did not survive review.
+- [ADR-0115](../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
+  — why the sender is a separately installed distribution rather than a pack,
+  and what that makes structurally impossible.
 - [Loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md)
   — which of INI-005's eight telemetry events these thirteen fields can answer.
   Six of them. Of the rest, one needs a token count this process never sees and
@@ -331,8 +342,8 @@ help someone work out what happened.
 
 ## 10. Getting these lines to a backend
 
-Nothing here ships a sender yet (§ 2). This section records what has been
-measured, so the team that adds one — or an operator wiring up a backend — does
+The sender is `jsonl-otlp-exporter` (§ 2). This section records what was
+measured before and while it was built, so an operator wiring up a backend does
 not re-derive it. Measured 2026-09-12 unless stated.
 
 ### 10.1 Send to a Collector, never to a vendor endpoint
@@ -434,7 +445,7 @@ profiles signal. This is why the event line carries a version.
 
 ## 11. Last verified against commit
 
-`f0a04a223`, re-verified 2026-09-13. The previous pin, `ec6b94f91`, was 160
+`2ad4a490b`, re-verified 2026-09-14. The previous pin, `ec6b94f91`, was 160
 commits behind `main`.
 
 **What the re-verification checked, and what it found.** The distance turned out
@@ -444,9 +455,11 @@ is **empty**, so the emission path has not changed at all. `loop-cohort.py` did
 change, but only to hoist a `SCHEMA_VERSION` constant and reword one `--help`
 string, which leaves § 5.1's "`budgets` is a copy" behaviour intact.
 
-- **§ 5.1 — re-measured, holds.** Thirteen fields, confirmed by driving a real
-  29-transition run against `core` 2.25.26 rather than by reading the source. The
-  one-round `budgets` lag this section describes was reproduced directly.
+- **§ 5.1 — re-measured, holds.** Fourteen fields, confirmed by driving real
+  transitions against `core` 2.25.27 rather than by reading the source. It was
+  thirteen until `schema` shipped; the count here is pinned to an emitted line by
+  AC-0051, so it cannot drift from what the engine writes. The one-round
+  `budgets` lag this section describes was reproduced directly.
 - **§§ 6, 7, 8 — carry forward** on the unchanged emission path.
 - **§ 10.3 — holds**, and now has stronger evidence than when it was written: the
   same boundary was re-measured through a live Collector on 2026-09-13 by
@@ -456,38 +469,13 @@ string, which leaves § 5.1's "`budgets` is a copy" behaviour intact.
   is measured in
   [loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md).
 
-**What no longer holds.** A sender now exists in this repository as the
-separately installed `jsonl-otlp-exporter` distribution, and it reads this log.
-Every statement on this page asserting that no sender exists or that nothing
-reads the log is therefore stale. That is **five** statements — the complete set
-for that claim, not a sample. A sixth row is listed with them because it is also
-a false claim about current behaviour, though it belongs to a different subject:
+**What no longer holds: nothing.** The six statements this section previously
+inventoried as stale — two in § 1, one in § 2, one in § 5.2, one in § 10, and
+§ 10.4's claim that the event line carries a version — have all been corrected or
+have become true. § 10.4 needed no edit: the line now carries `schema`, so the
+sentence describes the build rather than anticipating it.
 
-| Where | Stale claim | Pinned by a criterion? |
-| --- | --- | --- |
-| § 1, line 7 | "sending anything anywhere is a separate, absent component" | no |
-| § 1, line 11 | "Anything that reads the result is outside the repository" | no |
-| § 2 | "No exporter ships. Nothing transmits." | yes — AC-0022, AC-0054 |
-| § 5.2 | "Nothing like that ships today." | no |
-| § 10 | "Nothing here ships a sender yet (§ 2)." | no |
-| § 10.4 *(different subject: the schema version, not the sender)* | "This is why the event line carries a version." | yes — AC-0046 (the `schema` key is not emitted yet) |
-
-All six sit inside `docs/architecture/telemetry.md`, which
-[`loop-telemetry-export`'s plan](../specs/loop-telemetry-export/plan.md) names in
-T5's `Touches:` line — the whole file, not selected sections — so every row has
-an owner. Two are additionally pinned by acceptance criteria.
-
-They are left in place deliberately rather than half-corrected. § 2's exact
-wording is what AC-0022 and AC-0054 are checked against and § 10.4's is AC-0046's
-subject, so editing them here would settle those criteria before the tasks that
-own them run. The four unpinned rows are listed so T5 corrects the whole set
-rather than only the sentences a criterion names.
-
-**One further inconsistency, of a different kind.** § 5.1's second bullet says
-"How many attempts a run has taken is not on the line", while its third bullet
-describes `budgets` copying the retry counters onto every line — and a measured
-line does carry `implementation_retry_count` and `review_retry_count`. Both
-bullets cannot be read literally at once. This is not a sender claim and not
-covered above; it is pre-existing prose drift inside a section whose *field
-count* is pinned by AC-0051 but whose prose is not. Recorded rather than edited,
-because § 5.1 is the section that criterion measures.
+§ 5.1's own two-bullet contradiction is also resolved. It said attempt counts
+were not on the line while the next rule described `budgets` copying the retry
+counters onto every line. The first bullet now says what it meant: `result`
+reports one transition's decision, and the counters live in `budgets`.

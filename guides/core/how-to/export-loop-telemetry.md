@@ -12,6 +12,36 @@ the repository you want to observe. A useful request to give your agent is:
 
 > Resolve the loop telemetry invocation for this repository.
 
+## What leaves your machine
+
+Nothing, until you decide otherwise —
+nothing is sent until you configure an endpoint.
+This page describes a capability you install on purpose, not one that is already
+running.
+
+When you do configure an endpoint, here is exactly what goes and where.
+
+- **What is read:** `.loop-run/events.jsonl` at your repository root. Your
+  work-loop writes one line to it per phase change. The file is local and
+  gitignored.
+- **What is sent:** those lines, as
+  OTLP logs,
+  to the Collector address you configured. One log record per transition.
+- **What each record carries:** the transition's timing, which phase it left and
+  entered, what a gate decided, and the run's retry budgets. The exact field list
+  is `docs/architecture/telemetry.md` § 5.1, and the mapping profile in this pack
+  names every field that may be sent.
+- **What is never sent:** anything not on that profile's allowlist. A field the
+  engine adds later does not start flowing on its own — the profile has to name
+  it first.
+- **What a pack cannot see at all:** your prompts, the model's replies, and token
+  counts. A pack never sees the model call, so it has nothing to send.
+- **Where it goes:** the Collector you run. Point it at your own infrastructure,
+  never at a vendor endpoint directly.
+
+The sender is a separate distribution, `jsonl-otlp-exporter`. If you never
+install it, nothing can send, whatever any configuration file says.
+
 ## Resolve the invocation
 
 Run this from the repository root after installing `jsonl-otlp-exporter`:

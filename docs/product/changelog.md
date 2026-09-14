@@ -54,6 +54,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.27] — 2026-09-14
+
+### Highlights
+- **Your work-loop runs can now be watched in an observability backend.** Install
+  `jsonl-otlp-exporter`, point it at your own OpenTelemetry Collector, and each
+  phase change arrives as a log record — how long the phase took, which gate
+  decided what, and how close the run is to its retry budgets. It is off until
+  you configure an endpoint, and the thing that sends is a separate distribution
+  you install on purpose, so a catalogue install alone can never transmit.
+- **What would be sent is written down before you turn it on.** The how-to guide
+  names the file that is read, the records that leave, the fields that may go,
+  and the things a pack cannot see at all — your prompts, the model's replies,
+  and token counts.
+
+### Added
+- `work-loop`: a mapping profile at
+  `.apm/skills/work-loop/profiles/work-loop.toml` that turns an event line into
+  OTLP. Its allowlist is exactly the emitted keys less the four that are routed,
+  so a field added to the envelope stops the build rather than flowing silently.
+- `work-loop`: every freshly built event line carries `schema` with integer value
+  1. A record replayed from a crash is appended unchanged and is never
+  retro-stamped.
+- `guides/core/how-to/export-loop-telemetry.md`: how to resolve the invocation
+  for a repository, and a `What leaves your machine` disclosure section.
+- `contracts/jsonschema/loop-run-event.schema.json`: the event line's shape,
+  pinned against a corpus recorded from real transitions rather than authored.
+- `core` declares `jsonl-otlp-exporter` as an optional runtime dependency;
+  `agentbundle catalogue lint` reports it as unsatisfied and exits 0 without
+  invoking any package manager.
+
+### Changed
+- `docs/architecture/telemetry.md` describes the sender that now exists. Its
+  § 5.1 field count is pinned to a line the engine emits.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights
