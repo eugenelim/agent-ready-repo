@@ -27,9 +27,16 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
-from frontend_engineering_rendered_page_rules import PACK_ROOT
+from frontend_engineering_rendered_page_rules import (
+    PACK_ROOT,
+    fallback_channels,
+    forbidden_channel_name_tokens,
+    read_rules,
+    read_skill,
+)
 
 # `.apm/` is the runtime export boundary: everything under it is projected into
 # an adopter's environment, and nothing else in the pack is. That is the reach
@@ -256,3 +263,343 @@ def test_the_guards_actually_reach_this_deliverys_files() -> None:
         "SKILL.md",
     ):
         assert expected in names, f"{expected} is not covered by the shipped-content guards"
+
+
+# ── channel names carry no device name ──────────────────────────────────────
+#
+# The vocabulary is NOT stated here. It ships in the reference and this guard
+# reads it, which is what lets deleting the row red the guard rather than
+# silently emptying it. That is the shape
+# `test_the_rate_vocabulary_matches_what_the_pack_states` above already uses;
+# the genericity guard beside it legitimately states its own list, because
+# repository identifiers are not a rule an adopter is held to.
+
+SKILL_MANIFEST_ROW = "| viewports |"
+
+
+def _manifest_viewports_value() -> str:
+    for line in read_skill().splitlines():
+        if line.strip().startswith(SKILL_MANIFEST_ROW):
+            return line
+    raise AssertionError("SKILL.md no longer carries a manifest `viewports` row")
+
+
+def test_no_channel_is_named_for_a_device() -> None:
+    """Verifies: no channel name the reference declares, and no value in the
+    manifest viewports row, contains a forbidden device name.
+
+    Scoped to declared channel names rather than to prose. A channel name is only
+    ever one of the declared names, so this reaches every `.apm/**` location one
+    can ship in; searching prose instead would red on legitimate shipped
+    sentences that name a device without naming a channel.
+    """
+    md = read_rules()
+    tokens = forbidden_channel_name_tokens(md)
+    assert tokens, "the reference states no forbidden tokens"
+    for name, _, _ in fallback_channels(md):
+        for token in tokens:
+            assert token not in name.lower(), f"channel {name!r} carries {token!r}"
+    row = _manifest_viewports_value().lower()
+    for token in tokens:
+        assert token not in row, (
+            f"the manifest viewports row names the device {token!r}"
+        )
+
+
+# ── the channel-name sweep ──────────────────────────────────────────────────
+#
+# Reach is DERIVED from `.apm/**` via `shipped_files()`, the same walk the two
+# guards above use, rather than from a hand-written file list. Two earlier
+# versions of this sweep were narrower than the claim they carried: the first
+# opened no file at all and compared the reference's declared set to a literal,
+# and the second opened three files by name — which let a device-named channel
+# ship in any of the other twenty-nine, and let the sweep be un-scoped by
+# deleting one tuple entry with nothing red.
+#
+# What is NOT derived is the set of shapes a channel name takes in prose. Each is
+# named below and each is a stated blind spot: a channel named in a shape absent
+# from this list is not caught. That reach is a property of asking a pattern to
+# read prose, and the list is here in the open rather than implied.
+# ONE registry, deliberately. An earlier version spread the same shape set across
+# four hand-written places -- the patterns, a live-site map, a dispatch chain in
+# the sweep, and the planted-mutation parametrize -- and no divergence between
+# them was caught. A shape could be added with a working dispatch branch, no
+# live-site pin and no planted case, leaving the suite green while that shape was
+# free to go dead in silence; an anchor entry could be deleted in one line, and
+# the two-step rename then ran to completion behind it. A `ChannelNameShape`
+# record carries all four facts together, so the correspondence is
+# unrepresentable-if-wrong rather than merely pinned.
+#
+# What no derivation removes is "did you think of the fourth shape at all".
+# `EXPECTED_SHAPES` below is the honest residue of that: it catches a shape
+# deleted, and discloses that a shape never written is nobody's check.
+
+
+class ChannelNameShape(NamedTuple):
+    """One way a channel name is written in shipped content, and its evidence.
+
+    `outer` finds the channel context and `inner` finds names within it. Both are
+    needed because unscoped patterns over-reached: a bare `name:` field reported
+    `component-contract`'s `name: 'default'` as an undeclared channel.
+
+    `live_site` is the shipped file this shape was written for. A shape that
+    stops matching its own site narrows the sweep in silence -- an ordinary
+    copyedit to `SKILL.md`'s declaring sentence once killed `prose-declaration`
+    with the whole suite green, and a device rename then shipped behind the dead
+    shape. Two shapes were anchored incidentally by controls written for other
+    reasons; "happens to be anchored" is not a control.
+
+    `planted` is a minimal document this shape must find a name in, driven
+    through the real guards so weakening either of them reds.
+    """
+
+    outer: re.Pattern[str]
+    inner: re.Pattern[str]
+    live_site: str
+    planted: str
+    drop: frozenset[str] = frozenset()
+
+
+CHANNEL_NAME_SHAPES = {
+    "snippet-name-field": ChannelNameShape(
+        outer=re.compile(r"const channels\s*=\s*\[(?P<body>.*?)\]", re.S),
+        inner=re.compile(r"\bname:\s*'([^']+)'"),
+        live_site="skills/frontend-engineering/SKILL.md",
+        planted="const channels = [{ name: 'mobile', width: 480 }];",
+    ),
+    # `[^|\n]` and not `[^|]`: a class excluding only the pipe still matches a
+    # newline, so a three-cell pattern spans lines and swallows the one-column
+    # forbidden-token table, reporting `mobile` as a declared channel.
+    "band-row": ChannelNameShape(
+        outer=re.compile(r"\n## Channels\n(?P<body>.*?)(?:\n## |\Z)", re.S),
+        inner=re.compile(r"^\|\s*([a-zA-Z][\w-]*)\s*\|[^|\n]*\|[^|\n]*\|\s*$", re.M),
+        live_site="skills/frontend-engineering/references/rendered-page-inspection.md",
+        planted=(
+            "\n## Channels\n\n| Channel | Lower | Upper |\n| --- | --- | --- |\n"
+            "| tablet |  | <=480 |\n"
+        ),
+        drop=frozenset({"Channel"}),
+    ),
+    "prose-declaration": ChannelNameShape(
+        # Prose that declares a channel, scoped to a paragraph mentioning the
+        # channel word. Both halves of that scope are deliberate and each has
+        # been paid for once already:
+        #
+        # OVER-REACH. The word must appear. Unscoped, this pattern ran over all
+        # 32 shipped files, and any future sentence of the form `token` at <=N --
+        # in any of the pack's nine skills -- would red a guard about channel
+        # names. Both sibling shapes are scoped for the same reason; a bare
+        # `name:` field once reported `component-contract`'s `name: 'default'`
+        # as an undeclared channel.
+        #
+        # UNDER-REACH, and this is the accepted cost. A channel declared in a
+        # paragraph that never says "channel" is not found. Differential probe on
+        # the shipped reviewer agent, one word apart:
+        #     "Two bands apply -- `tablet` at >=768 CSS px."          292 passed
+        #     "Two channel bands apply -- `tablet` at >=768 CSS px."    3 failed
+        # The same undeclared, device-named channel ships green or reds on
+        # nothing but that word. Widening past it re-buys the over-reach above,
+        # so the next widening should be a decision and not a discovery.
+        #
+        # The word may sit ANYWHERE in the paragraph, not only on its first line.
+        # Requiring the first line meant an ordinary reflow made the shape find
+        # nothing while the live-site anchor stayed correctly green -- aliveness
+        # on one file is not reach across thirty-two.
+        outer=re.compile(
+            r"(?:^|\n\n)(?P<body>(?:(?!\n\n)[\s\S])*?[Cc]hannel[\s\S]*?)(?=\n\n|\Z)"
+        ),
+        inner=re.compile(r"`([a-z][\w-]*)`\s+at\s+[≤≥<>=]"),
+        live_site="skills/frontend-engineering/SKILL.md",
+        planted=(
+            "A channel is a band of viewport widths. Declare none and two apply "
+            "-- `desktop` at >=1024 CSS px."
+        ),
+    ),
+}
+
+# The one fact no derivation supplies. Deleting a shape deletes its own
+# parametrized cases too, so without this a shortened inventory is silent.
+EXPECTED_SHAPES = frozenset({"snippet-name-field", "band-row", "prose-declaration"})
+
+
+def channel_names_in(text: str) -> list[str]:
+    """Every channel name the shapes find in one document.
+
+    No `else` fallback: each shape carries its own inner pattern, so there is no
+    unknown-shape branch to fall through. The dispatch chain this replaced
+    appended the whole matched body as if it were a channel name.
+    """
+    names: list[str] = []
+    for shape in CHANNEL_NAME_SHAPES.values():
+        for match in shape.outer.findall(text):
+            names += [n for n in shape.inner.findall(match) if n not in shape.drop]
+    return names
+
+
+def shipped_channel_names() -> dict[str, list[str]]:
+    """`{file label: [channel names used in it]}` over every shipped `.apm/**` file."""
+    found: dict[str, list[str]] = {}
+    for path in shipped_files():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        names = channel_names_in(text)
+        if names:
+            found[_label(path)] = sorted(set(names))
+    return found
+
+
+def test_the_shape_inventory_is_not_silently_shortened() -> None:
+    """Deleting a shape deletes the cases that would have complained.
+
+    Each shape's live-site pin and planted case are parametrized off the registry,
+    so removing an entry removes its own coverage: the suite total drops by two
+    and nothing else moves. Probed before this existed -- deleting the
+    `prose-declaration` entry gave 289 passed, and the two-step device rename then
+    ran to completion in a single edit.
+
+    This is the residue that cannot be derived. It catches a shape removed; a
+    shape never written is disclosed as a blind spot above, not checked here.
+    """
+    assert set(CHANNEL_NAME_SHAPES) == EXPECTED_SHAPES, (
+        f"the shape inventory states {sorted(CHANNEL_NAME_SHAPES)} against an "
+        f"expected {sorted(EXPECTED_SHAPES)}; a shape added here needs a live "
+        f"site and a planted document, and one removed needs this set updated "
+        f"deliberately rather than by deleting a line"
+    )
+
+
+def test_the_channel_sweep_reaches_every_file_that_names_a_channel() -> None:
+    """Per-FILE reach only, which is all this control can carry.
+
+    It cannot see a broken shape: `shipped_channel_names` dedups per file, so
+    `SKILL.md`'s snippet shape covers for a dead prose shape in the count and the
+    totals do not move. Per-SHAPE reach is held by
+    `test_every_shape_still_matches_the_shipped_site_it_was_written_for` and by
+    the parametrized planted test below; deleting either of those removes a
+    property this one does not replace.
+    """
+    reached = shipped_channel_names()
+    expected_files = {
+        shape.live_site.rsplit("/", 1)[-1] for shape in CHANNEL_NAME_SHAPES.values()
+    }
+    for expected in expected_files:
+        assert any(expected in label for label in reached), (
+            f"the channel-name sweep reaches no file named {expected!r}; it sees "
+            f"{sorted(reached)}"
+        )
+    declared = {name for name, _, _ in fallback_channels(read_rules())}
+    assert set().union(*reached.values()) == declared, (
+        f"the sweep found {sorted(set().union(*reached.values()))} across "
+        f"{sorted(reached)}, and the reference declares {sorted(declared)}"
+    )
+
+
+@pytest.mark.parametrize("shape_name", sorted(CHANNEL_NAME_SHAPES))
+def test_every_shape_still_matches_the_shipped_site_it_was_written_for(
+    shape_name: str,
+) -> None:
+    """A shape that stops matching its own live site narrows the sweep in silence.
+
+    Probed before this existed: rewording `SKILL.md`'s declaring sentence from
+    "`narrow` at <=480" to "`narrow`, covering <=480" killed `prose-declaration`
+    with 285 tests still passing, and renaming those same channels to `mobile`
+    and `desktop` then shipped green behind the dead shape.
+    """
+    shape = CHANNEL_NAME_SHAPES[shape_name]
+    site = SHIPPED_ROOT / shape.live_site
+    assert site.is_file(), f"{shape_name}'s live site {shape.live_site} does not ship"
+    names = [
+        n
+        for match in shape.outer.findall(site.read_text(encoding="utf-8"))
+        for n in shape.inner.findall(match)
+        if n not in shape.drop
+    ]
+    assert names, (
+        f"the {shape_name!r} shape no longer finds a channel name in "
+        f"{shape.live_site}; the sweep has narrowed without saying so"
+    )
+
+
+def test_every_shape_finds_a_name_in_its_own_planted_document() -> None:
+    """The planted documents are evidence, so they must be evidence of something."""
+    for name, shape in CHANNEL_NAME_SHAPES.items():
+        found = [
+            n
+            for match in shape.outer.findall(shape.planted)
+            for n in shape.inner.findall(match)
+            if n not in shape.drop
+        ]
+        assert found, f"{name}'s planted document contains no name its own shape finds"
+
+
+def test_every_shipped_channel_name_is_one_the_reference_declares() -> None:
+    """AC-0012's second clause: the premise the device guard's scope rests on."""
+    declared = {name for name, _, _ in fallback_channels(read_rules())}
+    used = shipped_channel_names()
+    assert used, "no shipped file names a channel; the sweep found nothing to check"
+    for label, names in used.items():
+        for name in names:
+            assert name in declared, (
+                f"{label} names the channel {name!r}, which the reference does not "
+                f"declare (declared: {sorted(declared)})"
+            )
+
+
+def test_no_shipped_channel_name_carries_a_device_token() -> None:
+    """The same sweep, against the forbidden vocabulary the reference ships."""
+    tokens = forbidden_channel_name_tokens(read_rules())
+    for label, names in shipped_channel_names().items():
+        for name in names:
+            for token in tokens:
+                assert token not in name.lower(), (
+                    f"{label} names the channel {name!r}, which carries the device "
+                    f"name {token!r}"
+                )
+
+
+@pytest.mark.parametrize("shape_name", sorted(CHANNEL_NAME_SHAPES))
+def test_the_channel_sweep_catches_a_planted_name_in_every_shape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shape_name: str
+) -> None:
+    """Drive the real guards, not a copy of their loop.
+
+    The sweep's own file walk is redirected at the planted file, so both shipped
+    guards run over it and weakening either one reds. Parametrized off the shape
+    registry rather than a second list: a shape arrives here carrying its own
+    planted document, and one cannot be added without it.
+    """
+    shape = CHANNEL_NAME_SHAPES[shape_name]
+    target = tmp_path / "planted.md"
+    target.write_text(shape.planted, encoding="utf-8")
+    monkeypatch.setattr(
+        "test_rendered_page_shipped_content_limits.shipped_files", lambda: [target]
+    )
+    assert shipped_channel_names(), f"the {shape_name} shape found no name to check"
+    with pytest.raises(AssertionError, match="does not declare"):
+        test_every_shipped_channel_name_is_one_the_reference_declares()
+    with pytest.raises(AssertionError, match="device name"):
+        test_no_shipped_channel_name_carries_a_device_token()
+
+
+def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:
+    """Deleting the reference's table reds the public reader the guards use.
+
+    Driven through `forbidden_channel_name_tokens`, not the private section
+    reader: the first version called the private one, so replacing the public
+    reader's body with a hard-coded list left every test green -- exactly the
+    restatement this test is named for preventing.
+    """
+    gone = read_rules().replace("\n## Channels\n", "\n## Removed\n", 1)
+    with pytest.raises(AssertionError, match="Channels"):
+        forbidden_channel_name_tokens(gone)
+
+    # And the table itself, not only the section around it.
+    md = read_rules()
+    without_tokens = md
+    for token in forbidden_channel_name_tokens(md):
+        without_tokens = without_tokens.replace(f"| {token} |\n", "", 1)
+    assert without_tokens != md
+    with pytest.raises(AssertionError, match="forbidden channel-name tokens"):
+        forbidden_channel_name_tokens(without_tokens)

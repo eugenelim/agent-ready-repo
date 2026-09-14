@@ -9,15 +9,30 @@ able to fail.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from frontend_engineering_rendered_page_rules import (
+    REQUIRED_RULE_ROWS,
     capture_record_fields,
+    capture_set_rules,
+    capture_tables_agree,
+    channel_basis,
+    channel_capture_width,
+    channel_rules,
     evaluate_capture_set,
     evaluate_record,
+    fallback_channels,
     findings_for,
     judgement_request_fields,
+    normalize_predicate,
     read_rules,
+    read_skill,
+    required_channels,
+    skill_capture_table,
     step_rules,
+    width_in_channel,
+    worked_example_snippet,
 )
 
 REQUIRED = [
@@ -44,23 +59,39 @@ def _names(missing: list[str], requirement: str) -> bool:
     return any(requirement in entry for entry in missing)
 
 
-def _capture(route: str, height: int, scroll: int, scrollable: str = "yes") -> dict[str, int | str]:
+NARROW, WIDE = 390, 1280
+
+
+def _capture(
+    route: str,
+    height: int,
+    scroll: int,
+    scrollable: str = "yes",
+    width: int = NARROW,
+) -> dict[str, int | str]:
+    """Width and height are independent arguments; width used to be derived from
+    height, which is the coupling the channel axis exists to remove."""
     return {
         "route": route,
-        "viewport-width": 390 if height <= 600 else 1280,
+        "viewport-width": width,
         "viewport-height": height,
         "scroll-position": scroll,
         "page-scrollable": scrollable,
     }
 
 
-def complete_set() -> list[dict[str, int | str]]:
-    """One capture at each of the four required combinations."""
+def complete_set(route: str = "/a") -> list[dict[str, int | str]]:
+    """The four height-and-scroll captures in each of the two fallback channels.
+
+    Eight, not four. The four-capture version of this fixture wrote one width per
+    height, so it covered the narrow channel only at 600 and the wide one only at
+    900 — which is exactly the set the channel axis must reject.
+    """
     return [
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 0, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 800, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 0, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 800, "page-scrollable": "yes"},
+        _capture(route, height, scroll, width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+        for scroll in (0, 800)
     ]
 
 
@@ -250,19 +281,21 @@ def test_two_routes_cannot_cover_each_others_required_heights(
 def test_an_extra_captured_height_needs_its_scrolled_counterpart(
     rules_markdown: str,
 ) -> None:
-    """Verifies the "for each viewport height captured" half.
+    """Verifies the "for each viewport width and height captured" half.
 
-    The criterion is not limited to the two required bands. An adopter who adds
-    a third height has captured that height, so it owes the same at-rest and
-    scrolled pair — and a rule that only walks the table's named rows never
-    looks at it.
+    The criterion is not limited to the required channels and bands. An adopter
+    who adds a third size has captured that size, so it owes the same at-rest and
+    scrolled pair — and a rule that only walks the table's named rows never looks
+    at it. The obligation is keyed on the width-and-height pair, so the extra
+    capture below owes a counterpart even though 390 already carries pairs at
+    other heights.
     """
     captures = complete_set() + [_capture("/a", 750, 0)]
     status, missing = evaluate_capture_set(rules_markdown, captures)
     assert status == "incomplete", (
-        "a 750px at-rest capture with no scrolled counterpart was accepted"
+        "a 390x750 at-rest capture with no scrolled counterpart was accepted"
     )
-    assert _names(missing, "scrolled at 750px"), missing
+    assert _names(missing, "scrolled at 390x750"), missing
 
 
 def test_an_extra_captured_height_is_accepted_once_it_is_paired(
@@ -277,12 +310,7 @@ def test_an_extra_captured_height_is_accepted_once_it_is_paired(
 
 def test_two_fully_captured_routes_are_accepted(rules_markdown: str) -> None:
     """The green path for per-route evaluation."""
-    captures = complete_set() + [
-        _capture("/b", 600, 0),
-        _capture("/b", 600, 400),
-        _capture("/b", 900, 0),
-        _capture("/b", 900, 400),
-    ]
+    captures = complete_set("/a") + complete_set("/b")
     assert evaluate_capture_set(rules_markdown, captures) == ("complete", [])
 
 
@@ -291,3 +319,519 @@ def test_an_empty_capture_set_is_incomplete(rules_markdown: str) -> None:
     status, missing = evaluate_capture_set(rules_markdown, [])
     assert status == "incomplete"
     assert missing
+
+
+# ── the channel axis ────────────────────────────────────────────────────────
+#
+# A channel is a band of viewport widths. These read the bands and the rules out
+# of the reference rather than restating them, so deleting a row moves these
+# tests instead of leaving them asserting a rule the pack no longer ships.
+
+
+def _cap(width: int, height: int, scroll: int, route: str = "/a") -> dict[str, int | str]:
+    """`_capture` with width first, for the channel cases that vary width most.
+
+    The two builders were separate while `_capture` still derived width from
+    height; they no longer differ in what they can express, only in argument
+    order.
+    """
+    return _capture(route, height, scroll, width=width)
+
+
+def _matrix(width: int, route: str = "/a") -> list[dict[str, int | str]]:
+    """The four height-and-scroll captures, all at one width."""
+    return [_cap(width, h, s, route) for h in (600, 900) for s in (0, 800)]
+
+
+def test_fallback_channels_are_the_two_shipped_bands(rules_markdown: str) -> None:
+    """Verifies: with no declared breakpoints the required channels are the two
+    bands the reference states, and a width between them satisfies neither."""
+    channels = required_channels(rules_markdown)
+    assert channels == fallback_channels(rules_markdown)
+    assert [name for name, _, _ in channels] == ["narrow", "wide"]
+    by_name = {name: (name, lo, hi) for name, lo, hi in channels}
+    assert width_in_channel(by_name["narrow"], 480)
+    assert not width_in_channel(by_name["wide"], 480)
+    assert not width_in_channel(by_name["narrow"], 768)
+    assert not width_in_channel(by_name["wide"], 768)
+    assert width_in_channel(by_name["wide"], 1024)
+    assert not width_in_channel(by_name["narrow"], 1024)
+
+
+def test_declared_breakpoints_bound_the_required_channels(rules_markdown: str) -> None:
+    """Verifies: declared breakpoints bound the bands, each boundary value
+    belonging to the wider band."""
+    assert required_channels(rules_markdown, [1152]) == [
+        ("below-1152", "", "<1152"),
+        ("from-1152", ">=1152", ""),
+    ]
+    three = required_channels(rules_markdown, [480, 768, 1024])
+    assert [name for name, _, _ in three] == [
+        "below-480", "480-to-768", "768-to-1024", "from-1024",
+    ]
+    # The boundary value belongs to the wider band, not the narrower one.
+    assert width_in_channel(three[1], 480) and not width_in_channel(three[0], 480)
+
+
+def test_a_declared_breakpoint_must_be_a_positive_whole_number(
+    rules_markdown: str,
+) -> None:
+    """Verifies: a band's bound cells hold whole numbers, so a run refuses a
+    fractional or non-positive breakpoint rather than emitting a cell the
+    predicate parser raises on."""
+    # `True` is the clause's only non-obvious case: isinstance(True, int) is
+    # True and True > 0, so without the explicit bool exclusion a boolean
+    # reaches the band cells and `satisfies("<True", ...)` raises instead.
+    for bad in (767.98, 0, -320, True, False):
+        with pytest.raises(AssertionError, match="positive whole number"):
+            required_channels(rules_markdown, [bad])
+
+
+def test_declared_breakpoints_are_ordered_and_deduplicated(
+    rules_markdown: str,
+) -> None:
+    """Verifies: the bands do not depend on the order or uniqueness of the input.
+
+    Declared breakpoints are an optional adopter-supplied input, so an unsorted
+    or duplicated list is reachable rather than hypothetical, and AC-0001's
+    premise is stated over `b1 < ... < bn`. The normalization that makes that
+    premise true was load-bearing and untested: without it `[1024, 480]` derives
+    the band `>=1024 <480` and `[480, 480]` derives `>=480 <480`, neither
+    satisfiable by any width, so `evaluate_capture_set` could never return
+    complete and no run could reach a `completed` state.
+    """
+    canonical = required_channels(rules_markdown, [480, 1024])
+    assert required_channels(rules_markdown, [1024, 480]) == canonical
+    assert required_channels(rules_markdown, [480, 1024, 480]) == canonical
+    assert required_channels(rules_markdown, [480, 480]) == required_channels(
+        rules_markdown, [480]
+    )
+    # Every band a reordered or duplicated list yields is satisfiable, which is
+    # the property the unsatisfiable ones above would break.
+    for declared in ([1024, 480], [480, 480], [768, 480, 1024, 768]):
+        for channel in required_channels(rules_markdown, declared):
+            width = channel_capture_width(rules_markdown, channel[1], channel[2])
+            assert width_in_channel(channel, width), (
+                f"{declared} yields {channel}, which no width satisfies"
+            )
+
+
+def test_every_channel_yields_a_capture_width_inside_itself(
+    rules_markdown: str,
+) -> None:
+    """Verifies: the shipped rule answers for every band the contract produces —
+    one unbounded on either side, and one whose upper bound is exclusive."""
+    for declared in (None, [1152], [480, 768, 1024]):
+        for channel in required_channels(rules_markdown, declared):
+            name, lower, upper = channel
+            width = channel_capture_width(rules_markdown, lower, upper)
+            assert width_in_channel(channel, width), (
+                f"{name} yields {width}, which is outside its own band"
+            )
+    # A declared breakpoint puts its two captures either side of the boundary,
+    # which is the pair a breakpoint-scoped rule changes behaviour across.
+    widths = [
+        channel_capture_width(rules_markdown, lo, hi)
+        for _, lo, hi in required_channels(rules_markdown, [1152])
+    ]
+    assert widths == [1151, 1152]
+
+
+def test_every_required_channel_carries_the_height_and_scroll_matrix(
+    rules_markdown: str,
+) -> None:
+    """Verifies: a route needs all four height-and-scroll captures in every
+    required channel, so the floor is eight with the fallback bands."""
+    full = _matrix(390) + _matrix(1280)
+    assert len(full) == 8
+    assert evaluate_capture_set(rules_markdown, full) == ("complete", [])
+
+
+def test_a_single_channel_set_is_incomplete(rules_markdown: str) -> None:
+    """Verifies: a set that never leaves one channel is incomplete, and names
+    each channel-and-capture it is short of."""
+    state, missing = evaluate_capture_set(rules_markdown, _matrix(1280))
+    assert state == "incomplete"
+    assert sorted(missing) == sorted(
+        f"{name} in narrow (route /a)"
+        for name in ("short-at-rest", "short-scrolled", "tall-at-rest", "tall-scrolled")
+    )
+
+
+def test_one_width_per_height_misses_four_requirements(rules_markdown: str) -> None:
+    """Verifies: the shipped fixture shape — width written as a function of
+    height — is incomplete under the channel axis.
+
+    This is the defect the axis exists to remove. The set below covers both
+    heights and both scroll positions and was `complete` under the height-only
+    contract, while having tested one channel at one height and the other at the
+    other.
+    """
+    one_per_height = [_cap(390, 600, 0), _cap(390, 600, 800),
+                      _cap(1280, 900, 0), _cap(1280, 900, 800)]
+    state, missing = evaluate_capture_set(rules_markdown, one_per_height)
+    assert state == "incomplete"
+    assert sorted(missing) == sorted([
+        "tall-at-rest in narrow (route /a)",
+        "tall-scrolled in narrow (route /a)",
+        "short-at-rest in wide (route /a)",
+        "short-scrolled in wide (route /a)",
+    ])
+
+
+def test_every_captured_width_and_height_needs_the_scroll_pair(
+    rules_markdown: str,
+) -> None:
+    """Verifies: the pair obligation groups on the width-and-height pair, not on
+    the height alone.
+
+    Grouping on the height alone would let two widths at one height each carry
+    half a pair and read as coverage, which is why the extra at-rest capture
+    below has to be reported even though its height already carries a pair.
+    """
+    full = _matrix(390) + _matrix(1280)
+    extra = full + [_cap(900, 600, 0)]
+    state, missing = evaluate_capture_set(rules_markdown, extra)
+    assert state == "incomplete"
+    assert "scrolled at 900x600 (route /a)" in missing
+
+
+def test_an_unscrollable_third_size_satisfies_the_pair(rules_markdown: str) -> None:
+    """Verifies: the recorded unscrollable branch answers at a third size too."""
+    full = _matrix(390) + _matrix(1280)
+    flat = dict(_cap(900, 600, 0), **{"page-scrollable": "no"})
+    assert evaluate_capture_set(rules_markdown, full + [flat]) == ("complete", [])
+
+
+def test_the_channel_basis_is_recorded_not_inferred(rules_markdown: str) -> None:
+    """Verifies: the basis comes from the run input, not from the captures.
+
+    A fallback run and a run declaring the fallback bands' own bounds can hand
+    over identical captures; only the input tells them apart.
+    """
+    assert channel_rules(rules_markdown).get("channel-basis-recorded") == "required"
+    assert channel_basis(rules_markdown, None) == "fallback"
+    assert channel_basis(rules_markdown, [1152]) == "declared-breakpoints"
+    assert channel_basis(rules_markdown, []) == "fallback"
+
+    # The row gates the answer rather than sitting inert beside it: deleting it
+    # raises, and switching it off refuses rather than guessing a basis.
+    row = "| channel-basis-recorded | required |\n"
+    assert row in rules_markdown
+    with pytest.raises(AssertionError, match="channel-basis-recorded"):
+        channel_basis(rules_markdown.replace(row, "", 1), [1152])
+    off = rules_markdown.replace(row, "| channel-basis-recorded | not-required |\n", 1)
+    with pytest.raises(AssertionError, match="does not record its basis"):
+        channel_basis(off, [1152])
+
+
+def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None:
+    """Verifies: removing the channel requirement from the reference reds the
+    capture-set checks rather than leaving them green.
+
+    The mutation is on shipped content, not on the module. A module that skipped
+    the rule when its row went missing would report this one-channel set as
+    complete, which is the fail-open shape this criterion exists to close.
+    """
+    one_channel = _matrix(1280)
+    assert evaluate_capture_set(rules_markdown, one_channel)[0] == "incomplete"
+
+    off = rules_markdown.replace(
+        "| every-required-channel-needs-the-matrix | required |",
+        "| every-required-channel-needs-the-matrix | not-required |",
+        1,
+    )
+    assert off != rules_markdown
+    assert evaluate_capture_set(off, one_channel)[0] == "complete", (
+        "the evaluator still required every channel after the reference switched "
+        "the rule off — the check is authoring its own rule"
+    )
+
+    # Deleting the ROW, which is the mutation the criterion actually names. The
+    # first version of this test deleted the whole `## Channels` section instead
+    # — that raises via the section reader, so it passed while the row itself
+    # stayed fail-open and a one-channel set reported complete.
+    row = "| every-required-channel-needs-the-matrix | required |\n"
+    assert row in rules_markdown
+    without_row = rules_markdown.replace(row, "", 1)
+    with pytest.raises(AssertionError, match="every-required-channel-needs-the-matrix"):
+        evaluate_capture_set(without_row, one_channel)
+
+    # And deleting the section it lives in.
+    gone = rules_markdown.replace("\n## Channels\n", "\n## Removed\n", 1)
+    with pytest.raises(AssertionError, match="Channels"):
+        evaluate_capture_set(gone, one_channel)
+
+
+@pytest.mark.parametrize(
+    "row_key", [k for keys in REQUIRED_RULE_ROWS.values() for k in keys]
+)
+def test_every_required_rule_row_raises_when_deleted(
+    rules_markdown: str, row_key: str
+) -> None:
+    """Derived from the rows `evaluate_capture_set` declares it requires present.
+
+    The first version hand-listed two keys while claiming to cover every row, and
+    picked the two that already had coverage: deleting `channel-derivation`,
+    `channel-boundary-belongs-to` or `channel-basis-recorded` left the walk
+    returning `complete`, because those rows are only consulted on paths a
+    fallback-basis run never takes. `REQUIRED_RULE_ROWS` is still a hand-written
+    list; the control below is what makes a newly shipped row reach it.
+    """
+    full = _matrix(390) + _matrix(1280)
+    assert evaluate_capture_set(rules_markdown, full) == ("complete", [])
+    row = next(
+        line for line in rules_markdown.splitlines()
+        if line.strip().startswith(f"| {row_key} |")
+    )
+    without = rules_markdown.replace(row + "\n", "", 1)
+    assert without != rules_markdown
+    with pytest.raises(AssertionError, match=row_key):
+        evaluate_capture_set(without, full)
+
+
+def test_the_declared_breakpoint_basis_drives_the_completeness_walk(
+    rules_markdown: str,
+) -> None:
+    """The basis AC-0001 defines, and the one the end-to-end run actually used.
+
+    Every other completeness fixture uses the fallback bands, so the derived-band
+    path through the walk had no test at all, while AC-0005 and AC-0006 are stated
+    over "every required channel".
+    """
+    state, missing = evaluate_capture_set(rules_markdown, _matrix(1280), [1152])
+    assert state == "incomplete"
+    assert sorted(missing) == sorted(
+        f"{name} in below-1152 (route /a)"
+        for name in ("short-at-rest", "short-scrolled", "tall-at-rest", "tall-scrolled")
+    ), missing
+
+    # The two widths the shipped capture-width rule derives for those bands:
+    # 1151 and 1152, the pair straddling the declared breakpoint.
+    straddling = _matrix(1151) + _matrix(1152)
+    assert evaluate_capture_set(rules_markdown, straddling, [1152]) == ("complete", [])
+
+    # The same set is incomplete under the fallback basis, because neither width
+    # is inside `narrow` or `wide`. The basis changes the answer, which is why it
+    # is recorded rather than inferred.
+    assert evaluate_capture_set(rules_markdown, straddling)[0] == "incomplete"
+
+
+# ── the two copies of the capture contract ──────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def skill_markdown() -> str:
+    return read_skill()
+
+
+def test_both_copies_of_the_capture_contract_agree(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """Verifies: the reference and § 5a state the same required-capture set.
+
+    They are restatements of one contract and drift apart in silence, which is
+    why the check reads both rather than one.
+    """
+    assert capture_tables_agree(rules_markdown, skill_markdown)
+
+
+@pytest.mark.parametrize(
+    ("name", "field", "replacement"),
+    [
+        ("changed numeric bound", "height", "≤700 CSS px"),
+        ("changed operator", "height", "≥600 CSS px"),
+        ("dropped unscrollable branch", "scroll", "0"),
+    ],
+)
+def test_the_drift_guard_distinguishes_what_it_must(
+    rules_markdown: str, skill_markdown: str, name: str, field: str, replacement: str
+) -> None:
+    """Verifies: the normalization is presentation-only.
+
+    A normalization that compared the capture names alone would pass every one of
+    these, and could never fail on the predicate drift the guard exists to catch.
+    """
+    row = "short-scrolled" if field == "scroll" else "short-at-rest"
+    original = skill_capture_table(skill_markdown)[row][field]
+    perturbed = skill_markdown.replace(original, replacement, 1)
+    assert perturbed != skill_markdown, f"{name}: the mutation did not apply"
+    assert not capture_tables_agree(rules_markdown, perturbed), (
+        f"the guard did not notice a {name}"
+    )
+
+
+def test_the_drift_guard_notices_a_changed_capture_name(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """The fourth distinction: a renamed row is a different required set."""
+    perturbed = skill_markdown.replace("| short-at-rest |", "| brief-at-rest |", 1)
+    assert perturbed != skill_markdown
+    assert not capture_tables_agree(rules_markdown, perturbed)
+
+
+def test_the_normalization_only_touches_presentation() -> None:
+    """Verifies: exactly the three presentation forms, and nothing else."""
+    assert normalize_predicate("≤600 CSS px") == "<=600"
+    assert normalize_predicate("≥900 CSS px") == ">=900"
+    assert normalize_predicate(">0, or `page-scrollable: no`") == ">0, or page-scrollable: no"
+    # A bound, an operator and the branch all survive.
+    assert normalize_predicate("≤600") != normalize_predicate("≤700")
+    assert normalize_predicate("≤600") != normalize_predicate("≥600")
+    assert normalize_predicate(">0, or `page-scrollable: no`") != normalize_predicate(">0")
+
+
+# ── the worked example ──────────────────────────────────────────────────────
+
+
+def test_the_worked_example_binds_width_to_the_channel(skill_markdown: str) -> None:
+    """Verifies: the snippet an adopter copies iterates channels and takes its
+    width from the one it is on.
+
+    The snippet used to open one hard-coded 390px viewport, so an adopter copying
+    it captured a single channel however many rows of the table they worked
+    through — teaching single-width capture by example whatever the rules said.
+    """
+    snippet = worked_example_snippet(skill_markdown)
+    channels = re.search(r"const channels = \[(.+?)\];", snippet, re.S)
+    assert channels, "the snippet no longer declares a channel list"
+    assert channels.group(1).count("width:") >= 2, (
+        "the snippet iterates fewer than two channels, so copying it captures one"
+    )
+    viewport = re.search(r"viewport:\s*\{([^}]*)\}", snippet)
+    assert viewport, "the snippet no longer opens a viewport"
+    width_clause = re.search(r"width:\s*([^,\n]+)", viewport.group(1))
+    assert width_clause, "the viewport sets no width"
+    assert not re.fullmatch(r"\d+", width_clause.group(1).strip()), (
+        f"the viewport width is the literal {width_clause.group(1).strip()!r}; it "
+        f"must come from the channel being iterated"
+    )
+    assert "channel." in width_clause.group(1)
+
+
+def test_the_worked_example_widths_satisfy_the_bands_they_name(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """Verifies: each channel in the snippet is captured at a width inside itself.
+
+    Checking only that the list has two entries and no literal in the viewport
+    left the widths free: rewriting them to 768 and 900 kept every test green and
+    handed an adopter a set `evaluate_capture_set` reports incomplete in both
+    channels.
+    """
+    snippet = worked_example_snippet(skill_markdown)
+    pairs = re.findall(r"name:\s*'([^']+)'\s*,\s*width:\s*(\d+)", snippet)
+    assert pairs, "the snippet's channel list states no name-and-width pairs"
+    bands = {name: (name, lo, hi) for name, lo, hi in fallback_channels(rules_markdown)}
+    for name, width in pairs:
+        assert name in bands, f"the snippet names a channel {name!r} the reference does not declare"
+        assert width_in_channel(bands[name], int(width)), (
+            f"the snippet captures {name!r} at {width}, which is outside its own band"
+        )
+        assert int(width) == channel_capture_width(
+            rules_markdown, bands[name][1], bands[name][2]
+        ), (
+            f"the snippet captures {name!r} at {width}, not the width the shipped "
+            f"capture-width rule derives for that band"
+        )
+
+
+# ── the evidence manifest records channels ──────────────────────────────────
+
+
+def _manifest_viewports_row(skill_markdown: str) -> str:
+    for line in skill_markdown.splitlines():
+        if line.strip().startswith("| viewports |"):
+            return line
+    raise AssertionError("SKILL.md carries no evidence-manifest `viewports` row")
+
+
+def test_manifest_viewports_field_records_channels(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """Verifies AC-0011: the row states channels as width predicates, and the
+    basis AC-0003 requires the run to record.
+
+    The criterion named this test for a whole review round while no test of the
+    name existed, and the only reader of the row asserted the absence of device
+    tokens — which passes on a row reading `| viewports | none |`.
+    """
+    row = _manifest_viewports_row(skill_markdown)
+    assert "channel" in row.lower(), "the row does not say it records channels"
+    assert re.search(r"[<>]=?\d+", row), (
+        "the row states no width predicate, so an adopter cannot tell what shape "
+        "the value takes"
+    )
+    assert "basis" in row.lower() or "fallback" in row.lower(), (
+        "the row does not record which channel basis the run used"
+    )
+
+
+def test_the_manifest_example_is_a_band_set_the_derivation_produces(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """The row's worked example is the only one of declared-breakpoint predicates
+    in shipped adopter content, and nothing read it.
+
+    It gave `<=480, >=480 <1152, >=1152`, where 480 satisfies both the first and
+    the second band — the overlap the boundary convention exists to prevent.
+    """
+    row = _manifest_viewports_row(skill_markdown)
+    predicates = re.findall(r"`([<>]=?\d+(?:\s+[<>]=?\d+)?)`", row)
+    assert predicates, "the row carries no example predicates"
+    breakpoints = sorted({int(n) for n in re.findall(r"[<>]=?(\d+)", " ".join(predicates))})
+    # Compared against what the derivation produces for the breakpoints the
+    # example itself names. A non-overlap check alone would pass on
+    # `<480, >=600 <1152, >=1152` -- a set with a 120px gap no breakpoint list
+    # can yield -- and its 0..2000 sweep bound was a bare literal that would miss
+    # a boundary above it.
+    stated = []
+    for predicate in predicates:
+        parts = predicate.split()
+        lower = next((x for x in parts if x.startswith(">")), "")
+        upper = next((x for x in parts if x.startswith("<")), "")
+        stated.append((lower, upper))
+    derived = [(lo, hi) for _, lo, hi in required_channels(rules_markdown, breakpoints)]
+    assert stated == derived, (
+        f"the example states {stated}, but the shipped derivation yields "
+        f"{derived} for the breakpoints it names, {breakpoints}"
+    )
+
+
+def test_the_required_rule_rows_match_what_the_tables_state(rules_markdown: str) -> None:
+    """The equality control that settles the hand-written-list question.
+
+    `REQUIRED_RULE_ROWS` is a literal, and three review rounds argued over whether
+    a per-row delete-and-red check derived from it "inherits" a newly shipped row.
+    It does not, on its own: a row added to either shipped table is read by
+    nothing and covered by nothing, and the whole suite stays green. This compares
+    the constant against the keys the shipped tables actually state, so the
+    divergence is what reds rather than the argument.
+    """
+    assert set(REQUIRED_RULE_ROWS["Channels"]) == set(channel_rules(rules_markdown)), (
+        "the Channels rule table and REQUIRED_RULE_ROWS state different row sets; "
+        "a row shipped without being required here is read by nothing"
+    )
+    assert set(REQUIRED_RULE_ROWS["Required captures"]) == set(
+        capture_set_rules(rules_markdown)
+    ), (
+        "the Required captures rule rows and REQUIRED_RULE_ROWS state different "
+        "row sets"
+    )
+
+
+def test_a_newly_shipped_rule_row_reds_until_it_is_required(
+    rules_markdown: str,
+) -> None:
+    """The mutation the control above exists for, driven rather than described."""
+    extra = rules_markdown.replace(
+        "| channel-basis-recorded | required |",
+        "| channel-basis-recorded | required |\n| channel-min-captures | required |",
+        1,
+    )
+    assert extra != rules_markdown, "the mutation did not apply"
+    # Through the control itself, not a copy of its comparison. Re-implementing
+    # the `==` here left weakening that control to `<=` -- exactly the drift that
+    # re-admits a shipped-but-unrequired row -- passing 290 green.
+    with pytest.raises(AssertionError, match="state different row sets"):
+        test_the_required_rule_rows_match_what_the_tables_state(extra)

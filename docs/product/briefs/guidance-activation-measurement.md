@@ -185,7 +185,7 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
   | `new-spec` step 5a | `new-spec/SKILL.md` Procedure step 5a, "Take the cheapest disconfirming evidence before review." | **Gradable only with run provenance** — its obligations are process facts. A4's deciding line. |
   | The razor's bounded-search rung | root `AGENTS.md`, the cut-before-adding ladder | **Gradable only with run provenance** — a search and its recognition leave no authored record. |
   | Repository anchoring | **`new-spec`'s plan `Repository anchors` field** (owner decision, 2026-09-02). The rule is a family — `adapt-to-project`, `contract-acquisition`, `new-spec` and `work-loop` each carry a normative span, plus `architect-design` in the architect pack — and this variant is selected because it is the only one with an authored artifact a grader can read, and it is the variant A5's question is about. | **Gradable.** A5's deciding line. |
-  | Cognitive-load simplification | `.agents/rules/cognitive-load.md` § "Prose and artifacts" and § "Author load", activated by the `always` row in `AGENT_RULES.md`. The label is editorial — "simplification" appears nowhere in either file. **Not the readability target: the rule scopes that to chat prose.** | **Gradable in part; see below.** |
+  | Cognitive-load simplification | Root `AGENTS.md` § "Rule lookups" and its seed at `packs/core/seeds/AGENTS.md`, inline and auto-loaded. **Retargeted 2026-09-13** — this row named `.agents/rules/cognitive-load.md` and the `always` row in `AGENT_RULES.md`; both are retired by `docs/specs/cognitive-rule-inlining/`, so a run against the old locators would measure a control that no longer exists. The label is editorial — "simplification" appears nowhere in the clauses. **Not the readability target: the rule scopes that to chat prose.** | **Gradable in part; see below.** |
   **The readability score is not this rule's decision rule, and the rule says so
   itself.** Measured 2026-09-02, `tools/check-output-readability.py`
   ships here, computes Flesch reading ease and Flesch–Kincaid grade level, and
@@ -200,7 +200,8 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
     rule does not govern.
   - **The rule forbids the inference.** It states "A score is a clue. It is not
     a reason to cut needed facts", alongside "Keep all asked-for depth, proof,
-    limits, warnings, code, diffs, errors, exact names, paths, and counts." A
+    limits, warnings, code, commands, diffs, errors, exact names, paths, counts,
+    and tech terms." A
     decision rule that treated a low score as non-compliance would push authors
     to delete substance to score well — the opposite of the rule.
 
@@ -254,8 +255,8 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
 - **A rule-level corpus surface**, because the harness's unit is a skill: every
   eval home sits at `packs/*/.apm/skills/*/evals/`, and the runner hard-codes
   both `[pack.evals].skills` as the coverage unit and that path. Half the local
-  stratum is root-context — cognitive-load routes from `AGENT_RULES.md`, the
-  razor's rung lives in root `AGENTS.md` — and fabricating skills to host them
+  stratum is root-context — cognitive-load is inline in root `AGENTS.md`, the
+  razor's rung lives there too — and fabricating skills to host them
   would change the context being measured. So the corpus gets its own home while
   the runner and grader, which are one module, are extended rather than
   duplicated.

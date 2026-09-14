@@ -1,6 +1,6 @@
 # Spec: Rendered-page visual inspection
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> — its height-only scroll-pair criterion is superseded by AC-0007 of [`rendered-page-channel-axis`](../rendered-page-channel-axis/spec.md), which holds the same obligation at every captured `(viewport-width, viewport-height)` pair. Body unchanged.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none

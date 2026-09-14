@@ -87,11 +87,14 @@ IN_SCOPE = None
 WORKFLOW_SCOPE: dict[str, str | None] = {
     "build-check.yml": IN_SCOPE,
     "test-corpus.yml":
-        "Out of scope, and deliberately so. It invokes `make test` undecomposed, "
-        "so it cannot diverge from the local target the way an extracted lane "
-        "could — there is nothing for a parity check to compare. Dispatch-only: "
-        "it runs on no pull request, so it gates nothing and claims nothing "
-        "beyond what `make test` claims (spec/remote-gate-dispatch).",
+        "Out of scope, and deliberately so. Each of its four matrix jobs invokes "
+        "`make test` undecomposed — the matrix varies only a shard integer, and "
+        "selection lives in the Makefile (tools/shard_test_roster.py reads "
+        "`make -n test-unleased`), so the workflow still enumerates no suite and "
+        "there is nothing for a parity check to compare. Sharding moved where "
+        "the roster runs, not what states it. Dispatch-only: it runs on no pull "
+        "request, so it gates nothing and claims nothing beyond what `make test` "
+        "claims (spec/remote-gate-dispatch).",
     "test-roster.yml":
         "Out of scope. It runs one suite in parallel, which is deliberately NOT "
         "equivalent to any local invocation: `make test` reaches the roster "
@@ -374,6 +377,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest self-host fixture guard (windows-build-self-entry)":
         LOCAL("test-after-build-check"),
     "pytest make-free gate chains (windows-build-gate-chain)":
+        LOCAL("test-after-build-check"),
+    "pytest import-time path leaks (collector sys.path guard)":
         LOCAL("test-after-build-check"),
     "pytest gitattributes merge-driver scope (AC1)":
         LOCAL("test-after-build-check"),

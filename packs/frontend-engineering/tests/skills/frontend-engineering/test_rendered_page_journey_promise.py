@@ -135,3 +135,24 @@ def test_the_acceptance_gate_checks_the_observations_field(journey: str) -> None
         f"the {GATE_ID} gate does not tell the reader to check the inspection "
         f"observations field"
     )
+
+
+# ── the journey declares the new input ──────────────────────────────────────
+
+
+def test_the_journey_declares_the_breakpoint_input() -> None:
+    """Verifies: `youProvide` names declared breakpoints among the inputs.
+
+    The channel axis adds an adopter-supplied input beside routes. A reader who
+    does not know to supply it falls back to the two default bands, which sit
+    away from wherever their layout actually switches — so an input the journey
+    never mentions is an input most adopters never give.
+    """
+    line = next(
+        raw for raw in JOURNEY.read_text(encoding="utf-8").splitlines()
+        if "youProvide:" in raw
+    )
+    assert "breakpoint" in line.lower(), (
+        "the journey's youProvide names routes and viewports but not the "
+        "breakpoints the channel axis derives its bands from"
+    )

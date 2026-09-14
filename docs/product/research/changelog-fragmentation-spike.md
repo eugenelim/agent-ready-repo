@@ -80,7 +80,14 @@ at `4c924e068`:
 | 5344 | `[Unreleased]` (third of four) | no blank line after the heading |
 
 The first row is the same defect class described as having reached the published
-page this session. It is live on `main` right now, and so are seven others.
+page this session. All eight were live on `main` at this spike's base.
+
+> **Superseded on 2026-09-13.** The instances live at this spike's base were
+> normalized, and
+> `tools/test_build_site_routing.py::test_every_changelog_section_is_separated`
+> now gates the class at every heading in `docs/product/changelog.md`. Every
+> statement in this section about live defects and about no gate existing
+> describes the base revision, not the current tree.
 
 **No located gate detects any of them.** Stated precisely, because the broader
 negative is false: the docs site *does* configure remark, via `remarkPlugins` in
@@ -102,9 +109,15 @@ publishable payload of 99 entries carrying `Highlights`.
 This also sharpens where the free-standing invariant actually bites. The eight
 separator defects change **nothing** in the `/now/` projection — its parser is
 structural and blank-line blind. The harm is at the Markdown rendering and human
-review layer, not the projection. Any future gate must therefore check the
-rendered artifact; a `/now/` parity assertion would pass straight through all
-eight defects.
+review layer, not the projection. Any future gate must therefore read the
+Markdown rather than the projection; a `/now/` parity assertion would pass
+straight through all eight defects.
+
+> **Corrected on 2026-09-13.** The rendering half of that sentence is wrong.
+> Rendered through CommonMark, a welded heading and a double-spaced one produce
+> byte-identical HTML, so the harm is at the source-text and human-review layer
+> only. This answers the known-unknown below, and it is why the gate that
+> shipped that day reads source text.
 
 ## Result 3 — the invariant holds only if the *renderer* normalizes
 
@@ -250,15 +263,105 @@ did not examine.
 - **The two adopter-facing changelogs** (`packages/*/CHANGELOG.md`) and the
   `packs/core/seeds/` template, which were out of scope by instruction.
 
+## Conflict rate, measured 2026-09-13
+
+Closes this document's first known unknown. Every count below except the
+abandoned-branch paragraph is printed by `tools/measure-changelog-conflicts.py`,
+the evidence of record:
+
+```bash
+python3 tools/measure-changelog-conflicts.py --tip 0e339c978 --from d1bc469d5
+```
+
+The abandoned-branch figures need the forge, so they are reproduced separately:
+
+```bash
+gh pr list --state closed --limit 300 \
+  --json number,author,closedAt,mergedAt,files \
+  --jq '.[] | select(.mergedAt == null) | select(.closedAt > "2026-08-14")'
+```
+
+**Count the rebases, not the merges.** All 138 merges into `main` in the 30 days
+to 2026-09-13 are linear — `merge-base(P1, P2) == P1` in every one. Each branch
+is rebased or updated onto main before it merges, so `git merge-tree P1 P2`
+conflicts on nothing and a naive merge replay returns **zero**. That zero
+measures the workflow's serialization, not an absent problem: the cost is paid
+during the rebase, which leaves no commit of its own.
+
+The script reconstructs that rebase. The fork point `A` is the newest mainline
+commit whose *committer* date is strictly before the branch's earliest *author*
+date — author dates on the branch side because they survive a rebase, committer
+dates on the mainline side because they are that commit's position — and
+`git merge-tree --merge-base=P1 A P2` then conflicts on exactly the regions where
+main's `A..P1` work and the branch's work touch the same lines. 96 of the 138
+merges resolve a fork point behind the mainline parent. The other 42 are
+*estimated* to have started from main's tip — that is what the date comparison
+says, not an observation of when the branch was cut — and they are excluded from
+the denominator below.
+
+| | `docs/product/changelog.md` | `workspace.toml` |
+| --- | ---: | ---: |
+| Commits touching it in the window | 224 | 352 |
+| Merges where the branch edited it **and** main moved it | 43 | 51 |
+| ...of those, the replay conflicts textually | **39 (91%)** | **20 (39%)** |
+| Share of the 96 replayed merges | 41% | 21% |
+
+The 39 and the 224 are different units — 39 conflicting *merges* against 224
+*commits* — so they are not a ratio. The window is a commit range rather than a
+date so that the invocation above returns these figures on every run; successive
+runs of an earlier date-windowed version disagreed, and the cause was not
+established. Result 4's 216 came from a rolling 30-day window with no recorded
+command, so it is not directly comparable.
+
+**Negative control.** 53 merges where the two sides did not both touch the
+changelog produce zero conflicts on it; 45 and zero for `workspace.toml`. The
+replay does not manufacture conflicts.
+
+**Mechanism, and its limit.** All 39 conflicting changelog rebases have both
+sides adding a `## [` release heading — the same-anchor collision Result 2
+already showed `git merge-file` rejects. So do all 4 of the exposed rebases that
+did *not* conflict, so the anchor explains the class but does not discriminate
+within it.
+
+Falling **one** commit behind is enough: the conflicting rebases skip 1 to 32
+mainline commits, and 2 of them conflicted at one.
+
+**Abandoned branches add nothing here.** 12 pull requests were closed unmerged in
+the window, 8 of them dependabot. None touched `docs/product/changelog.md`.
+Three touched `workspace.toml`; whether those conflicted was not replayed
+here, because the replay above covers merged branches only.
+
+**Limits, in both directions, none quantified.** A branch rebased more than once
+counts as one event, which understates. The fork point is a date estimate that
+errs both ways: too early for a branch carrying a cherry-picked or
+upstream-authored commit, which widens `A..P1` and can manufacture overlap; too
+late for a branch cut well before its first commit was authored, which hides
+overlap and is also what drops the 42 excluded merges. So 39 is a measurement
+under a stated estimator, not a bound in either direction.
+
+**What it decides.** A separator gate closes a presentation defect class and
+leaves this rate untouched; they answer different problems. The rate supports
+fragmenting the changelog's pending entries. It does not transfer to
+`workspace.toml`. There the same replay conflicts in 20 of 51 exposed rebases
+(39%) — a larger exposed population than the changelog's 43, at well under half
+the rate — and
+[the survey](append-log-fragmentation-survey.md) rates the `.d` analogy as weak.
+
 ## Known unknowns
 
-- **Known-unknown:** How many of the 216 monthly changelog commits actually
-  produced a merge conflict or forced a rebase? Would be closed by: replaying
-  merged and abandoned branches over the period, rather than counting touches.
-- **Known-unknown:** Do the eight separator defects change rendered HTML on the
-  published page? Would be closed by: running `make site-build` and diffing the
-  emitted changelog route. Not run here — the spike had no site build, and the
-  `/now/` parity result does not answer it.
+- **Partly answered on 2026-09-13** by [Conflict rate](#conflict-rate-measured-2026-09-13):
+  **39 of the 43 rebases that had to replay a changelog edit conflicted (91%)**,
+  over a window in which 224 commits touched the file. Note the unit: this bullet
+  asked per *commit* and the replay answers per *merge*, so the two are not a
+  ratio. "Incorrect manual resolutions", the question's third term, is not
+  answered — a textual replay cannot see it.
+- **Answered on 2026-09-13, No.** Do the separator defects change rendered HTML
+  on the published page? Rendered through CommonMark, both defect shapes — a
+  heading welded to its neighbour, and one preceded by a doubled blank line —
+  produce byte-identical HTML to the correct form. Blank lines between blocks
+  and blank lines around an ATX heading are both insignificant in CommonMark.
+  The harm is therefore confined to the source text and human review, which is
+  what the gate added that day checks.
 - **Known-unknown:** Is the ordering judgement actually made at release time in
   this repository, as the hypothesis above assumes? Would be closed by: reading
   the release workflow and checking, across the 10 date inversions, whether the
@@ -273,8 +376,10 @@ did not examine.
 The spike closes the feasibility question and narrows the design, but does not
 choose. Three live options remain, and the evidence does not select between them:
 
-1. **Add a separator gate and stop there** — the eight live defects are the only
-   demonstrated harm so far, and a renderer or linter closes them without any
+1. **Add a separator gate and stop there** — the eight live defects were the only
+   demonstrated harm when this spike ran, though
+   [Conflict rate](#conflict-rate-measured-2026-09-13) has since demonstrated a
+   second and larger one, and a renderer or linter closes them without any
    fragmentation, migration, or new directory. Materially the cheapest, and it
    closes the defect class that prompted this work.
 2. **Fragment pending entries only** — targets the 82% head-of-file churn, leaves
@@ -294,7 +399,7 @@ Kubernetes uses, which keeps the record out of the tree but in mutable hosting
 metadata; or a commit trailer, which is immutable committed history but is
 amended rather than reviewed as a file. So the first questions are whether writing
 the entry at release time is acceptable at all, and if not, whether PR metadata or
-a commit trailer is an acceptable home. Choosing among all three needs the conflict-rate
-measurement named in the first known-unknown above — which counts touches today
-and should count conflicts — plus the draft-acceptance measurement the
-collector/generator spike names.
+a commit trailer is an acceptable home. Both measurements that sentence waited on now exist: the conflict rate above, and
+the clean drafting score in
+[the inputs spike](changelog-generator-quality-spike.md) Result 7. The choice
+among the three options is now an owner decision, not a blocked one.

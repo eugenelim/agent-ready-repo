@@ -9,6 +9,7 @@ the captures, the independent check is still blind, and the step is self-review.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -59,7 +60,7 @@ def test_the_reviewer_carries_a_reader_visible_layout_lens(reviewer: str) -> Non
     assert "## What you review — the six lenses" in reviewer, (
         "the lens count in the heading was not updated with the new lens"
     )
-    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    lens = _lens_six(reviewer)
     normalized = _normalized(lens)
     assert "rendered-page-inspection.md" in normalized, (
         "Lens 6 does not point at the shipped finding-class table"
@@ -255,3 +256,121 @@ def test_the_journey_metadata_no_longer_advertises_a_diff_only_reviewer() -> Non
         "the pack summary still describes the reviewer as reading only the diff"
     )
     assert "independent diff read" not in what_changes
+
+
+# ── the width axis reaches the reviewer and the harness ─────────────────────
+
+EVALS = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "frontend-engineering"
+    / "evals"
+    / "evals.json"
+)
+
+
+def _lens_six(reviewer: str) -> str:
+    return _normalized(reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0])
+
+
+def test_reviewer_lens_reads_the_width_axis(reviewer: str) -> None:
+    """Verifies: lens 6 carries an imperative to use the capture's viewport
+    width, saying what the width decides.
+
+    Scoped to the lens, not the whole file. The field-listing sentence already
+    named "viewport width and height" before this delivery, so a check that only
+    looked for the words would have passed on the unchanged agent — a control
+    that cannot fail on the thing it names.
+    """
+    lens = _lens_six(reviewer)
+    assert _lens_carries_the_width_imperative(lens), (
+        "lens 6 carries no imperative to use the viewport width, or does not say "
+        "what the width decides; the pre-existing sentence listing it among the "
+        "recorded fields is not enough"
+    )
+
+
+# The lens as it stood before this delivery: it listed viewport width among the
+# recorded fields and told the reviewer to use the scroll position, and that was
+# all. A guard that searched for the words "viewport width" would have passed on
+# this text, which is why the check anchors on the imperative.
+PRE_CHANGE_LENS = """Each capture carries the route, viewport width and height, scroll position, and
+whether the page scrolls. **Use the scroll position.** "Clipped at the top of the
+page" and "above the fold because the reader scrolled" are the same picture and
+differ only by that field; a capture with no recorded state yields no finding."""
+
+
+def _lens_carries_the_width_imperative(lens_text: str) -> bool:
+    """The property AC-0013 states, as one function both polarities drive."""
+    return "**Use the viewport width.**" in lens_text and "breakpoint" in lens_text
+
+
+def test_the_width_check_fails_against_the_pre_change_lens() -> None:
+    """The must-red half, run against the real pre-change text.
+
+    It used to be `lens.replace(X, "")` followed by `assert X not in ...`, which
+    is true by construction for every input and exercised neither the lens nor
+    the second half of the property.
+    """
+    assert not _lens_carries_the_width_imperative(PRE_CHANGE_LENS), (
+        "the pre-change lens satisfies the check, so the check cannot fail on the "
+        "state it was written to reject"
+    )
+
+
+def test_the_lens_still_tells_the_reviewer_to_use_the_scroll_position(
+    reviewer: str,
+) -> None:
+    """The width joins the scroll position; it does not replace it.
+
+    Scoped to lens 6, like its sibling: an unscoped search stays green if the
+    scroll imperative moves out of the lens entirely.
+    """
+    lens = _lens_six(reviewer)
+    assert "**Use the scroll position.**" in lens
+
+
+def _inspection_case() -> dict:
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    cases = data if isinstance(data, list) else data.get("evals", data.get("cases"))
+    return next(c for c in cases if c.get("id") == "rendered-page-inspection")
+
+
+def test_the_harness_expects_channel_coverage() -> None:
+    """Verifies: the pack's eval harness names channel coverage among the
+    behaviours it expects of a completed inspection."""
+    case = _inspection_case()
+    assert any("channel" in a.lower() for a in case["assertions"]), (
+        "no assertion mentions channel coverage"
+    )
+    assert "channel" in case["expected_output"].lower()
+
+
+# The harness half of the demoted obligation's content pin. The guide half lives
+# in `test_rendered_page_verdict.py`'s `SUPERSEDED_FLOOR`; between them they carry
+# the five strings `plan.md` § Design decisions names. Neither site is the whole
+# pin, and each says so.
+HARNESS_SUPERSEDED_FLOOR = (
+    "Captures at a viewport height of at most 600 CSS pixels and at least 900",
+    "The capture set covers both required viewport heights,",
+)
+
+
+def test_the_harness_no_longer_grades_against_a_height_only_floor() -> None:
+    """The harness used to define a complete set by height alone, in its first
+    assertion and its expected_output opening. A run matching those exactly is
+    incomplete after this delivery, so leaving them would grade a correct run
+    against the superseded floor.
+    """
+    case = _inspection_case()
+    # Pin the ABSENCE of the superseded strings, not the presence of the current
+    # wording at a fixed index: an index pin reds on any legitimate rewording and
+    # on inserting an assertion ahead of it, neither of which is this regression.
+    for stale in HARNESS_SUPERSEDED_FLOOR:
+        assert stale not in " ".join(case["assertions"]), (
+            f"an assertion still states the superseded floor: {stale!r}"
+        )
+        assert stale not in case["expected_output"], (
+            f"expected_output still states the superseded floor: {stale!r}"
+        )

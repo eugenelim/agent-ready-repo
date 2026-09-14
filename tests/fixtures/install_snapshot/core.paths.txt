@@ -1,4 +1,3 @@
-.agents/rules/cognitive-load.md
 .gitignore
 AGENTS.md
 AGENT_RULES.md

@@ -345,3 +345,195 @@ with it: thirty minutes for no output. Results are now flushed per case, each ru
 is bounded at 90 seconds, and a hang is recorded as its own outcome. A suite that
 hangs gives a developer no signal at all, which is the third time that hazard has
 appeared in this package.
+
+## Two corrections from outside this spec's own review rounds
+
+Both were found by the session implementing `loop-telemetry-export`, after this
+package had merged. Both are recorded here because this ledger exists to hold
+what got through, and these got through everything.
+
+### A gate that was never pointed at the code
+
+**mypy had never checked this package.** `tools/lint-mypy.py` carries its own
+`TYPED_PACKAGES` list and passes it as positional arguments, which override
+`[tool.mypy] files` in `pyproject.toml`. At this package's merge commit that list
+held only `agentbundle` and `credbroker` — and `[tool.mypy] files` had not been
+touched either, so this was not an attempt that failed, it was an attempt never
+made. Adding the package took the gate from 139 files to 146 and immediately
+found a real defect: `source.py`'s reader is annotated
+`Iterator[dict[str, Any]]` while yielding the `IDLE` sentinel that drives the
+follow-mode flush. The annotation was simply never true.
+
+What it survived: four implementation review rounds, the wiring sweep below, and
+35 green CI checks.
+
+**The sweep could not have caught it, and that is the useful part.**
+`wiring_sweep.py` mutates keyword arguments at call sites and asks whether
+anything notices. An annotation is not a call site, and a false annotation whose
+runtime behaviour is correct changes no observable a test can assert on. The
+instrument that would have caught it existed the whole time; it was pointed at
+two packages and not at this one.
+
+The repair walked three surfaces and the first two attempts were each partial, in
+exactly the pattern this ledger already records six times: widening the
+producer's return type moved the error to `cli.py`; widening that parameter moved
+it inside `batch_records`; `record is IDLE` reads as correct to a human and does
+not narrow a union for a type checker, even though the `continue` beneath makes
+the code sound. `isinstance(record, _Idle)` narrows, and is equivalent here
+because `_Idle` has exactly one instance.
+
+Fixed in `e2d5c146b` on the `loop-telemetry-export` branch, as part of T4 putting
+this package inside the repository's gates. Deliberately not duplicated on main:
+the fix already exists on that branch, and a second copy would collide mid-wave.
+
+### A count this spec reported wrongly throughout
+
+**The suite is 279 tests, not 410.** `pytest --co` reports "279 tests collected".
+The 410 figure appears in several commit messages on the merged branch and in the
+original pull-request description; the description is corrected, the commit
+messages are not rewritten. The number was mine and was repeated rather than
+re-measured — the failure is not the first wrong reading but that nothing ever
+re-derived it.
+
+## Why this spec's engine run is left at CODE-IMPLEMENTATION
+
+The run (`2bc90de4-…`) never reached DONE, and that is a deliberate stop rather
+than an omission.
+
+`loop-cohort schedule check-current` refuses:
+
+```
+plan.md no longer matches the scheduled baseline
+stored='0e581ed5b99a…'  current='dc2c73bb1f9d…'
+```
+
+**The cause is this spec's own ADR renumbering, not the tool's suggested one.**
+The message offers "pinned before canonical hashing landed"; the truth is more
+specific and is visible in git. Three merge commits touched the locked `plan.md`
+after the baseline was pinned — `fce136e17`, `ae1c8e21a`, `13415caf0` — and every
+one of them changed the same sentence:
+
+```
+ADR-0111 -> ADR-0112 -> ADR-0114 -> ADR-0115
+```
+
+Upstream claimed this decision's ordinal five times, and each recovery edited a
+plan that was already frozen. So the cost of an ordinal collision is not only the
+renumber: **it invalidates a locked plan baseline**, and nothing warns you at the
+time because the rename is a correctness fix that must happen.
+
+The recovery is a cohort reset followed by `approve-plan`, which re-pins whatever
+is on disk. That is a re-approval in substance, not a repair: it clears the retry
+counters and the stasis baseline that four implementation review rounds produced.
+
+Weighed against what completing the run buys — `engine-state.json` and
+`state.json` are untracked, so DONE would be recorded in a local file that is
+never committed and that lives in a worktree another session is building in —
+the trade is bad. **Destroying a four-round audit trail to make an untracked
+local file say DONE is not worth it.** This ledger is the tracked artifact and
+the durable record, so the outcome is recorded here instead.
+
+State as left: engine `CODE-IMPLEMENTATION`, last event `findings-remain`, four
+implementation review rounds applied and merged as #1293, CI green at 35 checks.
+The code shipped; only the state machine is unfinished.
+
+Anyone resuming should re-derive the baseline deliberately rather than treating
+the mismatch as corruption — and should NOT run `loop-engine reset`, because
+`plan-locked` is legal only from `SPEC-PLAN-APPROVED` and the engine has no
+state-setting verb, so resetting strands the run.
+
+## The sweep's three behavioural survivors, triaged
+
+A corrected sweep run by the `loop-telemetry-export` session produced 46
+mutations: 30 caught, 1 hang (the already-documented `daemon=True`), 15
+survivors. Twelve have no behaviour to control — argparse display text and two
+`frozen=True` dataclasses. Three were behavioural, and they resolved three
+different ways, which is the point worth keeping.
+
+**`required=True` on `--input` — a missing control, now added.** Dropping it
+still failed the run, but through whatever `open_input(None)` raises rather than
+as a usage error. Right exit code, wrong observable, and nothing could tell the
+two apart. Mutation-verified.
+
+**`best_effort=args.best_effort` — not a missing control, a redundant path.**
+`send_batches` already applies `best_effort` internally with exactly the same
+scoping, and `cli._run` applied the rule a second time afterwards. Dropping the
+wiring changed nothing because the second mask converted the failure anyway. The
+repair is to delete the duplicate mask, not to test the wiring: **a control over a
+redundant path pins the redundancy in place.** One rule, one site, and the
+argument is now load-bearing. Mutation-verified.
+
+**`on_oversize` — unreachable, and that is the answer.** AC-0018 caps a line at
+64 KiB and AC-0019 caps a request at 8 MiB, so one record reaches about 388 KiB
+worst case and a batch always splits down to records that fit. The
+singleton-refusal branch cannot fire from the command.
+`test_the_oversize_path_is_unreachable_through_the_cli` pins the RELATIONSHIP, so
+if either ceiling moves the claim fails rather than quietly becoming false. No
+control is possible and none should be written.
+
+Three survivors, three different correct answers: add a control, delete the
+redundancy, or record why no control can exist. A sweep that only ever produced
+"add a test" would have been wrong twice out of three.
+
+## What I asserted without checking
+
+Three times in this work I stated something as established that I had not
+verified, and the shape was identical each time: I checked the thing I was
+thinking about, not the thing I was asserting.
+
+- "410 tests" — repeated through commit messages and a pull-request description.
+  The measured count is 279.
+- "events.jsonl cannot see the retry counters" — `budgets` carries all four on
+  every line; the bump emits no line of its own, which is a one-transition lag,
+  not blindness.
+- "a verification run is in flight" — it was wrapped in `timeout`, which does not
+  exist on macOS, so it had failed instantly and I reported it as running.
+
+Each was caught by someone else. The first two changed conclusions other people
+were relying on; the third only wasted a message. None was caught by a test,
+because none was the kind of claim a test covers.
+
+## I measured the wrong tree, and it cost a reverted commit
+
+`make lint-mypy` reported `Success: no issues found in 139 source files` while
+never opening a line of this package, because `tools/lint-mypy.py` passes
+`TYPED_PACKAGES` as positional arguments and positional arguments override the
+`files` setting in `pyproject.toml`. I repaired it, and had to revert the repair.
+
+The gap was real. What I got wrong was **which tree had it.** I measured `main`
+(freshly merged into my branch) and reported four gate sites as absent. All of
+them were already present on the `loop-telemetry-export` session's branch, along
+with two more I had not identified: `Makefile`'s own `PYTHONPATH`, without which
+the suite reports eight collection errors because each `packages/*/` suite's own
+`[tool.pytest.ini_options]` is the nearer pytest configfile and the root
+`pythonpath` never reaches it — the reason my 279-test run only ever worked from
+inside the package directory. Their work was **unpushed**, so `origin` agreed
+with me and the branch that mattered did not.
+
+**The measurement was not the root cause.** This pull request's own description
+already said the mypy fix was deliberately excluded, naming `e2d5c146b` on the
+other branch and saying that duplicating it here would collide with that wave. I
+wrote that, and then re-did the fix anyway. The wrong ref is how I convinced
+myself the gap was still open; the decision not to touch it had already been
+made and recorded on the surface I was working in. **Re-read your own
+exclusions before repairing something adjacent to them** -- a recorded decision
+is worth nothing if the next session, or the same one an hour later, re-derives
+the question from scratch.
+
+A measurement is only as good as the ref it was taken against. Reporting `main`
+as though it were the delivery state produced a real defect claim, a real
+repair, an overlapping test file, and a three-way collision in
+`tools/lint-mypy.py`, the two annotation sites, and the Makefile's tools batch.
+Before claiming a gate site is missing, name the ref — and when a peer session
+owns the criterion, read their branch, not the trunk.
+
+Two things survive the revert. The AC-0031 critique holds: the criterion names
+`[tool.mypy] files`, which a positional argument overrides, so it can be
+satisfied literally while the gate still checks nothing and still prints
+`Success`. That session reached the same conclusion independently from the other
+direction, kept the criterion's wording to avoid widening an in-flight
+amendment, and recorded in their ledger that its four named sites do not achieve
+its own purpose clause and that six are required. And both of us, separately,
+landed on `isinstance(record, _Idle)` over `record is IDLE` — identity against a
+module-level instance reads correctly at runtime and narrows nothing for a type
+checker, so `pending.append` still looks reachable by the sentinel.
