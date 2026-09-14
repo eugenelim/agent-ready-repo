@@ -222,3 +222,51 @@ tree, which is why the source and projection commits are separate).
 
 Heavier corpus and roster-wide runs are left to CI, per this repository's stated
 local gate.
+
+## Post-GATES review round 1 — repairs
+
+Three blockers raised; one refuted, two sustained.
+
+**Refuted — "the strengthen-or-narrow choice is not decidable".** The shipped
+`narrow-the-claim` text reproduces the governing deferred criterion's own wording
+verbatim, and the operational definition of reach the reviewer asked for is a
+*different* deferred criterion owned by the gating intent. Applying the proposed
+fix would have imported deferred criterion content into shipped prose, which this
+change exists to avoid. No edit made.
+
+**Sustained blocker — materiality guarded by occurrence, not classification.**
+Both destination oracles asserted only that the destination name appeared
+somewhere in the materiality region, so a text that listed the destination and
+then reclassified it as nonmaterial kept AC-0001 through AC-0003 green. The
+oracle is now bounded to the positive `material means …` declaration — the list
+sentence up to its terminating period.
+
+| Invariant | Exact mutation | Old occurrence oracle | New bounded oracle |
+| --- | --- | --- | --- |
+| `Opportunity` is classified material, not merely mentioned | Removed `opportunity,` from the positive list and appended "A change to opportunity is nonmaterial." — an exact reversal that leaves the word present in the region | **PASS** — would not have caught the reversal | **failed**, as required |
+
+**Sustained advisory — the post-repair selector was keyed to an exact opener.**
+Verified both halves: a negation stayed green and a faithful paraphrase red. The
+adjudicator scoped the required outcome to subject-based selection at the seam
+`round_scope` already uses, and ruled the reviewer's general
+subject/action/polarity classifier over-broad. The selector now keys on the
+subject `a repair`.
+
+| Mutation | Required behaviour | Observed |
+| --- | --- | --- |
+| Faithful paraphrase: `After a repair` → `Following a repair` | stay GREEN (the old opener-keyed guard would have red) | **47 passed** |
+| Remove the rerun obligation, leaving both instruments intact | RED | **failed**, as required |
+
+**Deliberately not fixed: the polarity half.** Asserting polarity over free prose
+admits several defensible implementations and none is fixed by code, test, schema
+or stated constraint; the adjudicator ruled it needs a mechanizable criterion
+before it can be pinned at all. Pinning it here would also create the kind of
+unmechanizable obligation the gating intent exists to keep out of criterion form.
+Recorded rather than silently dropped.
+
+**Gates after repair.**
+
+- three touched pack suites — **62 passed**
+- `make lint-ruff lint-mypy` — clean
+- both projection roster nodes — **2 passed**; only test files changed this
+  round, so no reprojection was required

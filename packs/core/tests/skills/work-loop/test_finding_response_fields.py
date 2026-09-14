@@ -362,7 +362,7 @@ def test_post_repair_traversal_uses_literal_and_semantic_instruments() -> None:
         "walk" in statement
         or "literal sweep" in statement
         or "semantic walk" in statement
-        or "After a repair, run both instruments again" in statement
+        or "a repair" in statement
         for statement in instruments
     )
     # Pin the per-round obligation as a property, not as one blessed sentence
@@ -372,9 +372,11 @@ def test_post_repair_traversal_uses_literal_and_semantic_instruments() -> None:
     round_scope = " ".join(statement for statement in instruments if "review round" in statement)
     assert "literal sweep" in round_scope
     assert "semantic walk" in round_scope
-    repair_reruns = [
-        statement for statement in instruments if "After a repair, run both instruments again" in statement
-    ]
+    # Select the post-repair statement by its SUBJECT, not by a blessed opener,
+    # at the same seam `round_scope` uses above. Keying on the exact opener reds
+    # on a faithful rewrite ("Following a repair, ...") while proving nothing
+    # about the obligation itself.
+    repair_reruns = [statement for statement in instruments if "a repair" in statement]
     assert len(repair_reruns) == 1
     assert "step-8a anchor-test sweep" in repair_reruns[0]
     assert "every file the repair touched" in repair_reruns[0]

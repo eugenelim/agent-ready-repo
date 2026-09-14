@@ -16,6 +16,17 @@ def _between(path: Path, start: str, end: str) -> str:
     return text.split(start, 1)[1].split(end, 1)[0]
 
 
+def _positive_materiality_list(path: Path, opener: str, end: str) -> str:
+    """Return only the positive `material means ...` declaration, up to its period.
+
+    Bounding to that one sentence is what makes the guard polarity-aware. An
+    occurrence check over the whole region cannot tell the positive list from a
+    later sentence in the same region reclassifying the destination as
+    nonmaterial, so it would stay green against an exact reversal of the rule.
+    """
+    return _between(path, opener, end).partition(".")[0]
+
+
 def _recording_sections(path: Path) -> tuple[str, ...]:
     """Return every named recording section from the bounded movement region."""
     movement = _between(path, "**Recording sections** —", "Both labels")
@@ -24,7 +35,9 @@ def _recording_sections(path: Path) -> tuple[str, ...]:
 
 def _assert_brief_destination_is_material(destination: str) -> None:
     """Require one admitted destination in the complete materiality region."""
-    materiality = _between(BRIEF, "For a brief, material means", "Before sealing")
+    materiality = _positive_materiality_list(
+        BRIEF, "For a brief, material means", "Before sealing"
+    )
     recording_sections = _recording_sections(BRIEF)
     exception_map = {
         "Ready gaps": "is dropped on leaving Draft and cannot receive a demotion",

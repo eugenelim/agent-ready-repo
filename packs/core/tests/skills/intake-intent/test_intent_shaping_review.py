@@ -19,6 +19,17 @@ def _between(path: Path, start: str, end: str) -> str:
     return text.split(start, 1)[1].split(end, 1)[0]
 
 
+def _positive_materiality_list(path: Path, opener: str, end: str) -> str:
+    """Return only the positive `material means ...` declaration, up to its period.
+
+    Bounding to that one sentence is what makes the guard polarity-aware. An
+    occurrence check over the whole region cannot tell the positive list from a
+    later sentence in the same region reclassifying the destination as
+    nonmaterial, so it would stay green against an exact reversal of the rule.
+    """
+    return _between(path, opener, end).partition(".")[0]
+
+
 def _recording_sections(path: Path) -> tuple[str, ...]:
     """Return every named recording section from the bounded movement region."""
     movement = _between(path, "**Recording sections** —", "Both labels")
@@ -85,7 +96,9 @@ def test_intent_material_revision_and_recorded_nonmaterial_correction_have_disti
 
 # STUB: AC-0001 — Opportunity is an intent materiality destination
 def test_intent_opportunity_edit_is_material_lifecycle_change() -> None:
-    materiality = _between(INTENT, "For an intent, material means", "Before sealing")
+    materiality = _positive_materiality_list(
+        INTENT, "For an intent, material means", "Before sealing"
+    )
     recording_sections = _recording_sections(INTENT)
     exception_map = {
         "Assumptions": "records context but is not an admitted demotion destination",
