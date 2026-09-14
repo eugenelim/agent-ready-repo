@@ -156,6 +156,20 @@ mode:
 
 ---
 
+## Step 5b. Inspect the rendered page
+
+The four gates above read the markup, the accessibility tree, the stylesheet and
+the source. None of them opens the page, so none can see one element covering
+another, text out of its container, or a control too small to hit.
+
+Run the rendered-page inspection and carry its result into the manifest below:
+[Inspect the rendered page](inspect-the-rendered-page.md). On an audit you are
+recording a baseline rather than gating a release, so a `fail` verdict is a
+finding for the report, not a stop — but it is recorded as a `fail`, not folded
+into the screenshots field.
+
+---
+
 ## Step 6. Write the audit report
 
 Return findings as a prioritised list with severity:
@@ -182,6 +196,8 @@ viewports: [viewport widths tested]
 browsers: [browsers tested]
 states: [which of the 18 states were present and which were absent/broken]
 screenshots: [filenames or notes on captured states]
+inspection observations: [what was seen in the captures; result state; verdict]
+
 a11y result:
   pa11y/axe-core wcag21aa: [pass/fail + finding count]
   manual 2.4.11 Focus Appearance: [pass/fail + notes]

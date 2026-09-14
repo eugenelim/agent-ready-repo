@@ -20,7 +20,7 @@ contract:
     - approve-frontend-surface-contract
     - accept-frontend-evidence
     - review-frontend-implementation
-whatChanges: "After installing frontend-engineering, the main skill gives one operating path for web surfaces: create starts from a contract, retrofit starts from brownfield inspection, audit reports findings without code changes, and verify runs gates against a completed surface. Supporting skills cover tokens, accessibility, performance, rendering, component contracts, responsive layout, CSS architecture, and status. The frontend-reviewer agent provides an independent diff read for token drift, ARIA mutation completeness, state coverage, WCAG 2.2 manual checks, and Core Web Vitals regression signals."
+whatChanges: "After installing frontend-engineering, the main skill gives one operating path for web surfaces: create starts from a contract, retrofit starts from brownfield inspection, audit reports findings without code changes, and verify runs gates against a completed surface. Supporting skills cover tokens, accessibility, performance, rendering, component contracts, responsive layout, CSS architecture, and status. The frontend-reviewer agent provides an independent read: the diff for token drift, ARIA mutation completeness, state coverage, WCAG 2.2 manual checks and Core Web Vitals regression signals, and the rendered captures for reader-visible layout failure a diff cannot show."
 skills:
   - name: frontend-engineering
     description: "Selects create, retrofit, audit, or verify mode; runs the shared pre-flight; and requires evidence before completion."
@@ -81,7 +81,9 @@ humanGates:
     trigger: "After implementation, audit, or verify mode produces gate results"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Routes, viewports, browsers, states, screenshots, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Routes, viewports, browsers, states, screenshots, inspection observations, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items are present."
+      - "Inspection observations say what was seen in the captures and name the result state AND the verdict; a list of screenshot filenames does not satisfy the field, and a skipped or failed inspection is not a completed one."
+      - "The inspection verdict is `pass`. A `fail` verdict means the run looked at the page and found a blocking reader-visible failure: accept it as a known exception with a named owner, or send it back. A completed run is not a passing one."
       - "Core Web Vitals use p75 targets, with mobile and desktop separated where field data exists."
       - "Known exceptions are explicit decisions, not hidden missing work."
     whatGoodLooksLike: "The manifest names what was tested, what passed, what could not be tested, and what remains accepted risk."
@@ -93,7 +95,7 @@ humanGates:
     trigger: "After gates and manifest are ready, before merge or handoff"
     duration: "10-20 minutes"
     whatToCheck:
-      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance, WCAG 2.2 Target Size Minimum, and Core Web Vitals regression signals were reviewed."
+      - "Token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance, WCAG 2.2 Target Size Minimum, Core Web Vitals regression signals, and reader-visible layout failure read from the rendered captures were reviewed."
       - "Security, reliability, or product-design concerns were routed to the appropriate reviewer instead of claimed as covered here."
     whatGoodLooksLike: "The reviewer finds no blocking frontend regressions, or the findings are fixed and rerun."
     whatBadLooksLike: "The same author judges their own UI diff complete without an independent read."
@@ -153,10 +155,10 @@ Common requests:
 
 ### 4. Run verification gates
 
-- **You provide:** a runnable local route, static file, or completed surface, plus any browser or environment constraints.
-- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, CSS token enforcement when configured, and visual QA against applicable states. It records Core Web Vitals targets at p75 and separates mobile and desktop where field data exists.
-- **You do:** provide access or manual evidence for any browser-only check the agent cannot run.
-- **Output:** gate results with pass, fail, or unverified status for each required check.
+- **You provide:** a runnable local route, static file, or completed surface, plus any browser or environment constraints, and the routes you want inspected.
+- **Agent does:** runs the verification gates in order: structural HTML validation, accessibility audit, CSS token enforcement when configured, and visual QA against applicable states. It then runs the **rendered-page inspection**: it opens each route you named at two viewport heights, at rest and scrolled, and judges what the page actually looks like — content covering other content, text running out of its container, a control too small to hit. It records Core Web Vitals targets at p75 and separates mobile and desktop where field data exists.
+- **You do:** provide access or manual evidence for any browser-only check the agent cannot run, and decide whether any signed-in or sensitive view should be captured at all.
+- **Output:** gate results with pass, fail, or unverified status for each required check, plus the inspection's **observations** — what was seen in the captures, the result state, and the verdict (`pass`, or `fail` when a blocking reader-visible failure is unresolved) — which carry into the evidence manifest. A filename is not an observation. When no browser is reachable the inspection takes its named skip, recording `skipped-no-browser` and naming the missing capability; a skip stays visibly different from a completed inspection everywhere the result is read, so it reaches you as a decision rather than passing as a pass.
 - **State:** read-only
 
 ---
@@ -164,7 +166,7 @@ Common requests:
 ### 5. Produce the evidence manifest
 
 - **You provide:** screenshots, field data, analytics-event proof, or known-exception decisions that are not available from local gates.
-- **Agent does:** assembles the evidence manifest with routes, viewports, browsers, states, screenshots, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items. For a production surface it also records security/privacy review status and reliability/recovery status — the state of those reviews and who they were routed to, not a verdict of its own.
+- **Agent does:** assembles the evidence manifest with routes, viewports, browsers, states, screenshots, inspection observations (what was seen in the captures, the result state, and the verdict), a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items. For a production surface it also records security/privacy review status and reliability/recovery status — the state of those reviews and who they were routed to, not a verdict of its own.
 - **You do:** inspect the unverified items and known exceptions instead of treating them as noise.
 - **You decide:** accept the known exceptions, require fixes, or defer the surface.
 - **Output:** a completion-ready evidence manifest for create, retrofit, or verify mode.
@@ -175,7 +177,7 @@ Common requests:
 ### 6. Get an independent frontend review
 
 - **You provide:** the diff and evidence manifest.
-- **Reviewer does:** reads the HTML/CSS/JS diff for token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 manual-verification items, and Core Web Vitals regression signals. Security, reliability, and broader product-design findings route to their own reviewers instead of being claimed here.
+- **Reviewer does:** reads the HTML/CSS/JS diff for token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 manual-verification items, and Core Web Vitals regression signals, and reads the rendered-page captures for what a diff cannot show — something covering something else, text out of its container, a control too small to hit — taking its own captures where the set it was given does not cover what the diff makes it suspicious of. Security, reliability, and broader product-design findings route to their own reviewers instead of being claimed here.
 - **You do:** review findings and decide whether each one blocks the handoff.
 - **You decide:** merge after clean review, or send the work back through implementation and gates.
 - **Output:** reviewed frontend work with the contract, gates, manifest, and reviewer disposition connected.

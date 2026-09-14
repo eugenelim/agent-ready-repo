@@ -15,6 +15,20 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": "rendered-page-inspection",
+      "prompt": "A local HTML page has passed structural validation and the accessibility audit. Run the rendered-page inspection on it and report the result, then record what belongs in the evidence manifest.",
+      "expected_output": "The capture set covers both required viewport heights, each at rest and scrolled, or records page-scrollable: no where the page does not scroll at that height. Every capture carries its route, viewport width, viewport height, scroll position and page-scrollable, and the route excludes any query string and fragment. Findings name the reader-visible failure and where it appears, and each severity is taken from the finding-class mapping rather than from any severity the judge supplied. The evidence manifest entry records what was observed plus the result state, not a list of screenshot filenames. If no browser is reachable the result is a named skip that names the missing capability and is distinguishable from a completed inspection.",
+      "assertions": [
+        "Captures at a viewport height of at most 600 CSS pixels and at least 900, each at rest and scrolled",
+        "Records page-scrollable: no rather than reporting incomplete when the page does not scroll at a height",
+        "Records route, viewport width, viewport height, scroll position and page-scrollable with every capture",
+        "Excludes the query string and fragment from the recorded and transmitted route",
+        "Derives each finding's severity from the finding class and discards any judge-supplied severity",
+        "Records observations and the result state in the evidence manifest rather than filenames",
+        "Reports a named skip that names the missing capability when no browser is reachable"
+      ]
     }
   ]
 }

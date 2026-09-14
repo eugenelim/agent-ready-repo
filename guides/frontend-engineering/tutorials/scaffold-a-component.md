@@ -310,6 +310,9 @@ Output should return only the `:root` token definition block.
 - [ ] No hardcoded values outside the `:root` block
 - [ ] Skeleton shape matches the content layout (no layout shift on load)
 - [ ] Screenshot taken for each state
+- [ ] Rendered-page inspection run and its observations recorded — a screenshot
+      filename is not an observation. See
+      [Inspect the rendered page](../how-to/inspect-the-rendered-page.md)
 
 ---
 
@@ -324,6 +327,8 @@ browsers: Chrome (Baseline Widely Available policy)
 states: loading, first-run, content, error, high-zoom (200%), reduced-motion,
   keyboard-only
 screenshots: loading-state.png, empty-state.png, content-state.png, error-state.png
+inspection observations: completed / pass — nothing reader-visible wrong across
+  the four required captures at 390x600 and 1280x900, at rest and scrolled
 a11y result:
   pa11y wcag21aa: 0 errors, 0 warnings
   manual 2.4.11 Focus Appearance: pass — 2px outline at 4.8:1 contrast
