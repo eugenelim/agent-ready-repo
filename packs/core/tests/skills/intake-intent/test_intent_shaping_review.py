@@ -1,5 +1,6 @@
 """Construction contracts for the intent shaping-review lifecycle gate."""
 
+import re
 from pathlib import Path
 
 SKILL = (
@@ -9,6 +10,19 @@ SKILL = (
     / "intake-intent"
     / "SKILL.md"
 )
+INTENT = SKILL
+
+
+def _between(path: Path, start: str, end: str) -> str:
+    """Return a normalized bounded prose region."""
+    text = " ".join(path.read_text(encoding="utf-8").split())
+    return text.split(start, 1)[1].split(end, 1)[0]
+
+
+def _recording_sections(path: Path) -> tuple[str, ...]:
+    """Return every named recording section from the bounded movement region."""
+    movement = _between(path, "**Recording sections** —", "Both labels")
+    return tuple(re.findall(r"`([^`]+)`", movement))
 
 
 def _gate() -> str:
@@ -67,6 +81,25 @@ def test_intent_material_revision_and_recorded_nonmaterial_correction_have_disti
     assert "source authority, or projection" in gate
     assert "this lifecycle owner may record a wording, format, or evidence-link" in gate
     assert "correction as nonmaterial and retain the bound result" in gate
+
+
+# STUB: AC-0001 — Opportunity is an intent materiality destination
+def test_intent_opportunity_edit_is_material_lifecycle_change() -> None:
+    materiality = _between(INTENT, "For an intent, material means", "Before sealing")
+    recording_sections = _recording_sections(INTENT)
+    exception_map = {
+        "Assumptions": "records context but is not an admitted demotion destination",
+    }
+    admitted_destinations = set(recording_sections) - set(exception_map)
+
+    assert set(recording_sections) == {
+        "Opportunity",
+        "Unresolved questions",
+        "Assumptions",
+    }
+    assert admitted_destinations == {"Opportunity", "Unresolved questions"}
+    for destination in admitted_destinations:
+        assert destination.casefold() in materiality.casefold()
 
 
 def test_intent_refuses_unavailable_independence_before_dispatch_with_caller_receipt() -> None:

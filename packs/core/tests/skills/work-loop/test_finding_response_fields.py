@@ -444,3 +444,25 @@ def test_demotion_reason_records_destination_pin_and_authority() -> None:
         "Its reason records the destination that now owns the obligation, the pin "
         "that catches its removal, and the owner authority permitting the removal."
     ) in " ".join(_decide().split())
+
+
+# STUB: AC-0001 — upstream and downstream pins stay distinct for intent demotion
+# STUB: AC-0002 — upstream and downstream pins stay distinct for brief demotion
+# STUB: AC-0003 — upstream and downstream pins stay distinct for brief demotion
+def test_demotion_pin_guidance_distinguishes_upstream_and_downstream() -> None:
+    cut = _section("### Cut")
+    demotion = _answer_bodies(cut)["demote-the-claim"]
+    pin_types = {
+        pin_type: sentence
+        for sentence in _sentences(demotion)
+        for pin_type in ("upstream", "downstream")
+        if pin_type in sentence.casefold()
+    }
+    exception_map = {
+        "downstream": "downstream lifecycle material retains a content test",
+    }
+
+    assert set(pin_types) == {"upstream", "downstream"}
+    assert set(pin_types) - set(exception_map) == {"upstream"}
+    assert "revision-bound lifecycle invalidation" in pin_types["upstream"]
+    assert "content test" in pin_types["downstream"]

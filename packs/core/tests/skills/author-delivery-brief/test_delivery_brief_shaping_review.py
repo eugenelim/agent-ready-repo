@@ -1,11 +1,44 @@
 """Construction contracts for the delivery-brief shaping-review lifecycle gate."""
 
+import re
 from pathlib import Path
 
 CORE = Path(__file__).resolve().parents[3]
 SKILL = CORE / ".apm" / "skills" / "author-delivery-brief" / "SKILL.md"
 AUTHOR_ALIAS = CORE / ".apm" / "skills" / "author-brief" / "SKILL.md"
 RECEIVE_ALIAS = CORE / ".apm" / "skills" / "receive-brief" / "SKILL.md"
+BRIEF = SKILL
+
+
+def _between(path: Path, start: str, end: str) -> str:
+    """Return a normalized bounded prose region."""
+    text = " ".join(path.read_text(encoding="utf-8").split())
+    return text.split(start, 1)[1].split(end, 1)[0]
+
+
+def _recording_sections(path: Path) -> tuple[str, ...]:
+    """Return every named recording section from the bounded movement region."""
+    movement = _between(path, "**Recording sections** —", "Both labels")
+    return tuple(re.findall(r"`([^`]+)`", movement))
+
+
+def _assert_brief_destination_is_material(destination: str) -> None:
+    """Require one admitted destination in the complete materiality region."""
+    materiality = _between(BRIEF, "For a brief, material means", "Before sealing")
+    recording_sections = _recording_sections(BRIEF)
+    exception_map = {
+        "Ready gaps": "is dropped on leaving Draft and cannot receive a demotion",
+    }
+    admitted_destinations = set(recording_sections) - set(exception_map)
+
+    assert set(recording_sections) == {
+        "Rabbit holes",
+        "Design artifacts",
+        "Ready gaps",
+    }
+    assert admitted_destinations == {"Rabbit holes", "Design artifacts"}
+    assert destination in admitted_destinations
+    assert destination.casefold() in materiality.casefold()
 
 
 def _flat(text: str) -> str:
@@ -55,6 +88,16 @@ def test_brief_material_revision_and_recorded_nonmaterial_correction_have_distin
     assert "readiness evidence, or materialization boundary" in gate
     assert "this lifecycle owner may record a wording, format, or evidence-link correction as nonmaterial" in gate
     assert "retain the bound result; otherwise redispatch." in gate
+
+
+# STUB: AC-0002 — Rabbit holes is a brief materiality destination
+def test_rabbit_holes_edit_is_material_lifecycle_change() -> None:
+    _assert_brief_destination_is_material("Rabbit holes")
+
+
+# STUB: AC-0003 — Design artifacts is a brief materiality destination
+def test_design_artifacts_edit_is_material_lifecycle_change() -> None:
+    _assert_brief_destination_is_material("Design artifacts")
 
 
 def test_brief_refuses_unavailable_independence_before_dispatch_with_caller_receipt() -> None:

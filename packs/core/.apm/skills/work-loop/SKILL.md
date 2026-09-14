@@ -676,6 +676,9 @@ finding does not by itself require an edit.
   already exists, and when the target was never contract. Its reason records the
   destination that now owns the obligation, the pin that catches its removal, and
   the owner authority permitting the removal.
+  An upstream pin may be revision-bound lifecycle invalidation at its
+  destination. A downstream pin remains a content test of the destination
+  that owns it.
 - `narrow-the-claim` — the obligation stays contract and in place. When
   no check can reach the claimed property, only its stated reach shrinks to
   what a check reaches. When some check can reach the claimed property, do not

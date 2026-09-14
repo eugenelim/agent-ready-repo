@@ -45,3 +45,36 @@ mid-sentence. Rewriting it to one sentence per claim removed 5 body lines
 - `sed -n '11,$p' packs/core/.apm/skills/work-loop/SKILL.md | wc -l` — **880**, within the 890 ceiling and far below the 1000-line CAT-S003 error
 - `make lint-ruff lint-mypy` — ruff `All checks passed!`; mypy `Success: no issues found in 139 source files`
 - Portability count for `SKILL.md` — **0**, unchanged from its pre-change baseline
+
+## T2 — upstream demotion destinations (AC-0001, AC-0002, AC-0003)
+
+**Stub materialization.** Four approved blocks copied byte-identical, all six
+`# STUB: AC-000n` lines exact. Intended red observed before deferred assertions
+were filled: intent 1 failed / 6 passed (missing `Opportunity`); brief 2 failed /
+6 passed (missing `Rabbit holes`, `Design artifacts`); work-loop 1 failed / 43
+passed (missing `revision-bound lifecycle invalidation`).
+
+**Mutation proofs.** Each destination deleted independently; a combined deletion
+would prove nothing about any one of them. Restored by editing throughout.
+
+| # | Invariant | Exact mutation | Existing broad test | New guard |
+| --- | --- | --- | --- | --- |
+| 1 | `Opportunity` is material to intent review | Deleted only `opportunity,` from the intent materiality list | **passed** | **failed** — missing `opportunity` |
+| 2 | `Rabbit holes` is material to brief review | Deleted only `rabbit holes,` from the brief list | **passed** | **failed** — missing `rabbit holes` |
+| 3 | `Design artifacts` is material to brief review | Deleted only `design artifacts,` from the brief list | **passed** | **failed** — missing `design artifacts` |
+| 4 | Upstream and downstream pins stay distinct | Reverted the DECIDE pin sentence to content-test-only | prior pin-vocabulary guard **passed** | **failed** — missing `revision-bound lifecycle invalidation` |
+
+Mutation 1 was re-verified independently by the controller: deleting only
+`opportunity,` reds exactly `test_intent_opportunity_edit_is_material_lifecycle_change`
+and leaves the other six tests, including the pre-existing broad materiality
+test, green — the precise blindness that made these three omissions invisible.
+
+**T2 `Done when` results.**
+
+- intake-intent suite — **7 passed**
+- author-delivery-brief suite — **8 passed**
+- work-loop suite — **44 passed** (T1's guards intact)
+- three suites together — **59 passed** in 0.29s
+- `sed -n '11,$p' … work-loop/SKILL.md | wc -l` — **883**, within the 890 ceiling
+- `make lint-ruff lint-mypy` — ruff and mypy clean
+- Portability — **0** in each of the three shipped skill files
