@@ -2427,6 +2427,22 @@ class _ShardRecordingExecutor:
         )
 
 
+@contextlib.contextmanager
+def _shard_outside_a_shard() -> Iterator[None]:
+    """Run a `main()` case as if not already inside a shard.
+
+    These tests are themselves part of the roster, so under
+    `make test SHARD=n SHARDS=m` the selector's own re-entry marker is present
+    in the environment and `main()` would refuse by design. Clearing it is what
+    lets the same case mean the same thing sharded and unsharded -- without it
+    the suite passes locally and fails only on a sharded runner.
+    """
+    shard = _shard_module()
+    with mock.patch.dict(os.environ):
+        os.environ.pop(shard.REENTRY_MARKER, None)
+        yield
+
+
 def test_shard_classifies_preconditions_work_and_ignored_lines() -> None:
     """All live line classes are explicit, and unknown lines fail closed."""
     shard = _shard_module()
@@ -2508,7 +2524,9 @@ def test_shard_refuses_nonzero_roster_expansion_without_execution() -> None:
         stderr="expansion failed\n",
     )
     recorder = _ShardRecordingExecutor()
-    with mock.patch.object(shard.subprocess, "run", return_value=make_result):
+    with _shard_outside_a_shard(), mock.patch.object(
+        shard.subprocess, "run", return_value=make_result
+    ):
         result = shard.main(["--shard", "1", "--shards", "1"], executor=recorder)
     assert result != 0
     assert recorder.calls == []
@@ -2540,7 +2558,7 @@ def test_shard_selector_validation_records_zero_execution() -> None:
     )
     for name, argv in invalid_selectors:
         recorder = _ShardRecordingExecutor()
-        with mock.patch.object(
+        with _shard_outside_a_shard(), mock.patch.object(
             shard,
             "roster_lines",
             return_value=_shard_fixture_lines(),
@@ -2614,7 +2632,9 @@ def test_shard_execution_keeps_unit_boundaries_and_all_preconditions() -> None:
 
     for shard_index, assigned in enumerate(assignments, start=1):
         recorder = _ShardRecordingExecutor()
-        with mock.patch.object(shard, "roster_lines", return_value=lines):
+        with _shard_outside_a_shard(), mock.patch.object(
+            shard, "roster_lines", return_value=lines
+        ):
             result = shard.main(
                 ["--shard", str(shard_index), "--shards", "2"],
                 executor=recorder,
@@ -2632,7 +2652,9 @@ def test_shard_execution_fails_fast_before_later_work_units() -> None:
     work_units = [line for line in lines if shard.classify(line) == "work"]
     recorder = _ShardRecordingExecutor({work_units[1]: 7})
 
-    with mock.patch.object(shard, "roster_lines", return_value=lines):
+    with _shard_outside_a_shard(), mock.patch.object(
+        shard, "roster_lines", return_value=lines
+    ):
         result = shard.main(["--shard", "1", "--shards", "1"], executor=recorder)
     assert result == 7
     assert recorder.calls == [*preconditions, work_units[0], work_units[1]]
@@ -2950,3 +2972,35 @@ def test_shard_executor_and_expansion_both_use_the_scrubbed_environment() -> Non
     for env in seen:
         assert "SHARD" not in env and "SHARDS" not in env
         assert env.get(shard.REENTRY_MARKER) == "1"
+
+
+def test_shard_every_main_call_site_clears_the_reentry_marker() -> None:
+    """A `main()` case without the guard passes locally and fails only sharded.
+
+    This suite is itself in the roster, so under `make test SHARD=n SHARDS=m`
+    the selector's re-entry marker is already in the environment. A future case
+    that calls `main()` outside `_shard_outside_a_shard()` would therefore be
+    refused on a sharded runner while staying green on a developer's machine --
+    an asymmetry no ordinary run of this suite can reveal. Checked structurally
+    because the defect is in what a test FORGETS to wrap.
+    """
+    source = Path(__file__).read_text(encoding="utf-8")
+    lines = source.splitlines()
+    unguarded: list[int] = []
+    # The detector must not match its OWN source. Every mention of the call
+    # inside this function sits in a string literal or a backticked comment, so
+    # a real call site is one not preceded by a quote character of any kind.
+    call_site = re.compile(r"""(?<!["'`])\bshard\.main\(""")
+    for index, line in enumerate(lines):
+        if not call_site.search(line):
+            continue
+        window = "\n".join(lines[max(0, index - 6) : index + 1])
+        if "_shard_outside_a_shard()" in window:
+            continue
+        if "REENTRY_MARKER" in window:  # the case that deliberately re-enters
+            continue
+        unguarded.append(index + 1)
+    assert not unguarded, (
+        "shard.main() called without _shard_outside_a_shard() at line(s) "
+        f"{unguarded}; that case would fail only on a sharded runner"
+    )
