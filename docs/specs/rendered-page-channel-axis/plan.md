@@ -84,7 +84,15 @@ row. Two row keys are shipped content the suites read by name:
 | --- | --- | --- |
 | `every-captured-width-and-height-needs-the-pair` | Required captures, rule rows | replaces `every-captured-height-needs-the-pair` |
 | `channel-basis-recorded` | Channels, rule rows | the AC-0003 record |
-| `channel-name-forbids` | Channels, rule rows | the AC-0012 token list |
+| `channel-name-forbids` | Channels, rule rows | `required` — the switch AC-0012's guard reads before enforcing |
+
+The forbidden device-name tokens ship as a **one-column table** under their own
+heading, mirroring the `## Rate vocabulary` table the measurement reference
+already carries and the guard at
+`test_rendered_page_shipped_content_limits.py:115` already parses with
+`^\| ([a-z][a-z -]+) \|$`. A comma-separated cell would invent a grammar nothing
+else in the reference uses and would forfeit `unique_keyed`'s duplicate rejection
+over the tokens.
 
 The `## Channels` section carries **three-cell band rows** — name, lower bound,
 upper bound, either bound cell empty for unbounded — and two-cell rule rows. Cell
@@ -205,9 +213,9 @@ than assumed, and `make build-self` leaves no projection diff.
 ### T5: The evidence manifest records channels
 
 **Depends on:** T4
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
 
-**Tests:** TDD for AC-0011 and AC-0012, in
+**Tests:** TDD for AC-0011, AC-0012 and AC-0023, in
 `test_rendered_page_shipped_content_limits.py`. The guard **reads** the forbidden
 token list from the reference rather than stating it, which is what makes AC-0012
 delete-and-red the way AC-0008 requires of the other rows. The shape already
@@ -220,27 +228,31 @@ its own list, because repository identifiers are not a rule an adopter is held t
 **Approach:** restate the `viewports` row of `SKILL.md`'s evidence-manifest
 required-field table as channels covered, given as width predicates. It currently
 names three devices and is inside AC-0012's scope, so it is rewritten here rather
-than left. `JOURNEY.md` is deliberately untouched: its two manifest mentions
-(`:84`, `:169`) name the `viewports` field in a field inventory and never state
-what it holds, so the axis change does not reach them.
+than left. Add declared breakpoints to `JOURNEY.md:12`'s `youProvide`, which today
+names routes and viewports and not the new input. `JOURNEY.md`'s two *manifest*
+mentions (`:84`, `:169`) stay untouched: they name the `viewports` field in an
+inventory and never state what it holds, so the axis change does not reach them.
 
 **Done when:** the `viewports` row of `SKILL.md`'s evidence-manifest
-required-field table no longer names a device, and `JOURNEY.md` is absent from the
-diff.
+required-field table no longer names a device, and the only changed line in
+`JOURNEY.md` is `:12`.
 
 ### T6: The reviewer and the eval harness read the width axis
 
 **Depends on:** T1
 **Touches:** packs/frontend-engineering/.apm/agents/frontend-reviewer.md, packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json
 
-**Tests:** TDD for AC-0013 and AC-0016, in `test_rendered_page_reviewer_sight.py`.
+**Tests:** TDD for AC-0013, AC-0016 and AC-0021, in `test_rendered_page_reviewer_sight.py`.
 Scope the lens read to the lens section rather than the whole agent file, the way
 that suite already scopes its reads; the whole-file read passes on the shared
 output-rendering block. AC-0016 parses `evals/evals.json` in the same module.
 
 **Approach:** extend lens 6 so the width joins the scroll position as a field the
 reviewer must use, and recheck the "differ only by that field" sentence against
-the widened axis. Add channel coverage to the harness's expected behaviours.
+the widened axis. In the harness, add the channel-coverage assertion **and**
+rewrite the first assertion and the opening `expected_output` sentence, which
+today define a complete set by height alone — after this delivery a run matching
+them exactly is `incomplete`.
 
 **Done when:** `catalogue lint --deep` and `catalogue verify` accept the edited
 agent and harness, and `make build-self` leaves no projection diff for either.
@@ -250,15 +262,21 @@ agent and harness, and `make build-self` leaves no projection diff for either.
 **Depends on:** T4
 **Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md
 
-**Tests:** goal-based check for AC-0018 — a search over the guide for both
-fallback channel names and the band between them that no fallback capture
-reaches. The repository's documentation gates stay a separate well-formedness
-check; a guide naming neither channel passes them.
+**Tests:** goal-based check for AC-0018 and AC-0022 — a search over the guide for
+both fallback channel names, the band between them that no fallback capture
+reaches, and the per-channel floor, plus its negative half: no sentence or table
+states a complete set by viewport height alone. The positive search alone passes
+on a guide that keeps "Take four captures per route" two lines above the new
+paragraph. The repository's documentation gates stay a separate well-formedness
+check.
 
 **Approach:** take the guide's worked walk across both channels — its capture
 table and the prose under it (`:45-65`), and its capture-record table (`:74-77`) —
 and state what a reader records when no breakpoints are declared, plus the band
-between the two fallback channels that no fallback capture reaches.
+between the two fallback channels that no fallback capture reaches. The three
+lines that state the superseded floor are `:45` ("Take four captures per route"),
+the height-keyed table at `:47-52`, and `:59` ("none beyond these two is
+required"); AC-0022 fails while any of them stands.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates.
@@ -325,6 +343,13 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Shaping review round 4, with the four previously unread surfaces
+  seeded: 6 findings, no blocker. Three existed only because those files were
+  finally opened. The harness and the how-to both define completeness by height
+  alone, so an additive criterion on either would have left two contradictory
+  floors in one artifact; AC-0021 and AC-0022 are the negative halves. The
+  deletion pass had also generalized a claim about two manifest lines to the whole
+  journey file, missing `:12`'s input declaration.
 - 2026-09-13 — Deletion pass over the criteria review added. AC-0020 cut and
   `JOURNEY.md` dropped from the change: its two manifest mentions name the
   `viewports` field in an inventory and never state what it holds, so the axis
