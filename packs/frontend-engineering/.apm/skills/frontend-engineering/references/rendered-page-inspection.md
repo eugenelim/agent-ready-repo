@@ -74,8 +74,8 @@ band exercises that rule only where it already applies. Width is therefore a
 completeness axis beside height, not a field that merely gets recorded.
 
 Which bands a surface has comes from the breakpoints the adopter declares. When
-they declare none, these two apply. An empty bound cell means unbounded on that
-side.
+they declare none and no declared minimum narrows them, these two apply. An empty
+bound cell means unbounded on that side.
 
 | Channel | Lower bound | Upper bound |
 | --- | --- | --- |
@@ -93,9 +93,12 @@ one width could satisfy both, a single-channel set would read as covering two.
 | channel-capture-width | lower-bound-else-largest-satisfying-upper |
 | channel-basis-recorded | required |
 | every-required-channel-needs-the-matrix | required |
+| channel-minimum-derivation | drop-bands-below-clamp-lowest-survivor |
+| channel-minimum-recorded | required |
 
 **Deriving bands from declared breakpoints.** For breakpoints `b1 < ... < bn`,
-the bands are `<b1`, then `>=bk` with `<bk+1` for each adjacent pair, then `>=bn`.
+before the declared minimum is applied, the bands are `<b1`, then `>=bk` with
+`<bk+1` for each adjacent pair, then `>=bn`.
 Each boundary value belongs to the wider band, matching the mobile-first
 `min-width` semantics a breakpoint is normally written in. A declared breakpoint
 is a positive whole number of CSS pixels; a run refuses anything else, because a
@@ -109,6 +112,24 @@ It puts each capture at the edge of its band, which is where a breakpoint-scoped
 rule changes behaviour — breakpoints at `1152` give captures at `1151` and
 `1152`. It does not exercise the rest of a band, so a rule that misbehaves away
 from a boundary is a different matter and this axis does not look for it.
+
+**A surface may declare the minimum width it supports.** It is an optional run
+input, a positive whole number of CSS pixels, and a run refuses anything else. It
+is never inferred from the surface: static analysis cannot answer what a page
+emits. A band whose upper bound admits no width at or above it stops being
+required, and the lowest band that survives has its lower bound raised to the
+minimum where its own bound sits below — raised, never lowered, so a minimum
+cannot invent a width the surface never claimed. A band with no upper bound is
+never dropped. A breakpoint strictly below the minimum is discarded and recorded
+as discarded; one equal to the minimum still bounds a surviving channel. A
+clamped band is renamed from its bounds after the clamp, so a band clamped to
+`>=1280` with no upper bound reads `from-1280`; a clamped fallback band keeps the
+name its row gives it.
+
+**The minimum in force is recorded beside the basis, not inside it.** A run
+records the value it used, or `none-declared` when none was, and separately the
+declared breakpoints the minimum discarded. The basis stays one of its two
+values, because a minimum composes with either.
 
 **Which basis a run used is recorded, never inferred.** A run over declared
 breakpoints and a fallback run can produce the same captures, and only the record
@@ -134,8 +155,9 @@ carries a dimension that stops being true, and the name outlives the hardware.
 Every inspected route needs all four of these **in every required channel**.
 Heights are the browser viewport's height in CSS pixels; scroll position is the
 vertical offset the capture was taken at, in the same units. With the two
-fallback channels that is eight captures per route; a surface declaring `n`
-breakpoints needs four times `n + 1`.
+fallback channels and no declared minimum, that is eight captures per route; a
+surface declaring `n` breakpoints above the declared minimum needs four times
+`n + 1`.
 
 | Capture | Viewport height | Scroll position |
 | --- | --- | --- |
