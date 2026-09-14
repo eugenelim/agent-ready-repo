@@ -65,7 +65,9 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 - Change `workspace.toml`'s schema, or what an author is permitted to write
   into it. This changes what the projection emits, nothing upstream of it.
 - Weaken, delete, or narrow any assertion in the touched test files other than
-  the three that pin these two fields.
+  the display-field assertions inside the three named tests, which invert. The
+  absolute-path and repository-root leak guards in those files are a different
+  control and stay exactly as they are.
 
 ## Testing Strategy
 
@@ -86,15 +88,18 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** For every active initiative, projected `initiatives[].name` and
-  `initiatives[].milestone` equal the string the initiative's `workspace.toml`
-  section assigns, unchanged — including a value containing `·`, `–`, `—`, a
-  semicolon, or a straight apostrophe, and a value of 107 characters.
-- [ ] **AC-0002.** When an initiative section assigns a non-string TOML value to
-  `name` or `milestone`, the projected field is that value's `str()` form and
-  its JSON type is string.
+- [ ] **AC-0001.** For every active initiative in the workspace under test,
+  projected `initiatives[].name` and `initiatives[].milestone` equal the string
+  that initiative's `workspace.toml` section assigns, unchanged — including a
+  value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
+- [ ] **AC-0002.** A non-string TOML value assigned to `name` or `milestone`
+  projects as a JSON string, never as a JSON number, boolean, array, or object.
+  Projected text by class: `123` → `"123"`, `4.5` → `"4.5"`, `true` → `"True"`,
+  `[1, 2]` → `"[1, 2]"`.
 - [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
-  fields as values read from `workspace.toml`, renders active initiatives as
+  fields as values read from `workspace.toml`, enumerates `name` and `milestone`
+  in the `initiatives` summary row alongside `slug`, `status`, `brief_queue` and
+  `queue_empty`, renders active initiatives as
   `` `<ini-slug>` — `<name>` (milestone: `<milestone>`) ``, and contains no
   paragraph instructing the consumer to render the slug alone or to treat either
   field as redacted.

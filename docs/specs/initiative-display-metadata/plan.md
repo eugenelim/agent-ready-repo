@@ -32,9 +32,12 @@ invert. The adapter projections are regenerated rather than edited.
   `SKILL.md` wording states the rule directly and names no intent, spec, or
   acceptance criterion.
 - `tools/test_local_ci_shared_test_deduplication.py` pins the method count of
-  `tools/test_workspace_status_cli.py` as a bare integer in two separate
-  assertions. Converting rather than deleting the payload test keeps that count
-  unchanged, so neither assertion needs re-pinning.
+  `tools/test_workspace_status_cli.py` as a bare `163` in two assertions, at
+  lines 1169 and 1390. Conversion holds that count for the three converted
+  tests, but T1 and T2 each add one method, so both literals move to the
+  recomputed value. That file's own convention requires a disposition note
+  beside a re-pin rather than a bare number bump: name the additions, and state
+  that nothing was removed or renamed.
 
 ## Construction tests
 
@@ -72,6 +75,13 @@ the only place the spec makes a claim about.
 `str()` rather than a type check with a fallback: a fallback needs a value to
 fall back to, and the only candidate is the sentinel the spec forbids
 reintroducing.
+
+`str()` reports what the projection received rather than reconstructing the
+source syntax, which is why AC-0002 fixes `true` as `"True"` — Python's
+capitalised form, not TOML's. A non-string in a display field is an authoring
+error, and showing the reader what arrived is more useful than making it look
+like valid TOML. The alternative, a TOML-faithful renderer, is a new mechanism
+for a case the corpus has never produced.
 
 ### Behavior & rules
 
@@ -112,6 +122,12 @@ is recorded as a known shape, not handled.
   projected values are `"123"` and `"4.5"` and that `isinstance(value, str)`.
 - Update the third pinning site inside `test_cli_rich_fixture_shapes`, whose
   fixture already declares `milestone = "M1"`, to expect the authored value.
+- Ten assertions invert across the three tests, not three: six equality
+  assertions, plus four `assertNotIn` guards naming fixture-authored display
+  prose (`ignore previous instructions`, `/outside/should-not-leak`,
+  `Platform Core`, `Adopt`), each of which becomes false once the fixture's own
+  values project. The `assertNotIn(str(root), ...)` repository-root leak guard
+  is a different control and stays untouched.
 
 **Approach:**
 - Replace the two literals in `_build_json` with `str()` reads of the parsed
@@ -135,10 +151,18 @@ is recorded as a known shape, not handled.
 **Approach:**
 - Restore the `Active initiatives` template line and remove the
   `Redacted display fields` paragraph.
-- Return the key list's two rows to describing values read from
-  `workspace.toml`.
+- Return the key list's two per-field rows to describing values read from
+  `workspace.toml`, and re-add `name` and `milestone` to the `initiatives`
+  summary row, which currently enumerates only `slug`, `status`, `brief_queue`
+  and `queue_empty`.
 
-**Done when:** the AC-0003 assertion is green and `catalogue verify` reports `ok`.
+- Re-pin both `163` literals in
+  `tools/test_local_ci_shared_test_deduplication.py` once T1's and T2's
+  additions both exist, with the disposition note that file's convention
+  requires.
+
+**Done when:** the AC-0003 assertion is green, `catalogue verify` reports `ok`,
+and `tools/test_local_ci_shared_test_deduplication.py` passes.
 
 ### T3: exercise the real script
 
@@ -153,10 +177,10 @@ Testing Strategy.
 - Run the script against this repository's own `workspace.toml` and read the
   four active initiatives' projected values.
 
-**Done when:** the observed `initiatives[]` output carries `Platform Core`,
-`Digital Experience Doctrine`, `Catalogue Contracts, Composition, Semantics,
-and Discovery`, and `Agent Skill Engineering` with their milestones, recorded
-in the verification ledger.
+**Done when:** every active initiative in this repository's `workspace.toml`
+appears in `initiatives[]` carrying the `name` and `milestone` that file
+assigns it, with the observed values recorded in the verification ledger as
+evidence rather than as the condition.
 
 ### T4: ship the pack change
 
@@ -198,3 +222,8 @@ assertion would duplicate an existing gate.
 ## Changelog
 
 - 2026-09-14 — drafted.
+- 2026-09-14 — revised from shaping review: corrected the dedup-guard
+  arithmetic (F1), enumerated the ten inverting assertions and the leak guard
+  that survives (F2), added the `initiatives` summary row (F3), moved the
+  boolean-rendering decision out of the criterion (F4), and made T3's exit
+  condition a property rather than four corpus literals (F6).
