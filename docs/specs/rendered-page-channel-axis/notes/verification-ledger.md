@@ -357,3 +357,41 @@ T9's own `Touches` lists `docs/product/changelog.md`. The plan was sealed before
 that mismatch was visible. The obligation is carried here and discharged in the
 closeout: `gh workflow run test-corpus.yml` is dispatched against this branch
 after push, and its result belongs to this delivery's evidence.
+
+
+## AC-0014's verification is weaker than the criterion it verifies
+
+**Recorded, not repaired.** AC-0014 states that both manifests carry `0.2.4`. Its
+PR-reachable artifact asserts something weaker:
+
+```
+tests/conformance/test_pack_metadata.py::test_pack_and_plugin_versions_match[frontend-engineering]
+    assert plugin.get("version") == _pack_data(pack_dir)["version"]
+```
+
+That is **agreement** between the two manifests, not the value the criterion
+names. The criterion stays green on two manifests both reading `0.2.3`, and the
+literal `0.2.4` is pinned by nothing — it appears nowhere in `tests/`, `tools/`,
+`.github/` or the `Makefile`. The sibling parametrization,
+`test_pack_declares_enriched_metadata[frontend-engineering]`, is collected on the
+same PR but reads no version field at all: it asserts readme, license,
+`links.repository`, categories, keywords and maintainers.
+
+The spec's own Testing Strategy describes AC-0014's check as "compare the two
+manifests' version fields", which *is* the agreement predicate — so the
+criterion's text and its verification differ in strength by exactly this much,
+and the Testing Strategy is the honest half. The gap is in the criterion's
+wording, which names a literal no check reads.
+
+Not repaired here for two reasons. Pinning `0.2.4` anywhere would create a
+surface that must be edited on every subsequent release of this pack, which is
+the version-bump-collision hazard the release convention already warns about. And
+a criterion whose only defect is that it names a value its check does not read is
+a wording matter on a `Shipped` spec, not a behaviour defect: both manifests do
+carry `0.2.4`, verified by direct read at delivery.
+
+Recorded because a future reader of AC-0014 has no other way to discover it. This
+was single-copy in the spec's `Follow-ons` bullet — grepped across all three
+artifacts and present in exactly one — and that bullet was then shortened to a
+routing pointer on both reviewers' advice, so without this section the
+observation would have been deleted rather than relocated.
