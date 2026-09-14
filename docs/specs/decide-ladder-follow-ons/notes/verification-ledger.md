@@ -115,3 +115,33 @@ single tuple call; no behaviour change.
 - `make lint-ruff lint-mypy` — clean after the PIE810 repair
 - Portability — **0** in both the new reference and `SKILL.md`
 - Conditional-routing rows added — exactly **1**
+
+## T4 — changed skills update their eval registers
+
+One case added per changed skill, matching each register's existing schema
+(`skill_name` + `evals`; case fields `id`, `prompt`, `expected_output`,
+`assertions`).
+
+| Register | New case id | Content pin tokens found |
+| --- | --- | --- |
+| work-loop | `decide-repair-traversal` | `literal sweep`, `semantic walk` |
+| intake-intent | `intent-opportunity-materiality` | `Opportunity` |
+| author-delivery-brief | `brief-materiality-destinations` | `Rabbit holes`, `Design artifacts` |
+
+**T4 `Done when` results.**
+
+- identifier command — exactly one owning case per register (work-loop:712,
+  intake-intent:88, author-delivery-brief:69)
+- three bounded content-pin commands — every named token present inside its
+  matched case region
+- `agentbundle catalogue lint --root . --deep` — **exit 0, 70 findings, 0 errors**;
+  every finding is a pre-existing WARN category. `work-loop/SKILL.md` carries the
+  expected CAT-S003 body-length WARN at 884 lines, which it already carried at
+  874 before this change (the warn threshold is 500; the error threshold is 1000)
+- JSON validity re-verified by parsing each register: 62, 9 and 7 cases
+- Portability, before → after — work-loop **14 → 14** (pre-existing permitted
+  illustrative adopter examples, deliberately preserved), intake-intent
+  **0 → 0**, author-delivery-brief **0 → 0**
+
+No eval was executed and none is claimed to have run; these registers are not
+driven by any suite.
