@@ -60,6 +60,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.1] — 2026-09-14
+
+### Highlights
+
+- **`workspace-status` no longer tells you an initiative is called
+  "workspace.toml".** An initiative's name and milestone are free text you type
+  into `workspace.toml`, and the status tool deliberately never passes them
+  through — they always come back as the literal `workspace.toml`, the same
+  stand-in every other field uses to mean "this value was not safe to hand to an
+  agent." The skill's own instructions had not caught up and still told the agent
+  to print them, so a status run announced `ini-002 — workspace.toml (milestone:
+  workspace.toml)`. Active initiatives now show their slug alone.
+
+### Fixed
+
+- `workspace-status`: the key list and the "Active initiatives" rendering
+  template described `initiatives[].name` and `initiatives[].milestone` as
+  values to display. Both are documented as the redaction sentinel, the
+  rendering template shows the slug alone, and the skill is told not to read
+  `workspace.toml` to recover either value — doing so would put back the
+  untrusted prose the sentinel keeps out of agent context.
+
 ## [core][2.26.0] — 2026-09-13
 
 ### Changed

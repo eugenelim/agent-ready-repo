@@ -1166,7 +1166,7 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
         direct_skip_reasons[nodeid] = str(
             getattr(method, "__unittest_skip_why__", "")
         )
-    assert len(cli_contract) == len(direct_cli_nodes) == 162
+    assert len(cli_contract) == len(direct_cli_nodes) == 163
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1387,7 +1387,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
         for method in unittest.defaultTestLoader.getTestCaseNames(test_case)
     }
 
-    assert len(direct_ids) == 162
+    assert len(direct_ids) == 163
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 
