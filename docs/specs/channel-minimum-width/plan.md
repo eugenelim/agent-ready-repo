@@ -135,9 +135,10 @@ adopter records, which is the whole outcome. `inspection_result` deliberately
 does not echo the basis back, and the minimum follows that same rule: it selects
 required channels and is recorded on the § 5a manifest row, not in the result. The clamped-band naming rule and its two templates are stated in AC-0002 and
 AC-0003, with the fallback exception; the walk prints that name in its incomplete
-report, which is why it is contract rather than detail. AC-0002 states the drop condition and AC-0003 the clamp; this plan does not
-restate either, because two copies of a rule drift independently and this one
-already did once. The mechanism those criteria imply: one pass that drops a band
+report, which is why it is contract rather than detail. AC-0002 and AC-0003 are canonical for the drop
+condition and the clamp; this plan states the mechanism they imply rather than
+the rules themselves, so a correction to either lands in one place. The
+mechanism: one pass that drops a band
 whose upper bound admits no width at or above the minimum, then raises the lowest
 survivor's lower bound to `max(minimum, its own)`, collecting breakpoints
 strictly below the minimum as it goes, so the discarded list is a by-product
@@ -170,10 +171,10 @@ and after (T8).
 **Tests:** goal-based check for the rows. AC-0001 through AC-0004, AC-0006 and
 AC-0007 are stated here and asserted in T2. AC-0021's sweep lands in T5, after
 every surface it reaches has been edited, but four of its eight anchors are in
-this file: the fallback sentence, the band enumeration, and the per-route floor
-stated a second time in `## Required captures` — a paragraph the earlier
-anchor set missed entirely, because its wording is backticked and omits "where
-you declare".
+this file, and the `Done when` below is their one enumeration rather than a
+second list that can drift from it. One of the four is the per-route floor stated
+a second time in `## Required captures`, a paragraph the earlier anchor set
+missed entirely because its wording is backticked and omits "where you declare".
 `test_the_channel_sweep_reaches_every_file_that_names_a_channel` and
 `test_every_shape_still_matches_the_shipped_site_it_was_written_for` are re-run
 in-task: the first asserts set equality between the channel names harvested
@@ -190,7 +191,10 @@ rather than rephrasing is what discharges it and a rephrase cannot hide behind a
 sibling carrier. The four are the fallback sentence, the band enumeration opener,
 the eight-captures-per-route figure, and the n-plus-1 floor in the
 required-captures paragraph, quoted exactly in AC-0021; the channel-name sweep is green without its shapes or
-expected set being edited; and
+expected set being edited, and `fallback_channels` still returns exactly `narrow`
+and `wide` with `test_fallback_channels_are_the_two_shipped_bands` green — that
+control, not the sweep, is what reds a band row added to this file, because the
+sweep derives its own expected set from these same rows; and
 `channel_rules(read_rules())` returns eight keys including
 `channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
 rejects a duplicate key, run from a scratch probe. Not `capture_set_rules`: it
@@ -247,7 +251,7 @@ them while the walk still derives its bands without the minimum.
 ### T3: `SKILL.md` and the journey state the input
 
 **Depends on:** T1
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_journey_promise.py
 
 **Tests:** TDD for AC-0008, AC-0018 and AC-0009. AC-0018 asserts the § 5a
 manifest row beside the shipped `test_manifest_viewports_field_records_channels`,
@@ -305,11 +309,13 @@ stale web copy publishes the old input list with every gate green.
 ### T4: The how-to walks a single-channel surface
 
 **Depends on:** T3
-**Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md
+**Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_verdict.py
 
-**Tests:** goal-based check for AC-0010 — a search over the guide for the minimum
-input and the four-capture floor a single channel produces. The repository's
-documentation gates stay a separate well-formedness check.
+**Tests:** TDD for AC-0010 in `test_rendered_page_verdict.py`, the one pack module
+that already reads the shipped how-to — a literal search over the guide for the
+minimum input and the four-capture floor a single channel produces. Not a
+goal-based check: the criterion names a test, and a mode that names a test is
+TDD. The repository's documentation gates stay a separate well-formedness check.
 
 **Approach:** the guide's capture section gains the minimum alongside the
 breakpoints it already walks, and states the required set for a surface that
@@ -334,7 +340,7 @@ splitting on blank lines, never before, and splits sentences only after that.
 ### T5: The harness expects the minimum
 
 **Depends on:** T1, T3, T4
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_shipped_content_limits.py
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_shipped_content_limits.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_reviewer_sight.py
 
 **Tests:** TDD for AC-0011 in `test_rendered_page_reviewer_sight.py`, which
 already parses this file for the channel-coverage assertion, plus AC-0021's
