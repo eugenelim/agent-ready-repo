@@ -510,6 +510,16 @@ the suite reports eight collection errors because each `packages/*/` suite's own
 inside the package directory. Their work was **unpushed**, so `origin` agreed
 with me and the branch that mattered did not.
 
+**The measurement was not the root cause.** This pull request's own description
+already said the mypy fix was deliberately excluded, naming `e2d5c146b` on the
+other branch and saying that duplicating it here would collide with that wave. I
+wrote that, and then re-did the fix anyway. The wrong ref is how I convinced
+myself the gap was still open; the decision not to touch it had already been
+made and recorded on the surface I was working in. **Re-read your own
+exclusions before repairing something adjacent to them** -- a recorded decision
+is worth nothing if the next session, or the same one an hour later, re-derives
+the question from scratch.
+
 A measurement is only as good as the ref it was taken against. Reporting `main`
 as though it were the delivery state produced a real defect claim, a real
 repair, an overlapping test file, and a three-way collision in
