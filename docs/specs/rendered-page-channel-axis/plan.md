@@ -85,6 +85,8 @@ row. Two row keys are shipped content the suites read by name:
 | `every-captured-width-and-height-needs-the-pair` | Required captures, rule rows | replaces `every-captured-height-needs-the-pair` |
 | `channel-basis-recorded` | Channels, rule rows | the AC-0003 record |
 | `channel-name-forbids` | Channels, rule rows | `required` — the switch AC-0012's guard reads before enforcing |
+| `channel-capture-width` | Channels, rule rows | the AC-0024 derivation |
+| `completeness-vocabulary` | Channels, rule rows | `required` — the switch AC-0025's guards read |
 
 The forbidden device-name tokens ship as a **one-column table** under their own
 heading, mirroring the `## Rate vocabulary` table the measurement reference
@@ -143,22 +145,34 @@ in this task asserts them itself.
 
 **Approach:** add a `## Channels` section to the reference carrying the fallback
 band table (name, lower bound, upper bound), and the breakpoint-derived rule, the
-channel-basis recording rule, and the forbidden device-name tokens as two-cell
-rule rows in the established shape.
+capture-width rule, the channel-basis recording rule, and the completeness
+vocabulary as rule rows in the established shape, plus the forbidden device-name
+tokens as their own one-column table.
 Generalize the `every-captured-height-needs-the-pair` row and the prose stating
 the required set. State the axis's reason without naming any surface outside the
 pack.
 
 **Done when:** the reference's new tables satisfy `table_rows`'s cell-count rule
-and `unique_keyed`'s duplicate-key rule — no row is silently reshaped or dropped.
+and `unique_keyed`'s duplicate-key rule, and a search for the literal
+`every-captured-height-needs-the-pair` across the whole pack test tree returns
+every site the rename has to reach. `test_rendered_page_verdict.py` holds two
+(`:196` and `:220-222`); the search is what proves there is no third.
 
 ### T2: The rule reader derives the channel requirement from the reference
 
 **Depends on:** T1
-**Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py
+**Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_verdict.py
 
 **Tests:** TDD, in `test_rendered_page_capture_contract.py`, covering AC-0001,
-AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007 and AC-0008. The mutation that
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008 and AC-0024.
+
+This task also owns `test_rendered_page_verdict.py`'s
+`test_no_check_enforces_a_capture_rule_the_pack_does_not_state`. Its `md.replace`
+of the old row key becomes a no-op under the rename, so it fails with a message
+about something else; and its `evaluate_capture_set(without, extra)[0] ==
+"complete"` assertion ratifies the fail-open skip AC-0008 exists to replace with
+a raise. Its intent is re-decided here, not its literal: the case must assert
+that an absent rule row raises. The mutation that
 must red is deleting the channel requirement from the reference, not editing the
 module — the criterion is that the requirement is shipped. Assert the derived
 channels for a declared-breakpoint list, for the empty list, and that
@@ -172,8 +186,10 @@ markdown and raise on an absent row as `inspection_result` does at `:540` — th
 `:246-248` `continue` is the fail-open shape this task avoids, because under it
 AC-0008's mutation leaves the checks green.
 
-**Done when:** all three `required_captures()` callers in the module read the
-channel-keyed shape, with no caller left on the two-tuple.
+**Done when:** a repository-wide search for the `required_captures` symbol returns
+no consumer still indexing the two-tuple — the search reaches
+`test_rendered_page_unscrollable.py:24,130-138`, which imports it and which the
+module's own call sites do not count.
 
 ### T3: The fixtures vary width and height independently
 
@@ -189,9 +205,11 @@ channels; a case asserting incompleteness names which channel it is short of.
 suite with one taking width and height as separate arguments. Do not narrow an
 assertion to accommodate a set that is now short — the expected red is the defect.
 
-**Done when:** each of the three suites builds a capture from separate width and
-height arguments, and no call site of the `390 if height <= 600 else 1280` helper
-remains anywhere in the pack's test tree.
+**Done when:** no capture set in the pack's test tree writes its width as a
+function of its height. That reaches both encodings of the premise — the
+`390 if height <= 600 else 1280` helper, and
+`test_rendered_page_capture_contract.py:59-64`, which writes the same pairing out
+as four literals and which no search for the helper expression finds.
 
 ### T4: `SKILL.md` states the channel axis and teaches it by example
 
@@ -215,8 +233,9 @@ than assumed, and `make build-self` leaves no projection diff.
 **Depends on:** T4
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
 
-**Tests:** TDD for AC-0011, AC-0012 and AC-0023, in
-`test_rendered_page_shipped_content_limits.py`. The guard **reads** the forbidden
+**Tests:** TDD for AC-0011 and AC-0012, in
+`test_rendered_page_shipped_content_limits.py`. AC-0023 is verified in the suite
+the spec's Testing Strategy names for it, not here. The guard **reads** the forbidden
 token list from the reference rather than stating it, which is what makes AC-0012
 delete-and-red the way AC-0008 requires of the other rows. The shape already
 exists in this module: `test_the_rate_vocabulary_matches_what_the_pack_states`
@@ -242,7 +261,8 @@ required-field table no longer names a device, and the only changed line in
 **Depends on:** T1
 **Touches:** packs/frontend-engineering/.apm/agents/frontend-reviewer.md, packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json
 
-**Tests:** TDD for AC-0013, AC-0016 and AC-0021, in `test_rendered_page_reviewer_sight.py`.
+**Tests:** TDD for AC-0013, AC-0016, AC-0021 and AC-0025, in
+`test_rendered_page_reviewer_sight.py`.
 Scope the lens read to the lens section rather than the whole agent file, the way
 that suite already scopes its reads; the whole-file read passes on the shared
 output-rendering block. AC-0016 parses `evals/evals.json` in the same module.
@@ -343,6 +363,14 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Adversarial spec-mode review, adjudicated: 11 findings, all
+  sustained, none refuted. Three blockers. The rename breaks two pins in
+  `test_rendered_page_verdict.py` that no task owned, and one of them ratifies
+  the fail-open skip AC-0008 abolishes — the anchor-test sweep PLAN step 8a asks
+  for was not run. A channel was a name plus two bounds with no rule turning it
+  into an integer width, so AC-0010 was unsatisfiable; AC-0024 states the
+  derivation and a probe shows it total across fallback, one-breakpoint and
+  three-breakpoint bands.
 - 2026-09-13 — Shaping review round 4, with the four previously unread surfaces
   seeded: 6 findings, no blocker. Three existed only because those files were
   finally opened. The harness and the how-to both define completeness by height
