@@ -265,8 +265,12 @@ which passes after this delivery without mentioning the minimum. The row is also
 pinned by `test_the_manifest_example_is_a_band_set_the_derivation_produces`,
 which harvests every backticked predicate in it and compares the set to the
 derivation's output — so the new values go in as bare numbers, and that control
-is re-run as part of this task rather than discovered later. This task also
-extends it to parse the row's stated minimum and pass it to `required_channels`;
+is re-run as part of this task rather than discovered later. The row stays a
+**declared-breakpoint** example: the control reconstructs breakpoints from the
+stated predicates, so a fallback-basis example carrying a minimum would red a
+correct row — `>=1024` harvested as a breakpoint re-derives a `<1024` band. This
+task also extends it to parse the row's stated minimum and pass it to
+`required_channels`;
 today it calls the derivation with no minimum, so a stated minimum and the
 predicates beside it can disagree with the control green. That extension is why
 this task depends on T2 and not on T1 alone: the parameter it passes does not
@@ -340,9 +344,7 @@ cannot carry both. The `n + 1` formula is
 wrong whenever a minimum discards a declared breakpoint, and the eight-capture
 figure is wrong too: "on the fallback bands" names the basis, which a minimum
 leaves unchanged, not the set size, which it changes — a 1280-minimum surface is
-on the fallback bands and needs four captures per route. An earlier draft of this
-plan exempted the figure on that qualifier, which was the round-5 premise this
-delivery itself falsifies.
+on the fallback bands and needs four captures per route.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates, and none of `Declare none and two apply`, `eight captures per route` or
@@ -403,8 +405,10 @@ superseded criterion's entire `- [x]` line, not a quoted fragment.
 **Approach:** add a `Status:` line pointer to
 `docs/specs/rendered-page-channel-axis/spec.md`, naming a successor per
 superseded criterion as AC-0022 states it: AC-0002 and AC-0003 supersede that
-spec's AC-0001, and AC-0002 alone supersedes its AC-0002, since the clamp cannot
-change a channel count. Edit nothing else in that
+spec's AC-0001, and both supersede its AC-0002 as well — that criterion names the
+two bands, not only the count, so the drop falsifies "exactly two" and the clamp
+independently falsifies "at most 480 CSS pixels" under a 480 minimum with nothing
+dropped. Edit nothing else in that
 file: its *Ask first* admits a `Status:`-line pointer and forbids editing a
 frozen body, and both criteria stay present verbatim and still ticked. Depends on
 T2 because the successor criteria must be real before anything points at them.
@@ -474,9 +478,8 @@ changed Python.
 
 ## Changelog
 
-Ten shaping rounds and one adversarial round shaped this contract. Only the
-decisions that still bind are recorded here; the round-by-round account is in the
-commit history, where a superseded premise cannot be read as a current
+Only the decisions that still bind are recorded here. The round-by-round account
+is in the commit history, where a superseded premise cannot be read as a current
 instruction.
 
 - **The clamp raises a bound and never lowers one.** Assigning the minimum would
