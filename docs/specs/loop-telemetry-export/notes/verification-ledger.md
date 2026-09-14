@@ -467,3 +467,127 @@ is revisited. Nothing else in T5 depends on it.
 against `HEAD` before the entry was added: **58.62**. The entry moved it up, not
 down. Not this delivery's to fix, and confirmed by measurement rather than by the
 file-not-in-diff shortcut, because the file *is* in the diff.
+
+## The wiring sweep reported fifteen defects and had run the wrong suite
+
+`packages/jsonl-otlp-exporter/tests/wiring_sweep.py` was invoked from the
+repository root. Every mutation came back `HUNG` — including
+`help="the JSONL file to read"`, which cannot hang anything.
+
+The cause is one missing argument. The sweep runs:
+
+```python
+subprocess.run([sys.executable, "-m", "pytest", "tests", "-q", "-x"],
+               capture_output=True, text=True, timeout=PER_RUN_SECONDS)
+```
+
+There is no `cwd=`, so the child inherits the caller's. From the repository root
+`tests` is not the exporter's suite at all — it is `tests/conformance`,
+`tests/fixtures` and `tests/roster`, the last of which is a hundred files. Every
+run exceeded `PER_RUN_SECONDS`, and `TimeoutExpired` is classified `HUNG`.
+
+Measured both ways:
+
+| Invoked from | What `pytest tests` means | Result |
+| --- | --- | --- |
+| repository root | `tests/` — conformance, fixtures, roster | times out; every mutation reads `HUNG` |
+| `packages/jsonl-otlp-exporter/` | the package's own suite | **~10 s**, 278 passed, 1 skipped |
+
+**The failure mode is the dangerous one: a gate that reports defects rather than
+an error.** Fifteen `HUNG` lines look like fifteen findings in the code under
+test. Nothing in the output says "I ran a different suite". It was caught only
+because a mutation that removes a `help=` string cannot plausibly hang a test
+run — the *implausibility of the finding* was the signal, not the tooling.
+
+**Killing the sweep left a mutation in the working tree.** `cli.py` was found
+with `timeout=timeout` missing from its `HTTPSConnection` call — the mutation in
+flight when the process died. Restored by editing the keyword back, then
+confirmed byte-identical to `HEAD`. A sweep that mutates in place has no crash
+safety, so the tree must be checked after any interruption; `git status` was
+clean of everything except that one file, which is exactly how it would look if
+the mutation had been a real edit.
+
+It also writes `wiring-sweep-results.txt` into its working directory, which is
+not gitignored at the repository root. Removed.
+
+## An ADR ordinal collision silently invalidates a locked plan baseline
+
+Found on the sibling spec and recorded here because **this plan carries the same
+exposure**.
+
+`jsonl-otlp-exporter`'s cohort refuses `schedule check-current`: its `plan.md` no
+longer matches the baseline pinned at `schedule` time. The tool's own diagnosis —
+"this baseline was pinned before canonical hashing landed" — is wrong. Three merge
+commits touched that locked plan after the pin, and each changed the same
+sentence, because the decision's ordinal was claimed upstream five times:
+
+```
+ADR-0111 -> ADR-0112 -> ADR-0114 -> ADR-0115
+```
+
+Every rename was a correctness fix that had to happen. Each one edited a plan
+that was already frozen, and nothing warned at the time, because renaming was the
+right thing to do.
+
+**So the cost of an ordinal collision is not the rename. It is that a locked
+baseline is invalidated by a correct edit, and the failure surfaces much later at
+a transition, wearing a misleading explanation.**
+
+`docs/specs/loop-telemetry-export/plan.md` cites `ADR-0115` at lines 46 and 86.
+If that ordinal is claimed again upstream, this plan's baseline breaks exactly
+the same way. Checked at this build: `docs/adr/` holds `0111` through `0115` with
+**no duplicate ordinals**, so the citation resolves today.
+
+The sibling run was deliberately **not** repaired, and the reasoning is worth
+keeping. The printed recovery is cohort-only but it is a re-approval in substance:
+it clears the retry counters and the stasis baseline that four implementation
+review rounds produced, and `approve-plan` re-pins whatever is on disk. What it
+buys is `DONE` written to `engine-state.json` and `state.json` — both untracked,
+never committed. Destroying a four-round audit trail to make an untracked local
+file say `DONE` is a bad trade, so that run stays at `CODE-IMPLEMENTATION` with
+the whole account recorded in its own tracked ledger.
+
+## The corrected sweep: 46 mutations, 30 caught, 1 hang, 15 survivors
+
+Run from the package directory. The tree was verified byte-identical to `HEAD`
+afterwards — a normally-exiting sweep does restore; only a killed one does not.
+
+**The one hang is already documented.** `transport.py:496 daemon=True` — removing
+it makes the suite hang rather than fail, which the sibling spec's ledger recorded
+when the sweep was written. Expected, not new.
+
+**Fifteen survivors, and ten of them have no behaviour to control.** `prog=`,
+`description=` and eight `help=` strings change only `--help` output. `SKIP` does
+not filter them, so the sibling ledger's "nine survivors" was a hand triage that
+left no trace in the tool — which is why they had to be re-triaged here. Two more,
+`frozen=True` on two dataclasses, are reasoned rather than tested immutability.
+
+**Three are behavioural. Only one is a coverage gap, and that correction matters
+more than the original finding.** Each was traced to source rather than inferred
+from the survivor list:
+
+| Survivor | Verdict | Evidence |
+| --- | --- | --- |
+| `cli.py:49 required=True` | **genuine gap** | dropping it still fails the run, but through whatever `open_input(None)` raises rather than as a usage error — the exit code happens to match while the observable is wrong |
+| `cli.py:147 on_oversize=lambda …` | **unreachable by construction** | `test_cli.py:571 test_the_oversize_path_is_unreachable_through_the_cli` pins the *relationship* between AC-0018's 64 KiB line cap and AC-0019's 8 MiB body cap: one record reaches ~388 KiB, about twenty times under, so the singleton-refusal branch never fires from the command |
+| `cli.py:155 best_effort=args.best_effort` | **redundant, not uncontrolled** | `cli.py:186` masks the status a second time (`if outcome.status != EXIT_OK and args.best_effort …`), so dropping the line-155 wiring changes no observable — the CLI mask converts the failure anyway |
+
+So of 46 mutations and 15 survivors, **one** is a coverage gap. The other two have
+explanations that are true at source and invisible in the sweep's output.
+
+**"A survivor is a defect" is too strong, and this run is why.** A survivor is a
+signal that something has no control; it does not say whether a control is
+*possible* or *meaningful*. A dominated bound cannot be controlled behaviourally —
+only its relationship can, which is what that test does. A redundant path should
+be resolved rather than tested, because a control over it pins the redundancy in
+place. Reading the raw list as fifteen defects, or even three, would have produced
+two repairs that made the code worse.
+
+**None is attributable to this delivery.** The only changes here to that package
+are three annotation-only lines, at `source.py` hunks `@@41` and `@@196` and
+`transport.py` hunks `@@205` and `@@223`; every survivor sits outside those
+ranges. They are also out of contract: this spec states that the sender's own
+behaviour belongs to `jsonl-otlp-exporter` and that duplicating it here would
+create a second home that drifts. **Routed to that spec's owner, not repaired
+here** — repairing would be scope expansion into a contract this one may not
+specify.
