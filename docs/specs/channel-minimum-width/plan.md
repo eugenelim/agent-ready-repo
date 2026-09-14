@@ -37,7 +37,9 @@ keeps its two-value vocabulary and gains siblings instead of a third value.
   test modules carry pack and skill in their names.
 - `frontend_engineering_rendered_page_rules.py` is the single rule reader.
 - Shipped `.apm/` content cites nothing from this repository.
-- `make build-self` runs after every `.apm/` edit; `ruff check` before push.
+- After every `.apm/` edit, run `FORCE=1 make build-self`: the plain target
+  refuses a dirty tree, which is the state each task leaves behind, so the bare
+  invocation cannot serve as a task's own evidence. `ruff check` before push.
 - A mutation proof mutates by editing and restores by editing. `git checkout`,
   `git reset` and `git stash` are not restoration here: a failed restore leaves a
   dirty tree that the next gate reads as a defect.
@@ -61,8 +63,9 @@ strings verbatim.
 | Adopter guidance | T4 |
 | Decision rationale | none — the spec's own Objective, Acceptance Criteria and Assumptions are the destination, and shaping wrote them |
 | Reusable learning — eval harness | T5 |
+| Interface compatibility — superseded criterion | T7 |
 | Execution observation | T6 |
-| Release history | T7 |
+| Release history | T8 |
 
 T2 appears in no row: it ships the reader, which is code covered by the rule
 layer's own row and reconstructible from the module and its tests.
@@ -76,13 +79,9 @@ the band construction would make every existing derivation case a
 minimum-of-`None` case and put two rules in one loop. Separating them means the
 shipped five-case derivation tests keep testing the derivation.
 
-**The clamp raises a bound and never lowers one.** A surviving band keeps its
-upper bound, and its lower bound becomes the greater of the minimum and its own —
-not the minimum outright. Assigning the minimum would lower `wide >=1024` to
-`>=600` under a 600 minimum and demand a capture at 600, a width the reference
-states satisfies neither fallback channel by deliberate design; raising leaves
-that band alone and captures at 1024. Only the lowest survivor can be affected, and
-the reason is the ordering, not a property of the bands above it: bands are
+**The clamp raises a bound and never lowers one.** AC-0003 states the rule and
+its 600-minimum fixture. What the criterion does not carry is why only the lowest
+survivor can be affected, and the reason is the ordering, not a property of the bands above it: bands are
 ordered and non-overlapping, so a band above the lowest survivor has a lower
 bound at or above that survivor's upper bound, which already admits a width at
 or above the minimum. That holds for the contiguous breakpoint bands and for the
@@ -113,10 +112,8 @@ present before running:
 | `channel-minimum-derivation` | Channels, rule rows | drop-bands-below-clamp-lowest-survivor |
 | `channel-minimum-recorded` | Channels, rule rows | `required` — the switch both recording readers consult, and AC-0016's mutation target |
 
-A run with no minimum records the non-empty token `none-declared` rather than an
-empty value, so that "no minimum was declared" is a stated value a reader can
-assert on, distinct from a field nobody wrote. It is a run-level fact and does
-not enter the per-capture `## Capture record` table, which *Never do* forbids.
+The none-token literal and its ground are AC-0006's; the `## Capture record`
+prohibition is *Never do*'s. Neither is restated here.
 
 `REQUIRED_RULE_ROWS["Channels"]` goes from six keys to eight. Its equality
 control compares that constant against what `channel_rules` reads, so the two
@@ -131,18 +128,15 @@ chain is `inspection_result` → `evaluate_capture_set` → `required_channels`,
 a minimum that stops anywhere short of the top is unreachable from the result an
 adopter records, which is the whole outcome. `inspection_result` deliberately
 does not echo the basis back, and the minimum follows that same rule: it selects
-required channels and is recorded on the § 5a manifest row, not in the result. A clamped band is renamed under the shipped convention, so a band
-clamped to `>=1280 <1536` is `1280-to-1536` rather than `below-1536`; the walk
-names the band in its incomplete report, so a stale name misdescribes what is
-missing. Fallback bands keep the names their table rows give them. A band is dropped when its upper bound admits
-no width at or above the minimum — `u <= minimum` for `<u`, `u < minimum` for
-`<=u`, and never for an empty upper-bound cell, so the operator is load-bearing,
-`<=480` survives a 480 minimum, and the unbounded top band survives every
-minimum. The
-lowest survivor's lower bound becomes `>=max(minimum, its own)`. Breakpoints
-strictly below the minimum are collected as they are dropped, so the discarded
-list is a by-product of the filter rather than a second pass; a breakpoint equal
-to the minimum still bounds a surviving channel and is not discarded.
+required channels and is recorded on the § 5a manifest row, not in the result. The clamped-band naming rule and its two templates are stated in AC-0002 and
+AC-0003, with the fallback exception; the walk prints that name in its incomplete
+report, which is why it is contract rather than detail. AC-0002 states the drop condition and AC-0003 the clamp; this plan does not
+restate either, because two copies of a rule drift independently and this one
+already did once. The mechanism those criteria imply: one pass that drops a band
+whose upper bound admits no width at or above the minimum, then raises the lowest
+survivor's lower bound to `max(minimum, its own)`, collecting breakpoints
+strictly below the minimum as it goes, so the discarded list is a by-product
+rather than a second pass.
 
 ### Failure, edge cases & resilience
 
@@ -159,7 +153,7 @@ nothing, because the boundary belongs to the wider band.
 ### Dependencies & integration
 
 No new dependency. The pack's declared dependency surfaces are compared before
-and after (T7).
+and after (T8).
 
 ## Tasks
 
@@ -170,7 +164,7 @@ and after (T7).
 
 **Tests:** goal-based check for the rows. AC-0001 through AC-0004, AC-0006 and
 AC-0007 are stated here and asserted in T2. AC-0021's sweep lands in T5, after
-every surface it reaches has been edited, but four of its seven anchors are in
+every surface it reaches has been edited, but four of its eight anchors are in
 this file: the fallback sentence, the band enumeration, and the per-route floor
 stated a second time in `## Required captures` — a paragraph the earlier
 anchor set missed entirely, because its wording is backticked and omits "where
@@ -248,7 +242,7 @@ them while the walk still derives its bands without the minimum.
 ### T3: `SKILL.md` and the journey state the input
 
 **Depends on:** T1
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md
 
 **Tests:** TDD for AC-0008, AC-0018 and AC-0009. AC-0018 asserts the § 5a
 manifest row beside the shipped `test_manifest_viewports_field_records_channels`,
@@ -261,7 +255,11 @@ shapes, `prose-declaration` and `snippet-name-field` carry § 5a as their live
 site and `band-row` does not — its outer matches only a `## Channels` section, so
 a three-cell table here is not harvested at all. The edit keeps the literal
 `` `narrow` at ≤480 `` phrase, which is `prose-declaration`'s anchor in this
-file. Anchors 3, 4, 5 and 8 of AC-0021's sweep are here. Anchor 8 is the JS worked
+file. Anchors 3, 4, 5 and 8 of AC-0021's sweep are here, and anchors 4 and 5 currently
+share one sentence — "That makes eight captures per route with the default bands,
+and four times *n + 1* where you declare *n* breakpoints." Their conditioners
+differ, so that sentence is split in two, one claim each, before either is
+conditioned. Conditioning it in place cannot satisfy the criterion. Anchor 8 is the JS worked
 example: its comment states the inference this delivery falsifies — no
 breakpoints declared, therefore two channels — and its array captures at 480.
 The block sits in its own paragraph unit, so conditioning the prose around it
@@ -287,8 +285,14 @@ the discarded breakpoints. `JOURNEY.md:12`'s `youProvide` gains the supported
 minimum width — its two manifest inventories at `:84` and `:169` name the field
 without stating what it holds, so the change does not reach them.
 
-**Done when:** `make build-self` leaves no projection diff and the only changed
-line in `JOURNEY.md` is `:12`.
+**Done when:** `FORCE=1 make build-self` leaves no projection diff, `:12` is the
+only changed line in `packs/frontend-engineering/JOURNEY.md`, **and**
+`web/src/content/journeys/frontend-engineering.md:13` carries the same new
+sentence, regenerated by the journey sync rather than hand-edited. That second
+file is committed, not ignored, and no shipped lint compares its `youProvide`
+against the pack's — `lint-web-journey-parity.py` only counts skills and
+`lint-pack-journeys.py` skips generated files for its ownership check — so a
+stale web copy publishes the old input list with every gate green.
 
 ### T4: The how-to walks a single-channel surface
 
@@ -301,7 +305,10 @@ documentation gates stay a separate well-formedness check.
 
 **Approach:** the guide's capture section gains the minimum alongside the
 breakpoints it already walks, and states the required set for a surface that
-declares one. Both claims in that paragraph are edited. The `n + 1` formula is
+declares one. Both claims in that paragraph are edited, and because anchors 4
+and 5 share one sentence here too, that sentence is split in two before either
+clause is conditioned — their conditioning literals differ and one sentence
+cannot carry both. The `n + 1` formula is
 wrong whenever a minimum discards a declared breakpoint, and the eight-capture
 figure is wrong too: "on the fallback bands" names the basis, which a minimum
 leaves unchanged, not the set size, which it changes — a 1280-minimum surface is
@@ -336,7 +343,7 @@ declared minimum and what it removes from the required set.
 **Done when:** all eight AC-0021 anchors match in exactly the carrier files the
 criterion lists and each sits in a sentence carrying its conditioning literal,
 across `.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
-`make build-self` leaves no projection diff.
+`FORCE=1 make build-self` leaves no projection diff.
 
 ### T6: The step is performed against a single-channel surface
 
@@ -353,24 +360,58 @@ verdict, the minimum in force, and any discarded breakpoint.
 **Done when:** `docs/specs/channel-minimum-width/notes/verification-ledger.md`
 carries the five values AC-0014 names.
 
-### T7: The release surface carries the change
+### T7: The predecessor's superseded criteria carry their pointer
 
-**Depends on:** T1-T6
-**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md
+**Depends on:** T2
+**Touches:** docs/specs/rendered-page-channel-axis/spec.md, tests/roster/test_channel_minimum_width_supersession.py
 
-**Tests:** goal-based check for AC-0012 and AC-0013 — compare the two manifests'
-version fields, confirm the changelog entry is this pack's topmost release
+**Tests:** TDD for AC-0022 in `tests/roster/test_channel_minimum_width_supersession.py`,
+copying the shape of `tests/roster/test_rendered_page_channel_axis_supersession.py`
+rather than inventing one — that file is the predecessor's own supersession test,
+written for exactly this obligation one delivery earlier.
+
+**Approach:** add a `Status:` line pointer to
+`docs/specs/rendered-page-channel-axis/spec.md` naming this spec's AC-0002 and
+AC-0003 as the successors to its AC-0001 and AC-0002. Edit nothing else in that
+file: its *Ask first* admits a `Status:`-line pointer and forbids editing a
+frozen body, and both criteria stay present verbatim and still ticked. Depends on
+T2 because the successor criteria must be real before anything points at them.
+
+**Done when:** the pointer names both superseded criteria and both successors,
+`git diff` against `docs/specs/rendered-page-channel-axis/spec.md` touches the
+`Status:` line and nothing else, and the roster test asserts both the pointer and
+the two criteria's unedited sentences.
+
+### T8: The release surface carries the change
+
+**Depends on:** T1-T7
+**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.md
+
+**Tests:** goal-based check for AC-0012 and AC-0013 — compare all three version
+pins, confirm the changelog entry is this pack's topmost release
 heading and that `core` remains directly beneath `[Unreleased]`, run
 `tools/test_build_site_routing.py` for the separation gate, and compare the
 pack's declared dependency surfaces before and after.
 
-**Approach:** bump both manifests to `0.2.5` and lead a changelog entry with the
-pack and that version, placed below the `core` block. Diff
-`origin/main:packs/frontend-engineering/pack.toml` first so an unpushed peer bump
-does not collide silently.
+**Approach:** the pack release pipeline in `packs/AGENTS.local.md`, in its stated
+order. Diff `origin/main:packs/frontend-engineering/pack.toml` first so an
+unpushed peer bump does not collide silently. Bump `pack.toml` and `plugin.json`
+to the patch above it. Then run `FORCE=1 make build-self` to regenerate the root
+`.claude-plugin/marketplace.json`, which carries this pack's version a third time
+— it reads `0.2.4` today and is committed, so leaving it behind ships a
+marketplace entry disagreeing with the pack it points at. Then lead a changelog
+entry with the pack and that version, placed below the `core` block. Then decide
+the `Highlights` disposition in the same step rather than leaving it to a
+reviewer: this delivery changes what an adopter can do, so it takes a
+`### Highlights` subsection of outcome-led bullets. Those bullets are what
+publish at `/now/`, and the projection is a pure parser — an unwritten block is a
+release the public page never mentions.
 
-**Done when:** `make build-self` leaves no projection diff and `ruff check` is
-clean across the changed Python.
+**Done when:** all three version pins read the same value, that value is one
+patch above `origin/main`'s, the changelog entry carries either a
+`### Highlights` subsection or the recorded none-verdict, `FORCE=1 make
+build-self` leaves no projection diff, and `ruff check` is clean across the
+changed Python.
 
 ## Rollout
 
@@ -400,160 +441,29 @@ clean across the changed Python.
 
 ## Changelog
 
-- 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
-  whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
-  recording as two fields beside an unchanged two-value basis.
-- 2026-09-14 — Shaping round 10. AC-0021 specified its reach to the byte and left
-  its satisfier unstated: "the sentence names the minimum" gave no vocabulary, so
-  the cheapest discharge survived the round-9 tightening one clause smaller —
-  "needs four times n + 1, and a declared minimum is a separate matter" mentions
-  the minimum in the anchor's own sentence with the claim still false. A bare
-  `minimum` is ambiguous anyway: `SKILL.md` uses the word seven times in
-  unrelated senses. Each anchor now carries a conditioning literal from a closed
-  set of three, all reserving the phrase `declared minimum`, which is unused
-  anywhere in the swept files today.
-  T3's worked-example approach contradicted the anchor it was written for. I had
-  taken round 9's suggestion of a single-channel array verbatim; AC-0021's
-  carrier map requires "Two here because no breakpoints were declared" to keep
-  matching, so a one-entry array under that comment cannot ship. The array keeps
-  both entries and stays a correct no-minimum example; the comment is the edit.
-  Pinned the clamped unbounded top band's name, which was unpinned everywhere —
-  a 1280 minimum against `[768]` must yield `from-1280`, not `from-768`, and the
-  walk prints that name in its incomplete report. Gave AC-0011 both graded eval
-  fields, matching the shipped floor's precedent.
-  The reviewer verified the carrier map exact, the mechanization decidable on the
-  ellipsis and JSON anchors, five premises against code, all twenty non-AC-0021
-  criteria's arithmetic, and a clean final enumeration with no ninth carrier.
-- 2026-09-14 — Shaping round 9. An eighth carrier, and the worst-placed one:
-  § 5a's JS worked example comments "Two here because no breakpoints were
-  declared" and captures at 480. It is the block an agent copies, it sits in its
-  own paragraph unit so conditioning the surrounding prose misses it, no anchor
-  reached it, and `snippet-name-field` anchors on it so it cannot be deleted —
-  the delivery could have shipped with all 21 criteria green and that snippet
-  telling the agent to capture below the supported width. Anchor 8 added, owned
-  by T3 with the name-set constraint spelled out.
-  Tightened the predicate from paragraph to sentence scope: naming the minimum
-  anywhere in a paragraph is co-location, not conditioning, and appending one
-  unrelated sentence was the cheapest way to discharge it — the exact edit shape
-  rounds 5 and 6 produced. All eight anchors were walked to confirm each is
-  conditionable at sentence scope before adopting the tightening.
-  Replaced the per-anchor match count with a per-anchor carrier map. "At least
-  once across the swept files" left the two anchors with three carriers each open
-  to a rephrase in one of them, passing on the strength of the others while that
-  carrier left the control's reach — the failure round 8 added the assertion to
-  catch, surviving in weaker form. Map verified exact against the shipped tree:
-  each of the eight anchors matches in precisely its listed files and no others.
-  Confirmed by the reviewer: no anchor must be removed for the delivery to be
-  correct, and the surface enumeration is otherwise clean.
-- 2026-09-14 — Shaping round 8. Four findings, all on the new sweep. The anchor
-  set missed a sixth carrier — the reference states the per-route floor again in
-  `## Required captures`, backticked and without "where you declare", so no
-  anchor matched it. The set is now seven anchors, including
-  `eight captures per route`, which reaches all three carriers of that figure.
-  Fixed the mechanization order: "normalizes whitespace first" would have erased
-  every blank-line boundary and collapsed "the enclosing paragraph" to the whole
-  file, making the check unfailable on every file this delivery touches; the
-  criterion now splits into paragraph units first and normalizes within a unit.
-  Added a per-anchor match assertion, without which an edit that rephrases a
-  claim rather than conditioning it leaves the sweep matching zero anchors and
-  reporting green — and the three demoted criteria had given up their conditional
-  clauses on exactly that check. Struck the claim that "on the fallback bands"
-  exempts the eight-capture figure: the qualifier names the basis, which a
-  minimum leaves unchanged, and AC-0006 fixes that basis at `fallback` for a
-  1280-minimum surface, which needs four captures per route and not eight. That
-  premise came from round 5 and I carried it into AC-0010 and T4 without testing
-  it against this delivery's own criteria.
-- 2026-09-14 — Shaping round 7. Replaced the per-surface conditioning clauses
-  with one sweep. Four shipped surfaces state some form of "two bands always
-  apply" or the `n + 1` floor, and rounds 5, 6 and 7 each found the next instance
-  after the previous was closed per-surface — the per-surface form was
-  regenerating the defect. AC-0021 is now a superseded-claim sweep over five
-  named anchors across `.apm/**` and the how-to, asserting each anchor's
-  enclosing paragraph names the minimum; AC-0008, AC-0010 and AC-0011 drop back
-  to presence clauses and point at it. Its reach is its anchor list, which is a
-  thing a reviewer inspects. Two anchors that this delivery must condition wrap
-  across a line break, so the check normalizes whitespace, as the shipped rate
-  guard does. Dropped `4(n + 1)` from AC-0008: it is not shipped anywhere — the
-  text is `four times *n + 1* where you declare *n* breakpoints` — so a test
-  asserting its absence passed on the unedited file. Also dropped AC-0008's claim
-  that AC-0010 covered the guide's copy of the sentence; it did not. Corrected
-  the *Always do* channel-sweep entry, which over-stated the control's reach:
-  `band-row` matches only inside a `## Channels` section, and
-  `prose-declaration` needs the word *channel* in the paragraph and a
-  lowercase-initial name. T5 now owns the sweep and depends on T1, T3 and T4.
-- 2026-09-14 — Shaping round 6. AC-0008 was presence-only, so appending one
-  sentence to § 5a discharged it while leaving two claims this delivery falsifies
-  standing: "Declare none and two apply" and the `4(n + 1)` per-route floor. It
-  now asserts the conditional form on the adapter-projected surface an agent
-  performs the step from. AC-0021 added for the reference's own prose, which says
-  both fallback bands always apply directly above where the new rule row lands —
-  a contradiction no row assertion can see. Recorded the shipped channel-name
-  sweep in *Always do* and in T1 and T3: it asserts set equality between the
-  names harvested across `.apm/**` and the two the reference declares, so a
-  worked clamping example or prose in the `` `name` at <op> `` shape reds it, and
-  widening it would narrow the guard carrying the device-name prohibition.
-  Realigned T2's `Done when` with AC-0020's pair — it had kept AC-0019's 480
-  pairing.
-- 2026-09-14 — Shaping round 5. Added AC-0020 for `inspection_result`, the
-  outermost consumer, which forwards only the breakpoints — so every criterion
-  could pass while the result an adopter records still read `incomplete` for a
-  supported surface. Replaced AC-0019's paired fixture, which was byte-for-byte
-  the shipped `test_a_single_channel_set_is_incomplete`, with a 480-minimum case,
-  and added a declared-breakpoints fixture so the walk's pass-through is pinned
-  on both forks. Made AC-0002's 480 fixture assert full name-bearing triples, the
-  only input producing a clamped fallback band and so the only place the
-  keeps-its-table-name rule can fail. Corrected AC-0010 and T4: the guide already
-  conditions its eight-capture figure on the fallback bands, and the falsified
-  sentence is `4(n + 1)`. Restated the `none-declared` ground here, which had
-  kept round 3's wording after the spec corrected its own. (Entry written in
-  round 6 — round 5 edited this plan without logging it.)
-- 2026-09-14 — Shaping round 4. Added AC-0019: the completeness walk takes the
-  minimum and honours it. Every derivation criterion asserted `required_channels`
-  in isolation, so all 18 could pass while `evaluate_capture_set` — the function
-  that returns complete or incomplete — derived its bands without the minimum and
-  still reported a supported surface incomplete, which is the outcome the
-  Objective promises. Paired fixtures with and without the minimum, so the
-  criterion measures the minimum's effect rather than the walk's baseline.
-  Widened AC-0017's sweep to a cross product, because on any input its siblings
-  pin by exact equality disjointness is entailed and the criterion could not
-  fail — a repair from round 3 that had instantiated the defect it closed.
-  Corrected AC-0006's ground: it cited the per-capture record reader, which
-  cannot read a run-level field, and an implementer making that ground true would
-  have added the minimum to `## Capture record` and made every existing capture
-  unusable; *Never do* now forbids it. Also pinned the clamped band's name, which
-  reaches the walk's incomplete report, and the bare-number form the § 5a row
-  needs so the shipped worked-example control stays green.
-- 2026-09-14 — Shaping round 3. Derivation fixtures now compare full `(lower,
-  upper)` band pairs instead of channel counts and capture widths: because the
-  capture-width rule reads the lower bound first, a clamp that widened the
-  clamped band's upper bound away was invisible to every width assertion, and
-  would have made `>=480` and `>=1024` both admit 1024. AC-0017 asserts channel
-  disjointness directly. AC-0015 and AC-0016 now cross the basis axis, because
-  the derivation returns the fallback bands before validating its rule rows, so
-  a check placed beside its siblings left the no-breakpoints path — the
-  motivating surface — ungated. AC-0018 added for the § 5a manifest row, the
-  surface that carries the record and which no reader criterion reaches. Named
-  the `none-declared` token, since the record reader counts an empty value as an
-  absent field. Replaced an unsound justification for the lowest-survivor
-  invariant with the ordering argument; added the never-drop-an-unbounded-top-band
-  case to the drop condition.
-- 2026-09-14 — Shaping round 2. Corrected the clamp from an assignment to a
-  raise: assigning the minimum lowered `wide >=1024` to `>=600` under a 600
-  minimum and demanded a capture inside the fallback bands' deliberate 481–1023
-  gap, contradicting shipped reference prose. AC-0003 now states the raise and
-  carries the 600 and low-minimum fixtures. Added the inclusive-upper-bound
-  fixture to AC-0002 (a filter ignoring the bound's operator wrongly dropped
-  `<=480` under a 480 minimum) and the equality fixture to AC-0007, which had
-  contradicted AC-0002 on `[768, 1024]` under a 768 minimum. Gave AC-0006
-  expected values and an exact-equality basis assertion, closing a
-  minimum-conditional basis suffix the inherited control cannot see. AC-0016 now
-  binds per reader rather than per row. AC-0005 kept on the reviewer's KEEP
-  verdict. Replaced two decaying line citations with test and section names.
-- 2026-09-14 — Shaping round 1. Split AC-0005 into presence inheritance plus two
-  new criteria (AC-0015, AC-0016) whose mutation edits a row's value cell,
-  because the walk's presence loop reds on a deletion regardless of whether any
-  code reads the row. Added the both-sides-bounded and equal-bound fixtures to
-  AC-0002 and a mixed discarded-set fixture to AC-0007, each closing a case an
-  unwanted implementation satisfied. Corrected T1's `Done when` from
-  `capture_set_rules`, which cannot reach the `## Channels` section, to
-  `channel_rules`. Named the frozen channel-axis spec under `Constrained by`.
+Ten shaping rounds and one adversarial round shaped this contract. Only the
+decisions that still bind are recorded here; the round-by-round account is in the
+commit history, where a superseded premise cannot be read as a current
+instruction.
+
+- **The clamp raises a bound and never lowers one.** Assigning the minimum would
+  lower `wide >=1024` to `>=600` under a 600 minimum and demand a capture inside
+  the fallback bands' deliberate 481-1023 gap. Raising leaves that band alone.
+- **The filter runs after the derivation, not inside it**, so the shipped
+  five-case derivation tests keep testing the derivation.
+- **Two recorded fields, not a third basis value**, and the minimum is a
+  run-level fact that never enters the per-capture `## Capture record` table.
+- **The criteria pin the outermost observable.** `inspection_result` forwards to
+  `evaluate_capture_set` forwards to `required_channels`; a minimum that stops
+  short of the top is unreachable from what an adopter records. Every frame is
+  asserted.
+- **Value-cell mutation, not row deletion**, proves a rule row is read: the walk
+  proves every required row present before it runs, so a deletion reds whether or
+  not any code consults the row.
+- **One superseded-claim sweep, not a clause per surface.** Eight carriers state
+  some form of "two bands always apply" or the `n + 1` floor across four files,
+  including a JS worked example. Per-surface clauses regenerated a new instance
+  every round; an anchor-and-carrier map with a named conditioning literal is
+  what a reviewer can inspect.
+- **The predecessor is `Shipped` and takes a `Status:`-line pointer**, never a
+  body edit, for the two criteria this delivery falsifies.
