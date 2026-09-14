@@ -596,3 +596,43 @@ class TestWiringSweepGaps:
             f"{_tp.MAX_BODY_BYTES}-byte request ceiling: the oversize branch is "
             "reachable through the CLI again and needs a control there"
         )
+
+    def test_best_effort_reaches_the_run(self, workspace, monkeypatch):
+        """`--best-effort` must arrive at send_batches, not just at the CLI.
+
+        It previously survived removal because `_run` masked the status a second
+        time with the same rule, so the wiring was dead and nothing failed if it
+        regressed. That duplicate mask is gone; this pins what replaced it.
+        """
+        seen = {}
+        real = cli.send_batches
+
+        def spy(batches, destination, factory, **kwargs):
+            seen.update(kwargs)
+            return real(batches, destination, factory, **kwargs)
+
+        monkeypatch.setattr(cli, "send_batches", spy)
+        code, _ = _run(workspace, "--best-effort",
+                       responses=[_Response(500) for _ in range(3)])
+        assert seen.get("best_effort") is True, f"not forwarded: {seen}"
+        assert code == 0, "a send failure under --best-effort still exits 0"
+
+    def test_input_is_a_required_option(self, workspace, capsys):
+        """AC-0013's usage-error path for a MISSING required option.
+
+        Dropping `required=True` still fails the run, but through whatever
+        `open_input(None)` raises rather than as a usage error -- right exit code,
+        wrong observable, and no test could tell the two apart.
+
+        Read through `capsys`, not the injected stream: argparse writes its usage
+        errors to the process's own `sys.stderr` before `_run` is ever reached,
+        so the injected stream is empty and an assertion against it fails for the
+        wrong reason.
+        """
+        code = cli.main(["--root", str(workspace), "--profile", str(workspace / "p.toml")],
+                        env=ENV, stream=io.StringIO(), connection_factory=_factory())
+        assert code == 1
+        message = capsys.readouterr().err
+        assert "--input" in message and "required" in message.lower(), (
+            f"expected a usage error naming --input, got: {message!r}"
+        )
