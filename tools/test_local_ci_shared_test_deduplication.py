@@ -549,11 +549,27 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # reports no drift, reproducing `d29b113d…` and `61120874…` exactly. This
 # second half matters more here than in earlier entries, because this re-pin
 # sits on a merge of origin/main that could itself have moved the plan.
+# Re-pinned by spec/rendered-page-visual-inspection, which gives the
+# frontend-engineering pack its first test tree and so its first runner line.
+# Dispositioned through `_effective_composition_errors` itself, both ways the
+# block above requires.
+#
+# (1) Sole cause: the same path against this worktree's Makefile and against
+# `05d5ca2fa~1:Makefile` (before the runner line landed) moves each plan by
+# exactly one line — standalone 62 -> 63, composed 61 -> 62 — inserting
+# `<PYTHON> -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`
+# at index 31 in both. Deleting that one line from the new plan reproduces the
+# old plan element for element, and it appears exactly once, so nothing else
+# moved, was reordered, or was dropped; every later index differs only by the
+# shift. (2) Prior pins were current: `_effective_composition_errors` run over
+# the pre-change Makefile with the superseded digests still in place reports no
+# drift at all, reproducing `7fadaf20…` and `e48c8b01…` exactly, so this re-pin
+# is not sitting on a move someone else already made.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "7fadaf203076cf15c3f39820828443ebf14ea9d76216051595a037cf4e5c73b8"
+    "8f32abf234db484ed12269e7b4182a34e5db5ea21764556e852e4d96f17c7583"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "e48c8b01613f6570a2ed6895a4629b0f12bea62839a12f731bb32c741b2f7722"
+    "de0cadbf5e920afe80eb4ffb024474afa59af915b26e5ab014fdb008bb1c5390"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -570,12 +586,23 @@ APPROVED_COMPOSED_PLAN_DIGEST = (
 # the same time and are unchanged, so the move is confined to the two blocks the
 # change deliberately edits.
 MAKE_BASELINE_DIGESTS = {
-    "build-check-unleased": "f9df737082cf0a4f1ee554ca3eac710da77623a447c8ef62a3678c8a7d8ad4ca",
+    # Bumped 2026-09-13 for ADR-0113: the comment above the SAST branch was
+    # restated (dogfooding -> local reproduction path). Verified before the bump
+    # by diffing the extracted surface against HEAD — 9 changed lines, 0 of them
+    # non-comment, so the scanner commands, their order, and the verdicts this
+    # digest exists to pin are byte-identical.
+    "build-check-unleased": "4299c65f68880e4f2e67e4cbf4ac6103154340ccd25ab98c8fca5e574a92b3b9",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
     "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
-    "SEMGREP_EXCLUDE": "f838b4f5433821278a8004ae90eba5d024b579055ccc9b23b8e659ee6d5c8115",
+    # Bumped 2026-09-13 for the httpsconnection-detected exclusion. Verified
+    # before the bump through `_approved_make_surfaces` itself rather than by
+    # hand: SEMGREP_EXCLUDE was the SOLE surface to move, by exactly one added
+    # line (the new --exclude-rule), and every other pinned surface reproduced
+    # byte-identically. The prior pins were all current against the pre-change
+    # Makefile -- zero drift -- so this supersedes a live value, not a stale one.
+    "SEMGREP_EXCLUDE": "fefa18aadb6cbbd0ce5295c006ac941d9fdf406dc938fefc62122c1d57ef77c7",
     "gate_verdict": "aa9d2cc83cc7d9e59fe411c5788f5abf6c5810772407170fff21d28107564d79",
     "gate_verdict_calls": "116c367fbb376618b499ffba4f4d79138a5ca32f7948631e678519e9a16565be",
 }
@@ -1021,7 +1048,10 @@ def _composition_errors(makefile: str, chain_source: str) -> list[str]:
         errors.append("build ownership drift")
 
     ci_deps, _ci_recipe = _target_rule(makefile, "ci")
-    if ci_deps != ["build-check", "lint-ruff", "lint-mypy", "test-after-build-check"]:
+    # Linters lead: they are lease-free and finish in seconds, so they must not
+    # sit behind build-check's network-bound SAST/SCA leg. build-check keeps its
+    # position ahead of test-after-build-check, which also declares it directly.
+    if ci_deps != ["lint-ruff", "lint-mypy", "build-check", "test-after-build-check"]:
         errors.append("ci graph drift")
 
     composed_deps, composed_recipe = _target_rule(makefile, "test-after-build-check")

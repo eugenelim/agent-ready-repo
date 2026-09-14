@@ -13,22 +13,12 @@ docs/specs/<feature>/
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```
 
-## Active specs
+## Why there is no index
 
-<!-- Update this list as features are added. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no specs yet -->
-
-## Shipped specs (archived)
-
-<!-- Once a feature is shipped, move its row here. The spec stays in place
-     as documentation of the feature's contract. -->
-
-| Spec | Status | Constrained by | Notes |
-| --- | --- | --- | --- |
-<!-- no shipped specs yet -->
+Specs are discovered by listing this directory. An index over a document
+corpus is generated from that corpus or it does not exist — a hand-maintained
+one drifts from the specs it describes, and every change to it collides with
+every other branch that touches a spec.
 
 ## Adding a new spec
 
@@ -37,9 +27,13 @@ implementation and verification strategy. An eligible direct-light request is
 session-local and does not create a `docs/specs/` entry.
 
 ```bash
+# Point SKILL at wherever your agent installed the `new-spec` skill: the install
+# root differs per adapter, so this stays a variable rather than a fixed path.
+SKILL=<path to the installed new-spec skill>
+
 mkdir -p docs/specs/<feature-name>
-cp .claude/skills/new-spec/assets/spec.md docs/specs/<feature-name>/spec.md
-cp .claude/skills/new-spec/assets/plan.md docs/specs/<feature-name>/plan.md
+cp "$SKILL/assets/spec.md" docs/specs/<feature-name>/spec.md
+cp "$SKILL/assets/plan.md" docs/specs/<feature-name>/plan.md
 ```
 
-Or, in Claude Code, run `/new-spec "<feature-name>"`.
+Or invoke the `new-spec` skill by name in your agent.

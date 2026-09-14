@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Notifications</title>
+<meta name="inspection-fixture" content="defect">
+<meta name="inspection-fixture-class" content="target-undersized">
+<meta name="inspection-fixture-defect" content="The dismiss control on each notification is rendered at about ten CSS pixels square, far too small to hit reliably.">
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; color: #111; }
+  .row { display: flex; align-items: center; justify-content: space-between;
+         border-bottom: 1px solid #e3e5e8; padding: 12px 0; }
+  /* The defect: a 10px tap target. */
+  .dismiss { width: 10px; height: 10px; font-size: 8px; line-height: 10px; padding: 0;
+             border: 1px solid #888; background: #fff; cursor: pointer; }
+  h1 { font-size: 22px; }
+</style>
+<h1>Notifications</h1>
+<div class="row"><span>Your export finished</span><button class="dismiss">x</button></div>
+<div class="row"><span>Two seats were added to your plan</span><button class="dismiss">x</button></div>
+<div class="row"><span>Billing details were updated</span><button class="dismiss">x</button></div>

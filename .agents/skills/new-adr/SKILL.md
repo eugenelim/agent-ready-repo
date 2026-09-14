@@ -218,9 +218,14 @@ If any of these checks fail, push back rather than proceeding.
 
 8. **On confirmation, write.** Copy the bundled `assets/adr.md` into the
    resolved location (step 1), rename to `NNNN-<title>.md`, write the drafted
-   content, then add the new ADR's row to the index (`<adr-dir>/README.md`,
-   with `docs/adr/README.md` only when the resolved destination is the catalogue
-   fallback).
+   content, then regenerate the sibling index so the new ADR appears in it:
+
+   ```bash
+   python3 scripts/index-records.py <resolved-decision-record-directory>
+   ```
+
+   The index is derived from the records, so no row is written by hand. Use
+   `--check` to report whether it would change without writing.
 
 9. **Return a completion receipt.** After writing, hand back:
    - **Identifier** — `ADR-NNNN`;

@@ -87,7 +87,7 @@ class MakefileRewireTest(unittest.TestCase):
         # future edit re-adding it fails here, next to the reason, rather than in
         # a parity suite that cannot say why.
         self.assertIn(
-            "ci: build-check lint-ruff lint-mypy test-after-build-check",
+            "ci: lint-ruff lint-mypy build-check test-after-build-check",
             self.makefile,
         )
         self.assertNotIn("external-catalogue-smoke lint-ruff", self.makefile)

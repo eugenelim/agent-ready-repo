@@ -20,6 +20,7 @@ Use this index when you have found the `frontend-engineering` pack and need the 
 | Decide whether a new or changed surface needs a contract | [Write a page or screen contract](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
 | Set or verify performance policy | [Performance targets](reference/performance-targets.md) | Fixed CWV targets, prioritized asset-budget categories, and project-specific numeric-ceiling decisions |
 | Audit an existing page or component without writing code | [Run a frontend audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
+| Check whether a surface that passed its gates actually looks right | [Inspect the rendered page](how-to/inspect-the-rendered-page.md) | Observations in the evidence manifest, a result state a skip cannot disguise, and a way to measure your own false-positive rate |
 | Learn the workflow from a small worked example | [Scaffold a component from a screen brief](tutorials/scaffold-a-component.md) | A gate-passing component and completed evidence manifest |
 | Look up every skill and the reviewer boundary | [Frontend Engineering Pack reference](reference/frontend-engineering.md) | The nine installed skills, their triggers, near misses, and the `frontend-reviewer` scope |
 

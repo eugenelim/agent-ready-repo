@@ -57,7 +57,7 @@ def test_warranted_rfc_retains_existing_authoring_and_review_gates() -> None:
         "**Pre-handoff gate — mandatory, before status → Open.**",
         "Dispatch `adversarial-reviewer`",
         "Set status to `Draft` until the user is ready to circulate",
-        "Update the RFC index table",
+        "Regenerate the RFC index from the records",
     ):
         assert gate in text
 

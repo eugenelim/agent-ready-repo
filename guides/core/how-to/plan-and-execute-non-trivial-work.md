@@ -100,8 +100,9 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 9. Review iterates to direct or adjudicated clean — usually one to two passes. If it
    cannot reach clean in three, the skill stops and asks for human direction;
    the spec likely has a structural problem, not a wording one.
-10. The skill updates `docs/specs/README.md` and reminds you that spec drift is a
-    bug — update the spec in the same PR when implementation diverges.
+10. The skill reminds you that spec drift is a bug — update the spec in the same
+    PR when implementation diverges. There is no spec index to maintain: specs
+    are discovered by listing `docs/specs/`.
 
 If you want to stop here (pure planning, no build yet), this is the natural exit point. The spec and plan are durable; come back to `work-loop` whenever you're ready.
 

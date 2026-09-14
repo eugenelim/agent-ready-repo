@@ -384,6 +384,13 @@ shipped = [
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
 ]
 queue   = [
+  # RFC-0096 Wave 7c slice 1 of 2, registered 2026-09-13 after ADR-0114 chose the
+  # post-mutation-invariant route. Read-only: it resolves whether any membership
+  # points at a selected spec, including duplicate and legacy-alias forms. Slice 2
+  # (the prune operation) composes it, and RFC-0096's 2026-09-13 Errata requires it
+  # to re-verify each carved-out candidate before any deletion. Draft; requires
+  # human approval before dispatch.
+  {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
   # Slice S3 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and the
   # owner-authorized fourth adversarial round. It remains Draft and requires
@@ -420,10 +427,18 @@ status    = "active"
 milestone = "M2 · Adoption + Shaping Doctrine"
 
 ["ini-003".work]
-active  = []
+active  = [
+]
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-09-13. Makes the frontend-engineering pack look at the rendered
+  # page, record what it saw, and refuse to complete a surface over an unresolved
+  # blocking finding. Scope widened mid-delivery by owner decision to cover the
+  # independent reviewer's seed, lens and capture ability; the amendment and the
+  # five review rounds are in the spec's notes/verification-ledger.md.
+  {path = "docs/specs/rendered-page-visual-inspection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the frontend-engineering pack capture the rendered page in named states, judge it for reader-visible layout failures, and record the judgement in the evidence manifest the human acceptance gate reads", needs = []},
+
   {path = "docs/specs/shaping-review-contracts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Cold-review intent, delivery-brief, and spec contracts without adding shaping-loop state", needs = [{type = "local", kind = "spec", path = "docs/specs/core-guidance-artifact-routing/spec.md"}]},
   {path = "docs/specs/digital-experience-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "digital-experience-contract", needs = []},
   {path = "docs/specs/xd-copy-direction/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-copy-direction", needs = []},

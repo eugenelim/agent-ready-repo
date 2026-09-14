@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Account</title>
+<meta name="inspection-fixture" content="defect">
+<meta name="inspection-fixture-class" content="overflow">
+<meta name="inspection-fixture-defect" content="The account identifier runs outside the right edge of the card that holds it, and the end of the value is unreadable.">
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; background: #f4f5f7; color: #111; }
+  .card { width: 320px; background: #fff; border: 1px solid #d5d8dd; border-radius: 8px; padding: 16px; }
+  /* The defect: a long unbroken value in a fixed-width card with no wrapping. */
+  .value { font-family: ui-monospace, monospace; white-space: nowrap; }
+  h1 { font-size: 22px; }
+</style>
+<h1>Account</h1>
+<div class="card">
+  <p>Workspace identifier</p>
+  <p class="value">ws-8f41c2ae-5d93-4b17-9c0e-2a7f6d3b1e84-primary-region</p>
+  <p>Share this with support when you report a problem.</p>
+</div>

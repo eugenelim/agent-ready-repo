@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pricing</title>
+<meta name="inspection-fixture" content="defect">
+<meta name="inspection-fixture-class" content="occlusion">
+<meta name="inspection-fixture-defect" content="The announcement bar sits on top of the page heading and the first line of body text, so neither can be read.">
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #111; }
+  .bar { position: fixed; inset: 0 0 auto 0; height: 96px; background: #1f3a8a; color: #fff;
+         display: flex; align-items: center; padding: 0 24px; }
+  /* The defect: content starts under the fixed bar with no offset for it. */
+  main { padding: 0 24px 400px; }
+  h1 { font-size: 34px; margin: 8px 0 12px; }
+</style>
+<div class="bar">Spring pricing update — new tiers from 1 April</div>
+<main>
+  <h1>Simple pricing that scales with you</h1>
+  <p>Every plan includes unlimited projects, the full audit log, and support.</p>
+  <p>Choose a plan below. You can change tier at any point in the billing cycle.</p>
+  <p>Teams over fifty seats should talk to us about volume terms.</p>
+  <p>All prices exclude local sales tax.</p>
+</main>

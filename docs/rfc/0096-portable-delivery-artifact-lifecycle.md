@@ -457,3 +457,78 @@ record. Corrections are appended here, Approver-signed.
 
   Wave 7d depends on Wave 7c and is the last of the five slices. Wave 7a-i
   remains in flight; Wave 7a-ii shipped at core 2.23.2.
+
+- **2026-09-13 (Approver: eugenelim) — Wave 7c and Wave 7d routing,
+  preconditions, measurements, and dependency are corrected.**
+
+  The 2026-09-03 Errata gave Wave 7d one destination: the project-knowledge
+  role under ADR-0081's per-topic model
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:449-456`). A pruned
+  delivery contract's retained content instead routes to the role that owns
+  it: current product truth, user documentation, product history, release
+  history, current architecture, architecture design, decision records,
+  operations, interface contracts, or project knowledge
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:61-86`). In each
+  repository, that role resolves to a location through section 4's precedence
+  order (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:99-128`). This
+  routing rule is portable; Wave 7d remains this repository's cleanup and
+  produces no portable contract.
+
+  Project knowledge owns only reusable learning. ADR-0081's per-topic model is
+  therefore the right home for that role and the wrong home for the others: it
+  models a topic as mutable current synthesis
+  (`docs/adr/0081-canonical-project-knowledge-uses-per-topic-json.md:17-20`),
+  while this repository classifies a shipped delivery contract as frozen
+  (`docs/CONVENTIONS.md:105-112`). In this repository, section 4 resolves
+  project knowledge to `docs/knowledge/`; retained content for every other role
+  follows its own local resolution. This repository's durable-owner policy
+  illustrates those distinct owners (`docs/CONVENTIONS.md:408-415`).
+
+  The same Errata's framing of `lifecycle-record-entry-removal-fact` as one of
+  Wave 7c's "two schema follow-ons" no longer holds
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:432-439`). The owning
+  record requires either an atomic prune or a mandatory post-mutation
+  invariant, defined and verified by the pruning slice. Detection after the
+  fact does not satisfy that requirement
+  (`docs/specs/reclassified-lifecycle-result/notes/follow-ons.md:36-50`). Which
+  route Wave 7c takes is Wave 7c's work, not this erratum's.
+
+  In the measured case, retaining a canonical `spec` entry in an active
+  initiative while removing its file failed closed on the `status` surface;
+  that refutes silent stranding only for that tested shape. Aliases, paused or
+  closed initiatives, non-spec kinds, and the repair surfaces remain untested
+  (`docs/specs/reclassified-lifecycle-result/notes/follow-ons.md:25-37`).
+
+  The 2026-09-03 measurement of 426 spec directories, with 211 (49%) absent
+  from `docs/specs/README.md`, is superseded
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:441-447`). Measured on
+  2026-09-13, this checkout has 453 spec directories.
+
+  That earlier measurement counted a spec index this repository no longer
+  keeps. `docs/specs/README.md` now states the spec directory convention and
+  carries no index table, and specs are discovered by listing the directory.
+  No index-derived count is therefore reproducible, and no such count is used
+  below. The corpus volume the Wave 7d objective names is unchanged by that
+  retirement.
+
+  A literal-string search found 285 spec directories carrying no
+  `workspace.toml` entry, and within them 112 with no inbound literal
+  reference from any enumerated searched surface: `workspace.toml`, `tools/`,
+  `packages/`, `packs/`, `docs/knowledge/`, `docs/adr/`, `docs/rfc/`,
+  `docs/product/`, `guides/`, `docs-site/`, and every other spec. The
+  reference-free 112 are a strict subset of the entry-less 285. This search
+  cannot exclude constructed, indirect, alias-based, or unsearched-file
+  references, so it establishes where deletion is mechanically safe and never
+  that a spec should be deleted.
+
+  The Wave 7d carve-out permits only the narrower reference-free 112, not the
+  entry-less 285, and is anchored to that measured set rather than to a
+  predicate a later change can make vacuous. Before any of the 112 is deleted,
+  its entry-less and reference-free status must be re-verified by a mechanical
+  check rather than relied upon from the literal-string search recorded here. This
+  verification is a condition on the carve-out; it does not select or constrain
+  the route by which Wave 7c satisfies the entry-removal precondition. Wave 7c
+  still gates every spec carrying a `workspace.toml` entry
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:432-439`), and Wave 7d
+  remains dependent on Wave 7c
+  (`docs/rfc/0096-portable-delivery-artifact-lifecycle.md:458-459`).

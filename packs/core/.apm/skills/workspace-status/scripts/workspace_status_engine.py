@@ -298,6 +298,16 @@ class LegacyWorkspaceMembership:
 
 
 @dataclasses.dataclass(frozen=True)
+class ParseBlockedWorkspaceMembership:
+    """One target-like entry whose safe artifact identity survived parsing."""
+
+    canonical_artifact_path: str
+    ini_slug: str
+    collection: str
+    entry_index: int
+
+
+@dataclasses.dataclass(frozen=True)
 class MigrationSelection:
     """Closed human-selected binding from one legacy finding to one target."""
 
@@ -2481,12 +2491,12 @@ def _extract_canonical_memberships(
     list[WorkspaceMembership],
     list[LegacyWorkspaceMembership],
     list[RoutingFinding],
-    dict[str, int],
+    list[ParseBlockedWorkspaceMembership],
 ]:
     memberships: list[WorkspaceMembership] = []
     legacy_memberships: list[LegacyWorkspaceMembership] = []
     findings: list[RoutingFinding] = []
-    parse_blocked_path_counts: dict[str, int] = {}
+    parse_blocked_memberships: list[ParseBlockedWorkspaceMembership] = []
     for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
         section = workspace.get(section_name, {})
         if not isinstance(section, dict):
@@ -2514,8 +2524,13 @@ def _extract_canonical_memberships(
                         dataclasses.replace(legacy_membership, entry_index=entry_index)
                     )
                 if blocked_path is not None:
-                    parse_blocked_path_counts[blocked_path] = (
-                        parse_blocked_path_counts.get(blocked_path, 0) + 1
+                    parse_blocked_memberships.append(
+                        ParseBlockedWorkspaceMembership(
+                            canonical_artifact_path=blocked_path,
+                            ini_slug="",
+                            collection=collection,
+                            entry_index=entry_index,
+                        )
                     )
                 findings.extend(entry_findings)
     for raw_ini_slug, section in workspace.items():
@@ -2569,11 +2584,16 @@ def _extract_canonical_memberships(
                             dataclasses.replace(legacy_membership, entry_index=entry_index)
                         )
                     if blocked_path is not None:
-                        parse_blocked_path_counts[blocked_path] = (
-                            parse_blocked_path_counts.get(blocked_path, 0) + 1
+                        parse_blocked_memberships.append(
+                            ParseBlockedWorkspaceMembership(
+                                canonical_artifact_path=blocked_path,
+                                ini_slug=ini_slug,
+                                collection=collection,
+                                entry_index=entry_index,
+                            )
                         )
                     findings.extend(entry_findings)
-    return memberships, legacy_memberships, findings, parse_blocked_path_counts
+    return memberships, legacy_memberships, findings, parse_blocked_memberships
 
 
 def _membership_status(membership: WorkspaceMembership) -> str | None:
@@ -2854,6 +2874,115 @@ def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
         }[entry.kind]
         return f"docs/product/{directory}/{entry.path}.md"
     return None
+
+
+_SELECTED_SPEC_COLLECTIONS = frozenset(
+    {"backlog.open", "work.queue", "work.active", "work.shipped"}
+)
+
+
+def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, object]:
+    """Return membership occurrences for an explicit ordered spec selection.
+
+    The selected spec artifacts need not exist. Only ``workspace.toml`` is read;
+    matching is performed on canonical repository-relative artifact identities.
+    """
+    if not selectors:
+        return {"error": {"code": "empty_selection"}}
+
+    selected_artifact_paths: list[str] = []
+    for selector in selectors:
+        artifact_path = f"{selector}/spec.md" if isinstance(selector, str) else ""
+        if (
+            not _is_canonical_spec_artifact_path(artifact_path)
+            or _confined_artifact_path(root, selector) is None
+        ):
+            return {"error": {"code": "invalid_selector"}}
+        selected_artifact_paths.append(artifact_path)
+
+    workspace_path = _confined_artifact_path(root, "workspace.toml")
+    if workspace_path is None:
+        return {"error": {"code": "invalid_workspace"}}
+    try:
+        workspace = parse_workspace(workspace_path)
+    except tomllib.TOMLDecodeError:
+        return {"error": {"code": "malformed_toml"}}
+    except OSError:
+        return {"error": {"code": "invalid_workspace"}}
+
+    (
+        memberships,
+        legacy_memberships,
+        findings,
+        parse_blocked_memberships,
+    ) = _extract_canonical_memberships(workspace)
+    if any(finding.code == "invalid_workspace" for finding in findings):
+        return {"error": {"code": "invalid_workspace"}}
+
+    occurrences_by_path: dict[str, list[dict[str, object]]] = {
+        path: [] for path in selected_artifact_paths
+    }
+    for membership in memberships:
+        path = membership.entry.path
+        if (
+            membership.entry.kind != "spec"
+            or membership.collection not in _SELECTED_SPEC_COLLECTIONS
+            or path not in occurrences_by_path
+        ):
+            continue
+        occurrences_by_path[path].append(
+            {
+                "canonical_artifact_path": path,
+                "initiative": membership.ini_slug or None,
+                "collection": membership.collection,
+                "entry_index": membership.entry_index,
+                "form": "canonical",
+            }
+        )
+    for legacy_membership in legacy_memberships:
+        path = _legacy_canonical_alias(legacy_membership.entry)
+        if (
+            legacy_membership.collection not in _SELECTED_SPEC_COLLECTIONS
+            or path not in occurrences_by_path
+        ):
+            continue
+        occurrences_by_path[path].append(
+            {
+                "canonical_artifact_path": path,
+                "initiative": legacy_membership.ini_slug or None,
+                "collection": legacy_membership.collection,
+                "entry_index": legacy_membership.entry_index,
+                "form": "legacy",
+            }
+        )
+    for blocked_membership in parse_blocked_memberships:
+        path = blocked_membership.canonical_artifact_path
+        if (
+            blocked_membership.collection not in _SELECTED_SPEC_COLLECTIONS
+            or path not in occurrences_by_path
+        ):
+            continue
+        occurrences_by_path[path].append(
+            {
+                "canonical_artifact_path": path,
+                "initiative": blocked_membership.ini_slug or None,
+                "collection": blocked_membership.collection,
+                "entry_index": blocked_membership.entry_index,
+                "form": "parse-blocked",
+            }
+        )
+
+    return {
+        "results": [
+            {
+                "selected_directory": selector,
+                "canonical_artifact_path": artifact_path,
+                "membership_present": bool(occurrences_by_path[artifact_path]),
+                "occurrences": occurrences_by_path[artifact_path],
+            }
+            for selector, artifact_path in zip(selectors, selected_artifact_paths, strict=True)
+        ]
+    }
 
 
 def _legacy_membership_is_cooled(
@@ -3421,8 +3550,12 @@ def run_canonical_reconciliation(
         memberships,
         legacy_memberships,
         parse_findings,
-        parse_blocked_path_counts,
+        parse_blocked_memberships,
     ) = _extract_canonical_memberships(workspace)
+    parse_blocked_path_counts: dict[str, int] = {}
+    for blocked in parse_blocked_memberships:
+        path = blocked.canonical_artifact_path
+        parse_blocked_path_counts[path] = parse_blocked_path_counts.get(path, 0) + 1
     # Cooling is applied at evaluation and emission, never here. Every fact
     # derived below — by_path, duplicate_paths, cycle_paths, legacy_alias_counts
     # and the structural loop — must see a cooled artifact as *cooled*, not as
