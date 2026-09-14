@@ -1,7 +1,7 @@
 # Plan: Rendered-page inspection channel axis
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, pack test
   loader naming, version bump rule, no internal-governance citations in shipped
   content); `packs/frontend-engineering/AGENTS.md` (pack scope);
