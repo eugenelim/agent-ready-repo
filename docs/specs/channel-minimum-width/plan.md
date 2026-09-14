@@ -8,8 +8,8 @@
   `docs/CONVENTIONS.md:858-864` (what counts as an adapter-projected primitive).
   Analogous implementation: the channel axis itself — the `## Channels` rule rows
   in `.apm/skills/frontend-engineering/references/rendered-page-inspection.md`,
-  their reader `required_channels()` at
-  `packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py:265`,
+  their reader `required_channels()` in
+  `packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py`,
   and its construction tests in `test_rendered_page_capture_contract.py`. This
   delivery adds an input to that same table-plus-reader shape; no new mechanism.
 
@@ -49,16 +49,22 @@ a real single-channel surface with a minimum declared (T6).
 
 ## Durable-output map
 
-| Durable output (spec) | Tasks |
+One row per Durable Outputs row in the spec, using that table's semantic-role
+strings verbatim.
+
+| Semantic role (spec) | Tasks |
 | --- | --- |
-| Rule layer — reference | T1 |
-| Reader and derivation | T2 |
-| Adopter-facing skill | T3 |
-| Journey input | T3 |
-| Adopter guidance — how-to | T4 |
-| Eval harness | T5 |
+| Current product truth — rule layer | T1 |
+| Current product truth — adopter-facing skill | T3 |
+| Current product truth — journey input | T3 |
+| Adopter guidance | T4 |
+| Decision rationale | none — the spec's own Objective, Acceptance Criteria and Assumptions are the destination, and shaping wrote them |
+| Reusable learning — eval harness | T5 |
 | Execution observation | T6 |
 | Release history | T7 |
+
+T2 appears in no row: it ships the reader, which is code covered by the rule
+layer's own row and reconstructible from the module and its tests.
 
 ## Design (LLD)
 
@@ -87,7 +93,7 @@ present before running:
 | Row key | Table | States |
 | --- | --- | --- |
 | `channel-minimum-derivation` | Channels, rule rows | drop-bands-below-clamp-lowest-survivor |
-| `channel-minimum-recorded` | Channels, rule rows | `required` — the switch AC-0006 and AC-0007's guards read |
+| `channel-minimum-recorded` | Channels, rule rows | `required` — the switch the recording readers consult, and AC-0016's mutation target |
 
 `REQUIRED_RULE_ROWS["Channels"]` goes from six keys to eight. Its equality
 control compares that constant against what `channel_rules` reads, so the two
@@ -129,8 +135,11 @@ there; nothing in this task asserts them itself.
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** the new rows parse under `capture_set_rules`' two-cell shape and
-`unique_keyed`'s duplicate-key rule, run from a scratch probe.
+**Done when:** `channel_rules(read_rules())` returns eight keys including
+`channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
+rejects a duplicate key, run from a scratch probe. Not `capture_set_rules`: it
+splits on `\n## Required captures\n` and cannot reach the `## Channels` section
+at all, so a probe against it would pass with neither row present.
 
 ### T2: The reader derives and records the minimum
 
@@ -138,14 +147,26 @@ State the axis's reason without naming any surface outside the pack.
 **Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py
 
 **Tests:** TDD in `test_rendered_page_capture_contract.py`, covering AC-0001,
-AC-0002, AC-0003, AC-0004, AC-0005, AC-0006 and AC-0007. The parametrized `test_every_required_rule_row_raises_when_deleted`
-already derives its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive
-in it without a second list — that is the control the previous delivery built for
-exactly this case. The mutation for AC-0005 deletes one row at a time.
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015 and AC-0016. The
+parametrized `test_every_required_rule_row_raises_when_deleted` already derives
+its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive in it without a
+second list, which discharges AC-0005 and nothing more.
 
-**Approach:** add the minimum parameter and the filter to `required_channels`;
-extend `REQUIRED_RULE_ROWS["Channels"]` with both keys; add the two recording
-readers beside `channel_basis` without widening its vocabulary.
+AC-0015 and AC-0016 are the criteria that make the rows load-bearing, and their
+mutation rewrites the row's **value cell** with the row still present. Deletion
+cannot serve here: the walk proves every required row present before it runs, so
+a deletion reds through the presence loop whether or not the filter or the
+recorder ever consults the row. The module says this in the comment above
+`REQUIRED_RULE_ROWS` — "Not all of them are read by the walk … the walk proves
+them present". A value-cell mutation is the only fixture that separates *read*
+from *present*.
+
+**Approach:** add the minimum parameter and the filter to `required_channels`,
+reading `channel-minimum-derivation` and refusing an unrecognised value the way
+`channel_capture_width` refuses; extend `REQUIRED_RULE_ROWS["Channels"]` with
+both keys; add the two recording readers beside `channel_basis`, gated on
+`channel-minimum-recorded` through `_rule_in_force`, without widening the basis
+vocabulary.
 
 **Done when:** a repository-wide search for `required_channels` returns no caller
 still passing two positional arguments where three are meaningful, and the
@@ -253,8 +274,9 @@ clean across the changed Python.
 - **The filter's drop condition is the load-bearing line.** A band is dropped on
   its upper bound alone, so an off-by-one there silently drops a band that
   should survive. The mutation for it is removing the filter, which the probe
-  showed yields unsatisfiable bands; the case that catches an off-by-one is a
-  minimum equal to a band's upper bound.
+  showed yields unsatisfiable bands. The two cases that catch an off-by-one are
+  now AC-0002 fixtures rather than prose here: a band bounded on both sides
+  lying wholly below the minimum, and a minimum equal to a band's bound.
 - **`REQUIRED_RULE_ROWS` grows from six to eight.** Its equality control reds
   until both are added, which is the control working; the risk is reading that
   red as a defect rather than as the reminder it is.
@@ -266,3 +288,11 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 1. Split AC-0005 into presence inheritance plus two
+  new criteria (AC-0015, AC-0016) whose mutation edits a row's value cell,
+  because the walk's presence loop reds on a deletion regardless of whether any
+  code reads the row. Added the both-sides-bounded and equal-bound fixtures to
+  AC-0002 and a mixed discarded-set fixture to AC-0007, each closing a case an
+  unwanted implementation satisfied. Corrected T1's `Done when` from
+  `capture_set_rules`, which cannot reach the `## Channels` section, to
+  `channel_rules`. Named the frozen channel-axis spec under `Constrained by`.

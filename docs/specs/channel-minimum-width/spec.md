@@ -3,7 +3,9 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** none
+- **Constrained by:** [`docs/specs/rendered-page-channel-axis/spec.md`](../rendered-page-channel-axis/spec.md)
+  — establishes the channel axis, its six rule rows, and the controls two
+  criteria here lean on. It is `Shipped` and this work does not amend it.
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -56,6 +58,7 @@ breakpoint the minimum discarded.
 | Adopter guidance | Applicable — the shipped how-to teaches the capture set by example | `guides/frontend-engineering/how-to/inspect-the-rendered-page.md` | pack maintainer | The guide walks a single-channel surface and says what the minimum does to the required set | An adopter with a desktop-only surface can produce a complete set from the guide alone |
 | Decision rationale | Applicable — "drop then clamp" and the two-field record were chosen over three alternatives each, and neither is recoverable from the result | this spec's Objective, Acceptance Criteria, and Assumptions | spec owner | The criteria state the derivation and the recording; the Assumptions record what was settled and when | A future reader can see why the basis stayed two values and gained a sibling field |
 | Reusable learning — eval harness | Applicable — `packs/AGENTS.md` § *Security and authoring rules* obliges a non-cosmetic pack update to update that pack's eval harness | `packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json` | pack maintainer | The `rendered-page-inspection` case names the minimum among the behaviours it expects | The harness exercises the shipped input |
+| Execution observation | Applicable — a completeness test cannot show that one channel was enough to judge a page; only a performed run can | `docs/specs/channel-minimum-width/notes/verification-ledger.md` | spec owner | The run's observations, result state, verdict, minimum in force, and any discarded breakpoint | The ledger carries all five values for one real single-channel surface |
 | Release history | Applicable — pack content changes | `packs/frontend-engineering/pack.toml`, `packs/frontend-engineering/.claude-plugin/plugin.json`, `docs/product/changelog.md` | release workflow | Matching version bump in both manifests; a changelog entry led by the pack and that version | Versions and changelog agree with shipped content |
 
 ## Boundaries
@@ -82,8 +85,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Ask first
 
 - Adding a maximum width, or any second bound on the channel range.
-- Changing the two fallback bands, the height bands, the scroll-position rule, or
-  the capture-width rule. This delivery adds an input beside them.
+- Changing the band values *as the reference table states them* — the two
+  fallback bands, the height bands, the scroll-position rule, or the
+  capture-width rule. Clamping a band's lower bound at derivation time is what
+  this delivery does and needs no sign-off; editing the shipped cells does.
 - Making the minimum mandatory, or defaulting it to any value other than absent.
 - Adding a third value to the channel-basis vocabulary.
 
@@ -103,9 +108,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **The derivation (AC-0001, AC-0002, AC-0003, AC-0004):** TDD in `packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py`. Each is a compressible invariant over data — a minimum and a breakpoint list either yield the stated bands or they do not — and every expectation is read from the shipped tables, so a mutation is deleting a rule row rather than editing the module. The fixtures are the five cases the probe recorded, which together cover a minimum with no breakpoints, with a breakpoint below it, with a breakpoint above it, with several above it, and absent.
-- **Shipped-content provenance (AC-0005):** TDD in the same module. Removing either new rule row from the reference must raise rather than skip the rule it governs, on the same footing as the six rows already required. The mutation deletes one row at a time, because a mutation that deletes the whole `## Channels` section proves nothing about a single row — that is the error the previous delivery's own shipped-content test made.
-- **The recorded effects (AC-0006, AC-0007):** TDD in the same module, plus a parse of the manifest field in `test_rendered_page_shipped_content_limits.py`. Two criteria rather than one, because the value in force and the breakpoints it discarded are separate facts with separate failure modes.
+- **The admissible value (AC-0001):** TDD in `packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py`. Its fixtures are refusal cases, not derivation cases: a fractional value, zero, a negative value, and a boolean. The probe recorded no refusal, so none of these come from it.
+- **The derivation (AC-0002, AC-0003, AC-0004):** TDD in the same module. Each is a compressible invariant over data — a minimum and a breakpoint list either yield the stated bands or they do not — and every expectation is read from the shipped tables. The fixtures extend the five cases the probe recorded (a minimum with no breakpoints, with a breakpoint below it, with one above it, with several above it, and absent) with the two cases the probe did not reach: a band bounded on both sides lying wholly below the minimum, and a minimum equal to a band's upper bound.
+- **The rows in force (AC-0005, AC-0015, AC-0016):** TDD in the same module. AC-0005 is presence inheritance and needs no new test — the shipped parametrized control plus the equality control already carry it once the rows land in `REQUIRED_RULE_ROWS`. AC-0015 and AC-0016 are what make the rows load-bearing, and their mutation **edits the value cell** rather than deleting the row: the presence loop reds on a deletion whether or not any code reads the row, so deletion cannot demonstrate that it is read.
+- **The recorded effects (AC-0006, AC-0007):** TDD in the same module, which already reads § 5a and its manifest table. Two criteria rather than one, because the value in force and the breakpoints it discarded are separate facts with separate failure modes.
 - **Adopter surfaces (AC-0008, AC-0009, AC-0010):** goal-based checks. A search over `SKILL.md` § 5a, the journey's `youProvide`, and the how-to for the minimum and its effect on the required set. Each names the string it searches for, so its reach is the artifact a reviewer inspects.
 - **Eval harness (AC-0011):** TDD in `test_rendered_page_reviewer_sight.py` — a parse of `evals/evals.json` asserting the `rendered-page-inspection` case names the minimum.
 - **Pack delivery (AC-0012, AC-0013):** goal-based checks compare the two manifests' version fields, confirm the changelog entry is this pack's topmost release heading and sits below the `core` heading, and run `agentbundle catalogue lint --deep` and `catalogue verify`.
@@ -115,25 +121,27 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 <!-- Derivation -->
 - [ ] **AC-0001.** A declared minimum width is a positive whole number of CSS pixels, and a run refuses any other value, on the same footing as a declared breakpoint. Construction test: `test_a_declared_minimum_must_be_a_positive_whole_number`; fixtures: a fractional value, zero, a negative value, and a boolean, which `isinstance(True, int)` admits unless excluded.
-- [ ] **AC-0002.** A band whose entire width range lies below the declared minimum is not a required channel. Construction test: `test_a_band_wholly_below_the_minimum_is_dropped`; fixtures: the two fallback bands under a 1280 minimum, where `narrow` is dropped; and a declared breakpoint of 768 under the same minimum, where its lower band is dropped.
+- [ ] **AC-0002.** A band whose entire width range lies below the declared minimum is not a required channel, whether that band is bounded below or not. Construction test: `test_a_band_wholly_below_the_minimum_is_dropped`; fixtures: the two fallback bands under a 1280 minimum, where `narrow` is dropped; a declared breakpoint of 768 under the same minimum, where its lower band is dropped; breakpoints `[400, 800]` under a 1280 minimum, where two bands are dropped and one of them — `>=400 <800` — is bounded on both sides, yielding one channel captured at 1280; and a minimum of 768 against breakpoints `[768, 1024]`, where `<768` admits no width at or above the minimum and is dropped, yielding two channels at 768 and 1024. The last two fixtures exist because a filter keying on an absent lower bound satisfies every other fixture here while keeping a both-sides-bounded band that lies wholly below the minimum.
 - [ ] **AC-0003.** The lowest surviving band's lower bound is the declared minimum, so its capture width is the minimum rather than a width below it. Construction test: `test_the_lowest_surviving_band_starts_at_the_minimum`; fixtures: a 1280 minimum against the fallback bands, yielding one channel captured at 1280.
 - [ ] **AC-0004.** A declared breakpoint above the minimum still bounds its own band, so a minimum cannot reduce a surface to fewer channels than its breakpoints above the minimum require. Construction test: `test_a_breakpoint_above_the_minimum_keeps_its_band`; fixtures: a 1280 minimum with breakpoints `[1536]` yielding two channels at 1280 and 1536, and with `[1440, 1920]` yielding three at 1280, 1440 and 1920.
-- [ ] **AC-0005.** Removing either channel-minimum rule row from the reference makes the pack's capture-set checks fail rather than skip the rule the removed row governs. Construction test: `test_every_required_rule_row_raises_when_deleted`, parametrized over the rows the module declares it requires; fixtures: the reference with each row removed in turn.
+- [ ] **AC-0005.** Both channel-minimum rule rows join the set the completeness walk proves present before it runs, so removing either makes the capture-set checks raise rather than skip. Discharged by the shipped `test_every_required_rule_row_raises_when_deleted`, parametrized over that set, together with the equality control that compares the set against the rule-row keys the shipped tables state; this criterion adds no test. It claims presence only — the presence loop reds on a deletion whether or not any code reads the row, so it cannot show the row governs anything. AC-0015 and AC-0016 carry that.
+- [ ] **AC-0015.** The derivation refuses rather than deriving when `channel-minimum-derivation` states any value other than `drop-bands-below-clamp-lowest-survivor`, on the same footing as `channel-capture-width`. Construction test: `test_the_derivation_refuses_an_unknown_minimum_rule`; fixture: the reference with that row's **value cell** rewritten to another token, which must raise — the row is present throughout, so a passing presence loop cannot account for the result.
 
 <!-- Recorded effects -->
-- [ ] **AC-0006.** A run records the declared minimum in force, or that none was declared, in a field separate from the channel basis — which stays `declared-breakpoints` or `fallback`, because a minimum composes with either. Construction test: `test_the_minimum_is_recorded_beside_the_basis`; fixtures: a fallback run with a minimum, a declared-breakpoint run with a minimum, and a run with none.
-- [ ] **AC-0007.** A run records every declared breakpoint the minimum discarded. Construction test: `test_discarded_breakpoints_are_recorded`; fixtures: a 12800 minimum against breakpoints `[768, 1024, 1440]`, where all three are discarded and the record names all three.
+- [ ] **AC-0006.** A run records the declared minimum in force, or that none was declared, in a field separate from the channel basis. Construction test: `test_the_minimum_is_recorded_beside_the_basis`; fixtures: a fallback run with a minimum, a declared-breakpoint run with a minimum, and a run with none. The basis vocabulary itself is not this criterion's claim — the shipped `test_the_channel_basis_is_recorded_not_inferred` owns it, and *Ask first* gates adding a third value.
+- [ ] **AC-0007.** A run records exactly those declared breakpoints the minimum discarded, and no breakpoint it kept. Construction test: `test_discarded_breakpoints_are_recorded`; fixtures: a 1280 minimum against breakpoints `[768, 1536]`, where the record is exactly `[768]` and excludes 1536; and a 12800 minimum against `[768, 1024, 1440]`, where all three are discarded and the record names all three. The mixed fixture is the one that bites: under the all-discarded fixture alone, recording the input list verbatim is indistinguishable from recording the discarded set.
+- [ ] **AC-0016.** The recording refuses rather than returning silently when `channel-minimum-recorded` is switched off, on the same footing as `channel-basis-recorded`. Construction test: `test_the_recording_refuses_when_switched_off`; fixture: the reference with that row's **value cell** set to `not-required`, which must raise. The row is present throughout, so the presence loop cannot account for the result.
 
 <!-- Adopter surfaces -->
 - [ ] **AC-0008.** `SKILL.md` § 5a states that a surface may declare a supported minimum width and that bands below it stop being required. Construction test: `test_the_skill_states_the_minimum_input`; fixture: the shipped § 5a text.
 - [ ] **AC-0009.** The journey's `youProvide` declaration names the supported minimum width among the inputs the adopter brings. Construction test: `test_rendered_page_journey_promise.py::test_the_journey_declares_the_minimum_input`; fixture: the pre-change declaration, which names routes, breakpoints and viewports and not a minimum.
-- [ ] **AC-0010.** The shipped how-to walks a surface that declares a minimum and states the required set that minimum produces. Construction test: a search over the guide for the minimum input and a per-route floor of four captures in one channel; fixture: the pre-change guide, which states eight as the floor unconditionally.
+- [ ] **AC-0010.** The shipped how-to walks a surface that declares a minimum and states the required set that minimum produces. Construction test: `test_the_how_to_walks_a_single_channel_surface`, asserting the guide contains both the minimum-width input token and a per-route floor of four captures for a single channel; fixture: the pre-change guide, which states eight as the floor unconditionally and names no minimum.
 - [ ] **AC-0011.** The `rendered-page-inspection` eval case names the declared minimum among the behaviours it expects of a completed inspection. Construction test: `test_the_harness_expects_the_minimum`; fixture: the pre-change case.
 
 <!-- Delivery -->
-- [ ] **AC-0012.** `packs/frontend-engineering/pack.toml` and `packs/frontend-engineering/.claude-plugin/plugin.json` both carry `0.2.5`. Origin: `packs/AGENTS.md` § *Version bump rule* yields a patch bump from `0.2.4`, because this adds no adapter-projected primitive — `docs/CONVENTIONS.md:860-862` names those as `skills/`, `agents/`, `hooks/`, `commands/` and `hook-wiring/`.
+- [ ] **AC-0012.** `packs/frontend-engineering/pack.toml` and `packs/frontend-engineering/.claude-plugin/plugin.json` carry the same version, and that version is one patch above the pack's version on `origin/main` at seal time — `0.2.5` unless a peer bump moves origin first, which is why the value is stated as a rule and not only as a literal. Origin: `packs/AGENTS.md` § *Version bump rule* yields a patch bump from `0.2.4`, because this adds no adapter-projected primitive — `docs/CONVENTIONS.md:860-862` names those as `skills/`, `agents/`, `hooks/`, `commands/` and `hook-wiring/`.
 - [ ] **AC-0013.** `docs/product/changelog.md` carries an entry led by the `frontend-engineering` pack at `0.2.5`, that entry is the topmost release heading for this pack, and the `core` heading remains directly beneath `[Unreleased]`.
-- [ ] **AC-0014.** One end-to-end run of the step against a real single-channel surface with a minimum declared is recorded, with its observations, its result state, its verdict, the minimum in force, and any discarded breakpoint, at the destination the Durable Outputs table names.
+- [ ] **AC-0014.** One end-to-end run of the step against a real single-channel surface with a minimum declared is recorded, with its observations, its result state, its verdict, the minimum in force, and any discarded breakpoint, in `docs/specs/channel-minimum-width/notes/verification-ledger.md` — the destination the Durable Outputs *Execution observation* row names.
 
 ## Follow-ons
 
@@ -142,7 +150,8 @@ None identified at authoring time.
 ## Assumptions
 
 - Technical: the derivation lives in `required_channels`
-  (`packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py:265`),
+  (`required_channels` in
+  `packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py`),
   and a clamped band needs no new predicate grammar — it is two existing
   one-operator cells, `>=1280` and `<1536`, both of which `satisfies()` already
   parses (read-only probe, 2026-09-14).
