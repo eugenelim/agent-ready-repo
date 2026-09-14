@@ -1,6 +1,6 @@
 # Spec: loop-telemetry-export
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
@@ -53,7 +53,7 @@ distribution an adopter installs on purpose.
 | User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed |
 | Optional-dependency reporting | Applicable — the first reader of `[[pack.runtime-dependencies]]` | `packs/core/pack.toml` + the catalogue lint's reporting path | spec owner | Lint run naming the unsatisfied optional dependency | AC-0039 green |
 | Release history | Applicable — a `packs/core` content change | `docs/product/changelog.md` | release workflow | Version bump with entry | Entry present |
-| Current product truth | Applicable — the spec must be discoverable | `docs/specs/README.md` | spec owner | Row in the active list | Row present |
+| Current product truth | Not applicable — `docs/specs/README.md` carries no index (ADR-0112: an index over a document corpus is generated or absent); specs are discovered by listing the directory | — | — | — | — |
 | Reusable learning | Applicable — the capability/consumer contract split generalises | `project-knowledge` public seam | work-loop closeout | Capture receipt | Receipt or `project-knowledge unavailable` |
 | Operations | Not applicable — no deployed infrastructure is owned here | — | — | — | — |
 
@@ -97,15 +97,16 @@ same reason. Every no-stub record names its discovery predicate and proof
 obligation. The remaining tasks are goal-based and
 take no stub.
 
-Across the 20 live criteria: **3** are covered by a validated stub (AC-0040 in
-T1, AC-0046 and AC-0047 in T6); **3** sit under `no stub
-(implementation-discovered)` (AC-0044 in T1, AC-0041 and AC-0043 in T2); **14**
+Across the 21 live criteria: **3** are covered by a validated stub (AC-0040 in
+T1, AC-0046 and AC-0047 in T6); **4** sit under `no stub
+(implementation-discovered)` (AC-0044 in T1, AC-0041, AC-0043 and AC-0055 in
+T2); **14**
 are goal-based and take no stub (AC-0020, AC-0021, AC-0022, AC-0031, AC-0039, AC-0042, AC-0045,
 AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054). Every live criterion
 appears in exactly one of the three groups.
 
 - **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
-- **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
+- **VI-0002 — configuration wiring (AC-0041, AC-0043, AC-0055):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
 - **VI-0003 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 - **VI-0004 — the gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one is a literal list rather than a glob.
 - **VI-0007 — the event line carries its version (AC-0046, AC-0047):** TDD, in the existing envelope suite. A field on a dict and a replay passthrough, both observable from the written file. AC-0047 is the case the rest of the suite cannot see: a build that retro-stamps every replayed record passes everything else.
@@ -193,6 +194,12 @@ appears in exactly one of the three groups.
   nothing until an endpoint is configured`. AC-0021 and AC-0022 delete stale
   claims; this criterion is what makes the section say something, so a § 2 gutted
   to an empty heading cannot satisfy all three.
+
+- [ ] **AC-0055.** The resolver refuses a `[telemetry]` setting for which the
+  sender has no route — neither its `--config` file nor a flag — naming the
+  setting rather than ignoring it. Added by amendment 1 on 2026-09-14: the
+  refusal was introduced during implementation, and these settings decide where
+  data is sent, so a silently dropped one fails open.
 
 - [ ] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
   `$comment` whose value contains the literal string

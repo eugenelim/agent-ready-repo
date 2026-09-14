@@ -6,7 +6,7 @@
 > work teaches, without an amendment and without a review round.
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/pack.toml` (where the optional dependency is
   declared); `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`
   (the dormant `[[pack.runtime-dependencies]]` shape this activates);
@@ -186,6 +186,11 @@ per-setting resolver and the invocation it renders),
   case. Verifies AC-0041.
 - It resolves `--input` to the repository root's `.loop-run/events.jsonl`.
   Verifies AC-0043.
+- A `[telemetry]` setting the sender has no route for is refused, naming the
+  setting, rather than dropped. Verifies AC-0055. Added by amendment 1: the
+  refusal is observable behaviour introduced during implementation, and
+  `CONVENTIONS.md` requires such a refusal to be a criterion rather than an
+  implementation detail.
 
 **Approach:**
 - The package reads one `--config` path; repository-before-user precedence is
@@ -220,7 +225,10 @@ invoking pip, npm, uv or pipx.
 
 **Depends on:** none
 
-**Touches:** `pyproject.toml`, `Makefile`
+**Touches:** `pyproject.toml`, `Makefile`, `tools/lint-mypy.py` (its
+`TYPED_PACKAGES` list is what the mypy gate actually reads — positional
+arguments override the config's `files`), `tools/test_gate_enumeration.py`
+(new — the construction test this task's `Tests` field requires)
 
 **Tests:**
 - The package name appears in the root `pythonpath`, mypy's `files`, the
@@ -337,7 +345,14 @@ AC-0051's field count measures, and T7 records the corpus the count is read from
 so running this task first would pin § 5.1 to a field count one short of what
 ships.)
 
-**Touches:** `docs/architecture/telemetry.md`, `guides/core/how-to/export-loop-telemetry.md`, `docs/specs/README.md`, `docs/product/changelog.md`
+**Touches:** `docs/architecture/telemetry.md`,
+`guides/core/how-to/export-loop-telemetry.md`, `docs/product/changelog.md`,
+`packs/core/tests/skills/work-loop/test_telemetry_disclosure_contract.py`
+(new — the goal-based checks for this task's criteria).
+`docs/specs/README.md` was removed by amendment 1: it carries a section
+headed "Why there is no index", and ADR-0112 decides that an index over a
+document corpus is generated or absent. The obligation was impossible as
+written.
 
 **Tests:**
 - The guide states the capability, payload and destination. Verifies AC-0020.
