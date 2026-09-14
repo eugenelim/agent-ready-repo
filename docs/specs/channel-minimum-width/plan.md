@@ -81,11 +81,22 @@ upper bound, and its lower bound becomes the greater of the minimum and its own 
 not the minimum outright. Assigning the minimum would lower `wide >=1024` to
 `>=600` under a 600 minimum and demand a capture at 600, a width the reference
 states satisfies neither fallback channel by deliberate design; raising leaves
-that band alone and captures at 1024. Only the lowest survivor can be affected,
-because any band above it whose lower bound sat below the minimum would have an
-upper bound below the minimum too, and would already have been dropped. The
+that band alone and captures at 1024. Only the lowest survivor can be affected, and
+the reason is the ordering, not a property of the bands above it: bands are
+ordered and non-overlapping, so a band above the lowest survivor has a lower
+bound at or above that survivor's upper bound, which already admits a width at
+or above the minimum. That holds for the contiguous breakpoint bands and for the
+fallback pair's 481-1023 gap alike. The
 capture-width rule then needs no special case, since it reads the lower bound
 first.
+
+**The clamped band keeps its own upper bound.** The capture-width rule reads the
+lower bound first, so once a band is clamped its upper bound stops influencing
+any capture width — which means a clamp that widened the upper bound away would
+be invisible to a width-based assertion. Two channels at `>=480` and `>=1024`
+would then both admit 1024, and one capture would satisfy both. AC-0017 asserts
+the disjointness directly for that reason, and the derivation fixtures compare
+full bound pairs rather than capture widths.
 
 **Two recorded fields, not a third basis value.** A minimum composes with either
 basis, so a third value could not express a surface that declares both. The
@@ -100,7 +111,11 @@ present before running:
 | Row key | Table | States |
 | --- | --- | --- |
 | `channel-minimum-derivation` | Channels, rule rows | drop-bands-below-clamp-lowest-survivor |
-| `channel-minimum-recorded` | Channels, rule rows | `required` — the switch the recording readers consult, and AC-0016's mutation target |
+| `channel-minimum-recorded` | Channels, rule rows | `required` — the switch both recording readers consult, and AC-0016's mutation target |
+
+A run with no minimum records the non-empty token `none-declared` rather than an
+empty value, because the record reader counts a field absent when its value is
+`None` or empty.
 
 `REQUIRED_RULE_ROWS["Channels"]` goes from six keys to eight. Its equality
 control compares that constant against what `channel_rules` reads, so the two
@@ -110,8 +125,10 @@ move together or the control reds.
 
 `required_channels(markdown, declared_breakpoints, minimum=None)` derives bands
 as today, then applies the filter. A band is dropped when its upper bound admits
-no width at or above the minimum — `u <= minimum` for `<u`, and `u < minimum` for
-`<=u`, so the operator is load-bearing and `<=480` survives a 480 minimum. The
+no width at or above the minimum — `u <= minimum` for `<u`, `u < minimum` for
+`<=u`, and never for an empty upper-bound cell, so the operator is load-bearing,
+`<=480` survives a 480 minimum, and the unbounded top band survives every
+minimum. The
 lowest survivor's lower bound becomes `>=max(minimum, its own)`. Breakpoints
 strictly below the minimum are collected as they are dropped, so the discarded
 list is a by-product of the filter rather than a second pass; a breakpoint equal
@@ -160,8 +177,15 @@ at all, so a probe against it would pass with neither row present.
 **Depends on:** T1
 **Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py
 
+`_rule_in_force`'s docstring classifies each row by what an *off* position means,
+naming `channel-basis-recorded` as admitting none. AC-0016 puts
+`channel-minimum-recorded` in that same group, so the docstring's enumeration is
+part of this task's edit — left alone it ships a shorter list than the code
+implements.
+
 **Tests:** TDD in `test_rendered_page_capture_contract.py`, covering AC-0001,
-AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015 and AC-0016. The
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015, AC-0016 and
+AC-0017. The
 parametrized `test_every_required_rule_row_raises_when_deleted` already derives
 its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive in it without a
 second list, which discharges AC-0005 and nothing more.
@@ -177,7 +201,10 @@ from *present*.
 
 **Approach:** add the minimum parameter and the filter to `required_channels`,
 reading `channel-minimum-derivation` and refusing an unrecognised value the way
-`channel_capture_width` refuses; extend `REQUIRED_RULE_ROWS["Channels"]` with
+`channel_capture_width` refuses — and validating it **before** the
+`if not declared_breakpoints` early return, not beside the `channel-derivation`
+and `channel-boundary-belongs-to` checks that sit after it, which never run on
+the fallback path; extend `REQUIRED_RULE_ROWS["Channels"]` with
 both keys; add the two recording readers beside `channel_basis`, gated on
 `channel-minimum-recorded` through `_rule_in_force`, without widening the basis
 vocabulary.
@@ -192,7 +219,9 @@ eight keys.
 **Depends on:** T1
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
 
-**Tests:** TDD for AC-0008 and AC-0009. AC-0009 goes in
+**Tests:** TDD for AC-0008, AC-0018 and AC-0009. AC-0018 asserts the § 5a
+manifest row beside the shipped `test_manifest_viewports_field_records_channels`,
+which passes after this delivery without mentioning the minimum. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -302,6 +331,20 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 3. Derivation fixtures now compare full `(lower,
+  upper)` band pairs instead of channel counts and capture widths: because the
+  capture-width rule reads the lower bound first, a clamp that widened the
+  clamped band's upper bound away was invisible to every width assertion, and
+  would have made `>=480` and `>=1024` both admit 1024. AC-0017 asserts channel
+  disjointness directly. AC-0015 and AC-0016 now cross the basis axis, because
+  the derivation returns the fallback bands before validating its rule rows, so
+  a check placed beside its siblings left the no-breakpoints path — the
+  motivating surface — ungated. AC-0018 added for the § 5a manifest row, the
+  surface that carries the record and which no reader criterion reaches. Named
+  the `none-declared` token, since the record reader counts an empty value as an
+  absent field. Replaced an unsound justification for the lowest-survivor
+  invariant with the ordering argument; added the never-drop-an-unbounded-top-band
+  case to the drop condition.
 - 2026-09-14 — Shaping round 2. Corrected the clamp from an assignment to a
   raise: assigning the minimum lowered `wide >=1024` to `>=600` under a 600
   minimum and demanded a capture inside the fallback bands' deliberate 481–1023
