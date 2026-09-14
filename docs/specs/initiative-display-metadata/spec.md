@@ -110,15 +110,21 @@ took, which is the signal that it was never a completion gate's business.
 
 ## Assumptions
 
-- Technical: the sentinel is emitted from one source emitter,
-  `workspace_status.py:915,917`, plus two generated adapter projections
-  (repo-wide grep for `"name": "workspace.toml"` returned 3 hits, all the same
-  file).
-- Technical: three tests pin the sentinel —
-  `test_initiative_display_prose_is_not_projected`,
-  `test_benign_initiative_display_fields_are_still_redacted`, and
-  `test_cli_rich_fixture_shapes` (grep for `initiative["name"]` over `tools/`,
-  `tests/`, `packages/`, `packs/`).
+These were taken as a discovery snapshot on 2026-09-14, before implementation.
+Two of them name identifiers this delivery itself changed; both are recorded
+as they were observed, with their current form beside them.
+
+- Technical: the sentinel was emitted from one source emitter, then at
+  `workspace_status.py:915,917` and now at `:920,922` after the rationale
+  comment landed, plus two generated adapter projections (repo-wide grep for
+  `"name": "workspace.toml"` returned 3 hits, all the same file).
+- Technical: three tests pinned the sentinel —
+  `test_initiative_display_prose_is_not_projected`, since renamed to
+  `test_initiative_display_prose_projects_verbatim`;
+  `test_benign_initiative_display_fields_are_still_redacted`, since renamed to
+  `test_initiative_display_fields_project_as_authored`; and
+  `test_cli_rich_fixture_shapes`, which kept its name (grep for
+  `initiative["name"]` over `tools/`, `tests/`, `packages/`, `packs/`).
 - Technical: no test pins the `SKILL.md` rendering template; the only
   `Active initiatives` match in `tools/test_workspace_status.py` is a comment.
 - Technical: `workspace-mcp` does not re-emit `initiatives`, so the skill is

@@ -816,7 +816,7 @@ backlog = []
 ["ini-009"]
 name = "Agent Skill Engineering"
 status = "active"
-milestone = "M3 \u00b7 slices 3e and 4 shipped; 3c unblocked \u2014 see the brief\'s slice table"
+milestone = "M3 \u00b7 slices 3e and 4 shipped; 3c unblocked, 3d needs 3c, 5 needs 3c, 6 closes \u2014 see the brief\'s slice table"
 
 ["ini-009".work]
 queue = []
@@ -844,8 +844,8 @@ backlog = []
         self.assertEqual(by_slug["ini-009"]["name"], "Agent Skill Engineering")
         self.assertEqual(
             by_slug["ini-009"]["milestone"],
-            "M3 \u00b7 slices 3e and 4 shipped; 3c unblocked \u2014 "
-            "see the brief\'s slice table",
+            "M3 \u00b7 slices 3e and 4 shipped; 3c unblocked, 3d needs 3c, "
+            "5 needs 3c, 6 closes \u2014 see the brief\'s slice table",
         )
         # The rider's whole character set is present in the fixture, so the
         # criterion cannot hold vacuously.
@@ -1965,8 +1965,14 @@ class SkillWiringTests(unittest.TestCase):
 
         # 1. The summary row enumerates both fields.
         summary = next(
-            line for line in text.splitlines()
-            if line.startswith(("initiatives ", "initiatives  "))
+            (
+                line for line in text.splitlines()
+                if line.startswith("initiatives ")
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            summary, "the `initiatives` summary row is absent from SKILL.md"
         )
         for field in ("slug", "name", "status", "milestone", "brief_queue", "queue_empty"):
             self.assertIn(field, summary, f"{field} missing from the initiatives summary row")
@@ -1974,8 +1980,14 @@ class SkillWiringTests(unittest.TestCase):
         # 2-3. Both per-field rows describe a value read from workspace.toml.
         for field in ("name", "milestone"):
             row = next(
-                line for line in text.splitlines()
-                if line.startswith(f"initiatives[].{field}")
+                (
+                    line for line in text.splitlines()
+                    if line.startswith(f"initiatives[].{field}")
+                ),
+                None,
+            )
+            self.assertIsNotNone(
+                row, f"the `initiatives[].{field}` key-list row is absent from SKILL.md"
             )
             self.assertIn("workspace.toml", row)
             self.assertIn("as authored", row)
