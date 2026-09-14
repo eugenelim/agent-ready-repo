@@ -795,7 +795,16 @@ def test_the_manifest_example_is_a_band_set_the_derivation_produces(
         lower = next((x for x in parts if x.startswith(">")), "")
         upper = next((x for x in parts if x.startswith("<")), "")
         stated.append((lower, upper))
-    derived = [(lo, hi) for _, lo, hi in required_channels(rules_markdown, breakpoints)]
+    # The row's stated minimum is passed to the derivation. Without it, a row
+    # stating a 1280 minimum beside predicates for breakpoints 480 and 1152
+    # compares green against a no-minimum derivation while teaching an adopter a
+    # required set the minimum reduces to one channel.
+    stated_minimum = re.search(r"minimum (\d+)", row)
+    minimum = int(stated_minimum.group(1)) if stated_minimum else None
+    derived = [
+        (lo, hi)
+        for _, lo, hi in required_channels(rules_markdown, breakpoints, minimum)
+    ]
     assert stated == derived, (
         f"the example states {stated}, but the shipped derivation yields "
         f"{derived} for the breakpoints it names, {breakpoints}"
@@ -1083,3 +1092,37 @@ def test_the_inspection_result_honours_the_declared_minimum(
     without = inspection_result(rules_markdown, four, [], None, None)
     assert without["state"] == "incomplete"
     assert is_completed_inspection_result(rules_markdown, without) is False
+
+
+def test_the_skill_states_the_minimum_input(skill_markdown: str) -> None:
+    """Verifies AC-0008: § 5a states the input, positively.
+
+    The literal is deliberately not `declared minimum`, which is a substring of
+    all three of AC-0021's conditioning literals that this same file must carry
+    anyway — keyed on that, this would go green without § 5a ever saying the
+    input exists.
+    """
+    assert "may declare a supported minimum width" in " ".join(skill_markdown.split())
+
+
+def test_manifest_viewports_field_records_the_minimum(skill_markdown: str) -> None:
+    """Verifies AC-0018: the row that carries the record names both new facts.
+
+    The shipped sibling control asserts the row records channels and the basis,
+    and passes after this delivery without either. Bare numbers, not backticked
+    comparisons: the worked-example control harvests every backticked predicate
+    in this row and compares the set to what the derivation yields.
+    """
+    row = _manifest_viewports_row(skill_markdown)
+    assert "minimum" in row.lower(), "the row does not record the minimum in force"
+    assert "none-declared" in row, (
+        "the row does not say what a run with no minimum records, so an absent "
+        "field and a declared absence read the same"
+    )
+    assert "discard" in row.lower(), (
+        "the row does not record the breakpoints the minimum discarded"
+    )
+    assert not re.search(r"`[<>]=?\d+`\s*(?:minimum|discarded)", row), (
+        "the minimum and discarded values are backticked predicates; the worked "
+        "example control would read them as part of the band set"
+    )
