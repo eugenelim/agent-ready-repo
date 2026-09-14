@@ -492,3 +492,47 @@ thinking about, not the thing I was asserting.
 Each was caught by someone else. The first two changed conclusions other people
 were relying on; the third only wasted a message. None was caught by a test,
 because none was the kind of claim a test covers.
+
+## The package was never type-checked, and the count was the only evidence
+
+`tools/lint-mypy.py` passes `TYPED_PACKAGES` as positional arguments, and
+positional arguments override the `files` setting in `pyproject.toml`. The list
+named `agentbundle` and `credbroker`, so `make lint-mypy` printed `Success: no
+issues found in 139 source files` while never opening a line of this package.
+The only signal that anything was missing was the file count, and a count nobody
+reads is not a control.
+
+Adding the package surfaced two type lies in one stream. `iter_records` was
+annotated `Iterator[dict[str, Any]]` and also yields the `IDLE` sentinel, and
+`batch_records` declared `Iterable[Mapping[str, Any]]` for the same stream. One
+alias, `RecordOrIdle`, now names the union in the one place both sides read, so
+the reader's annotation and the batcher's parameter cannot drift apart while
+both describe the same stream.
+
+The narrowing needed a second change: `if record is IDLE` is correct at runtime
+but narrows nothing, because `IDLE` is a module-level instance rather than a
+type, so the checker still believed `pending.append` could receive the
+sentinel. `isinstance(record, _Idle)` says the same thing and is checkable.
+
+**The repair that matters is not either annotation.** A defect whose only
+symptom was a number in passing output will recur the moment a fourth package
+lands, so `tools/test_lint_mypy_covers_every_package.py` derives the expected
+set from each distribution's own `pyproject.toml` `[project] name` and fails
+when the gate's argument list does not cover it. It is mutation-proven: with the
+new entry removed from `TYPED_PACKAGES`, the test fails; restored, it passes.
+
+Sourcing from the manifest rather than from "every directory holding an
+`__init__.py`" was deliberate — the filesystem rule also returns
+`packages/agentbundle/tests`, which is a published tree but is not a
+distribution's import package, and excluding it by name would put a
+hard-coded directory name in the guard for it to keep remembering.
+
+Registering the test cost two re-pins, both verified the way the pinning block
+requires: the plan digests moved at exactly one index each (standalone 61,
+composed 60 — the final tools batch line) by exactly the one added path, with
+no line inserted, dropped, or reordered, and the superseded digests reproduced
+with zero errors against the pre-change Makefile, so the re-pin replaced live
+values rather than papering over someone else's move. A `tools/` test absent
+from the Makefile's enumerated batches is executed by nothing at all — the open
+`tools-test-runner-boundary` class — so skipping the registration would have
+left a control that cannot fail.

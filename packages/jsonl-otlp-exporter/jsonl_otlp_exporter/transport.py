@@ -58,6 +58,13 @@ class _Idle:
 
 IDLE = _Idle()
 
+# What the reader yields: a record, or the caught-up signal. Naming the union
+# once keeps the reader's annotation and the batcher's parameter from drifting
+# apart -- they describe the same stream, and only a checked annotation can say
+# so. `batch_records` accepts `_Idle` because a flush signal is part of the
+# stream it consumes, not a caller error.
+RecordOrIdle = Mapping[str, Any] | _Idle
+
 _RETRYABLE_STATUSES = frozenset({429, 503})
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 
@@ -205,7 +212,7 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
 
 
 def batch_records(
-    records: Iterable[Mapping[str, Any]],
+    records: Iterable[RecordOrIdle],
     encode: Callable[[Sequence[Mapping[str, Any]]], bytes],
     max_records: int = MAX_RECORDS_PER_REQUEST,
     max_bytes: int = MAX_BODY_BYTES,
@@ -223,7 +230,11 @@ def batch_records(
     """
     pending: list[Mapping[str, Any]] = []
     for record in records:
-        if record is IDLE:
+        # `isinstance`, not `is IDLE`: an identity test against a module-level
+        # instance reads as idle at runtime but narrows nothing, so the checker
+        # still believes `pending.append` may receive the sentinel. The class
+        # test says the same thing and is checkable.
+        if isinstance(record, _Idle):
             # The reader went quiet. Under bare `--follow` the iterator never
             # ends, so waiting for a full batch means an appended record is held
             # forever and AC-0021 is never satisfied. Flushing on idle sends what
