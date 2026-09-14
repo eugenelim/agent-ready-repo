@@ -6,7 +6,7 @@
 > work teaches, without an amendment and without a review round.
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/pack.toml` (where the optional dependency is
   declared); `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`
   (the dormant `[[pack.runtime-dependencies]]` shape this activates);
@@ -180,13 +180,8 @@ per-setting resolver and the invocation it renders),
   whose exact form is fixed only once `jsonl-otlp-exporter` ships. Constraint:
   the package reads one config path; precedence is this catalogue's wiring, not
   the package's behaviour. Required outcome: repository file before user file,
-  `--input` resolved to the repository event log, and a setting the sender has no
-  route for refused rather than dropped — from either scope, because the merge can
-  pull an undeliverable value in from the user file. Verification mode: TDD.
-  Proof obligation for the refusal: the control pins the deliverable set itself,
-  so it cannot quietly stop exercising the criterion if the sender later grows a
-  route for the setting the test uses. Proof obligation: the precedence assertion
-  runs over two fixture layout files
+  and `--input` resolved to the repository event log. Verification mode: TDD.
+  Proof obligation: the precedence assertion runs over two fixture layout files
   that differ only in their endpoint, so a build reading the wrong one fails.
 - Per-setting resolution over two fixture layout files: a setting the repository
   file declares comes from there; a setting it omits while the user file declares
@@ -194,11 +189,6 @@ per-setting resolver and the invocation it renders),
   case. Verifies AC-0041.
 - It resolves `--input` to the repository root's `.loop-run/events.jsonl`.
   Verifies AC-0043.
-- A `[telemetry]` setting the sender has no route for is refused, naming the
-  setting, rather than dropped. Verifies AC-0055. Added by amendment 1: the
-  refusal is observable behaviour introduced during implementation, and
-  `CONVENTIONS.md` requires such a refusal to be a criterion rather than an
-  implementation detail.
 
 **Approach:**
 - The package reads one `--config` path; repository-before-user precedence is
@@ -233,10 +223,7 @@ invoking pip, npm, uv or pipx.
 
 **Depends on:** none
 
-**Touches:** `pyproject.toml`, `Makefile`, `tools/lint-mypy.py` (its
-`TYPED_PACKAGES` list is what the mypy gate actually reads — positional
-arguments override the config's `files`), `tools/test_gate_enumeration.py`
-(new — the construction test this task's `Tests` field requires)
+**Touches:** `pyproject.toml`, `Makefile`
 
 **Tests:**
 - The package name appears in the root `pythonpath`, mypy's `files`, the

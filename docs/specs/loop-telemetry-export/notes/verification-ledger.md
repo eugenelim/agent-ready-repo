@@ -736,3 +736,55 @@ outcome. Both now name the refusal, from either scope.
 **AC-0055 carried its own provenance.** The amendment date and the fail-open
 rationale sat inside the criterion, where they affect no gate. Moved out; the
 criterion now states the obligation and nothing else.
+
+## Amendment 1 was narrowed, because a completed task's section is frozen
+
+`approve-plan` refused the full amendment:
+
+```
+approve-plan: completed task section changed: T2, T4
+```
+
+`validate_completed_task_sections` exists to "return a stable refusal when an
+amended plan rewrites completed work", and both T2 and T4 were recorded complete
+by the wave advances. **The amendment tried to rewrite the contract of work whose
+acceptance had already been recorded, and the cohort is designed to refuse that.**
+
+The only way to land it whole was `loop-cohort reset`, which deletes `state.json`:
+three review rounds, three review retries, twelve current and seven previous
+finding fingerprints — the baseline that detects a finding recurring across
+rounds — the completed-task evidence, and the amendment history. That is the same
+trade the sibling spec declined, and for the same reason: a reset is a
+re-approval in substance, not a repair. **The owner chose to keep the audit trail
+and narrow the amendment.**
+
+What landed, and what did not:
+
+| Correction | Outcome |
+| --- | --- |
+| T5's `Touches` loses `docs/specs/README.md` | **landed** — T5 was never completed |
+| the Durable Outputs row becomes Not applicable | **landed** — working material |
+| the plan's Durable-output map loses the same row | **landed** — not a pinned field |
+| the four-versus-six count, in all four places | **landed** — working material |
+| T4's `Touches` gains its two real surfaces | **withdrawn** — T4 is complete and frozen |
+| AC-0055 for the undeliverable-setting refusal | **withdrawn** — a criterion needs a task entry, and its only honest home is T2, which is frozen |
+
+T2 and T4 were restored to their pre-amendment bytes exactly, verified by
+comparing each section's text against `fb24b7dd2`.
+
+**The behaviour AC-0055 would have governed still ships and is still tested**, with
+two controls covering both layout scopes and a third pinning the assumption they
+rest on. What it lacks is a criterion. B4 and B6 therefore return to ledger
+dispositions — recorded, evidenced, and visible to the next reader, which is what
+this file is for.
+
+**AC-0055 is listed as retired even though it was never approved.** The identifier
+reached pushed history, so leaving it unlisted would let a future author reuse it.
+Identity is append-only.
+
+**The lesson is about ordering, not about the guard.** An amendment that corrects a
+task's contract has to happen before that task's completion is recorded, or not at
+all. By the time a defect in T4's `Touches` was visible — which took implementing
+T4 to discover — T4 was already complete. A contract error found by doing the work
+may be unfixable in the contract, and the honest response is to record it rather
+than to destroy the record of how it was found.

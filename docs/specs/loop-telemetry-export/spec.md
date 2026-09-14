@@ -1,6 +1,6 @@
 # Spec: loop-telemetry-export
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
@@ -97,16 +97,15 @@ same reason. Every no-stub record names its discovery predicate and proof
 obligation. The remaining tasks are goal-based and
 take no stub.
 
-Across the 21 live criteria: **3** are covered by a validated stub (AC-0040 in
-T1, AC-0046 and AC-0047 in T6); **4** sit under `no stub
-(implementation-discovered)` (AC-0044 in T1, AC-0041, AC-0043 and AC-0055 in
-T2); **14**
+Across the 20 live criteria: **3** are covered by a validated stub (AC-0040 in
+T1, AC-0046 and AC-0047 in T6); **3** sit under `no stub
+(implementation-discovered)` (AC-0044 in T1, AC-0041 and AC-0043 in T2); **14**
 are goal-based and take no stub (AC-0020, AC-0021, AC-0022, AC-0031, AC-0039, AC-0042, AC-0045,
 AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054). Every live criterion
 appears in exactly one of the three groups.
 
 - **VI-0001 — the work-loop mapping profile (AC-0040, AC-0044):** TDD, in the package's profile suite. The profile is data plus a declaration, so its cases are assertions: the envelope's `at` is declared the timestamp, `result` the severity, and `run_id` with `seq` the record identity.
-- **VI-0002 — configuration wiring (AC-0041, AC-0043, AC-0055):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
+- **VI-0002 — configuration wiring (AC-0041, AC-0043):** TDD. Repository-before-user precedence over two layout files, provable with no network. The order is the deliberate inversion of `desk-research`'s, and `telemetry.md` § 5.3 owns the reason.
 - **VI-0003 — optional-dependency reporting (AC-0039):** goal-based check over a lint run with the distribution absent. Reporting only: the assertion includes that no package manager is invoked.
 - **VI-0004 — the gates reach the distribution (AC-0031):** goal-based check. Each enumeration site is read and asserted to name the package, because every one is a literal list rather than a glob.
 - **VI-0007 — the event line carries its version (AC-0046, AC-0047):** TDD, in the existing envelope suite. A field on a dict and a replay passthrough, both observable from the written file. AC-0047 is the case the rest of the suite cannot see: a build that retro-stamps every replayed record passes everything else.
@@ -195,11 +194,6 @@ appears in exactly one of the three groups.
   claims; this criterion is what makes the section say something, so a § 2 gutted
   to an empty heading cannot satisfy all three.
 
-- [ ] **AC-0055.** The resolver refuses a `[telemetry]` setting for which the
-  sender has no route — neither its `--config` file nor a flag — naming the
-  setting rather than ignoring it. This holds whichever layout file the setting
-  came from.
-
 - [ ] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
   `$comment` whose value contains the literal string
   `docs/specs/loop-telemetry-export/spec.md`.
@@ -208,6 +202,14 @@ appears in exactly one of the three groups.
 
 <!-- Identity is append-only: a retired identifier is never reused. Entries are
      bare identifiers; the narrative belongs above, not on the entry line. -->
+
+AC-0055 was introduced by amendment 1 on 2026-09-14 and withdrawn the same day,
+unapproved. A criterion needs a task entry, and its only honest home was T2 —
+which `loop-cohort` had already recorded complete, and it refuses a plan that
+rewrites a completed task's section. The behaviour it would have governed still
+ships and is still tested; what it lacks is a criterion. Listed here because the
+identifier reached pushed history, and identity is append-only: it is never
+reused, even though it was never approved.
 
 AC-0017 through AC-0019 were retired 2026-09-12 when the event-line version was
 carved into a separate spec. That spec was folded back here on 2026-09-13, so
@@ -252,6 +254,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 - AC-0036
 - AC-0037
 - AC-0038
+- AC-0055
 
 ## Follow-ons
 
