@@ -276,3 +276,80 @@ which is the only reason it was diagnosed as an absent tree rather than a defect
 Worth recording because the lesson generalises past this incident: a gate whose
 denominator moved reports a smaller number, not an error. `147` after T2 — 146
 plus the new module — is what confirmed the tree was whole again.
+
+## T1 — the profile, and a TOML trap the test caught
+
+The three approved stub assertions were materialized, confirmed collected, and
+earned the recorded red: all three `FileNotFoundError` on the profile path.
+
+**The allowlist is derived, not typed.** It is generated from a line the engine
+actually emits, minus the four routed fields, and the test re-derives it the same
+way. Measured: 14 emitted keys − 4 routed = **10 allowlisted**
+(`awaiting_input`, `budgets`, `event`, `from`, `phase_s`, `phase_started_at`,
+`schema`, `spec`, `to`, `waived`). `schema` is there because T6 shipped first,
+which is exactly why T1 depends on it.
+
+**A `[severity_map]` table header silently captured the two keys below it.** The
+first profile wrote `[severity_map]` as a section, which made `identity` and
+`allowlist` members of that table rather than top-level keys. Two of the three
+assertions failed immediately. An inline `severity_map = { success = 9, failure
+= 17 }` fixes it, and a comment on the line says why the header form is wrong —
+the next person to add a key under it would reintroduce the bug.
+
+Five mutations, each killing its own control:
+
+| Reverted | Control that failed |
+| --- | --- |
+| `success = 9` → `10` (the plan's own recorded proof) | the pinned-pairs test |
+| a key removed from the allowlist | the allowlist test |
+| a key added that the engine never emits | the allowlist test |
+| `timestamp_field` no longer `at` | the field-declaration test |
+| `identity` drops `seq` | the field-declaration test |
+
+The third matters as much as the second: the assertion is set equality, so the
+allowlist cannot drift in either direction.
+
+**One deviation from byte-identical stub materialization.** Ruff's `I001`
+rejected the stub's import block ordering. The names were sorted and a comment
+records it. No assertion changed; only the order of five imported names.
+
+## AC-0044 — the live round trip, 2026-09-13
+
+`otel/opentelemetry-collector-contrib:0.160.0` under Colima, an `otlp` receiver
+on 4318 with `file` and `debug` (detailed) exporters. The invocation was built by
+`telemetry_layout.resolve()` — the documented one — not hand-assembled, so this
+exercises T2's wiring and T1's profile together.
+
+| Emitted from a real line | Reached | Observed |
+| --- | --- | --- |
+| `at` = `2026-09-14T03:54:48Z` | `Timestamp` | `2026-09-14 03:54:48 +0000 UTC` |
+| `result` = `success` | `SeverityNumber` | `Info(9)`, `SeverityText: success` |
+| `run_id` | attribute | `Str(a8c153b4-…)` |
+| `seq` = `27` | attribute | `Int(27)` |
+
+All **10** allowlisted keys arrived, including `schema`, and **nothing outside
+the allowlist appeared**. The unmapped-severity report reached stderr in the
+shape the decision intended: `severity value None is not in the profile's
+severity_map; 21 record(s) sent without a severity`.
+
+Three things cost time and are worth recording:
+
+- **`localhost` resolved to `::1` and was refused.** The container publishes on
+  `0.0.0.0` and `[::]`, but only `127.0.0.1` accepted a connection from the host
+  under Colima. The endpoint must name the IPv4 loopback explicitly.
+- **The Collector image is distroless and `/tmp` does not exist in it**, so a
+  `file` exporter pointed there fails the whole pipeline at startup with
+  `open /tmp/records.json: no such file or directory`. Colima also does not share
+  `/private/tmp`, so a bind mount from the session scratch directory fails with
+  `not a directory`. A gitignored path inside the worktree works for both.
+- **My own readback instrument was wrong before the product was.** `Timestamp:`
+  matched inside `ObservedTimestamp:`, which reported `1970-01-01` and looked
+  exactly like a dropped timestamp. Anchoring the pattern to line start showed
+  the real value had been correct all along. The instrument was verified before
+  its verdict was believed, which is the only reason this is a footnote rather
+  than a bug report.
+
+**A stated limit.** The sender is not pip-installed here, so the run used
+`python3 -m jsonl_otlp_exporter.cli`, which is the same `main` the
+`jsonl-otlp-export` console script points at. The console script itself was
+exercised under the sender's own AC-0014, not here.
