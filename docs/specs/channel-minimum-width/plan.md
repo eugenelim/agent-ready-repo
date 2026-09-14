@@ -115,7 +115,7 @@ present before running:
 
 | Row key | Table | States |
 | --- | --- | --- |
-| `channel-minimum-derivation` | Channels, rule rows | drop-bands-below-clamp-lowest-survivor |
+| `channel-minimum-derivation` | Channels, rule rows | the token AC-0015 pins; not restated here |
 | `channel-minimum-recorded` | Channels, rule rows | `required` — the switch both recording readers consult, and AC-0016's mutation target |
 
 The none-token literal and its ground are AC-0006's; the `## Capture record`
@@ -265,7 +265,10 @@ which passes after this delivery without mentioning the minimum. The row is also
 pinned by `test_the_manifest_example_is_a_band_set_the_derivation_produces`,
 which harvests every backticked predicate in it and compares the set to the
 derivation's output — so the new values go in as bare numbers, and that control
-is re-run as part of this task rather than discovered later. Of the channel-name sweep's three
+is re-run as part of this task rather than discovered later. This task also
+extends it to parse the row's stated minimum and pass it to `required_channels`;
+today it calls the derivation with no minimum, so a stated minimum and the
+predicates beside it can disagree with the control green. Of the channel-name sweep's three
 shapes, `prose-declaration` and `snippet-name-field` carry § 5a as their live
 site and `band-row` does not — its outer matches only a `## Channels` section, so
 a three-cell table here is not harvested at all. The edit keeps the literal
@@ -393,8 +396,10 @@ whole criterion block held in a module constant, and this one follows: each
 superseded criterion's entire `- [x]` line, not a quoted fragment.
 
 **Approach:** add a `Status:` line pointer to
-`docs/specs/rendered-page-channel-axis/spec.md` naming this spec's AC-0002 and
-AC-0003 as the successors to its AC-0001 and AC-0002. Edit nothing else in that
+`docs/specs/rendered-page-channel-axis/spec.md`, naming a successor per
+superseded criterion as AC-0022 states it: AC-0002 and AC-0003 supersede that
+spec's AC-0001, and AC-0002 alone supersedes its AC-0002, since the clamp cannot
+change a channel count. Edit nothing else in that
 file: its *Ask first* admits a `Status:`-line pointer and forbids editing a
 frozen body, and both criteria stay present verbatim and still ticked. Depends on
 T2 because the successor criteria must be real before anything points at them.
