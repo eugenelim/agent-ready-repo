@@ -41,7 +41,7 @@ _NONBLOCK = getattr(os, "O_NONBLOCK", 0)
 _DIRECTORY = getattr(os, "O_DIRECTORY", 0)
 
 
-from .transport import IDLE  # noqa: E402 - shared sentinel, one definition
+from .transport import IDLE, _Idle  # noqa: E402 - shared sentinel, one definition
 
 
 class InputRefused(Exception):
@@ -196,7 +196,7 @@ def iter_records(
     poll_interval: float = 0.05,
     clock=time.monotonic,
     on_first_read=None,
-) -> Iterator[dict[str, Any]]:
+) -> Iterator[dict[str, Any] | _Idle]:
     """Yield one parsed record per well-formed line, skipping the rest.
 
     Records are yielded, never collected: the caller sees them one at a time and
