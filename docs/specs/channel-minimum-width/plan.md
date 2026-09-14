@@ -114,8 +114,9 @@ present before running:
 | `channel-minimum-recorded` | Channels, rule rows | `required` — the switch both recording readers consult, and AC-0016's mutation target |
 
 A run with no minimum records the non-empty token `none-declared` rather than an
-empty value, because the record reader counts a field absent when its value is
-`None` or empty.
+empty value, so that "no minimum was declared" is a stated value a reader can
+assert on, distinct from a field nobody wrote. It is a run-level fact and does
+not enter the per-capture `## Capture record` table, which *Never do* forbids.
 
 `REQUIRED_RULE_ROWS["Channels"]` goes from six keys to eight. Its equality
 control compares that constant against what `channel_rules` reads, so the two
@@ -125,9 +126,12 @@ move together or the control reds.
 
 `required_channels(markdown, declared_breakpoints, minimum=None)` derives bands
 as today, then applies the filter, and `evaluate_capture_set` grows the same
-parameter and passes it through — without that pass-through the filter is
-unreachable from the verdict an adopter's run returns, which is the whole
-outcome. A clamped band is renamed under the shipped convention, so a band
+parameter and passes it through, as does `inspection_result` above it — the
+chain is `inspection_result` → `evaluate_capture_set` → `required_channels`, and
+a minimum that stops anywhere short of the top is unreachable from the result an
+adopter records, which is the whole outcome. `inspection_result` deliberately
+does not echo the basis back, and the minimum follows that same rule: it selects
+required channels and is recorded on the § 5a manifest row, not in the result. A clamped band is renamed under the shipped convention, so a band
 clamped to `>=1280 <1536` is `1280-to-1536` rather than `below-1536`; the walk
 names the band in its incomplete report, so a stale name misdescribes what is
 missing. Fallback bands keep the names their table rows give them. A band is dropped when its upper bound admits
@@ -190,8 +194,8 @@ part of this task's edit — left alone it ships a shorter list than the code
 implements.
 
 **Tests:** TDD in `test_rendered_page_capture_contract.py`, covering AC-0001,
-AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015, AC-0016, AC-0017
-and AC-0019. The
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015, AC-0016, AC-0017,
+AC-0019 and AC-0020. The
 parametrized `test_every_required_rule_row_raises_when_deleted` already derives
 its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive in it without a
 second list, which discharges AC-0005 and nothing more.
@@ -215,9 +219,10 @@ both keys; add the two recording readers beside `channel_basis`, gated on
 `channel-minimum-recorded` through `_rule_in_force`, without widening the basis
 vocabulary.
 
-**Done when:** `evaluate_capture_set` accepts the minimum, and the four-capture
-single-channel set at 1280 returns `("complete", [])` under a 1280 minimum while
-the same set with no minimum stays `incomplete`; and
+**Done when:** `inspection_result` over the four-capture single-channel set at
+1280 with a 1280 minimum returns `{"state": "completed", "verdict": "pass"}` and
+`is_completed_inspection_result` returns `True`, while the same set under a 480
+minimum stays `incomplete`; and
 `test_the_required_rule_rows_match_what_the_tables_state` is green with eight
 keys. The walk, not the helper, is the observable: every derivation criterion
 asserts `required_channels` in isolation, so an implementation can satisfy all of
@@ -259,8 +264,9 @@ documentation gates stay a separate well-formedness check.
 
 **Approach:** the guide's capture section gains the minimum alongside the
 breakpoints it already walks, and states the required set for a surface that
-declares one. The existing eight-capture floor becomes the floor for two
-channels rather than the floor unconditionally.
+declares one. The eight-capture figure already reads "on the fallback bands" and
+needs no change; the edit is the `4(n + 1)` formula beside it, which a minimum
+that discards a declared breakpoint makes wrong.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates.
