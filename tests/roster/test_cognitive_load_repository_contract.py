@@ -11,6 +11,7 @@ without a checkout — stays in
 
 from __future__ import annotations
 
+import hashlib
 import json
 import tomllib
 from pathlib import Path
@@ -405,6 +406,53 @@ def _coding_conventions(content: str) -> str:
     start = content.index("## Coding conventions")
     nxt = content.find("\n## ", start + 1)
     return content[start:] if nxt == -1 else content[start:nxt]
+
+
+# SHA-256 of the clause list, identical in both `AGENTS.md` files. Measured, not
+# recalled: regenerate with the snippet in the test below.
+_CLAUSE_LIST_SHA256 = "3442843b5638f0f385d9cb0e28426822dbf7c214a21dcf3c577418f3b2a1aa20"
+_CLAUSE_COUNT = 20
+
+
+def test_both_files_carry_the_same_pinned_clause_list() -> None:
+    """The clause list is pinned whole, because naming terms cannot be complete.
+
+    The per-control test below says what each clause is FOR, which is what a
+    reader needs. It cannot say that no term went missing: a control lists the
+    phrases someone thought to name, so a term nobody named -- "closed choices",
+    "weak claims" -- can be deleted and stay green. That is not a gap to patch
+    phrase by phrase; it is the shape of the check.
+
+    So the list is also pinned as a whole. Any edit to any clause reds here and
+    has to be made deliberately, which is the right cost for the file's
+    behavioural contract. Update the pin in the same commit as the clause:
+
+        python3 - <<'PY'
+        import hashlib, pathlib
+        c = pathlib.Path("AGENTS.md").read_text()
+        start = c.index("These rules apply to")
+        body = c[start:c.index("\\n\\nRead every scoped", start)]
+        print(hashlib.sha256(body.encode()).hexdigest(), sum(
+            1 for line in body.splitlines() if line.startswith("- ")))
+        PY
+    """
+    bodies = {}
+    for source in (ROOT / "AGENTS.md", SEEDS / "AGENTS.md"):
+        content = source.read_text(encoding="utf-8")
+        bodies[source] = _clause_list(content)
+
+    root_body, seed_body = bodies.values()
+    assert root_body == seed_body, "root and seed clause lists have diverged"
+
+    actual = hashlib.sha256(root_body.encode("utf-8")).hexdigest()
+    assert actual == _CLAUSE_LIST_SHA256, (
+        "the clause list changed; if the change is intended, update "
+        "_CLAUSE_LIST_SHA256 and _CLAUSE_COUNT in the same commit"
+    )
+    # A count beside the digest: the digest says "something changed", the count
+    # says "a clause was removed", which is the failure that matters.
+    assert sum(1 for line in root_body.splitlines()
+               if line.startswith("- ")) == _CLAUSE_COUNT
 
 
 def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
