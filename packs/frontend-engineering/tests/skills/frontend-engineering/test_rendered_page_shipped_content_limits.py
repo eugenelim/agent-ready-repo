@@ -386,12 +386,30 @@ CHANNEL_NAME_SHAPES = {
         drop=frozenset({"Channel"}),
     ),
     "prose-declaration": ChannelNameShape(
-        # The channel word may sit anywhere in the paragraph, not only on its
-        # first line. The first version required the first line, so an ordinary
-        # reflow that pushed it down one line made the shape find nothing in a
-        # file -- and two device-named channels shipped green while the live-site
-        # anchor stayed correctly green, because `SKILL.md`'s own paragraph still
-        # matched. Aliveness on one file is not reach across thirty-two.
+        # Prose that declares a channel, scoped to a paragraph mentioning the
+        # channel word. Both halves of that scope are deliberate and each has
+        # been paid for once already:
+        #
+        # OVER-REACH. The word must appear. Unscoped, this pattern ran over all
+        # 32 shipped files, and any future sentence of the form `token` at <=N --
+        # in any of the pack's nine skills -- would red a guard about channel
+        # names. Both sibling shapes are scoped for the same reason; a bare
+        # `name:` field once reported `component-contract`'s `name: 'default'`
+        # as an undeclared channel.
+        #
+        # UNDER-REACH, and this is the accepted cost. A channel declared in a
+        # paragraph that never says "channel" is not found. Differential probe on
+        # the shipped reviewer agent, one word apart:
+        #     "Two bands apply -- `tablet` at >=768 CSS px."          292 passed
+        #     "Two channel bands apply -- `tablet` at >=768 CSS px."    3 failed
+        # The same undeclared, device-named channel ships green or reds on
+        # nothing but that word. Widening past it re-buys the over-reach above,
+        # so the next widening should be a decision and not a discovery.
+        #
+        # The word may sit ANYWHERE in the paragraph, not only on its first line.
+        # Requiring the first line meant an ordinary reflow made the shape find
+        # nothing while the live-site anchor stayed correctly green -- aliveness
+        # on one file is not reach across thirty-two.
         outer=re.compile(
             r"(?:^|\n\n)(?P<body>(?:(?!\n\n)[\s\S])*?[Cc]hannel[\s\S]*?)(?=\n\n|\Z)"
         ),
