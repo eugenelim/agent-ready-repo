@@ -256,7 +256,7 @@ them while the walk still derives its bands without the minimum.
 
 ### T3: `SKILL.md` and the journey state the input
 
-**Depends on:** T1
+**Depends on:** T1, T2
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md, web/src/content/journeys/frontend-engineering.md, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_journey_promise.py
 
 **Tests:** TDD for AC-0008, AC-0018 and AC-0009. AC-0018 asserts the § 5a
@@ -268,7 +268,12 @@ derivation's output — so the new values go in as bare numbers, and that contro
 is re-run as part of this task rather than discovered later. This task also
 extends it to parse the row's stated minimum and pass it to `required_channels`;
 today it calls the derivation with no minimum, so a stated minimum and the
-predicates beside it can disagree with the control green. Of the channel-name sweep's three
+predicates beside it can disagree with the control green. That extension is why
+this task depends on T2 and not on T1 alone: the parameter it passes does not
+exist until T2 adds it. The extension cannot red before this task's own edit
+lands — the shipped row states no minimum, so the parsed minimum is `None` and
+the assertion is byte-identical to today's — and it only strengthens the control,
+since a row with a stated minimum must then match a minimum-aware derivation. Of the channel-name sweep's three
 shapes, `prose-declaration` and `snippet-name-field` carry § 5a as their live
 site and `band-row` does not — its outer matches only a `## Channels` section, so
 a three-cell table here is not harvested at all. The edit keeps the literal
