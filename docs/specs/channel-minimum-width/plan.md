@@ -1,7 +1,7 @@
 # Plan: Channel minimum width
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, pack test
   loader naming, version bump rule, no internal-governance citations in shipped
   content); `packs/frontend-engineering/AGENTS.md`;

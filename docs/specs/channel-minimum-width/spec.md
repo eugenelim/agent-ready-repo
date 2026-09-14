@@ -1,6 +1,6 @@
 # Spec: Channel minimum width
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/rendered-page-channel-axis/spec.md`](../rendered-page-channel-axis/spec.md)
