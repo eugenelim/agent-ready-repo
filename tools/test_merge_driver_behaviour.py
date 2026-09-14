@@ -232,7 +232,7 @@ def _assert_no_markers(root: Path, relative: Path) -> None:
 
 
 def test_merge_settles_a_projection_without_halting(synthetic_repo: Path) -> None:
-    """AC2, merge half."""
+    """docs/specs/self-host-projection-merge-driver/spec.md AC2, merge half."""
     root = synthetic_repo
     _git("checkout", "-qb", "feature", cwd=root)
     _write(root, DRIVER_PATH, "FEATURE\n")
@@ -250,7 +250,7 @@ def test_merge_settles_a_projection_without_halting(synthetic_repo: Path) -> Non
 
 
 def test_rebase_settles_a_projection_without_halting(synthetic_repo: Path) -> None:
-    """AC2, rebase half — and the replay is real, not a dropped patch.
+    """docs/specs/self-host-projection-merge-driver/spec.md AC2, rebase half — and the replay is real, not a dropped patch.
 
     A commit touching only projections becomes empty once the driver resolves
     to upstream, and git drops it with `patch contents already upstream`. That
@@ -281,7 +281,7 @@ def test_rebase_settles_a_projection_without_halting(synthetic_repo: Path) -> No
 
 
 def test_pack_source_still_conflicts(synthetic_repo: Path) -> None:
-    """AC3: sources carry decisions, so their merges must reach a human."""
+    """docs/specs/self-host-projection-merge-driver/spec.md AC3: sources carry decisions, so their merges must reach a human."""
     root = synthetic_repo
     _git("checkout", "-qb", "feature", cwd=root)
     _write(root, SOURCE_PATH, "FEATURE\n")
@@ -330,7 +330,7 @@ def clone_repo(tmp_path_factory) -> Path:
 
 
 def test_build_self_converges_after_an_auto_resolved_merge(clone_repo: Path) -> None:
-    """AC4: regeneration reaches a fixed point, whichever side the merge kept.
+    """docs/specs/self-host-projection-merge-driver/spec.md AC4: regeneration reaches a fixed point, whichever side the merge kept.
 
     Asserted as a fixed point rather than a no-op: `make build-self` is
     *expected* to write here, because the side git kept was generated from one
@@ -393,7 +393,7 @@ def test_build_self_converges_after_an_auto_resolved_merge(clone_repo: Path) -> 
 
 
 def test_bootstrap_git_registers_the_driver_idempotently(tmp_path: Path) -> None:
-    """AC5: the recipe registers `merge.<driver>.driver` and a rerun is a no-op.
+    """docs/specs/self-host-projection-merge-driver/spec.md AC5: the recipe registers `merge.<driver>.driver` and a rerun is a no-op.
 
     Runs the Makefile recipe's own commands against a scratch repository rather
     than invoking `make bootstrap-git`, which would write into the developer's
@@ -519,7 +519,7 @@ def test_record_index_merge_is_driver_resolved_not_textual(record_index_repo: Pa
     root = record_index_repo
     _diverge(root)
 
-    halted = _git("merge", "side", cwd=root, check=False)
+    halted = _git("merge", "--no-edit", "side", cwd=root, check=False)
     assert halted.returncode != 0, (
         "the merge completed with no driver registered, so git settled the "
         "index textually and the driver is not what resolves it:\n"
@@ -531,7 +531,7 @@ def test_record_index_merge_is_driver_resolved_not_textual(record_index_repo: Pa
     _git("merge", "--abort", cwd=root)
     _register_driver(root)
 
-    resolved = _git("merge", "side", cwd=root, check=False)
+    resolved = _git("merge", "--no-edit", "side", cwd=root, check=False)
     assert resolved.returncode == 0, resolved.stdout + resolved.stderr
     _assert_no_markers(root, RECORD_INDEX)
     _assert_real_merge(root)
@@ -551,7 +551,7 @@ def test_record_index_regeneration_recovers_the_discarded_row(
     root = record_index_repo
     _diverge(root)
     _register_driver(root)
-    assert _git("merge", "side", cwd=root, check=False).returncode == 0
+    assert _git("merge", "--no-edit", "side", cwd=root, check=False).returncode == 0
 
     after_merge = _index_rows(root)
     assert after_merge != {"0001", "0002", "0003"}, (

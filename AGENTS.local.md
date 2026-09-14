@@ -51,9 +51,10 @@ Do not put `# AC10:`, `# AC36:`, or similar spec-AC citation comments in `.apm/*
 Auto-merge is disabled and branches must be current with `main`: update a behind branch before merging, then return to merge it manually. In a busy period, update it again if `main` moves.
 
 Generated files carry `merge=regen`, so an update settles them and leaves them
-stale. Regenerate and stage, or the amend drops what was written:
-`git merge --no-ff origin/main && make build-self && git add -A && git commit
---amend --no-edit`. Never pass `FORCE=1` from automation. If the merge touched a
-record index, regenerate that too:
-`python3 .claude/skills/new-adr/scripts/index-records.py docs/adr`
-`python3 .claude/skills/new-rfc/scripts/index-records.py docs/rfc`
+stale. Regenerate everything the merge touched *before* staging, or the amend
+keeps the stale copy: `git merge --no-ff origin/main`, then `make build-self`,
+then — if it touched a record index —
+`python3 .claude/skills/new-adr/scripts/index-records.py docs/adr` and
+`python3 .claude/skills/new-rfc/scripts/index-records.py docs/rfc`;
+then `git add -A && git commit --amend --no-edit`.
+Never pass `FORCE=1` from automation.
