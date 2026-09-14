@@ -48,8 +48,11 @@ non-regular files, multiple links, oversized files, and identity changes while
 opening. If the host loaded a file before agent control, do not claim this check
 covered the host load.
 
-Read [`AGENT_RULES.md`](AGENT_RULES.md) only when one of its `when` rows matches
-the work in hand. Its table ships empty; adopters and packs add conditional rows.
+Read [`AGENT_RULES.md`](AGENT_RULES.md) with the same bounded operation, then
+follow only the rows whose `when` matches the work in hand. Read it every time:
+a rule that activates only when you already know it applies never activates. Its
+table ships empty, so this costs one short read until an adopter or a pack adds
+rows.
 
 ## Development workflow
 

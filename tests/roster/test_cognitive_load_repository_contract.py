@@ -40,8 +40,10 @@ def _semantic_lookup_chain(root: Path) -> list[str]:
 
     One leg now, not two. The clauses are inline in the file the host already
     loads, so there is no agent-directed hop to skip -- which was the whole
-    defect. The router is read only when one of its `when` rows matches, and the
-    shipped table has none.
+    defect. The router is still read, unconditionally and boundedly, but nothing
+    behavioural waits behind it: the shipped table has no rows, and the decision
+    about which rows to follow is stated inside the file rather than in the
+    instruction to open it.
     """
     events: list[str] = []
     entry = root / "AGENTS.md"
@@ -114,8 +116,16 @@ def test_root_and_seed_inline_the_chat_clauses_and_route_conditionally() -> None
         # The clauses are present in the file a host auto-loads, not behind a hop.
         assert "Start with the useful result or next step." in content
         assert "End with what changed, if it worked, and what is left." in content
-        # The router survives as an extension point and is read conditionally.
-        assert "Read [`AGENT_RULES.md`](AGENT_RULES.md) only when one of its" in content
+        # The router survives as an extension point, and its read is
+        # unconditional. A condition an agent cannot evaluate without opening
+        # the file is not a condition; it made an adopter's rows inert.
+        assert (
+            "Read [`AGENT_RULES.md`](AGENT_RULES.md) with the same bounded "
+            "operation, then\nfollow only the rows whose `when` matches"
+        ) in content
+        assert "Read it every time" in content
+        assert "only when one of its `when` rows matches" not in content
+        # The pre-change instruction routed onward to every `always` rule.
         assert "silently read [`AGENT_RULES.md`]" not in content
         # The scoped walk and its confinement qualifier both survive.
         assert "start\nin its own directory and walk up to the repository root" in content

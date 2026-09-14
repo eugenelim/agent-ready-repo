@@ -256,9 +256,18 @@ decays across a long session and must not be described as fixing that.
       qualifier, and the host-preload caveat that stops an agent claiming a check
       it did not perform is retained. Pinned by the same control.
 - [x] The roster contract asserts that both `AGENTS.md` files carry the
-      cognitive-load chat clauses inline and instruct no unconditional read of
-      `AGENT_RULES.md`, and that both routing tables carry zero rows; the
-      assertion reds against the pre-change text.
+      cognitive-load chat clauses inline and instruct one bounded, unconditional
+      read of `AGENT_RULES.md`, with the per-row condition stated inside that
+      file rather than in the instruction to read it; and that both routing
+      tables carry zero rows. The assertion reds against the pre-change text.
+      An earlier version of this criterion required *no* unconditional read.
+      That was written to kill the three-hop chain whose skippable hops carried
+      the behavioural rules, and it overshot: with the rules inline, "read it
+      only when a row matches" is a condition no agent can evaluate, because the
+      rows are inside the file. It made an adopter's existing rows inert, which
+      is the opposite of the extension point this change keeps `AGENT_RULES.md`
+      for. One bounded read of a table that ships empty does not restore what
+      the criterion was written against.
 - [x] `_AGENT_RULES_INSTRUCTIONS` retains its bounded-read and
       instruction-authority sentences; only the routing sentence is rewritten.
       The router looks vestigial with an empty table, which is the reasoning that

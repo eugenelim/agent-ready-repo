@@ -65,10 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session while the rule they route to was breached throughout. The clauses now
   sit in the file every host already loads, beside the cut-before-adding ladder
   that was already there.
-- `AGENT_RULES.md` ships with an empty routing table and is read only when one
-  of its `when` rows matches the work. It survives as the extension point for
-  conditional rules, and the catalogue lint now accepts a pack-shipped
-  `.agents/rules/*.md` seed so a pack can supply one.
+- `AGENT_RULES.md` ships with an empty routing table and is read every time,
+  with one bounded operation; you then follow only the rows whose `when` matches
+  the work. The condition is inside the file, not in the instruction to open it,
+  because a rule that activates only when you already know it applies never
+  activates — which is the failure this whole release is about. It survives as
+  the extension point for conditional rules, and the catalogue lint now accepts
+  a pack-shipped `.agents/rules/*.md` seed so a pack can supply one.
 
 ### Removed
 
@@ -93,7 +96,9 @@ updates but never removes:
 4. **Add a routing row if you want one.** The shipped table is empty, so there
    is no example to copy. A row reads
    `| <when> | `.agents/rules/<name>.md` | <purpose> |`, and the file it names
-   must exist and carry no routing table of its own.
+   must exist and carry no routing table of its own. Rows you already have keep
+   working: the new `AGENTS.md` reads the router unconditionally, so your rows
+   are still reached.
 
 ## [core][2.25.26] — 2026-09-13
 
