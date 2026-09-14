@@ -90,5 +90,17 @@
   {
     "query": "Assess error budgets, SLO alerting, and recovery procedures for this frontend service",
     "should_trigger": false
+  },
+  {
+    "query": "The gates are green but check the page actually looks right before we ship it",
+    "should_trigger": true
+  },
+  {
+    "query": "Screenshot this page at a couple of viewport sizes and tell me if anything is covering anything else",
+    "should_trigger": true
+  },
+  {
+    "query": "Measure how often the rendered-page inspection flags a page that is actually fine",
+    "should_trigger": true
   }
 ]

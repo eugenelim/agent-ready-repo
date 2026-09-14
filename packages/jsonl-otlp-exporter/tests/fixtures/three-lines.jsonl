@@ -1,0 +1,3 @@
+{"at":"2026-09-13T05:52:24Z","result":"success","run_id":"1d9f519e","seq":1,"event":"spec-ready","phase_s":12.5,"budgets":{"review":3,"gates":2},"note":null,"secret":"must not appear"}
+{"at":"2026-09-13T05:53:10.123456789Z","result":"failure","run_id":"1d9f519e","seq":2,"event":"findings-remain","phase_s":46,"budgets":{"review":2,"gates":2},"note":"second"}
+{"at":"2026-09-13T05:54:00+02:00","result":"wave-passed","run_id":"1d9f519e","seq":3,"event":"wave-passed","phase_s":50,"budgets":{"review":2,"gates":1}}

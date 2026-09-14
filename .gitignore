@@ -146,3 +146,6 @@ docs/knowledge/*.lock.stale-*
 web/src/lib/now-highlights.generated.json
 web/src/lib/shared-chrome.generated.json
 docs-site/src/shared-chrome.generated.json
+
+# Local OpenTelemetry Collector fixture for the exporter round-trip test
+.otelcol-tmp/

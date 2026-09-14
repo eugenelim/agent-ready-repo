@@ -1,0 +1,183 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "reference"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {},
+          "logRecords": [
+            {
+              "timeUnixNano": "1789278744000000000",
+              "severityNumber": 9,
+              "severityText": "success",
+              "attributes": [
+                {
+                  "key": "event",
+                  "value": {
+                    "stringValue": "spec-ready"
+                  }
+                },
+                {
+                  "key": "phase_s",
+                  "value": {
+                    "doubleValue": 12.5
+                  }
+                },
+                {
+                  "key": "budgets",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {
+                          "key": "review",
+                          "value": {
+                            "intValue": "3"
+                          }
+                        },
+                        {
+                          "key": "gates",
+                          "value": {
+                            "intValue": "2"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "run_id",
+                  "value": {
+                    "stringValue": "1d9f519e"
+                  }
+                },
+                {
+                  "key": "seq",
+                  "value": {
+                    "intValue": "1"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1789278790123456789",
+              "severityNumber": 17,
+              "severityText": "failure",
+              "attributes": [
+                {
+                  "key": "event",
+                  "value": {
+                    "stringValue": "findings-remain"
+                  }
+                },
+                {
+                  "key": "phase_s",
+                  "value": {
+                    "intValue": "46"
+                  }
+                },
+                {
+                  "key": "budgets",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {
+                          "key": "review",
+                          "value": {
+                            "intValue": "2"
+                          }
+                        },
+                        {
+                          "key": "gates",
+                          "value": {
+                            "intValue": "2"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "note",
+                  "value": {
+                    "stringValue": "second"
+                  }
+                },
+                {
+                  "key": "run_id",
+                  "value": {
+                    "stringValue": "1d9f519e"
+                  }
+                },
+                {
+                  "key": "seq",
+                  "value": {
+                    "intValue": "2"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1789271640000000000",
+              "attributes": [
+                {
+                  "key": "event",
+                  "value": {
+                    "stringValue": "wave-passed"
+                  }
+                },
+                {
+                  "key": "phase_s",
+                  "value": {
+                    "intValue": "50"
+                  }
+                },
+                {
+                  "key": "budgets",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {
+                          "key": "review",
+                          "value": {
+                            "intValue": "2"
+                          }
+                        },
+                        {
+                          "key": "gates",
+                          "value": {
+                            "intValue": "1"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "run_id",
+                  "value": {
+                    "stringValue": "1d9f519e"
+                  }
+                },
+                {
+                  "key": "seq",
+                  "value": {
+                    "intValue": "3"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

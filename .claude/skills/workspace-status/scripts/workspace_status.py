@@ -3,6 +3,8 @@
 
 Usage:
     python3 workspace_status.py status       --root "<repo-root>"
+    python3 workspace_status.py selected-membership --root "<repo-root>" \
+        --spec-dir docs/specs/<slug> [--spec-dir docs/specs/<slug> ...]
     python3 workspace_status.py explain      --root "<repo-root>" --item <selector>
     python3 workspace_status.py reconcile    --root "<repo-root>"
     python3 workspace_status.py repair-plan  --root "<repo-root>" [--plan-file <path>]
@@ -73,6 +75,7 @@ _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
 _migration_operation_digest: Any = None
 project_closeout_status: Any = None
+selected_membership_status: Any = None
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
@@ -129,6 +132,7 @@ def _bind_engine() -> bool:
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
         "_migration_operation_digest": engine_mod._migration_operation_digest,
         "project_closeout_status": engine_mod.project_closeout_status,
+        "selected_membership_status": engine_mod.selected_membership_status,
     })
     _ENGINE_BOUND = True
     return True
@@ -138,6 +142,7 @@ def _bind_engine() -> bool:
 
 _SUBCOMMANDS = frozenset({
     "status",
+    "selected-membership",
     "explain",
     "reconcile",
     "repair-plan",
@@ -2296,6 +2301,14 @@ def main(argv: list[str] | None = None) -> int:
     if argv and argv[0] in _SUBCOMMANDS:
         subcommand = argv.pop(0)
         compat_alias = False
+    elif argv and not argv[0].startswith("-"):
+        print("workspace-status: unknown subcommand", file=sys.stderr)
+        _emit({
+            "schema_version": 1,
+            "mode": "error",
+            "reason": "unknown_subcommand",
+        })
+        return 2
     else:
         subcommand = "reconcile"
         compat_alias = True
@@ -2332,6 +2345,13 @@ def main(argv: list[str] | None = None) -> int:
                  "the payload; the dispatch decisions it carries are already in "
                  "canonical.ready/active/blocked/findings.",
         )
+    if subcommand == "selected-membership":
+        parser.add_argument(
+            "--spec-dir",
+            action="append",
+            default=[],
+            help="Repository-relative docs/specs/<slug> directory to inspect",
+        )
     migration_subcommand = subcommand in {
         "repair-plan", "repair-apply", "repair-rollback"
     }
@@ -2367,6 +2387,15 @@ def main(argv: list[str] | None = None) -> int:
         )
     args = parser.parse_args(argv)
     root = Path(args.root)
+
+    if subcommand == "selected-membership" and not args.spec_dir:
+        print("workspace-status: selected-membership requires --spec-dir", file=sys.stderr)
+        _emit({
+            "schema_version": 1,
+            "mode": "selected-membership",
+            "reason": "empty_selection",
+        })
+        return 2
 
     if not _bind_engine():
         if subcommand in {"status", "reconcile", "explain"}:
@@ -3028,7 +3057,24 @@ def main(argv: list[str] | None = None) -> int:
                 with contextlib.suppress(OSError):
                     lock_path.unlink()
 
-        if subcommand == "explain":
+        if subcommand == "selected-membership":
+            selection = selected_membership_status(root, args.spec_dir)
+            selection_error = selection.get("error")
+            if isinstance(selection_error, dict):
+                reason = selection_error.get("code", "invalid_workspace")
+                print(f"workspace-status: selected-membership: {reason}", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "selected-membership",
+                    "reason": reason,
+                })
+                return 2
+            data = {
+                "schema_version": 1,
+                "mode": "selected-membership",
+                "results": selection["results"],
+            }
+        elif subcommand == "explain":
             result = analyze_bounded(root)
             public_selector, explain_result = _canonical_explain(root, result, args.item)
             data = _build_explain_json(root, result, public_selector, explain_result)
