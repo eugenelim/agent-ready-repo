@@ -1,6 +1,6 @@
 # Spec: initiative display metadata
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -81,14 +81,14 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** For every active initiative in the workspace under test,
+- [x] **AC-0001.** For every active initiative in the workspace under test,
   projected `initiatives[].name` and `initiatives[].milestone` equal the string
   that initiative's `workspace.toml` section assigns, unchanged — including a
   value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
   Equality is measured against the decoded JSON value, not raw stdout bytes:
   the emitter serialises with `ensure_ascii` at its default, so a non-ASCII
   character reaches stdout escaped.
-- [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
+- [x] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
   fields as values read from `workspace.toml`, enumerates `name` and `milestone`
   in the `initiatives` summary row alongside `slug`, `status`, `brief_queue` and
   `queue_empty`, renders active initiatives as
