@@ -532,6 +532,62 @@ def test_the_guide_tells_the_adopter_to_declare_the_capture_untrusted() -> None:
     assert "no instruction authority over the judgement" in guide
 
 
+# ── the guide teaches the channel axis ──────────────────────────────────────
+
+
+def test_the_guide_walks_both_fallback_channels() -> None:
+    """Verifies AC-0018's positive half: the guide names both fallback channels,
+    the band between them no fallback capture reaches, and the per-channel floor.
+    """
+    guide = " ".join(_guide().split())
+    assert "narrow" in guide and "wide" in guide, "the guide names no channels"
+    assert "481–1023" in guide or "481-1023" in guide, (
+        "the guide does not name the band the fallback channels leave uncaptured"
+    )
+    assert "eight captures per route" in guide, (
+        "the guide does not state the per-channel floor"
+    )
+
+
+# The demoted obligation. AC-0021, AC-0022 and AC-0025 were cut because no token
+# predicate can decide "teaches the superseded floor": three of the five shipped
+# strings that stated it carry no completeness word at all, and the token that
+# would red them also reds the guide's unscrollable-branch sentence, which must
+# survive. A literal pin is what is left, and its reach is exactly these strings.
+SUPERSEDED_FLOOR = (
+    "Take four captures per route: two viewport heights",
+    "none beyond these two is required",
+    "Whether the page scrolls at this height",
+)
+
+MUST_SURVIVE = (
+    "page-scrollable: no",
+    "no scrolled view",
+)
+
+
+def test_the_guide_no_longer_states_the_superseded_floor() -> None:
+    """A content pin, not a predicate.
+
+    Reach: exactly the strings below. A reworded height-only floor is NOT caught,
+    and that is the accepted limit of this control — asking a text search to
+    decide the general property is what three review rounds failed to make work.
+    """
+    guide = _guide()
+    for stale in SUPERSEDED_FLOOR:
+        assert stale not in guide, (
+            f"the guide still states the superseded floor: {stale!r}"
+        )
+
+
+def test_the_pin_spares_the_sentences_that_must_survive() -> None:
+    """The other polarity. A guard tuned until the strings above red is worthless
+    if it also removed the unscrollable branch, which is a live rule."""
+    guide = _guide()
+    for kept in MUST_SURVIVE:
+        assert kept in guide, f"the guide lost {kept!r}, which is a live rule"
+
+
 # ── every adopter surface, DERIVED rather than listed ───────────────────────
 #
 # Round 6 found four stale surfaces a hand-written sweep had missed: the pack
