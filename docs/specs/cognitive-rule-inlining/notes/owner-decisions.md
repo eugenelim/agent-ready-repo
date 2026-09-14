@@ -58,3 +58,28 @@ sections are pinned against edits.
 
 The amendment changed one acceptance criterion's exemption list. It changed no
 objective, no boundary, no task, and no testing strategy.
+
+## 2026-09-13 — the router's read becomes unconditional
+
+**Decision: `AGENTS.md` reads `AGENT_RULES.md` every time and checks there
+whether any of its rules apply. The per-row condition moves into
+`AGENT_RULES.md` itself.**
+
+Review round 6 found that "Read `AGENT_RULES.md` only when one of its `when`
+rows matches the work in hand" cannot be evaluated: the rows are inside the file,
+so an agent cannot know a row matches without first reading it. On this
+repository the table is empty and nothing is lost; for an adopter who merges the
+new `AGENTS.md`, existing rows go inert — the opposite of the extension point
+the changelog advertises.
+
+The owner's reasoning: the lookup is worth keeping, but a conditional activation
+is exactly the thing this change exists to stop relying on. We have already seen
+that a model-directed conditional read does not happen. So the read is
+unconditional and cheap — the table ships empty — and the conditionality lives
+where it can actually be evaluated, one line into the file being read.
+
+This amends the acceptance criterion requiring "no unconditional read of
+`AGENT_RULES.md`". That criterion was written to kill the three-hop chain whose
+skippable hops carried the behavioural rules. Those rules are now inline, so a
+single bounded read of a short index does not restore what it was written
+against.
