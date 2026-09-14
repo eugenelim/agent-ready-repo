@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Add a teammate</title>
+<meta name="inspection-fixture" content="clean">
+<meta name="inspection-fixture-defect" content="none">
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 32px 24px; color: #16181d; }
+  form { max-width: 30rem; }
+  h1 { font-size: 26px; margin: 0 0 20px; }
+  label { display: block; font-weight: 600; margin: 0 0 6px; }
+  input, select { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit;
+                  border: 1px solid #b9bec6; border-radius: 6px; margin-bottom: 18px; }
+  .hint { color: #5b6068; font-size: 14px; margin: -12px 0 18px; }
+  button { font: inherit; padding: 12px 20px; min-height: 44px; border: 0; border-radius: 6px;
+           background: #1f3a8a; color: #fff; cursor: pointer; }
+</style>
+<form>
+  <h1>Add a teammate</h1>
+  <label for="e">Email address</label>
+  <input id="e" type="email" placeholder="name@example.com">
+  <p class="hint">They will get an invitation that expires in seven days.</p>
+  <label for="r">Role</label>
+  <select id="r"><option>Viewer</option><option>Editor</option><option>Admin</option></select>
+  <button type="button">Send invitation</button>
+</form>

@@ -45,15 +45,24 @@ Table — When presenting several items that share the same fields, render a Mar
 Read the following artifacts in the order listed. Stop when the summary
 is complete — this skill reads, it does not write.
 
-**1. Evidence manifest** — the 11-field record from the most recent
+**1. Evidence manifest** — the 12-field record from the most recent
 `frontend-engineering` gate run. If a manifest exists, locate:
 
 - `states`: which of the 18 states were tested in the last run
+- `inspection observations`: what the rendered-page inspection saw, plus its
+  result state and verdict
 - `a11y result`: the last pa11y/axe-core output plus manual-check outcomes
   for WCAG 2.4.11 and 2.5.8
 - `perf result`: the last Lighthouse/CWV measurement
 - `known exceptions`: documented, accepted gaps with owners
 - `unverified items`: items that could not be verified in the last session
+
+**Report the inspection's two axes separately.** The result state says whether
+the step ran; the verdict says whether the page was all right. A surface whose
+last run reported `completed` / `fail` has an unresolved reader-visible failure
+and has not passed — say so, rather than reporting that the inspection ran. A
+surface with no `inspection observations` at all was never looked at, which is
+different again from one that was looked at and failed.
 
 **2. Known exceptions list** — entries in the manifest's `known exceptions`
 field. Note: which exceptions have an owner and a planned resolution date,

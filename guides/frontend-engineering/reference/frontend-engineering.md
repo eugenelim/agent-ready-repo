@@ -124,8 +124,12 @@ known exceptions, and the recommended next action.
 
 ### `frontend-reviewer`
 
-A **forked-context, read-only reviewer** for diffs whose primary output is
-HTML/CSS/JS. Applies the fe-diff-review lens across five areas:
+A **forked-context** reviewer for diffs whose primary output is HTML/CSS/JS. It
+reads the diff for five lenses and the **rendered page** for a sixth, so it is
+seeded with the surface's capture set and `inspection observations` alongside the
+diff, and can capture the adopter-named routes itself when the set it was given
+does not cover what the diff makes it suspicious of. It does not write to the
+repository under review.
 
 | Lens | What it checks |
 |---|---|
@@ -134,6 +138,12 @@ HTML/CSS/JS. Applies the fe-diff-review lens across five areas:
 | State coverage regression | States from the 18-state matrix present before the diff but absent after |
 | WCAG 2.2 manual items | 2.4.11 Focus Appearance (ring size and contrast), 2.5.8 Target Size (touch target ≥24×24 CSS px) |
 | CWV regression signals | Synchronous scripts, unsized images, lazy LCP candidates, route chunk size increase >10KB |
+| Reader-visible layout failure | Read from the captures, not the diff: one element covering another, content cut off at the top of the content area at rest, content outside its container, a control too small to hit, text that cannot be read. Severity comes from the pack's finding-class table; where a failure fits more than one class, the most severe wins |
+
+**Evidence per lens:** the diff confirms lenses 1-5; a capture confirms lens 6.
+A rendered-page failure is invisible in a diff by definition. Given neither
+captures nor routes, the reviewer reports lens 6 as a named skip rather than
+passing it on the diff alone.
 
 **Not in scope:** spec/plan drift (adversarial-reviewer), testability
 (quality-engineer), aesthetic taste (experience-reviewer), security

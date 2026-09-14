@@ -549,6 +549,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 $(PYTHON) -m pytest packs/product-documentation/tests/ -q
+$(PYTHON) -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q
 $(PYTHON) -m pytest \
 	packs/architect/tests/pack/ \
 	packs/architect/tests/skills/architect-assess/ \

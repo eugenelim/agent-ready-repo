@@ -549,11 +549,27 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # reports no drift, reproducing `d29b113d…` and `61120874…` exactly. This
 # second half matters more here than in earlier entries, because this re-pin
 # sits on a merge of origin/main that could itself have moved the plan.
+# Re-pinned by spec/rendered-page-visual-inspection, which gives the
+# frontend-engineering pack its first test tree and so its first runner line.
+# Dispositioned through `_effective_composition_errors` itself, both ways the
+# block above requires.
+#
+# (1) Sole cause: the same path against this worktree's Makefile and against
+# `05d5ca2fa~1:Makefile` (before the runner line landed) moves each plan by
+# exactly one line — standalone 62 -> 63, composed 61 -> 62 — inserting
+# `<PYTHON> -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q`
+# at index 31 in both. Deleting that one line from the new plan reproduces the
+# old plan element for element, and it appears exactly once, so nothing else
+# moved, was reordered, or was dropped; every later index differs only by the
+# shift. (2) Prior pins were current: `_effective_composition_errors` run over
+# the pre-change Makefile with the superseded digests still in place reports no
+# drift at all, reproducing `7fadaf20…` and `e48c8b01…` exactly, so this re-pin
+# is not sitting on a move someone else already made.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "7fadaf203076cf15c3f39820828443ebf14ea9d76216051595a037cf4e5c73b8"
+    "8f32abf234db484ed12269e7b4182a34e5db5ea21764556e852e4d96f17c7583"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "e48c8b01613f6570a2ed6895a4629b0f12bea62839a12f731bb32c741b2f7722"
+    "de0cadbf5e920afe80eb4ffb024474afa59af915b26e5ab014fdb008bb1c5390"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
