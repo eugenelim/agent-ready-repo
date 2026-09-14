@@ -168,15 +168,24 @@ and after (T7).
 **Depends on:** none
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/references/rendered-page-inspection.md
 
-**Tests:** goal-based check — this task ships content T2's assertions read.
-AC-0001 through AC-0004 and AC-0006 and AC-0007 are stated here and asserted
-there; nothing in this task asserts them itself.
+**Tests:** TDD for AC-0021, plus a goal-based check for the rows. AC-0021 is the
+prose obligation: the section's "When they declare none, these two apply" is
+contradicted by the new rule row, and no row assertion can see that. AC-0001
+through AC-0004, AC-0006 and AC-0007 are stated here and asserted in T2.
+`test_the_channel_sweep_reaches_every_file_that_names_a_channel` and
+`test_every_shape_still_matches_the_shipped_site_it_was_written_for` are re-run
+in-task: the first asserts set equality between the channel names harvested
+across `.apm/**` and the two the reference declares, so a worked clamping example
+in a three-cell table or prose in the `` `name` at <op> `` shape reds it.
 
 **Approach:** add the two rule rows to the `## Channels` rule-row block and the
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** `channel_rules(read_rules())` returns eight keys including
+**Done when:** the section's prose no longer states unconditionally that two
+bands apply when no breakpoints are declared, the channel-name sweep is green
+without its shapes or expected set being edited, and
+`channel_rules(read_rules())` returns eight keys including
 `channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
 rejects a duplicate key, run from a scratch probe. Not `capture_set_rules`: it
 splits on `\n## Required captures\n` and cannot reach the `## Channels` section
@@ -221,8 +230,9 @@ vocabulary.
 
 **Done when:** `inspection_result` over the four-capture single-channel set at
 1280 with a 1280 minimum returns `{"state": "completed", "verdict": "pass"}` and
-`is_completed_inspection_result` returns `True`, while the same set under a 480
-minimum stays `incomplete`; and
+`is_completed_inspection_result` returns `True`, while the same set with no
+minimum stays `incomplete` and `is_completed_inspection_result` returns `False`
+— AC-0020's own pair, not AC-0019's 480 pair; and
 `test_the_required_rule_rows_match_what_the_tables_state` is green with eight
 keys. The walk, not the helper, is the observable: every derivation criterion
 asserts `required_channels` in isolation, so an implementation can satisfy all of
@@ -239,7 +249,10 @@ which passes after this delivery without mentioning the minimum. The row is also
 pinned by `test_the_manifest_example_is_a_band_set_the_derivation_produces`,
 which harvests every backticked predicate in it and compares the set to the
 derivation's output — so the new values go in as bare numbers, and that control
-is re-run as part of this task rather than discovered later. AC-0009 goes in
+is re-run as part of this task rather than discovered later. The same two
+channel-name sweep controls T1 names apply to § 5a, which is one of the sites
+their shapes were written for — so the conditioning edit keeps the literal
+`` `narrow` at ≤480 `` phrase that the per-shape control matches. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -350,6 +363,32 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 6. AC-0008 was presence-only, so appending one
+  sentence to § 5a discharged it while leaving two claims this delivery falsifies
+  standing: "Declare none and two apply" and the `4(n + 1)` per-route floor. It
+  now asserts the conditional form on the adapter-projected surface an agent
+  performs the step from. AC-0021 added for the reference's own prose, which says
+  both fallback bands always apply directly above where the new rule row lands —
+  a contradiction no row assertion can see. Recorded the shipped channel-name
+  sweep in *Always do* and in T1 and T3: it asserts set equality between the
+  names harvested across `.apm/**` and the two the reference declares, so a
+  worked clamping example or prose in the `` `name` at <op> `` shape reds it, and
+  widening it would narrow the guard carrying the device-name prohibition.
+  Realigned T2's `Done when` with AC-0020's pair — it had kept AC-0019's 480
+  pairing.
+- 2026-09-14 — Shaping round 5. Added AC-0020 for `inspection_result`, the
+  outermost consumer, which forwards only the breakpoints — so every criterion
+  could pass while the result an adopter records still read `incomplete` for a
+  supported surface. Replaced AC-0019's paired fixture, which was byte-for-byte
+  the shipped `test_a_single_channel_set_is_incomplete`, with a 480-minimum case,
+  and added a declared-breakpoints fixture so the walk's pass-through is pinned
+  on both forks. Made AC-0002's 480 fixture assert full name-bearing triples, the
+  only input producing a clamped fallback band and so the only place the
+  keeps-its-table-name rule can fail. Corrected AC-0010 and T4: the guide already
+  conditions its eight-capture figure on the fallback bands, and the falsified
+  sentence is `4(n + 1)`. Restated the `none-declared` ground here, which had
+  kept round 3's wording after the spec corrected its own. (Entry written in
+  round 6 — round 5 edited this plan without logging it.)
 - 2026-09-14 — Shaping round 4. Added AC-0019: the completeness walk takes the
   minimum and honours it. Every derivation criterion asserted `required_channels`
   in isolation, so all 18 could pass while `evaluate_capture_set` — the function
