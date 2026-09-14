@@ -36,6 +36,7 @@ backlog items, agent rules, skills, code, and comments.
 - For common chat prose, aim for a Flesch Reading Ease score of at least 70 and a US school grade of at most 8. A score is a clue. It is not a reason to cut needed facts.
 - Keep test proof short: pass or fail, count, and run time. Name a suite if it failed or if its name changes the next step.
 - Check that the reader can act without counting, converting, opening a file, or asking what a line means.
+- Before adding a rule, merge rules, notes, and links that say the same thing. Keep a lasting rule in one place that is easy to find, and a scoped rule file to local changes.
 - Keep each skill whole on its own. State what it must do, and cut the same point said twice.
 - End on the last useful fact. Do not add an empty offer, a second summary, or facts the reader knows.
 

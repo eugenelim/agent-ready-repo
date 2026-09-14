@@ -20,9 +20,12 @@ against. The design cannot tell a small effect from noise, and this run did not.
 - **Protocol SHA-256:**
   `2ee255f54203a1e539a9842c91fcaa66df6f4309789b42ffab95aa5ddc73d6c9`
 - **Control arm SHA:** `dac83a5afb4f7409fbd4115211f3080a7640748d`
-- **Treatment arm SHA:** `45ee4db3d` — the finished tree. The later
-  `dba24e465` changes only the catalogue lint and its tests, not either
-  `AGENTS.md`, so it is outside what the arms compare.
+- **Treatment arm SHA:** `45ee4db3d`. This is the finished state of the two
+  `AGENTS.md` files, which are the whole surface the measurement reads — not the
+  finished state of the branch. Later commits (`dba24e465` onward) change the
+  catalogue lint, its tests, and this record; a session could in principle read
+  those files, so the arm is named by what it is rather than called "the finished
+  tree", which it is not.
 - **Arms:** two `git archive` extractions, neither carrying `.git`. A worktree
   would have shared the object store with the live branch.
 - **Permission mode:** `--allowedTools Read,Grep,Glob` — read-only, no
@@ -97,15 +100,57 @@ It does not establish that the change is inert. The clauses now reach a session
 without two model-directed tool calls that could be skipped silently; that is the
 outcome the change delivers, and it is structural rather than measured here.
 
+## The comparator, and where the pre-registration disagrees
+
+The pre-registration's noise-floor section says a difference smaller than the
+**pooled standard deviation** is not separable from noise. This run reads each
+difference against the **standard error of a difference of means** instead. That
+is a real disagreement between the two documents and it is not a post-hoc
+choice: the pilot record's corrections section, committed before the first
+scored reply here, establishes that reading a difference of two means against
+the spread of single observations is the wrong comparator, and the spec's run
+criteria name the standard error. The pre-registration section was not updated
+with that correction, which is a defect in the pre-registration rather than in
+this run.
+
+It changes no verdict here. Against the SE, 4.81, the largest |t| is 0.62;
+against the pooled SD, 5.89, every difference is smaller still. Both comparators
+return "not separable from noise" for all three tasks.
+
 ## The price of resolving it
 
-Roughly sixteen repetitions per arm per task — about ninety-six runs — to resolve
-a 5-point effect; nearer forty-four per arm for 3 points. That is a cost
-decision with a stated price, not a design flaw.
+At the SD this run measured, 5.89, a two-sided 95% test with 80% power needs
+about **22 repetitions per arm per task** to resolve a 5-point difference — 132
+runs across three tasks — and about **61 per arm** for 3 points, or 366 runs.
+
+An earlier version of this section said 16 and 44. Those figures are correct for
+the pilot's SD of 4.97 and wrong for this run's; the spread is what sets the
+price, so a power claim carried over from an earlier run understates it.
 
 ## Reading against the pilot
 
-The pilot's single-sample +9.16 fell to +4.51 on repetition, and falls again to
-+1.66 here on the pooled means. Each step added repetition or removed a
-confound, and each step shrank the estimate. That pattern is what selecting on
-one draw looks like from the other side.
+The two runs used the same three prompts, so they can be compared — but only
+quantity against matching quantity.
+
+| Comparison | Pilot | This run |
+| --- | ---: | ---: |
+| Pooled mean difference, all three tasks | +1.55 | +1.66 |
+| T1 difference | +4.64 | +2.98 |
+| T2 difference | +4.51 | +2.57 |
+| T3 difference | −4.49 | −0.56 |
+
+The pooled estimates are within 0.11 points of each other across two independent
+runs. Both sit far inside their own noise floors, so the agreement is not
+evidence of an effect — two runs can agree closely on an estimate of nothing.
+
+The three per-task differences share a sign across both runs. That is an
+observation made after seeing the data, not a pre-registered test, and at three
+repetitions per cell it is weak; it is recorded because suppressing it would be
+choosing which post-hoc patterns to mention.
+
+An earlier version of this section chained "+9.16 → +4.51 → +1.66" and read it as
+an effect shrinking under better design. Those are three different quantities: a
+single-sample difference on one task, the pilot's T2 per-task mean difference,
+and this run's pooled mean across all three. Lined up they look like a trend;
+matched properly, as above, no such trend exists. An inconclusive run cannot
+establish a causal story about selection either way.

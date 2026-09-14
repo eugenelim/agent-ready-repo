@@ -277,6 +277,35 @@ def test_a_routing_row_and_the_predicate_refuse_the_same_paths(
         assert rejected is (not admitted), (relative, why)
 
 
+def test_an_admitted_rules_seed_survives_the_seed_check(tmp_path: Path) -> None:
+    """Admitting a path and then crashing on it is not admitting it.
+
+    `_seeds_check_file` is the third caller of the predicate. It used to index
+    `_SEEDS_REQUIRED_PLACEHOLDERS` directly, so the first pack-shipped rules seed
+    raised an uncaught `KeyError` — the predicate and the routing row were both
+    covered while the path that decides whether a pack can ship one was not.
+    """
+    seeds = tmp_path / "seeds"
+    (seeds / ".agents/rules").mkdir(parents=True)
+    topic = seeds / ".agents/rules/house-style.md"
+    topic.write_text("# House style\n\nUse short sentences.\n", encoding="utf-8")
+
+    assert catalogue_lint._seeds_check_file(topic, seeds) == []
+
+
+def test_an_undeclared_seed_outside_the_rules_namespace_still_fails_loud(
+    tmp_path: Path,
+) -> None:
+    """The relaxation must not turn the unknown-seed fail-loud into a shrug."""
+    seeds = tmp_path / "seeds"
+    seeds.mkdir()
+    stray = seeds / "NOTES.md"
+    stray.write_text("# Notes\n\nAnything.\n", encoding="utf-8")
+
+    violations = catalogue_lint._seeds_check_file(stray, seeds)
+    assert any("unknown seed file" in v for v in violations), violations
+
+
 def test_rule_linter_rejects_nested_topic_path(tmp_path: Path) -> None:
     seeds = tmp_path / "seeds"
     topic = seeds / ".agents/rules/house-style.md"
@@ -449,8 +478,15 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
 
     This is the assertion that stops the move from quietly dropping a clause:
     the controls follow the content rather than being deleted with the file.
+
+    Both files, not just the seed. The first version read only the seed while
+    saying "both", so a middle clause could vanish from the root file — the one
+    every host in this repository actually loads — and leave this green.
     """
-    topic = (SEEDS / "AGENTS.md").read_text(encoding="utf-8")
+    sources = {
+        path: path.read_text(encoding="utf-8")
+        for path in (ROOT / "AGENTS.md", SEEDS / "AGENTS.md")
+    }
     controls = {
         "all output surfaces": (
             "chat",
@@ -557,6 +593,15 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
             "without counting, converting, opening a file",
         ),
         "one ending": ("empty offer", "second summary"),
+        # Repository-wide, not a `docs/` delta. The retired file applied this to
+        # every file, agent rule and skill; `docs/AGENTS.md` carries the same
+        # words under a scope that stops at `docs/`, so leaving it only there
+        # narrowed the control instead of moving it.
+        "one home per rule": (
+            "merge rules, notes, and links that say the same thing",
+            "one place that is easy to find",
+            "scoped rule file",
+        ),
         # The clause list names skills as a governed surface, so the skill
         # self-containment rule stays with the clauses rather than in `docs/`.
         "skills stand alone": (
@@ -564,9 +609,10 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
             "cut the same point said twice",
         ),
     }
-    for control, phrases in controls.items():
-        missing = [phrase for phrase in phrases if phrase not in topic]
-        assert not missing, (control, missing)
+    for source, content in sources.items():
+        for control, phrases in controls.items():
+            missing = [phrase for phrase in phrases if phrase not in content]
+            assert not missing, (source, control, missing)
 
 
 def test_simplified_docs_delta_keeps_each_scoped_control() -> None:

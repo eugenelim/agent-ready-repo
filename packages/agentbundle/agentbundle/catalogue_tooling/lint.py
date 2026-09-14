@@ -731,7 +731,12 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
             )
         return violations
 
-    required = _SEEDS_REQUIRED_PLACEHOLDERS[relative]
+    # `.get`, not `[]`: the unknown-seed guard above now admits a pack-shipped
+    # rules seed, which by design declares no placeholder shape. Indexing
+    # raised KeyError on the first such seed and the caller does not catch it,
+    # so admitting the path and then crashing on it defeated the extension
+    # point the admission exists to create.
+    required = _SEEDS_REQUIRED_PLACEHOLDERS.get(relative, ())
     if relative == "docs/architecture/overview.md":
         missing = [token for token in required if token not in content]
         if missing:

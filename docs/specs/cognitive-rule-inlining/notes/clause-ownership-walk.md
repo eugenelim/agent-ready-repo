@@ -20,18 +20,22 @@ git show dac83a5af:packs/core/seeds/.agents/rules/cognitive-load.md
 | "Keep each skill whole on its own" | § Rule lookups in both `AGENTS.md` files | The list already names skills as a governed surface, so it belongs with the clauses rather than in a scoped file. |
 | "Prefer clear code shape and exact names"; "Add a comment only to explain intent, a hard limit, or a trade-off" | § Coding conventions in both `AGENTS.md` files | Code rules, not rendering rules. Putting them in the chat list would have made the list mean two things. |
 | "Keep exact code, commands, errors, and tech terms when they matter" | The "group long lists" clause, which already lists code, diffs, errors and exact names | One clause, not two. Merging it is the prose-consolidation the spec asks for. |
-| "Before adding a rule, merge rules, notes, and links that say the same thing" | `docs/AGENTS.md` § Authoring | Already owned it, in fuller wording that adds `history`. |
+| "Before adding a rule, merge rules, notes, and links that say the same thing"; "Keep a scoped rule file to local changes"; "Put a lasting rule in one place that is easy to find" | § Rule lookups in both `AGENTS.md` files | **Corrected after review.** These first went to `docs/AGENTS.md`, which carries the same words — but under a scope that stops at `docs/`, while the retired file applied them to every file, agent rule and skill. Same words, narrower reach, is a lost control. `docs/AGENTS.md` keeps its own copy as a scoped delta. |
 | "Keep a backlog item fit for a choice" | `docs/AGENTS.md` § Backlog and governance | Already owned it. |
-| "Keep a scoped rule file to local changes" | `docs/AGENTS.md` § Backlog and governance, and both `AGENTS.md` headers | The docs delta names both `AGENTS.md` and `AGENTS.local.md`; the headers say to keep subtree deltas in the nearest scoped file. |
-| "Put a lasting rule in one place that is easy to find" | Both `AGENTS.md` headers | Root says to keep repository-wide invariants there; the seed says it is the canonical agent context file. |
+| (both rows above, previously listed separately here) | — | Folded into the corrected row. The headers do say where the canonical file is, but a header is not the rule, and neither header mentions merging duplicates before adding. |
 
 ## What a mechanical check reports, and why it is not the last word
 
-A word-overlap probe over the 24 clauses reports two as unowned: the two routed
-to `docs/AGENTS.md` and the file headers, whose shipped wording differs from the
-retired wording. Both are false negatives — the controls are present, the
-sentences are not. That is the expected result of consolidating duplicated prose,
-and it is the reason this table is written out rather than replaced by a grep.
+A word-overlap probe over the 24 clauses first reported two as unowned, and this
+note originally dismissed both as false negatives of a strict matcher. An
+independent review showed that was wrong: the words were present in
+`docs/AGENTS.md`, but under a scope that stops at `docs/`, so the controls had
+in fact been narrowed. The probe was pointing at something real and the prose
+explained it away.
+
+The lesson is the reason the table now records a scope for each destination, not
+just a file. "Which file carries this sentence" is the easy question; "does it
+still reach the same work" is the one that decides whether a control survived.
 
 The controls that ARE pinned mechanically, and red if deleted, are in
 `tests/roster/test_cognitive_load_repository_contract.py`:

@@ -34,8 +34,8 @@ _SPEC.loader.exec_module(scorer)
 # why it needs re-recording — a stale floor sits below what the file now does
 # and stops detecting the first 1.3 points of regression.
 BASELINES = {
-    "AGENTS.md": (66.43, 6.14),
-    "packs/core/seeds/AGENTS.md": (64.00, 6.66),
+    "AGENTS.md": (67.27, 6.05),
+    "packs/core/seeds/AGENTS.md": (64.86, 6.57),
 }
 # Sized per unit, not shared: ease runs 0-100 and grade roughly 0-20, so one
 # number cannot mean the same thing on both.
