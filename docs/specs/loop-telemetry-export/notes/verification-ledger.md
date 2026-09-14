@@ -353,3 +353,60 @@ Three things cost time and are worth recording:
 `python3 -m jsonl_otlp_exporter.cli`, which is the same `main` the
 `jsonl-otlp-export` console script points at. The console script itself was
 exercised under the sender's own AC-0014, not here.
+
+## T7 — a corpus recorded, not authored, and where its tests live
+
+**Both halves of the corpus are real.** The versioned half was driven through
+`loop-engine.py` at this build; the legacy half is lines this repository actually
+emitted before `schema` shipped. 17 records: 11 versioned, 6 legacy, 10 distinct
+events, and all three `result` values including `null`. A hand-written corpus can
+only contain shapes someone thought of, and a schema validated against one passes
+by construction.
+
+**`schema` is optional and constrained only when present.** A replayed
+pre-versioning record is appended unchanged (AC-0047), so a schema that *required*
+the key would reject a line the engine still legitimately writes. Mutation M5
+makes it required and the legacy-record control fails, which is what stops that
+reading being lost.
+
+**`True` is in the rejection set on purpose.** Python treats `bool` as a subclass
+of `int`, so a validator checking with `isinstance` would accept `schema: true`.
+JSON Schema's `integer` excludes it, and the test pins that rather than assuming
+it. Eight bad values are checked: `0`, `-1`, `"1"`, `1.5`, `true`, `null`, `[]`,
+`{}`.
+
+Seven mutations, each killing its own control:
+
+| Reverted | Control that failed |
+| --- | --- |
+| `$comment` stops naming the spec | AC-0053 |
+| the `contracts/README.md` row | AC-0050 |
+| `schema` left unconstrained | the eight rejection cases (AC-0049) |
+| `at` dropped from `required` | the identity-field cases (AC-0049) |
+| `schema` made mandatory | the legacy-record control |
+| **the poller made to branch on `schema`** | AC-0052 |
+| the corpus loses its legacy half | AC-0048's first half |
+
+The sixth is the criterion's whole point: `_apply_event` was mutated to append
+`-versioned` to the state when the key is present, and the comparison caught it.
+
+**The AC-0052 control compares the two results to each other, never to a
+literal.** A pinned expected output would still pass if both sides drifted
+together, and the criterion is about the *difference*. A second test asserts the
+comparison can fail at all, so a `_parsed_result` that returned a constant cannot
+satisfy AC-0052 while observing nothing.
+
+**A placement decision, recorded because the obvious home was wrong.**
+`tests/roster/` is where this repository's other JSON Schema contract tests live
+and where `jsonschema` is already imported — but **roster is not reached by `make
+test`**. A roster test runs on a pull request only when `build-check.yml` names it
+individually. The contract tests went into the agentbundle unit suite instead,
+which runs every build. The plan named a home only for AC-0052's test, so this is
+an unpinned choice; it is recorded rather than left implicit. `jsonschema>=4.0` is
+already declared in `tools/requirements.txt`, so no dependency was added.
+
+**One authoring error worth noting.** `_REPO` was first computed as
+`parents[3]`, which from `packages/agentbundle/tests/unit/` is `packages/`, not
+the repository root. Every path-reading test failed at once with a
+`FileNotFoundError` naming the wrong path, so it was loud rather than silent —
+but a test that had happened to find a file there would have pinned the wrong one.
