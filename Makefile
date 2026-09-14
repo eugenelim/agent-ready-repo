@@ -510,9 +510,10 @@ lint-mypy:
 # desk-research floor lines are separate from the six-member class.
 #
 # See ADR-0101 and catalogue-authoring-standards.md § 4.
-# Sharding is strictly ADDITIVE. With neither SHARD nor SHARDS set — the only
-# form any existing caller uses — this target is byte-for-byte what it always
-# was, and `make test` remains the complete public gate.
+# Sharding is strictly ADDITIVE. With neither SHARD nor SHARDS set — the
+# standalone form, and the only one every caller used before sharding — this
+# target is byte-for-byte what it always was, and `make test` remains the
+# complete public gate. test-corpus.yml is now a selector-bearing caller.
 #
 # With both set, the same roster runs split across parallel runners. Selection
 # lives here rather than in the workflow on purpose: the Makefile is the single

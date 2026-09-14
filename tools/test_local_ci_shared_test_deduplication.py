@@ -2591,35 +2591,30 @@ def test_shard_live_roster_partitions_are_complete_and_deterministic() -> None:
 
 
 def test_shard_weights_separate_the_two_heaviest_units() -> None:
-    """LPT separates the dominant units where roster-order assignment does not."""
-    shard = _shard_module()
-    units = [
-        line for line in shard.roster_lines() if shard.classify(line) == "work"
-    ]
-    heaviest = next(
-        unit
-        for unit in units
-        if shard.unit_key(unit) == "tools/test_check_artifact_contents.py"
-    )
-    second = next(
-        unit
-        for unit in units
-        if shard.unit_key(unit) == "packs/core/tests/skills/work-loop/"
-    )
-    weighted = shard.partition(units, 4)
-    assert next(i for i, part in enumerate(weighted) if heaviest in part) != next(
-        i for i, part in enumerate(weighted) if second in part
-    )
+    """The two heaviest LIVE invocations land in different shards.
 
-    with mock.patch.object(
-        shard,
-        "_unit_weight",
-        return_value=shard.DEFAULT_WEIGHT,
-    ):
-        constant_weight = shard.partition(units, 4)
-    assert next(
-        i for i, part in enumerate(constant_weight) if heaviest in part
-    ) == next(i for i, part in enumerate(constant_weight) if second in part)
+    Derived from `_unit_weight`, never named here: an earlier version hardcoded
+    a suite that measurement later demoted from first to third, so the assertion
+    could have stayed green while the actual heaviest pair shared a shard.
+    """
+    shard = _shard_module()
+    work = [line for line in shard.roster_lines() if shard.classify(line) == "work"]
+    ranked = sorted(work, key=lambda unit: -shard._unit_weight(unit))
+    heaviest, second = ranked[0], ranked[1]
+    assert shard._unit_weight(heaviest) > shard._unit_weight(second) * 0.5
+
+    assignments = shard.partition(work, 4)
+    home = {
+        unit: index
+        for index, selected in enumerate(assignments)
+        for unit in selected
+    }
+    assert home[heaviest] != home[second], (
+        shard.unit_key(heaviest),
+        shard.unit_key(second),
+    )
+    # A constant weight collapses this: LPT degenerates to roster order.
+    assert len({shard._unit_weight(unit) for unit in work}) > 1
 
 
 def test_shard_execution_keeps_unit_boundaries_and_all_preconditions() -> None:
@@ -2811,34 +2806,47 @@ def test_shard_workflow_runs_one_test_step_on_the_exact_runner() -> None:
     assert re.search(r"(?m)^\s*runs-on:\s*ubuntu-latest\s*$", text)
 
 
-def test_shard_ignores_make_recursion_diagnostics_narrowly() -> None:
-    """Make's own `make[N]:` chatter is not roster content, but nothing else is.
+def test_shard_expansion_carries_no_make_chatter_under_hostile_flags() -> None:
+    """The dry run stays clean, so `classify` needs no exemption for chatter.
 
-    Regression: run 34789174316 failed all four shards on the exact first line
-    below. `roster_lines` runs `make -n` from inside a make recipe, so MAKELEVEL
-    is non-zero and GNU Make announces the directory on stdout. macOS make
-    stayed quiet, so only CI saw it.
+    Regression: run 34789996081 failed all four shards on
+    `make[1]: Entering directory ...`. roster_lines runs `make -n` from inside a
+    make recipe, so MAKELEVEL is non-zero and GNU Make announces the directory
+    on stdout. macOS make stayed quiet; Linux did not.
+
+    The first fix added BOTH `--no-print-directory` and a `make[N]: ` exemption
+    in `classify`. The exemption was a hole in a fail-closed classifier, so it is
+    gone: this asserts the flag alone is sufficient, including when an ambient
+    `-w` in MAKEFLAGS asks for the opposite. Any such line now REFUSES, as an
+    unrecognised roster line should.
     """
     shard = _shard_module()
+    for environment in (
+        {"MAKELEVEL": "1"},
+        {"MAKELEVEL": "2", "MAKEFLAGS": "w"},
+        {"MAKELEVEL": "1", "MAKEFLAGS": "w --"},
+    ):
+        with mock.patch.dict(os.environ, environment):
+            lines = shard.roster_lines()
+        chatter = [
+            line
+            for line in lines
+            if line.lstrip().startswith("make[")
+            or "Entering directory" in line
+            or "Leaving directory" in line
+        ]
+        assert not chatter, (environment, chatter[:2])
+
+    # And the classifier no longer excuses it, so a regression is loud.
     for diagnostic in (
-        "make[1]: Entering directory '/home/runner/work/agent-ready-repo/agent-ready-repo'",
+        "make[1]: Entering directory '/home/runner/work/x/x'",
         "make[2]: Leaving directory '/tmp/x'",
     ):
-        assert shard.classify(diagnostic) == "ignore", diagnostic
-
-    # The rule must stay narrow: anything that is not the `make[N]:` prefix is
-    # still refused, so this cannot become a hole that swallows a roster line.
-    for refused in (
-        "make test-unleased",
-        "makefoo[1]: Entering directory '/x'",
-        "make[x]: Entering directory '/x'",
-        "  make[1] Entering directory '/x'",
-    ):
         try:
-            shard.classify(refused)
+            shard.classify(diagnostic)
         except shard.RosterError:
             continue
-        raise AssertionError(f"should have been refused: {refused!r}")
+        raise AssertionError(f"should have been refused: {diagnostic!r}")
 
 
 def test_shard_expansion_passes_no_print_directory() -> None:
@@ -2974,99 +2982,53 @@ def test_shard_executor_and_expansion_both_use_the_scrubbed_environment() -> Non
         assert env.get(shard.REENTRY_MARKER) == "1"
 
 
-def test_shard_every_main_call_site_clears_the_reentry_marker() -> None:
-    """A `main()` case without the guard passes locally and fails only sharded.
+NESTED_SHARD_SUITE = "SHARD_SUITE_NESTED"
+
+
+def test_shard_suite_passes_with_the_reentry_marker_set() -> None:
+    """Run the shard cases as a SHARDED RUNNER runs them, and require green.
 
     This suite is itself in the roster, so under `make test SHARD=n SHARDS=m`
-    the selector's re-entry marker is already in the environment. A future case
-    that calls `main()` outside `_shard_outside_a_shard()` would therefore be
-    refused on a sharded runner while staying green on a developer's machine --
-    an asymmetry no ordinary run of this suite can reveal. Checked structurally
-    because the defect is in what a test FORGETS to wrap.
-    """
-    source = Path(__file__).read_text(encoding="utf-8")
-    # Checked on the AST, not on text. An earlier lexical version compared a
-    # fixed six-line window and had both failure directions: it reported ITSELF
-    # (its own quoted and backticked mentions of the call) and it reported a
-    # correctly-guarded case whose wrapper sat further than six lines above the
-    # call. A window size is not a property of the code -- the enclosing
-    # function is.
-    tree = ast.parse(source)
-    unguarded: list[int] = []
-    # Only module-level test functions. Walking nested defs separately would
-    # report one whose wrapper lives in its enclosing function.
-    for node in tree.body:
-        if not isinstance(node, ast.FunctionDef):
-            continue
-        # Receivers are BOUND, not assumed to be named `shard`: `sel =
-        # _shard_module(); sel.main(...)` is the same call and evaded an earlier
-        # version of this check that hardcoded the name.
-        receivers = {
-            target.id
-            for child in ast.walk(node)
-            if isinstance(child, ast.Assign)
-            for target in child.targets
-            if isinstance(target, ast.Name)
-            and isinstance(child.value, ast.Call)
-            and isinstance(child.value.func, ast.Name)
-            and child.value.func.id == "_shard_module"
-        }
-        calls = [
-            child
-            for child in ast.walk(node)
-            if isinstance(child, ast.Call)
-            and isinstance(child.func, ast.Attribute)
-            and child.func.attr == "main"
-            and isinstance(child.func.value, ast.Name)
-            and child.func.value.id in receivers
-        ]
-        if not calls:
-            continue
-        called = {
-            child.func.id
-            for child in ast.walk(node)
-            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name)
-        }
-        if "_shard_outside_a_shard" in called:
-            continue
-        # The case that deliberately re-enters keeps the marker on purpose.
-        if any(
-            isinstance(child, ast.Attribute) and child.attr == "REENTRY_MARKER"
-            for child in ast.walk(node)
-        ):
-            continue
-        unguarded.extend(call.lineno for call in calls)
+    the selector's re-entry marker is already in the environment and any case
+    calling `main()` without `_shard_outside_a_shard()` is refused. That
+    asymmetry passes on a developer's machine and fails only on a sharded
+    runner -- it cost run 34790977529 shard 4.
 
-    assert not unguarded, (
-        "shard.main() called without _shard_outside_a_shard() at line(s) "
-        f"{unguarded}; that case would fail only on a sharded runner"
+    Three earlier attempts checked this by reading the source: a six-line
+    lexical window (which reported itself, twice, and also reported a correctly
+    guarded case whose wrapper sat further up), then an AST walk keyed to a
+    hardcoded receiver name (which an alias evaded), then one that bound
+    receivers (which still only proved a wrapper existed SOMEWHERE in the
+    function, not that it enclosed the call). Each round moved the check without
+    settling it, because the property is about what happens at RUN time and the
+    source cannot decide it.
+
+    So this executes the real thing instead. Every evasion the source-reading
+    versions argued about -- aliased loaders, chained receivers, a wrapper in
+    the wrong branch -- fails here for the same reason a plain omission does.
+    """
+    if os.environ.get(NESTED_SHARD_SUITE):
+        raise unittest.SkipTest("inner run: this case is what spawned it")
+
+    environment = dict(os.environ)
+    environment[_shard_module().REENTRY_MARKER] = "1"
+    environment[NESTED_SHARD_SUITE] = "1"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(Path(__file__)),
+            "-q",
+            "--no-header",
+            "-k",
+            "shard",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        env=environment,
     )
-
-
-def test_shard_emits_one_timing_line_per_executed_unit(capsys) -> None:  # type: ignore[no-untyped-def]
-    """Per-unit durations are what make the WEIGHTS table refreshable.
-
-    Without them the table is a one-time snapshot that decays silently into the
-    round-robin it exists to avoid — which is exactly how shard 3 of run
-    34791356312 reached 6.37 minutes against a 3.55-minute prediction.
-    """
-    shard = _shard_module()
-    lines = _shard_fixture_lines()
-    preconditions = [line for line in lines if shard.classify(line) == "precondition"]
-    recorder = _ShardRecordingExecutor()
-    with _shard_outside_a_shard(), mock.patch.object(
-        shard, "roster_lines", return_value=lines
-    ):
-        result = shard.main(["--shard", "1", "--shards", "2"], executor=recorder)
-    assert result == 0
-
-    emitted = [
-        line
-        for line in capsys.readouterr().err.splitlines()
-        if line.startswith(shard.TIMING_PREFIX)
-    ]
-    assert len(emitted) == len(recorder.calls), (len(emitted), len(recorder.calls))
-    # Every executed unit is named, preconditions included, so a refresh sees
-    # the whole shard and not only its suites.
-    for precondition in preconditions:
-        assert any(shard.unit_key(precondition) in line for line in emitted), precondition
+    assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-2000:]
+    # Guard the guard: a run that collected nothing would pass vacuously.
+    assert " passed" in result.stdout, result.stdout[-2000:]

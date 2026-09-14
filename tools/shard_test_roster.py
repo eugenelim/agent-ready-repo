@@ -160,12 +160,6 @@ def classify(line: str) -> str:
     stripped = line.strip()
     if not stripped or stripped.startswith("#"):
         return "ignore"
-    # Make's own recursion diagnostics, never roster content. `--no-print-
-    # directory` above suppresses the common one; this stays as the second
-    # layer, matched narrowly on the `make[N]:` prefix so a real roster line
-    # can never be swallowed by it.
-    if re.match(r"^make\[\d+\]: ", stripped):
-        return "ignore"
     # Unambiguous runner shapes are decided FIRST. A precondition marker is a
     # substring test, so a future suite whose path merely CONTAINS a marker --
     # `-m pytest tools/repo/editable_install_guard.py`, say -- would otherwise

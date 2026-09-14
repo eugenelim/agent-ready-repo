@@ -59,9 +59,6 @@ jobs:
     # a shard that somehow ran the whole corpus would hit the timeout and report
     # a cancellation instead of its real result. The failure this number exists
     # to keep legible is the one where sharding stops working.
-    #
-    # To re-measure: dispatch this workflow and read the job durations. Nothing
-    # here needs a reader to act.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
