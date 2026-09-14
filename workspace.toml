@@ -478,6 +478,12 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
+  # rather than left in that spec's notes: a closed spec's notes directory is not
+  # a destination, and the obligation would otherwise be enforced by someone
+  # remembering to reread it -- the same unfalsifiable-rule shape that delivery
+  # spent five review rounds removing from its own content.
+  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Derive the mapping from written path to gating suite instead of carrying it by recall: build-check hands pytest seven named targets, neither test-corpus nor test-roster has a pull-request trigger, and a pack-content change can write docs/product/changelog.md, pack.toml and two plugin manifests with no PR gate reading any of them", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
