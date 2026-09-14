@@ -1,7 +1,7 @@
 # Plan: DECIDE ladder follow-ons
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/SKILL.md` DECIDE and
   conditional-reference routing; `docs/specs/finding-response-receptacle/spec.md`;
   `docs/specs/finding-response-receptacle/notes/owner-decisions.md`;

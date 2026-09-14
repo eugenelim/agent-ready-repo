@@ -1,6 +1,6 @@
 # Spec: DECIDE ladder follow-ons
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -131,13 +131,13 @@ projections.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Intent guidance classifies an edit to `Opportunity` as
+- [x] **AC-0001.** Intent guidance classifies an edit to `Opportunity` as
       material and instructs that a material edit invalidates prior review
       evidence and returns an accepted intent to `Draft` before a fresh review.
-- [ ] **AC-0002.** Delivery-brief guidance classifies an edit to `Rabbit holes`
+- [x] **AC-0002.** Delivery-brief guidance classifies an edit to `Rabbit holes`
       as material and instructs that a material edit invalidates prior review
       evidence and returns a ready brief to `Draft` before a fresh review.
-- [ ] **AC-0003.** Delivery-brief guidance classifies an edit to `Design
+- [x] **AC-0003.** Delivery-brief guidance classifies an edit to `Design
       artifacts` as material and carries the same demotion instruction.
 
 ## Follow-ons
