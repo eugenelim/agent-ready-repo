@@ -1,7 +1,7 @@
 """Turning records into an OTLP/HTTP JSON logs request body.
 
 Pure functions, no I/O. Everything here is decided by the active profile plus
-the conversion rules ADR-0114 settles, so the same record and profile always
+the conversion rules ADR-0115 settles, so the same record and profile always
 produce the same bytes.
 
 Two emission rules are load-bearing for ingestion, measured against a real

@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0114](../../adr/0114-loop-telemetry-sender-is-a-separately-installed-distribution.md)
+- **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
 - **Depends on:** [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) — the sender, which ships first
 - **Brief:** none
 - **Discovery:** none
@@ -48,7 +48,7 @@ distribution an adopter installs on purpose.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Applicable — a sender outside every pack reverses stated current architecture | [`docs/adr/0114-loop-telemetry-sender-is-a-separately-installed-distribution.md`](../../adr/0114-loop-telemetry-sender-is-a-separately-installed-distribution.md) | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
+| Decision rationale | Applicable — a sender outside every pack reverses stated current architecture | [`docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md`](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md) | spec owner | Accepted ADR naming the § 5.2 interpretation and the per-engine default | ADR merged and cited by `telemetry.md` |
 | Current architecture | Applicable — `telemetry.md` § 2 states "No exporter ships" and § 5.3 carried a stale blockquote | `docs/architecture/telemetry.md` | spec owner | §§ 2, 5.2, 5.3 and 8 read true against the shipped tool; both anchors resolve | Anchors resolve; no claim contradicts the shipped tool |
 | User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed |
 | Optional-dependency reporting | Applicable — the first reader of `[[pack.runtime-dependencies]]` | `packs/core/pack.toml` + the catalogue lint's reporting path | spec owner | Lint run naming the unsatisfied optional dependency | AC-0039 green |
@@ -89,7 +89,7 @@ distribution an adopter installs on purpose.
 **TDD stub dispositions.** Three plan tasks are TDD: T1, T2 and T6. T6 carries
 two validated stubs with their recorded compile and intended-red results, because
 its seam — the existing envelope suite — already exists. T1 is split: AC-0040 is
-a validated stub, because ADR-0114 makes the profile a TOML *file* at a path this
+a validated stub, because ADR-0115 makes the profile a TOML *file* at a path this
 spec fixes rather than a symbol in the unshipped package, while AC-0044 stays
 `no stub (implementation-discovered)` because it depends on the sender's flag
 spelling. T2 carries `no stub (implementation-discovered)` throughout, for the

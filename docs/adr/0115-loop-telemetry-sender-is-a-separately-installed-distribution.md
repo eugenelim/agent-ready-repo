@@ -1,4 +1,4 @@
-# ADR-0114: The loop-telemetry sender is a separately installed distribution, not pack content
+# ADR-0115: The loop-telemetry sender is a separately installed distribution, not pack content
 
 - **Status:** Accepted
 - **Date:** 2026-09-12

@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0114](../../adr/0114-loop-telemetry-sender-is-a-separately-installed-distribution.md)
+- **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — the public surface is a CLI and a mapping-profile interface, both specified inline below
@@ -71,7 +71,7 @@ reaches every backend that has a Collector in front of it.
 | Interface compatibility | Applicable — the profile interface is a published extension point | `packages/jsonl-otlp-exporter/docs/profiles.md` | spec owner | Interface and its compatibility status stated | AC-0031 and AC-0032 green |
 | Release history | Applicable — a published distribution | `packages/jsonl-otlp-exporter/CHANGELOG.md` | release workflow | Version bump with entry; tag matches `pyproject` | Tag published |
 | Maintainer procedure | Applicable — a distribution with its own release path | `packages/jsonl-otlp-exporter/AGENTS.md` | spec owner | Test command and release coupling | File accurate |
-| Decision rationale | Not applicable — ADR-0114 already records why a separate distribution exists; this spec adds no reversal | — | — | — | — |
+| Decision rationale | Not applicable — ADR-0115 already records why a separate distribution exists; this spec adds no reversal | — | — | — | — |
 
 ## Boundaries
 
@@ -404,8 +404,8 @@ the obligation is not missing — it has an owner.
   is not hypothetical: the work-loop envelope's `budgets` field is a nested
   object, measured on a real emitted line on 2026-09-13, so the first consumer
   already exercises the unanswered nested-value case.
-  **Settled 2026-09-13 by the ADR-0114 decision owner; this entry is closed.**
-  The four answers are recorded in ADR-0114 with their reasons and are pinned by
+  **Settled 2026-09-13 by the ADR-0115 decision owner; this entry is closed.**
+  The four answers are recorded in ADR-0115 with their reasons and are pinned by
   AC-0064 through AC-0073. The EXECUTE gate this entry placed on T4 is therefore
   discharged. Kept rather than deleted because the spec was approved while it was
   open, so a reader needs to see that the gap was bounded, owned and closed
