@@ -473,6 +473,18 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Two corrections to `loop-telemetry-export`'s contract that were found by doing
+  # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
+  # a completed task's section, and both corrections land inside T2 and T4, which
+  # the wave advances had already recorded complete. Landing them anyway required
+  # `loop-cohort reset`, which destroys the cohort audit trail -- three review
+  # rounds, nineteen finding fingerprints, the amendment history -- so the owner
+  # chose the trail and the amendment was narrowed. Neither blocks anything: both
+  # behaviours ship, are gated and are mutation-proved; what is missing is contract
+  # text. The general question the entry carries is whether the amendment path needs
+  # a way to correct a completed task's contract at all, since a contract error found
+  # by implementing its own task is always discovered after that task is frozen.
+  {path = "docs/product/intents/loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether AC-0031's four-of-six enumeration and the uncriterioned undeliverable-setting refusal are worth a contract change now that both behaviours have shipped", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
