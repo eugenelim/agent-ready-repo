@@ -54,6 +54,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.26] — 2026-09-13
+
+### Highlights
+- **A frontend review now gets the pictures, not just the diff.** When a surface
+  has been inspected, the work-loop hands `frontend-reviewer` the capture set and
+  what was observed in it, alongside the diff. A reviewer that only ever saw a
+  diff could not see one element covering another, which is the class of defect
+  it was most often asked about.
+### Changed
+- `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
+  capture set, its recorded observations, and the adopter-named routes, and names
+  the reviewer's reader-visible-layout lens.
+
+## [core][2.25.25] — 2026-09-13
+### Added
+
+- `workspace-status` can now check an explicit list of spec directories and
+  report each one's workspace membership as present or absent, including
+  canonical, duplicate, and supported legacy entries. The check is read-only
+  and does not require the selected spec artifact to exist.
+
+### Highlights
+
+- You can now ask `workspace-status` which explicitly selected specs still
+  have workspace membership and which do not, without changing
+  `workspace.toml` or treating absence as permission to delete anything.
+
+## [core][2.25.24] — 2026-09-13
+
+### Highlights
+
+- **A sustained shaping finding no longer reads as an instruction to edit.**
+  Intent, delivery-brief and spec authoring point at the work-loop's ordered
+  response ladder — cut, route, fix, hold, walked until one applies — so an
+  author can answer a finding by dropping a claim nothing is obliged by rather
+  than writing more careful prose. The lifecycle gates are unchanged: whatever
+  blocked before still blocks.
+- **Each upstream artifact states where a demoted claim belongs.** An intent
+  sends a settled ground to `Opportunity` and a matter decided without the
+  authority to decide it to `Unresolved questions`. A brief sends a design trap
+  to `Rabbit holes` and informing provenance to `Design artifacts`, and never to
+  `Ready gaps`, which it drops on leaving `Draft`.
+- **A shaping reviewer no longer reopens a decision the artifact records as
+  settled.** A pre-existing defect stays reviewable however late it is found, so
+  an author can refuse a reopened decision without dismissing a real defect from
+  the same round.
+
+### Changed
+
+- `intake-intent`, `author-delivery-brief`, and `new-spec` now point to the
+  work-loop DECIDE step as the single home of finding-response vocabulary.
+  Their local guidance states only how `demote-the-claim` and
+  `drop-the-claim` apply to each artifact's deciding and recording sections.
+- The shaping reviewer no longer reopens a decision that the supplied brief or
+  spec records as settled with its ground and owner. Consequences, conflicts,
+  and pre-existing defects remain reviewable.
+
 ## [core][2.25.23] — 2026-09-13
 
 ### Fixed
@@ -65,7 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seeds, and the seed comes off the portable-citation cleanup list.
 
 ## [core][2.25.22] — 2026-09-13
-
 ### Changed
 
 - `docs/specs/README.md` describes the spec directory convention and carries no
@@ -155,6 +211,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/knowledge/` and committing it is a required step between
   `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
   only by reading the source.
+## [frontend-engineering][0.2.3] — 2026-09-13
+
+### Highlights
+
+- **The pack now looks at the page, and writes down what it saw.** Step 4 of the
+  journey captures each route you name at two viewport heights, at rest and
+  scrolled, and reports what a reader would actually meet — something covering
+  something else, text running out of its container, a control too small to hit.
+  The evidence manifest gains an `inspection observations` field that a list of
+  screenshot filenames does not satisfy.
+- **A skipped inspection can no longer pass as a completed one.** Seven distinct
+  result states replace a single unverified line, and the same state reaches the
+  manifest, the step's output, and the acceptance gate — so a missing browser
+  arrives as a decision rather than a green tick.
+- **Measure the noise yourself.** Four defect fixtures and four known-clean ones
+  ship with a procedure for measuring the false-positive rate in your own
+  environment. The pack publishes no rate of its own, because the rate moves with
+  the judge and the viewport sizes and does not transfer.
+- **A visible defect now costs something.** A run that took every capture and
+  found a banner covering the heading reports that it *ran* and that it did not
+  *pass* — two answers, because "the browser would not start" and "the page is
+  broken" need different fixes. The surface does not complete over an unresolved
+  blocking finding.
+- **The independent reviewer can finally see the page.** `frontend-reviewer` is
+  handed the captures, reads them, and can take its own when the ones it was
+  given do not cover what the diff makes it suspicious of. Until now it read the
+  diff, and no diff shows one element covering another.
+
+### Added
+
+- `references/rendered-page-inspection.md`: the rule layer as tables — the
+  finding-class to severity mapping, the required captures, the capture record
+  and judgement-request shapes, the capture/judgement step split, and the result
+  states.
+- `references/rendered-page-measurement.md` and
+  `references/inspection-fixtures/`: the measurement kit, its fixture sets, its
+  denominator, and the rate vocabulary.
+- `SKILL.md` section 5 and journey step 4: the capture and judgement steps and
+  the named skip.
+- [Inspect the rendered page](../../guides/frontend-engineering/how-to/inspect-the-rendered-page.md):
+  the how-to that walks the step against a local file.
+
+### Changed
+
+- The evidence manifest's required-field count moved 11 to 12, and its
+  production-surface total 13 to 14.
+- A finding's severity is derived from its class. A severity a judge supplies is
+  discarded, including when it disagrees.
+- The query string and fragment are cut from a route before it is recorded and
+  before it is stated to the judge.
+- The request sent to a judge declares the capture untrusted evidence carrying
+  no instruction authority. The skill already said so, but a judge you route
+  captures to may never read the skill.
+- A failure fitting more than one finding class takes the most severe, so which
+  class a judge happens to name cannot lower the result.
+- A viewport height captured beyond the two required bands carries the same
+  at-rest and scrolled requirement. This was enforced before it was written
+  down; it is now stated in the reference the checks read.
+- `frontend-reviewer` gains a sixth lens for reader-visible layout failure,
+  taking severity from the pack's finding-class table, and states that it does
+  not write to the repository under review.
+
+### Fixed
+
+- A page shorter than its viewport has no scrolled view, and is recorded as
+  `page-scrollable: no` rather than reported as permanently incomplete. Found by
+  running the procedure for real: 17 of 32 captures could not reach a non-zero
+  scroll position, which would have made every sign-in form, 404 and settings
+  panel impossible to inspect completely.
 
 ## [core][2.25.19] — 2026-09-13
 

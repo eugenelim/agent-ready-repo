@@ -312,6 +312,35 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 12,
+      "prompt": "Check workspace membership for docs/specs/example-feature and docs/specs/example-absent",
+      "expected_output": "The agent invokes the workspace-status selected-membership subcommand with the explicit non-empty selection (python3 <skill-dir>/scripts/workspace_status.py selected-membership --root <root> --spec-dir docs/specs/example-feature --spec-dir docs/specs/example-absent). It preserves selection order and reports docs/specs/example-feature as present through its legacy workspace occurrence and docs/specs/example-absent as absent with no occurrences. It treats both outcomes as read-only facts, exits successfully, and does not modify workspace.toml or turn absence into permission to delete anything.",
+      "assertions": [
+        "Invokes selected-membership with both explicit --spec-dir selections rather than scanning or inferring a selection",
+        "Reports docs/specs/example-feature as present with its matching legacy occurrence",
+        "Reports docs/specs/example-absent as absent with zero occurrences",
+        "Preserves the supplied selection order",
+        "Performs no workspace change, deletion, or exit gating"
+      ],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "docs/specs/example-feature",
+          "docs/specs/example-absent",
+          "present",
+          "absent"
+        ],
+        "output_excludes": [
+          "deleted",
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
     }
   ]
 }

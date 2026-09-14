@@ -157,13 +157,20 @@ This inverts OpenTelemetry's own rule, where a declarative configuration file
 makes `OTEL_*` inert; the inversion is deliberate, because the file here is an
 inherited default rather than an operator's own statement.
 
-> **The shipped-default half does not work today.** Traced and confirmed by
-> execution: `_append_layout_section` writes nothing for any pack in the
-> catalogue, because the writer and readers disagree on section, key and value
-> name. See [agentbundle § 7.1](agentbundle.md#71-known-drift--the-install-time-layout-default-writes-nothing).
-> Adopter-authored layout files and an environment variable both work, so an
-> exporter can be configured today — but a catalogue-level default cannot ship
-> until that drift is settled.
+> **A catalogue-level default cannot carry an endpoint — for a different reason
+> than it once could not.** The install-time append itself works as of
+> `agentbundle` 0.44.0; see [agentbundle § 7.1](agentbundle.md#71-the-install-time-layout-default).
+> What blocks it now is the value's type. `output_dir` is semantically a
+> **directory, confined to the scope root**: `_append_layout_section` anchors a
+> relative value under that root and rejects anything resolving outside it. An
+> endpoint URL is not refused by that check — it is silently misread, so
+> `https://collector:4318` is anchored to `<repo>/https:/collector:4318` and
+> written as if it were a path. A silent misreading is worse than a refusal.
+>
+> So telemetry ships **no** catalogue-level default, which is also what
+> off-by-default wants: the adopter authors a `[telemetry]` section themselves,
+> or sets an environment variable, and an adopter who does neither sends
+> nothing.
 
 ## 6. Failure and recovery behavior
 
@@ -308,9 +315,118 @@ help someone work out what happened.
   — why the domain vocabulary is ours and which shapes were borrowed.
 - [Loop infrastructure](loop-infrastructure.md) — the phase machine these events
   describe.
-- [`agentbundle` § 7.1](agentbundle.md#71-known-drift--the-install-time-layout-default-writes-nothing)
-  — the inert install-time layout default.
+- [`agentbundle` § 7.1](agentbundle.md#71-the-install-time-layout-default)
+  — how the install-time layout default writes, and what it may carry.
+- [Loop telemetry export survey](../product/research/loop-telemetry-export-survey.md)
+  and its [counterpoints](../product/research/loop-telemetry-export-counterpoints.md)
+  — where a sender may live, why it is a separately installed distribution, and
+  which of the survey's findings did not survive review.
 
-## 10. Last verified against commit
+## 10. Getting these lines to a backend
 
-`bd8b69443`
+Nothing here ships a sender yet (§ 2). This section records what has been
+measured, so the team that adds one — or an operator wiring up a backend — does
+not re-derive it. Measured 2026-09-12 unless stated.
+
+### 10.1 Send to a Collector, never to a vendor endpoint
+
+This is the decision everything else follows from. A Collector accepts
+OTLP/HTTP with `Content-Type: application/json` on its `otlp` receiver with no
+configuration, auto-detecting from the content type. Vendors do not agree with
+each other: Splunk's own OTLP endpoint requires `application/x-protobuf` and
+answers JSON with **HTTP 415**, Elastic documents `proto` as its only encoding,
+and Axiom refuses JSON on `/v1/metrics`. One Collector hop makes all of that
+somebody else's problem and lets a sender speak one encoding.
+
+Splunk's own documentation agrees, for its own reasons: *send to the Collector
+you deployed* rather than to the backend, for one auth configuration point,
+batching, and infrastructure metadata.
+
+### 10.2 What a Splunk Observability team does next
+
+Two facts decide the shape, and the second surprises people.
+
+**These lines are logs, not spans.** They describe phase transitions with a
+duration, which looks span-like, but nothing converts a file of events into
+spans: the Collector's `filelog` receiver produces log records, the `transform`
+processor cannot cross signal types, and the contrib request to add a
+log-to-span path has been open since 2021 without an implementation.
+
+**Splunk Observability Cloud does not store logs.** Logs live in Splunk
+Platform — Enterprise or Cloud — and Log Observer Connect surfaces them inside
+the Observability Cloud UI. So the route is:
+
+```
+work-loop → .loop-run/events.jsonl → sender (OTLP/HTTP JSON)
+          → OTel Collector (otlp receiver)
+          → splunk_hec exporter → Splunk Platform HEC
+          → Log Observer Connect → visible beside APM
+```
+
+Concretely, the team needs: a Collector reachable from the developer machine or
+CI runner; a Splunk Platform HEC token and endpoint on the `splunk_hec`
+exporter; and Log Observer Connect configured if these should appear next to
+APM traces. An Observability Cloud ingest token is **not** what this needs —
+that is the trace/metric path.
+
+Two Splunk-specific requirements:
+
+- **Set `service.name`.** Splunk's GDI specification makes it a MUST; without it
+  a service reads as `unknown_service`.
+- **Do not index `run_id`.** Splunk APM runs a cardinality contribution analysis
+  against your entitlement before permitting a tag to be indexed, and its own
+  guidance is that high-cardinality ID tags belong in full-fidelity search
+  instead. Unindexed attributes stay searchable in raw records; they just do not
+  drive built-in breakdowns. This is § 7's rule, confirmed against the one
+  vendor that enforces it at a documented gate.
+
+### 10.3 The encoding boundary, measured
+
+Run against `otel/opentelemetry-collector-contrib` with an `otlp` receiver and a
+`debug` exporter, posting from `urllib.request`. This corrects a widely repeated
+claim that a malformed OTLP payload is silently discarded.
+
+| Payload variant | HTTP | Record ingested |
+| --- | --- | --- |
+| Conformant | 200 | yes |
+| `timeUnixNano` as a JSON number, not a quoted string | 200 | yes |
+| `severity_number` — snake_case instead of lowerCamelCase | 200 | yes |
+| Attribute `intValue` as a JSON number | 200 | yes |
+| `traceId` base64-encoded instead of hex | **400** | no |
+| `attributes` as a flat object instead of the `AnyValue` list | **400** | no |
+
+**Structural errors fail loudly.** The two rejections returned HTTP 400 with a
+parser message naming the offending byte. The receiver is tolerant exactly where
+the specification says it must be — 64-bit integers are accepted as string or
+number, and proto3 JSON accepts both the original field name and its
+lowerCamelCase form.
+
+So only two emission rules are load-bearing for acceptance: identifier fields
+are **hex**, not base64, and attributes use the `AnyValue` wrapper list. The
+remaining conventions are worth following for portability across receivers, but
+a violation is not what breaks ingestion here.
+
+What a 200 still cannot tell you is whether the data is *right*. A payload with
+correct structure and wrong attribute names is accepted and stored — the failure
+mode is wrong data, not absent data. That is what the round trip checks and a
+response assertion cannot.
+
+### 10.4 Two standing constraints on any sender
+
+**Off is off.** Sending is a second, separate yes (§ 5.2) — but "off unless an
+endpoint is configured" is a behaviour guarantee, not consent. A capability the
+adopter is never told about obtains no informed agreement either way. Any sender
+ships with its documentation stating that the capability exists, what it
+carries, and where it goes, while it sends nothing.
+
+**The wire format is stable, not frozen.** OTLP/JSON has been stable since
+`opentelemetry-proto` 0.20.0 (June 2023), and has still taken format-affecting
+changes since — v1.10.0 carried breaking JSON changes. Logs are the calmest
+corner of it: the known breaks landed in metrics and in the experimental
+profiles signal. This is why the event line carries a version.
+
+## 11. Last verified against commit
+
+`ec6b94f91`. §§ 5.2, 5.3, 7 and 10 re-verified 2026-09-12 against primary
+vendor and specification sources plus the live measurement in § 10.3. Earlier
+sections carry forward from `bd8b69443`.

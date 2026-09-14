@@ -1,0 +1,5 @@
+# The profile guide is the document a user needs in order to use this tool at
+# all. The README links to it on GitHub for PyPI readers; including it here
+# means an sdist is also complete on its own, offline.
+include docs/profiles.md
+include CHANGELOG.md

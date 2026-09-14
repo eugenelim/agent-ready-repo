@@ -314,12 +314,34 @@ print-sast-config:
 # Retire once semgrep's taint engine stops timing out on these pairs, or once
 # either file is split below the per-rule budget. Still timing out as of 1.175.0,
 # nine releases after the behaviour was first seen, so this is not a transient.
+# `httpsconnection-detected` is an AUDIT rule, not a vulnerability detector: it
+# fires on any use of http.client.HTTPSConnection and says "the API has changed
+# across minor releases, make sure you use it securely". Its stated concern is
+# Python BEFORE 3.4.3, which did not verify certificates by default.
+# packages/jsonl-otlp-exporter requires >=3.11 and passes an explicit verifying
+# context, and `test_the_real_connection_factory_verifies_tls_and_applies_the_timeout`
+# asserts the connection uses that exact context OBJECT -- identity, not
+# properties, because asserting verify_mode alone cannot fail (a connection built
+# with no context supplied verifies too). Mutation-checked: removing `context=`
+# reds that test.
+#
+# Excluded rule-wide rather than by path. The alternative considered and rejected
+# was `--exclude packages/jsonl-otlp-exporter`, which would drop EVERY rule on
+# the one package that reads untrusted files, parses untrusted TOML and opens
+# sockets -- much wider than dropping one informational rule everywhere. Semgrep
+# cannot scope --exclude-rule to a path from the CLI, and these are registry
+# rules, so their own `paths:` cannot be edited.
+#
+# Retirement trigger: if a second consumer adopts HTTPSConnection without an
+# explicit verifying context, this exclusion is hiding a real finding and must be
+# replaced by a wrapper the gate can see.
 SEMGREP_EXCLUDE := \
 	--exclude "tools/semgrep/fixtures/*/positive.py" \
 	--exclude-rule python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 \
 	--exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
 	--exclude-rule python.lang.security.use-defused-xml.use-defused-xml \
 	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions \
+	--exclude-rule python.lang.security.audit.httpsconnection-detected.httpsconnection-detected \
 	--exclude "tools/test_workspace_status.py" \
 	--exclude "tools/test_workspace_status_cli.py"
 
@@ -576,6 +598,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 $(PYTHON) -m pytest packs/product-documentation/tests/ -q
+$(PYTHON) -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q
 $(PYTHON) -m pytest \
 	packs/architect/tests/pack/ \
 	packs/architect/tests/skills/architect-assess/ \

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Order confirmed</title>
+<meta name="inspection-fixture" content="defect">
+<meta name="inspection-fixture-class" content="clipped-at-rest-top">
+<meta name="inspection-fixture-defect" content="The confirmation heading and order number are cut off above the top of the content area when the page is at rest, so a reader who does not scroll up never sees them.">
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #111; }
+  /* The defect: the wrapper is pulled up, so its first rows sit above the
+     content area at scroll position 0. */
+  .wrap { margin-top: -120px; padding: 0 24px; }
+  h1 { font-size: 30px; }
+  .num { font-family: ui-monospace, monospace; font-size: 20px; }
+</style>
+<div class="wrap">
+  <h1>Your order is confirmed</h1>
+  <p class="num">Order 48-20913</p>
+  <p>A receipt is on its way to the address on your account.</p>
+  <p>Delivery is estimated for Thursday.</p>
+  <p>You can change the delivery address until the order is packed.</p>
+</div>
