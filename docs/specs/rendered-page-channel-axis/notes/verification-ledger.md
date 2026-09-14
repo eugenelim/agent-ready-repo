@@ -266,3 +266,39 @@ All 18 construction tests the criteria name were collected by name and run: ever
 one resolves. Four criteria had previously been ticked against test names that
 did not exist, which is what reopening AC-0008, AC-0011, AC-0012 and AC-0013 was
 for.
+
+
+## The gate was narrower than the change, and caught it by accident
+
+**A defect shipped by T9 survived four review rounds and every gate run in this
+delivery.** `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`
+requires the `core` heading to sit **directly** beneath `[Unreleased]` —
+adjacency, not "a core heading somewhere above". T9 put the
+`frontend-engineering 0.2.4` entry at the top and displaced it.
+
+The gate used throughout was `packs/frontend-engineering/tests/` plus the one
+roster file this delivery wrote. That is a defensible gate for a pack change and
+an indefensible one for a change that edits `docs/product/changelog.md`,
+`pack.toml`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` —
+four files outside the pack, none of them read by any test in the chosen gate.
+
+It surfaced because a path was mistyped and one run widened to the whole roster
+suite. A narrower command — the one that looked correct — would have shipped it.
+**The lesson is not "run more tests". It is that a gate has to be chosen from the
+files the change touches, not from the subsystem the change is about.** Four of
+this delivery's nine tasks wrote outside `packs/frontend-engineering/`, and the
+gate never moved to follow them.
+
+Two compounding errors, both the same shape as ones already recorded above:
+
+- The commit that carried the failing state (`61e65598d`) asserts "295 passed,
+  ruff clean" in its message. The shell chain gated `git commit` on `git add`
+  succeeding, not on pytest passing — the same construction as the earlier run
+  that reported `ruff exit=0` when the 0 belonged to `tail`. A git note carries
+  the correction; the commit is not rewritten because the branch builds on it.
+- The failing run was read as "the commit landed" rather than "the gate failed".
+  The exit code consulted was the chain's, not the suite's.
+
+Fixed in `1ce654b74`. Full roster sweep after the fix: **1500 passed, 6 skipped**.
+AC-0015 still holds — it requires the entry to be topmost *for this pack*, and no
+other `frontend-engineering` heading precedes it.
