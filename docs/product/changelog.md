@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [core][2.25.27] — 2026-09-13
 
 ### Highlights
+
 - **When a review finding says a claim promises more than its test checks, you
   now have two answers instead of one.** Previously the only available answer was
   to shrink the claim, so the easy move was to weaken what you promised until the
@@ -89,12 +90,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This rule previously existed only if your own process happened to supply it.
 
 ### Added
+
 - `work-loop`: `references/mutation-proof.md` states what a mutation proof
   records, why reverting to a do-nothing stub proves nothing about a
   sub-property, and that restoration is by editing. One conditional-routing row
   loads it when a repair or claimed fix needs proof.
 
 ### Changed
+
 - `work-loop`: `narrow-the-claim` carries both directions of a claim/check
   mismatch; the Fix axis requires a repair's check to assert the repaired
   property rather than a consequence of it; a review round names a literal sweep
