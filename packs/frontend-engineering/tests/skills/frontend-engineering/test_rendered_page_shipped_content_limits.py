@@ -386,7 +386,15 @@ CHANNEL_NAME_SHAPES = {
         drop=frozenset({"Channel"}),
     ),
     "prose-declaration": ChannelNameShape(
-        outer=re.compile(r"(?P<body>(?:^|\n\n)[^\n]*[Cc]hannel.*?)(?:\n\n|\Z)", re.S),
+        # The channel word may sit anywhere in the paragraph, not only on its
+        # first line. The first version required the first line, so an ordinary
+        # reflow that pushed it down one line made the shape find nothing in a
+        # file -- and two device-named channels shipped green while the live-site
+        # anchor stayed correctly green, because `SKILL.md`'s own paragraph still
+        # matched. Aliveness on one file is not reach across thirty-two.
+        outer=re.compile(
+            r"(?:^|\n\n)(?P<body>(?:(?!\n\n)[\s\S])*?[Cc]hannel[\s\S]*?)(?=\n\n|\Z)"
+        ),
         inner=re.compile(r"`([a-z][\w-]*)`\s+at\s+[≤≥<>=]"),
         live_site="skills/frontend-engineering/SKILL.md",
         planted=(

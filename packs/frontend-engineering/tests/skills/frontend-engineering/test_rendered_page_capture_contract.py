@@ -537,7 +537,7 @@ def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None
 def test_every_required_rule_row_raises_when_deleted(
     rules_markdown: str, row_key: str
 ) -> None:
-    """Derived from the rows the module declares the walk reads.
+    """Derived from the rows `evaluate_capture_set` declares it requires present.
 
     The first version hand-listed two keys while claiming to cover every row, and
     picked the two that already had coverage: deleting `channel-derivation`,
