@@ -124,7 +124,13 @@ move together or the control reds.
 ### Behavior & rules
 
 `required_channels(markdown, declared_breakpoints, minimum=None)` derives bands
-as today, then applies the filter. A band is dropped when its upper bound admits
+as today, then applies the filter, and `evaluate_capture_set` grows the same
+parameter and passes it through — without that pass-through the filter is
+unreachable from the verdict an adopter's run returns, which is the whole
+outcome. A clamped band is renamed under the shipped convention, so a band
+clamped to `>=1280 <1536` is `1280-to-1536` rather than `below-1536`; the walk
+names the band in its incomplete report, so a stale name misdescribes what is
+missing. Fallback bands keep the names their table rows give them. A band is dropped when its upper bound admits
 no width at or above the minimum — `u <= minimum` for `<u`, `u < minimum` for
 `<=u`, and never for an empty upper-bound cell, so the operator is load-bearing,
 `<=480` survives a 480 minimum, and the unbounded top band survives every
@@ -184,8 +190,8 @@ part of this task's edit — left alone it ships a shorter list than the code
 implements.
 
 **Tests:** TDD in `test_rendered_page_capture_contract.py`, covering AC-0001,
-AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015, AC-0016 and
-AC-0017. The
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0015, AC-0016, AC-0017
+and AC-0019. The
 parametrized `test_every_required_rule_row_raises_when_deleted` already derives
 its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive in it without a
 second list, which discharges AC-0005 and nothing more.
@@ -209,10 +215,13 @@ both keys; add the two recording readers beside `channel_basis`, gated on
 `channel-minimum-recorded` through `_rule_in_force`, without widening the basis
 vocabulary.
 
-**Done when:** a repository-wide search for `required_channels` returns no caller
-still passing two positional arguments where three are meaningful, and the
-control `test_the_required_rule_rows_match_what_the_tables_state` is green with
-eight keys.
+**Done when:** `evaluate_capture_set` accepts the minimum, and the four-capture
+single-channel set at 1280 returns `("complete", [])` under a 1280 minimum while
+the same set with no minimum stays `incomplete`; and
+`test_the_required_rule_rows_match_what_the_tables_state` is green with eight
+keys. The walk, not the helper, is the observable: every derivation criterion
+asserts `required_channels` in isolation, so an implementation can satisfy all of
+them while the walk still derives its bands without the minimum.
 
 ### T3: `SKILL.md` and the journey state the input
 
@@ -221,7 +230,11 @@ eight keys.
 
 **Tests:** TDD for AC-0008, AC-0018 and AC-0009. AC-0018 asserts the § 5a
 manifest row beside the shipped `test_manifest_viewports_field_records_channels`,
-which passes after this delivery without mentioning the minimum. AC-0009 goes in
+which passes after this delivery without mentioning the minimum. The row is also
+pinned by `test_the_manifest_example_is_a_band_set_the_derivation_produces`,
+which harvests every backticked predicate in it and compares the set to the
+derivation's output — so the new values go in as bare numbers, and that control
+is re-run as part of this task rather than discovered later. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -331,6 +344,22 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 4. Added AC-0019: the completeness walk takes the
+  minimum and honours it. Every derivation criterion asserted `required_channels`
+  in isolation, so all 18 could pass while `evaluate_capture_set` — the function
+  that returns complete or incomplete — derived its bands without the minimum and
+  still reported a supported surface incomplete, which is the outcome the
+  Objective promises. Paired fixtures with and without the minimum, so the
+  criterion measures the minimum's effect rather than the walk's baseline.
+  Widened AC-0017's sweep to a cross product, because on any input its siblings
+  pin by exact equality disjointness is entailed and the criterion could not
+  fail — a repair from round 3 that had instantiated the defect it closed.
+  Corrected AC-0006's ground: it cited the per-capture record reader, which
+  cannot read a run-level field, and an implementer making that ground true would
+  have added the minimum to `## Capture record` and made every existing capture
+  unusable; *Never do* now forbids it. Also pinned the clamped band's name, which
+  reaches the walk's incomplete report, and the bare-number form the § 5a row
+  needs so the shipped worked-example control stays green.
 - 2026-09-14 — Shaping round 3. Derivation fixtures now compare full `(lower,
   upper)` band pairs instead of channel counts and capture widths: because the
   capture-width rule reads the lower bound first, a clamp that widened the
