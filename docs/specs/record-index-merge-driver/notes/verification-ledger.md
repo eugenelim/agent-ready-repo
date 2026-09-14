@@ -56,3 +56,30 @@ packs/governance-extras/seeds/docs/rfc/README.md -> unspecified
 
 The seed copies are untouched. Both patterns carry a directory separator, so
 they anchor at the repository root rather than matching at every depth.
+
+## T4 — the differential can fail, both ways (2026-09-13)
+
+`python3 -m pytest tools/test_merge_driver_behaviour.py -k record_index`:
+
+| Mutation | Result |
+| --- | --- |
+| fixture calls `_configure` (driver registered before the halting run) | 2 errors — the fixture's unset guard fires: `assert 0 != 0 ... stdout='true\n'` |
+| both `.gitattributes` lines deleted | 2 failed — the merge no longer halts, and no row is discarded |
+| none | 2 passed |
+
+The first mutation is the inherited-config case: a `--global merge.regen.driver`
+would otherwise let the halting half pass without proving anything. The second is
+the case four earlier formulations of this criterion could not detect.
+
+## T4 — `AGENTS.local.md` budget and command runnability (2026-09-13)
+
+58 lines before, 59 after, against `MAX_ROOT_LOCAL_LINES = 60`;
+`python3 tools/lint-agents-md.py` exits 0. Both commands extracted from the file
+and executed from the repository root return exit 0 and leave
+`docs/{adr,rfc}/README.md` unmodified — the generators are idempotent.
+
+One correction worth recording: the first runnability check reported both
+commands as failing. The commands were fine; the harness was not. zsh does not
+word-split an unquoted `$c`, so the loop ran the whole string as one command
+name and got exit 127. Re-run with `eval "$c"`, both return 0. A verification
+harness can produce a false negative as easily as a false positive.

@@ -30,7 +30,7 @@ For bare `python -m agentbundle`, `pytest packages/credbroker`, or `pytest tests
 `PYTHONPATH=packages/agentbundle:packages/credbroker` instead of installing.
 A global install can silently shadow the tree, so a domain-looking error may be a stale import.
 Once per clone (git config is shared across linked worktrees, not across clones),
-run `make bootstrap-git`; without it merges of projections conflict normally.
+run `make bootstrap-git`; without it merges of generated files conflict normally.
 
 ## Sources and projections
 
@@ -50,9 +50,10 @@ Do not put `# AC10:`, `# AC36:`, or similar spec-AC citation comments in `.apm/*
 
 Auto-merge is disabled and branches must be current with `main`: update a behind branch before merging, then return to merge it manually. In a busy period, update it again if `main` moves.
 
-Self-host projections carry `merge=regen`, so an update settles them and leaves
-them stale. `make build-self` writes; stage it or the amend drops what it wrote:
+Generated files carry `merge=regen`, so an update settles them and leaves them
+stale. Regenerate and stage, or the amend drops what was written:
 `git merge --no-ff origin/main && make build-self && git add -A && git commit
---amend --no-edit`. Never pass `FORCE=1` from automation. Pack sources still
-conflict, as do a few projections that carry no driver for differing reasons;
-`tools/test_gitattributes_merge_driver.py` owns which paths carry it and why.
+--amend --no-edit`. Never pass `FORCE=1` from automation. If the merge touched a
+record index, regenerate that too:
+`python3 .claude/skills/new-adr/scripts/index-records.py docs/adr`
+`python3 .claude/skills/new-rfc/scripts/index-records.py docs/rfc`

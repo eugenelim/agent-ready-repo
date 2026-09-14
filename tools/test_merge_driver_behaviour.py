@@ -1,6 +1,14 @@
-"""AC2-AC4: what the `regen` driver actually does to a merge and a rebase.
+"""What the `regen` driver actually does to a merge and a rebase.
 
-Spec: docs/specs/self-host-projection-merge-driver/spec.md
+Two specs own criteria here, and both number theirs AC4 and AC5, so every test
+below names its owning spec rather than a bare `ACn`:
+
+- docs/specs/self-host-projection-merge-driver/spec.md -- AC2-AC5, the
+  self-host projections: non-halting merge and rebase, pack sources still
+  conflicting, `make build-self` convergence, and `bootstrap-git` idempotence.
+- docs/specs/record-index-merge-driver/spec.md -- AC4-AC5, the record indexes:
+  a contested index merge is driver-resolved rather than settled textually, and
+  `index-records.py` recovers the row the resolution discarded.
 
 These properties live in git's merge machinery, not in the attributes file, so
 every test here drives a real `git merge` or `git rebase`. Asserting on
@@ -139,16 +147,30 @@ def _write(root: Path, relative: Path, text: str) -> None:
     target.write_text(text, encoding="utf-8")
 
 
-def _configure(root: Path) -> None:
-    """Give the repo its own identity and driver registration.
+def _configure_identity(root: Path) -> None:
+    """Give the repo its own commit identity, and nothing else.
 
     `git merge` and `git rebase` create commits too, and receive no `-c` flags.
     A runner with no global identity aborts them with `unable to auto-detect
     email address`, so identity set per-commit would pass here and fail in CI.
+
+    Separate from driver registration because the record-index case needs a
+    clone that has an identity and has *not* registered the driver: its first
+    merge must halt.
     """
     _git("config", "user.email", "fixture@example.invalid", cwd=root)
     _git("config", "user.name", "merge driver fixture", cwd=root)
+
+
+def _register_driver(root: Path) -> None:
+    """Register the driver the Makefile recipe registers."""
     _git("config", f"merge.{DRIVER_NAME}.driver", DRIVER_COMMAND, cwd=root)
+
+
+def _configure(root: Path) -> None:
+    """Identity plus driver registration, the state most tests here need."""
+    _configure_identity(root)
+    _register_driver(root)
 
 
 def _commit(root: Path, message: str, *, allow_empty: bool = False) -> None:
@@ -414,3 +436,128 @@ def test_bootstrap_git_registers_the_driver_idempotently(tmp_path: Path) -> None
         f".gitattributes declares no merge={DRIVER_NAME}; the recipe registers a "
         "driver nothing uses"
     )
+
+
+# --- docs/specs/record-index-merge-driver AC4-AC5 -----------------------------
+
+INDEX_SCRIPT = REPO_ROOT / ".claude/skills/new-adr/scripts/index-records.py"
+RECORD_DIR = Path("docs/adr")
+RECORD_INDEX = RECORD_DIR / "README.md"
+
+
+def _record(ordinal: str, day: str) -> str:
+    return (
+        f"# ADR-{ordinal}: Record {ordinal}\n\n"
+        "- **Status:** Accepted\n"
+        f"- **Date:** 2026-01-{day}\n\n"
+        "Body.\n"
+    )
+
+
+def _regenerate_index(root: Path) -> subprocess.CompletedProcess:
+    """Run the script `check-adr-index` runs, against the scratch tree."""
+    return subprocess.run(
+        [sys.executable, str(INDEX_SCRIPT), str(root / RECORD_DIR)],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+
+
+def _index_rows(root: Path) -> set[str]:
+    """The record ordinals the index table carries."""
+    text = (root / RECORD_INDEX).read_text(encoding="utf-8")
+    return set(re.findall(r"^\| (\d{4}) \|", text, flags=re.MULTILINE))
+
+
+@pytest.fixture
+def record_index_repo(tmp_path: Path) -> Path:
+    """A scratch repo with a real index, an identity, and NO driver registered.
+
+    Withholding the driver is the point: AC4's first half needs a merge that
+    halts, and `_configure` would have registered it. The repository's real
+    `.gitattributes` is copied in, so the declared block is the shipped one.
+    """
+    root = tmp_path / "records"
+    root.mkdir()
+    _git("init", "-q", "-b", "main", ".", cwd=root)
+    _configure_identity(root)
+    shutil.copy2(REPO_ROOT / ".gitattributes", root / ".gitattributes")
+    _write(root, RECORD_DIR / "0001-first.md", _record("0001", "01"))
+    assert _regenerate_index(root).returncode == 0
+    _commit(root, "base")
+
+    unset = _git("config", "--get", f"merge.{DRIVER_NAME}.driver",
+                 cwd=root, check=False)
+    assert unset.returncode != 0, (
+        "merge.regen.driver resolves in the fixture before the test registers "
+        f"it ({unset.stdout.strip()!r}); an inherited --global value would let "
+        "the halting half pass without proving anything"
+    )
+    return root
+
+
+def _diverge(root: Path) -> None:
+    """Two branches, each adding a distinct record and regenerating the index."""
+    for branch, ordinal, day in (("side", "0002", "02"), ("main", "0003", "03")):
+        _git("checkout", "-q", "main", cwd=root)
+        if branch != "main":
+            _git("checkout", "-q", "-b", branch, cwd=root)
+        _write(root, RECORD_DIR / f"{ordinal}-r.md", _record(ordinal, day))
+        assert _regenerate_index(root).returncode == 0
+        _commit(root, f"add {ordinal}")
+
+
+def test_record_index_merge_is_driver_resolved_not_textual(record_index_repo: Path) -> None:
+    """docs/specs/record-index-merge-driver AC4.
+
+    Differential, because the driver's effect is an absence. A merge that does
+    not halt is indistinguishable from one that never needed resolving -- a
+    fast-forward, or a divergence git settles textually -- and both satisfy
+    "completes without halting" with the driver deleted. Running the same
+    starting state with the driver unset is what makes this false when the
+    driver is absent or irrelevant.
+    """
+    root = record_index_repo
+    _diverge(root)
+
+    halted = _git("merge", "side", cwd=root, check=False)
+    assert halted.returncode != 0, (
+        "the merge completed with no driver registered, so git settled the "
+        "index textually and the driver is not what resolves it:\n"
+        + halted.stdout + halted.stderr
+    )
+    conflicted = _git("diff", "--name-only", "--diff-filter=U", cwd=root).stdout.split()
+    assert RECORD_INDEX.as_posix() in conflicted, conflicted
+
+    _git("merge", "--abort", cwd=root)
+    _register_driver(root)
+
+    resolved = _git("merge", "side", cwd=root, check=False)
+    assert resolved.returncode == 0, resolved.stdout + resolved.stderr
+    _assert_no_markers(root, RECORD_INDEX)
+    _assert_real_merge(root)
+
+
+def test_record_index_regeneration_recovers_the_discarded_row(
+    record_index_repo: Path,
+) -> None:
+    """docs/specs/record-index-merge-driver AC5.
+
+    The falsifier is the row belonging to the side the driver discarded. AC4's
+    halting half is what guarantees it exists: a merge that halts without the
+    driver is one whose rows genuinely collide, so the resolution drops one.
+    Re-running `--check` against the file the generator just wrote would be
+    self-comparing and would hold for any generator at all.
+    """
+    root = record_index_repo
+    _diverge(root)
+    _register_driver(root)
+    assert _git("merge", "side", cwd=root, check=False).returncode == 0
+
+    after_merge = _index_rows(root)
+    assert after_merge != {"0001", "0002", "0003"}, (
+        "the merged table already carries every row, so the driver discarded "
+        "nothing and this test would pass without regeneration"
+    )
+
+    assert _regenerate_index(root).returncode == 0
+    assert _index_rows(root) == {"0001", "0002", "0003"}
