@@ -409,3 +409,39 @@ was single-copy in the spec's `Follow-ons` bullet — grepped across all three
 artifacts and present in exactly one — and that bullet was then shortened to a
 routing pointer on both reviewers' advice, so without this section the
 observation would have been deleted rather than relocated.
+
+
+## Merge-time: a corpus shard failed on a test outside this diff
+
+**Pre-existing, registered, not repaired here.** The `test-corpus.yml` dispatch on
+the final base failed one of four shards:
+
+```
+FAILED tools/test_frontend_runtime.py::test_concurrent_acquirers_publish_one_complete_lease_per_port
+  threading.BrokenBarrierError
+1 failed, 32 passed
+```
+
+Four facts place it outside this delivery, gathered before drawing the conclusion:
+
+- The file is not in this delivery's diff, and its last commit (`#1084`) predates
+  this branch.
+- It passes locally 3 runs of 3.
+- The **same shard passed** on the previous corpus dispatch of effectively the
+  same tree (run 34845448931, all four shards green). The only difference between
+  the two runs is 10 commits of unrelated `jsonl-otlp-exporter` work that share no
+  file with this change.
+- The mechanism is a wall-clock bound, not a property of the lease under test:
+  the case coordinates two threads through `threading.Barrier(2)` and calls
+  `barrier.wait(timeout=2)`. `#1294` has since sharded the corpus across four
+  parallel runners, which raises per-runner contention — so a 2-second barrier is
+  newly more likely to expire for reasons the assertion is not about.
+
+Registered in `workspace.toml` `[backlog].open` against
+`tools/test_frontend_runtime.py` rather than re-run until green. A rerun that
+passes does not distinguish a flake from a defect, and the evidence for "flake"
+here is the four facts above, not a second attempt.
+
+Recorded because the failure reads as a lease-correctness failure, which is the
+expensive part: whoever meets it next should know the bound is load-sensitive
+before they go looking at the lease.
