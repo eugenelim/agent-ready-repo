@@ -290,3 +290,28 @@ discarded its output, so a CI red printed `assert 1 == 0` with no git or
 `index-records.py` message — and the scratch tree is gone by the time anyone
 reads the log. Replaced with an `_assert_regenerated` helper and explicit
 messages that carry `stdout + stderr`, matching what the AC4 case already did.
+
+## The sixth discarded subprocess result (2026-09-13)
+
+The previous round said five assertions dropped their subprocess output and I
+fixed five. A sixth was inside `_synthetic_record_dir`, which called
+`_index_records(directory)` and discarded the `CompletedProcess` entirely. I had
+repaired the sites the reviewer numbered and not the one the helper hid — the
+same repair-the-instance-not-the-class shape that cost two spec rounds.
+
+A failed generation there leaves no README, so it surfaced downstream either as
+AC3's clean case reporting a non-zero `--check` — reading as a rail failure when
+the rail is fine — or as `FileNotFoundError`, in both cases with the generator's
+diagnosis unprinted and the scratch tree already deleted.
+
+The fixture now fails in its own right. Proved by mutating the synthetic
+record's heading to one `infer_type` cannot resolve:
+
+```
+E  AssertionError: index-records.py failed building the fixture (exit 1):
+tools/test_gitattributes_merge_driver.py:410: AssertionError
+FAILED ...::test_index_check_is_clean_when_the_readme_matches
+```
+
+Restored: 9 passed. The failure now names the generator and its exit code at the
+point of failure rather than three assertions later.

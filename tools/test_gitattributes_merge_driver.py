@@ -402,7 +402,15 @@ def _synthetic_record_dir(tmp_path: Path) -> Path:
         "Body.\n",
         encoding="utf-8",
     )
-    _index_records(directory)
+    written = _index_records(directory)
+    # Fail here, not three assertions later. A failed generation leaves no
+    # README, which surfaces as AC3's clean case reporting a non-zero --check --
+    # reading as a rail failure -- or as FileNotFoundError, in both cases with
+    # the generator's own diagnosis unprinted and the scratch tree gone.
+    assert written.returncode == 0, (
+        f"index-records.py failed building the fixture (exit "
+        f"{written.returncode}):\n" + written.stdout + written.stderr
+    )
     return directory
 
 
@@ -423,7 +431,7 @@ def test_index_check_is_clean_when_the_readme_matches(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_both_projected_index_generators_are_the_same_program(tmp_path: Path) -> None:
+def test_both_projected_index_generators_are_the_same_program() -> None:
     """AC3 for the `docs/rfc` half, which no fixture exercises directly.
 
     AC3's clean/red pair runs the `new-adr` copy. The `docs/rfc` rail inherits
