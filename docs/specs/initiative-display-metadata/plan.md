@@ -33,11 +33,9 @@ invert. The adapter projections are regenerated rather than edited.
   acceptance criterion.
 - `tools/test_local_ci_shared_test_deduplication.py` pins the method count of
   `tools/test_workspace_status_cli.py` as a bare `163` in two assertions, at
-  lines 1169 and 1390. Conversion holds that count for the three converted
-  tests, but T1 and T2 each add one method, so both literals move to the
-  recomputed value. That file's own convention requires a disposition note
-  beside a re-pin rather than a bare number bump: name the additions, and state
-  that nothing was removed or renamed.
+  lines 1169 and 1390. T1 and T2 each add one method, so both literals move.
+  That file's convention requires a dispositioned re-pin rather than a bare
+  bump; T2 owns the exact note.
 
 ## Construction tests
 
@@ -48,7 +46,8 @@ subprocess through its `_run_cli` helper.
 - AC-0001 is carried by the two converted tests. Their fixture values are
   copied from this repository's own active initiatives, so the charset under
   test is the corpus rather than invented input.
-- AC-0002 is a new case; no existing test supplies a non-string.
+- The retired `AC-0002`'s design decision is pinned by one new regression case;
+  no existing test supplies a non-string.
 - AC-0003 is a content assertion over the shipped `SKILL.md`, placed with the
   existing `SkillWiringTests` class, which already reads that file.
 - Determinism is not re-verified here: `test_cli_deterministic` in the same
@@ -77,11 +76,22 @@ fall back to, and the only candidate is the sentinel the spec forbids
 reintroducing.
 
 `str()` reports what the projection received rather than reconstructing the
-source syntax, which is why AC-0002 fixes `true` as `"True"` — Python's
-capitalised form, not TOML's. A non-string in a display field is an authoring
-error, and showing the reader what arrived is more useful than making it look
-like valid TOML. The alternative, a TOML-faithful renderer, is a new mechanism
-for a case the corpus has never produced.
+source syntax. A non-string in a display field is an authoring error, and
+showing the reader what arrived is more useful than making it look like valid
+TOML. The alternative, a TOML-faithful renderer, is a new mechanism for a case
+the corpus has never produced.
+
+**Non-string coercion is a design decision, not a criterion** (`AC-0002`,
+retired). Measured through the real script: `123` → `"123"`, `4.5` → `"4.5"`,
+`true` → `"True"`, `[1, 2]` → `"[1, 2]"`, `{a = 1}` → `"{'a': 1}"`, and
+`1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`. The boolean and
+date-time texts differ from what an author would have written, which is the
+part worth recording. Its pin is the regression case in T1: the decision is
+protected by a test that reds if coercion is removed, not by a checkbox a
+completion gate reads. Three date-time forms beyond the offset one are
+deliberately unmeasured — no corpus value has any of them, and enumerating
+them was the coverage gap that kept this obligation from converging as a
+criterion.
 
 ### Failure, edge cases & resilience
 
@@ -117,13 +127,14 @@ is recorded as a known shape, not handled.
   `test_initiative_display_prose_projects_verbatim`, keeping its unusual input
   and asserting the value arrives unchanged. This is the case that records the
   trust-model decision in the suite.
-- New case for AC-0002, table-driven over the closed set of non-string TOML
-  types — integer, float, boolean, array, inline table, offset date-time —
-  asserting `isinstance(value, str)` at each. Two rows additionally assert their
-  literal text, because it differs from what the author wrote and a later editor
-  would plausibly "correct" it toward TOML syntax: `true` → `"True"` and
-  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`. Both were measured
-  through the real script, not derived.
+- One regression case pinning the retired `AC-0002`'s design decision, over
+  both `name` and `milestone`: `123` → `"123"`, `true` → `"True"`, and
+  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`, asserting the
+  projected text by equality. Equality, not `isinstance(value, str)` — the
+  sentinel this change removes is itself a string, so a type-membership
+  assertion passes against the pre-change emitter and pins nothing. Verified:
+  run against the unchanged code, a non-string fixture projects
+  `'workspace.toml'` for both fields and `isinstance` holds.
 - Update the third pinning site inside `test_cli_rich_fixture_shapes`, whose
   fixture already declares `milestone = "M1"`, to expect the authored value.
 - Ten assertions invert across the three tests, not three: six equality
@@ -168,12 +179,15 @@ is recorded as a known shape, not handled.
   and `queue_empty`.
 
 - Re-pin both `163` literals in
-  `tools/test_local_ci_shared_test_deduplication.py` once T1's and T2's
-  additions both exist. That file's convention (lines 55-66) requires a
-  dispositioned re-pin, not a bare bump: name the additions, and state that
-  nothing was removed or renamed. The note also covers the preceding
-  `162 -> 163` re-pin, which landed without one, so the contract regains a
-  continuous account rather than a number with a gap behind it.
+  `tools/test_local_ci_shared_test_deduplication.py` to `165` once T1's and
+  T2's additions both exist. The note dispositions the actual delta, which
+  includes a rename branch the exemplar at that file's lines 89-92 does not
+  have: two renames, count-neutral, same bodies with their display assertions
+  inverted; two additions, T1's non-string case and T2's contract assertion;
+  no removals. The renames are why the pin moves by exactly the number of
+  additions. The note also covers the preceding `162 -> 163` re-pin, which
+  landed bare, so the contract regains a continuous account rather than a
+  number with a gap behind it.
 
 **Done when:** the AC-0003 assertion is green, `catalogue verify` reports `ok`,
 and `tools/test_local_ci_shared_test_deduplication.py` passes.
@@ -191,10 +205,9 @@ Testing Strategy.
 - Run the script against this repository's own `workspace.toml` and read the
   four active initiatives' projected values.
 
-**Done when:** every active initiative in this repository's `workspace.toml`
-appears in `initiatives[]` carrying the `name` and `milestone` that file
-assigns it, with the observed values recorded in the verification ledger as
-evidence rather than as the condition.
+**Done when:** AC-0001 is observed against this repository's own
+`workspace.toml` rather than a fixture, with the observed values recorded in
+the verification ledger as evidence rather than as the condition.
 
 ### T4: ship the pack change
 
@@ -240,6 +253,15 @@ assertion would duplicate an existing gate.
   boolean-rendering decision out of the criterion (F4), dropped the unframed
   107-character length (F5), and made T3's exit condition a property rather
   than four corpus literals (F6).
+- 2026-09-14 — round 3: AC-0002 demoted to a design decision with a regression
+  pin, on owner authority. The deletion pass had reshaped it to assert
+  `isinstance(value, str)`, which passes against the pre-change emitter because
+  the sentinel is itself a string — a criterion that could no longer fail
+  (F12). Its quantifier also covered four TOML date-time forms against one
+  measurement (F14). Three rounds each landed on it; the state it constrains is
+  unreachable through any authoring path this spec permits. Also corrected the
+  re-pin note to disposition T1's rename branch (F13) and bound T3 to AC-0001
+  by name rather than by restatement (F15).
 - 2026-09-14 — deletion pass before approval: cut six Not-applicable durable-
   output rows, the `Behavior & rules` restatement, and three `none` rollout
   lines; reshaped AC-0002 from six enumerated texts to one substitutable

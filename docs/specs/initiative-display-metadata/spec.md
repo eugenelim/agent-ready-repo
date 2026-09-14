@@ -76,9 +76,6 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   runs against this repository's own `workspace.toml` and the observed
   `initiatives[]` output is recorded. A passing unit gate does not establish
   what a session actually prints.
-- **Non-string coercion (AC-0002): TDD.** One input class with one stated output
-  type; the cheapest possible red, and the case has never occurred in the
-  corpus so nothing else would catch a regression.
 - **Contract text matches behavior (AC-0003): goal-based check.** The outcome is
   the presence and absence of specific strings in a shipped file. A content
   assertion answers it exactly; a behavioral test cannot see prose.
@@ -89,11 +86,6 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   projected `initiatives[].name` and `initiatives[].milestone` equal the string
   that initiative's `workspace.toml` section assigns, unchanged — including a
   value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
-- [ ] **AC-0002.** A non-string TOML value assigned to `name` or `milestone`
-  projects as a JSON string, at every non-string TOML type: integer, float,
-  boolean, array, inline table, and each date-time form. Two projected texts
-  differ from what the author wrote and are fixed here: `true` → `"True"`, and
-  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`.
 - [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
   fields as values read from `workspace.toml`, enumerates `name` and `milestone`
   in the `initiatives` summary row alongside `slug`, `status`, `brief_queue` and
@@ -101,6 +93,17 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   `` `<ini-slug>` — `<name>` (milestone: `<milestone>`) ``, and contains no
   paragraph instructing the consumer to render the slug alone or to treat either
   field as redacted.
+
+## Retired identifiers
+
+- `AC-0002`
+
+Non-string coercion was a criterion through three review rounds and is now a
+design decision with a regression case, recorded in `plan.md`. No `name` or
+`milestone` in any initiative section is a non-string, and this spec's
+`Never do` forbids constraining `workspace.toml` upstream, so no authoring path
+reaches the state. It stayed unfalsifiable or under-quantified in every form it
+took, which is the signal that it was never a completion gate's business.
 
 ## Assumptions
 
