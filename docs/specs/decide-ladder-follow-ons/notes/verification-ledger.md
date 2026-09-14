@@ -145,3 +145,50 @@ One case added per changed skill, matching each register's existing schema
 
 No eval was executed and none is claimed to have run; these registers are not
 driven by any suite.
+
+## T5 — source release and roadmap records
+
+**Deviation from the approved contract: version 2.25.25 → 2.25.27.** The spec's
+`Always do` bullet and T5 name 2.25.25. Between plan approval and this task, a
+peer released both 2.25.25 and 2.25.26 to `main`, so the approved number no
+longer existed to take and bumping to it would have collided silently — no gate
+in this repository catches a duplicate pack version. The branch was rebased onto
+`origin/main` (5 commits replayed cleanly) and both carriers moved 2.25.26 →
+**2.25.27**, the next free patch. The contract's substance — bump both carriers
+by one matching patch — is met; only the literal number moved, and it moved
+because of external release traffic rather than any design change. Owner
+confirmed this disposition rather than opening a controlled amendment.
+
+**Second drift, absorbed without deviation: the `/now/` obligation.** The plan
+required regenerating and committing `web/src/lib/now-highlights.generated.json`.
+`main` has since removed that obligation — `docs/product/AGENTS.md` now reads
+"Edit the changelog and stop there", the old
+`test_the_committed_now_projection_matches_the_changelog_source` is gone, and the
+path is listed at `.gitignore:146`. The plan's commands were still run and both
+pass, so no `Tests` entry was skipped. The file is nonetheless still *tracked*
+(`.gitignore` does not apply to an already-tracked path), so the regeneration is
+committed to keep the tree clean for `FORCE=1 make build-self`, which refuses a
+dirty tree. The tracked-but-ignored state is pre-existing and is not repaired
+here.
+
+**T5 `Done when` results.**
+
+- both carriers at **2.25.27**, exactly one occurrence in each, no `2.25.26`
+  remaining in either
+- changelog — a free-standing `## [core][2.25.27] — 2026-09-13` directly beneath
+  `[Unreleased]` and above 2.25.26; no released section edited
+- highlights — four `-` bullets; all four verified present in the regenerated
+  projection payload (paragraph form is dropped silently, so bullet form was
+  checked rather than assumed)
+- `python3 tools/build-site.py --journeys-only` — 153 released highlights in 104
+  release groups
+- `python3 -m pytest tools/test_build_site_routing.py -k now -q` — **1 passed**
+- roadmap register — all four rows now read `→ spec/decide-ladder-follow-ons`;
+  **0** rows remain `Open`
+- R4 evidence corrected in the register: the row claimed one non-state-change
+  occurrence of "mutation"; there are three (`SKILL.md:528`,
+  `references/delivery-contract-lifecycle.md:71`, `scripts/_loop_guards.py:578`).
+  None states an obligation, so the row's substantive claim stands
+- portability, measured against the recorded per-file baseline — work-loop evals
+  **14** (unchanged, pre-existing permitted illustrative examples); the other six
+  touched `packs/` files **0** each. No new match introduced

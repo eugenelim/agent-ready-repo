@@ -60,6 +60,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.25.27] — 2026-09-13
+
+### Highlights
+- **An author whose claim outruns its check now has both answers, not one.**
+  The response ladder offered only "narrow the claim", and it sits on the axis
+  walked first under a stop rule — so the cheapest way to answer a claim/check
+  mismatch was to shrink the claim until a weak check reached it, quietly moving
+  the property out of contract. The ladder now strengthens the check when some
+  check can reach the stated obligation, and narrows only when none can.
+- **A repair no longer closes with half a sweep.** One sentence told an author a
+  post-round traversal was "a walk, not a text search", which switched off the
+  mechanical half everywhere. Both instruments are now named and obliged, and a
+  repair re-runs the anchor-test sweep over every file it touched — which is
+  exactly when a prose edit reds a content pin in a file nobody opened.
+- **Demoting an obligation upstream now has something to pin it.** Moving an
+  obligation out of contract requires a pin that catches its removal, but three
+  of the four destinations a shaping skill routes a demotion to had no control
+  at all. Editing `Opportunity` on an intent, or `Rabbit holes` or `Design
+  artifacts` on a delivery brief, is now a material change that invalidates the
+  bound review.
+- **Mutation proof has a home in the pack.** A proof reverts to the pre-fix
+  implementation rather than a do-nothing stub, and restores by editing rather
+  than by a Git operation. That discipline previously lived only in whatever
+  protocol a caller supplied, so a loop run without one had nothing to fall back
+  on.
+
+### Added
+- `work-loop`: `references/mutation-proof.md` states what a mutation proof
+  records, why reverting to a do-nothing stub proves nothing about a
+  sub-property, and that restoration is by editing. One conditional-routing row
+  loads it when a repair or claimed fix needs proof.
+
+### Changed
+- `work-loop`: `narrow-the-claim` carries both directions of a claim/check
+  mismatch; the Fix axis requires a repair's check to assert the repaired
+  property rather than a consequence of it; a review round names a literal sweep
+  and a semantic walk as separate instruments and obliges both after a repair;
+  and `demote-the-claim` distinguishes an upstream revision-bound lifecycle pin
+  from a downstream content test.
+- `intake-intent`: editing `Opportunity` is a material change to an accepted
+  intent.
+- `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
+  material change to a ready brief.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights

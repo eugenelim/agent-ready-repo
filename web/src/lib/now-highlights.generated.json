@@ -5,6 +5,129 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.25.27"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.27] — 2026-09-13",
+      "changelogAnchor": "core22527--2026-09-13",
+      "highlights": [
+        {
+          "source": "**An author whose claim outruns its check now has both answers, not one.** The response ladder offered only \"narrow the claim\", and it sits on the axis walked first under a stop rule — so the cheapest way to answer a claim/check mismatch was to shrink the claim until a weak check reached it, quietly moving the property out of contract. The ladder now strengthens the check when some check can reach the stated obligation, and narrows only when none can.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "An author whose claim outruns its check now has both answers, not one."
+            },
+            {
+              "type": "text",
+              "value": " The response ladder offered only \"narrow the claim\", and it sits on the axis walked first under a stop rule — so the cheapest way to answer a claim/check mismatch was to shrink the claim until a weak check reached it, quietly moving the property out of contract. The ladder now strengthens the check when some check can reach the stated obligation, and narrows only when none can."
+            }
+          ]
+        },
+        {
+          "source": "**A repair no longer closes with half a sweep.** One sentence told an author a post-round traversal was \"a walk, not a text search\", which switched off the mechanical half everywhere. Both instruments are now named and obliged, and a repair re-runs the anchor-test sweep over every file it touched — which is exactly when a prose edit reds a content pin in a file nobody opened.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A repair no longer closes with half a sweep."
+            },
+            {
+              "type": "text",
+              "value": " One sentence told an author a post-round traversal was \"a walk, not a text search\", which switched off the mechanical half everywhere. Both instruments are now named and obliged, and a repair re-runs the anchor-test sweep over every file it touched — which is exactly when a prose edit reds a content pin in a file nobody opened."
+            }
+          ]
+        },
+        {
+          "source": "**Demoting an obligation upstream now has something to pin it.** Moving an obligation out of contract requires a pin that catches its removal, but three of the four destinations a shaping skill routes a demotion to had no control at all. Editing `Opportunity` on an intent, or `Rabbit holes` or `Design artifacts` on a delivery brief, is now a material change that invalidates the bound review.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Demoting an obligation upstream now has something to pin it."
+            },
+            {
+              "type": "text",
+              "value": " Moving an obligation out of contract requires a pin that catches its removal, but three of the four destinations a shaping skill routes a demotion to had no control at all. Editing "
+            },
+            {
+              "type": "code",
+              "value": "Opportunity"
+            },
+            {
+              "type": "text",
+              "value": " on an intent, or "
+            },
+            {
+              "type": "code",
+              "value": "Rabbit holes"
+            },
+            {
+              "type": "text",
+              "value": " or "
+            },
+            {
+              "type": "code",
+              "value": "Design artifacts"
+            },
+            {
+              "type": "text",
+              "value": " on a delivery brief, is now a material change that invalidates the bound review."
+            }
+          ]
+        },
+        {
+          "source": "**Mutation proof has a home in the pack.** A proof reverts to the pre-fix implementation rather than a do-nothing stub, and restores by editing rather than by a Git operation. That discipline previously lived only in whatever protocol a caller supplied, so a loop run without one had nothing to fall back on.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Mutation proof has a home in the pack."
+            },
+            {
+              "type": "text",
+              "value": " A proof reverts to the pre-fix implementation rather than a do-nothing stub, and restores by editing rather than by a Git operation. That discipline previously lived only in whatever protocol a caller supplied, so a loop run without one had nothing to fall back on."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.25.26"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[core][2.25.26] — 2026-09-13",
+      "changelogAnchor": "core22526--2026-09-13",
+      "highlights": [
+        {
+          "source": "**A frontend review now gets the pictures, not just the diff.** When a surface has been inspected, the work-loop hands `frontend-reviewer` the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A frontend review now gets the pictures, not just the diff."
+            },
+            {
+              "type": "text",
+              "value": " When a surface has been inspected, the work-loop hands "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " the capture set and what was observed in it, alongside the diff. A reviewer that only ever saw a diff could not see one element covering another, which is the class of defect it was most often asked about."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.25.25"
         }
       ],
@@ -168,6 +291,100 @@
             {
               "type": "text",
               "value": ". The migration now produces the canonical empty topic map instead of a traceback."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "frontend-engineering",
+          "version": "0.2.3"
+        }
+      ],
+      "date": "2026-09-13",
+      "heading": "[frontend-engineering][0.2.3] — 2026-09-13",
+      "changelogAnchor": "frontend-engineering023--2026-09-13",
+      "highlights": [
+        {
+          "source": "**The pack now looks at the page, and writes down what it saw.** Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an `inspection observations` field that a list of screenshot filenames does not satisfy.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The pack now looks at the page, and writes down what it saw."
+            },
+            {
+              "type": "text",
+              "value": " Step 4 of the journey captures each route you name at two viewport heights, at rest and scrolled, and reports what a reader would actually meet — something covering something else, text running out of its container, a control too small to hit. The evidence manifest gains an "
+            },
+            {
+              "type": "code",
+              "value": "inspection observations"
+            },
+            {
+              "type": "text",
+              "value": " field that a list of screenshot filenames does not satisfy."
+            }
+          ]
+        },
+        {
+          "source": "**A skipped inspection can no longer pass as a completed one.** Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A skipped inspection can no longer pass as a completed one."
+            },
+            {
+              "type": "text",
+              "value": " Seven distinct result states replace a single unverified line, and the same state reaches the manifest, the step's output, and the acceptance gate — so a missing browser arrives as a decision rather than a green tick."
+            }
+          ]
+        },
+        {
+          "source": "**Measure the noise yourself.** Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Measure the noise yourself."
+            },
+            {
+              "type": "text",
+              "value": " Four defect fixtures and four known-clean ones ship with a procedure for measuring the false-positive rate in your own environment. The pack publishes no rate of its own, because the rate moves with the judge and the viewport sizes and does not transfer."
+            }
+          ]
+        },
+        {
+          "source": "**A visible defect now costs something.** A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A visible defect now costs something."
+            },
+            {
+              "type": "text",
+              "value": " A run that took every capture and found a banner covering the heading reports that it *ran* and that it did not *pass* — two answers, because \"the browser would not start\" and \"the page is broken\" need different fixes. The surface does not complete over an unresolved blocking finding."
+            }
+          ]
+        },
+        {
+          "source": "**The independent reviewer can finally see the page.** `frontend-reviewer` is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The independent reviewer can finally see the page."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "frontend-reviewer"
+            },
+            {
+              "type": "text",
+              "value": " is handed the captures, reads them, and can take its own when the ones it was given do not cover what the diff makes it suspicious of. Until now it read the diff, and no diff shows one element covering another."
             }
           ]
         }
