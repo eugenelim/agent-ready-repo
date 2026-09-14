@@ -179,8 +179,12 @@ anyone rereading this spec's notes.
 
 - **The mapping from written path to gating suite is carried by recall.**
   `packs/frontend-engineering/tests/` is named nowhere in `build-check.yml`, so
-  every guard this delivery wrote is PR-ungated and reaches CI only through the
-  dispatch-only `test-corpus.yml`. Nothing connects a written path to the suite
+  the 292 tests that path collects reach CI only through the dispatch-only
+  `test-corpus.yml`. Scoped to the pack suite deliberately: other outcomes of
+  this delivery are PR-gated, some by design and some incidentally — AC-0019's
+  three supersession cases under `tests/roster/`, and two
+  `tests/conformance/test_pack_metadata.py` cases covering AC-0014's version
+  match. Nothing connects a written path to the suite
   that reads it except a person's memory, which is the same unfalsifiable-rule
   shape this delivery removed from its own content — and it was paid twice inside
   this delivery, once on `docs/product/changelog.md` and once on `workspace.toml`.
