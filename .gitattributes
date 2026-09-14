@@ -45,7 +45,7 @@
 # tools/test_gitattributes_merge_driver.py measures. It reads two oracles: it
 # mutates a scratch tree and reads what the self-host gate reports, and it reads
 # the record-index directories out of the build-check chain's own step list.
-# Four paths look eligible and are not: `.codex/config.toml`, `tools/hooks/*.py`
+# Five paths look eligible and are not: `.codex/config.toml`, `tools/hooks/*.py`
 # (`tools/**` is excluded from the drift comparison), the repo-root `CLAUDE.md`
 # symlink (git applies no content merge driver to a symlink blob), and
 # `docs/specs/README.md`, which has no generator at all because ADR-0112 retired

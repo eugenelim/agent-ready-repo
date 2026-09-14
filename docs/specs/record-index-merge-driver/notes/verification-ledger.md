@@ -89,8 +89,10 @@ harness can produce a false negative as easily as a false positive.
 Merging `origin/main` (4 commits) re-added
 `web/src/lib/now-highlights.generated.json`, which commit `da10ba428` had
 untracked and which the spec recorded as untracked and gitignored. Commit
-`081c26209` (PR #1292) tracks it again and it is no longer ignored, so that
-Assumption was false by the time this branch synced.
+`081c26209` (PR #1292) tracks it again, so that Assumption was false by the
+time this branch synced. The ignore entry itself is still at `.gitignore:146`,
+inside the rationale block at `:131-145`; it is inert rather than removed,
+because git ignores nothing it already tracks.
 
 It stays out of the driver, for a different reason than before. The original
 reason was that an untracked file cannot conflict; the reason now is the rule

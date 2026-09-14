@@ -246,13 +246,13 @@ widens what the gates cover, never what a maintainer may declare by hand.
 - Technical: the AC1 suite already runs inside `gate-main` and already carries a
   CI-parity disposition, so the widened equality needs no new suite and no
   `run-test-suite` or pinned-digest change (source:
-  `.github/workflows/build-check.yml:287` runs
+  `.github/workflows/build-check.yml:288-289` runs
   `tools/test_gitattributes_merge_driver.py`; `tools/lint-ci-parity.py:377`
-  holds `LOCAL("test-after-build-check")` for that step). The same holds for
+  holds `LOCAL("test-after-build-check")` for that step at `:378-379`). The same holds for
   `tools/test_merge_driver_behaviour.py`, which T4 extends:
-  `.github/workflows/build-check.yml:294-295` runs it and
-  `tools/lint-ci-parity.py:379` disposes it. Both step-name strings are pinned
-  as literal dict keys at `tools/lint-ci-parity.py:377-380`, so this change
+  `.github/workflows/build-check.yml:298-299` runs it and
+  `tools/lint-ci-parity.py:380-381` disposes it. Both step-name strings are pinned
+  as literal dict keys at `tools/lint-ci-parity.py:378-381`, so this change
   corrects the comments above them and leaves the names alone. Neither suite is
   covered by `PROVEN_COMPATIBLE_NODE_HASH`, whose scope is
   `PROVEN_COMPATIBLE_FILES`, so adding a case to either needs no hash bump
@@ -271,7 +271,8 @@ widens what the gates cover, never what a maintainer may declare by hand.
 - Technical: `web/src/lib/now-highlights.generated.json` is tracked and
   generated but carries no required-check coverage, so it stays out of the
   driver. It was untracked by `da10ba428` and re-added by `081c26209` (PR
-  #1292), and is no longer gitignored, so the earlier reason for excluding it —
+  #1292). Its ignore entry is still listed at `.gitignore:146` and is inert only
+  because the path is tracked again, so the earlier reason for excluding it —
   that an untracked file cannot conflict — no longer holds. The reason that does
   hold is the rule itself: `tools/build-site.py` writes it and has no `--check`
   mode, no `build-check` chain step runs it, and only `pages.yml` and `docs.yml`
