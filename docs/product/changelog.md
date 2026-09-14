@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [agentbundle][0.45.0] — 2026-09-14
 
 ### Highlights
+
 - **`agentbundle` can now work out where to send your loop telemetry.** A new
   resolver reads your repository and personal layout files and returns the exact
   arguments for the separately installed sender. Repository settings win per
@@ -72,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installed.** It names the package and exits 0. It never installs anything.
 
 ### Added
+
 - `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
   resolution over both `agentbundle-layout.toml` files, returning the merged
   `[telemetry]` settings and the sender's arguments. Both files are read through
@@ -84,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [core][2.27.0] — 2026-09-14
 
 ### Highlights
+
 - **Your work-loop runs can now be watched in an observability backend.** Install
   `jsonl-otlp-exporter`, point it at your own OpenTelemetry Collector, and each
   phase change arrives as a log record — how long the phase took, which gate
@@ -96,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and token counts.
 
 ### Added
+
 - `work-loop`: a mapping profile at
   `.apm/skills/work-loop/profiles/work-loop.toml` that turns an event line into
   OTLP. Its allowlist is exactly the emitted keys less the four that are routed,
@@ -112,8 +116,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   invoking any package manager.
 
 ### Changed
+
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
+
 ## [core][2.26.0] — 2026-09-13
 
 ### Changed
@@ -7927,6 +7933,7 @@ project page and the swept docstrings actually reach installers.
 ## [1.0.0] — YYYY-MM-DD
 
 ### Added
+
 - Initial public release.
 
 [Unreleased]: https://github.com/<org>/<repo>/compare/v1.0.0...HEAD

@@ -327,8 +327,11 @@ exercises T2's wiring and T1's profile together.
 | `run_id` | attribute | `Str(a8c153b4-…)` |
 | `seq` = `27` | attribute | `Int(27)` |
 
-All **10** allowlisted keys arrived, including `schema`, and **nothing outside
-the allowlist appeared**. The unmapped-severity report reached stderr in the
+All **10** allowlisted keys arrived, including `schema`, and **nothing beyond
+the allowlist plus the two routed identity fields appeared**. `run_id` and
+`seq` are emitted as attributes by design — `encode.py` appends each
+`profile.identity` name to the attribute list — so the assertion excludes
+them explicitly rather than treating their presence as a leak. The unmapped-severity report reached stderr in the
 shape the decision intended: `severity value None is not in the profile's
 severity_map; 21 record(s) sent without a severity`.
 
@@ -812,3 +815,42 @@ verified across all five surfaces.
 
 `agentbundle` did not collide: main is still at 0.44.1 and carries no 0.45.0
 entry, so that bump stands unchanged.
+
+## Review round 2 — two blockers, four concerns, and a gate I never ran
+
+**I reported the post-merge gates green, and one of them was red.**
+`tools/test_build_site_routing.py::test_every_changelog_section_is_separated`
+failed: my merge resolution welded main's `[core][2.26.0]` heading to the section
+above it, and my own entries omitted the blank line each `###` heading owes. The
+gate exists; I did not run it. "Gates green" was a statement about the suites I
+chose, not about the gates. **A gate list assembled from memory is not a gate
+set** — the reviewer found this by reading the Makefile, which is where the
+answer always was.
+
+**The disclosure was false for a third time, and this time the encoder settled
+it.** The guide said the four routed fields get "a destination of its own rather
+than being an attribute". `encode.py` appends every `profile.identity` name
+straight onto the attribute list, so `run_id` and `seq` **are** attributes — they
+simply are not allowlisted ones. And when `result` has no mapping the encoder
+sets neither `severityNumber` nor `severityText`, so it is omitted entirely
+rather than sent empty, which is the case for the five routing transitions.
+
+Three drafts of one paragraph, each less wrong than the last, and each written
+from the profile's vocabulary rather than the encoder's behaviour. The fix was to
+read what the encoder does and describe that.
+
+The ledger's own round-trip claim was loose in the same direction: "nothing
+outside the allowlist appeared" was measured as *nothing outside the allowlist
+plus the routed identity fields*, because the assertion excluded them explicitly.
+Now stated that way.
+
+**The moving-ref defect was reintroduced by the merge, into the paragraph that
+warns about it.** § 11 had been repaired to name two fixed commits; resolving the
+merge I wrote `f0a04a223..HEAD` again. Twice in one delivery, the second time by
+the repair for the first. It now names a commit hash and says so.
+
+Also repaired: `shlex.join` is POSIX quoting and does not protect `cmd.exe`, so
+the guide now leads with the `subprocess` form and states the limit; the refusal
+tests still cited withdrawn AC-0055; and the exit-code control missed a
+backticked table cell. That last was mutation-proved across all three forms —
+prose, plain cell, backticked cell — rather than only the one the finding named.

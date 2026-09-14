@@ -150,10 +150,11 @@ def test_guide_names_no_exit_code_in_the_reserved_band() -> None:
         if not line.strip().startswith("|"):
             continue
         if not re.search(r"exit|status|code", line, re.I):
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if not any(re.fullmatch(r"\d+", c) for c in cells):
+            probe = [c.strip().strip("`").strip() for c in line.strip().strip("|").split("|")]
+            if not any(re.fullmatch(r"\d+", c) for c in probe):
                 continue
-        codes += [int(c.strip()) for c in line.strip().strip("|").split("|")
-                  if re.fullmatch(r"\d+", c.strip())]
+        # strip Markdown code ticks: `| `3` | refused |` names a code too
+        cells = [c.strip().strip("`").strip() for c in line.strip().strip("|").split("|")]
+        codes += [int(c) for c in cells if re.fullmatch(r"\d+", c)]
     reserved = sorted({c for c in codes if 2 <= c <= 9})
     assert not reserved, f"guide names exit codes in the reserved 2-9 band: {reserved}"

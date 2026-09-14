@@ -116,13 +116,13 @@ def test_the_setting_the_refusal_controls_use_really_has_no_route() -> None:
 
     They refuse a setting the sender cannot receive. If the sender grew a route
     for it, those controls would fail -- loudly, not silently, because they expect
-    a raise. This test exists so the failure explains itself: the criterion is
-    still satisfied and the *test data* needs a different setting.
+    a raise. This test exists so the failure explains itself: the behaviour is
+    still correct and the *test data* needs a different setting.
     """
     assert _UNDELIVERABLE not in _DELIVERABLE, (
         f"{_UNDELIVERABLE!r} now has a route to the sender, so the refusal "
-        "controls below no longer exercise AC-0055. Pick a setting that still "
-        "has none; the criterion itself is unaffected."
+        "controls below no longer exercise a refusal. Pick a setting that still "
+        "has no route; the behaviour itself is unaffected."
     )
 
 
@@ -146,7 +146,7 @@ def test_resolve_refuses_a_setting_the_sender_cannot_receive(tmp_path: Path) -> 
 def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
     tmp_path: Path,
 ) -> None:
-    """AC-0055 says "a `[telemetry]` setting", not "a repository setting".
+    """The refusal covers a setting from EITHER scope, not just the repository's.
 
     The merge pulls a user-scope value in whenever the repository file omits it,
     so a setting with no route can arrive from either side. A control that only

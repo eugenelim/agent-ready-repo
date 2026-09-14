@@ -31,14 +31,20 @@ When you do configure an endpoint, here is exactly what goes and where.
   entered, what a gate decided, and the run's retry budgets. The exact field list
   is `docs/architecture/telemetry.md` § 5.1, and the mapping profile in this pack
   names every field that may be sent.
-- **What the allowlist governs:** every field sent *as an attribute*. A field the
-  engine adds later does not start flowing on its own — the profile has to name
-  it first.
-- **Four fields are sent without being on the allowlist**, because the profile
-  gives each its own destination rather than making it an attribute: `at` becomes
-  the record's timestamp, `result` its severity, and `run_id` with `seq` its
-  identity. They are routed, not excluded. Anything that is neither routed nor
-  allowlisted is not sent.
+- **What the allowlist governs:** the fields sent as ordinary attributes. A field
+  the engine adds later does not start flowing on its own — the profile has to
+  name it first.
+- **Four more fields are sent even though the allowlist does not name them**,
+  because the profile routes each one to a destination of its own:
+  - `at` becomes the record's **timestamp**;
+  - `result` becomes its **severity**, and is **left off entirely when it has no
+    mapping** — which is the case for the five routing transitions that decide
+    nothing;
+  - `run_id` and `seq` are sent **as attributes**, alongside the allowlisted
+    ones, because together they are the record's identity and a consumer
+    deduplicates on them.
+- **What is never sent:** any field that is neither routed above nor named by the
+  allowlist.
 - **What a pack cannot see at all:** your prompts, the model's replies, and token
   counts. A pack never sees the model call, so it has nothing to send.
 - **Where it goes:** the Collector you run. Point it at your own infrastructure,
@@ -68,8 +74,9 @@ resolved = resolve(repo_root, user_layout)
 print("jsonl-otlp-export", shlex.join(resolved.arguments))
 ```
 
-Better still, skip the shell. `resolved.arguments` is already a list, so hand it
-straight to `subprocess` and no quoting question arises:
+**Prefer this form.** `resolved.arguments` is already a list, so hand it straight
+to `subprocess`: no shell is involved, so no quoting question arises on any
+platform.
 
 ```python
 import subprocess
@@ -85,9 +92,11 @@ Its output has this shape:
 jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <resolved-layout> --profile <repo>/packs/core/.apm/skills/work-loop/profiles/work-loop.toml --service-name <resolved-name>
 ```
 
-Run the command it prints, or use the `subprocess` form above. The printed form
-is shell-quoted so it is safe to paste; the `subprocess` form never builds a shell
-command at all, which is why it is the one to prefer in a script.
+The printed form is quoted with `shlex.join`, which is **POSIX shell quoting**.
+It is safe to paste into `sh`, `bash` or `zsh`. It is **not** safe for Windows
+`cmd.exe`, where single quotes do not protect separators and a value such as
+`x&whoami&x` would still run. On Windows, or in any script, use the `subprocess`
+form above, which builds no shell command at all.
 
 `--config` names one file, and the sender reads only `[telemetry].endpoint` from
 it. Every other setting is rendered as its own flag, which is why a value your

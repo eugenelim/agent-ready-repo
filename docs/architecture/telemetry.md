@@ -445,8 +445,12 @@ profiles signal. This is why the event line carries a version.
 
 ## 11. Last verified against commit
 
-`f0a04a223`..`HEAD` of this delivery, re-verified 2026-09-14. The previous
-pin, `ec6b94f91`, was 160 commits behind `main` when this began.
+`6e015a51d`, re-verified 2026-09-14. The previous pin, `ec6b94f91`, was 160
+commits behind `main` when this delivery began.
+
+That is a commit hash, not `HEAD`. A draft of this line during the merge
+said `f0a04a223..HEAD`, which reintroduced the exact defect the paragraph
+below warns about — twice in one delivery, once by the repair for it.
 
 **What the re-verification checked, and what it found.** The distance turned out
 not to matter for the parts of this page that describe what the engine emits.
