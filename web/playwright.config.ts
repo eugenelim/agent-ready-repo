@@ -14,15 +14,25 @@ import {
 // qualification; this is where that starts.
 export default defineConfig({
   testDir: './src/test/e2e',
-  // Schedule TESTS, not files. Under `false` this capped workers at 2 by the
-  // FILE count, not the machine — the gate has two specs, 139 cases and 39, so
-  // one worker ground the 139 serially while the other idled. On CI (4 vCPU,
-  // Playwright's default 50% of cores) the worker count stays 2 either way; the
-  // gain is the removed imbalance, dropping the critical path to about 89.
+  // Schedule TESTS, not files. Under `false` this capped workers by the FILE
+  // count rather than the machine, so one worker ground the gate's largest
+  // spec serially while the other idled. On CI (4 vCPU, Playwright's default
+  // 50% of cores) the worker count is unchanged either way; the gain is the
+  // removed imbalance. That gain was once quoted as a measured critical path;
+  // the figure is gone because it went stale twice, and with it the only
+  // quantified case for this setting. Re-measure by timing the gate with
+  // `fullyParallel` off and on if the decision is ever reopened -- the tools
+  // named below give the spec set and the case counts, not timings.
+  //
+  // Deliberately no per-spec case counts here. They were stated once, went
+  // stale when `guidebook-walk.spec.ts` joined the gate, and stale again when
+  // it grew — and nothing reds on either. `package.json`'s `test:e2e:gate`
+  // script is the spec set; `playwright test <specs> --list` is the counts.
   //
   // Safe because the specs share no state: no `beforeAll`/`afterEach`, every
-  // test takes its own `{ page }` fixture and so a fresh context, the 139 cases
-  // come from nested loops over route x width x theme, and the preview server
+  // test takes its own `{ page }` fixture and so a fresh context, the largest
+  // spec's cases come from nested loops over route x width x theme (the other
+  // two loop over viewport x step, and over nothing), and the preview server
   // serves read-only output. Raising `workers` is a SEPARATE change: 4 Chromium
   // on 4 vCPU contend and `retries` is unset, so contention fails a deploy.
   fullyParallel: true,
