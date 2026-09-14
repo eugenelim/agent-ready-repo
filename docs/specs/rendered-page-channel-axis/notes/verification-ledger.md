@@ -337,10 +337,19 @@ What that changes:
   command, not an absent CI gate — which is what this ledger's own "caught it by
   accident" section actually describes, and the correction does not soften it.
 - **The residue is real and narrower than claimed.** `packs/frontend-engineering/tests/`
-  is named nowhere in `build-check.yml`, so the 295 channel-axis guards and every
-  mutation control five review rounds argued over are PR-ungated. The
-  `test-corpus.yml` dispatch remains obligatory evidence for this delivery. The
-  roster dispatch is not obligatory, only confirmatory.
+  is named nowhere in `build-check.yml`, so the **292** tests that path collects —
+  every channel-axis guard and every mutation control five review rounds argued
+  over — are PR-ungated. The `test-corpus.yml` dispatch remains obligatory
+  evidence for this delivery. The roster dispatch is not obligatory, only
+  confirmatory.
+
+  The figure is 292 and not 295, and the difference is the point of this whole
+  section. 295 was 292 plus the three tests in
+  `tests/roster/test_rendered_page_channel_axis_supersession.py` — the three the
+  bullet above has just established **are** PR-gated. Carrying the larger number
+  here would re-import them into the ungated set, in the section written to
+  replace an unmeasured figure with a measured one. Both counts are what the
+  collector reports for the path named beside them.
 
 **Deviation, recorded rather than repaired.** T9's `Done when` names
 `make build-self` and `ruff check`, neither of which reads a `docs/` file, while
