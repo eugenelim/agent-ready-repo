@@ -192,3 +192,19 @@ here.
 - portability, measured against the recorded per-file baseline — work-loop evals
   **14** (unchanged, pre-existing permitted illustrative examples); the other six
   touched `packs/` files **0** each. No new match introduced
+
+## T6 — self-host projections
+
+`FORCE=1 make build-self` run from the clean T5 source commit (it refuses a dirty
+tree, which is why the source and projection commits are separate).
+
+- 14 generated files changed, every one under `.agents/` or `.claude/`; no source
+  file was touched by the build
+- `references/mutation-proof.md` projected to both adapters
+- projected `work-loop/SKILL.md` body — **884** lines, matching source exactly
+- `marketplace.json` unchanged: `core` is one of 7 packs excluded from the
+  marketplace as not installable at user scope, so the forced rebuild correctly
+  produced no marketplace delta
+- `test_ac11_work_loop_projections_are_byte_identical_to_the_source` — **passed**
+- `test_self_host_skill_projections_match_their_canonical_sources` — **passed**
+- `git diff --check` — clean
