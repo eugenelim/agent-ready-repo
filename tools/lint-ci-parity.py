@@ -378,6 +378,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test-after-build-check"),
+    "pytest import-time path leaks (collector sys.path guard)":
+        LOCAL("test-after-build-check"),
     "pytest gitattributes merge-driver scope (AC1)":
         LOCAL("test-after-build-check"),
     "pytest merge-driver behaviour (AC2-AC4)":
