@@ -256,3 +256,80 @@ def test_the_guards_actually_reach_this_deliverys_files() -> None:
         "SKILL.md",
     ):
         assert expected in names, f"{expected} is not covered by the shipped-content guards"
+
+
+# ── channel names carry no device name ──────────────────────────────────────
+#
+# The vocabulary is NOT stated here. It ships in the reference and this guard
+# reads it, which is what lets deleting the row red the guard rather than
+# silently emptying it. That is the shape
+# `test_the_rate_vocabulary_matches_what_the_pack_states` above already uses;
+# the genericity guard beside it legitimately states its own list, because
+# repository identifiers are not a rule an adopter is held to.
+
+from frontend_engineering_rendered_page_rules import (  # noqa: E402
+    fallback_channels,
+    forbidden_channel_name_tokens,
+    read_rules,
+    read_skill,
+)
+
+SKILL_MANIFEST_ROW = "| viewports |"
+
+
+def _manifest_viewports_value() -> str:
+    for line in read_skill().splitlines():
+        if line.strip().startswith(SKILL_MANIFEST_ROW):
+            return line
+    raise AssertionError("SKILL.md no longer carries a manifest `viewports` row")
+
+
+def test_no_channel_is_named_for_a_device() -> None:
+    """Verifies: no channel name the reference declares, and no value in the
+    manifest viewports row, contains a forbidden device name.
+
+    Scoped to declared channel names rather than to prose. A channel name is only
+    ever one of the declared names, so this reaches every `.apm/**` location one
+    can ship in; searching prose instead would red on legitimate shipped
+    sentences that name a device without naming a channel.
+    """
+    md = read_rules()
+    tokens = forbidden_channel_name_tokens(md)
+    assert tokens, "the reference states no forbidden tokens"
+    for name, _, _ in fallback_channels(md):
+        for token in tokens:
+            assert token not in name.lower(), f"channel {name!r} carries {token!r}"
+    row = _manifest_viewports_value().lower()
+    for token in tokens:
+        assert token not in row, (
+            f"the manifest viewports row names the device {token!r}"
+        )
+
+
+def test_every_shipped_channel_name_is_one_the_reference_declares() -> None:
+    """The premise the scope above rests on, checked rather than assumed."""
+    md = read_rules()
+    declared = {name for name, _, _ in fallback_channels(md)}
+    assert declared == {"narrow", "wide"}, (
+        f"the reference declares {sorted(declared)}; the guard's scope claim "
+        f"covers exactly the declared set, so a new name needs a decision here"
+    )
+
+
+def test_the_device_guard_catches_a_planted_channel_name() -> None:
+    """The guard must fail on the thing it names."""
+    md = read_rules()
+    tokens = forbidden_channel_name_tokens(md)
+    planted = [("mobile-first", "", "<=480")]
+    hits = [t for name, _, _ in planted for t in tokens if t in name.lower()]
+    assert hits == ["mobile"], "the guard would not catch a device-named channel"
+
+
+def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:
+    """Deleting the reference's table reds this guard rather than emptying it."""
+    import pytest as _pytest
+    from frontend_engineering_rendered_page_rules import _channel_section_rows
+
+    gone = read_rules().replace("\n## Channels\n", "\n## Removed\n", 1)
+    with _pytest.raises(AssertionError, match="Channels"):
+        _channel_section_rows(gone, 1)
