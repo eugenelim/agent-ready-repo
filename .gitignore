@@ -147,5 +147,10 @@ web/src/lib/now-highlights.generated.json
 web/src/lib/shared-chrome.generated.json
 docs-site/src/shared-chrome.generated.json
 
+# Mutation-sweep output. Written beside the package it sweeps so the path is
+# derived from the script rather than the working directory; it is a report, not
+# a source artifact, and re-running regenerates it.
+packages/jsonl-otlp-exporter/wiring-sweep-results.txt
+
 # Local OpenTelemetry Collector fixture for the exporter round-trip test
 .otelcol-tmp/
