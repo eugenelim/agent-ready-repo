@@ -11,7 +11,7 @@ from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 class DiagnosticCode(enum.StrEnum):
     UNKNOWN = "UNKNOWN"
 
-    # Lint codes — CAT-L001 through CAT-L031
+    # Lint codes — CAT-L001 through CAT-L032
     CAT_L001 = "CAT-L001"   # catalogue.toml present but invalid per config.py
     CAT_L002 = "CAT-L002"   # Required catalogue marker missing (packs dir or marketplace.json)
     CAT_L003 = "CAT-L003"   # Duplicate pack identity across packs dir
@@ -46,6 +46,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_L029 = "CAT-L029"   # Catalogue seeds lint failure (blocklist, placeholder, patterns.jsonl)
     CAT_L030 = "CAT-L030"   # First-value contract violation (Level A/B fields, writes-to-repo, tutorial)  # noqa: E501
     CAT_L031 = "CAT-L031"   # Credentialed-skill convention violation (D1/D2/D2b/D3/broker-specific)  # noqa: E501
+    CAT_L032 = "CAT-L032"   # Optional runtime dependency is not installed (INFO)
 
     # Direct-route codes — CAT-D001 through CAT-D019 (RFC-0098).
     #

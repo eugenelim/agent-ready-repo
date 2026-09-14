@@ -33,6 +33,11 @@ version = "0.12"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
+[[pack.runtime-dependencies]]
+ecosystem = "pypi"
+package = "jsonl-otlp-exporter"
+optional = true
+
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
 # measured by tools/run-pack-evals.py. Deliberately excluded:

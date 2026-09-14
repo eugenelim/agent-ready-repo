@@ -14,6 +14,7 @@ Output sorted by (pack, path, line, col, code).
 from __future__ import annotations
 
 import ast
+import importlib.metadata as importlib_metadata
 import json
 import os
 import re
@@ -1576,6 +1577,7 @@ class _PackRules:
         diags.extend(self._check_dir_name_vs_pack_toml())
         diags.extend(self._check_pack_toml_parseable())
         diags.extend(self._check_pack_schema_validation())
+        diags.extend(self._check_optional_runtime_dependencies())
         diags.extend(self._check_plugin_json())
         diags.extend(self._check_name_version_parity())
         diags.extend(self._check_skills())
@@ -1600,6 +1602,36 @@ class _PackRules:
                 remediation="Rename the directory to match [pack].name, or update [pack].name.",
             )]
         return []
+
+    def _check_optional_runtime_dependencies(self) -> list[Diagnostic]:
+        """Report absent optional PyPI dependencies without acquiring them."""
+        pt = self._get_pack_toml()
+        if pt is None:
+            return []
+
+        dependencies = pt.get("pack", {}).get("runtime-dependencies", [])
+        diagnostics: list[Diagnostic] = []
+        for dependency in dependencies:
+            if (
+                not isinstance(dependency, dict)
+                or dependency.get("ecosystem") != "pypi"
+                or dependency.get("optional") is not True
+            ):
+                continue
+            package = dependency.get("package")
+            if not isinstance(package, str):
+                continue
+            try:
+                importlib_metadata.distribution(package)
+            except importlib_metadata.PackageNotFoundError:
+                diagnostics.append(_diag(
+                    DiagnosticCode.CAT_L032,
+                    Severity.INFO,
+                    f"optional runtime dependency {package!r} is unsatisfied",
+                    pack=self._name,
+                    path=_diagnostic_path(self._root, self._dir / "pack.toml"),
+                ))
+        return diagnostics
 
     def _check_pack_toml_parseable(self) -> list[Diagnostic]:
         toml_path = self._dir / "pack.toml"

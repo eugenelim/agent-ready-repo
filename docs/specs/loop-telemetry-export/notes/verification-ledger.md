@@ -149,3 +149,55 @@ failures.
 The exporter's suite is **279 tests** (278 passed, 1 skipped), not the 410 the
 task brief stated. Recorded so the next reader measures rather than inherits the
 number.
+
+## T3 — the first reader of a dormant schema, and two things worth recording
+
+`[[pack.runtime-dependencies]]` has been in `pack.schema.json` with no reader.
+T3 writes the first one, so its reporting shape was set here: `CAT-L032` at
+`Severity.INFO`, naming the package, the word "optional", the word
+"unsatisfied", and the owning pack. INFO is what keeps the exit code 0 — an
+unsatisfied *optional* dependency is not a lint failure.
+
+Detection is `importlib.metadata.distribution()`, in-process. Nothing is
+acquired, and the schema is not widened toward acquisition: `workspace.toml`
+carries a registered backlog item to open a separate RFC for registry-acquired
+dependencies, and a trust or lifecycle policy belongs there.
+
+**AC-0039's third conjunct needed a control, not a comment.** "Invoking no
+package manager" is unobservable by absence — a test that simply does not see a
+subprocess proves nothing. The test patches `subprocess.Popen` and `os.system`
+to raise, so the assertion fails if the lint ever shells out. Proved by
+inserting `subprocess.run(["pip", "--version"])` into the check: the sentinel
+fired before pip launched.
+
+Four mutations, each killing its own control:
+
+| Reverted | Control that failed |
+| --- | --- |
+| the `_check_optional_runtime_dependencies()` call | the report assertion |
+| `Severity.INFO` → `Severity.ERROR` | the exit-status assertion (`1 == 0`) |
+| a deliberate `subprocess.run(["pip", …])` | the process-launch sentinel |
+| the `pack.toml` declaration block | the report assertion |
+
+The fourth was added here: the worker proved the reader and the severity but not
+the declaration, and without it `packs/core/pack.toml` — half of T3's `Touches`
+— had no control at all.
+
+**The test makes the absence deterministic rather than inheriting it.** The
+distribution genuinely is not installed in this environment, so the assertion
+would pass either way today; monkeypatching `distribution` to raise only for
+this package means the test does not silently become vacuous the day someone
+installs it.
+
+**An environment caveat for anyone re-running AC-0039 by hand.** A bare
+`agentbundle catalogue lint` does not exercise this worktree: the editable
+install on this machine points at the primary checkout. Under `pytest` the root
+`pyproject.toml`'s `pythonpath` puts this worktree's `packages/agentbundle`
+first, which is why the test is the trustworthy route and a bare invocation is
+not. The install was deliberately left pointing at the primary checkout.
+
+**One reported failure did not reproduce.** The worker reported the lint unit
+file as "88 passed, 1 unrelated environment failure" — a `PermissionError` from
+`Path.rmdir()`. Re-run here: **89 passed**, no failure. It was the worker
+sandbox refusing a filesystem operation, not a repository defect, which is why
+a worker's gate report is reconciled rather than accepted.
