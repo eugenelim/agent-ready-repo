@@ -623,7 +623,7 @@ command at all is offered as the better option.
 
 **`agentbundle` was never bumped.** `telemetry_layout` is a new public module and
 `CAT-L032` a new diagnostic, both in a package adopters install independently from
-PyPI. Shipping `core` 2.25.27 against `agentbundle` 0.44.1 would leave the guide's
+PyPI. Shipping `core` against `agentbundle` 0.44.1 would leave the guide's
 documented import unavailable. Bumped to 0.45.0 across both real version surfaces
 with its own changelog entry; `build/lib/` is a gitignored artifact and was left
 alone.
@@ -788,3 +788,27 @@ all. By the time a defect in T4's `Touches` was visible — which took implement
 T4 to discover — T4 was already complete. A contract error found by doing the work
 may be unfixable in the contract, and the honest response is to record it rather
 than to destroy the record of how it was found.
+
+## The version bump collided, and the merge is where it surfaced
+
+`main` had already released `[core][2.25.27]` on 2026-09-13 — `decide-ladder-follow-ons`
+took it as "the next free patch" — and had moved on to 2.26.0. This branch carried
+an unpushed bump to that same 2.25.27. Neither side was wrong when written; the
+collision existed only in the gap between them, and nothing warned about it until
+the merge.
+
+Renumbered to **2.27.0**, above main's. Five surfaces name a core version, and the
+fifth was found by sweeping rather than by remembering: `pack.toml`,
+`.claude-plugin/plugin.json`, the changelog heading, a `telemetry.md`
+re-verification line, and **this ledger**, which still said "Shipping `core`
+2.25.27" in its record of the agentbundle finding.
+
+**`rerere` resolved two of those surfaces automatically, and resolved them wrong.**
+It replayed a resolution from the shared `rr-cache` that took main's 2.26.0,
+silently discarding this branch's bump — an answer another session gave to a
+question that only looked the same. A replayed resolution arrives already applied,
+so it is not reviewed unless someone decides to review it. Corrected by hand and
+verified across all five surfaces.
+
+`agentbundle` did not collide: main is still at 0.44.1 and carries no 0.45.0
+entry, so that bump stands unchanged.
