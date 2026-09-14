@@ -1,6 +1,6 @@
 # Spec: cognitive-rule-inlining
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none (no ADR or RFC governs this). Pinned surfaces: see

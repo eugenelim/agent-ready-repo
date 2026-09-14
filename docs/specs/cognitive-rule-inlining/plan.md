@@ -1,7 +1,7 @@
 # Plan: cognitive-rule-inlining
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** root `AGENTS.md` § Coding conventions (owning-source
   rule), `packages/agentbundle/agentbundle/build/self_host.py` (projection
   boundary and dirty-tree refusal),
