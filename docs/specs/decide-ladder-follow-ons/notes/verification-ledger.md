@@ -270,3 +270,35 @@ Recorded rather than silently dropped.
 - `make lint-ruff lint-mypy` — clean
 - both projection roster nodes — **2 passed**; only test files changed this
   round, so no reprojection was required
+
+## Post-GATES review round 2 — all findings refuted
+
+Four findings raised, **all four refuted**; main-loop result `Clean`. Two of the
+four originated in round-1 repairs.
+
+The materiality guard had by then held three strictness positions in three
+rounds, which is the signal that a control is measuring something its medium
+cannot decide. The adjudication tested finding 1's own demonstration and it does
+not hold: "material means every listed change except Opportunity" reds the
+`unresolved questions` membership assertion, and the alleged sentence-split
+false-red is unreachable because the shipped declaration is a single sentence and
+the normalizer moves no period. It also found the proposed structured-list
+mechanism non-convergent — exact list items would decide an in-list reversal
+while relocating the same polarity question to the next sentence, which is
+strictness position (i), already ruled too loose.
+
+Disposition taken: **KEEP the guard as proportionate, and SHRINK the claim rather
+than harden a fourth time.** The helper's docstring asserted that bounding to one
+sentence "is what makes the guard polarity-aware", which overstates what a
+substring test delivers. It now states what the check actually performs, names
+the in-declaration exclusion as out of its reach, and says deciding polarity over
+free prose needs a mechanism this medium does not offer. That is this change's
+own `narrow-the-claim` rule applied to its own work: no check here can reach the
+general polarity claim, so the claim shrinks to what the check reaches.
+
+The other three refusals rested on authority: phrase-binding is the *prescribed*
+behaviour for a content pin with no criterion; the repair-selector collision
+requires prose that does not exist and would fail loud rather than silent; and
+the reference test is required to *name* the placement exception, not verify it.
+
+Gates after the shrink: three touched suites **62 passed**; ruff and mypy clean.

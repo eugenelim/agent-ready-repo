@@ -19,10 +19,13 @@ def _between(path: Path, start: str, end: str) -> str:
 def _positive_materiality_list(path: Path, opener: str, end: str) -> str:
     """Return only the positive `material means ...` declaration, up to its period.
 
-    Bounding to that one sentence is what makes the guard polarity-aware. An
-    occurrence check over the whole region cannot tell the positive list from a
-    later sentence in the same region reclassifying the destination as
-    nonmaterial, so it would stay green against an exact reversal of the rule.
+    This is a substring test over one sentence, not a polarity decision. What it
+    buys is narrow and real: a later sentence in the same region reclassifying a
+    destination as nonmaterial no longer satisfies it, which an occurrence check
+    over the whole region did. It does not decide polarity in general, and an
+    exclusion written inside the declaration itself is out of its reach. Deciding
+    that over free prose needs a mechanism this medium does not offer, so the
+    claim is kept to what the check performs.
     """
     return _between(path, opener, end).partition(".")[0]
 
