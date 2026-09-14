@@ -72,6 +72,11 @@ model the redaction guards nothing, and the same reasoning has already been
 applied to the sibling backlog projection, which passes its display prose
 through as written.
 
+The adopter question that would otherwise gate this is settled rather than
+open: `workspace.toml` lives inside the repository it describes, so anyone who
+can reach it already has access to that repository's source, on every install
+route.
+
 Measured on this repository: four active initiatives, so orientation lists
 four bare slugs. Every one of them has a name and a milestone in
 `workspace.toml` that the reader cannot see. Orientation is the first thing a
@@ -79,23 +84,24 @@ session reads, and naming the initiative is most of what that section is for.
 
 ## Assumptions
 
-The riskiest assumption is that the trust model holds for every repository
-that installs this pack, not only for this one. The redaction ships to
-adopters. It is safe to restore here because the people who write this
-`workspace.toml` are the people who own this repository and review its
-changes. That is a property of this repository, not a property the pack can
-check.
+The riskiest assumption was that the trust model holds for every repository
+that installs this pack, not only for this one, because the redaction ships to
+adopters and safety here looked like a property of this repository rather than
+something the pack can check.
 
-What would have to be true for a blanket restore to be right: every
-`workspace.toml` an agent reads is authored and reviewed by the same people
-who own the repository it sits in, on every supported install route.
+The owner has settled it, and the argument does not depend on any install
+route. `workspace.toml` lives inside the repository it describes, so anyone
+who can read or write it already has access to that repository's source. Its
+trust level is the repository's trust level, everywhere the pack is installed.
+A route that could supply a hostile `workspace.toml` could supply hostile
+source in the same breath, which is the threat the repository already accepts
+and reviews for. There is no route-by-route case left to enumerate.
 
-The kill condition follows directly. If any route puts a `workspace.toml` in
-front of an agent that the local developers did not author — a generated one,
-a vendored one, or one carried in from another repository — then the restore
-belongs to that route's trust decision rather than to a blanket change, and
-this intent should narrow to the routes that qualify instead of proceeding as
-written.
+What remains assumed is narrower and cheap to see if it fails: that no
+consumer downstream of this projection treats these two fields as though they
+were already bounded. Nothing in the current contract promises a bound,
+because the contract promises the sentinel, so a consumer that assumed one
+would have been reading a value it was told not to render.
 
 ## Source
 
