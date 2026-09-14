@@ -1,6 +1,6 @@
 # Spec: cognitive-rule-inlining
 
-- **Status:** Implementing
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none (no ADR or RFC governs this). Pinned surfaces: see
@@ -291,19 +291,24 @@ decays across a long session and must not be described as fixing that.
       and the same table covers it there.
 - [x] `.agents/rules/cognitive-load.md` and its seed under `packs/core/seeds/`
       are absent from the tree.
-- [ ] `rg --hidden -l 'agents/rules/cognitive-load'` returns no hit outside
+- [x] `rg --hidden -l 'agents/rules/cognitive-load'` returns no hit outside
       `docs/specs/cognitive-rule-inlining/`, `docs/specs/cognitive-load-reduction/`
       (Shipped, left historical), `docs/product/research/` (records of the problem
-      this change fixes; they describe the pre-change tree by design), and these
-      four bounded out of scope: `docs/product/intents/core-seed-placeholder-shapes.md`,
+      this change fixes; they describe the pre-change tree by design),
+      `docs/product/changelog.md` (the delivery mechanism: the changelog criterion
+      below *requires* the Upgrading section to name the retired path, so an
+      adopter knows what to delete by hand — an earlier list omitted it and the
+      contract forbade a hit it also mandated), and these five bounded out of
+      scope: `docs/product/intents/core-seed-placeholder-shapes.md`,
       `docs/specs/phase-policy-registry-and-selector/spec.md`,
-      `packages/agentbundle/README-pypi.md`, and
+      `packages/agentbundle/README-pypi.md`,
       `guides/core/reference/phase-scoped-policy-delivery.md`, and
       `docs/product/briefs/guidance-activation-measurement.md`, whose floor-rule
-      table names the deleted file as a rule's canonical home. This criterion is
-      closed by running the command; it has been wrong three times when read. The criterion is closed by running the command, not by reading
-      it. `--hidden` is load-bearing: without it `rg` skips `.agents/` and
-      `.claude/`, which hold two of the three `policy-families.md` projections.
+      table names the deleted file as a rule's canonical home. The criterion is
+      closed by running the command, not by reading it; it has been wrong four
+      times when read. `--hidden` is load-bearing: without it `rg` skips
+      `.agents/` and `.claude/`, which hold two of the three `policy-families.md`
+      projections.
 - [x] `tools/lint-agents-md.py` admits the grown files: `MAX_ROOT_LINES` and
       `MAX_SEED_LINES` are raised to admit the finished files, whose measured line
       counts T3 records — a reconstruction puts them near 147 and 127, so "raised"
