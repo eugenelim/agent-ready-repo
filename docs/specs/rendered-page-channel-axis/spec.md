@@ -180,11 +180,17 @@ anyone rereading this spec's notes.
 - **The mapping from written path to gating suite is carried by recall.**
   `packs/frontend-engineering/tests/` is named nowhere in `build-check.yml`, so
   the 292 tests that path collects reach CI only through the dispatch-only
-  `test-corpus.yml`. Scoped to the pack suite deliberately: other outcomes of
-  this delivery are PR-gated, some by design and some incidentally — AC-0019's
-  three supersession cases under `tests/roster/`, and two
-  `tests/conformance/test_pack_metadata.py` cases covering AC-0014's version
-  match. Nothing connects a written path to the suite
+  `test-corpus.yml`. Scoped to the pack suite deliberately: two other outcomes of
+  this delivery are PR-gated, one by design and one incidentally. AC-0019's three
+  supersession cases under `tests/roster/` are gated as intended. AC-0014 is
+  reached by exactly one case,
+  `tests/conformance/test_pack_metadata.py::test_pack_and_plugin_versions_match[frontend-engineering]`,
+  and what it gates is **agreement** between the two manifests
+  (`plugin["version"] == pack["version"]`), not the `0.2.4` the criterion names —
+  it passes on two manifests both reading `0.2.3`, and no PR-triggered workflow
+  pins the literal value anywhere. Its sibling parametrization is collected too
+  but asserts readme, license, repository link, categories, keywords and
+  maintainers, and never reads a version field. Nothing connects a written path to the suite
   that reads it except a person's memory, which is the same unfalsifiable-rule
   shape this delivery removed from its own content — and it was paid twice inside
   this delivery, once on `docs/product/changelog.md` and once on `workspace.toml`.
