@@ -49,12 +49,14 @@ jobs:
     # selected ref's code, and the intent excludes self-hosted capacity, so
     # persistent runner state is out of bounds.
     runs-on: ubuntu-latest
-    # MEASURED on this workflow. Two all-green runs of this same four-shard
-    # configuration, slowest shard first:
+    # MEASURED on this workflow. Three all-green runs of this same four-shard
+    # configuration, newest first, slowest shard then the per-shard spread:
+    #   34797328268  4.70 min  (2.88 / 3.68 / 3.77 / 4.70)
     #   34795796140  4.65 min  (2.58 / 3.77 / 4.10 / 4.65)
     #   34794070138  3.82 min  (3.47 / 3.65 / 3.80 / 3.82)
-    # Expect 4-5 minutes, not 3.8: two runs of identical code differed by most
-    # of a minute, so runner variance is larger than the gap between shards.
+    # Expect 4-5 minutes. Runner variance across identical code spans most of a
+    # minute -- wider than the gap the weight table balances between shards --
+    # so no single figure here is a target to tune against.
     # Before sharding, six successful single-job runs of the same corpus gave a
     # 15.0-minute median and a 17.0-minute maximum.
     #
