@@ -29,7 +29,13 @@ import re
 from pathlib import Path
 
 import pytest
-from frontend_engineering_rendered_page_rules import PACK_ROOT
+from frontend_engineering_rendered_page_rules import (
+    PACK_ROOT,
+    fallback_channels,
+    forbidden_channel_name_tokens,
+    read_rules,
+    read_skill,
+)
 
 # `.apm/` is the runtime export boundary: everything under it is projected into
 # an adopter's environment, and nothing else in the pack is. That is the reach
@@ -267,13 +273,6 @@ def test_the_guards_actually_reach_this_deliverys_files() -> None:
 # the genericity guard beside it legitimately states its own list, because
 # repository identifiers are not a rule an adopter is held to.
 
-from frontend_engineering_rendered_page_rules import (  # noqa: E402
-    fallback_channels,
-    forbidden_channel_name_tokens,
-    read_rules,
-    read_skill,
-)
-
 SKILL_MANIFEST_ROW = "| viewports |"
 
 
@@ -306,30 +305,104 @@ def test_no_channel_is_named_for_a_device() -> None:
         )
 
 
+# Where a channel name can appear in shipped content. A channel is named in the
+# reference that declares it, in the skill that teaches the capture, and in the
+# worked snippet an adopter copies. The scope claim AC-0012 rests on is that every
+# such name is one the reference declares -- so this reads those files rather than
+# restating the claim.
+CHANNEL_NAME_SITES = (
+    SHIPPED_ROOT / "skills" / "frontend-engineering" / "references" / "rendered-page-inspection.md",
+    SHIPPED_ROOT / "skills" / "frontend-engineering" / "SKILL.md",
+    SHIPPED_ROOT / "agents" / "frontend-reviewer.md",
+)
+
+# How a channel name is written where it is used as one: as a `name:` field in the
+# worked snippet's channel list, and as the first cell of a band row.
+CHANNEL_NAME_IN_SNIPPET = re.compile(r"\bname:\s*'([^']+)'")
+# `[^|\n]` and not `[^|]`: a character class excluding only the pipe still
+# matches a newline, so the three-cell pattern spanned lines and swallowed the
+# one-column forbidden-token table, reporting `mobile` as a declared channel.
+BAND_ROW = re.compile(r"^\|\s*([a-z][\w-]*)\s*\|[^|\n]*\|[^|\n]*\|\s*$", re.MULTILINE)
+
+
+def shipped_channel_names() -> dict[str, list[str]]:
+    """`{file label: [channel names used in it]}` across shipped content."""
+    found: dict[str, list[str]] = {}
+    for path in CHANNEL_NAME_SITES:
+        text = path.read_text(encoding="utf-8")
+        names = CHANNEL_NAME_IN_SNIPPET.findall(text)
+        if path.name == "rendered-page-inspection.md":
+            section = text.split("\n## Channels\n", 1)[1].split("\n## ", 1)[0]
+            names += [m for m in BAND_ROW.findall(section) if m != "Channel"]
+        if names:
+            found[_label(path)] = names
+    return found
+
+
 def test_every_shipped_channel_name_is_one_the_reference_declares() -> None:
-    """The premise the scope above rests on, checked rather than assumed."""
-    md = read_rules()
-    declared = {name for name, _, _ in fallback_channels(md)}
-    assert declared == {"narrow", "wide"}, (
-        f"the reference declares {sorted(declared)}; the guard's scope claim "
-        f"covers exactly the declared set, so a new name needs a decision here"
+    """The premise the device guard's scope rests on, read rather than restated.
+
+    The first version of this compared the reference's declared set to a literal
+    pair and opened no other file, so the scope claim it was named for was
+    asserted, not checked: renaming the worked example's channel to `mobile` left
+    the whole suite green.
+    """
+    declared = {name for name, _, _ in fallback_channels(read_rules())}
+    used = shipped_channel_names()
+    assert used, "no shipped file names a channel; the sweep found nothing to check"
+    for label, names in used.items():
+        for name in names:
+            assert name in declared, (
+                f"{label} names the channel {name!r}, which the reference does not "
+                f"declare (declared: {sorted(declared)})"
+            )
+
+
+def test_no_shipped_channel_name_carries_a_device_token() -> None:
+    """The same sweep, against the forbidden vocabulary the reference ships."""
+    tokens = forbidden_channel_name_tokens(read_rules())
+    for label, names in shipped_channel_names().items():
+        for name in names:
+            for token in tokens:
+                assert token not in name.lower(), (
+                    f"{label} names the channel {name!r}, which carries the device "
+                    f"name {token!r}"
+                )
+
+
+def test_the_device_sweep_catches_a_planted_channel_name(tmp_path: Path) -> None:
+    """The guard must fail on the thing it names, driven through the real guard.
+
+    The first version re-implemented the guard's loop against a local literal, so
+    weakening the guard itself left it green.
+    """
+    tokens = forbidden_channel_name_tokens(read_rules())
+    planted = tmp_path / "planted.md"
+    planted.write_text("const channels = [{ name: 'mobile', width: 480 }];\n", encoding="utf-8")
+    names = CHANNEL_NAME_IN_SNIPPET.findall(planted.read_text(encoding="utf-8"))
+    assert names == ["mobile"], "the name pattern no longer finds a snippet channel"
+    assert any(t in names[0].lower() for t in tokens), (
+        "the shipped vocabulary would not catch a channel named for a device"
     )
 
 
-def test_the_device_guard_catches_a_planted_channel_name() -> None:
-    """The guard must fail on the thing it names."""
-    md = read_rules()
-    tokens = forbidden_channel_name_tokens(md)
-    planted = [("mobile-first", "", "<=480")]
-    hits = [t for name, _, _ in planted for t in tokens if t in name.lower()]
-    assert hits == ["mobile"], "the guard would not catch a device-named channel"
-
-
 def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:
-    """Deleting the reference's table reds this guard rather than emptying it."""
-    import pytest as _pytest
-    from frontend_engineering_rendered_page_rules import _channel_section_rows
+    """Deleting the reference's table reds the public reader the guards use.
 
+    Driven through `forbidden_channel_name_tokens`, not the private section
+    reader: the first version called the private one, so replacing the public
+    reader's body with a hard-coded list left every test green -- exactly the
+    restatement this test is named for preventing.
+    """
     gone = read_rules().replace("\n## Channels\n", "\n## Removed\n", 1)
-    with _pytest.raises(AssertionError, match="Channels"):
-        _channel_section_rows(gone, 1)
+    with pytest.raises(AssertionError, match="Channels"):
+        forbidden_channel_name_tokens(gone)
+
+    # And the table itself, not only the section around it.
+    md = read_rules()
+    without_tokens = md
+    for token in forbidden_channel_name_tokens(md):
+        without_tokens = without_tokens.replace(f"| {token} |\n", "", 1)
+    assert without_tokens != md
+    with pytest.raises(AssertionError, match="forbidden channel-name tokens"):
+        forbidden_channel_name_tokens(without_tokens)

@@ -104,3 +104,62 @@ applied at all. Reading one capture rather than the numbers is what exposed it.
 The rule the pack already states covers this: a value naming only filenames does
 not satisfy the observations field, and neither does a table of measurements
 nobody looked behind.
+
+
+## Post-gates review round 1 — 24 findings, all sustained
+
+Two reviewers ran against the shipped diff. `adversarial-reviewer` returned 9,
+all sustained by `finding-adjudicator` with none refuted; `quality-engineer`
+returned 15. They converged on the same class of defect from opposite sides, and
+the class is the one this delivery exists to remove: **a control that cannot fail
+on what it names.**
+
+### What was green and should not have been
+
+Each of these was a passing suite before the round. Every one is now red under the
+same mutation:
+
+| Mutation | Before | After |
+| --- | --- | --- |
+| Delete `\| every-required-channel-needs-the-matrix \| required \|` | 269 passed | 37 failed |
+| Rename the worked snippet's channel to `mobile` | 269 passed | 3 failed |
+| Replace `forbidden_channel_name_tokens`' body with a hard-coded list | 269 passed | 1 failed |
+| Rewrite the snippet's widths to 768 and 900, outside their own bands | 269 passed | 1 failed |
+| Empty the manifest `viewports` row to `none` | 269 passed | 2 failed |
+
+The first is the worst. `evaluate_capture_set` read the row that gates the entire
+channel axis with a bare `.get(...) == "required"`, so **deleting the row turned a
+single-channel capture set from `incomplete` to `complete`** — the axis silently
+disabled. One line below, the sibling pair rule went through `_required_rule`,
+which raises. The spec's own `Always do` says "Raise on an absent rule row rather
+than skipping the rule it governs" and the plan's § Design decisions says "The
+absent-row guard is the raise, not the skip". Five rules honoured that; the one
+that mattered most did not. Both now route through one seam, `_rule_in_force`, and
+a per-row test walks every rule row the completeness walk reads rather than the
+one that happened to fail.
+
+AC-0008's own test missed it because its fixture deleted the whole `## Channels`
+section — which raises via the section reader — instead of the row the criterion
+names. A control shaped to the mutation its author imagined rather than the one
+the criterion describes.
+
+### Criteria reopened
+
+AC-0008, AC-0011, AC-0012 and AC-0013 went back to `[ ]` and the spec to
+`Implementing`. AC-0011 named a construction test that never existed; AC-0013's
+must-red half was `lens.replace(X, "")` followed by `assert X not in …`, true by
+construction for every input. Four further criteria cited test names that did not
+resolve to shipped tests. Those were ticks written from a reading rather than from
+a run.
+
+### Deviation: the content pin reaches four of the five strings the plan named
+
+**Recorded rather than repaired.** `plan.md` § Design decisions names five shipped
+strings stating the superseded height-only floor and says all five are rewritten
+and pinned. Four are: two `evals.json` strings in `HARNESS_SUPERSEDED_FLOOR`, two
+guide strings in `SUPERSEDED_FLOOR`. The fifth, the how-to's height-keyed capture
+table, is neither rewritten nor pinned — because it was not superseded. The prose
+above it now frames it as the matrix taken *in every channel*, so the table still
+states the contract correctly and rewriting it would say the same thing twice.
+The plan was sealed before that was known. Both pin sites now state the full
+reach and name each other, so a maintainer at either one sees the whole pin.

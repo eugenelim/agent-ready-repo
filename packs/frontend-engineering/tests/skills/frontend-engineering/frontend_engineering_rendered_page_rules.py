@@ -263,9 +263,22 @@ def required_channels(
     return bands
 
 
-def channel_basis(declared_breakpoints: list[int] | None = None) -> str:
+def channel_basis(
+    markdown: str, declared_breakpoints: list[int] | None = None
+) -> str:
     """Which basis a run used. Recorded from the input, never inferred from the
-    captures: a declared run and a fallback run can produce the same set."""
+    captures: a declared run and a fallback run can produce the same set.
+
+    Reads `channel-basis-recorded` rather than answering unconditionally. Every
+    other row in that table gates module behaviour, and a row nothing reads is a
+    declaration a future editor can delete with no check noticing.
+    """
+    if not _rule_in_force(channel_rules(markdown), "channel-basis-recorded", "Channels"):
+        raise AssertionError(
+            "the Channels table switched channel-basis-recorded off; a run that "
+            "does not record its basis cannot distinguish a declared run from a "
+            "fallback one over the same bands"
+        )
     return "declared-breakpoints" if declared_breakpoints else "fallback"
 
 
@@ -358,6 +371,28 @@ def _scroll_pair_rule(markdown: str) -> str:
     return required_captures(markdown)["short-scrolled"]["scroll"]
 
 
+def _rule_in_force(rules: dict[str, str], key: str, table: str) -> bool:
+    """Whether a rule row is in force, refusing to answer when it is absent.
+
+    An **absent** row raises: a rule nobody states is not a rule this module may
+    invent, and a reader that quietly skips it is fail-open — deleting the row
+    would leave every check green, which is the one mutation a shipped-content
+    criterion exists to catch. A row that is *present* and says something other
+    than `required` is a stated decision to switch the rule off, and is honoured.
+
+    Every rule row the completeness walk reads goes through here. The first
+    version of the channel axis routed only the pair rule this way and read the
+    channel rule with a bare `.get(...) == "required"`, so deleting the one row
+    that gates the whole axis silently disabled it.
+    """
+    if key not in rules:
+        raise AssertionError(
+            f"the {table} rule rows no longer state {key!r}; the rule is the "
+            f"data, not this module"
+        )
+    return rules[key] == "required"
+
+
 def _required_rule(markdown: str, key: str) -> bool:
     """Whether a `Required captures` rule row is in force.
 
@@ -368,13 +403,7 @@ def _required_rule(markdown: str, key: str) -> bool:
     something other than `required` is a stated decision to switch the rule off,
     and is honoured.
     """
-    rules = capture_set_rules(markdown)
-    if key not in rules:
-        raise AssertionError(
-            f"the Required captures rule rows no longer state {key!r}; the rule "
-            f"is the data, not this module"
-        )
-    return rules[key] == "required"
+    return _rule_in_force(capture_set_rules(markdown), key, "Required captures")
 
 
 def evaluate_capture_set(
@@ -409,16 +438,20 @@ def evaluate_capture_set(
         by_route.setdefault(str(capture.get("route", "")), []).append(capture)
 
     missing: list[str] = []
-    at_rest_rule = required_captures(markdown)["short-at-rest"]["scroll"]
+    required = required_captures(markdown)
+    at_rest_rule = required["short-at-rest"]["scroll"]
     scrolled_rule = _scroll_pair_rule(markdown)
     channels = required_channels(markdown, declared_breakpoints)
-    matrix_required = channel_rules(markdown).get(
-        "every-required-channel-needs-the-matrix"
-    ) == "required"
+    matrix_required = _rule_in_force(
+        channel_rules(markdown), "every-required-channel-needs-the-matrix", "Channels"
+    )
     pair_required = _required_rule(
         markdown, "every-captured-width-and-height-needs-the-pair"
     )
 
+    # Both switches are loop-invariant and are read once, above the walk. Inside
+    # it, `if not pair_required: continue` read as "skip this route" when it meant
+    # "this rule is switched off".
     for route, route_captures in sorted(by_route.items()):
         # Rules 1 and 2 — every required channel carries the height-and-scroll
         # matrix, within this route. The quantifier is shipped content.
@@ -429,7 +462,7 @@ def evaluate_capture_set(
                     for c in route_captures
                     if width_in_channel(channel, int(c["viewport-width"]))
                 ]
-                for name, rule in required_captures(markdown).items():
+                for name, rule in required.items():
                     if not any(
                         satisfies(rule["height"], int(c["viewport-height"]))
                         and _scroll_rule_met(rule["scroll"], c)

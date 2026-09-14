@@ -9,6 +9,7 @@ the captures, the independent check is still blind, and the step is self-review.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -259,8 +260,6 @@ def test_the_journey_metadata_no_longer_advertises_a_diff_only_reviewer() -> Non
 
 # ── the width axis reaches the reviewer and the harness ─────────────────────
 
-import json  # noqa: E402
-
 EVALS = (
     PACK_ROOT
     / ".apm"
@@ -284,25 +283,52 @@ def test_reviewer_lens_reads_the_width_axis(reviewer: str) -> None:
     looked for the words would have passed on the unchanged agent — a control
     that cannot fail on the thing it names.
     """
-    lens = _lens_six(reviewer)
-    assert "**Use the viewport width.**" in reviewer.split("### Lens 6", 1)[1], (
-        "lens 6 carries no imperative to use the viewport width, only the "
-        "pre-existing sentence that lists it among the recorded fields"
+    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    assert _lens_carries_the_width_imperative(lens), (
+        "lens 6 carries no imperative to use the viewport width, or does not say "
+        "what the width decides; the pre-existing sentence listing it among the "
+        "recorded fields is not enough"
     )
-    assert "breakpoint" in lens, (
-        "lens 6 does not say what the viewport width decides"
+
+
+# The lens as it stood before this delivery: it listed viewport width among the
+# recorded fields and told the reviewer to use the scroll position, and that was
+# all. A guard that searched for the words "viewport width" would have passed on
+# this text, which is why the check anchors on the imperative.
+PRE_CHANGE_LENS = """Each capture carries the route, viewport width and height, scroll position, and
+whether the page scrolls. **Use the scroll position.** "Clipped at the top of the
+page" and "above the fold because the reader scrolled" are the same picture and
+differ only by that field; a capture with no recorded state yields no finding."""
+
+
+def _lens_carries_the_width_imperative(lens_text: str) -> bool:
+    """The property AC-0013 states, as one function both polarities drive."""
+    return "**Use the viewport width.**" in lens_text and "breakpoint" in lens_text
+
+
+def test_the_width_check_fails_against_the_pre_change_lens() -> None:
+    """The must-red half, run against the real pre-change text.
+
+    It used to be `lens.replace(X, "")` followed by `assert X not in ...`, which
+    is true by construction for every input and exercised neither the lens nor
+    the second half of the property.
+    """
+    assert not _lens_carries_the_width_imperative(PRE_CHANGE_LENS), (
+        "the pre-change lens satisfies the check, so the check cannot fail on the "
+        "state it was written to reject"
     )
-    # The pre-change lens must red: it listed the field and told the reviewer to
-    # use the scroll position, and nothing else.
-    pre_change = lens.replace("**Use the viewport width.**", "")
-    assert "**Use the viewport width.**" not in pre_change
 
 
 def test_the_lens_still_tells_the_reviewer_to_use_the_scroll_position(
     reviewer: str,
 ) -> None:
-    """The width joins the scroll position; it does not replace it."""
-    assert "**Use the scroll position.**" in reviewer
+    """The width joins the scroll position; it does not replace it.
+
+    Scoped to lens 6, like its sibling: an unscoped search stays green if the
+    scroll imperative moves out of the lens entirely.
+    """
+    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    assert "**Use the scroll position.**" in lens
 
 
 def _inspection_case() -> dict:
@@ -321,6 +347,16 @@ def test_the_harness_expects_channel_coverage() -> None:
     assert "channel" in case["expected_output"].lower()
 
 
+# The harness half of the demoted obligation's content pin. The guide half lives
+# in `test_rendered_page_verdict.py`'s `SUPERSEDED_FLOOR`; between them they carry
+# the five strings `plan.md` § Design decisions names. Neither site is the whole
+# pin, and each says so.
+HARNESS_SUPERSEDED_FLOOR = (
+    "Captures at a viewport height of at most 600 CSS pixels and at least 900",
+    "The capture set covers both required viewport heights,",
+)
+
+
 def test_the_harness_no_longer_grades_against_a_height_only_floor() -> None:
     """The harness used to define a complete set by height alone, in its first
     assertion and its expected_output opening. A run matching those exactly is
@@ -328,10 +364,13 @@ def test_the_harness_no_longer_grades_against_a_height_only_floor() -> None:
     against the superseded floor.
     """
     case = _inspection_case()
-    assert case["assertions"][0] == (
-        "Captures, in every required channel, at a viewport height of at most 600 "
-        "CSS pixels and at least 900, each at rest and scrolled"
-    )
-    assert not case["expected_output"].startswith(
-        "The capture set covers both required viewport heights,"
-    )
+    # Pin the ABSENCE of the superseded strings, not the presence of the current
+    # wording at a fixed index: an index pin reds on any legitimate rewording and
+    # on inserting an assertion ahead of it, neither of which is this regression.
+    for stale in HARNESS_SUPERSEDED_FLOOR:
+        assert stale not in " ".join(case["assertions"]), (
+            f"an assertion still states the superseded floor: {stale!r}"
+        )
+        assert stale not in case["expected_output"], (
+            f"expected_output still states the superseded floor: {stale!r}"
+        )

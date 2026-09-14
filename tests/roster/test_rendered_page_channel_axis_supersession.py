@@ -50,8 +50,11 @@ def test_the_status_line_points_at_the_successor() -> None:
     assert "AC-0007" in line, "the pointer does not name the superseding criterion"
 
 
-def test_the_pointer_is_the_only_edit_the_frozen_spec_took() -> None:
+def test_the_superseded_criterion_is_still_present_verbatim() -> None:
     """Half two: the superseded criterion is still present verbatim and ticked.
+
+    Named for what it checks. It cannot detect an arbitrary edit elsewhere in the
+    frozen body; it detects that this criterion did not silently become false.
 
     Without this the pointer could sit on a spec whose body had been rewritten,
     which is the edit a frozen spec must not take. A `Status:` line pointer is

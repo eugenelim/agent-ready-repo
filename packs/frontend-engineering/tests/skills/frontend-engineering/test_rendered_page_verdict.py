@@ -554,6 +554,14 @@ def test_the_guide_walks_both_fallback_channels() -> None:
 # strings that stated it carry no completeness word at all, and the token that
 # would red them also reds the guide's unscrollable-branch sentence, which must
 # survive. A literal pin is what is left, and its reach is exactly these strings.
+# This is the GUIDE half. The harness half lives in
+# `test_rendered_page_reviewer_sight.py`'s `HARNESS_SUPERSEDED_FLOOR`, which pins
+# the two `evals.json` strings. Between them the pin reaches four of the five
+# strings `plan.md` § Design decisions names; the fifth, the guide's height-keyed
+# capture table, is not pinned because it was not superseded — the prose above it
+# now frames it as the matrix taken in every channel, so the table itself still
+# states the contract. That divergence from the plan is recorded in
+# `notes/verification-ledger.md`.
 SUPERSEDED_FLOOR = (
     "Take four captures per route: two viewport heights",
     "none beyond these two is required",
