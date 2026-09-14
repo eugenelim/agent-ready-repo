@@ -1,7 +1,7 @@
 # Plan: initiative display metadata
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/AGENTS.md` § Version bump rule and
   § Self-hosting projection; `packs/AGENTS.md` § "Shipped pack content carries
   no internal-governance citations" for the SKILL.md wording. Analogous
