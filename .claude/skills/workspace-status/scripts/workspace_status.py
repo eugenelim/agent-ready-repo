@@ -208,6 +208,16 @@ def _repo_backlog_entry_dict(entry) -> dict:
     so they are deliberately not projected — an emitted field with no consumer
     is re-sent to the model on every later request in an agent call. Narrowing
     applies to every mode, keeping `reconcile` and `status` identical here.
+
+    `summary` and `needs` are projected as written, while sibling emitters in
+    this module bound their values through a `_public_*` filter. That is
+    deliberate. `workspace.toml` is working material for developers in the same
+    repository and carries the same trust as the source code beside it, so its
+    display prose needs no redaction on the way out. Reusing `_public_need`
+    here would also be wrong on its own terms: it accepts only strings and
+    returns the sentinel for anything else, so every typed dependency record
+    would collapse to the sentinel and lose exactly the dependency data
+    `SKILL.md` forbids recovering by rereading raw TOML.
     """
     result = {"room": entry.room, "needs": entry.needs}
     for key in ("slug", "path", "summary"):
