@@ -302,3 +302,40 @@ Two compounding errors, both the same shape as ones already recorded above:
 Fixed in `1ce654b74`. Full roster sweep after the fix: **1500 passed, 6 skipped**.
 AC-0015 still holds — it requires the entry to be topmost *for this pack*, and no
 other `frontend-engineering` heading precedes it.
+
+
+## What runs on a PR, and what this delivery therefore owes
+
+**No test written by this delivery runs on a pull request.** Established by
+reading the workflows rather than assuming:
+
+| Surface | PR trigger | Reaches this delivery's tests |
+| --- | --- | --- |
+| `build-check.yml` | yes | no — its chain hands pytest 7 named targets, none under `packs/frontend-engineering/` |
+| `docs.yml` | yes | no |
+| `test-corpus.yml` (`make test`) | **dispatch only** | yes — `Makefile:574` runs the pack suite |
+| `test-roster.yml` (`tests/roster/`) | **dispatch only** | yes — and it is AC-0019's only artifact |
+
+This is the repository's design, not a defect in it: the heavy suites are
+dispatch-only by construction and neither is a required status check. The
+consequence for this delivery is specific and was not stated anywhere in the
+plan — **both dispatches are obligatory evidence here, not optional extras**:
+
+- The pack suite carries every channel-axis guard and every mutation control this
+  delivery argued about for five review rounds. Without the corpus dispatch, a PR
+  shows none of it.
+- `tests/roster/test_rendered_page_channel_axis_supersession.py` is AC-0019's
+  **only** verification artifact. It was put there on a test-boundary argument —
+  the frozen spec belongs to this repository's lifecycle, not the pack's — which
+  was right for ownership and left the criterion reachable by no PR gate.
+- `tests/roster/test_verification_ledger_contract.py` is the invariant that the
+  changelog defect broke, and it is in the same unreachable-by-PR set.
+
+**Deviation, recorded rather than repaired.** T9's `Done when` names
+`make build-self` and `ruff check`, neither of which reads a `docs/` file or a
+roster test, while T9's own `Touches` lists `docs/product/changelog.md` and a
+roster test. The plan was sealed before that mismatch was visible. Rather than
+amend a sealed plan late, the obligation is carried here and discharged in the
+closeout: **both `gh workflow run test-corpus.yml` and
+`gh workflow run test-roster.yml` are dispatched against this branch after push,
+and their results belong to this delivery's evidence.**
