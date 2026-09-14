@@ -183,10 +183,11 @@ def _run(args, env, stream, connection_factory) -> int:
         print("jsonl-otlp-export: no line yielded a valid record; nothing was sent",
               file=stream)
         return EXIT_FAILED
-    if outcome.status != EXIT_OK and args.best_effort and not outcome.partial_success:
-        # Same scoping as in send_batches: best-effort forgives a send failure,
-        # not a receiver rejecting records on their content.
-        return EXIT_OK
+    # `best_effort` is applied ONCE, inside send_batches, which already scopes it
+    # to a send failure and excludes a partial success. A second mask here
+    # duplicated that rule and made the `best_effort=` argument above dead: drop
+    # the wiring and this branch converted the failure anyway, so nothing could
+    # fail if it regressed. One rule, one site.
     return EXIT_FAILED if outcome.status else EXIT_OK
 
 

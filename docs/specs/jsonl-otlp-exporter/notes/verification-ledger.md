@@ -441,3 +441,54 @@ Anyone resuming should re-derive the baseline deliberately rather than treating
 the mismatch as corruption — and should NOT run `loop-engine reset`, because
 `plan-locked` is legal only from `SPEC-PLAN-APPROVED` and the engine has no
 state-setting verb, so resetting strands the run.
+
+## The sweep's three behavioural survivors, triaged
+
+A corrected sweep run by the `loop-telemetry-export` session produced 46
+mutations: 30 caught, 1 hang (the already-documented `daemon=True`), 15
+survivors. Twelve have no behaviour to control — argparse display text and two
+`frozen=True` dataclasses. Three were behavioural, and they resolved three
+different ways, which is the point worth keeping.
+
+**`required=True` on `--input` — a missing control, now added.** Dropping it
+still failed the run, but through whatever `open_input(None)` raises rather than
+as a usage error. Right exit code, wrong observable, and nothing could tell the
+two apart. Mutation-verified.
+
+**`best_effort=args.best_effort` — not a missing control, a redundant path.**
+`send_batches` already applies `best_effort` internally with exactly the same
+scoping, and `cli._run` applied the rule a second time afterwards. Dropping the
+wiring changed nothing because the second mask converted the failure anyway. The
+repair is to delete the duplicate mask, not to test the wiring: **a control over a
+redundant path pins the redundancy in place.** One rule, one site, and the
+argument is now load-bearing. Mutation-verified.
+
+**`on_oversize` — unreachable, and that is the answer.** AC-0018 caps a line at
+64 KiB and AC-0019 caps a request at 8 MiB, so one record reaches about 388 KiB
+worst case and a batch always splits down to records that fit. The
+singleton-refusal branch cannot fire from the command.
+`test_the_oversize_path_is_unreachable_through_the_cli` pins the RELATIONSHIP, so
+if either ceiling moves the claim fails rather than quietly becoming false. No
+control is possible and none should be written.
+
+Three survivors, three different correct answers: add a control, delete the
+redundancy, or record why no control can exist. A sweep that only ever produced
+"add a test" would have been wrong twice out of three.
+
+## What I asserted without checking
+
+Three times in this work I stated something as established that I had not
+verified, and the shape was identical each time: I checked the thing I was
+thinking about, not the thing I was asserting.
+
+- "410 tests" — repeated through commit messages and a pull-request description.
+  The measured count is 279.
+- "events.jsonl cannot see the retry counters" — `budgets` carries all four on
+  every line; the bump emits no line of its own, which is a one-transition lag,
+  not blindness.
+- "a verification run is in flight" — it was wrapped in `timeout`, which does not
+  exist on macOS, so it had failed instantly and I reported it as running.
+
+Each was caught by someone else. The first two changed conclusions other people
+were relying on; the third only wasted a message. None was caught by a test,
+because none was the kind of claim a test covers.
