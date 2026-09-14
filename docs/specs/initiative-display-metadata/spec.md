@@ -29,12 +29,6 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 | User-facing promise | Applicable — the change alters what an adopter's agent prints at session start | `packs/core/.apm/skills/workspace-status/SKILL.md` | maintainer | AC-0003's content assertions over the key list and rendering template | Template renders the two values and no redaction paragraph remains |
 | Release history | Applicable — adopter-visible behavior change | `docs/product/changelog.md` | maintainer | Released `[core]` entry with a `Highlights` bullet | Entry is free-standing directly beneath `[Unreleased]` |
 | Interface compatibility | Applicable — two projected field meanings change | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | maintainer | Matching incremented versions | `check-release-impact` passes |
-| Decision rationale | Not applicable | — | — | — | The accepted intent already owns the rationale; a second home would drift |
-| Current architecture | Not applicable | — | — | — | No module boundary, layer, or ownership changes |
-| Operations | Not applicable | — | — | — | No runtime, deployment, or operational surface changes |
-| Maintainer procedure | Not applicable | — | — | — | No maintainer workflow changes |
-| Current product truth | Not applicable | — | — | — | `SKILL.md` is the product-truth surface for this behavior and is already listed |
-| Reusable learning | Not applicable | — | — | — | Routed through `project-knowledge` at the work-loop gates, not a spec output |
 
 ## Boundaries
 
@@ -74,20 +68,20 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
 
 ## Testing Strategy
 
-- **Values reach the projection unchanged (AC-0001): TDD.** A compressible
-  invariant over a value domain — projected output compared against authored
-  input — so it is expressed as cases over the real charset rather than
-  inspected by hand.
+- **Values reach the projection unchanged (AC-0001): TDD, plus visual / manual
+  QA at the invocation surface.** A compressible invariant over a value domain —
+  projected output compared against authored input — so it is expressed as cases
+  over the real charset rather than inspected by hand. Two altitudes, one
+  outcome: `workspace-status` is a skill a user invokes, so the real script also
+  runs against this repository's own `workspace.toml` and the observed
+  `initiatives[]` output is recorded. A passing unit gate does not establish
+  what a session actually prints.
 - **Non-string coercion (AC-0002): TDD.** One input class with one stated output
   type; the cheapest possible red, and the case has never occurred in the
   corpus so nothing else would catch a regression.
 - **Contract text matches behavior (AC-0003): goal-based check.** The outcome is
   the presence and absence of specific strings in a shipped file. A content
   assertion answers it exactly; a behavioral test cannot see prose.
-- **The rendered orientation line: visual / manual QA.** `workspace-status`
-  is a skill a user invokes, so the real script runs against this repository's
-  own `workspace.toml` and the observed `initiatives[]` output is recorded.
-  A passing unit gate does not establish what a session actually prints.
 
 ## Acceptance Criteria
 
@@ -96,10 +90,9 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   that initiative's `workspace.toml` section assigns, unchanged — including a
   value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
 - [ ] **AC-0002.** A non-string TOML value assigned to `name` or `milestone`
-  projects as a JSON string, never as a JSON number, boolean, array, or object.
-  Projected text for each class under test: `123` → `"123"`, `4.5` → `"4.5"`,
-  `true` → `"True"`,
-  `[1, 2]` → `"[1, 2]"`, `{a = 1}` → `"{'a': 1}"`, and
+  projects as a JSON string, at every non-string TOML type: integer, float,
+  boolean, array, inline table, and each date-time form. Two projected texts
+  differ from what the author wrote and are fixed here: `true` → `"True"`, and
   `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`.
 - [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
   fields as values read from `workspace.toml`, enumerates `name` and `milestone`

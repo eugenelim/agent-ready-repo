@@ -83,13 +83,6 @@ error, and showing the reader what arrived is more useful than making it look
 like valid TOML. The alternative, a TOML-faithful renderer, is a new mechanism
 for a case the corpus has never produced.
 
-### Behavior & rules
-
-For each active initiative, the projection carries `slug` (filtered), `status`
-(enum-clamped), `name` (as authored, coerced to string), `milestone` (as
-authored, coerced to string), `brief_queue`, and `queue_empty`. The two display
-fields are the only ones this change touches.
-
 ### Failure, edge cases & resilience
 
 An absent `name` or `milestone` key already yields `""` from the parser's
@@ -124,13 +117,13 @@ is recorded as a known shape, not handled.
   `test_initiative_display_prose_projects_verbatim`, keeping its unusual input
   and asserting the value arrives unchanged. This is the case that records the
   trust-model decision in the suite.
-- New case for AC-0002 covering every class the criterion fixes, across
-  sub-fixtures: `123` → `"123"`, `4.5` → `"4.5"`, `true` → `"True"`,
-  `[1, 2]` → `"[1, 2]"`, `{a = 1}` → `"{'a': 1}"`, and
-  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`. Assert each projected
-  string literally and `isinstance(value, str)`. The boolean and inline-table
-  rows are the ones a later editor is most likely to "correct" toward TOML
-  syntax, so they are pinned rather than implied.
+- New case for AC-0002, table-driven over the closed set of non-string TOML
+  types — integer, float, boolean, array, inline table, offset date-time —
+  asserting `isinstance(value, str)` at each. Two rows additionally assert their
+  literal text, because it differs from what the author wrote and a later editor
+  would plausibly "correct" it toward TOML syntax: `true` → `"True"` and
+  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`. Both were measured
+  through the real script, not derived.
 - Update the third pinning site inside `test_cli_rich_fixture_shapes`, whose
   fixture already declares `milestone = "M1"`, to expect the authored value.
 - Ten assertions invert across the three tests, not three: six equality
@@ -176,8 +169,11 @@ is recorded as a known shape, not handled.
 
 - Re-pin both `163` literals in
   `tools/test_local_ci_shared_test_deduplication.py` once T1's and T2's
-  additions both exist, with the disposition note that file's convention
-  requires.
+  additions both exist. That file's convention (lines 55-66) requires a
+  dispositioned re-pin, not a bare bump: name the additions, and state that
+  nothing was removed or renamed. The note also covers the preceding
+  `162 -> 163` re-pin, which landed without one, so the contract regains a
+  continuous account rather than a number with a gap behind it.
 
 **Done when:** the AC-0003 assertion is green, `catalogue verify` reports `ok`,
 and `tools/test_local_ci_shared_test_deduplication.py` passes.
@@ -221,11 +217,9 @@ assertion would duplicate an existing gate.
 
 - **Delivery:** big bang, within one pack release. Reversible by restoring the
   two literals; no migration and no persisted state is involved.
-- **Infrastructure:** none.
-- **External-system integration:** none.
-- **Deployment sequencing:** none — the emitter, the contract and the version
-  ship together, because a version claiming the new behavior without the
-  emitter would be wrong.
+- **Deployment sequencing:** the emitter, the contract and the version ship
+  together; a version claiming the new behavior without the emitter would be
+  wrong. No infrastructure or external-system dependency is involved.
 
 ## Risks
 
@@ -246,6 +240,10 @@ assertion would duplicate an existing gate.
   boolean-rendering decision out of the criterion (F4), dropped the unframed
   107-character length (F5), and made T3's exit condition a property rather
   than four corpus literals (F6).
+- 2026-09-14 — deletion pass before approval: cut six Not-applicable durable-
+  output rows, the `Behavior & rules` restatement, and three `none` rollout
+  lines; reshaped AC-0002 from six enumerated texts to one substitutable
+  predicate over the closed type set with the two decision-bearing texts kept.
 - 2026-09-14 — revised from round 2, which was four-fifths consequences of
   round 1's own repairs: narrowed the leak-guard carve-out that had forbidden
   T1 (F7), gave every AC-0002 class a measured projected text and a case (F8),
