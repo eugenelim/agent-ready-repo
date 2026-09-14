@@ -90,12 +90,24 @@ why the fallback bands leave a dead zone. What is not recoverable from there:
 
 **The capture width is the band's edge, and that is a deliberate trade.** AC-0024
 returns the lower bound where a band has one, so a declared `[480, 768, 1024]`
-yields 479, 480, 768 and 1024 — two of them one pixel apart, and 481–767 never
-captured. The edge is chosen because the defect class this delivery names is a
+yields 479, 480, 768 and 1024 — two of them one pixel apart. Every band gets
+exactly one capture, so every band keeps an uncaptured remainder:
+
+| Band | Captured | Uncaptured |
+| --- | --- | --- |
+| `<480` | 479 | 0–478 |
+| `>=480 <768` | 480 | 481–767 |
+| `>=768 <1024` | 768 | 769–1023 |
+| `>=1024` | 1024 | 1025 and above |
+
+The first band is the exception in direction, not in kind: with no lower bound to
+read, the rule takes the largest width its upper bound admits, so its uncaptured
+region sits below its capture rather than above it. The edge is chosen because the defect class this delivery names is a
 rule scoped to one side of a breakpoint reaching the other, and only widths
 straddling the breakpoint exercise both scopes: a declared 1152 yields 1151 and
-1152. What it gives up is a rule that misbehaves in a band's interior, which is a
-different class and stays invisible. One operational caveat for the implementer:
+1152. What it gives up is a rule that misbehaves anywhere in a band other than at the
+pixel captured — the whole of each uncaptured remainder above. That is a
+different defect class from the one this delivery names, and it stays invisible. One operational caveat for the implementer:
 a scrollbar-inclusive layout viewport can put a media query on the other side of
 the number the driver was handed, so a capture taken at the boundary needs its
 attained width read back from the page, the way the attained scroll offset
