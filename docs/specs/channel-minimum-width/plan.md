@@ -170,9 +170,11 @@ and after (T7).
 
 **Tests:** goal-based check for the rows. AC-0001 through AC-0004, AC-0006 and
 AC-0007 are stated here and asserted in T2. AC-0021's sweep lands in T5, after
-every surface it reaches has been edited, but two of its five anchors are in this
-file — the fallback sentence and the band enumeration — so both are conditioned
-here.
+every surface it reaches has been edited, but four of its seven anchors are in
+this file: the fallback sentence, the band enumeration, and the per-route floor
+stated a second time in `## Required captures` — a paragraph the earlier
+anchor set missed entirely, because its wording is backticked and omits "where
+you declare".
 `test_the_channel_sweep_reaches_every_file_that_names_a_channel` and
 `test_every_shape_still_matches_the_shipped_site_it_was_written_for` are re-run
 in-task: the first asserts set equality between the channel names harvested
@@ -183,9 +185,12 @@ in a three-cell table or prose in the `` `name` at <op> `` shape reds it.
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** neither `these two apply` nor ``For breakpoints `b1 < ... < bn``
-sits in a paragraph that fails to name the minimum, the channel-name sweep is
-green without its shapes or expected set being edited, and
+**Done when:** none of this file's four anchors sits in a paragraph that fails to
+name the minimum, **and each still matches**, so conditioning rather than
+rephrasing is what discharges it. The four are the fallback sentence, the band
+enumeration opener, the eight-captures-per-route figure, and the backticked
+n-plus-1 floor in the required-captures paragraph, quoted exactly in AC-0021; the channel-name sweep is green without its shapes or
+expected set being edited; and
 `channel_rules(read_rules())` returns eight keys including
 `channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
 rejects a duplicate key, run from a scratch probe. Not `capture_set_rules`: it
@@ -280,15 +285,20 @@ documentation gates stay a separate well-formedness check.
 
 **Approach:** the guide's capture section gains the minimum alongside the
 breakpoints it already walks, and states the required set for a surface that
-declares one. The eight-capture figure already reads "on the fallback bands" and
-needs no change; the edit is the `4(n + 1)` formula beside it, which a minimum
-that discards a declared breakpoint makes wrong.
+declares one. Both claims in that paragraph are edited. The `n + 1` formula is
+wrong whenever a minimum discards a declared breakpoint, and the eight-capture
+figure is wrong too: "on the fallback bands" names the basis, which a minimum
+leaves unchanged, not the set size, which it changes — a 1280-minimum surface is
+on the fallback bands and needs four captures per route. An earlier draft of this
+plan exempted the figure on that qualifier, which was the round-5 premise this
+delivery itself falsifies.
 
 **Done when:** the guide's links resolve under the repository's documentation
-gates, and neither `Declare none and two apply` nor
+gates, and none of `Declare none and two apply`, `eight captures per route` or
 `four times *n + 1* where you declare *n* breakpoints` sits in a paragraph that
-fails to name the minimum. Both wrap across a line break in this file, so the
-check normalizes whitespace before matching.
+fails to name the minimum, each still matching. Two of them wrap across a line
+break here, so the check normalizes whitespace **within a paragraph** after
+splitting on blank lines, never before.
 
 ### T5: The harness expects the minimum
 
@@ -298,14 +308,16 @@ check normalizes whitespace before matching.
 **Tests:** TDD for AC-0011 in `test_rendered_page_reviewer_sight.py`, which
 already parses this file for the channel-coverage assertion, plus AC-0021's
 sweep in `test_rendered_page_shipped_content_limits.py`. The sweep lands here
-because it is the last task to touch a surface it reaches; its fifth anchor is
-this file's coverage expectation.
+because it is the last task to touch a surface it reaches; its seventh anchor is
+this file's coverage expectation. The per-anchor match assertion is the half that
+keeps the sweep honest: without it, an edit that rephrases a claim instead of
+conditioning it leaves the sweep matching nothing and reporting green.
 
 **Approach:** the `rendered-page-inspection` case gains an assertion naming the
 declared minimum and what it removes from the required set.
 
-**Done when:** all five AC-0021 anchors are green across `.apm/**` and the
-how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
+**Done when:** all seven AC-0021 anchors both match at least once and sit only
+in paragraphs that name the minimum, across `.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
 `make build-self` leaves no projection diff.
 
 ### T6: The step is performed against a single-channel surface
@@ -373,6 +385,24 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 8. Four findings, all on the new sweep. The anchor
+  set missed a sixth carrier — the reference states the per-route floor again in
+  `## Required captures`, backticked and without "where you declare", so no
+  anchor matched it. The set is now seven anchors, including
+  `eight captures per route`, which reaches all three carriers of that figure.
+  Fixed the mechanization order: "normalizes whitespace first" would have erased
+  every blank-line boundary and collapsed "the enclosing paragraph" to the whole
+  file, making the check unfailable on every file this delivery touches; the
+  criterion now splits into paragraph units first and normalizes within a unit.
+  Added a per-anchor match assertion, without which an edit that rephrases a
+  claim rather than conditioning it leaves the sweep matching zero anchors and
+  reporting green — and the three demoted criteria had given up their conditional
+  clauses on exactly that check. Struck the claim that "on the fallback bands"
+  exempts the eight-capture figure: the qualifier names the basis, which a
+  minimum leaves unchanged, and AC-0006 fixes that basis at `fallback` for a
+  1280-minimum surface, which needs four captures per route and not eight. That
+  premise came from round 5 and I carried it into AC-0010 and T4 without testing
+  it against this delivery's own criteria.
 - 2026-09-14 — Shaping round 7. Replaced the per-surface conditioning clauses
   with one sweep. Four shipped surfaces state some form of "two bands always
   apply" or the `n + 1` floor, and rounds 5, 6 and 7 each found the next instance
