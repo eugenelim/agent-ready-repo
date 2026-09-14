@@ -207,7 +207,7 @@ than assumed, and `make build-self` leaves no projection diff.
 **Depends on:** T4
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
 
-**Tests:** TDD for AC-0011 and AC-0012, in
+**Tests:** TDD for AC-0011, AC-0012 and AC-0020, in
 `test_rendered_page_shipped_content_limits.py`. The guard **reads** the forbidden
 token list from the reference rather than stating it, which is what makes AC-0012
 delete-and-red the way AC-0008 requires of the other rows; stating it in the test
@@ -217,12 +217,12 @@ describe repository policy, not a rule an adopter is held to.
 
 **Approach:** restate the manifest `viewports` field as channels covered, given as
 width predicates, in `SKILL.md` and in the journey's manifest inventory — AC-0011
-reaches both. `SKILL.md`'s current example line names three devices and is inside
+reaches both and AC-0020 pins them equal. The `viewports` row of `SKILL.md`'s
+evidence-manifest required-field table currently names three devices and is inside
 AC-0012's scope, so it is rewritten here rather than left.
 
-**Done when:** `SKILL.md:783`'s three-device example line no longer names a
-device, and the journey's manifest inventory states the same channel set as
-`SKILL.md`'s.
+**Done when:** the `viewports` row of `SKILL.md`'s evidence-manifest
+required-field table no longer names a device.
 
 ### T6: The reviewer and the eval harness read the width axis
 
@@ -246,14 +246,16 @@ agent and harness, and `make build-self` leaves no projection diff for either.
 **Depends on:** T4
 **Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md
 
-**Tests:** goal-based check for AC-0018 — the guide is prose against a
-non-repository surface, and the repository's documentation gates are the one-liner.
+**Tests:** goal-based check for AC-0018 — a search over the guide for both
+fallback channel names and the band between them that no fallback capture
+reaches. The repository's documentation gates stay a separate well-formedness
+check; a guide naming neither channel passes them.
 
 **Approach:** take the guide's worked walk across both channels and state what a
 reader records when no breakpoints are declared.
 
-**Done when:** the guide's links resolve and its walk names both channels and the
-fallback gap, under the repository's documentation gates.
+**Done when:** the guide's links resolve under the repository's documentation
+gates.
 
 ### T8: The step is performed end to end across two channels
 
@@ -273,12 +275,13 @@ exists and carries the four values AC-0017 names.
 ### T9: The release surface carries the change
 
 **Depends on:** T1-T8
-**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md, docs/specs/rendered-page-visual-inspection/spec.md
+**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md, docs/specs/rendered-page-visual-inspection/spec.md, tests/roster/test_rendered_page_channel_axis_supersession.py
 
-**Tests:** AC-0019 is TDD in `test_rendered_page_capture_contract.py`, comparing
-the frozen spec to its pre-change bytes so the body-unchanged half is observed
-rather than assumed. AC-0014 and AC-0015 are a goal-based check — compare the two
-manifests' version fields, confirm
+**Tests:** AC-0019 is TDD in
+`tests/roster/test_rendered_page_channel_axis_supersession.py` — the frozen spec
+belongs to this repository's spec lifecycle, not the pack's, so the assertion
+lives in the repository's own suite. AC-0014 and AC-0015 are a goal-based check —
+compare the two manifests' version fields, confirm
 the changelog entry is this pack's topmost release heading, and compare the pack's
 declared dependency surfaces before and after to show none was added.
 
@@ -316,6 +319,10 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Shaping review round 3: 5 findings, no blocker, all taken. Three
+  were companion statements left stale by round 2's repairs; one moved AC-0019's
+  check out of the pack suite, which has no business asserting on this
+  repository's spec lifecycle.
 - 2026-09-13 — Shaping review round 2: 10 findings, all taken; eight were
   consequences of round 1's own repairs. The Blocker was the repaired AC-0001
   needing a two-sided interval that `satisfies()` raises on, fixed by three-cell
