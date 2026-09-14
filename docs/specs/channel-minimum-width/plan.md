@@ -231,11 +231,16 @@ from *present*.
 
 **Approach:** add the minimum parameter and the filter to `required_channels`,
 reading `channel-minimum-derivation` and refusing an unrecognised value the way
-`channel_capture_width` refuses — and validating it **before** the
-`if not declared_breakpoints` early return, not beside the `channel-derivation`
-and `channel-boundary-belongs-to` checks that sit after it, which never run on
-the fallback path; extend `REQUIRED_RULE_ROWS["Channels"]` with
-both keys; add the two recording readers beside `channel_basis`, gated on
+`channel_capture_width` refuses. Both the rule-token check **and** the minimum's
+own value check go **before** the `if not declared_breakpoints` early return —
+the value check especially, because the shipped breakpoint validation loop sits
+after that return, so a minimum validated beside it would leave a fractional or
+negative minimum unchecked on the no-breakpoints path, which is this delivery's
+motivating surface. That is AC-0001's two-breakpoint-state obligation, and it is
+the same fork AC-0015 and AC-0016 name. Neither check goes beside the
+`channel-derivation` and `channel-boundary-belongs-to` checks, which sit after
+the early return and never run on the fallback path. Then extend
+`REQUIRED_RULE_ROWS["Channels"]` with both keys; add the two recording readers beside `channel_basis`, gated on
 `channel-minimum-recorded` through `_rule_in_force`, without widening the basis
 vocabulary.
 
