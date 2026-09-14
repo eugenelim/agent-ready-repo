@@ -24,7 +24,6 @@ import tomllib
 from pathlib import Path
 
 import pytest
-
 from jsonl_otlp_exporter.encode import encode_records
 from jsonl_otlp_exporter.profile import parse_profile
 from jsonl_otlp_exporter.transport import batch_records, resolve_destination, send_batches

@@ -12,10 +12,11 @@ from __future__ import annotations
 import io
 import json
 import os
+import pathlib
 import signal
 import time
-import pytest
 
+import pytest
 from jsonl_otlp_exporter import source as src
 
 
@@ -257,7 +258,7 @@ class TestLifecycle:
         try:
             assert next(records) == {"a": 1}
             replacement = _write(tmp_path / "new.jsonl", '{"z":26}\n')
-            os.replace(replacement, target)  # same name, new inode
+            pathlib.Path(replacement).replace(target)  # same name, new inode
             clock.now = 30.0
             assert list(records) == [], "the run holds its descriptor; it does not re-read"
         finally:
@@ -271,7 +272,7 @@ class TestLifecycle:
             seen = [next(records)]
             target.write_text("", encoding="utf-8")
             replacement = _write(tmp_path / "new.jsonl", '{"z":26}\n')
-            os.replace(replacement, target)
+            pathlib.Path(replacement).replace(target)
             with target.open("a", encoding="utf-8") as handle:
                 handle.write('{"partial":true')  # no newline
             clock.now = 30.0
@@ -307,9 +308,9 @@ class TestInputImmutability:
     def test_no_position_file_is_written_anywhere_under_the_root(self, tmp_path):
         """A checkpoint is durable state, which the Boundaries forbid outright."""
         target = _write(tmp_path / "e.jsonl", '{"a":1}\n{"b":2}\n')
-        before = {p for p in tmp_path.rglob("*")}
+        before = set(tmp_path.rglob("*"))
         _records(target, tmp_path)
-        assert {p for p in tmp_path.rglob("*")} == before
+        assert set(tmp_path.rglob("*")) == before
 
 
 class TestDeadlineWhileBytesKeepArriving:
@@ -370,7 +371,7 @@ class TestRound2Regressions:
         as bare tokens, producing a body that is not JSON -- so one such line
         would cost every good record batched with it."""
         target = _write(tmp_path / "e.jsonl",
-                        '{"a":1}\n' + '{"b": %s}\n' % token + '{"c":3}\n')
+                        '{"a":1}\n' + f'{{"b": {token}}}\n' + '{"c":3}\n')
         err = io.StringIO()
         assert _records(target, tmp_path, stream=err) == [{"a": 1}, {"c": 3}]
         assert "line 2" in err.getvalue()
@@ -381,7 +382,7 @@ class TestRound2Regressions:
         This was found by a probe hitting it, not by reading."""
         real = tmp_path / "real"
         real.mkdir()
-        target = _write(real / "e.jsonl", '{"a":1}\n')
+        _write(real / "e.jsonl", '{"a":1}\n')
         link = tmp_path / "link"
         try:
             link.symlink_to(real, target_is_directory=True)

@@ -62,7 +62,8 @@ def read_config_file(path: Path | str | None) -> dict[str, Any]:
             raise ConfigRefused(f"config file is not a regular file: {path}")
         if info.st_size > MAX_CONFIG_BYTES:
             raise ConfigRefused(
-                f"config file is {info.st_size} bytes, over the {MAX_CONFIG_BYTES}-byte ceiling: {path}"
+                f"config file is {info.st_size} bytes, over the "
+                f"{MAX_CONFIG_BYTES}-byte ceiling: {path}"
             )
         raw = os.read(fd, MAX_CONFIG_BYTES)
         if len(raw) != info.st_size:

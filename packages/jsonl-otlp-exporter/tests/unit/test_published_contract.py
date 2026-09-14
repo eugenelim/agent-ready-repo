@@ -14,8 +14,6 @@ import re
 import tomllib
 from pathlib import Path
 
-import pytest
-
 from jsonl_otlp_exporter.encode import encode_records
 from jsonl_otlp_exporter.profile import REQUIRED_KEYS, parse_profile
 

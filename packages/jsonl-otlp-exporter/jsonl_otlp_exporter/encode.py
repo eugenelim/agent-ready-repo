@@ -38,7 +38,7 @@ _NANOS_PER_MILLI = 1_000_000
 _MAX_UNIX_NANOS = 2**63
 
 _DIGITS = re.compile(r"^-?[0-9]+$")
-_EPOCH = _dt.datetime(1970, 1, 1, tzinfo=_dt.timezone.utc)
+_EPOCH = _dt.datetime(1970, 1, 1, tzinfo=_dt.UTC)
 _INF = float("inf")
 
 # RFC 3339 with a MANDATORY offset. `fromisoformat` would happily accept a naive

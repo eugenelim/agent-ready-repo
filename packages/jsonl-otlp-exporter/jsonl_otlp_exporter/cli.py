@@ -163,8 +163,11 @@ def _run(args, env, stream, connection_factory) -> int:
     for value, count in unmapped.items():
         # Once per distinct value with a count, not once per record: a run over a
         # large file would otherwise print a line per record and bury everything.
+        # The tally key is "type:repr" so two distinct JSON values stay distinct;
+        # the reader only needs the value.
+        shown = str(value).split(":", 1)[-1]
         print(
-            f"jsonl-otlp-export: severity value {str(value).split(':', 1)[-1]} is not in the profile's "
+            f"jsonl-otlp-export: severity value {shown} is not in the profile's "
             f"severity_map; {count} record(s) sent without a severity",
             file=stream,
         )

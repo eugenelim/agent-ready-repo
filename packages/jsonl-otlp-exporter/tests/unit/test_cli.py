@@ -12,10 +12,8 @@ from __future__ import annotations
 import io
 import json
 import signal
-import socket
 
 import pytest
-
 from jsonl_otlp_exporter import cli
 
 REFERENCE_PROFILE = (
@@ -257,7 +255,7 @@ class TestSignalNumbering:
     """AC-0015 — 130 is 128 + SIGINT, the shell convention a caller reads."""
 
     def test_the_interrupt_status_matches_the_convention(self):
-        assert cli.EXIT_INTERRUPTED == 128 + int(signal.SIGINT)
+        assert 128 + int(signal.SIGINT) == cli.EXIT_INTERRUPTED
 
 
 class TestDryRun:
@@ -440,7 +438,6 @@ class TestRound4Regressions:
         )
         assert code == 1
 
-
     def test_the_cli_forwards_the_first_read_anchor(self, workspace, monkeypatch):
         """AC-0042 measures `--for` from the first READ, not from the run's start.
 
@@ -471,6 +468,7 @@ class TestRound4Regressions:
             f"1.2s resolution consumed the one-second budget ({err.strip()})"
         )
         assert code == 0
+
 
 def _run_raw(workspace, extra, env, connection_factory):
     err = io.StringIO()

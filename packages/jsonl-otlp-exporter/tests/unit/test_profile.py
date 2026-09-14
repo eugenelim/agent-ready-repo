@@ -11,7 +11,6 @@ import tomllib
 from pathlib import Path
 
 import pytest
-
 from jsonl_otlp_exporter import profile as prof
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
@@ -220,9 +219,9 @@ class TestDefaultServiceName:
 
 def test_the_accepted_format_set_is_exactly_the_three_the_contract_names():
     """Pins the enum itself, so adding a fourth format is a deliberate act."""
-    assert prof.TIMESTAMP_FORMATS == frozenset(
+    assert frozenset(
         {"rfc3339", "epoch-millis", "epoch-seconds"}
-    )
+    ) == prof.TIMESTAMP_FORMATS
 
 
 class TestShortRead:

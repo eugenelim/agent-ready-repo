@@ -11,7 +11,10 @@ And each run is bounded, because one mutation made the suite HANG rather than
 fail -- a hang is reported as its own outcome, since a suite that hangs gives a
 developer no signal at all.
 """
-import ast, pathlib, subprocess, sys
+import ast
+import pathlib
+import subprocess
+import sys
 
 PKG = pathlib.Path(__file__).resolve().parents[1] / "jsonl_otlp_exporter"
 OUT = pathlib.Path("wiring-sweep-results.txt")
@@ -46,7 +49,7 @@ def run_suite():
 
 seen = set()
 lines = []
-with OUT.open("w") as log:
+with OUT.open("w", encoding="utf-8") as log:
     for path, lineno, seg in wirings():
         key = (path.name, seg)
         if key in seen:
@@ -69,7 +72,8 @@ with OUT.open("w") as log:
         finally:
             path.write_text(original)
         line = f"{verdict:9} {path.name}:{lineno}  {seg}"
-        log.write(line + "\n"); log.flush()
+        log.write(line + "\n")
+        log.flush()
         print(line, flush=True)
 
 print("\n=== summary ===", flush=True)

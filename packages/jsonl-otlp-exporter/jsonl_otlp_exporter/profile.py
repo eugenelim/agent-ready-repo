@@ -105,7 +105,9 @@ def parse_profile(raw: Mapping[str, Any]) -> Profile:
         raise ProfileRefused(f"profile is missing required key(s): {sorted(missing)}")
     extra = present - REQUIRED_KEYS
     if extra:
-        raise ProfileRefused(f"profile carries key(s) this format does not define: {sorted(extra)}")
+        raise ProfileRefused(
+            f"profile carries key(s) this format does not define: {sorted(extra)}"
+        )
 
     timestamp_format = _require_str(raw, "timestamp_format")
     if timestamp_format not in TIMESTAMP_FORMATS:

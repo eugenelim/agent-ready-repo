@@ -11,7 +11,6 @@ import tomllib
 from pathlib import Path
 
 import pytest
-
 from jsonl_otlp_exporter.encode import (
     MAX_NESTING_DEPTH,
     RecordSkipped,

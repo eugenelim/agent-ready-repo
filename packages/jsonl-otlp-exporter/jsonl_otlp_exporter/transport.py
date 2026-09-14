@@ -15,11 +15,11 @@ from __future__ import annotations
 
 import contextlib
 import ipaddress
-import threading
 import json
 import socket
 import ssl
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
@@ -50,6 +50,7 @@ MAX_ATTEMPTS_PER_RUN = 3               # AC-0010
 MAX_RETRY_AFTER_SECONDS = 30           # AC-0009
 REQUEST_TIMEOUT_SECONDS = 30           # AC-0040
 RUN_TIMEOUT_SECONDS = 120              # AC-0055
+
 
 class _Idle:
     """Yielded by the reader when it has caught up and is waiting for more."""
@@ -315,6 +316,7 @@ def send_batches(
     # another 120 sending.
     run_started = clock() if run_started is None else run_started
     run_deadline = run_started + RUN_TIMEOUT_SECONDS
+
     def _deadline() -> float:
         """The effective deadline: the run bound, and `--for` if one is set.
 
@@ -329,7 +331,7 @@ def send_batches(
         anchor = first_read_at() if first_read_at is not None else None
         return min(run_deadline, (run_started if anchor is None else anchor) + for_seconds)
 
-    for records, body in batches:
+    for _records, body in batches:
         while True:
             if out.attempts >= MAX_ATTEMPTS_PER_RUN:
                 out.status = out.status or 1

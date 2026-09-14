@@ -15,7 +15,6 @@ import socket
 import time
 
 import pytest
-
 from jsonl_otlp_exporter import transport as tp
 
 
@@ -187,12 +186,14 @@ class TestBatching:
     """AC-0011, AC-0019, AC-0063 — bounded per request, and never accumulated."""
 
     def test_at_most_512_records_per_request(self):
-        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
+        def encode(batch, diagnostics=True):
+            return json.dumps([dict(r) for r in batch]).encode()
         batches = list(tp.batch_records([{"i": i} for i in range(1025)], encode))
         assert [len(records) for records, _ in batches] == [512, 512, 1]
 
     def test_record_513_begins_the_next_request(self):
-        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
+        def encode(batch, diagnostics=True):
+            return json.dumps([dict(r) for r in batch]).encode()
         batches = list(tp.batch_records([{"i": i} for i in range(513)], encode))
         assert batches[0][0][-1]["i"] == 511
         assert batches[1][0][0]["i"] == 512
@@ -201,7 +202,9 @@ class TestBatching:
         """Measured on the ENCODED body. Splitting rather than truncating is the
         difference between two requests and silently lost records."""
         payload = "x" * 40_000
-        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
+
+        def encode(batch, diagnostics=True):
+            return json.dumps([dict(r) for r in batch]).encode()
         records = [{"i": i, "pad": payload} for i in range(400)]
         batches = list(tp.batch_records(records, encode))
         assert len(batches) > 1
@@ -219,7 +222,8 @@ class TestBatching:
                 pulled.append(i)
                 yield {"i": i}
 
-        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
+        def encode(batch, diagnostics=True):
+            return json.dumps([dict(r) for r in batch]).encode()
         batches = tp.batch_records(source(), encode)
         next(batches)
         assert len(pulled) <= tp.MAX_RECORDS_PER_REQUEST, (
@@ -391,7 +395,6 @@ class TestResponseBound:
     """AC-0041 — at most 1 MiB plus one byte, refused without decoding."""
 
     def test_an_oversize_response_body_is_refused(self):
-        oversize = b"x" * (tp.MAX_RESPONSE_BYTES + 1)
         log, err = [], io.StringIO()
         out = tp.send_batches(
             [([], b"{}")], _dest(),
@@ -502,7 +505,8 @@ class TestReviewRegressions:
     def test_an_unsplittable_oversize_record_is_not_sent_and_is_reported(self):
         """AC-0019's ceiling is unconditional. A single record over it cannot be
         split, so it is refused and reported rather than sent."""
-        encode = lambda batch, diagnostics=True: json.dumps([dict(r) for r in batch]).encode()
+        def encode(batch, diagnostics=True):
+            return json.dumps([dict(r) for r in batch]).encode()
         seen = []
         batches = list(tp.batch_records(
             [{"pad": "x" * (tp.MAX_BODY_BYTES + 100)}], encode, on_oversize=seen.append))

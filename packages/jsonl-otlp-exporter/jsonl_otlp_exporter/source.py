@@ -136,7 +136,9 @@ def open_input(path: Path | str, root: Path | str | None = None) -> int:
         except FileNotFoundError as exc:
             raise InputRefused(f"input path does not exist: {target}") from exc
         except OSError as exc:
-            raise InputRefused(f"input path cannot be examined: {target} ({exc.strerror})") from exc
+            raise InputRefused(
+                f"input path cannot be examined: {target} ({exc.strerror})"
+            ) from exc
 
         if not stat.S_ISREG(before.st_mode):
             raise InputRefused(f"input is not a regular file: {target}")

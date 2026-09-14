@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import os
 import stat
-import pytest
 
+import pytest
 from jsonl_otlp_exporter import config as cfg
 
 
