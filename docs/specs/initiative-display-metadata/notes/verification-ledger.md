@@ -2,6 +2,12 @@
 
 Execution observations. Evidence, not contract.
 
+Every observation below was taken on 2026-09-14, against `workspace.toml` as it
+stood that day. The corpus values transcribed in T3 are evidence at a moment,
+not a current claim: `ini-009`'s milestone is re-narrated whenever a slice
+closes, so a later reader comparing this file to the tree should expect drift
+and should not read it as a defect.
+
 ## T1 — emitter and tests
 
 - Red proven before the emitter changed: the four cases failed with

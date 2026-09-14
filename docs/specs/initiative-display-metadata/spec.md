@@ -118,9 +118,11 @@ as they were observed, with their current form beside them.
   generated adapter projections — three copies of the same `workspace_status.py`
   under `packs/core/.apm/`, `.agents/` and `.claude/`, which is what the
   repo-wide grep for `"name": "workspace.toml"` returned as 3 hits. It was at
-  `:915,917` in each when this snapshot was taken. It is now emitted nowhere:
-  those lines, `:920,922` after the rationale comment landed, hold the coerced
-  reads that replaced it.
+  `:915,917` in each when this snapshot was taken on 2026-09-14. It is now
+  emitted nowhere: the `"name"` and `"milestone"` keys in `_build_json`'s
+  `initiatives_out` entry hold the coerced reads that replaced it. Those keys
+  are named rather than located, because a line number into a generated file
+  goes false on the next insertion above it without anything failing.
 - Technical: three tests pinned the sentinel —
   `test_initiative_display_prose_is_not_projected`, since renamed to
   `test_initiative_display_prose_projects_verbatim`;
