@@ -47,8 +47,11 @@ unblocking and non-regression obligations the deletion creates.
    do not happen stop being reads. `.agents/rules/cognitive-load.md` does not
    survive: once the clauses are inline, a routed copy is a second home for one
    rule with nothing watching the two diverge. With its row gone the table is
-   empty, so `AGENT_RULES.md` is read only when a later row matches the work.
-   The case for this outcome is mechanical: two skippable reads stop existing.
+   empty. `AGENT_RULES.md` is still read every time, with one bounded operation,
+   and only the rows whose `when` matches are followed — the condition sits
+   inside the file, because a read conditioned on knowing what the file says
+   cannot happen. The case for this outcome is mechanical: the two reads that
+   carried behavioural rules and could be skipped stop existing.
 2. **Both `AGENTS.md` files read better than they did.** The rules are applied to
    the files that now carry them. Each file either meets the repository's
    readability gate or is held to its own measured score, so prose that falls

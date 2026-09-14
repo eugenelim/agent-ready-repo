@@ -299,8 +299,8 @@ def test_lookup_chain_is_shared_by_claude_codex_and_gemini() -> None:
     # Every host reaches the clauses the same way: the file it already loads.
     assert "not instruction authority" in root_context
     assert "Start with the useful result or next step." in root_context
-    # The router survives as the extension point, still named, read only when a
-    # row matches -- and it ships none, so no host reads it at session start.
+    # The router survives as the extension point, still named, and read every
+    # time -- it ships no rows, so the read is one short file and no further hop.
     assert "AGENT_RULES.md" in root_context
     rows = [
         line
@@ -381,6 +381,30 @@ def test_the_inlined_clauses_and_scoped_lookup_keep_the_full_cognitive_shape() -
     for brittle_cap in ("60 words", "6 lines", "10 words"):
         assert brittle_cap not in topic
         assert brittle_cap not in docs
+
+
+def _authority_block(content: str) -> str:
+    """The readability-exclude block plus the sentence declaring its surfaces."""
+    start = content.index("<!-- readability:exclude:start -->")
+    end = content.index("These rules apply to", start)
+    return content[start:content.index("\n\n", end)]
+
+
+def _clause_list(content: str) -> str:
+    """The run of `- ` bullets under the surface-declaration sentence."""
+    start = content.index("These rules apply to")
+    return content[start:content.index("\n\nRead every scoped", start)]
+
+
+def _coding_conventions(content: str) -> str:
+    """The § Coding conventions section, where the code rules live.
+
+    It is the last section in the seed and not in the root file, so the end of
+    the span is the next `## ` heading or the end of the file.
+    """
+    start = content.index("## Coding conventions")
+    nxt = content.find("\n## ", start + 1)
+    return content[start:] if nxt == -1 else content[start:nxt]
 
 
 def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
@@ -479,6 +503,7 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
             "proof",
             "limits",
             "warnings",
+            "code",
             # `commands` and `tech terms` were dropped when the retired clause
             # "Keep exact code, commands, errors, and tech terms when they
             # matter" merged into this one. This list not naming them is why the
@@ -532,10 +557,45 @@ def test_the_inlined_clauses_keep_each_behavioral_control() -> None:
             "cut the same point said twice",
         ),
     }
+    # Each control must hold within ONE line, not anywhere in the file. A
+    # file-wide search cannot fail for a phrase that also occurs elsewhere:
+    # `commands` and `tech terms` appear in several clauses, so deleting them
+    # from the clause that owes them stayed green. Controls whose phrases
+    # genuinely span the multi-line authority block are listed as such and
+    # checked against that block alone, never against the whole file.
+    # Controls whose phrases genuinely span more than one clause. Each is
+    # checked against a bounded span, never the whole file, and the span is
+    # named so that adding a control here is a visible decision rather than a
+    # silent widening.
+    spans = {
+        # The surface list and the authority posture sit in the block above the
+        # clauses.
+        "all output surfaces": _authority_block,
+        "authority and untrusted data": _authority_block,
+        # Three separate "asking" clauses; one control across them.
+        "bounded input requests": _clause_list,
+        # A code rule and a comment rule, two lines in coding conventions.
+        "code and comment intent": _coding_conventions,
+        # Test-proof brevity and the reader-can-act check are two clauses.
+        "compact proof and direct action": _clause_list,
+    }
     for source, content in sources.items():
+        lines = content.splitlines()
         for control, phrases in controls.items():
-            missing = [phrase for phrase in phrases if phrase not in content]
-            assert not missing, (source, control, missing)
+            if control in spans:
+                span = spans[control](content)
+                missing = [p for p in phrases if p not in span]
+                assert not missing, (source, control, missing)
+                continue
+            holders = [
+                line for line in lines
+                if all(phrase in line for phrase in phrases)
+            ]
+            assert holders, (
+                source, control,
+                [p for p in phrases if not any(p in line for line in lines)]
+                or "phrases present but split across lines",
+            )
 
 
 def test_simplified_docs_delta_keeps_each_scoped_control() -> None:

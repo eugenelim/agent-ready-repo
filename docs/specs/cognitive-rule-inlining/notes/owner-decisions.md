@@ -83,3 +83,19 @@ This amends the acceptance criterion requiring "no unconditional read of
 skippable hops carried the behavioural rules. Those rules are now inline, so a
 single bounded read of a short index does not restore what it was written
 against.
+
+## 2026-09-13 — the stale sentence inside T3's plan section
+
+**Decision: leave it, and say so here.**
+
+`plan.md:269` still reads "The rewrite must keep that mention while removing the
+unconditional read", which describes the criterion before the router amendment
+reversed it. T3 is a completed task and its plan section is pinned by
+`completed_task_section_hashes`; editing it is refused, by design, so that a
+finished task's record cannot be rewritten after the fact.
+
+Every live claim was corrected instead: the spec's Outcome 1 prose, the amended
+criterion, both `AGENTS.md` files, the roster test and its commentary, the
+changelog, and the measurement brief. The plan sentence stays as the record of
+what T3 was asked to do at the time, which is what a completed task section is
+for.

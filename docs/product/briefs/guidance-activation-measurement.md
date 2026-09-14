@@ -200,7 +200,8 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
     rule does not govern.
   - **The rule forbids the inference.** It states "A score is a clue. It is not
     a reason to cut needed facts", alongside "Keep all asked-for depth, proof,
-    limits, warnings, code, diffs, errors, exact names, paths, and counts." A
+    limits, warnings, code, commands, diffs, errors, exact names, paths, counts,
+    and tech terms." A
     decision rule that treated a low score as non-compliance would push authors
     to delete substance to score well — the opposite of the rule.
 
