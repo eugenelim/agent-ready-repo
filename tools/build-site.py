@@ -1827,6 +1827,14 @@ def _parse_release_identity(title: str) -> dict | None:
     return {"packages": packages, "date": release_date.isoformat()}
 
 
+class ChangelogHeading(NamedTuple):
+    """One heading this parser recognizes as real, with its source position."""
+
+    lineno: int
+    level: int
+    title: str
+
+
 class ParsedChangelog(NamedTuple):
     """Release records plus the authoring problems worth reporting.
 
@@ -1837,6 +1845,13 @@ class ParsedChangelog(NamedTuple):
 
     releases: list[dict]
     diagnostics: dict
+    # Every real heading, in source order. Exported because "which `##` lines
+    # are real headings" is decided here, by the fence and comment state machine
+    # below, and a second scanner that re-derives it drifts: a naive `^## ` sweep
+    # of the real file picks up the commented-out `## [1.0.0] — YYYY-MM-DD`
+    # release template. A caller needing heading POSITION takes it from here
+    # rather than writing that state machine again.
+    headings: tuple[ChangelogHeading, ...]
 
 
 def parse_changelog_releases(text: str) -> ParsedChangelog:
@@ -1868,6 +1883,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
     ambiguous: list[tuple[int, str]] = []
     misplaced: list[tuple[int, int, str]] = []
     split_comments: list[tuple[int, str]] = []
+    headings: list[ChangelogHeading] = []
 
     for lineno, raw in enumerate(lines, start=1):
         # Fenced code wins over comment syntax: `<!--` inside a shell sample is
@@ -1957,6 +1973,9 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
         level = len(heading.group(1))
         title = heading.group(2).strip()
         slug = slugger.slug(title)
+        # Recorded here, before any routing decision below, so the index covers
+        # every real heading and not merely the ones that become releases.
+        headings.append(ChangelogHeading(lineno, level, title))
 
         while stack and stack[-1][0] >= level:
             stack.pop()
@@ -2042,6 +2061,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
             "unreleased_regions": ambiguous,
             "code_span_split_comments": split_comments,
         },
+        headings=tuple(headings),
     )
 
 
