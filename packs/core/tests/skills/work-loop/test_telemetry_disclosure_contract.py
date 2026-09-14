@@ -134,9 +134,26 @@ def test_guide_names_no_exit_code_in_the_reserved_band() -> None:
     reading it as one of those.
     """
     text = _GUIDE.read_text(encoding="utf-8")
-    codes = [
+    codes: list[int] = []
+    # Prose: "exit 3", "exits 3", "exit code 3", "status code 3", "returns status 3".
+    codes += [
         int(n)
-        for n in re.findall(r"(?:exit(?:s| code| status)?|status code)\s+(\d+)", text, re.I)
+        for n in re.findall(
+            r"(?:exit|exits|exit code|exit status|status code|returns status)\s+(\d+)",
+            text,
+            re.I,
+        )
     ]
+    # A table row such as `| 3 | usage error |` names a code with no prose at all,
+    # which the prose pattern above cannot see.
+    for line in text.splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        if not re.search(r"exit|status|code", line, re.I):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if not any(re.fullmatch(r"\d+", c) for c in cells):
+                continue
+        codes += [int(c.strip()) for c in line.strip().strip("|").split("|")
+                  if re.fullmatch(r"\d+", c.strip())]
     reserved = sorted({c for c in codes if 2 <= c <= 9})
     assert not reserved, f"guide names exit codes in the reserved 2-9 band: {reserved}"

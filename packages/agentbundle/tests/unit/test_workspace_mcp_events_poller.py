@@ -66,12 +66,29 @@ def test_poller_reads_a_versioned_record_exactly_as_it_reads_a_legacy_one(
     assert versioned_result == legacy_result
 
 
-def test_the_comparison_can_fail(tmp_path: Path) -> None:
-    """The control above is only meaningful if this shape of difference shows.
+def test_the_target_records_are_actually_observed(tmp_path: Path) -> None:
+    """The equality control is meaningless unless THESE records are observed.
 
-    Without this, a `_parsed_result` that returned a constant would satisfy
-    AC-0052 while observing nothing at all.
+    Proving that some *other* event produces a difference is not enough: an
+    implementation that ignored both `gates-clean` records while still handling
+    `reviewers-clean` would leave that weaker check green, and the criterion's
+    own pair would produce no observation at all.
+
+    So this asserts the target record's own content reaches the parsed result.
     """
+    for record, label in ((_LEGACY, "legacy"), ({**_LEGACY, "schema": 1}, "versioned")):
+        notifications, current_state, *_ = _parsed_result(record, tmp_path / label)
+        assert current_state == record["to"], (
+            f"{label}: the poller did not take its state from this record"
+        )
+        assert notifications, f"{label}: this record produced no notification at all"
+        assert any(
+            record["to"] in repr(notification) for notification in notifications
+        ), f"{label}: no notification carries this record's destination state"
+
+
+def test_the_comparison_can_fail(tmp_path: Path) -> None:
+    """A differing record must still produce a differing result."""
     other = {**_LEGACY, "to": "CODE-HUMAN-GATE", "event": "reviewers-clean"}
 
     assert _parsed_result(other, tmp_path / "other") != _parsed_result(_LEGACY, tmp_path / "base")

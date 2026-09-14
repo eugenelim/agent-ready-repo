@@ -1,10 +1,11 @@
 # Work-loop event mapping for `jsonl-otlp-exporter`.
 #
-# Data, not code (ADR-0115): this catalogue supplies the profile as a file
-# through the sender's `--profile` flag. The sender registers no profile of its
-# own and never names this consumer.
+# This is data, not code. The profile is supplied to the sender as a file through
+# its `--profile` flag; the sender registers no profile of its own and does not
+# know which consumer supplied this one.
 #
-# The envelope this maps is `docs/architecture/telemetry.md` section 5.1.
+# It maps the event line the work-loop engine appends to `.loop-run/events.jsonl`
+# on every phase transition.
 
 timestamp_field = "at"
 timestamp_format = "rfc3339"

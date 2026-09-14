@@ -14,6 +14,7 @@ matches the key under every table, not the one table that governs.
 """
 from __future__ import annotations
 
+import ast
 import re
 import tomllib
 from pathlib import Path
@@ -68,11 +69,33 @@ def test_package_is_in_the_list_the_mypy_gate_actually_reads() -> None:
     "no issues found in 139 source files" and checked none of the package.
     With it here: 146 files, and it found a real annotation defect.
     """
-    source = (_REPO / "tools" / "lint-mypy.py").read_text(encoding="utf-8")
-    assert _MODULE_DIR in source, (
-        f"{_MODULE_DIR} missing from tools/lint-mypy.py TYPED_PACKAGES -- "
-        "mypy's positional arguments override the config's files list, so the "
-        "gate would silently skip the package"
+    # Parsed, not grepped. Searching the file's text would let a comment or a
+    # docstring mentioning the path satisfy this while TYPED_PACKAGES itself
+    # omits the package and the gate skips it -- a control that cannot fail.
+    tree = ast.parse((_REPO / "tools" / "lint-mypy.py").read_text(encoding="utf-8"))
+    declared: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(
+            isinstance(target, ast.Name) and target.id == "TYPED_PACKAGES"
+            for target in node.targets
+        ):
+            continue
+        assert isinstance(node.value, (ast.List, ast.Tuple)), (
+            "TYPED_PACKAGES is no longer a literal list -- this control can no "
+            "longer read it and must be rewritten rather than left passing"
+        )
+        declared = [
+            element.value
+            for element in node.value.elts
+            if isinstance(element, ast.Constant) and isinstance(element.value, str)
+        ]
+    assert declared, "TYPED_PACKAGES not found in tools/lint-mypy.py"
+    assert _MODULE_DIR in declared, (
+        f"{_MODULE_DIR} missing from tools/lint-mypy.py TYPED_PACKAGES "
+        f"(declared: {declared}) -- mypy's positional arguments override the "
+        "config's files list, so the gate would silently skip the package"
     )
 
 

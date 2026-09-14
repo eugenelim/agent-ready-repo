@@ -31,9 +31,14 @@ When you do configure an endpoint, here is exactly what goes and where.
   entered, what a gate decided, and the run's retry budgets. The exact field list
   is `docs/architecture/telemetry.md` § 5.1, and the mapping profile in this pack
   names every field that may be sent.
-- **What is never sent:** anything not on that profile's allowlist. A field the
+- **What the allowlist governs:** every field sent *as an attribute*. A field the
   engine adds later does not start flowing on its own — the profile has to name
   it first.
+- **Four fields are sent without being on the allowlist**, because the profile
+  gives each its own destination rather than making it an attribute: `at` becomes
+  the record's timestamp, `result` its severity, and `run_id` with `seq` its
+  identity. They are routed, not excluded. Anything that is neither routed nor
+  allowlisted is not sent.
 - **What a pack cannot see at all:** your prompts, the model's replies, and token
   counts. A pack never sees the model call, so it has nothing to send.
 - **Where it goes:** the Collector you run. Point it at your own infrastructure,
@@ -47,6 +52,7 @@ install it, nothing can send, whatever any configuration file says.
 Run this from the repository root after installing `jsonl-otlp-exporter`:
 
 ```python
+import shlex
 from pathlib import Path
 
 from agentbundle.telemetry_layout import resolve
@@ -55,7 +61,20 @@ repo_root = Path.cwd()
 user_layout = Path.home() / ".agentbundle" / "agentbundle-layout.toml"
 resolved = resolve(repo_root, user_layout)
 
-print("jsonl-otlp-export", *resolved.arguments)
+# shlex.quote, not plain printing: these arguments carry values read from two
+# TOML files, and a repository path with a space in it would otherwise split
+# into two arguments. Quoting also means a value cannot end one command and
+# begin another when this line is pasted into a shell.
+print("jsonl-otlp-export", shlex.join(resolved.arguments))
+```
+
+Better still, skip the shell. `resolved.arguments` is already a list, so hand it
+straight to `subprocess` and no quoting question arises:
+
+```python
+import subprocess
+
+subprocess.run(["jsonl-otlp-export", *resolved.arguments], check=True)
 ```
 
 The resolver reads `agentbundle-layout.toml` from the repository root and the
@@ -66,7 +85,9 @@ Its output has this shape:
 jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <resolved-layout> --profile <repo>/packs/core/.apm/skills/work-loop/profiles/work-loop.toml --service-name <resolved-name>
 ```
 
-Copy the printed command and run it to start the separately installed sender.
+Run the command it prints, or use the `subprocess` form above. The printed form
+is shell-quoted so it is safe to paste; the `subprocess` form never builds a shell
+command at all, which is why it is the one to prefer in a script.
 
 `--config` names one file, and the sender reads only `[telemetry].endpoint` from
 it. Every other setting is rendered as its own flag, which is why a value your

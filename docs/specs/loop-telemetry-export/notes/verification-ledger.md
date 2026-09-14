@@ -591,3 +591,61 @@ behaviour belongs to `jsonl-otlp-exporter` and that duplicating it here would
 create a second home that drifts. **Routed to that spec's owner, not repaired
 here** — repairing would be scope expansion into a contract this one may not
 specify.
+
+## Review round 1 — 14 findings, 12 sustained, 2 refuted
+
+Adversarial review and a separate neutral adjudication, both on Codex. Nine
+sustained findings were repaired here; three require owner authority and are
+surfaced rather than resolved (below).
+
+**The disclosure section was factually wrong, and its own test passed.** The guide
+said "What is never sent: anything not on that profile's allowlist." The sender's
+`profile.py` says the opposite in as many words — `routed_fields` carries the
+docstring "These reach their destination whether or not the allowlist names them."
+`at`, `result`, `run_id` and `seq` are deliberately absent from the allowlist and
+are always sent. AC-0020 checks three literal strings, all of which were present
+while the prose around them was false. **A literal-string criterion cannot see a
+wrong sentence.**
+
+**An evidence line pinned to a moving ref falsified itself.** § 11 stated that
+`git diff ec6b94f91..HEAD -- loop-engine.py` "is empty". True when written; false
+four commits later, because this delivery's own T6 added `schema` to that file.
+It now names two fixed commits, `ec6b94f91..f0a04a223`, and says why. The same
+count drift left "these thirteen fields" in § 9 while § 5.1 said fourteen — the
+partial-surface class again, on a number I had just changed.
+
+**The printed invocation was unquoted.** The guide built a command from values
+read out of two TOML files and told the reader to paste it into a shell. A
+repository path containing a space breaks argument boundaries; a crafted value
+in a repository-scope layout file could end one command and begin another. The
+example now uses `shlex.join`, and a `subprocess` form that never builds a shell
+command at all is offered as the better option.
+
+**`agentbundle` was never bumped.** `telemetry_layout` is a new public module and
+`CAT-L032` a new diagnostic, both in a package adopters install independently from
+PyPI. Shipping `core` 2.25.27 against `agentbundle` 0.44.1 would leave the guide's
+documented import unavailable. Bumped to 0.45.0 across both real version surfaces
+with its own changelog entry; `build/lib/` is a gitignored artifact and was left
+alone.
+
+**Three controls could not fail, and the repairs were mutation-proved against the
+exact gap each had:**
+
+| Control | What it missed | Proof the repair closes it |
+| --- | --- | --- |
+| the mypy-gate assertion | searched the file's whole text, so a comment naming the path satisfied it | path moved into a comment → now fails |
+| the poller non-vacuity test | proved only that *some other* event differs, so ignoring both target records stayed green | `_apply_event` made to ignore `gates-clean` → now fails |
+| the exit-code control | recognised only prose like "exit 3", not a table row | `\| 3 \| refused \|` added to the guide → now fails |
+
+**Two findings were refuted, and both refutations are load-bearing.** The schema's
+permissiveness contradicts an architecture sentence, not AC-0048 or AC-0049 —
+neither obliges the six descriptive fields. And the derivability research was
+performed against the accepted base under a separate instruction that preceded
+these seven tasks, so it is separate work sharing a branch rather than scope
+expansion.
+
+**Shipped pack content carried internal citations.** The profile named `ADR-0115`
+and a `docs/architecture/` path, and the engine comment repeated the second; both
+violate `packs/AGENTS.md`'s portability rule. Rewritten to state the rules
+directly. A pre-existing citation at `loop-engine.py:1087` is outside this
+delivery's hunks and was left.

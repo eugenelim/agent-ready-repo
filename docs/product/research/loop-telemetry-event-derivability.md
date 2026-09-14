@@ -1,7 +1,7 @@
 # Loop telemetry events: six of the eight are derivable, and no new event is warranted
 
 - **Run date:** 2026-09-13
-- **Owner:** eugenelim, Platform Core maintainer
+- **Owner:** Platform Core maintainer
 - **Against:** `core` 2.25.26, `agentbundle` 0.44.1, commit `f0a04a223`, CPython 3.13.13
 - **Verdict:** **six** of the eight events named for INI-005 can be computed from
   the thirteen fields `loop-engine` already writes. The other two fail for

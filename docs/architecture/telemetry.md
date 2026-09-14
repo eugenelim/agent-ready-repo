@@ -333,7 +333,7 @@ help someone work out what happened.
   — why the sender is a separately installed distribution rather than a pack,
   and what that makes structurally impossible.
 - [Loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md)
-  — which of INI-005's eight telemetry events these thirteen fields can answer.
+  — which of INI-005's eight telemetry events these fields can answer.
   Six of them. Of the rest, one needs a token count this process never sees and
   one names a fact the loop does not have, so no new event would carry either.
   Supersedes most of the standards survey's "needs an envelope change" verdicts,
@@ -449,11 +449,20 @@ profiles signal. This is why the event line carries a version.
 commits behind `main`.
 
 **What the re-verification checked, and what it found.** The distance turned out
-not to matter for the parts of this page that describe what the engine emits:
-`git diff ec6b94f91..HEAD -- packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
-is **empty**, so the emission path has not changed at all. `loop-cohort.py` did
-change, but only to hoist a `SCHEMA_VERSION` constant and reword one `--help`
-string, which leaves § 5.1's "`budgets` is a copy" behaviour intact.
+not to matter for the parts of this page that describe what the engine emits.
+Between the old pin and the start of this delivery the emission path had not
+changed at all — `git diff ec6b94f91..f0a04a223 -- packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
+is **empty**. This delivery then added exactly one thing to it, the `schema` key.
+
+That command names two fixed commits on purpose. An earlier draft of this
+paragraph compared against `HEAD`, which was empty when written and stopped being
+empty four commits later when this delivery's own change landed — a verified
+sentence that falsified itself. **An evidence line pinned to a moving ref has a
+shelf life measured in commits.**
+
+`loop-cohort.py` did change over that range, but only to hoist a `SCHEMA_VERSION`
+constant and reword one `--help` string, which leaves § 5.1's "`budgets` is a
+copy" behaviour intact.
 
 - **§ 5.1 — re-measured, holds.** Fourteen fields, confirmed by driving real
   transitions against `core` 2.25.27 rather than by reading the source. It was
