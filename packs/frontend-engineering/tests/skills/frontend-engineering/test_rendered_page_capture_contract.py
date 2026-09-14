@@ -534,7 +534,7 @@ def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None
 @pytest.mark.parametrize(
     "row_key", [k for keys in REQUIRED_RULE_ROWS.values() for k in keys]
 )
-def test_every_rule_row_the_walk_reads_raises_when_deleted(
+def test_every_required_rule_row_raises_when_deleted(
     rules_markdown: str, row_key: str
 ) -> None:
     """Derived from the rows the module declares the walk reads.
@@ -797,8 +797,9 @@ def test_a_newly_shipped_rule_row_reds_until_it_is_required(
         "| channel-basis-recorded | required |\n| channel-min-captures | required |",
         1,
     )
-    assert extra != rules_markdown
-    assert set(REQUIRED_RULE_ROWS["Channels"]) != set(channel_rules(extra)), (
-        "a row added to the shipped Channels table did not diverge from "
-        "REQUIRED_RULE_ROWS, so the equality control cannot notice it"
-    )
+    assert extra != rules_markdown, "the mutation did not apply"
+    # Through the control itself, not a copy of its comparison. Re-implementing
+    # the `==` here left weakening that control to `<=` -- exactly the drift that
+    # re-admits a shipped-but-unrequired row -- passing 290 green.
+    with pytest.raises(AssertionError, match="state different row sets"):
+        test_the_required_rule_rows_match_what_the_tables_state(extra)
