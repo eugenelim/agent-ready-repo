@@ -110,11 +110,170 @@ def resolution_rules(markdown: str) -> dict[str, str]:
     return {key: row[1] for key, row in rows.items()}
 
 
-def required_captures(markdown: str) -> dict[str, tuple[str, str]]:
-    """`{capture name: (height predicate, scroll predicate)}` as written."""
+def required_captures(markdown: str) -> dict[str, dict[str, str]]:
+    """`{capture name: {"height": predicate, "scroll": predicate}}` as written.
+
+    Named fields rather than a positional pair, because the pair invited every
+    caller to index `[1]` and a reader of that line could not tell which axis it
+    meant. The channel axis is deliberately **not** folded in here: which
+    channels a route needs comes from the breakpoints an adopter declares for a
+    run, and this reader only ever sees the reference. `required_channels` owns
+    that, and takes the run input as an argument.
+    """
     return {
-        row[0]: (row[1], row[2]) for row in table_rows(markdown, "Required captures")
+        row[0]: {"height": row[1], "scroll": row[2]}
+        for row in table_rows(markdown, "Required captures")
     }
+
+
+# ── channels ────────────────────────────────────────────────────────────────
+
+CHANNELS_HEADING = "Channels"
+
+
+def _channel_section_rows(markdown: str, width: int) -> list[list[str]]:
+    """Rows of the given cell width from the `## Channels` section.
+
+    `table_rows` returns only the first pipe table under a heading and stops at
+    the first non-pipe line once rows have started, so it cannot reach the rule
+    rows or the token column that follow the band table. Cell width separates
+    them instead, which is how `capture_set_rules` already separates the rule
+    rows under `Required captures` from that table's three-cell rows.
+    """
+    section = markdown.split(f"\n## {CHANNELS_HEADING}\n", 1)
+    if len(section) != 2:
+        raise AssertionError(f"no '## {CHANNELS_HEADING}' section in {RULES.name}")
+    body = section[1].split("\n## ", 1)[0]
+    rows: list[list[str]] = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or re.fullmatch(r"\|[\s:|-]+\|", stripped):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) == width and cells[0] not in _CHANNEL_HEADERS:
+            rows.append(cells)
+    return rows
+
+
+_CHANNEL_HEADERS = {"Channel", "Rule", "Forbidden in a channel name"}
+
+
+def channel_rules(markdown: str) -> dict[str, str]:
+    """The two-cell rule rows under `## Channels`."""
+    rows = _channel_section_rows(markdown, 2)
+    if not rows:
+        raise AssertionError(
+            f"'## {CHANNELS_HEADING}' states no rule rows; the channel axis is "
+            f"shipped content, not something this module supplies"
+        )
+    keyed = unique_keyed(rows, CHANNELS_HEADING)
+    return {key: row[1] for key, row in keyed.items()}
+
+
+def fallback_channels(markdown: str) -> list[tuple[str, str, str]]:
+    """`[(name, lower bound, upper bound)]` for the bands used when an adopter
+    declares no breakpoints. An empty bound means unbounded on that side."""
+    rows = _channel_section_rows(markdown, 3)
+    if not rows:
+        raise AssertionError(
+            f"'## {CHANNELS_HEADING}' states no fallback bands"
+        )
+    unique_keyed(rows, f"{CHANNELS_HEADING} (bands)")
+    return [(row[0], row[1], row[2]) for row in rows]
+
+
+def forbidden_channel_name_tokens(markdown: str) -> list[str]:
+    """The device names a channel may not be called, as the reference states them.
+
+    Read rather than restated, so deleting the table reds the guard instead of
+    silently emptying its vocabulary.
+    """
+    rows = _channel_section_rows(markdown, 1)
+    if not rows:
+        raise AssertionError(
+            f"'## {CHANNELS_HEADING}' no longer states the forbidden channel-name "
+            f"tokens; the rule is the data, not this module"
+        )
+    unique_keyed(rows, f"{CHANNELS_HEADING} (forbidden tokens)")
+    return [row[0] for row in rows]
+
+
+def _bound_value(predicate: str) -> tuple[str, int]:
+    match = re.fullmatch(r"(<=|>=|<|>|=)?\s*(\d+)", predicate.strip())
+    if match is None:
+        raise AssertionError(f"unparseable bound in the table: {predicate!r}")
+    return match.group(1) or "=", int(match.group(2))
+
+
+def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
+    """The width a capture in this band is taken at, per the shipped rule.
+
+    Honours `channel-capture-width` rather than hard-coding the derivation: if
+    the reference stopped stating it, this raises instead of inventing one.
+    """
+    rule = channel_rules(markdown).get("channel-capture-width")
+    if rule != "lower-bound-else-largest-satisfying-upper":
+        raise AssertionError(
+            "the Channels table no longer states channel-capture-width; the rule "
+            "is the data, not this module"
+        )
+    if lower:
+        op, value = _bound_value(lower)
+        return value if op in (">=", "=") else value + 1
+    op, value = _bound_value(upper)
+    return value if op in ("<=", "=") else value - 1
+
+
+def required_channels(
+    markdown: str, declared_breakpoints: list[int] | None = None
+) -> list[tuple[str, str, str]]:
+    """The bands a route must be captured in, and the basis they came from.
+
+    With declared breakpoints, the bands they bound; without, the shipped
+    fallback. The breakpoints are a **run input**, which is why they arrive as an
+    argument and not out of the markdown.
+    """
+    rules = channel_rules(markdown)
+    if rules.get("channel-source") != "adopter-declared-breakpoints-or-fallback":
+        raise AssertionError(
+            "the Channels table no longer states channel-source; the rule is the "
+            "data, not this module"
+        )
+    if not declared_breakpoints:
+        return fallback_channels(markdown)
+    if rules.get("channel-derivation") != "bands-bounded-by-consecutive-breakpoints":
+        raise AssertionError(
+            "the Channels table no longer states channel-derivation"
+        )
+    if rules.get("channel-boundary-belongs-to") != "wider-band":
+        raise AssertionError(
+            "the Channels table no longer states channel-boundary-belongs-to"
+        )
+    for value in declared_breakpoints:
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            raise AssertionError(
+                f"declared breakpoint {value!r} is not a positive whole number of "
+                f"CSS pixels; a band's bound cells hold whole numbers"
+            )
+    ordered = sorted(set(declared_breakpoints))
+    bands: list[tuple[str, str, str]] = [(f"below-{ordered[0]}", "", f"<{ordered[0]}")]
+    for lower, upper in zip(ordered, ordered[1:], strict=False):
+        bands.append((f"{lower}-to-{upper}", f">={lower}", f"<{upper}"))
+    bands.append((f"from-{ordered[-1]}", f">={ordered[-1]}", ""))
+    return bands
+
+
+def channel_basis(declared_breakpoints: list[int] | None = None) -> str:
+    """Which basis a run used. Recorded from the input, never inferred from the
+    captures: a declared run and a fallback run can produce the same set."""
+    return "declared-breakpoints" if declared_breakpoints else "fallback"
+
+
+def width_in_channel(channel: tuple[str, str, str], width: int) -> bool:
+    _, lower, upper = channel
+    if lower and not satisfies(lower, width):
+        return False
+    return not (upper and not satisfies(upper, width))
 
 
 def _required_fields(markdown: str, heading: str) -> list[str]:
@@ -191,32 +350,56 @@ def _scroll_rule_met(rule: str, capture: dict[str, int | str]) -> bool:
 
 
 def _scroll_pair_rule(markdown: str) -> str:
-    """The scroll-position rule a captured height must satisfy.
+    """The scroll-position rule a captured size must satisfy.
 
     Taken from a `*-scrolled` row rather than written here, so the unscrollable
     branch stays defined in one place — the table.
     """
-    rules = required_captures(markdown)
-    return rules["short-scrolled"][1]
+    return required_captures(markdown)["short-scrolled"]["scroll"]
+
+
+def _required_rule(markdown: str, key: str) -> bool:
+    """Whether a `Required captures` rule row is in force.
+
+    An **absent** row raises: a rule nobody states is not a rule this module may
+    invent, and a reader that quietly skips it is fail-open — deleting the row
+    would leave every check green, which is the one mutation the rule's own
+    shipped-content criterion exists to catch. A row that is *present* and says
+    something other than `required` is a stated decision to switch the rule off,
+    and is honoured.
+    """
+    rules = capture_set_rules(markdown)
+    if key not in rules:
+        raise AssertionError(
+            f"the Required captures rule rows no longer state {key!r}; the rule "
+            f"is the data, not this module"
+        )
+    return rules[key] == "required"
 
 
 def evaluate_capture_set(
-    markdown: str, captures: list[dict[str, int | str]]
+    markdown: str,
+    captures: list[dict[str, int | str]],
+    declared_breakpoints: list[int] | None = None,
 ) -> tuple[str, list[str]]:
     """`("complete", [])` or `("incomplete", [missing requirement names])`.
 
-    Two rules, both scoped to **one route at a time**, because the criteria are
-    "for each inspected route" and "for each viewport height captured":
+    Three rules, all scoped to **one route at a time**, because the criteria are
+    "for each inspected route", "in every required channel", and "for each
+    viewport width and height captured":
 
-    1. Every route supplies each of the named required captures — the two height
-       bands, each at rest and scrolled.
-    2. At every height a route actually captured, including heights beyond the
-       two required bands, that route has both an at-rest capture and a scrolled
-       one (or a recorded `page-scrollable: no`).
+    1. Every route covers each required channel — the bands the adopter's
+       declared breakpoints bound, or the shipped fallback bands.
+    2. Within each of those channels, the route supplies each of the named
+       required captures: the two height bands, each at rest and scrolled.
+    3. At every width and height a route actually captured, including sizes
+       beyond the required channels and bands, that route has both an at-rest
+       capture and a scrolled one (or a recorded `page-scrollable: no`).
 
-    A flat scan over all captures satisfies neither: it lets one route cover the
-    short band while another covers the tall one, and it never looks at a height
-    the table does not name.
+    A flat scan over all captures satisfies none of them: it lets one route cover
+    the short band while another covers the tall one, it lets a set that never
+    leaves one channel read as covering every channel, and it never looks at a
+    size the tables do not name.
     """
     if not captures:
         return ("incomplete", ["no captures"])
@@ -226,35 +409,54 @@ def evaluate_capture_set(
         by_route.setdefault(str(capture.get("route", "")), []).append(capture)
 
     missing: list[str] = []
-    at_rest_rule = required_captures(markdown)["short-at-rest"][1]
+    at_rest_rule = required_captures(markdown)["short-at-rest"]["scroll"]
     scrolled_rule = _scroll_pair_rule(markdown)
+    channels = required_channels(markdown, declared_breakpoints)
+    matrix_required = channel_rules(markdown).get(
+        "every-required-channel-needs-the-matrix"
+    ) == "required"
+    pair_required = _required_rule(
+        markdown, "every-captured-width-and-height-needs-the-pair"
+    )
 
     for route, route_captures in sorted(by_route.items()):
-        # Rule 1 — the named required captures, within this route.
-        for name, (height_rule, scroll_rule) in required_captures(markdown).items():
-            if not any(
-                satisfies(height_rule, int(c["viewport-height"]))
-                and _scroll_rule_met(scroll_rule, c)
-                for c in route_captures
-            ):
-                missing.append(f"{name} (route {route})")
+        # Rules 1 and 2 — every required channel carries the height-and-scroll
+        # matrix, within this route. The quantifier is shipped content.
+        if matrix_required:
+            for channel in channels:
+                in_channel = [
+                    c
+                    for c in route_captures
+                    if width_in_channel(channel, int(c["viewport-width"]))
+                ]
+                for name, rule in required_captures(markdown).items():
+                    if not any(
+                        satisfies(rule["height"], int(c["viewport-height"]))
+                        and _scroll_rule_met(rule["scroll"], c)
+                        for c in in_channel
+                    ):
+                        missing.append(f"{name} in {channel[0]} (route {route})")
 
-        # Rule 2 — every height this route actually captured carries the pair,
-        # but ONLY because the reference says so. The quantifier is shipped
-        # content, not something this module supplies; a check that authors its
-        # own rule asserts behaviour the pack never promised an adopter.
-        if capture_set_rules(markdown).get(
-            "every-captured-height-needs-the-pair"
-        ) != "required":
+        # Rule 3 — every width-and-height pair this route actually captured
+        # carries the scroll pair. Grouping on the pair rather than the height
+        # alone is the point: two widths at one height each carrying half a pair
+        # would otherwise read as coverage.
+        if not pair_required:
             continue
-        for height in sorted({int(c["viewport-height"]) for c in route_captures}):
-            at_height = [
-                c for c in route_captures if int(c["viewport-height"]) == height
+        sizes = sorted(
+            {(int(c["viewport-width"]), int(c["viewport-height"])) for c in route_captures}
+        )
+        for width, height in sizes:
+            at_size = [
+                c
+                for c in route_captures
+                if int(c["viewport-width"]) == width
+                and int(c["viewport-height"]) == height
             ]
-            if not any(_scroll_rule_met(at_rest_rule, c) for c in at_height):
-                missing.append(f"at-rest at {height}px (route {route})")
-            if not any(_scroll_rule_met(scrolled_rule, c) for c in at_height):
-                missing.append(f"scrolled at {height}px (route {route})")
+            if not any(_scroll_rule_met(at_rest_rule, c) for c in at_size):
+                missing.append(f"at-rest at {width}x{height} (route {route})")
+            if not any(_scroll_rule_met(scrolled_rule, c) for c in at_size):
+                missing.append(f"scrolled at {width}x{height} (route {route})")
 
     return ("incomplete", missing) if missing else ("complete", [])
 
@@ -521,6 +723,7 @@ def inspection_result(
     markdown: str,
     captures: list[dict[str, int | str]],
     findings: list[dict[str, object]] | None = None,
+    declared_breakpoints: list[int] | None = None,
 ) -> dict[str, str]:
     """`{"state": ..., "verdict": ...}` — did it run, and did it pass.
 
@@ -528,7 +731,7 @@ def inspection_result(
     broken" are both not-a-pass and are not the same thing.
     """
     findings = findings or []
-    set_status, _ = evaluate_capture_set(markdown, captures)
+    set_status, _ = evaluate_capture_set(markdown, captures, declared_breakpoints)
     # `evaluate_capture_set` answers "is the set complete"; the shipped
     # `Result states` table is the authority on what that state is called.
     state = "completed" if set_status == "complete" else set_status

@@ -129,11 +129,11 @@ def test_both_scrolled_rules_carry_the_alternative_branch(
     short-page capture incomplete, which is most of what the run measured."""
     captures = required_captures(rules_markdown)
     for name in ("short-scrolled", "tall-scrolled"):
-        assert "page-scrollable: no" in captures[name][1], (
+        assert "page-scrollable: no" in captures[name]["scroll"], (
             f"{name} does not carry the unscrollable branch"
         )
     for name in ("short-at-rest", "tall-at-rest"):
-        assert "page-scrollable" not in captures[name][1], (
+        assert "page-scrollable" not in captures[name]["scroll"], (
             f"{name} is an at-rest capture and must not carry the branch"
         )
 

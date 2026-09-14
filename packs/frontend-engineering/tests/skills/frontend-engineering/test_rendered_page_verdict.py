@@ -190,12 +190,16 @@ def test_the_judgement_request_declares_the_capture_untrusted(md: str) -> None:
 
 # ── T10: the every-captured-height rule is shipped, not authored by the check ─
 
-def test_the_every_captured_height_rule_is_shipped(md: str) -> None:
-    """Verifies: shipped pack content states that a captured height beyond the
-    required bands carries the same at-rest and scrolled requirement."""
-    assert capture_set_rules(md).get("every-captured-height-needs-the-pair") == "required"
+def test_the_every_captured_size_rule_is_shipped(md: str) -> None:
+    """Verifies: shipped pack content states that a captured width and height
+    beyond the required channels and bands carries the same at-rest and scrolled
+    requirement."""
+    assert (
+        capture_set_rules(md).get("every-captured-width-and-height-needs-the-pair")
+        == "required"
+    )
     section = " ".join(md.split("\n## Required captures\n", 1)[1].split("\n## ", 1)[0].split())
-    assert "beyond the two required bands" in section
+    assert "beyond the required channels and bands" in section
     assert "page-scrollable: no" in section
 
 
@@ -206,24 +210,45 @@ def test_the_contradicting_sentence_is_gone(md: str) -> None:
     assert "none are required" not in read_skill()
 
 
-def test_no_check_enforces_a_capture_rule_the_pack_does_not_state(md: str) -> None:
-    """Verifies: no check enforces a capture-set rule shipped content does not state.
+ROW = "| every-captured-width-and-height-needs-the-pair | required |"
 
-    Removing the rule from the reference must stop the evaluator enforcing it.
-    If the quantifier were still hard-coded in the evaluator, this would fail —
-    which is exactly the defect this task exists to close.
+
+def test_a_rule_the_pack_switches_off_stops_being_enforced(md: str) -> None:
+    """Verifies: no check enforces a capture-set rule shipped content switches off.
+
+    A row that is *present* and says something other than `required` is a stated
+    decision, and the evaluator honours it. If the quantifier were hard-coded in
+    the evaluator this would fail, which is the defect the rule-is-the-data
+    discipline exists to close.
     """
     from frontend_engineering_rendered_page_rules import evaluate_capture_set
     extra = complete_set() + [_capture(750, 0)]
     assert evaluate_capture_set(md, extra)[0] == "incomplete"
 
-    without = md.replace("| every-captured-height-needs-the-pair | required |",
-                         "| every-captured-height-needs-the-pair | not-required |", 1)
-    assert without != md
-    assert evaluate_capture_set(without, extra)[0] == "complete", (
-        "the evaluator still enforced the every-captured-height rule after the "
-        "reference stopped stating it — the check is authoring its own rule"
+    off = md.replace(
+        ROW, "| every-captured-width-and-height-needs-the-pair | not-required |", 1
     )
+    assert off != md
+    assert evaluate_capture_set(off, extra)[0] == "complete", (
+        "the evaluator still enforced the every-captured-size rule after the "
+        "reference switched it off — the check is authoring its own rule"
+    )
+
+
+def test_an_absent_rule_row_raises_rather_than_skipping(md: str) -> None:
+    """Verifies: deleting the rule row fails the check rather than passing it.
+
+    This is the other half of the rule-is-the-data discipline and it pulls the
+    opposite way from the case above. A row switched *off* is a stated decision;
+    a row that is *gone* states nothing, and a reader that skips the rule it
+    governs is fail-open — the deletion would leave every check green, so the
+    guard could never fail on the one mutation it exists to catch.
+    """
+    from frontend_engineering_rendered_page_rules import evaluate_capture_set
+    gone = md.replace(ROW + "\n", "", 1)
+    assert gone != md
+    with pytest.raises(AssertionError, match="every-captured-width-and-height"):
+        evaluate_capture_set(gone, complete_set())
 
 
 # ── T11: rule-table integrity ───────────────────────────────────────────────
@@ -444,8 +469,12 @@ def test_a_duplicate_capture_set_rule_row_is_rejected() -> None:
     """The capture-set rule table bypassed the duplicate-rejecting reader, so a
     second row whose last value was `required` passed unnoticed."""
     md = read_rules()
-    row = "| every-captured-height-needs-the-pair | required |"
-    mutated = md.replace(row, row + "\n| every-captured-height-needs-the-pair | not-required |", 1)
+    row = "| every-captured-width-and-height-needs-the-pair | required |"
+    mutated = md.replace(
+        row,
+        row + "\n| every-captured-width-and-height-needs-the-pair | not-required |",
+        1,
+    )
     assert mutated != md
     with pytest.raises(AssertionError, match="more than once"):
         capture_set_rules(mutated)
