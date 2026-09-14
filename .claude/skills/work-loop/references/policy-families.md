@@ -85,7 +85,7 @@ covers this registry rather than trusting a review to notice.
     {
       "id": "cognitive-load",
       "tier": "advisory",
-      "module": "seed:.agents/rules/cognitive-load.md"
+      "module": "seed:AGENTS.md"
     }
   ],
   "selection": {
