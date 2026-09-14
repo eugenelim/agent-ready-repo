@@ -20,11 +20,15 @@ from frontend_engineering_rendered_page_rules import (
     channel_basis,
     channel_capture_width,
     channel_rules,
+    discarded_breakpoints,
     evaluate_capture_set,
     evaluate_record,
     fallback_channels,
     findings_for,
+    inspection_result,
+    is_completed_inspection_result,
     judgement_request_fields,
+    minimum_in_force,
     normalize_predicate,
     read_rules,
     read_skill,
@@ -835,3 +839,247 @@ def test_a_newly_shipped_rule_row_reds_until_it_is_required(
     # re-admits a shipped-but-unrequired row -- passing 290 green.
     with pytest.raises(AssertionError, match="state different row sets"):
         test_the_required_rule_rows_match_what_the_tables_state(extra)
+
+
+# ── declared minimum width ──────────────────────────────────────────────────
+
+
+def _value_cell(markdown: str, key: str, replacement: str) -> str:
+    """The reference with one rule row's **value** rewritten, the row still present.
+
+    Deletion cannot serve AC-0015 or AC-0016: `evaluate_capture_set` proves every
+    `REQUIRED_RULE_ROWS` key present before the walk runs, so a deleted row reds
+    through that presence loop whether or not anything reads it. Only a value-cell
+    mutation separates *read* from *present*.
+    """
+    row = next(
+        line for line in markdown.splitlines()
+        if line.strip().startswith(f"| {key} |")
+    )
+    mutated = markdown.replace(row, f"| {key} | {replacement} |", 1)
+    assert mutated != markdown, f"the value cell for {key} did not change"
+    assert f"| {key} |" in mutated, f"{key} must stay present; this is not a deletion"
+    return mutated
+
+
+@pytest.mark.parametrize("breakpoints", [None, [768]], ids=["fallback", "declared"])
+@pytest.mark.parametrize(
+    "bad", [1.5, 0, -480, True], ids=["fractional", "zero", "negative", "boolean"]
+)
+def test_a_declared_minimum_must_be_a_positive_whole_number(
+    rules_markdown: str, bad: object, breakpoints: list[int] | None
+) -> None:
+    """Verifies AC-0001: refused in both breakpoint states, absence admitted.
+
+    Both states, because the shipped breakpoint validation loop sits *after* the
+    `if not declared_breakpoints` early return. A minimum validated beside that
+    loop is checked on the declared path and skipped on the fallback path — the
+    surface this input exists for.
+
+    `True` is in the set because `isinstance(True, int)` is true, so a bool would
+    otherwise clamp a band to `>=1`.
+    """
+    with pytest.raises(AssertionError, match="positive whole number"):
+        required_channels(rules_markdown, breakpoints, bad)  # type: ignore[arg-type]
+    # Absence is admitted: *Always do* keeps the minimum optional, and a refusal
+    # contract stated only on one side would read as refusing absence too.
+    assert required_channels(rules_markdown, breakpoints, None) == required_channels(
+        rules_markdown, breakpoints
+    )
+
+
+def test_a_band_wholly_below_the_minimum_is_dropped(rules_markdown: str) -> None:
+    """Verifies AC-0002, asserting full band lists rather than counts or widths.
+
+    Three fixtures each kill a cheaper filter. `[400, 800]` at 1280 drops a band
+    bounded on *both* sides, which a filter keyed on an absent lower bound would
+    keep. 480 against the fallback bands keeps `<=480`, which a filter comparing
+    the bound's value without its operator would drop. And `[768, 1024]` at 768 is
+    the only input separating `u <= minimum` from `u < minimum` for an exclusive
+    upper bound.
+    """
+    assert required_channels(rules_markdown, None, 1280) == [("wide", ">=1280", "")]
+    assert required_channels(rules_markdown, [768], 1280) == [
+        ("from-1280", ">=1280", "")
+    ]
+    assert required_channels(rules_markdown, [400, 800], 1280) == [
+        ("from-1280", ">=1280", "")
+    ]
+    assert required_channels(rules_markdown, [768, 1024], 768) == [
+        ("768-to-1024", ">=768", "<1024"),
+        ("from-1024", ">=1024", ""),
+    ]
+    # The clamped *fallback* band keeps the name its table row gives it; only a
+    # breakpoint-derived name is rebuilt from the post-clamp bounds.
+    assert required_channels(rules_markdown, None, 480) == [
+        ("narrow", ">=480", "<=480"),
+        ("wide", ">=1024", ""),
+    ]
+
+
+def test_the_clamp_raises_a_lower_bound_and_never_lowers_one(
+    rules_markdown: str,
+) -> None:
+    """Verifies AC-0003: a surviving band's lower bound is the greater of the two.
+
+    The 600 fixture is the one that bites. Assigning the minimum would lower
+    `wide >=1024` to `>=600` and demand a capture at 600 — a width the reference
+    states satisfies neither fallback channel by deliberate design.
+    """
+    assert required_channels(rules_markdown, None, 1280) == [("wide", ">=1280", "")]
+    assert required_channels(rules_markdown, None, 600) == [("wide", ">=1024", "")]
+    assert required_channels(rules_markdown, [400, 800], 100) == [
+        ("100-to-400", ">=100", "<400"),
+        ("400-to-800", ">=400", "<800"),
+        ("from-800", ">=800", ""),
+    ]
+    widths = [
+        channel_capture_width(rules_markdown, lo, up)
+        for _, lo, up in required_channels(rules_markdown, [400, 800], 100)
+    ]
+    assert widths == [100, 400, 800]
+
+
+def test_a_breakpoint_above_the_minimum_keeps_its_band(rules_markdown: str) -> None:
+    """Verifies AC-0004: a minimum cannot collapse a surface below its own
+    breakpoints above that minimum."""
+    assert required_channels(rules_markdown, [1536], 1280) == [
+        ("1280-to-1536", ">=1280", "<1536"),
+        ("from-1536", ">=1536", ""),
+    ]
+    assert required_channels(rules_markdown, [1440, 1920], 1280) == [
+        ("1280-to-1440", ">=1280", "<1440"),
+        ("1440-to-1920", ">=1440", "<1920"),
+        ("from-1920", ">=1920", ""),
+    ]
+
+
+def test_the_minimum_is_recorded_beside_the_basis(rules_markdown: str) -> None:
+    """Verifies AC-0006: a separate field, and the basis vocabulary unwidened.
+
+    Exact equality on the whole basis value, not a prefix match: a reader
+    returning `declared-breakpoints+1280` would satisfy a looser check, and that
+    is the third-vocabulary-value shape *Ask first* gates.
+    """
+    assert channel_basis(rules_markdown, None) == "fallback"
+    assert minimum_in_force(rules_markdown, 1280) == "1280"
+    assert channel_basis(rules_markdown, [768]) == "declared-breakpoints"
+    assert minimum_in_force(rules_markdown, None) == "none-declared"
+    assert minimum_in_force(rules_markdown, None) != ""
+
+
+def test_discarded_breakpoints_are_recorded(rules_markdown: str) -> None:
+    """Verifies AC-0007: exactly those strictly below the minimum.
+
+    The mixed fixture is what bites — under the all-discarded one alone,
+    recording the input list verbatim is indistinguishable from recording the
+    discarded set. The 768 fixture pins `b < minimum` against `b <= minimum`,
+    and agrees with AC-0002's own `[768, 1024]` case, which requires 768 to
+    still bound a surviving channel.
+    """
+    assert discarded_breakpoints(rules_markdown, [768, 1536], 1280) == [768]
+    assert discarded_breakpoints(rules_markdown, [768, 1024, 1440], 12800) == [
+        768,
+        1024,
+        1440,
+    ]
+    assert discarded_breakpoints(rules_markdown, [768, 1024], 768) == []
+
+
+@pytest.mark.parametrize("breakpoints", [None, [768]], ids=["fallback", "declared"])
+@pytest.mark.parametrize("minimum", [None, 1280], ids=["no-minimum", "minimum"])
+def test_the_derivation_refuses_an_unknown_minimum_rule(
+    rules_markdown: str, breakpoints: list[int] | None, minimum: int | None
+) -> None:
+    """Verifies AC-0015: all four calls across both axes, row present throughout.
+
+    Crossing the basis axis is what makes this bite: the derivation returns the
+    fallback bands before it validates `channel-derivation`, so a check placed
+    beside that sibling leaves the no-breakpoints path ungated.
+    """
+    mutated = _value_cell(rules_markdown, "channel-minimum-derivation", "keep-everything")
+    with pytest.raises(AssertionError, match="channel-minimum-derivation"):
+        required_channels(mutated, breakpoints, minimum)
+
+
+@pytest.mark.parametrize("breakpoints", [None, [768]], ids=["fallback", "declared"])
+def test_the_recording_refuses_when_switched_off(
+    rules_markdown: str, breakpoints: list[int] | None
+) -> None:
+    """Verifies AC-0016: **both** readers, in both breakpoint states.
+
+    Per reader, because one raising satisfies a row-level claim while the other
+    stays fail-open; and with no breakpoints declared, because the discarded
+    reader most naturally returns `[]` before consulting the switch.
+    """
+    off = _value_cell(rules_markdown, "channel-minimum-recorded", "not-required")
+    with pytest.raises(AssertionError, match="channel-minimum-recorded"):
+        minimum_in_force(off, 1280)
+    with pytest.raises(AssertionError, match="channel-minimum-recorded"):
+        discarded_breakpoints(off, breakpoints, 1280)
+
+
+def test_no_two_required_channels_admit_a_common_width(rules_markdown: str) -> None:
+    """Verifies AC-0017, swept wider than the fixtures its siblings pin.
+
+    On an input where AC-0002, AC-0003 or AC-0004 asserts the full band list by
+    exact equality, disjointness follows from that equality and this adds nothing.
+    Its value is the combinations no fixture enumerates. It is what a clamp that
+    widened the upper bound away fails: dropping `<=480` while raising the lower
+    bound to 480 yields `>=480` and `>=1024`, which both admit 1024.
+    """
+    minima = [None, 100, 480, 600, 768, 1280, 12800]
+    breakpoint_lists = [
+        None, [768], [400, 800], [768, 1024], [1536], [1440, 1920],
+        [768, 1536], [768, 1024, 1440],
+    ]
+    for minimum in minima:
+        for breakpoints in breakpoint_lists:
+            channels = required_channels(rules_markdown, breakpoints, minimum)
+            probes = {1, 100, 399, 400, 479, 480, 481, 600, 767, 768, 1023, 1024,
+                      1151, 1152, 1279, 1280, 1439, 1440, 1535, 1536, 1919, 1920,
+                      12799, 12800, 20000}
+            for width in probes:
+                covering = [c for c in channels if width_in_channel(c, width)]
+                assert len(covering) <= 1, (
+                    f"width {width} satisfies {[c[0] for c in covering]} under "
+                    f"minimum={minimum} breakpoints={breakpoints}"
+                )
+
+
+def test_the_walk_honours_the_declared_minimum(rules_markdown: str) -> None:
+    """Verifies AC-0019: the completeness walk, not the derivation helper.
+
+    Every derivation criterion asserts `required_channels` in isolation, so an
+    implementation can satisfy all of them while the walk still derives its bands
+    without the minimum and reports a supported surface incomplete.
+
+    The 480 pair is the discriminating one. A no-minimum run over this set is
+    already asserted by `test_a_single_channel_set_is_incomplete`, so pairing
+    against it would add no observation; 480 drops nothing, so a walk that treats
+    any declared minimum as one channel fails here.
+    """
+    four = _matrix(1280)
+    assert evaluate_capture_set(rules_markdown, four, None, 1280) == ("complete", [])
+    state, missing = evaluate_capture_set(rules_markdown, four, None, 480)
+    assert state == "incomplete"
+    assert _names(missing, "short-at-rest")
+    assert evaluate_capture_set(rules_markdown, four, [768], 1280) == ("complete", [])
+
+
+def test_the_inspection_result_honours_the_declared_minimum(
+    rules_markdown: str,
+) -> None:
+    """Verifies AC-0020: the outermost observable an adopter records.
+
+    `inspection_result` forwards to the walk, so AC-0019 stops one call frame
+    short of what an adopter sees. A run recorded as incomplete for a surface
+    captured at every width it supports is the outcome the Objective removes.
+    """
+    four = _matrix(1280)
+    with_minimum = inspection_result(rules_markdown, four, [], None, 1280)
+    assert with_minimum == {"state": "completed", "verdict": "pass"}
+    assert is_completed_inspection_result(rules_markdown, with_minimum) is True
+    without = inspection_result(rules_markdown, four, [], None, None)
+    assert without["state"] == "incomplete"
+    assert is_completed_inspection_result(rules_markdown, without) is False
