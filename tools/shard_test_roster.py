@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -52,6 +53,9 @@ DEFAULT_WEIGHT = 6.1
 # recursing. Nothing legitimately runs a shard inside a shard.
 REENTRY_MARKER = "SHARD_TEST_ROSTER_ACTIVE"
 
+# Stable, greppable prefix for the per-unit durations that refresh WEIGHTS.
+TIMING_PREFIX = "shard-timing"
+
 
 def child_environment() -> dict[str, str]:
     """Return an environment that cannot re-select a shard.
@@ -66,6 +70,14 @@ def child_environment() -> dict[str, str]:
     Stripping the pair from both the environment and ``MAKEFLAGS`` makes a
     nested ``make test`` resolve to the ordinary serial branch, which is what
     those harnesses expect.
+
+    The residual is named rather than guarded: a nested ``make test`` now
+    resolves to the FULL serial roster. Every such caller in the roster today is
+    a harness that stubs ``test-unleased`` to an echo, so nothing real runs. A
+    future roster command that invoked an unstubbed ``make test`` would run the
+    whole corpus inside one shard -- slow, but not wrong, and it cannot drop or
+    duplicate a suite. Refusing a nested ``make test`` outright is NOT the
+    answer: it would break the harnesses that legitimately drive it.
     """
     env = dict(os.environ)
     env.pop("SHARD", None)
@@ -353,7 +365,19 @@ def main(argv: Sequence[str], executor: Executor = _default_executor) -> int:
         return 2
 
     for command in (*preconditions, *selected):
+        started = time.monotonic()
         result = executor(command, shell=True, cwd=REPO_ROOT, check=False)
+        elapsed = time.monotonic() - started
+        # One line per unit, on stderr so it never mixes into the roster any
+        # other tool reads. This is how WEIGHTS above is refreshed: the table is
+        # a snapshot, and without a way to re-measure it silently rots into the
+        # round-robin it exists to avoid. Harvest with:
+        #   gh run view <id> --job <id> --log | grep shard-timing
+        print(
+            f"{TIMING_PREFIX} {elapsed:8.2f}s {unit_key(command)}",
+            file=sys.stderr,
+            flush=True,
+        )
         if result.returncode != 0:
             return result.returncode
     return 0

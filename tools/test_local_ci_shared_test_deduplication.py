@@ -2985,22 +2985,73 @@ def test_shard_every_main_call_site_clears_the_reentry_marker() -> None:
     because the defect is in what a test FORGETS to wrap.
     """
     source = Path(__file__).read_text(encoding="utf-8")
-    lines = source.splitlines()
+    # Checked on the AST, not on text. An earlier lexical version compared a
+    # fixed six-line window and had both failure directions: it reported ITSELF
+    # (its own quoted and backticked mentions of the call) and it reported a
+    # correctly-guarded case whose wrapper sat further than six lines above the
+    # call. A window size is not a property of the code -- the enclosing
+    # function is.
+    tree = ast.parse(source)
     unguarded: list[int] = []
-    # The detector must not match its OWN source. Every mention of the call
-    # inside this function sits in a string literal or a backticked comment, so
-    # a real call site is one not preceded by a quote character of any kind.
-    call_site = re.compile(r"""(?<!["'`])\bshard\.main\(""")
-    for index, line in enumerate(lines):
-        if not call_site.search(line):
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
             continue
-        window = "\n".join(lines[max(0, index - 6) : index + 1])
-        if "_shard_outside_a_shard()" in window:
+        calls = [
+            child
+            for child in ast.walk(node)
+            if isinstance(child, ast.Call)
+            and isinstance(child.func, ast.Attribute)
+            and child.func.attr == "main"
+            and isinstance(child.func.value, ast.Name)
+            and child.func.value.id == "shard"
+        ]
+        if not calls:
             continue
-        if "REENTRY_MARKER" in window:  # the case that deliberately re-enters
+        names = {
+            child.func.id
+            for child in ast.walk(node)
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name)
+        }
+        if "_shard_outside_a_shard" in names:
             continue
-        unguarded.append(index + 1)
+        # The case that deliberately re-enters keeps the marker on purpose.
+        if any(
+            isinstance(child, ast.Attribute) and child.attr == "REENTRY_MARKER"
+            for child in ast.walk(node)
+        ):
+            continue
+        unguarded.extend(call.lineno for call in calls)
+
     assert not unguarded, (
         "shard.main() called without _shard_outside_a_shard() at line(s) "
         f"{unguarded}; that case would fail only on a sharded runner"
     )
+
+
+def test_shard_emits_one_timing_line_per_executed_unit(capsys) -> None:  # type: ignore[no-untyped-def]
+    """Per-unit durations are what make the WEIGHTS table refreshable.
+
+    Without them the table is a one-time snapshot that decays silently into the
+    round-robin it exists to avoid — which is exactly how shard 3 of run
+    34791356312 reached 6.37 minutes against a 3.55-minute prediction.
+    """
+    shard = _shard_module()
+    lines = _shard_fixture_lines()
+    preconditions = [line for line in lines if shard.classify(line) == "precondition"]
+    recorder = _ShardRecordingExecutor()
+    with _shard_outside_a_shard(), mock.patch.object(
+        shard, "roster_lines", return_value=lines
+    ):
+        result = shard.main(["--shard", "1", "--shards", "2"], executor=recorder)
+    assert result == 0
+
+    emitted = [
+        line
+        for line in capsys.readouterr().err.splitlines()
+        if line.startswith(shard.TIMING_PREFIX)
+    ]
+    assert len(emitted) == len(recorder.calls), (len(emitted), len(recorder.calls))
+    # Every executed unit is named, preconditions included, so a refresh sees
+    # the whole shard and not only its suites.
+    for precondition in preconditions:
+        assert any(shard.unit_key(precondition) in line for line in emitted), precondition
