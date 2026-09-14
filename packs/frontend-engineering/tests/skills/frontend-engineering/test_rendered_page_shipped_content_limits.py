@@ -323,7 +323,23 @@ INNER_NAME_FIELD = re.compile(r"\bname:\s*'([^']+)'")
 # `[^|\n]` and not `[^|]`: a class excluding only the pipe still matches a
 # newline, so a three-cell pattern spans lines and swallows the one-column
 # forbidden-token table, reporting `mobile` as a declared channel.
+INNER_PROSE_NAME = re.compile(r"`([a-z][\w-]*)`\s+at\s+[≤≥<>=]")
 INNER_BAND_ROW = re.compile(r"^\|\s*([a-zA-Z][\w-]*)\s*\|[^|\n]*\|[^|\n]*\|\s*$", re.MULTILINE)
+
+# The live shipped site each shape was written for. A shape that stops matching
+# its own site narrows the sweep in silence: an ordinary copyedit to SKILL.md's
+# declaring sentence killed `prose-declaration` with the whole suite still green,
+# and a device rename then shipped behind the dead shape. Two of the three shapes
+# happen to be anchored by other controls -- `snippet-name-field` keys on the
+# `const channels = [` that `test_the_worked_example_binds_width_to_the_channel`
+# requires, and `band-row` on the `## Channels` heading whose absence raises
+# through `_channel_section_rows` -- but "happens to be" is not a control, so
+# every shape is pinned here by name.
+SHAPE_LIVE_SITES = {
+    "snippet-name-field": "skills/frontend-engineering/SKILL.md",
+    "band-row": "skills/frontend-engineering/references/rendered-page-inspection.md",
+    "prose-declaration": "skills/frontend-engineering/SKILL.md",
+}
 
 CHANNEL_NAME_SHAPES = {
     # The worked capture snippet an adopter copies. Scoped to the `channels`
@@ -339,9 +355,14 @@ CHANNEL_NAME_SHAPES = {
     "band-row": re.compile(
         r"\n## Channels\n(?P<body>.*?)(?:\n## |\Z)", re.S
     ),
-    # The prose that declares the fallback bands to an adopter:
-    # "`narrow` at <=480 CSS px and `wide` at >=1024 CSS px".
-    "prose-declaration": re.compile(r"`([a-z][\w-]*)`\s+at\s+[≤≥<>=]"),
+    # The prose that declares the fallback bands to an adopter. Scoped to a
+    # paragraph that mentions a channel, as its two siblings are scoped to their
+    # own contexts: unscoped, any future shipped sentence of the form
+    # "`token` at <=N" in any of the pack's nine skills would red a guard about
+    # channel names.
+    "prose-declaration": re.compile(
+        r"(?P<body>(?:^|\n\n)[^\n]*[Cc]hannel.*?)(?:\n\n|\Z)", re.S
+    ),
 }
 
 
@@ -358,6 +379,8 @@ def shipped_channel_names() -> dict[str, list[str]]:
             for match in shape.findall(text):
                 if shape_name == "snippet-name-field":
                     names += INNER_NAME_FIELD.findall(match)
+                elif shape_name == "prose-declaration":
+                    names += INNER_PROSE_NAME.findall(match)
                 elif shape_name == "band-row":
                     names += [
                         n for n in INNER_BAND_ROW.findall(match) if n != "Channel"
@@ -370,26 +393,53 @@ def shipped_channel_names() -> dict[str, list[str]]:
 
 
 def test_the_channel_sweep_reaches_every_file_that_names_a_channel() -> None:
-    """A sweep over an empty file list passes trivially, and a sweep narrowed by
-    one line passes just as quietly.
+    """Per-FILE reach only, which is all this control can carry.
 
-    This is the reach control the sibling guards already carry at
-    `test_the_guards_actually_reach_this_deliverys_files`. It pins that the three
-    shipped files which actually name a channel are all reached, so removing one
-    from the sweep — or breaking the shape that finds it — reds here.
+    It cannot see a broken shape: `shipped_channel_names` dedups per file, so
+    `SKILL.md`'s snippet shape covers for a dead prose shape in the count and the
+    totals do not move. Per-SHAPE reach is held by
+    `test_every_shape_still_matches_the_shipped_site_it_was_written_for` and by
+    the parametrized planted test below; deleting either of those removes a
+    property this one does not replace.
     """
     reached = shipped_channel_names()
-    for expected in (
-        "rendered-page-inspection.md",  # the band table that declares them
-        "SKILL.md",                     # the prose declaration and the snippet
-    ):
+    expected_files = {site.rsplit("/", 1)[-1] for site in SHAPE_LIVE_SITES.values()}
+    for expected in expected_files:
         assert any(expected in label for label in reached), (
             f"the channel-name sweep reaches no file named {expected!r}; it sees "
             f"{sorted(reached)}"
         )
-    assert sum(len(v) for v in reached.values()) >= 4, (
-        f"the sweep found {reached}, which is fewer names than the reference "
-        f"declares in its band table alone"
+    declared = {name for name, _, _ in fallback_channels(read_rules())}
+    assert set().union(*reached.values()) == declared, (
+        f"the sweep found {sorted(set().union(*reached.values()))} across "
+        f"{sorted(reached)}, and the reference declares {sorted(declared)}"
+    )
+
+
+@pytest.mark.parametrize("shape_name", sorted(SHAPE_LIVE_SITES))
+def test_every_shape_still_matches_the_shipped_site_it_was_written_for(
+    shape_name: str,
+) -> None:
+    """A shape that stops matching its own live site narrows the sweep in silence.
+
+    Probed before this existed: rewording `SKILL.md`'s declaring sentence from
+    "`narrow` at ≤480" to "`narrow`, covering ≤480" killed `prose-declaration`
+    with 285 tests still passing, and renaming those same channels to `mobile`
+    and `desktop` then shipped green behind the dead shape.
+    """
+    site = SHIPPED_ROOT / SHAPE_LIVE_SITES[shape_name]
+    assert site.is_file(), f"{shape_name}'s live site {site} does not exist"
+    text = site.read_text(encoding="utf-8")
+    matches = CHANNEL_NAME_SHAPES[shape_name].findall(text)
+    inner = {
+        "snippet-name-field": INNER_NAME_FIELD,
+        "band-row": INNER_BAND_ROW,
+        "prose-declaration": INNER_PROSE_NAME,
+    }[shape_name]
+    names = [n for m in matches for n in inner.findall(m) if n != "Channel"]
+    assert names, (
+        f"the {shape_name!r} shape no longer finds a channel name in "
+        f"{SHAPE_LIVE_SITES[shape_name]}; the sweep has narrowed without saying so"
     )
 
 
@@ -427,7 +477,11 @@ def test_no_shipped_channel_name_carries_a_device_token() -> None:
             "\n## Channels\n\n| Channel | Lower | Upper |\n| --- | --- | --- |\n"
             "| tablet |  | <=480 |\n",
         ),
-        ("prose-declaration", "Declare none and two apply — `desktop` at >=1024 CSS px."),
+        (
+            "prose-declaration",
+            "A channel is a band of viewport widths. Declare none and two apply — "
+            "`desktop` at >=1024 CSS px.",
+        ),
     ],
 )
 def test_the_channel_sweep_catches_a_planted_name_in_every_shape(

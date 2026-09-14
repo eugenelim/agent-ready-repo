@@ -13,8 +13,9 @@ import re
 
 import pytest
 from frontend_engineering_rendered_page_rules import (
-    WALK_RULE_ROWS,
+    REQUIRED_RULE_ROWS,
     capture_record_fields,
+    capture_set_rules,
     capture_tables_agree,
     channel_basis,
     channel_capture_width,
@@ -531,7 +532,7 @@ def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None
 
 
 @pytest.mark.parametrize(
-    "row_key", [k for keys in WALK_RULE_ROWS.values() for k in keys]
+    "row_key", [k for keys in REQUIRED_RULE_ROWS.values() for k in keys]
 )
 def test_every_rule_row_the_walk_reads_raises_when_deleted(
     rules_markdown: str, row_key: str
@@ -542,7 +543,8 @@ def test_every_rule_row_the_walk_reads_raises_when_deleted(
     picked the two that already had coverage: deleting `channel-derivation`,
     `channel-boundary-belongs-to` or `channel-basis-recorded` left the walk
     returning `complete`, because those rows are only consulted on paths a
-    fallback-basis run never takes.
+    fallback-basis run never takes. `REQUIRED_RULE_ROWS` is still a hand-written
+    list; the control below is what makes a newly shipped row reach it.
     """
     full = _matrix(390) + _matrix(1280)
     assert evaluate_capture_set(rules_markdown, full) == ("complete", [])
@@ -761,4 +763,42 @@ def test_the_manifest_example_is_a_band_set_the_derivation_produces(
     assert stated == derived, (
         f"the example states {stated}, but the shipped derivation yields "
         f"{derived} for the breakpoints it names, {breakpoints}"
+    )
+
+
+def test_the_required_rule_rows_match_what_the_tables_state(rules_markdown: str) -> None:
+    """The equality control that settles the hand-written-list question.
+
+    `REQUIRED_RULE_ROWS` is a literal, and three review rounds argued over whether
+    a per-row delete-and-red check derived from it "inherits" a newly shipped row.
+    It does not, on its own: a row added to either shipped table is read by
+    nothing and covered by nothing, and the whole suite stays green. This compares
+    the constant against the keys the shipped tables actually state, so the
+    divergence is what reds rather than the argument.
+    """
+    assert set(REQUIRED_RULE_ROWS["Channels"]) == set(channel_rules(rules_markdown)), (
+        "the Channels rule table and REQUIRED_RULE_ROWS state different row sets; "
+        "a row shipped without being required here is read by nothing"
+    )
+    assert set(REQUIRED_RULE_ROWS["Required captures"]) == set(
+        capture_set_rules(rules_markdown)
+    ), (
+        "the Required captures rule rows and REQUIRED_RULE_ROWS state different "
+        "row sets"
+    )
+
+
+def test_a_newly_shipped_rule_row_reds_until_it_is_required(
+    rules_markdown: str,
+) -> None:
+    """The mutation the control above exists for, driven rather than described."""
+    extra = rules_markdown.replace(
+        "| channel-basis-recorded | required |",
+        "| channel-basis-recorded | required |\n| channel-min-captures | required |",
+        1,
+    )
+    assert extra != rules_markdown
+    assert set(REQUIRED_RULE_ROWS["Channels"]) != set(channel_rules(extra)), (
+        "a row added to the shipped Channels table did not diverge from "
+        "REQUIRED_RULE_ROWS, so the equality control cannot notice it"
     )

@@ -130,11 +130,18 @@ def required_captures(markdown: str) -> dict[str, dict[str, str]]:
 
 CHANNELS_HEADING = "Channels"
 
-# Every rule row the completeness walk reads, by the table that states it. Both
-# the walk and its shipped-content test derive from this, so a row added to
-# either table inherits the delete-and-red discipline instead of needing to be
-# remembered into a hand-written list.
-WALK_RULE_ROWS = {
+# The rule rows `evaluate_capture_set` requires present before it runs, by the
+# table that states them. Not all of them are read by the walk: `channel-capture-width`
+# and `channel-basis-recorded` belong to `channel_capture_width` and
+# `channel_basis`, and the walk proves them present so that deleting any shipped
+# rule row reds through one gate rather than only on the path that happens to
+# consult it.
+#
+# This IS a hand-written list, and it does not confer inheritance on its own. What
+# makes a newly shipped row arrive here is the equality control in
+# `test_rendered_page_capture_contract.py`, which compares this constant against
+# the rule-row keys the shipped tables actually state and reds when they diverge.
+REQUIRED_RULE_ROWS = {
     "Channels": (
         "channel-source",
         "channel-derivation",
@@ -479,7 +486,7 @@ def evaluate_capture_set(
     # with the walk still returning `complete`: the rows are only consulted on
     # paths a fallback-basis run never takes.
     rules = channel_rules(markdown)
-    for key in WALK_RULE_ROWS[CHANNELS_HEADING]:
+    for key in REQUIRED_RULE_ROWS[CHANNELS_HEADING]:
         _rule_present(rules, key, CHANNELS_HEADING)
     channels = required_channels(markdown, declared_breakpoints)
     matrix_required = _rule_in_force(
