@@ -1,0 +1,268 @@
+# Plan: Channel minimum width
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** `packs/AGENTS.md` (runtime export boundary, pack test
+  loader naming, version bump rule, no internal-governance citations in shipped
+  content); `packs/frontend-engineering/AGENTS.md`;
+  `docs/CONVENTIONS.md:858-864` (what counts as an adapter-projected primitive).
+  Analogous implementation: the channel axis itself — the `## Channels` rule rows
+  in `.apm/skills/frontend-engineering/references/rendered-page-inspection.md`,
+  their reader `required_channels()` at
+  `packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py:265`,
+  and its construction tests in `test_rendered_page_capture_contract.py`. This
+  delivery adds an input to that same table-plus-reader shape; no new mechanism.
+
+## Approach
+
+The minimum is a filter over the bands the existing derivation already produces,
+applied after them rather than inside them. `required_channels` keeps deriving
+`<b1`, `>=bk <bk+1`, `>=bn` from the breakpoints; a second pass drops a band
+whose whole range is below the minimum and rewrites the lowest survivor's lower
+bound to the minimum. Keeping the two separable is what lets the existing
+five-case derivation tests stand unchanged and the new cases test only the
+filter.
+
+Three mechanical facts shape the order of work. The filter needs no new
+predicate grammar, because a clamped band is two cells the existing `satisfies()`
+already parses. Two new rule rows join the six the walk requires present, so
+`REQUIRED_RULE_ROWS` and its equality control move in the same task as the rows.
+And the recorded effects are two fields rather than one, so `channel_basis`
+keeps its two-value vocabulary and gains siblings instead of a third value.
+
+## Constraints
+
+- `.apm/` is the runtime export boundary. Tests never live there, and the pack's
+  test modules carry pack and skill in their names.
+- `frontend_engineering_rendered_page_rules.py` is the single rule reader.
+- Shipped `.apm/` content cites nothing from this repository.
+- `make build-self` runs after every `.apm/` edit; `ruff check` before push.
+- A mutation proof mutates by editing and restores by editing. `git checkout`,
+  `git reset` and `git stash` are not restoration here: a failed restore leaves a
+  dirty tree that the next gate reads as a defect.
+
+## Construction tests
+
+Per-task, below. **Integration tests:** none beyond per-task tests — the pack has
+no integration tier. **Manual verification:** one end-to-end capture run against
+a real single-channel surface with a minimum declared (T6).
+
+## Durable-output map
+
+| Durable output (spec) | Tasks |
+| --- | --- |
+| Rule layer — reference | T1 |
+| Reader and derivation | T2 |
+| Adopter-facing skill | T3 |
+| Journey input | T3 |
+| Adopter guidance — how-to | T4 |
+| Eval harness | T5 |
+| Execution observation | T6 |
+| Release history | T7 |
+
+## Design (LLD)
+
+### Design decisions
+
+**The filter runs after the derivation, not inside it.** Folding the minimum into
+the band construction would make every existing derivation case a
+minimum-of-`None` case and put two rules in one loop. Separating them means the
+shipped five-case derivation tests keep testing the derivation.
+
+**Clamp, rather than drop-and-reconstruct.** A surviving band keeps its upper
+bound and takes the minimum as its lower bound. The capture-width rule then
+yields the minimum for that band without a special case, because the rule already
+reads the lower bound first.
+
+**Two recorded fields, not a third basis value.** A minimum composes with either
+basis, so a third value could not express a surface that declares both. The
+vocabulary `channel_basis` pins stays two values; the minimum and the discarded
+breakpoints are separate records.
+
+### Data & schema
+
+Two new rule rows, both read by the walk and therefore both in the set it proves
+present before running:
+
+| Row key | Table | States |
+| --- | --- | --- |
+| `channel-minimum-derivation` | Channels, rule rows | drop-bands-below-clamp-lowest-survivor |
+| `channel-minimum-recorded` | Channels, rule rows | `required` — the switch AC-0006 and AC-0007's guards read |
+
+`REQUIRED_RULE_ROWS["Channels"]` goes from six keys to eight. Its equality
+control compares that constant against what `channel_rules` reads, so the two
+move together or the control reds.
+
+### Behavior & rules
+
+`required_channels(markdown, declared_breakpoints, minimum=None)` derives bands
+as today, then applies the filter. A band is dropped when its upper bound admits
+no width at or above the minimum. The lowest survivor's lower bound becomes
+`>=minimum`. Breakpoints below the minimum are collected as they are dropped, so
+the discarded list is a by-product of the filter rather than a second pass.
+
+### Failure, edge cases & resilience
+
+A minimum below every band's range changes nothing and is not an error. A minimum
+above every band leaves exactly one channel, and every discarded breakpoint is
+recorded. A minimum equal to a declared breakpoint leaves that breakpoint's band
+intact, because the boundary belongs to the wider band and the band starts at the
+minimum either way.
+
+### Dependencies & integration
+
+No new dependency. The pack's declared dependency surfaces are compared before
+and after (T7).
+
+## Tasks
+
+### T1: The reference states the minimum
+
+**Depends on:** none
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/references/rendered-page-inspection.md
+
+**Tests:** goal-based check — this task ships content T2's assertions read.
+AC-0001 through AC-0004 and AC-0006 and AC-0007 are stated here and asserted
+there; nothing in this task asserts them itself.
+
+**Approach:** add the two rule rows to the `## Channels` rule-row block and the
+prose stating the derivation, the admissible value, and both recorded effects.
+State the axis's reason without naming any surface outside the pack.
+
+**Done when:** the new rows parse under `capture_set_rules`' two-cell shape and
+`unique_keyed`'s duplicate-key rule, run from a scratch probe.
+
+### T2: The reader derives and records the minimum
+
+**Depends on:** T1
+**Touches:** packs/frontend-engineering/tests/skills/frontend-engineering/frontend_engineering_rendered_page_rules.py, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_capture_contract.py
+
+**Tests:** TDD in `test_rendered_page_capture_contract.py`, covering AC-0001,
+AC-0002, AC-0003, AC-0004, AC-0005, AC-0006 and AC-0007. The parametrized `test_every_required_rule_row_raises_when_deleted`
+already derives its key set from `REQUIRED_RULE_ROWS`, so the two new rows arrive
+in it without a second list — that is the control the previous delivery built for
+exactly this case. The mutation for AC-0005 deletes one row at a time.
+
+**Approach:** add the minimum parameter and the filter to `required_channels`;
+extend `REQUIRED_RULE_ROWS["Channels"]` with both keys; add the two recording
+readers beside `channel_basis` without widening its vocabulary.
+
+**Done when:** a repository-wide search for `required_channels` returns no caller
+still passing two positional arguments where three are meaningful, and the
+equality control at `test_rendered_page_capture_contract.py:811` is green with
+eight keys.
+
+### T3: `SKILL.md` and the journey state the input
+
+**Depends on:** T1
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
+
+**Tests:** TDD for AC-0008 and AC-0009. AC-0009 goes in
+`test_rendered_page_journey_promise.py`, the suite that already owns assertions
+about what the journey promises; AC-0008 joins the § 5a assertions in
+`test_rendered_page_capture_contract.py`.
+
+**Approach:** § 5a gains the minimum beside the breakpoints input and states its
+effect on the required set; the manifest `viewports` row gains the minimum and
+the discarded breakpoints. `JOURNEY.md:12`'s `youProvide` gains the supported
+minimum width — its two manifest inventories at `:84` and `:169` name the field
+without stating what it holds, so the change does not reach them.
+
+**Done when:** `make build-self` leaves no projection diff and the only changed
+line in `JOURNEY.md` is `:12`.
+
+### T4: The how-to walks a single-channel surface
+
+**Depends on:** T3
+**Touches:** guides/frontend-engineering/how-to/inspect-the-rendered-page.md
+
+**Tests:** goal-based check for AC-0010 — a search over the guide for the minimum
+input and the four-capture floor a single channel produces. The repository's
+documentation gates stay a separate well-formedness check.
+
+**Approach:** the guide's capture section gains the minimum alongside the
+breakpoints it already walks, and states the required set for a surface that
+declares one. The existing eight-capture floor becomes the floor for two
+channels rather than the floor unconditionally.
+
+**Done when:** the guide's links resolve under the repository's documentation
+gates.
+
+### T5: The harness expects the minimum
+
+**Depends on:** T1
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json
+
+**Tests:** TDD for AC-0011 in `test_rendered_page_reviewer_sight.py`, which
+already parses this file for the channel-coverage assertion.
+
+**Approach:** the `rendered-page-inspection` case gains an assertion naming the
+declared minimum and what it removes from the required set.
+
+**Done when:** `catalogue lint --deep` and `catalogue verify` accept the harness
+and `make build-self` leaves no projection diff.
+
+### T6: The step is performed against a single-channel surface
+
+**Depends on:** T2, T3
+**Touches:** docs/specs/channel-minimum-width/notes/verification-ledger.md
+
+**Tests:** visual / manual QA for AC-0014 — a recorded gesture. A passing
+completeness test is not evidence that one channel was enough to judge the page.
+
+**Approach:** run the capture against a real surface with a minimum declared,
+route the images to a judge, and record the observations, the result state, the
+verdict, the minimum in force, and any discarded breakpoint.
+
+**Done when:** `docs/specs/channel-minimum-width/notes/verification-ledger.md`
+carries the five values AC-0014 names.
+
+### T7: The release surface carries the change
+
+**Depends on:** T1-T6
+**Touches:** packs/frontend-engineering/pack.toml, packs/frontend-engineering/.claude-plugin/plugin.json, docs/product/changelog.md
+
+**Tests:** goal-based check for AC-0012 and AC-0013 — compare the two manifests'
+version fields, confirm the changelog entry is this pack's topmost release
+heading and that `core` remains directly beneath `[Unreleased]`, run
+`tools/test_build_site_routing.py` for the separation gate, and compare the
+pack's declared dependency surfaces before and after.
+
+**Approach:** bump both manifests to `0.2.5` and lead a changelog entry with the
+pack and that version, placed below the `core` block. Diff
+`origin/main:packs/frontend-engineering/pack.toml` first so an unpushed peer bump
+does not collide silently.
+
+**Done when:** `make build-self` leaves no projection diff and `ruff check` is
+clean across the changed Python.
+
+## Rollout
+
+- **Delivery:** big bang within the pack, behind a version bump. Reversible by
+  reverting the pack content and the manifests together.
+- **Infrastructure:** none.
+- **External-system integration:** none.
+- **Deployment sequencing:** the reference (T1) leads, because every other task
+  reads it.
+- **Adopter impact:** none for a surface that declares no minimum — the required
+  set is unchanged. A surface that declares one gets a smaller required set, so
+  no existing capture set becomes incomplete.
+
+## Risks
+
+- **The filter's drop condition is the load-bearing line.** A band is dropped on
+  its upper bound alone, so an off-by-one there silently drops a band that
+  should survive. The mutation for it is removing the filter, which the probe
+  showed yields unsatisfiable bands; the case that catches an off-by-one is a
+  minimum equal to a band's upper bound.
+- **`REQUIRED_RULE_ROWS` grows from six to eight.** Its equality control reds
+  until both are added, which is the control working; the risk is reading that
+  red as a defect rather than as the reminder it is.
+- **`SKILL.md` headroom.** 899 of 1,000 body lines at `0.2.4`. T3 measures
+  rather than assumes.
+
+## Changelog
+
+- 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
+  whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
+  recording as two fields beside an unchanged two-value basis.
