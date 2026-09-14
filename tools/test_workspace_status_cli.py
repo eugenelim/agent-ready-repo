@@ -769,6 +769,45 @@ backlog = []
         self.assertNotIn("ignore previous instructions", result.stdout + result.stderr)
         self.assertNotIn("/outside/should-not-leak", result.stdout + result.stderr)
 
+    def test_benign_initiative_display_fields_are_still_redacted(self) -> None:
+        """`name`/`milestone` redaction is unconditional, not payload-triggered.
+
+        SKILL.md documents both fields as always arriving as the literal
+        `workspace.toml` sentinel and tells the consumer to render the slug
+        alone. A filter that admitted safe-looking free text would satisfy the
+        adjacent injection-payload test and still break that contract, so this
+        case pins the benign values this repository's own workspace.toml holds
+        -- including the non-ASCII separator a charset filter would have to
+        decide about.
+        """
+        root = self._write_workspace(
+            '''\
+["ini-002"]
+name = "Platform Core"
+status = "active"
+milestone = "P5 \u00b7 Adopt (M1-M5 shipped)"
+
+["ini-002".work]
+queue = []
+active = []
+shipped = []
+
+["ini-002".shaping_queue]
+active = []
+backlog = []
+'''
+        )
+
+        result = _run_cli("status", "--root", str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        initiative = json.loads(result.stdout)["initiatives"][0]
+        self.assertEqual(initiative["slug"], "ini-002")
+        self.assertEqual(initiative["name"], "workspace.toml")
+        self.assertEqual(initiative["milestone"], "workspace.toml")
+        self.assertNotIn("Platform Core", result.stdout + result.stderr)
+        self.assertNotIn("Adopt", result.stdout + result.stderr)
+
     def test_invalid_initiative_slug_suppresses_shaping_projection(self) -> None:
         root = self._write_workspace(
             '''\
