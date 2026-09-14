@@ -279,6 +279,19 @@ jobs:
       - name: pytest make-free gate chains (windows-build-gate-chain)
         run: python -m pytest tools/test_build_gate_chain.py
 
+      # Collector-level guard: no test file may duplicate a packaged source
+      # tree on sys.path at import time, which silently changes which copy of
+      # agentbundle or credbroker every later test in the session imports.
+      # It runs immediately above the step it protects: gate-main already ran
+      # test_gitattributes_merge_driver.py on every PR while the guard that
+      # catches its violations was dispatch-only, so a test that broke the
+      # guard reached main green and sat there five days (c12b39ead ->
+      # 6354fda45). Cheap enough to be unconditional: the five-file batch this
+      # file shares in `make test` took 8s in CI. make build-check runs no
+      # pytest; wire it explicitly.
+      - name: pytest import-time path leaks (collector sys.path guard)
+        run: python -m pytest tools/test_import_time_path_leaks.py -q
+
       # AC1 of docs/specs/record-index-merge-driver: the `merge=regen` set
       # must equal the union over every required gate-main generator rail.
       # Over-scope is silently destructive -- a driver on an ungated path
