@@ -185,8 +185,8 @@ in a three-cell table or prose in the `` `name` at <op> `` shape reds it.
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** none of this file's four anchors sits in a **sentence** that fails
-to name the minimum, **and each still matches in this file**, so conditioning
+**Done when:** each of this file's four anchors sits in a **sentence** carrying
+that anchor's conditioning literal, **and each still matches in this file**, so conditioning
 rather than rephrasing is what discharges it and a rephrase cannot hide behind a
 sibling carrier. The four are the fallback sentence, the band enumeration opener,
 the eight-captures-per-route figure, and the n-plus-1 floor in the
@@ -266,13 +266,17 @@ example: its comment states the inference this delivery falsifies — no
 breakpoints declared, therefore two channels — and its array captures at 480.
 The block sits in its own paragraph unit, so conditioning the prose around it
 does not reach it, and it cannot be deleted either: `snippet-name-field` anchors
-on `const channels = [` at this exact site. So it must survive and be edited. The
-edit keeps a `const channels = [` array whose `name:` entries are drawn only from
-`narrow` and `wide`, because that shape harvests those names into the
-set-equality sweep. A single-channel form fits inside that constraint — a
-1280-minimum fallback surface clamps `wide` to `>=1280` and keeps its table name,
-so one entry named `wide` at width 1280 is correct under AC-0002 and AC-0003 and
-safe for the name sweep. AC-0009 goes in
+on `const channels = [` at this exact site. So it must survive and be edited, and the
+edit is the comment alone. The array keeps both entries at 480 and 1024: it is a
+correct example *of a surface with no declared minimum*, and the comment is the
+part that teaches the falsified inference. A one-entry array is not available
+here — AC-0021's carrier map requires the anchor
+`Two here because no breakpoints were declared` to keep matching in this file,
+and removing a carrier is an amendment to that map rather than a green run, so
+"Two here" and a single entry cannot both be true. The comment gains the
+conditioning literal `no declared minimum` and a clause saying that declaring one
+drops the bands below it. `name:` entries stay drawn from `narrow` and `wide`,
+which is what `snippet-name-field` harvests into the set-equality sweep. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -308,7 +312,7 @@ delivery itself falsifies.
 **Done when:** the guide's links resolve under the repository's documentation
 gates, and none of `Declare none and two apply`, `eight captures per route` or
 `four times *n + 1* where you declare *n* breakpoints` sits in a **sentence** that
-fails to name the minimum, and each still matches in this file. Two of them wrap
+lacks that anchor's conditioning literal, and each still matches in this file. Two of them wrap
 across a line break here, so the check normalizes whitespace within a unit after
 splitting on blank lines, never before, and splits sentences only after that.
 
@@ -330,8 +334,8 @@ outside the control's reach entirely.
 declared minimum and what it removes from the required set.
 
 **Done when:** all eight AC-0021 anchors match in exactly the carrier files the
-criterion lists and sit only in sentences that name the minimum, across
-`.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
+criterion lists and each sits in a sentence carrying its conditioning literal,
+across `.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
 `make build-self` leaves no projection diff.
 
 ### T6: The step is performed against a single-channel surface
@@ -399,6 +403,27 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 10. AC-0021 specified its reach to the byte and left
+  its satisfier unstated: "the sentence names the minimum" gave no vocabulary, so
+  the cheapest discharge survived the round-9 tightening one clause smaller —
+  "needs four times n + 1, and a declared minimum is a separate matter" mentions
+  the minimum in the anchor's own sentence with the claim still false. A bare
+  `minimum` is ambiguous anyway: `SKILL.md` uses the word seven times in
+  unrelated senses. Each anchor now carries a conditioning literal from a closed
+  set of three, all reserving the phrase `declared minimum`, which is unused
+  anywhere in the swept files today.
+  T3's worked-example approach contradicted the anchor it was written for. I had
+  taken round 9's suggestion of a single-channel array verbatim; AC-0021's
+  carrier map requires "Two here because no breakpoints were declared" to keep
+  matching, so a one-entry array under that comment cannot ship. The array keeps
+  both entries and stays a correct no-minimum example; the comment is the edit.
+  Pinned the clamped unbounded top band's name, which was unpinned everywhere —
+  a 1280 minimum against `[768]` must yield `from-1280`, not `from-768`, and the
+  walk prints that name in its incomplete report. Gave AC-0011 both graded eval
+  fields, matching the shipped floor's precedent.
+  The reviewer verified the carrier map exact, the mechanization decidable on the
+  ellipsis and JSON anchors, five premises against code, all twenty non-AC-0021
+  criteria's arithmetic, and a clean final enumeration with no ninth carrier.
 - 2026-09-14 — Shaping round 9. An eighth carrier, and the worst-placed one:
   § 5a's JS worked example comments "Two here because no breakpoints were
   declared" and captures at 480. It is the block an agent copies, it sits in its
