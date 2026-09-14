@@ -336,6 +336,9 @@ What that changes:
   is collected too. The round-5 defect therefore survived a narrow **local**
   command, not an absent CI gate — which is what this ledger's own "caught it by
   accident" section actually describes, and the correction does not soften it.
+- **AC-0014 is PR-gated by one case, and weakly.** The predicate that case
+  asserts is narrower than the criterion's wording; § *AC-0014's verification is
+  weaker than the criterion it verifies* below carries the measurement.
 - **The residue is real and narrower than claimed.** `packs/frontend-engineering/tests/`
   is named nowhere in `build-check.yml`, so the **292** tests that path collects —
   every channel-axis guard and every mutation control five review rounds argued
@@ -382,8 +385,9 @@ manifests' version fields", which *is* the agreement predicate — so the
 criterion's text and its verification differ in strength by exactly this much,
 and the Testing Strategy is the honest half. The gap is in the criterion's
 wording, which names a literal **no PR-reachable check** reads. The literal was
-read — by the goal-based check this delivery ran at T9, recorded below — so the
-gap is in what CI would catch on a future edit, not in what was verified here.
+read at delivery by direct inspection of both manifests, stated three paragraphs
+down — so the gap is in what CI would catch on a future edit, not in what was
+verified here.
 
 Not repaired here for two reasons. The first is an **assumption, not a cited
 rule**: pinning `0.2.4` anywhere would create a surface that must be edited on

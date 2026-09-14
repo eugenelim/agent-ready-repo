@@ -184,11 +184,12 @@ anyone rereading this spec's notes.
   touches `build-check.yml` and the Makefile and does not belong in a
   pack-content delivery. Registered in `workspace.toml` under `[backlog].open`
   against `tools/repo/build_gate_chain.py`. The `292` above is the one measurement
-  this bullet keeps, because it scopes the obligation; every other figure — what
-  else is PR-gated, and how — belongs to
-  `notes/verification-ledger.md` § *What runs on a PR, and what this delivery
-  therefore owes*, which is this bullet's evidence and the register entry's
-  `source.ref`.
+  this bullet keeps, because it scopes the obligation. Every other figure belongs
+  to `notes/verification-ledger.md`, in two sections: § *What runs on a PR, and
+  what this delivery therefore owes* for the reach table and what else is gated,
+  and § *AC-0014's verification is weaker than the criterion it verifies* for the
+  one metadata case and what it actually asserts. The first is the register
+  entry's `source.ref`.
 
 ## Assumptions
 
