@@ -1,6 +1,6 @@
 # Spec: Record-index merge driver
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) — also carries the citations `plan.md` cannot correct, because `loop-cohort` pins it at `approve-plan`. Both `plan.md:62` and `plan.md:168` say `tools/lint-ci-parity.py:377-380`; the current range is `:378-381`
@@ -158,25 +158,25 @@ widens what the gates cover, never what a maintainer may declare by hand.
 
 ## Acceptance Criteria
 
-- [ ] The set of tracked regular-file paths for which `git check-attr merge`
+- [x] The set of tracked regular-file paths for which `git check-attr merge`
       resolves `regen` is exactly the union, over every required `gate-main`
       generator rail, of the tracked regular-file paths that rail covers.
       Symlinks are outside the equality on both sides, because git applies no
       content merge driver to a symlink blob, so declaring one would report an
       attribute that never takes effect.
-- [ ] The record-index rail's covered set changes with the `build-check` chain's
+- [x] The record-index rail's covered set changes with the `build-check` chain's
       steps: a chain carrying no `index-records.py --check` step contributes no
       path to the covered set, and a chain carrying such a step for a record
       directory contributes that directory's `README.md` and nothing else.
-- [ ] `index-records.py --check <dir>` exits zero against a record directory
+- [x] `index-records.py --check <dir>` exits zero against a record directory
       whose `README.md` matches its records, and exits non-zero naming
       `<dir>/README.md` when that file is changed and nothing else is.
-- [ ] A `git merge` in which each side has added a distinct record to
+- [x] A `git merge` in which each side has added a distinct record to
       `docs/adr` and regenerated `docs/adr/README.md` halts on that path when
       `merge.regen.driver` is unset, and the same merge from the same starting
       state completes without halting, leaving a commit with two parents, when
       it is set.
-- [ ] After the driver-resolved merge, `index-records.py docs/adr` exits zero
+- [x] After the driver-resolved merge, `index-records.py docs/adr` exits zero
       and `docs/adr/README.md` then carries a row for each side's record.
 
 ## Follow-ons

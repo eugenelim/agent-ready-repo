@@ -1,6 +1,6 @@
 # Plan: Record-index merge driver
 
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 
 ## Approach

@@ -164,8 +164,9 @@ corrected while that one was not. It was false for one round; it is true as of
 this commit. For the record, `:377` is the `windows-build-gate-chain` value and
 `:378-379` is the AC1 key/value pair.
 
-The plan's two stay as they are, and it carries its approved bytes: `loop-cohort schedule` pins `plan.md`
-at `approve-plan`, and editing it — even for two line numbers — breaks that
+The plan's two stay as they are, and it carries its approved bytes:
+`loop-cohort schedule` pins `plan.md` at `approve-plan`, and editing it — even
+for two line numbers — breaks that
 baseline. The documented recovery re-pins whatever is on disk, which the tool
 itself describes as "a re-approval in substance", and a re-approval is the
 human's to give, not something to take for a citation fix. Restoring the
