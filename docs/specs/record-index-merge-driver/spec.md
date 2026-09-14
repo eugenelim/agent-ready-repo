@@ -3,7 +3,7 @@
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) — also carries the citations `plan.md` cannot correct, because `loop-cohort` pins it at `approve-plan`; `plan.md:62`'s closeout cell says `tools/lint-ci-parity.py:377-380` and the current range is `:378-381`
+- **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) — also carries the citations `plan.md` cannot correct, because `loop-cohort` pins it at `approve-plan`. Both `plan.md:62` and `plan.md:168` say `tools/lint-ci-parity.py:377-380`; the current range is `:378-381`
 - **Constrained by:** ADR-0112
 - **Brief:** none
 - **Discovery:** none

@@ -86,6 +86,10 @@ harness can produce a false negative as easily as a false positive.
 
 ## Sync with origin/main — a premise changed underneath the spec (2026-09-13)
 
+> **Superseded** by *The /now/ renderer input: untracked again* below. The
+> tracked state this entry records was PR #1292's mistake and no longer holds;
+> the `.gitattributes` header no longer names the path.
+
 Merging `origin/main` (4 commits) re-added
 `web/src/lib/now-highlights.generated.json`, which commit `da10ba428` had
 untracked and which the spec recorded as untracked and gitignored. Commit
@@ -165,6 +169,11 @@ ones.
 
 ## The /now/ projection, answered against the post-merge tree (2026-09-13)
 
+> **Superseded** by *The /now/ renderer input: untracked again* below. The
+> eligibility question this entry answers is moot once the path is untracked;
+> its reading of the routing suite is also wrong — that suite does read the
+> committed changelog.
+
 The second sync pulled in changes to `tools/build-site.py` and 118 lines of
 `tools/test_build_site_routing.py`, which is the suite the original request
 asked about. Re-checked, because the earlier answer rested on the file being
@@ -215,3 +224,38 @@ real coverage hole, closed here at its cause rather than by reinstating a gate
 to police a copy that should not exist. Two documented statements that were
 false while the window was open are true again: `.gitignore:131-145` and the
 docstring's "That copy is no longer tracked".
+
+## The re-tracking detection gap: declined, with the owner's reason (2026-09-13)
+
+Review distinguished two controls, correctly. The staleness gate is answered
+above: not needed, and reinstating it would police a copy that should not exist.
+A *different* control is absent — nothing noticed that a gitignored path became
+tracked and stayed tracked through a merged PR (`081c26209`, an unrelated
+workspace-status change). `git add -A` will not stage an ignored file, so the
+path was force-added or staged before the ignore took effect; either way no gate
+reported it, and none would today.
+
+Declined here, not overlooked. The owner ruled on 2026-09-13 that the conflict
+between `.gitignore:131-145` and the tracked copy be reported rather than given
+a durable register entry, and this detection gap is the same conflict seen from
+the control side. It is recorded in the PR description. This change does not own
+the gap: it belongs to whatever gates `.gitignore` adherence, which is neither
+the merge driver nor the record indexes.
+
+A guard is *not* as cheap as it first looks, and this note originally said it
+was. `git ls-files --cached --ignored --exclude-standard` returns every tracked
+path an ignore rule names, but on this branch it returns seven, not zero:
+`.coverage`, `tools/build/build.py`, and five `AGENTS.local.md` files that are
+deliberately tracked and ignored. So the naive form is all false positives and
+any real guard needs an allowlist — which is a design decision with an owner,
+not a one-liner this PR can drop in. The first version of this paragraph claimed
+the command was empty here; it was written before the command was run.
+
+## Correction: a byte count repeated after it changed (2026-09-13)
+
+An earlier note gave the untracked file as 170850 bytes. It measures 177354.
+Both numbers were real: the file was measured, then `tools/build-site.py
+--renderer-inputs` regenerated it and the first figure was repeated afterwards
+without re-measuring. Presence is the property the claim needed and presence
+holds, but the number did not survive the command run between taking it and
+using it.
