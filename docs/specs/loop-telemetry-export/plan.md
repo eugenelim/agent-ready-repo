@@ -180,8 +180,13 @@ per-setting resolver and the invocation it renders),
   whose exact form is fixed only once `jsonl-otlp-exporter` ships. Constraint:
   the package reads one config path; precedence is this catalogue's wiring, not
   the package's behaviour. Required outcome: repository file before user file,
-  and `--input` resolved to the repository event log. Verification mode: TDD.
-  Proof obligation: the precedence assertion runs over two fixture layout files
+  `--input` resolved to the repository event log, and a setting the sender has no
+  route for refused rather than dropped — from either scope, because the merge can
+  pull an undeliverable value in from the user file. Verification mode: TDD.
+  Proof obligation for the refusal: the control pins the deliverable set itself,
+  so it cannot quietly stop exercising the criterion if the sender later grows a
+  route for the setting the test uses. Proof obligation: the precedence assertion
+  runs over two fixture layout files
   that differ only in their endpoint, so a build reading the wrong one fails.
 - Per-setting resolution over two fixture layout files: a setting the repository
   file declares comes from there; a setting it omits while the user file declares

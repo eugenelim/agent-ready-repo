@@ -708,3 +708,31 @@ from the repository scope. The merge pulls a user value in whenever the reposito
 file omits the key, so the same refusal must hold from either side — and the user
 file is the one this catalogue trusts less. A second case now covers it, and
 narrowing the implementation to `set(repo_settings)` kills it.
+
+## Amendment review round 2 — no blockers, and a fourth surface
+
+Zero blockers, three concerns, one nit; all applied.
+
+**The four-versus-six claim had a fourth surface.** Round 1 found it in the
+Durable-output map; round 2 found it again in `spec.md`'s Assumptions source
+list, which still cited the original four line references. Four surfaces of one
+claim, found across two rounds, each round finding the ones the previous repair
+missed. The claim is now stated once with its full enumeration in each of the
+four places that carry it.
+
+**One concern overstated its risk, and the mutation is why we know.** The
+reviewer held that the AC-0055 controls "would remain green" if the sender grew
+a route for the setting they use. Measured: adding `compression` to the
+deliverable set **kills** both controls, because they expect a raise. The failure
+is loud, not silent. What the concern gets right is that the failure would be
+*confusing* — it looks like a broken criterion when it is stale test data. A
+named assumption test now says so in its own failure message.
+
+**T2's `no stub` record named an outcome it did not carry.** `spec.md` promises
+that every no-stub record names its discovery predicate and proof obligation;
+AC-0055 had been added to T2's `Tests` list but not to that record's required
+outcome. Both now name the refusal, from either scope.
+
+**AC-0055 carried its own provenance.** The amendment date and the fail-open
+rationale sat inside the criterion, where they affect no gate. Moved out; the
+criterion now states the obligation and nothing else.

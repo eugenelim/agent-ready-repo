@@ -197,9 +197,8 @@ appears in exactly one of the three groups.
 
 - [ ] **AC-0055.** The resolver refuses a `[telemetry]` setting for which the
   sender has no route — neither its `--config` file nor a flag — naming the
-  setting rather than ignoring it. Added by amendment 1 on 2026-09-14: the
-  refusal was introduced during implementation, and these settings decide where
-  data is sent, so a silently dropped one fails open.
+  setting rather than ignoring it. This holds whichever layout file the setting
+  came from.
 
 - [ ] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
   `$comment` whose value contains the literal string
@@ -265,7 +264,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 
 ## Assumptions
 
-- Technical: gate enumeration in this repository is literal, not glob-based (source: `Makefile:515-516`, `pyproject.toml:16`, `pyproject.toml:94-96`, `Makefile:361-366`)
+- Technical: gate enumeration in this repository is literal, not glob-based, and there are **six** such enumerations, not the four AC-0031 names (source: `pyproject.toml` `pythonpath` and `[tool.mypy] files`; the `Makefile`'s `PYTHONPATH` assignment, its test-suite invocations and its pip-audit `--build-system` leg; `tools/lint-mypy.py`'s `TYPED_PACKAGES`)
 - Technical: `[[pack.runtime-dependencies]]` exists in the pack schema and has no reader (source: `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`)
 - Technical: the envelope carries fourteen fields once AC-0046 ships, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
 - Process: Tier 1 detect → fail-clean is mandatory and the default (source: `guides/_shared/how-to/author-a-skill.md:104-117`)

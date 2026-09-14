@@ -10,7 +10,7 @@ from agentbundle.catalogue_tooling.file_safety import (
     BoundExceeded,
     UnsafeContentError,
 )
-from agentbundle.telemetry_layout import MAX_LAYOUT_BYTES, resolve
+from agentbundle.telemetry_layout import _DELIVERABLE, MAX_LAYOUT_BYTES, resolve
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "telemetry-layout"
 
@@ -101,6 +101,24 @@ def test_merged_setting_reaches_the_invocation_not_only_the_settings_dict(
     # ... while the repository's service_name still reaches the sender.
     name_index = resolved.arguments.index("--service-name")
     assert resolved.arguments[name_index + 1] == "work-loop-repo"
+
+
+_UNDELIVERABLE = "compression"
+
+
+def test_the_setting_the_refusal_controls_use_really_has_no_route() -> None:
+    """Name the assumption the two refusal controls rest on.
+
+    They refuse a setting the sender cannot receive. If the sender grew a route
+    for it, those controls would fail -- loudly, not silently, because they expect
+    a raise. This test exists so the failure explains itself: the criterion is
+    still satisfied and the *test data* needs a different setting.
+    """
+    assert _UNDELIVERABLE not in _DELIVERABLE, (
+        f"{_UNDELIVERABLE!r} now has a route to the sender, so the refusal "
+        "controls below no longer exercise AC-0055. Pick a setting that still "
+        "has none; the criterion itself is unaffected."
+    )
 
 
 def test_resolve_refuses_a_setting_the_sender_cannot_receive(tmp_path: Path) -> None:
