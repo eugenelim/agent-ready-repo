@@ -205,24 +205,28 @@ than assumed, and `make build-self` leaves no projection diff.
 ### T5: The evidence manifest records channels
 
 **Depends on:** T4
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md, packs/frontend-engineering/JOURNEY.md
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md
 
-**Tests:** TDD for AC-0011, AC-0012 and AC-0020, in
+**Tests:** TDD for AC-0011 and AC-0012, in
 `test_rendered_page_shipped_content_limits.py`. The guard **reads** the forbidden
 token list from the reference rather than stating it, which is what makes AC-0012
-delete-and-red the way AC-0008 requires of the other rows; stating it in the test
-module would be the self-supplied quantifier the spec's `Always do` forbids. The
-two existing guards in this module state their own vocabularies because theirs
-describe repository policy, not a rule an adopter is held to.
+delete-and-red the way AC-0008 requires of the other rows. The shape already
+exists in this module: `test_the_rate_vocabulary_matches_what_the_pack_states`
+(`:103-119`) parses a `## Rate vocabulary` section out of the measurement
+reference and asserts the module's list equals it. Mirror that for the
+`channel-name-forbids` row. The genericity guard beside it legitimately states
+its own list, because repository identifiers are not a rule an adopter is held to.
 
-**Approach:** restate the manifest `viewports` field as channels covered, given as
-width predicates, in `SKILL.md` and in the journey's manifest inventory — AC-0011
-reaches both and AC-0020 pins them equal. The `viewports` row of `SKILL.md`'s
-evidence-manifest required-field table currently names three devices and is inside
-AC-0012's scope, so it is rewritten here rather than left.
+**Approach:** restate the `viewports` row of `SKILL.md`'s evidence-manifest
+required-field table as channels covered, given as width predicates. It currently
+names three devices and is inside AC-0012's scope, so it is rewritten here rather
+than left. `JOURNEY.md` is deliberately untouched: its two manifest mentions
+(`:84`, `:169`) name the `viewports` field in a field inventory and never state
+what it holds, so the axis change does not reach them.
 
 **Done when:** the `viewports` row of `SKILL.md`'s evidence-manifest
-required-field table no longer names a device.
+required-field table no longer names a device, and `JOURNEY.md` is absent from the
+diff.
 
 ### T6: The reviewer and the eval harness read the width axis
 
@@ -251,8 +255,10 @@ fallback channel names and the band between them that no fallback capture
 reaches. The repository's documentation gates stay a separate well-formedness
 check; a guide naming neither channel passes them.
 
-**Approach:** take the guide's worked walk across both channels and state what a
-reader records when no breakpoints are declared.
+**Approach:** take the guide's worked walk across both channels — its capture
+table and the prose under it (`:45-65`), and its capture-record table (`:74-77`) —
+and state what a reader records when no breakpoints are declared, plus the band
+between the two fallback channels that no fallback capture reaches.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates.
@@ -319,6 +325,11 @@ clean across the changed Python.
 
 ## Changelog
 
+- 2026-09-13 — Deletion pass over the criteria review added. AC-0020 cut and
+  `JOURNEY.md` dropped from the change: its two manifest mentions name the
+  `viewports` field in an inventory and never state what it holds, so the axis
+  does not reach them. Round 1's finding 10 offered this branch and the wider one
+  was taken without opening the file.
 - 2026-09-13 — Shaping review round 3: 5 findings, no blocker, all taken. Three
   were companion statements left stale by round 2's repairs; one moved AC-0019's
   check out of the pack suite, which has no business asserting on this
