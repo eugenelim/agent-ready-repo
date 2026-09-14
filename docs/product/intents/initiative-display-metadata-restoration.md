@@ -1,6 +1,6 @@
 # Show an initiative's name and milestone at orientation
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Level:** feature
 
 ## Outcome
