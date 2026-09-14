@@ -155,6 +155,22 @@ updates but never removes:
 - `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
   material change to a ready brief.
 
+## [core][2.25.26] — 2026-09-13
+
+### Highlights
+
+- **A frontend review now gets the pictures, not just the diff.** When a surface
+  has been inspected, the work-loop hands `frontend-reviewer` the capture set and
+  what was observed in it, alongside the diff. A reviewer that only ever saw a
+  diff could not see one element covering another, which is the class of defect
+  it was most often asked about.
+
+### Changed
+
+- `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
+  capture set, its recorded observations, and the adopter-named routes, and names
+  the reviewer's reader-visible-layout lens.
+
 ## [frontend-engineering][0.2.4] — 2026-09-13
 
 ### Highlights
@@ -179,22 +195,6 @@ updates but never removes:
   is told to use it: it decides which breakpoint-scoped rules a capture exercised
   at all, so a failure absent from one channel is no evidence it is absent from
   another.
-
-## [core][2.25.26] — 2026-09-13
-
-### Highlights
-
-- **A frontend review now gets the pictures, not just the diff.** When a surface
-  has been inspected, the work-loop hands `frontend-reviewer` the capture set and
-  what was observed in it, alongside the diff. A reviewer that only ever saw a
-  diff could not see one element covering another, which is the class of defect
-  it was most often asked about.
-
-### Changed
-
-- `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
-  capture set, its recorded observations, and the adopter-named routes, and names
-  the reviewer's reader-visible-layout lens.
 
 ## [core][2.25.25] — 2026-09-13
 
