@@ -47,7 +47,12 @@ def test_resolve_merges_each_setting_repository_first(tmp_path: Path) -> None:
 
 
 def test_resolve_renders_repository_event_input_and_sender_flags(tmp_path: Path) -> None:
-    """The rendered sender arguments use the repository event log and profile."""
+    """AC-0043: the documented invocation resolves `--input` to the repository
+    root's `.loop-run/events.jsonl`.
+
+    Also pins the rest of the rendered argument vector, so a flag that stops
+    being emitted fails here rather than at the Collector.
+    """
     repo_root, user_path = _copy_layout_fixtures(tmp_path)
 
     resolved = resolve(repo_root, user_path)
