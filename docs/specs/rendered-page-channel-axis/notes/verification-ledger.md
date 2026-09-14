@@ -238,8 +238,10 @@ killed the `prose-declaration` shape outright, and a device rename then shipped
 green *behind the dead shape*. A guard that stops matching in silence is worse
 than no guard, because the suite keeps reporting coverage it no longer has. Two
 of the three shapes were anchored only incidentally, by controls written for
-other reasons; "happens to be anchored" is not a control, so `SHAPE_LIVE_SITES`
-pins each shape to the shipped site it was written for.
+other reasons; "happens to be anchored" is not a control, so each shape is
+pinned to the shipped site it was written for. That pin was first a separate
+`SHAPE_LIVE_SITES` map and is now the `live_site` field of `ChannelNameShape`,
+after a later round collapsed four parallel registries into one record.
 
 ### A claim settled instead of hardened
 

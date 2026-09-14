@@ -379,9 +379,41 @@ def test_a_declared_breakpoint_must_be_a_positive_whole_number(
     """Verifies: a band's bound cells hold whole numbers, so a run refuses a
     fractional or non-positive breakpoint rather than emitting a cell the
     predicate parser raises on."""
-    for bad in (767.98, 0, -320):
+    # `True` is the clause's only non-obvious case: isinstance(True, int) is
+    # True and True > 0, so without the explicit bool exclusion a boolean
+    # reaches the band cells and `satisfies("<True", ...)` raises instead.
+    for bad in (767.98, 0, -320, True, False):
         with pytest.raises(AssertionError, match="positive whole number"):
             required_channels(rules_markdown, [bad])
+
+
+def test_declared_breakpoints_are_ordered_and_deduplicated(
+    rules_markdown: str,
+) -> None:
+    """Verifies: the bands do not depend on the order or uniqueness of the input.
+
+    Declared breakpoints are an optional adopter-supplied input, so an unsorted
+    or duplicated list is reachable rather than hypothetical, and AC-0001's
+    premise is stated over `b1 < ... < bn`. The normalization that makes that
+    premise true was load-bearing and untested: without it `[1024, 480]` derives
+    the band `>=1024 <480` and `[480, 480]` derives `>=480 <480`, neither
+    satisfiable by any width, so `evaluate_capture_set` could never return
+    complete and no run could reach a `completed` state.
+    """
+    canonical = required_channels(rules_markdown, [480, 1024])
+    assert required_channels(rules_markdown, [1024, 480]) == canonical
+    assert required_channels(rules_markdown, [480, 1024, 480]) == canonical
+    assert required_channels(rules_markdown, [480, 480]) == required_channels(
+        rules_markdown, [480]
+    )
+    # Every band a reordered or duplicated list yields is satisfiable, which is
+    # the property the unsatisfiable ones above would break.
+    for declared in ([1024, 480], [480, 480], [768, 480, 1024, 768]):
+        for channel in required_channels(rules_markdown, declared):
+            width = channel_capture_width(rules_markdown, channel[1], channel[2])
+            assert width_in_channel(channel, width), (
+                f"{declared} yields {channel}, which no width satisfies"
+            )
 
 
 def test_every_channel_yields_a_capture_width_inside_itself(

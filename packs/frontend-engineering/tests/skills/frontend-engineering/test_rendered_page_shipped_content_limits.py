@@ -320,11 +320,6 @@ def test_no_channel_is_named_for_a_device() -> None:
 # named below and each is a stated blind spot: a channel named in a shape absent
 # from this list is not caught. That reach is a property of asking a pattern to
 # read prose, and the list is here in the open rather than implied.
-# What is NOT derived is the set of shapes a channel name takes. That reach is a
-# property of asking a pattern to read prose, and the shapes are here in the open
-# rather than implied: a channel named in a shape absent from this list is not
-# caught.
-#
 # ONE registry, deliberately. An earlier version spread the same shape set across
 # four hand-written places -- the patterns, a live-site map, a dispatch chain in
 # the sweep, and the planted-mutation parametrize -- and no divergence between

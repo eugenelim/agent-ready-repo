@@ -10,6 +10,7 @@ execution failure. These are the checks for the criteria that closed that.
 from __future__ import annotations
 
 import itertools
+import re
 from pathlib import Path
 
 import pytest
@@ -539,8 +540,18 @@ def test_the_guide_walks_both_fallback_channels() -> None:
     """Verifies AC-0018's positive half: the guide names both fallback channels,
     the band between them no fallback capture reaches, and the per-channel floor.
     """
+    from frontend_engineering_rendered_page_rules import fallback_channels
+
     guide = " ".join(_guide().split())
-    assert "narrow" in guide and "wide" in guide, "the guide names no channels"
+    # Derived from the shipped band table, and word-bounded. A bare `"wide" in
+    # guide` was already satisfied by "the widest its upper bound admits" and by
+    # a pre-existing Related-links line reading "the wider audit this step sits
+    # inside" -- so that half could not fail, and the guide could stop teaching
+    # the `wide` channel entirely with the suite green.
+    for name, _, _ in fallback_channels(read_rules()):
+        assert re.search(rf"\b{re.escape(name)}\b", guide), (
+            f"the guide does not name the {name!r} channel the reference declares"
+        )
     assert "481–1023" in guide or "481-1023" in guide, (
         "the guide does not name the band the fallback channels leave uncaptured"
     )

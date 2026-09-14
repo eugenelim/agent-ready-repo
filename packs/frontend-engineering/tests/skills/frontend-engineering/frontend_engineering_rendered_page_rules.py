@@ -434,14 +434,11 @@ def _rule_in_force(rules: dict[str, str], key: str, table: str) -> bool:
 
 
 def _required_rule(markdown: str, key: str) -> bool:
-    """Whether a `Required captures` rule row is in force.
+    """`_rule_in_force` over the `Required captures` rule rows.
 
-    An **absent** row raises: a rule nobody states is not a rule this module may
-    invent, and a reader that quietly skips it is fail-open — deleting the row
-    would leave every check green, which is the one mutation the rule's own
-    shipped-content criterion exists to catch. A row that is *present* and says
-    something other than `required` is a stated decision to switch the rule off,
-    and is honoured.
+    The absent-row and switched-off semantics are stated once, on
+    `_rule_in_force`; restating them here left two independent copies of one rule
+    for a future editor to correct separately.
     """
     return _rule_in_force(capture_set_rules(markdown), key, "Required captures")
 
