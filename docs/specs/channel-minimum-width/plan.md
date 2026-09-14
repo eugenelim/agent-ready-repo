@@ -185,11 +185,12 @@ in a three-cell table or prose in the `` `name` at <op> `` shape reds it.
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** none of this file's four anchors sits in a paragraph that fails to
-name the minimum, **and each still matches**, so conditioning rather than
-rephrasing is what discharges it. The four are the fallback sentence, the band
-enumeration opener, the eight-captures-per-route figure, and the backticked
-n-plus-1 floor in the required-captures paragraph, quoted exactly in AC-0021; the channel-name sweep is green without its shapes or
+**Done when:** none of this file's four anchors sits in a **sentence** that fails
+to name the minimum, **and each still matches in this file**, so conditioning
+rather than rephrasing is what discharges it and a rephrase cannot hide behind a
+sibling carrier. The four are the fallback sentence, the band enumeration opener,
+the eight-captures-per-route figure, and the n-plus-1 floor in the
+required-captures paragraph, quoted exactly in AC-0021; the channel-name sweep is green without its shapes or
 expected set being edited; and
 `channel_rules(read_rules())` returns eight keys including
 `channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
@@ -260,7 +261,18 @@ shapes, `prose-declaration` and `snippet-name-field` carry § 5a as their live
 site and `band-row` does not — its outer matches only a `## Channels` section, so
 a three-cell table here is not harvested at all. The edit keeps the literal
 `` `narrow` at ≤480 `` phrase, which is `prose-declaration`'s anchor in this
-file. Anchors 3 and 4 of AC-0021's sweep are here. AC-0009 goes in
+file. Anchors 3, 4, 5 and 8 of AC-0021's sweep are here. Anchor 8 is the JS worked
+example: its comment states the inference this delivery falsifies — no
+breakpoints declared, therefore two channels — and its array captures at 480.
+The block sits in its own paragraph unit, so conditioning the prose around it
+does not reach it, and it cannot be deleted either: `snippet-name-field` anchors
+on `const channels = [` at this exact site. So it must survive and be edited. The
+edit keeps a `const channels = [` array whose `name:` entries are drawn only from
+`narrow` and `wide`, because that shape harvests those names into the
+set-equality sweep. A single-channel form fits inside that constraint — a
+1280-minimum fallback surface clamps `wide` to `>=1280` and keeps its table name,
+so one entry named `wide` at width 1280 is correct under AC-0002 and AC-0003 and
+safe for the name sweep. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -295,10 +307,10 @@ delivery itself falsifies.
 
 **Done when:** the guide's links resolve under the repository's documentation
 gates, and none of `Declare none and two apply`, `eight captures per route` or
-`four times *n + 1* where you declare *n* breakpoints` sits in a paragraph that
-fails to name the minimum, each still matching. Two of them wrap across a line
-break here, so the check normalizes whitespace **within a paragraph** after
-splitting on blank lines, never before.
+`four times *n + 1* where you declare *n* breakpoints` sits in a **sentence** that
+fails to name the minimum, and each still matches in this file. Two of them wrap
+across a line break here, so the check normalizes whitespace within a unit after
+splitting on blank lines, never before, and splits sentences only after that.
 
 ### T5: The harness expects the minimum
 
@@ -309,15 +321,17 @@ splitting on blank lines, never before.
 already parses this file for the channel-coverage assertion, plus AC-0021's
 sweep in `test_rendered_page_shipped_content_limits.py`. The sweep lands here
 because it is the last task to touch a surface it reaches; its seventh anchor is
-this file's coverage expectation. The per-anchor match assertion is the half that
-keeps the sweep honest: without it, an edit that rephrases a claim instead of
-conditioning it leaves the sweep matching nothing and reporting green.
+this file's coverage expectation. The carrier-set assertion is the half that
+keeps the sweep honest: a bare existential check lets a rephrase in one of three
+carriers pass on the strength of the other two, while putting that carrier
+outside the control's reach entirely.
 
 **Approach:** the `rendered-page-inspection` case gains an assertion naming the
 declared minimum and what it removes from the required set.
 
-**Done when:** all seven AC-0021 anchors both match at least once and sit only
-in paragraphs that name the minimum, across `.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
+**Done when:** all eight AC-0021 anchors match in exactly the carrier files the
+criterion lists and sit only in sentences that name the minimum, across
+`.apm/**` and the how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
 `make build-self` leaves no projection diff.
 
 ### T6: The step is performed against a single-channel surface
@@ -385,6 +399,27 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 9. An eighth carrier, and the worst-placed one:
+  § 5a's JS worked example comments "Two here because no breakpoints were
+  declared" and captures at 480. It is the block an agent copies, it sits in its
+  own paragraph unit so conditioning the surrounding prose misses it, no anchor
+  reached it, and `snippet-name-field` anchors on it so it cannot be deleted —
+  the delivery could have shipped with all 21 criteria green and that snippet
+  telling the agent to capture below the supported width. Anchor 8 added, owned
+  by T3 with the name-set constraint spelled out.
+  Tightened the predicate from paragraph to sentence scope: naming the minimum
+  anywhere in a paragraph is co-location, not conditioning, and appending one
+  unrelated sentence was the cheapest way to discharge it — the exact edit shape
+  rounds 5 and 6 produced. All eight anchors were walked to confirm each is
+  conditionable at sentence scope before adopting the tightening.
+  Replaced the per-anchor match count with a per-anchor carrier map. "At least
+  once across the swept files" left the two anchors with three carriers each open
+  to a rephrase in one of them, passing on the strength of the others while that
+  carrier left the control's reach — the failure round 8 added the assertion to
+  catch, surviving in weaker form. Map verified exact against the shipped tree:
+  each of the eight anchors matches in precisely its listed files and no others.
+  Confirmed by the reviewer: no anchor must be removed for the delivery to be
+  correct, and the surface enumeration is otherwise clean.
 - 2026-09-14 — Shaping round 8. Four findings, all on the new sweep. The anchor
   set missed a sixth carrier — the reference states the per-route floor again in
   `## Required captures`, backticked and without "where you declare", so no
