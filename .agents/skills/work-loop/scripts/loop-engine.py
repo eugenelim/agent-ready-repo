@@ -1614,9 +1614,10 @@ def cmd_transition(args: argparse.Namespace) -> int:
         "to": next_state,
         "at": now,
         # Versioned so a consumer can tell a record written by this build from a
-        # legacy one. Placed after the seven identity fields, which § 8 of
-        # `telemetry.md` pins by name, order and value. The replay path does not
-        # set it: a record written before this key existed is appended unchanged.
+        # legacy one. Placed after the seven identity fields, whose names, order
+        # and values are fixed so that adding a field never breaks an existing
+        # reader. The replay path does not set it: a record written before this
+        # key existed is appended unchanged rather than retro-stamped.
         "schema": 1,
         # `state` is still the PRE-transition record here, so its
         # `last_transition_at` is when the phase being left began. At the first
