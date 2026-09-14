@@ -259,3 +259,34 @@ Both numbers were real: the file was measured, then `tools/build-site.py
 without re-measuring. Presence is the property the claim needed and presence
 holds, but the number did not survive the command run between taking it and
 using it.
+
+## Quality review: the docs/rfc half rested on an unpinned assumption (2026-09-13)
+
+AC3's clean/red pair runs the `new-adr` copy of `index-records.py`. The
+`docs/rfc` rail inherits that evidence only if `check-rfc-index` runs the same
+program, and nothing required said so: `tests/roster/test_index_records.py`
+exercises the behaviour but runs in the dispatch-only `test-roster.yml`. The
+failure that allowed: the rfc copy stops reporting drift, `check-rfc-index`
+passes forever, and `docs/rfc/README.md` keeps a driver that discards a merge
+side with nothing regenerating it.
+
+Closed with `test_both_projected_index_generators_are_the_same_program`, in the
+gate-main suite. The sibling `next-ordinal.py` already carried a gated identity
+pin of this shape, so this follows existing precedent rather than inventing one.
+
+Mutated to prove it can fail — two bytes appended to the `new-rfc` copy:
+
+```
+FAILED tools/test_gitattributes_merge_driver.py::test_both_projected_index_generators_are_the_same_program
+1 failed, 8 deselected
+```
+
+Restored: 1 passed. Suite is 9 cases, up from 8.
+
+## Quality review: failures that could not be diagnosed (2026-09-13)
+
+Five assertions in the new behaviour cases read a subprocess exit code and
+discarded its output, so a CI red printed `assert 1 == 0` with no git or
+`index-records.py` message — and the scratch tree is gone by the time anyone
+reads the log. Replaced with an `_assert_regenerated` helper and explicit
+messages that carry `stdout + stderr`, matching what the AC4 case already did.

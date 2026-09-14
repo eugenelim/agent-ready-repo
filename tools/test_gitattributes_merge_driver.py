@@ -209,7 +209,11 @@ def _record_index_paths(argvs: Iterable[Sequence[str]]) -> set[Path]:
     exactly the state the driver must never be left in.
 
     The record directory is the last positional: `index-records.py` takes one,
-    and reading it positionally survives a flag being added ahead of it.
+    and reading it positionally survives a flag being added ahead of it. The
+    `[2:]` slice drops the `[interpreter, script]` prefix every `_script_step`
+    argv carries; it is belt-and-braces today, since only the last positional is
+    read, and it is what would need revisiting if a step form ever put a
+    positional before the script path.
     """
     covered: set[Path] = set()
     for argv in argvs:
@@ -240,11 +244,22 @@ def _build_check_argv(root: Path) -> list[list[str]]:
 
     def _fake_run(argv, check=False, env=None, cwd=None, **kwargs):
         seen.append([str(part) for part in argv])
-        # `--collect-only` output for any wired collection floor.
-        return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
+        # No step reads stdout: every one is a subprocess whose return code is
+        # the whole result, and `_pytest_step_cwd`'s collection floor is
+        # enforced in the child by the `tools.pytest_collection_floor` plugin.
+        return mock.Mock(returncode=0, stdout="", stderr="")
 
     with mock.patch.object(module.subprocess, "run", _fake_run):
-        module.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+        code = module.build_check(
+            argparse.Namespace(packs_dir="packs", output_dir="dist")
+        )
+    # `_run_chain` stops at the first non-zero step. A short collection would
+    # drop the record-index steps and red AC1 as over-scope, pointing the
+    # reader at `.gitattributes` when the probe is what broke.
+    assert code == 0, (
+        f"the faked build-check chain exited {code}, so the collected argv is "
+        "truncated and the record-index rail cannot be measured from it"
+    )
     return seen
 
 
@@ -406,6 +421,32 @@ def test_index_check_is_clean_when_the_readme_matches(tmp_path: Path) -> None:
     directory = _synthetic_record_dir(tmp_path)
     result = _index_records(directory, "--check")
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_both_projected_index_generators_are_the_same_program(tmp_path: Path) -> None:
+    """AC3 for the `docs/rfc` half, which no fixture exercises directly.
+
+    AC3's clean/red pair runs the `new-adr` copy. The `docs/rfc` rail inherits
+    that evidence only if `check-rfc-index` runs the same program, and nothing
+    else required says so: `tests/roster/test_index_records.py` exercises
+    behaviour but runs in the dispatch-only `test-roster.yml`. Without this, the
+    rfc copy could stop reporting drift, `check-rfc-index` would pass forever,
+    and `docs/rfc/README.md` would keep a driver that discards a merge side with
+    nothing regenerating it. The sibling `next-ordinal.py` already carries a
+    gated identity pin of this shape.
+    """
+    copies = [
+        REPO_ROOT / ".claude/skills" / skill / "scripts/index-records.py"
+        for skill in ("new-adr", "new-rfc")
+    ]
+    for copy in copies:
+        assert copy.is_file(), f"projected generator missing: {copy}"
+    adr, rfc = (c.read_bytes() for c in copies)
+    assert adr == rfc, (
+        "the projected index generators have diverged, so AC3's clean/red pair "
+        "against the new-adr copy no longer establishes that check-rfc-index "
+        "can fail; exercise the rfc copy directly or restore parity"
+    )
 
 
 def test_index_table_carries_the_records_own_date(tmp_path: Path) -> None:

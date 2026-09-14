@@ -462,6 +462,19 @@ def _regenerate_index(root: Path) -> subprocess.CompletedProcess:
     )
 
 
+def _assert_regenerated(root: Path, when: str) -> None:
+    """Regenerate the index, failing with the generator's own output.
+
+    A bare `assert result.returncode == 0` prints `assert 1 == 0` and nothing
+    else, and the scratch tree is gone by the time anyone reads the log.
+    """
+    result = _regenerate_index(root)
+    assert result.returncode == 0, (
+        f"index-records.py failed {when} (exit {result.returncode}):\n"
+        + result.stdout + result.stderr
+    )
+
+
 def _index_rows(root: Path) -> set[str]:
     """The record ordinals the index table carries."""
     text = (root / RECORD_INDEX).read_text(encoding="utf-8")
@@ -482,7 +495,7 @@ def record_index_repo(tmp_path: Path) -> Path:
     _configure_identity(root)
     shutil.copy2(REPO_ROOT / ".gitattributes", root / ".gitattributes")
     _write(root, RECORD_DIR / "0001-first.md", _record("0001", "01"))
-    assert _regenerate_index(root).returncode == 0
+    _assert_regenerated(root, "building the fixture's base index")
     _commit(root, "base")
 
     unset = _git("config", "--get", f"merge.{DRIVER_NAME}.driver",
@@ -502,7 +515,7 @@ def _diverge(root: Path) -> None:
         if branch != "main":
             _git("checkout", "-q", "-b", branch, cwd=root)
         _write(root, RECORD_DIR / f"{ordinal}-r.md", _record(ordinal, day))
-        assert _regenerate_index(root).returncode == 0
+        _assert_regenerated(root, f"regenerating for record {ordinal}")
         _commit(root, f"add {ordinal}")
 
 
@@ -551,7 +564,11 @@ def test_record_index_regeneration_recovers_the_discarded_row(
     root = record_index_repo
     _diverge(root)
     _register_driver(root)
-    assert _git("merge", "--no-edit", "side", cwd=root, check=False).returncode == 0
+    merged = _git("merge", "--no-edit", "side", cwd=root, check=False)
+    assert merged.returncode == 0, (
+        "the driver-resolved merge halted, so AC5 never reached the state it "
+        "measures:\n" + merged.stdout + merged.stderr
+    )
 
     after_merge = _index_rows(root)
     assert after_merge != {"0001", "0002", "0003"}, (
@@ -559,5 +576,5 @@ def test_record_index_regeneration_recovers_the_discarded_row(
         "nothing and this test would pass without regeneration"
     )
 
-    assert _regenerate_index(root).returncode == 0
+    _assert_regenerated(root, "recovering the discarded row")
     assert _index_rows(root) == {"0001", "0002", "0003"}
