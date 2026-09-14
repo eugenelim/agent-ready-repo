@@ -15,8 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > nested inside it. The level is load-bearing rather than cosmetic — a
 > versioned entry nested under `[Unreleased]` is invisible to the `/now/`
 > projection permanently, not until some later release step, because nothing
-> ever moves it out. Writing it at the right level is the whole of the
-> obligation.
+> ever moves it out.
+>
+> **Leave exactly one blank line above and below every heading.** This one is
+> about the source text you and a reviewer read, not about output: CommonMark
+> renders a welded or double-spaced heading identically to a correct one, and
+> `/now/` is blank-line blind too, so nothing downstream will tell you.
+> `tools/test_build_site_routing.py` checks it on any pull request into `main`
+> and names the line.
 >
 > Entries can be drafted from conventional commits: `git log --oneline`
 > filtered to `feat:` and `fix:` since the last tag is a starting point,
@@ -57,17 +63,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights
+
 - **A frontend review now gets the pictures, not just the diff.** When a surface
   has been inspected, the work-loop hands `frontend-reviewer` the capture set and
   what was observed in it, alongside the diff. A reviewer that only ever saw a
   diff could not see one element covering another, which is the class of defect
   it was most often asked about.
+
 ### Changed
+
 - `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
   capture set, its recorded observations, and the adopter-named routes, and names
   the reviewer's reader-visible-layout lens.
 
 ## [core][2.25.25] — 2026-09-13
+
 ### Added
 
 - `workspace-status` can now check an explicit list of spec directories and
@@ -122,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seeds, and the seed comes off the portable-citation cleanup list.
 
 ## [core][2.25.22] — 2026-09-13
+
 ### Changed
 
 - `docs/specs/README.md` describes the spec directory convention and carries no
@@ -211,6 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/knowledge/` and committing it is a required step between
   `--migrate-legacy` and `--activate-staged`, and it was previously discoverable
   only by reading the source.
+
 ## [frontend-engineering][0.2.3] — 2026-09-13
 
 ### Highlights
@@ -992,7 +1004,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejects, which reaches closeout through its own parse and so could reproduce
   any value the exclusion matched on.
 
-
 ## [core][2.25.3] — 2026-09-08
 
 ### Highlights
@@ -1033,7 +1044,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Light mode's procedure, eligibility and durability routing, review rounds,
   and trims moved into a reference the skill loads only when light mode is
   selected, so a full-mode run no longer carries them.
-
 
 ## [core][2.25.1] — 2026-09-04
 
@@ -1165,7 +1175,6 @@ mode, corpus topic, or provider contract moved.
   adopters, so a consumer quoting the conformance fixture would have quoted
   literals an adopter never receives.
 
-
 ## [core][2.25.0] — 2026-09-04
 
 ### Highlights
@@ -1182,7 +1191,6 @@ mode, corpus topic, or provider contract moved.
 
 - A family names its teaching text by a locator such as `skill:new-spec/assets/spec.md`, never a repository path. The registry ships to your repository, where the catalogue path does not exist and the same rule lives under `.claude/skills/` or `.agents/skills/`.
 - The delivery record carries `assembled_brief_digest` and leaves it `null`. Selection does not assemble a brief, so nothing is digested over assembled text yet; the field is declared so a later consumer reads one record shape rather than two.
-
 
 ## [core][2.24.4] — 2026-09-04
 
@@ -1449,7 +1457,6 @@ mode, corpus topic, or provider contract moved.
   its mandatory footer made the report structurally incapable of matching the
   expected sentence.
 
-
 ## [core][2.19.0] — 2026-09-01
 
 ### Highlights
@@ -1470,7 +1477,6 @@ mode, corpus topic, or provider contract moved.
 - Tracker refresh locks Withdrawn and Cancelled requirements with the stable
   result codes `withdrawn_requirements_locked` and
   `cancelled_requirements_locked` across every supported profile.
-
 
 ## [core][2.18.2] — 2026-09-01
 
@@ -3548,7 +3554,6 @@ Published package bytes are unchanged for all three routes.
 - **Risk-trigger documentation is explicitly single-sourced.** ADR-0088 records
   the `work-loop` skill as the sole block home without changing mode selection.
 
-
 ### [core][2.9.2] — 2026-08-19
 
 #### Changed
@@ -3580,7 +3585,6 @@ Published package bytes are unchanged for all three routes.
   `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
   init` starts catalogues with leaner instructions. No CLI verb, flag, or output
   format changed.
-
 
 ### [core][2.9.1] — 2026-08-19
 
@@ -3707,6 +3711,7 @@ Published package bytes are unchanged for all three routes.
   `compile-okf` authoring skill ships a confined script that projects pack-local
   OKF source into generated router and reviewed procedure Skills, with write and
   read-only check modes for committed-output drift.
+
 ### Fixed
 
 - **The Claude-plugin marketplace now advertises the branch it is published to.**
@@ -3792,6 +3797,7 @@ Published package bytes are unchanged for all three routes.
   rendered pointer field is authoritative, and `none` values with explanatory
   annotations or ordinary punctuation no longer become dangling pointers when
   a repository adds its first discovery anchor.
+
 ### [agentbundle][0.37.2] — 2026-08-17
 
 #### Added
@@ -3848,6 +3854,7 @@ Published package bytes are unchanged for all three routes.
 - **IaC Terraform now declares the governance-extras minor it actually supports.**
   Dependency validation no longer relies on treating `^0.6` as compatible with
   `0.9.x`.
+
 ### [core][2.7.1] — 2026-08-17
 
 #### Added
@@ -4364,6 +4371,7 @@ Published package bytes are unchanged for all three routes.
   timeout, and server failures never trigger recovery. Crawls and token-based
   authentication keep their existing behavior. When automatic recovery cannot
   proceed, the error tells the user which existing manual setup action to run.
+
 ### [core][2.5.1] — 2026-08-09
 
 #### Changed
@@ -5542,6 +5550,7 @@ project page and the swept docstrings actually reach installers.
 - Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
 
 ## [Unreleased]
+
 ### Added
 
 - **58 guide pages that were published but unreachable now appear in the docs
@@ -5590,7 +5599,6 @@ project page and the swept docstrings actually reach installers.
   published and the repo-root marketplace now validate every entry against a
   dedicated schema, so a malformed `source` fails the build instead of reaching
   adopters.
-
 
 ### Added
 
