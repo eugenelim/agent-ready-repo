@@ -286,7 +286,8 @@ known unknown. What is established is that this is the first measured defect in
 the collector, which until now had been confirmed four ways.
 
 **No amount of better drafting repairs these two entries** — that is the
-load-bearing result. It does not mean drafting is fine. Among the correctly
+load-bearing result. Result 7 repairs the window instead, and the two
+zero-coverage drafts do not recur. It does not mean drafting is fine. Among the correctly
 attributed drafts the judge named a distinct weakness: *commit-message
 transcription instead of release synthesis*, preserving maintenance detail while
 losing the consumer outcome. Prompt quality cannot repair a wrong window;
@@ -358,9 +359,14 @@ boundary falls inside the window).
 only `agentbundle` (60) and `credbroker` (7) — 2 of the 24 artifacts that
 release. No pack carries one.
 
-### R3 never admits another release's commits
+### R3 admits no other release's commits, at this n
 
-Zero polluted windows, against four for both manifest rules. Keying the boundary
+Zero polluted windows, against four for both manifest rules.
+
+> **Qualified on 2026-09-13.** "Never" holds at n=20 and not beyond it: Result 7
+> runs the same `foreign` detector over the 196 windows it builds and condemns
+> 44 of them. R3 removes the *systematic* misattribution the manifest rules cause; it
+> does not make foreign admission impossible. Keying the boundary
 on the changelog heading also needs no manifest at all, which dissolves Result
 3's 15 undiscoverable boundaries: every released entry has a heading by
 construction.
@@ -403,6 +409,128 @@ file — had never been introduced by any commit. Eight boundaries were missing 
 that reason alone. Any collector must search merge diffs (`--diff-merges=first-parent`)
 or it will silently conclude that released versions do not exist.
 
+## Result 7 — the clean re-run, and the defect underneath the boundary
+
+Result 5's drafting figure was confounded by the boundary rule. Repairing the
+boundary and re-running answers it, and exposes a larger defect the boundary was
+masking.
+
+Window selection is printed by `tools/measure-changelog-collector.py`, which is
+the evidence of record for every count in this Result except the `_data/`
+figure below, which carries its own command:
+
+```bash
+python3 tools/measure-changelog-collector.py --tip 0e339c978
+```
+
+The drafting half is a single independent judgement at n=10, not a script — the
+same kind of evidence as Results 4 and 5, and bounded the same way.
+
+### The clean drafting score
+
+Ten windows clean under all three detectors, de-duplicated by admitted material,
+excluding any window these spikes discuss. Drafted by an agent that never saw the
+changelog; judged by a different agent that did not write the drafts; compared as
+whole rendered entries.
+
+| Measure | Result 5 (manifest boundary) | Result 7 (R3 + three detectors) |
+| --- | --- | --- |
+| Usable as-is | 2 | 2 |
+| After light edit | 4 | 4 |
+| Needs rewrite | 2 | **4** |
+| Wrong content entirely | **2** | **0** |
+| Highlights decision correct | 7 of 10 | 7 of 10 |
+| Coverage of shipped bullets | 18 of 26 (69%) | **36 of 42 (86%)** |
+| Missing prior value | 8 of 10 | **1 of 10** |
+
+Zero drafts describe the wrong release, against two. These are ten *different*
+windows rather than a re-run of the same ten, so this is consistent with the
+boundary having caused Result 5's two catastrophic drafts without isolating it as
+the cause.
+
+The judge still recorded pollution in 1 of the 10 that all three detectors passed,
+so the detector set is a filter, not a decision procedure — the 39-window figure
+below is therefore an upper bound on how many windows are trustworthy.
+
+**The dominant failure is now altitude, not attribution.** The judge's summary:
+16 over-included bullets across 8 entries, 3 `Highlights` blocks opened on
+releases that shipped without one, group mismatch in 6 of 10, and one factual
+error whose refutation was in the draft's own packet.
+
+One miss is a collector fault of the opposite kind to Result 5's — the window
+**lacked** work the release owned. `core` 2.20.0's reviewer-lens material sits in
+`9b9d470ef`, a `docs(core):` commit inside `packs/core`, so the exclusion list
+dropped it by type alone. Second confirmation that the type rule is over-broad,
+after Result 5's `docs:` install change.
+
+### The path filter is the larger defect
+
+Two mechanisms no boundary rule reaches, both found by the judge reading drafts
+rather than by any detector:
+
+1. **Squash-split leakage.** Splitting a squashed pull request on its `* `
+   subjects is required, but split units cannot be attributed to files, so every
+   unit reaches every artifact subtree that squash touched.
+2. **Touching is not owning.** A cross-cutting change lands in every pack it
+   edits, and a generated projection inside one artifact can be rewritten by
+   another artifact's change. `packages/agentbundle/agentbundle/_data/` is
+   rewritten by **42 of the 281** commits that touched `packs/core` in the 30
+   days to 2026-09-13 — a recurring seam, not every commit. This is the one
+   figure in this Result the script above does not print:
+
+   ```bash
+   git rev-list --since=2026-08-14 --until=2026-09-14 0e339c978 -- packs/core |
+     while read s; do
+       git diff-tree --no-commit-id --name-only -r --first-parent "$s" |
+         grep -q '^packages/agentbundle/agentbundle/_data/' && echo x
+     done | wc -l
+   ```
+
+The changelog at `0e339c978` carries **245** released `(artifact, version)`
+pairs. A window is actually built for **196** of them — the other 49 fail before
+one exists:
+
+| Status | Pairs |
+| --- | ---: |
+| Clean under all three detectors | **39** |
+| Condemned by a detector | 149 |
+| Empty (no admitted commit) | 8 |
+| No boundary — the artifact's oldest entry, nothing to run from | 24 |
+| No heading commit found at all | 25 |
+
+The first three rows are the 196 built windows; the last two never reached that
+point.
+
+| Detector | Windows it condemns |
+| --- | ---: |
+| Foreign version named in an admitted commit | 44 |
+| Shared squash | 64 |
+| Cross-artifact commit | 132 — 105 of them caught by nothing else |
+
+Those counts are over the 196 built windows.
+
+A fourth detector — "another release's heading falls inside the window" — was
+implemented and withdrawn. Every window runs between two *consecutive* entries of
+the same artifact, so it could never fire; its zero was a property of the
+construction, not a result.
+
+Shared squash is a subset of cross-artifact *by construction* — the script only
+tests for a multi-unit squash once a commit is already known to span artifacts —
+so the two path-filter mechanisms condemn **132** windows between them, not their
+sum, and the 64 is a count of "cross-artifact and multi-unit" rather than
+independent evidence of squash-split leakage.
+
+The 39 clean windows belong to **3 of the 24 artifacts** that released in this
+corpus — `core` 33, `agentbundle` 4, `agent-skill-engineering` 2. The other 21
+produced no clean window here; whether every one of their releases is
+unattributable was not measured.
+
+So the drafting score above describes the windows a path-filter collector reaches
+at all: **39 of 245 pairs (16%)**, or 20% of the 196 windows that were actually
+built. R3 fixes the boundary this spike identified. The blocker
+underneath is that "commits under `packs/<name>/`" is not a definition of a pack
+release in this repository, and no boundary rule or prompt reaches that.
+
 ## What this means for the design
 
 The three parts separate along the line this spike measured — with the caveat
@@ -410,9 +538,9 @@ that only the first two were measured:
 
 | Part | Mechanical? | Basis |
 | --- | --- | --- |
-| **Collector** — which commits are candidates | **Partly** | path filter and squash split hold; the version-bump *boundary* is defective — Result 5 shows 4 of 10 windows wrong or polluted |
+| **Collector** — which commits are candidates | **Partly** | the version-bump *boundary* is defective (Result 5), and R3 repairs it. Result 7 withdraws the other half of this row: the **path filter and squash split do not hold**, and condemn 132 of the 196 built windows between them |
 | **Exclusion** — dropping non-user-impacting work | **Partly, and over-broad** | change type is recorded data, but type ≠ impact; Result 5 shows the `docs` rule hiding a user-visible install change |
-| **Emphasis** — which change matters and how to say it | **Measured once, at n=10, confounded** | 2 usable as-is, 4 after light edit, 2 needing rewrite, 2 wrong content — but 4 windows were wrong or polluted, so the aggregate scores the collector as much as the drafter |
+| **Emphasis** — which change matters and how to say it | **Measured twice; Result 7 is the unconfounded figure** | 2 usable as-is, 4 after light edit, 4 needing rewrite, **0 wrong content**, on clean windows. Dominant failure is altitude, not attribution |
 
 `changelog.md`'s header constrains where a model may sit. It forbids one **in the
 automation path** — "no model runs in CI, release automation, or site
@@ -436,6 +564,13 @@ release, two admitting a neighbour's work — because manifest-declaration order
 not release order once versions are renumbered on merge. That is the first
 measured defect in the collector and it precedes every generator question.
 
+**Result 7 revises both halves of that paragraph.** R3 repairs the boundary —
+zero wrong-release drafts at n=10, against two. But the same run withdraws "path
+attribution" from the confirmed list: a subtree-touching commit is not a commit
+the release owns, and only 39 of the 245 released pairs survive all three
+detectors — 20% of the 196 windows built — across 3 of the 24 artifacts that
+released.
+
 The generator question is **narrowed, not answered**. A shipped bullet shares
 much of its content-word vocabulary with its source commit (median containment
 0.55) while their two word-sets overlap little overall (median Jaccard 0.107).
@@ -448,8 +583,8 @@ Whether extraction, templating, or a model-assisted step can do that is **not
 determined here**, because no generator was implemented. Result 5 evaluates ten
 hand-invoked drafts and returns 6 of 10 usable or near-usable — but with 4 of 10
 windows wrong or polluted, that figure scores the collector as much as the
-drafter. A clean drafting measurement needs a boundary rule that proves release
-ownership first.
+drafter. Result 7 supplies the clean figure on windows that pass three detectors:
+6 of 10 usable or near-usable, and none describing the wrong release.
 
 Nothing here decides between generation and fragmentation. The
 [fragmentation spike](changelog-fragmentation-spike.md)'s three-way decision
@@ -469,10 +604,11 @@ stands.
 
 ## Known unknowns
 
-- **Answered, with a confound**, by Result 5: ten drafts scored 2 usable as-is,
-  4 after light edit, 2 needing rewrite, 2 wrong content. Four windows were wrong
-  or polluted, so this measures the collector as much as the drafter. **Re-run it
-  after the boundary rule is repaired** for a clean figure.
+- **Answered on 2026-09-13** by Result 7, for the part of the corpus a
+  path-filter collector reaches: on windows clean under three detectors, **2
+  usable as-is, 4 after light edit, 4 needing rewrite, 0 wrong content**. That is
+  the 39 of 245 released pairs (16%) that survive the detectors — 20% of the 196
+  windows actually built — not the corpus as a whole.
 - **Answered** by Result 6: the changelog-heading rule admits no foreign
   commits in 20 windows, against 4 for both manifest rules; release tags cover
   only 2 of 24 artifacts and were ruled out. No rule is complete — 8 of 20

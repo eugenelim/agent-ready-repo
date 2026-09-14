@@ -9,7 +9,7 @@ repository's own history, and closes the attribution question left open by
 - **Run date:** 2026-09-13
 - **Owner:** eugenelim, Platform Core maintainer
 - **Base:** `6848d547d`; changelog at 214 free-standing release entries
-- **Verdict:** collector selection yes but its boundary rule is defective, generator permitted but untested, time-as-routing-key no — see [Verdict](#verdict). The boundary defect was measured later, in [the inputs spike](changelog-generator-quality-spike.md) Result 5.
+- **Verdict:** collector selection partly yes — its boundary rule is defective, and its path filter was withdrawn on 2026-09-13 (see Result 3's annotation) — generator permitted but untested, time-as-routing-key no — see [Verdict](#verdict). The boundary defect was measured later, in [the inputs spike](changelog-generator-quality-spike.md) Result 5.
 - **Scope:** evidence only. No production code was written. The prototype is
   throwaway and lives outside the repository.
 - **Supersedes:** nothing. It adds a third candidate alongside fragmentation and
@@ -62,7 +62,11 @@ trailer-backed design that nobody here has assessed. Whether option 3 collapses
 into option 2 is therefore open, and turns on those two locations. Choosing needs the
 draft-acceptance measurement in [Known unknowns](#known-unknowns), the
 conflict-rate measurement the fragmentation spike named, and an assessment of
-per-PR metadata as a persistence site — none of which exists yet.
+per-PR metadata as a persistence site. The first two were measured on
+2026-09-13 — see [the inputs spike](changelog-generator-quality-spike.md)
+Result 7 and
+[the fragmentation spike](changelog-fragmentation-spike.md#conflict-rate-measured-2026-09-13).
+The per-PR metadata assessment still does not exist.
 
 ## Method and evidence
 
@@ -130,6 +134,13 @@ Routing needs the two keys Result 3 tests instead: artifact **paths**, and the
 **version bump** as the window edge.
 
 ## Result 3 — path attribution works; the version-bump boundary is discoverable but not correct
+
+> **Half of this heading was withdrawn on 2026-09-13.** "Path attribution works"
+> held at the 166 single-artifact entries measured here. Measured over the whole
+> corpus in [the inputs spike](changelog-generator-quality-spike.md) Result 7, the
+> subtree filter admits work the release does not own in 132 of the 196 windows it
+> builds. The
+> boundary finding below stands; the attribution finding does not generalize.
 
 This is the question that could have killed the design. Two halves — and the
 first half measures only whether a boundary can be *found*, not whether it names
@@ -243,7 +254,7 @@ inherits that same open question**, not a conclusion this spike closes.
 
 | Part | Verdict | Load-bearing evidence |
 | --- | --- | --- |
-| Collector | **Selection yes; boundary must move to the changelog heading** | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet. The version-bump boundary resolves the *wrong release* (Result 5); the heading-commit rule never does, though it leaves 8 of 20 windows empty (Result 6) |
+| Collector | **Selection partly withdrawn on 2026-09-13**; boundary must move to the changelog heading | 93% of commits carry a body; median message 1,114 chars vs 306-char bullet; 1.0 commit per bullet. The version-bump boundary resolves the *wrong release* (Result 5); the heading-commit rule never does, though it leaves 8 of 20 windows empty (Result 6) |
 | Generator | **Undecided, bounded** | inputs are sufficient, but no draft was generated and compared; it may draft `Highlights` prose but cannot be the authority for it |
 | Time as the routing key | **No** | 72% of release dates carry 2+ artifacts; route by path + version bump. Time remains fine as a run bound |
 
@@ -259,7 +270,8 @@ over different populations, so no combined figure is reported here:
 
 Combining them would require an entry-level cohort neither rate uses. What can be
 said without arithmetic: the mechanical path has a high hit rate on the entries it
-reaches, and it reaches most of them. What stays with a person is the `Highlights`
+reaches. How many it reaches was overstated here — [the inputs spike](changelog-generator-quality-spike.md)
+Result 7 finds 39 of 245 released pairs clean once the subtree filter is checked. What stays with a person is the `Highlights`
 *decision and its approval* — whether the release changed what a consumer can do,
 and whether the sentence says so — on the 99 of 214 entries that carry one. That
 is a drafting aid under human authority, not an automated changelog, which is
@@ -277,8 +289,13 @@ precisely what the repository's header already prescribes.
    resolving it: a heading can enter through a merge resolution, which plain
    `git log -S` never shows. Detail in
    [the inputs spike](changelog-generator-quality-spike.md) Result 6.
-2. **Collector only.** A read-only report: given an artifact, resolve its previous
-   released version and list the commits in that subtree,
+2. **Collector only — and the subtree alone is not enough.** Measured 2026-09-13
+   in [the inputs spike](changelog-generator-quality-spike.md) Result 7: a
+   cross-cutting commit lands in every pack it edits, and a generated projection
+   inside an artifact can be rewritten by another artifact's change, so most
+   windows admit work the release does not own — that Result owns the counts.
+   A read-only report: given an artifact, resolve its
+   previous released version and list the commits in that subtree,
    **carrying each commit's change type** and applying the provisional exclusion
    list rather than a `feat`/`fix` include-list — the latter drops 42 untyped
    commits, 4 `perf:`, 2 `revert:` and 1 `Delivered` across the measured entries.
