@@ -888,6 +888,7 @@ Load when the predicate fires; don't load speculatively.
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
+| A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
 | Emitting or validating the verdict record | [`references/review-verdict-record.md`](references/review-verdict-record.md) |
 | Resuming a persisted full- or legacy-light-mode run | [`references/session-resumption.md`](references/session-resumption.md) |

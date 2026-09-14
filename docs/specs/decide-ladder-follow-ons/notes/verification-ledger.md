@@ -78,3 +78,40 @@ test, green — the precise blindness that made these three omissions invisible.
 - `sed -n '11,$p' … work-loop/SKILL.md | wc -l` — **883**, within the 890 ceiling
 - `make lint-ruff lint-mypy` — ruff and mypy clean
 - Portability — **0** in each of the three shipped skill files
+
+## T3 — mutation-proof discipline gets one routed owner
+
+**Stub materialization.** Three approved blocks copied byte-identical with their
+`# STUB:` lines. Intended red observed: **3 failed, 44 passed**. The first two
+raised `FileNotFoundError` because `references/mutation-proof.md` did not exist
+yet, and the routing stub failed on the missing reference. An absent artifact
+supplying the red is a valid intended red under this repository's stub rules,
+and the same rules forbid inventing a fixture to manufacture one — a round-2
+finding proposing exactly that fixture was refuted on this authority.
+
+**Mutation proofs.** Applied and restored by editing.
+
+| # | Invariant | Exact mutation | Naive guard | New oracle |
+| --- | --- | --- | --- | --- |
+| 1 | A proof reverts to the pre-fix implementation, never a do-nothing stub | Permitted `pre-fix implementation or a do-nothing stub`, keeping every mutation keyword and `never` | keyword grep **passed** | **failed** at the stub-prohibition assertion |
+| 2 | Restoration is by editing, never a Git operation | Changed restoration to `with a Git restore operation`, keeping `restore` and all forbidden-operation keywords | `restore` keyword grep **passed** | **failed** — `editing` absent |
+| 3 | The routing row names this owner | Pointed the repair predicate at `state-schema.md` | generic routing-row guard **passed** | **failed** — two state-schema exceptions |
+
+**Merge rather than duplicate.** `delivery-contract-lifecycle.md` remains the
+single owner of where observations are recorded. The new reference links to its
+`#verification-ledger` anchor (verified present exactly once) and does not
+restate the placement rule.
+
+**Lint repair.** `make lint-ruff` reported PIE810 on the routing-table parser
+(`startswith` called three times instead of once with a tuple). Merged into a
+single tuple call; no behaviour change.
+
+**T3 `Done when` results.**
+
+- `test_finding_response_fields.py` — **47 passed** in 0.58s
+- full `packs/core/tests/skills/work-loop/` — **1055 passed, 5 skipped, 46 subtests** in 810s
+- `sed -n '11,$p' … work-loop/SKILL.md | wc -l` — **884**, within the 890 ceiling
+- `references/mutation-proof.md` — **22** lines, within its 24-line ceiling
+- `make lint-ruff lint-mypy` — clean after the PIE810 repair
+- Portability — **0** in both the new reference and `SKILL.md`
+- Conditional-routing rows added — exactly **1**

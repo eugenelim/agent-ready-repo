@@ -6,6 +6,7 @@ from pathlib import Path
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP = PACK_ROOT / ".apm/skills/work-loop/SKILL.md"
 VERDICT = PACK_ROOT / ".apm/skills/work-loop/references/review-verdict-record.md"
+REFERENCE = PACK_ROOT / ".apm/skills/work-loop/references/mutation-proof.md"
 
 AXES = ("### Cut", "### Route", "### Fix", "### Hold")
 
@@ -466,3 +467,100 @@ def test_demotion_pin_guidance_distinguishes_upstream_and_downstream() -> None:
     assert set(pin_types) - set(exception_map) == {"upstream"}
     assert "revision-bound lifecycle invalidation" in pin_types["upstream"]
     assert "content test" in pin_types["downstream"]
+
+
+# STUB: test_mutation_proof_reference_carries_every_obligation — the reference carries every proof field
+def test_mutation_proof_reference_carries_every_obligation() -> None:
+    proof_record = _section(REFERENCE, "## Proof record")
+    fields = {
+        match.group("field").casefold(): _flat(match.group("body"))
+        for match in re.finditer(
+            r"^- \*\*(?P<field>[^*]+):\*\* (?P<body>.+)$",
+            proof_record,
+            re.M,
+        )
+    }
+    required_fields = {
+        "invariant",
+        "catching test",
+        "exact mutation",
+        "expected failure",
+        "observed failure",
+    }
+    exception_map = {
+        "placement": "the linked verification-ledger owner governs observation placement",
+    }
+
+    assert set(fields) - set(exception_map) == required_fields
+    assert set(fields) & set(exception_map) == set(exception_map)
+    assert all(fields[field] for field in required_fields)
+
+    mutation = _section(REFERENCE, "## Mutation and restoration")
+    statements = _sentences(" ".join(mutation.splitlines()[1:]))
+    target_rules = [statement for statement in statements if "do-nothing stub" in statement]
+    assert len(target_rules) == 1
+    assert "pre-fix implementation" in target_rules[0]
+    assert re.search(
+        r"(?:never|must not|do not|cannot) (?:use |substitute )?(?:a )?do-nothing stub"
+        r"|do-nothing stub (?:is|remains) (?:forbidden|disallowed|not permitted)",
+        target_rules[0],
+        re.I,
+    )
+    construct_rules = [statement for statement in statements if "sub-property" in statement]
+    assert len(construct_rules) == 1
+    assert "deletes a whole construct" in construct_rules[0]
+    assert "proves nothing" in construct_rules[0]
+    passing_mutations = [statement for statement in statements if "still passes" in statement]
+    assert len(passing_mutations) == 1
+    assert "not proof" in passing_mutations[0]
+
+
+# STUB: test_mutation_proof_requires_edit_restore — implementation restoration is edit-only
+def test_mutation_proof_requires_edit_restore() -> None:
+    restoration = _section(REFERENCE, "## Mutation and restoration")
+    statements = _sentences(" ".join(restoration.splitlines()[1:]))
+    restore_statements = [
+        statement for statement in statements if re.search(r"\brestor(?:e|es|ed|ation)\b", statement, re.I)
+    ]
+    exception_map = {
+        "Removing a temporary mutation copy": "cleanup does not restore the implementation",
+    }
+    exceptions = [
+        statement
+        for statement in restore_statements
+        if any(statement.startswith(prefix) for prefix in exception_map)
+    ]
+    methods = [statement for statement in restore_statements if statement not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    assert len(methods) == 1
+    assert "implementation" in methods[0]
+    assert "editing" in methods[0]
+    assert "only" in methods[0]
+    assert "never" in methods[0]
+    assert all(f"git {operation}" in methods[0] for operation in ("checkout", "reset", "stash"))
+
+
+# STUB: test_mutation_proof_reference_is_conditionally_routed — repair verification routes to this owner
+def test_mutation_proof_reference_is_conditionally_routed() -> None:
+    routing = _section(WORK_LOOP, "## Conditional-reference routing")
+    rows: list[tuple[str, str]] = []
+    for line in routing.splitlines():
+        if not line.startswith("|") or line.startswith(("| Predicate", "|---")):
+            continue
+        predicate, reference = [cell.strip() for cell in line.strip("|").split("|", 1)]
+        if re.search(r"\b(?:repair|fix|mutation)\b", predicate, re.I):
+            rows.append((predicate, reference))
+    exception_map = {
+        "references/state-schema.md": "owns loop state rather than proof discipline",
+    }
+    exceptions = [row for row in rows if any(owner in row[1] for owner in exception_map)]
+    owner_rows = [row for row in rows if row not in exceptions]
+
+    assert len(exceptions) == len(exception_map)
+    assert len(owner_rows) == 1
+    predicate, reference = owner_rows[0]
+    assert "repair" in predicate.casefold()
+    assert "claimed fix" in predicate.casefold()
+    assert "mutation proof" in predicate.casefold()
+    assert "references/mutation-proof.md" in reference
