@@ -1,6 +1,6 @@
 # Spec: Shard the test corpus across parallel runners
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0101
@@ -97,32 +97,32 @@ is untouched and remains the complete public gate.
 
 ## Acceptance Criteria
 
-- [ ] Standalone `make test`, invoked with no `SHARD` and no `SHARDS`, expands
+- [x] Standalone `make test`, invoked with no `SHARD` and no `SHARDS`, expands
       to the same invocation list that `git show 28a169531:Makefile` expands
       to. The baseline names that commit literally, never `HEAD`, which moves
       as this work commits.
-- [ ] For every shard count from 1 through 8, concatenating the invocation
+- [x] For every shard count from 1 through 8, concatenating the invocation
       lists of shards `1..N` yields exactly the unsharded roster's work
       invocations as a multiset: every invocation appears in exactly one shard,
       and none is absent.
-- [ ] Each roster work invocation is executed as its own operating-system
+- [x] Each roster work invocation is executed as its own operating-system
       process in whichever shard owns it; no shard merges two roster
       invocations into one process or splits one across two.
-- [ ] `make test SHARD=<n> SHARDS=<m>` exits non-zero without executing any
+- [x] `make test SHARD=<n> SHARDS=<m>` exits non-zero without executing any
       invocation when `n` or `m` is negative, zero, or not an integer, and when
       `n` exceeds `m`.
-- [ ] `make test` exits non-zero without executing any invocation when exactly
+- [x] `make test` exits non-zero without executing any invocation when exactly
       one of `SHARD` and `SHARDS` is set.
-- [ ] `make test SHARD=<n> SHARDS=<m>` exits non-zero without executing any
+- [x] `make test SHARD=<n> SHARDS=<m>` exits non-zero without executing any
       invocation when `m` exceeds the number of work invocations in the roster,
       so no shard is ever empty.
-- [ ] A roster line matching neither a declared precondition nor a recognized
+- [x] A roster line matching neither a declared precondition nor a recognized
       runner invocation makes the shard runner exit non-zero with a message
       naming the unclassified line.
-- [ ] Roster acquisition exits non-zero without executing any invocation when
+- [x] Roster acquisition exits non-zero without executing any invocation when
       the dry-run expansion returns a non-zero status, so a partial roster is
       never executed as though it were complete.
-- [ ] Roster acquisition refuses, before invoking Make at all, when the
+- [x] Roster acquisition refuses, before invoking Make at all, when the
       `test-unleased` recipe or the `run-test-suite` macro body contains a
       construct that would make a *roster line itself* execute during
       discovery: `$(MAKE)`, `${MAKE}`, or a `+`-prefixed recipe line, each of
@@ -135,57 +135,57 @@ is untouched and remains the complete public gate.
       transitive variable expansion has no bounded form. What the criterion
       buys is narrower and real — a roster *line* cannot acquire the power to
       run while it is being read.
-- [ ] Every declared precondition in the roster runs in every shard, including
+- [x] Every declared precondition in the roster runs in every shard, including
       a shard that owns none of the work that precondition guards.
-- [ ] The weight table records a measured duration for every roster work
+- [x] The weight table records a measured duration for every roster work
       invocation at or above 5 seconds, each keyed to its invocation and
       attributed to the `ubuntu-latest` run it was harvested from.
-- [ ] Every roster work invocation below that threshold takes the declared
+- [x] Every roster work invocation below that threshold takes the declared
       default weight, and that default is the measured mean of those
       invocations rather than a chosen figure.
-- [ ] The shard runner emits one duration line per executed unit, preconditions
+- [x] The shard runner emits one duration line per executed unit, preconditions
       included, so the weight table can be re-measured rather than re-guessed.
-- [ ] The partition assigns invocations by that weight table rather than by
+- [x] The partition assigns invocations by that weight table rather than by
       roster position: given the recorded weights, the heaviest invocation and
       the second-heaviest are assigned to different shards at a shard count
       of 4.
-- [ ] No `run:` command in `.github/workflows/test-corpus.yml` contains a suite
+- [x] No `run:` command in `.github/workflows/test-corpus.yml` contains a suite
       path, a pytest invocation, or a test-file name. The predicate is scoped to
       executable `run:` scalars, because the file's comments legitimately
       mention `tests/` and a test name while executing neither.
-- [ ] `.github/workflows/test-corpus.yml`'s job runs exactly one
+- [x] `.github/workflows/test-corpus.yml`'s job runs exactly one
       test-execution step, and that step's command is a single `make test`
       invocation.
-- [ ] The shard indexes in `.github/workflows/test-corpus.yml`'s job matrix are
+- [x] The shard indexes in `.github/workflows/test-corpus.yml`'s job matrix are
       exactly the integers `1` through the `SHARDS` value in that job's `make`
       command, with no gap and no duplicate.
-- [ ] `.github/workflows/test-corpus.yml`'s job `runs-on:` is the exact literal
+- [x] `.github/workflows/test-corpus.yml`'s job `runs-on:` is the exact literal
       `ubuntu-latest`.
-- [ ] `tools/lint-ci-parity.py` exits 0.
-- [ ] `test-corpus.yml` remains classified out of scope in
+- [x] `tools/lint-ci-parity.py` exits 0.
+- [x] `test-corpus.yml` remains classified out of scope in
       `tools/lint-ci-parity.py`'s `WORKFLOW_SCOPE`.
-- [ ] `tools/lint-pack-test-boundary.py` exits 0.
-- [ ] The union, selector, classification, execution-boundary, and
+- [x] `tools/lint-pack-test-boundary.py` exits 0.
+- [x] The union, selector, classification, execution-boundary, and
       precondition-replication proofs all run as part of `make test`, so a
       later selector regression cannot ship without running them — achieved
       without adding any file to the roster, so the invocation list stays
       identical to the accepted base.
-- [ ] The slowest shard's measured duration in the dispatched run is at most
+- [x] The slowest shard's measured duration in the dispatched run is at most
       6 minutes. Above that, the shard count is revised and the branch is
       re-pushed, re-dispatched and re-measured rather than recorded as-is. The
       bound is the 174.7s floor plus the 23s setup, rounded up to leave room for
       runner variance; it cannot be set lower because no shard count beats the
       longest single invocation.
-- [ ] `.github/workflows/test-corpus.yml`'s sizing comment states a measured
+- [x] `.github/workflows/test-corpus.yml`'s sizing comment states a measured
       duration taken from a dispatched run of the sharded workflow, names that
       run, and carries no instruction for a later reader to execute.
-- [ ] `timeout-minutes` in `.github/workflows/test-corpus.yml` is at least the
+- [x] `timeout-minutes` in `.github/workflows/test-corpus.yml` is at least the
       greater of three times the slowest shard's measured duration and the
       recorded 17.0-minute serial maximum, so a shard that degrades to the full
       serial corpus reports a real failure rather than a timeout.
-- [ ] [`docs/architecture/verification-graph.md`](../../architecture/verification-graph.md)
+- [x] [`docs/architecture/verification-graph.md`](../../architecture/verification-graph.md)
       describes `test-corpus.yml` as it now runs.
-- [ ] [`docs/product/intents/dispatch-workflow-posture-assertions.md`](../../product/intents/dispatch-workflow-posture-assertions.md)
+- [x] [`docs/product/intents/dispatch-workflow-posture-assertions.md`](../../product/intents/dispatch-workflow-posture-assertions.md)
       names this spec as a shipped instance of the multi-job workflow its open
       question anticipates.
 

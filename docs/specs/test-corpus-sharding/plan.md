@@ -1,7 +1,7 @@
 # Plan: Shard the test corpus across parallel runners
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `Makefile:513-651` (the `test` target, the
   `run-test-suite` macro, and its two call sites);
   `tools/test_local_ci_shared_test_deduplication.py:1000-1018,1052-1070`
