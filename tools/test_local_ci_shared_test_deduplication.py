@@ -2412,12 +2412,10 @@ class _ShardRecordingExecutor:
         self,
         command: str,
         *,
-        shell: bool,
         cwd: Path,
         check: bool,
     ) -> subprocess.CompletedProcess[bytes]:
         """Record one command with the production executor's call shape."""
-        assert shell is True
         assert cwd == REPO_ROOT
         assert check is False
         self.calls.append(command)
@@ -2975,7 +2973,7 @@ def test_shard_executor_and_expansion_both_use_the_scrubbed_environment() -> Non
 
     with mock.patch.object(shard.subprocess, "run", fake_run):
         shard.roster_lines()
-        shard._default_executor("true", shell=True, cwd=REPO_ROOT, check=False)
+        shard._default_executor("true", cwd=REPO_ROOT, check=False)
     assert len(seen) == 2
     for env in seen:
         assert "SHARD" not in env and "SHARDS" not in env
@@ -3032,3 +3030,27 @@ def test_shard_suite_passes_with_the_reentry_marker_set() -> None:
     assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-2000:]
     # Guard the guard: a run that collected nothing would pass vacuously.
     assert " passed" in result.stdout, result.stdout[-2000:]
+
+
+def test_shard_executor_names_the_shell_and_runs_one_command() -> None:
+    """Each unit runs as `sh -c <line>`: Make's own model, one line per call.
+
+    Pinned because the argv shape is load-bearing twice over. It must stay a
+    SHELL invocation -- roster lines carry `||`, redirections and brace groups
+    that only a shell understands -- and it must stay ONE line per call, since
+    joining two would merge invocations the Makefile requires to be separate.
+    """
+    shard = _shard_module()
+    captured: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):  # type: ignore[no-untyped-def]
+        captured.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0)
+
+    line = 'command -v npm >/dev/null 2>&1 || { echo "missing" >&2; exit 1; }'
+    with mock.patch.object(shard.subprocess, "run", fake_run):
+        shard._default_executor(line, cwd=REPO_ROOT, check=False)
+
+    assert captured == [["sh", "-c", line]], captured
+    # The command is one argv element, never split or concatenated.
+    assert captured[0][2] == line

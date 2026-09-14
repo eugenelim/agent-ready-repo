@@ -126,7 +126,6 @@ class Executor(Protocol):
         self,
         command: str,
         *,
-        shell: bool,
         cwd: Path,
         check: bool,
     ) -> subprocess.CompletedProcess[bytes]:
@@ -356,13 +355,25 @@ def _selector(argv: Sequence[str]) -> tuple[int, int]:
 def _default_executor(
     command: str,
     *,
-    shell: bool,
     cwd: Path,
     check: bool,
 ) -> subprocess.CompletedProcess[bytes]:
-    """Execute one roster command without combining it with another."""
+    """Execute one roster command through a shell, without combining any two.
+
+    A roster line IS a Make recipe line, and Make runs each one through
+    ``/bin/sh -c``. Naming that shell explicitly reproduces Make's execution
+    model rather than delegating to ``shell=True``, which resolves to ``sh`` on
+    POSIX but ``cmd.exe`` on Windows -- a different interpreter for lines
+    written against ``sh``.
+
+    Stated plainly, because the alternative would be a suppression pretending
+    otherwise: this does NOT reduce an injection surface. The commands come from
+    the repository's own Makefile, at the same trust level as ``make`` running
+    them, and anyone able to edit that file can already run anything through
+    ``make test``. The explicit form is chosen for fidelity to Make, not safety.
+    """
     return subprocess.run(
-        command, shell=shell, cwd=cwd, check=check, env=child_environment()
+        ["sh", "-c", command], cwd=cwd, check=check, env=child_environment()
     )
 
 
@@ -394,7 +405,7 @@ def main(argv: Sequence[str], executor: Executor = _default_executor) -> int:
 
     for command in (*preconditions, *selected):
         started = time.monotonic()
-        result = executor(command, shell=True, cwd=REPO_ROOT, check=False)
+        result = executor(command, cwd=REPO_ROOT, check=False)
         elapsed = time.monotonic() - started
         # One line per unit, on stderr so it never mixes into the roster any
         # other tool reads. This is how WEIGHTS above is refreshed: the table is
