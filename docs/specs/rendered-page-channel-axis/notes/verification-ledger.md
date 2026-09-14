@@ -163,3 +163,37 @@ above it now frames it as the matrix taken *in every channel*, so the table stil
 states the contract correctly and rewriting it would say the same thing twice.
 The plan was sealed before that was known. Both pin sites now state the full
 reach and name each other, so a maintainer at either one sees the whole pin.
+
+
+## Gate note: the catalogue gates were read through the wrong install
+
+**Not a defect in this delivery, and not repaired here.**
+
+After the review fixes, `python3 -m agentbundle catalogue lint --root . --deep`
+reported one error — `CAT-L029 packs/core/seeds/AGENT_RULES.md:
+agent-rules-preamble-invalid` — and `catalogue verify` failed with the matching
+`CAT-V-002`. The same two gates had run clean twice earlier in this delivery.
+
+The file is not in this delivery's diff, and the commit that last touched it is an
+ancestor of the approved baseline. What changed is the linter, not the tree:
+
+```
+agentbundle resolves to  /Users/eu.gene.lim/orca/agent-ready-repo/...   (primary checkout)
+this worktree is         /Users/eu.gene.lim/orca/workspaces/.../ui-viewports
+
+lint  through the primary checkout   1 ERROR
+lint  through this worktree's code    0 errors
+verify through this worktree's code   ok
+```
+
+The editable install points at the primary checkout, so a bare `python3 -m
+agentbundle` runs whatever revision that checkout is on. It has since advanced to
+`a6bb22320 feat(core): inline the cognitive-load clauses into both AGENTS.md
+files (#1296)`, which tightens the agent-rules preamble rule. `origin/main` is
+now four commits ahead of this branch.
+
+`PYTHONPATH` was used to **diagnose** this and not to fix it. The seed is not
+edited here: satisfying #1296's rule belongs to that change's follow-through, and
+editing a `packs/core/` seed from this delivery would route around the cause
+rather than address it. **This branch needs a rebase onto `origin/main` before
+merge, and the seed update is rebase work.**
