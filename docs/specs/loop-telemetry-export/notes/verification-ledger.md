@@ -898,3 +898,36 @@ is byte-for-byte the one that was approved.
 audit trail only as durable as the directory it sits in. Anything that must
 survive belongs in a tracked artifact, which is why the evidence above is in this
 file rather than in `state.json`.
+
+## Review round 3 — the disclosure's fourth correction, found twice independently
+
+One blocker, and it was found from two directions at once. Reviewing the guide
+against `encode.py` I noticed the payload carries a `resource` block —
+`{"key": "service.name", ...}` — that the disclosure never mentioned. The round-3
+reviewer, reading the committed `HEAD`, reported the same omission before seeing
+that fix. Two paths to one defect is worth more than either finding alone.
+
+**Round 2 repaired the event-field surface and missed its sibling: the resource
+surface.** Every field inside a log record had been traced; nothing had traced
+what wraps them. That is the partial-surface class again, in the fourth draft of
+the same paragraph.
+
+The reviewer also caught an imprecision in the repair itself: I wrote that the
+fallback is the profile's "filename", where `default_service_name()` returns
+`Path(profile_path).stem` — `work-loop`, not `work-loop.toml`. A disclosure that
+is nearly right about what leaves the machine is the thing this paragraph keeps
+failing at.
+
+**What every wrong draft had in common:** each was written from the profile's
+vocabulary — allowlist, routed, identity — and each correct sentence came from
+reading the encoder. The profile describes intent; the encoder describes
+behaviour, and only one of those is what leaves.
+
+**AC-0020 cannot catch this class.** It checks three literal strings, all of which
+were present through all four wrong drafts. A literal-string criterion pins that
+a sentence exists, never that it is true.
+
+Also applied: the guide led with the shell-printing example while calling the
+`subprocess` form preferred. The section now leads with `subprocess`. A first
+mechanical reorder produced prose that used `resolved` before defining it, so the
+section was rewritten rather than spliced.

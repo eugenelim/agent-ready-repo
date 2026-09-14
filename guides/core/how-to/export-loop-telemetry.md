@@ -43,8 +43,14 @@ When you do configure an endpoint, here is exactly what goes and where.
   - `run_id` and `seq` are sent **as attributes**, alongside the allowlisted
     ones, because together they are the record's identity and a consumer
     deduplicates on them.
-- **What is never sent:** any field that is neither routed above nor named by the
-  allowlist.
+- **One thing rides outside the records.** Each request carries a `resource`
+  block naming the service the logs belong to — `service.name`. Its value is
+  whatever you set for `service_name`, or, if you set nothing, the profile
+  filename with its extension removed — `work-loop` for the profile this pack
+  ships. It is the one string in the payload you choose yourself, so do not put
+  anything in it you would not send.
+- **What is never sent:** any field that is neither routed above, named by the
+  allowlist, nor the `service.name` just described.
 - **What a pack cannot see at all:** your prompts, the model's replies, and token
   counts. A pack never sees the model call, so it has nothing to send.
 - **Where it goes:** the Collector you run. Point it at your own infrastructure,
@@ -55,10 +61,12 @@ install it, nothing can send, whatever any configuration file says.
 
 ## Resolve the invocation
 
-Run this from the repository root after installing `jsonl-otlp-exporter`:
+Run this from the repository root after installing `jsonl-otlp-exporter`. The
+resolver reads `agentbundle-layout.toml` from the repository root and from your
+user layout path. It writes nothing and does not run the sender.
 
 ```python
-import shlex
+import subprocess
 from pathlib import Path
 
 from agentbundle.telemetry_layout import resolve
@@ -67,36 +75,31 @@ repo_root = Path.cwd()
 user_layout = Path.home() / ".agentbundle" / "agentbundle-layout.toml"
 resolved = resolve(repo_root, user_layout)
 
-# shlex.quote, not plain printing: these arguments carry values read from two
-# TOML files, and a repository path with a space in it would otherwise split
-# into two arguments. Quoting also means a value cannot end one command and
-# begin another when this line is pasted into a shell.
-print("jsonl-otlp-export", shlex.join(resolved.arguments))
-```
-
-**Prefer this form.** `resolved.arguments` is already a list, so hand it straight
-to `subprocess`: no shell is involved, so no quoting question arises on any
-platform.
-
-```python
-import subprocess
-
+# `resolved.arguments` is already a list, so hand it straight to subprocess.
+# No shell is involved, so no quoting question arises on any platform.
 subprocess.run(["jsonl-otlp-export", *resolved.arguments], check=True)
 ```
 
-The resolver reads `agentbundle-layout.toml` from the repository root and the
-user layout path shown above. It writes nothing and does not run the sender.
-Its output has this shape:
+**That is the form to use.** If you would rather read the command than run it,
+print it — but quote it, because these arguments carry values read from two TOML
+files:
+
+```python
+import shlex
+
+print("jsonl-otlp-export", shlex.join(resolved.arguments))
+```
+
+which produces:
 
 ```text
 jsonl-otlp-export --input <repo>/.loop-run/events.jsonl --root <repo> --config <resolved-layout> --profile <repo>/packs/core/.apm/skills/work-loop/profiles/work-loop.toml --service-name <resolved-name>
 ```
 
-The printed form is quoted with `shlex.join`, which is **POSIX shell quoting**.
-It is safe to paste into `sh`, `bash` or `zsh`. It is **not** safe for Windows
-`cmd.exe`, where single quotes do not protect separators and a value such as
-`x&whoami&x` would still run. On Windows, or in any script, use the `subprocess`
-form above, which builds no shell command at all.
+`shlex.join` is **POSIX shell quoting**. That printed line is safe to paste into
+`sh`, `bash` or `zsh`. It is **not** safe for Windows `cmd.exe`, where single
+quotes do not protect separators and a value such as `x&whoami&x` would still
+run. On Windows, and in any script, use the `subprocess` form above.
 
 `--config` names one file, and the sender reads only `[telemetry].endpoint` from
 it. Every other setting is rendered as its own flag, which is why a value your
