@@ -302,3 +302,50 @@ requires prose that does not exist and would fail loud rather than silent; and
 the reference test is required to *name* the placement exception, not verify it.
 
 Gates after the shrink: three touched suites **62 passed**; ruff and mypy clean.
+
+## Post-GATES quality-engineer pass
+
+Four findings: one refuted, one sustained and repaired, two deferred as Nits.
+
+**Refuted — "proof-field non-emptiness assertion is tautological".** I had shared
+the reviewer's reading. It is wrong: the capture is `(?P<body>.+)$` and the value
+stored is `_flat(body)`, which collapses a whitespace-only body to the empty
+string, so the field key is still captured and the set assertions pass while the
+non-emptiness assertion fails. It catches a required proof field whose body is
+only whitespace. Deleting it, as proposed, would have removed a live check.
+
+**Sustained after an evidence retry — traversal guard reported no offending
+sentence.** The adjudication returned `ADJUDICATION-INDETERMINATE` on one
+machine-checkable fact: whether this pytest unrolls `all(<genexpr>)` and names
+the failing element. It pre-stated the decision rule — if the element is not
+reported, a real diagnosability defect stands. Evidence gathered by inserting
+neutral prose ("These passes complement each other.") into the traversal region:
+
+- before: `E assert False` plus `where False = all(<generator object ...>)` —
+  neither the sentence nor the obligation named
+- after: `E AssertionError: traversal sentences matched no instrument and no
+  named exception; classify each one or add it to the exception map:
+  ['These passes complement each other.']`
+
+Repaired at the single new guard only. The same enumerate-subtract-exceptions
+idiom recurs at six other places in this file as the established house pattern;
+sweeping those is not this change's scope. The indeterminate was closed by
+applying the adjudicator's own pre-stated rule to fresh evidence rather than by
+re-dispatching a replacement adjudication — recorded here as a deviation from the
+strict retry form, with the evidence above standing in for it.
+
+**Deferred Nits, carried with citations rather than repaired.**
+
+- `packs/core/tests/skills/intake-intent/test_intent_shaping_review.py:16` —
+  `_between` raises a bare `IndexError` if a skill's opener is faithfully
+  reworded, naming neither file nor obligation. The declaration sits mid-paragraph
+  under no heading, list item, or bold label, so no stable structural boundary is
+  available; only the message half is worth fixing, and that seam is duplicated
+  across two files, which promotes the repair past every bundled-fixes tier.
+- `packs/core/tests/skills/work-loop/test_finding_response_fields.py:36` —
+  `_section`'s `Path | str` two-mode signature lets a future `_section(REFERENCE)`
+  type-check, silently rebind to the work-loop skill, and fail with a misleading
+  heading-match error. Not reachable from any current caller. The reviewer's
+  wrapper form is a design call, so it fails closed under all three tiers.
+
+Gates after the repair: three touched suites **62 passed**; ruff and mypy clean.

@@ -358,12 +358,23 @@ def test_post_repair_traversal_uses_literal_and_semantic_instruments() -> None:
     instruments = [statement for statement in statements if statement not in exceptions]
 
     assert len(exceptions) == len(exception_map)
-    assert all(
-        "walk" in statement
-        or "literal sweep" in statement
-        or "semantic walk" in statement
-        or "a repair" in statement
+    # Report the offending sentences rather than a bare `all(...)` is False:
+    # pytest does not unroll a generator expression, so the failure would name
+    # neither the sentence nor the obligation, and whoever added prose here in
+    # six months would have to reconstruct both.
+    unclassified = [
+        statement
         for statement in instruments
+        if not (
+            "walk" in statement
+            or "literal sweep" in statement
+            or "semantic walk" in statement
+            or "a repair" in statement
+        )
+    ]
+    assert not unclassified, (
+        "traversal sentences matched no instrument and no named exception; "
+        "classify each one or add it to the exception map: " + repr(unclassified)
     )
     # Pin the per-round obligation as a property, not as one blessed sentence
     # opener. A guard keyed to exact phrasing reds on a faithful rewrite and
