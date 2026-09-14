@@ -183,9 +183,17 @@ Look for what a person notices in seconds and a diff never shows:
 - text that cannot be read as rendered
 
 Each capture carries the route, viewport width and height, scroll position, and
-whether the page scrolls. **Use the scroll position.** "Clipped at the top of the
-page" and "above the fold because the reader scrolled" are the same picture and
-differ only by that field; a capture with no recorded state yields no finding.
+whether the page scrolls. A capture with no recorded state yields no finding.
+
+**Use the scroll position.** "Clipped at the top of the page" and "above the fold
+because the reader scrolled" are the same picture and differ only by that field.
+
+**Use the viewport width.** It decides which breakpoint-scoped rules that capture
+exercised at all: a rule that applies on one side of a breakpoint does nothing on
+the other, so a failure absent from one channel is no evidence it is absent from
+another. Two captures that differ only in width are not duplicates — they are the
+two sides of every breakpoint between them, and a layout can be sound on one and
+broken on the other.
 
 **Take severity from the pack's finding-class table**, in
 `skills/frontend-engineering/references/rendered-page-inspection.md` — not from
