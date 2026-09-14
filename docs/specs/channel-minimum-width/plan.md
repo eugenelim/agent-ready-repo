@@ -168,10 +168,11 @@ and after (T7).
 **Depends on:** none
 **Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/references/rendered-page-inspection.md
 
-**Tests:** TDD for AC-0021, plus a goal-based check for the rows. AC-0021 is the
-prose obligation: the section's "When they declare none, these two apply" is
-contradicted by the new rule row, and no row assertion can see that. AC-0001
-through AC-0004, AC-0006 and AC-0007 are stated here and asserted in T2.
+**Tests:** goal-based check for the rows. AC-0001 through AC-0004, AC-0006 and
+AC-0007 are stated here and asserted in T2. AC-0021's sweep lands in T5, after
+every surface it reaches has been edited, but two of its five anchors are in this
+file — the fallback sentence and the band enumeration — so both are conditioned
+here.
 `test_the_channel_sweep_reaches_every_file_that_names_a_channel` and
 `test_every_shape_still_matches_the_shipped_site_it_was_written_for` are re-run
 in-task: the first asserts set equality between the channel names harvested
@@ -182,9 +183,9 @@ in a three-cell table or prose in the `` `name` at <op> `` shape reds it.
 prose stating the derivation, the admissible value, and both recorded effects.
 State the axis's reason without naming any surface outside the pack.
 
-**Done when:** the section's prose no longer states unconditionally that two
-bands apply when no breakpoints are declared, the channel-name sweep is green
-without its shapes or expected set being edited, and
+**Done when:** neither `these two apply` nor ``For breakpoints `b1 < ... < bn``
+sits in a paragraph that fails to name the minimum, the channel-name sweep is
+green without its shapes or expected set being edited, and
 `channel_rules(read_rules())` returns eight keys including
 `channel-minimum-derivation` and `channel-minimum-recorded`, and `unique_keyed`
 rejects a duplicate key, run from a scratch probe. Not `capture_set_rules`: it
@@ -249,10 +250,12 @@ which passes after this delivery without mentioning the minimum. The row is also
 pinned by `test_the_manifest_example_is_a_band_set_the_derivation_produces`,
 which harvests every backticked predicate in it and compares the set to the
 derivation's output — so the new values go in as bare numbers, and that control
-is re-run as part of this task rather than discovered later. The same two
-channel-name sweep controls T1 names apply to § 5a, which is one of the sites
-their shapes were written for — so the conditioning edit keeps the literal
-`` `narrow` at ≤480 `` phrase that the per-shape control matches. AC-0009 goes in
+is re-run as part of this task rather than discovered later. Of the channel-name sweep's three
+shapes, `prose-declaration` and `snippet-name-field` carry § 5a as their live
+site and `band-row` does not — its outer matches only a `## Channels` section, so
+a three-cell table here is not harvested at all. The edit keeps the literal
+`` `narrow` at ≤480 `` phrase, which is `prose-declaration`'s anchor in this
+file. Anchors 3 and 4 of AC-0021's sweep are here. AC-0009 goes in
 `test_rendered_page_journey_promise.py`, the suite that already owns assertions
 about what the journey promises; AC-0008 joins the § 5a assertions in
 `test_rendered_page_capture_contract.py`.
@@ -282,21 +285,28 @@ needs no change; the edit is the `4(n + 1)` formula beside it, which a minimum
 that discards a declared breakpoint makes wrong.
 
 **Done when:** the guide's links resolve under the repository's documentation
-gates.
+gates, and neither `Declare none and two apply` nor
+`four times *n + 1* where you declare *n* breakpoints` sits in a paragraph that
+fails to name the minimum. Both wrap across a line break in this file, so the
+check normalizes whitespace before matching.
 
 ### T5: The harness expects the minimum
 
-**Depends on:** T1
-**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json
+**Depends on:** T1, T3, T4
+**Touches:** packs/frontend-engineering/.apm/skills/frontend-engineering/evals/evals.json, packs/frontend-engineering/tests/skills/frontend-engineering/test_rendered_page_shipped_content_limits.py
 
 **Tests:** TDD for AC-0011 in `test_rendered_page_reviewer_sight.py`, which
-already parses this file for the channel-coverage assertion.
+already parses this file for the channel-coverage assertion, plus AC-0021's
+sweep in `test_rendered_page_shipped_content_limits.py`. The sweep lands here
+because it is the last task to touch a surface it reaches; its fifth anchor is
+this file's coverage expectation.
 
 **Approach:** the `rendered-page-inspection` case gains an assertion naming the
 declared minimum and what it removes from the required set.
 
-**Done when:** `catalogue lint --deep` and `catalogue verify` accept the harness
-and `make build-self` leaves no projection diff.
+**Done when:** all five AC-0021 anchors are green across `.apm/**` and the
+how-to, `catalogue lint --deep` and `catalogue verify` accept the harness, and
+`make build-self` leaves no projection diff.
 
 ### T6: The step is performed against a single-channel surface
 
@@ -363,6 +373,24 @@ clean across the changed Python.
 - 2026-09-14 — Drafted. Minimum settled as an optional adopter-declared positive
   whole number; derivation as drop-wholly-below then clamp-lowest-survivor;
   recording as two fields beside an unchanged two-value basis.
+- 2026-09-14 — Shaping round 7. Replaced the per-surface conditioning clauses
+  with one sweep. Four shipped surfaces state some form of "two bands always
+  apply" or the `n + 1` floor, and rounds 5, 6 and 7 each found the next instance
+  after the previous was closed per-surface — the per-surface form was
+  regenerating the defect. AC-0021 is now a superseded-claim sweep over five
+  named anchors across `.apm/**` and the how-to, asserting each anchor's
+  enclosing paragraph names the minimum; AC-0008, AC-0010 and AC-0011 drop back
+  to presence clauses and point at it. Its reach is its anchor list, which is a
+  thing a reviewer inspects. Two anchors that this delivery must condition wrap
+  across a line break, so the check normalizes whitespace, as the shipped rate
+  guard does. Dropped `4(n + 1)` from AC-0008: it is not shipped anywhere — the
+  text is `four times *n + 1* where you declare *n* breakpoints` — so a test
+  asserting its absence passed on the unedited file. Also dropped AC-0008's claim
+  that AC-0010 covered the guide's copy of the sentence; it did not. Corrected
+  the *Always do* channel-sweep entry, which over-stated the control's reach:
+  `band-row` matches only inside a `## Channels` section, and
+  `prose-declaration` needs the word *channel* in the paragraph and a
+  lowercase-initial name. T5 now owns the sweep and depends on T1, T3 and T4.
 - 2026-09-14 — Shaping round 6. AC-0008 was presence-only, so appending one
   sentence to § 5a discharged it while leaving two claims this delivery falsifies
   standing: "Declare none and two apply" and the `4(n + 1)` per-route floor. It
