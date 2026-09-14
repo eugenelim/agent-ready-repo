@@ -80,7 +80,7 @@ def test_concurrent_acquirers_publish_one_complete_lease_per_port(
             assert payload["created_at"]
             with counter_lock:
                 link_calls += 1
-            barrier.wait(timeout=2)
+            barrier.wait(timeout=30.0)
         real_link(source, destination)
 
     monkeypatch.setattr(runtime.os, "link", coordinated_link)

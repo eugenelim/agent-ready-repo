@@ -483,15 +483,6 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # Pre-flight/2026-09-14, found while merging docs/specs/rendered-page-channel-axis.
-  # Not that delivery's defect: tools/test_frontend_runtime.py is outside its diff,
-  # last touched by #1084, passes 3/3 locally, and the same shard passed on the
-  # prior corpus run of effectively the same tree. The test coordinates two
-  # threads through `threading.Barrier(2)` with `barrier.wait(timeout=2)`; a
-  # 2-second barrier is a wall-clock bound on a contended runner, and #1294 has
-  # since sharded the corpus four ways, raising per-runner contention. A flake
-  # here reads as a lease-correctness failure, which is the expensive part.
-  {path = "tools/test_frontend_runtime.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "test_concurrent_acquirers_publish_one_complete_lease_per_port raises threading.BrokenBarrierError on a sharded corpus runner: its Barrier(2) carries a 2s wall-clock timeout, which is a load-sensitive bound rather than a property of the lease it verifies", needs = []},
   # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
   # rather than left in that spec's notes: a closed spec's notes directory is not
   # a destination, and the obligation would otherwise be enforced by someone
