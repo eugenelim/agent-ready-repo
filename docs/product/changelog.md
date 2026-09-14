@@ -60,6 +60,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [agentbundle][0.44.2] — 2026-09-14
+
+### Highlights
+
+- **A catalogue you derive now keeps a working check on its vendored
+  `credbroker` code.** `catalogue init --preset self-hosted` copied the
+  vendored copy of that code but left its source behind, and the check that
+  compares the two passed by finding nothing to compare. The copy was frozen:
+  an edit to it went unreported, and `catalogue self-host` never produced the
+  staged floor it is meant to write. Selecting the `credential-brokers` pack
+  now brings the source across too, so the comparison is real again.
+- **`--attribution white-label` no longer leaves the upstream catalogue's name
+  in a file you commit.** That mode promises no upstream trace, and the scan
+  enforcing it allows the upstream name zero occurrences anywhere — but the
+  scan runs before `.agentbundle/self-host-state.json` is written, so the name
+  landed there unchecked. The file now records your own catalogue's name.
+  `--attribution attributed` is unchanged and still records the upstream name.
+
+### Fixed
+
+- `catalogue init --preset self-hosted` copies `packages/credbroker/` into the
+  target whenever the `credential-brokers` pack is selected, independent of
+  `--tooling`. `agentbundle/build/user_libs.py` resolves the package by
+  relative path at `<catalogue root>/packages/credbroker/credbroker/`; absent
+  it, `compute_projections` returns an empty list and both of its consumers
+  become silent no-ops — `apply_projection` writes no
+  `.agentbundle/lib/credbroker/` floor and `check_drift` reports clean over
+  nothing. The copy carries no test content, matching the boundary the
+  vendored-pack copy already draws.
+- `--attribution white-label` records the derived catalogue's name as
+  `source_pack_identity` in `.agentbundle/self-host-state.json`. The leak check
+  runs over the planned file map at step 9 and that file is written at step 13,
+  so it was never scanned. Its scope is deliberately unchanged: bringing the
+  state file inside the check would make a usable upstream pin impossible in
+  the mode that most needs control over what ships, so the recorded value
+  changed instead.
+
 ## [core][2.26.1] — 2026-09-14
 
 ### Highlights
