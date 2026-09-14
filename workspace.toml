@@ -427,6 +427,7 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 
 ["ini-003".work]
 active  = [
+  {path = "docs/specs/rendered-page-channel-axis/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make viewport width a completeness axis of the rendered-page inspection, so a conforming capture set cannot sit entirely on one side of every breakpoint a surface declares", needs = [{type = "local", kind = "spec", path = "docs/specs/rendered-page-visual-inspection/spec.md"}]},
 ]
 queue   = [
 ]
