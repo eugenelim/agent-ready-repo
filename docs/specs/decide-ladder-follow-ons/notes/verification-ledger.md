@@ -349,3 +349,43 @@ strict retry form, with the evidence above standing in for it.
   wrapper form is a design call, so it fails closed under all three tiers.
 
 Gates after the repair: three touched suites **62 passed**; ruff and mypy clean.
+
+## Post-GATES experience pass
+
+Five findings: three refuted, two sustained as advisory Nits, one repaired.
+
+**The blocker downgraded to advisory.** The claimed conflict between the new
+upstream/downstream pin sentences and the preceding "content pin" requirement
+does not hold: line 677 already states the genus ("the pin that catches its
+removal"), and line 680 contrasts a content *test*, not content. What survives is
+narrower and real — `upstream` and `downstream` appear nowhere else in this
+skill, so a reader of DECIDE alone has no stated point of reference. Deferred
+rather than repaired: naming the pin per destination would restate both shaping
+skills' materiality lists, which the sealed plan expressly keeps DECIDE from
+restating, and would not fit the 6 remaining body lines. No seam supplies
+determined wording within that budget, so a cramped edit was refused.
+
+**Refuted, all three on existing handling.** "Literal sweep" and "semantic walk"
+are defined inline in the same sentence and `step-8a` resolves to the numbered
+step in the same file, which carries the grep patterns the finding said were
+missing. "Pre-fix implementation" is already bounded to one property-scoped edit
+by the adjacent sentences. And the `Placement` link is not a dead end — the
+linked section names the default destination, and the plan expressly forbids this
+file restating it.
+
+**Repaired — the changelog highlights.** The four bullet bodies used vocabulary a
+consumer cannot resolve: "the axis walked first under a stop rule", "half a
+sweep", "the bound review". The changelog's own header requires rewriting for
+users rather than contributors, the bullets publish to the public `/now/` page,
+and no line budget constrains that file. The reviewer's proposed mechanism was
+wrong — it targeted the headlines, which were already outcome-led — so the fix
+was applied to the bodies instead: each now states the duty that changed in
+plain words. Verified 0 occurrences of the four flagged terms remain in the entry.
+
+- `python3 tools/build-site.py --journeys-only` — 153 highlights, 104 groups
+- `python3 -m pytest tools/test_build_site_routing.py -k now -q` — **1 passed**
+
+**Deferred Nits carried into the verdict record, with citations:**
+`SKILL.md:679` (upstream/downstream undefined within the skill) and
+`test_finding_response_fields.py:36` (`_section` two-mode signature), plus
+`test_intent_shaping_review.py:16` (bare `IndexError` on a reworded opener).

@@ -63,28 +63,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [core][2.25.27] — 2026-09-13
 
 ### Highlights
-- **An author whose claim outruns its check now has both answers, not one.**
-  The response ladder offered only "narrow the claim", and it sits on the axis
-  walked first under a stop rule — so the cheapest way to answer a claim/check
-  mismatch was to shrink the claim until a weak check reached it, quietly moving
-  the property out of contract. The ladder now strengthens the check when some
-  check can reach the stated obligation, and narrows only when none can.
-- **A repair no longer closes with half a sweep.** One sentence told an author a
-  post-round traversal was "a walk, not a text search", which switched off the
-  mechanical half everywhere. Both instruments are now named and obliged, and a
-  repair re-runs the anchor-test sweep over every file it touched — which is
-  exactly when a prose edit reds a content pin in a file nobody opened.
-- **Demoting an obligation upstream now has something to pin it.** Moving an
-  obligation out of contract requires a pin that catches its removal, but three
-  of the four destinations a shaping skill routes a demotion to had no control
-  at all. Editing `Opportunity` on an intent, or `Rabbit holes` or `Design
-  artifacts` on a delivery brief, is now a material change that invalidates the
-  bound review.
-- **Mutation proof has a home in the pack.** A proof reverts to the pre-fix
-  implementation rather than a do-nothing stub, and restores by editing rather
-  than by a Git operation. That discipline previously lived only in whatever
-  protocol a caller supplied, so a loop run without one had nothing to fall back
-  on.
+- **When a review finding says a claim promises more than its test checks, you
+  now have two answers instead of one.** Previously the only available answer was
+  to shrink the claim, so the easy move was to weaken what you promised until the
+  existing test covered it — quietly dropping the property from what anyone
+  checks. Now: if any test can be made to cover the full promise, improve the
+  test; shrink the claim only when none can.
+- **After fixing a review finding, search twice.** Guidance used to say this
+  search was "a walk, not a text search", which read as permission to skip
+  searching for exact strings. You now do both: search for the repeated words and
+  names, and read for the places that say the same thing in different words.
+  After a fix, also re-run the search for tests that pin file contents, across
+  every file you touched — that is when an edit breaks a test in a file you never
+  opened.
+- **You can now move an obligation out of an intent or brief and still have
+  something catch its deletion.** Moving it requires something that fails if it
+  is removed, and three of the four places you were told to move it to had
+  nothing watching them. Editing `Opportunity` on an intent, or `Rabbit holes` or
+  `Design artifacts` on a delivery brief, now counts as a material change, which
+  cancels that artifact's approved review and sends it back for a fresh one.
+- **How to prove a test actually catches a bug is now written down.** To prove
+  it, put back the original broken code — not an empty placeholder — and confirm
+  the test fails. Undo it by editing, not with `git checkout`, `reset`, or
+  `stash`. A test that still passes while the bug is back has proved nothing.
+  This rule previously existed only if your own process happened to supply it.
 
 ### Added
 - `work-loop`: `references/mutation-proof.md` states what a mutation proof
