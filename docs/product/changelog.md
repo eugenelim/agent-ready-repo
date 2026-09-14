@@ -155,6 +155,31 @@ updates but never removes:
 - `author-delivery-brief`: editing `Rabbit holes` or `Design artifacts` is a
   material change to a ready brief.
 
+## [frontend-engineering][0.2.4] — 2026-09-13
+
+### Highlights
+
+- **The rendered-page inspection now looks at both sides of your breakpoints.**
+  It used to permute viewport height and scroll position and nothing else, so a
+  complete capture set could sit entirely on one side of every breakpoint a
+  surface has — exercising each layout rule only where it already applies. A
+  **channel** is a band of viewport widths, and a set is complete only when it
+  covers every one your surface has.
+- **Tell it your breakpoints and it captures either side of each.** Declare them
+  and the bands they bound become the required channels, captured at the widths
+  that straddle each boundary — declare `1152` and you get `1151` and `1152`.
+  Declare none and two bands apply, `narrow` at ≤480 and `wide` at ≥1024, and the
+  run records that it fell back. Those two leave 481–1023 uncaptured, which is
+  where a great many real breakpoints sit; declaring yours is what closes it.
+- **The floor rises from four captures per route to eight.** Four heights-and-
+  scroll-positions in each required channel, and four times *n + 1* where you
+  declare *n* breakpoints. An existing capture set becomes incomplete at this
+  version, which is the intended signal.
+- **A capture's width now means something to the reviewer.** `frontend-reviewer`
+  is told to use it: it decides which breakpoint-scoped rules a capture exercised
+  at all, so a failure absent from one channel is no evidence it is absent from
+  another.
+
 ## [core][2.25.26] — 2026-09-13
 
 ### Highlights
