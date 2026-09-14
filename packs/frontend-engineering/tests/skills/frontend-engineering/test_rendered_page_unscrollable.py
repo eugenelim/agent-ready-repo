@@ -32,10 +32,17 @@ def rules_markdown() -> str:
     return read_rules()
 
 
-def _capture(height: int, scroll: int, scrollable: str) -> dict[str, int | str]:
+NARROW, WIDE = 390, 1280
+
+
+def _capture(
+    height: int, scroll: int, scrollable: str, width: int = NARROW
+) -> dict[str, int | str]:
+    """Width and height are independent arguments; width used to be derived from
+    height, which is the coupling the channel axis exists to remove."""
     return {
         "route": "/a",
-        "viewport-width": 390 if height <= 600 else 1280,
+        "viewport-width": width,
         "viewport-height": height,
         "scroll-position": scroll,
         "page-scrollable": scrollable,
@@ -43,15 +50,23 @@ def _capture(height: int, scroll: int, scrollable: str) -> dict[str, int | str]:
 
 
 def unscrollable_set() -> list[dict[str, int | str]]:
-    """What the run actually produced for a short page: at-rest only, at both
-    heights, each recorded as not scrollable."""
-    return [_capture(600, 0, "no"), _capture(900, 0, "no")]
+    """What the run actually produced for a short page: at-rest only, at every
+    required size, each recorded as not scrollable."""
+    return [
+        _capture(height, 0, "no", width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+    ]
 
 
 def scrollable_but_missing_set() -> list[dict[str, int | str]]:
     """A page that *can* scroll, where the scrolled captures were simply not
     taken. This is the case the amendment must NOT excuse."""
-    return [_capture(600, 0, "yes"), _capture(900, 0, "yes")]
+    return [
+        _capture(height, 0, "yes", width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+    ]
 
 
 def test_an_unscrollable_page_yields_a_complete_set(rules_markdown: str) -> None:

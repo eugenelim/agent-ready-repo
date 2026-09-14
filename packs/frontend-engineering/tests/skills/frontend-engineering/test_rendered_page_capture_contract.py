@@ -50,23 +50,39 @@ def _names(missing: list[str], requirement: str) -> bool:
     return any(requirement in entry for entry in missing)
 
 
-def _capture(route: str, height: int, scroll: int, scrollable: str = "yes") -> dict[str, int | str]:
+NARROW, WIDE = 390, 1280
+
+
+def _capture(
+    route: str,
+    height: int,
+    scroll: int,
+    scrollable: str = "yes",
+    width: int = NARROW,
+) -> dict[str, int | str]:
+    """Width and height are independent arguments; width used to be derived from
+    height, which is the coupling the channel axis exists to remove."""
     return {
         "route": route,
-        "viewport-width": 390 if height <= 600 else 1280,
+        "viewport-width": width,
         "viewport-height": height,
         "scroll-position": scroll,
         "page-scrollable": scrollable,
     }
 
 
-def complete_set() -> list[dict[str, int | str]]:
-    """One capture at each of the four required combinations."""
+def complete_set(route: str = "/a") -> list[dict[str, int | str]]:
+    """The four height-and-scroll captures in each of the two fallback channels.
+
+    Eight, not four. The four-capture version of this fixture wrote one width per
+    height, so it covered the narrow channel only at 600 and the wide one only at
+    900 — which is exactly the set the channel axis must reject.
+    """
     return [
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 0, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 390, "viewport-height": 600, "scroll-position": 800, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 0, "page-scrollable": "yes"},
-        {"route": "/a", "viewport-width": 1280, "viewport-height": 900, "scroll-position": 800, "page-scrollable": "yes"},
+        _capture(route, height, scroll, width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+        for scroll in (0, 800)
     ]
 
 
@@ -256,19 +272,21 @@ def test_two_routes_cannot_cover_each_others_required_heights(
 def test_an_extra_captured_height_needs_its_scrolled_counterpart(
     rules_markdown: str,
 ) -> None:
-    """Verifies the "for each viewport height captured" half.
+    """Verifies the "for each viewport width and height captured" half.
 
-    The criterion is not limited to the two required bands. An adopter who adds
-    a third height has captured that height, so it owes the same at-rest and
-    scrolled pair — and a rule that only walks the table's named rows never
-    looks at it.
+    The criterion is not limited to the required channels and bands. An adopter
+    who adds a third size has captured that size, so it owes the same at-rest and
+    scrolled pair — and a rule that only walks the table's named rows never looks
+    at it. The obligation is keyed on the width-and-height pair, so the extra
+    capture below owes a counterpart even though 390 already carries pairs at
+    other heights.
     """
     captures = complete_set() + [_capture("/a", 750, 0)]
     status, missing = evaluate_capture_set(rules_markdown, captures)
     assert status == "incomplete", (
-        "a 750px at-rest capture with no scrolled counterpart was accepted"
+        "a 390x750 at-rest capture with no scrolled counterpart was accepted"
     )
-    assert _names(missing, "scrolled at 750px"), missing
+    assert _names(missing, "scrolled at 390x750"), missing
 
 
 def test_an_extra_captured_height_is_accepted_once_it_is_paired(
@@ -283,12 +301,7 @@ def test_an_extra_captured_height_is_accepted_once_it_is_paired(
 
 def test_two_fully_captured_routes_are_accepted(rules_markdown: str) -> None:
     """The green path for per-route evaluation."""
-    captures = complete_set() + [
-        _capture("/b", 600, 0),
-        _capture("/b", 600, 400),
-        _capture("/b", 900, 0),
-        _capture("/b", 900, 400),
-    ]
+    captures = complete_set("/a") + complete_set("/b")
     assert evaluate_capture_set(rules_markdown, captures) == ("complete", [])
 
 

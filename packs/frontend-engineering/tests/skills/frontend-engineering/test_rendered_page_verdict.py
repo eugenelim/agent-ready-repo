@@ -37,14 +37,33 @@ def md() -> str:
     return read_rules()
 
 
-def _capture(height: int, scroll: int, scrollable: str = "yes") -> dict[str, int | str]:
-    return {"route": "/a", "viewport-width": 390 if height <= 600 else 1280,
+NARROW, WIDE = 390, 1280
+
+
+def _capture(
+    height: int, scroll: int, scrollable: str = "yes", width: int = NARROW
+) -> dict[str, int | str]:
+    """Width and height are independent arguments.
+
+    They used to be one: width was `390 if height <= 600 else 1280`, so a set
+    covering both heights covered each channel at exactly one height and no rule
+    could see it. Defaulting width rather than deriving it keeps the callers that
+    only care about height short, while making the coupling impossible to
+    reintroduce by accident.
+    """
+    return {"route": "/a", "viewport-width": width,
             "viewport-height": height, "scroll-position": scroll,
             "page-scrollable": scrollable}
 
 
 def complete_set() -> list[dict[str, int | str]]:
-    return [_capture(600, 0), _capture(600, 400), _capture(900, 0), _capture(900, 400)]
+    """The four height-and-scroll captures in each of the two fallback channels."""
+    return [
+        _capture(height, scroll, width=width)
+        for width in (NARROW, WIDE)
+        for height in (600, 900)
+        for scroll in (0, 400)
+    ]
 
 
 # ── T8: a Blocker finding stops the surface completing ──────────────────────
