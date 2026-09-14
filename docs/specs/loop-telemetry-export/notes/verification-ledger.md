@@ -649,3 +649,36 @@ and a `docs/architecture/` path, and the engine comment repeated the second; bot
 violate `packs/AGENTS.md`'s portability rule. Rewritten to state the rules
 directly. A pre-existing citation at `loop-engine.py:1087` is outside this
 delivery's hunks and was left.
+
+## Contract amendment 1 — authorized by the owner, 2026-09-14
+
+Three of round 1's sustained findings could not be answered by a ledger
+disposition, because each concerns a **pinned** field of an approved artifact.
+The owner was given the trade-off — ship with dispositions, amend properly, or
+remove the behaviour that created the obligation — and chose to amend.
+
+**What is being corrected, and why a disposition was not enough:**
+
+| Finding | Pinned field | Why it must change |
+| --- | --- | --- |
+| B4 | T4 `Touches` | names only `pyproject.toml` and `Makefile`; delivery also required `tools/lint-mypy.py` and a construction test file, because AC-0031's four named sites do not achieve its own purpose clause |
+| B5 | T5 `Touches` | names `docs/specs/README.md`, where ADR-0112 forbids the index row the durable-output table asks for; the obligation is impossible as written |
+| B6 | spec acceptance criteria | `telemetry_layout.resolve()` refuses a `[telemetry]` setting the sender cannot receive — an observable refusal, which `docs/CONVENTIONS.md` lines 444-447 require to be an AC "when they're added to the code" |
+
+`plan.md`'s own header is what decides B4 and B5: `Touches`, `Tests` and
+`Done when` "are what a completion gate reads, and they are pinned". A ledger
+entry records what happened; it cannot move a pinned field. B5 is the sharper
+case — `spec.md`'s Durable Outputs row is working material and *could* have been
+corrected in place, but T5's `Touches` is pinned and still carried the
+prohibited file.
+
+**The amendment was mechanically available here and would not have been on the
+sibling spec.** `contract-amendment` refuses when a completed task has no
+evidence binding; `completed_task_ids` is empty for this run, so that guard does
+not fire. It is legal only from `CODE-IMPLEMENTATION`, so the route out of
+`CODE-REVIEW` was `findings-remain` (seq 20), with round 3's twelve sustained
+fingerprints recorded against that sequence first.
+
+Cost accepted by the owner: the run returns to `SPEC-PLAN-DRAFTING` and walks
+back up through both human approval gates, a re-approval and a re-schedule.
+Review retry count stands at 3 of 5.
