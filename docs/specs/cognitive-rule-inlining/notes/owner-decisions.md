@@ -43,3 +43,18 @@ Two corrections ride along in the same criterion, both owner-approved:
   own prose rules forbid.
 
 This is the `reason_ref` for the contract amendment that carries the edit.
+
+## 2026-09-13 — the post-amendment gates
+
+**Decision: proceed. The amendment's two human gates are answered by the
+approval that authorized it.**
+
+The contract amendment returned the engine to the spec/plan phase, which carries
+two human gates: "Does this spec define the right thing to build?" and "Does this
+plan describe the right way to build it?" Both were answered in advance. The
+owner approved the criterion correction, and the plan was not touched by the
+amendment — its hash is unchanged at `09965cec2bab`, and the completed task
+sections are pinned against edits.
+
+The amendment changed one acceptance criterion's exemption list. It changed no
+objective, no boundary, no task, and no testing strategy.
