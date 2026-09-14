@@ -153,7 +153,11 @@ post-merge tree:
 | `lint-ci-parity.py:379` (behaviour disposition) | `:380-381` |
 | `lint-ci-parity.py:377-380` (both pinned keys) | `:378-381` |
 
-The three in `spec.md` were corrected in place. The two in `plan.md` were not,
+The three in `spec.md` are corrected in place — though the first pass appended
+the new range beside the old one at `spec.md:251` instead of replacing it, so
+one wrong citation survived a round and this sentence was false until it did
+not. `:377` is the `windows-build-gate-chain` value; the AC1 pair is
+`:378-379`. The two in `plan.md` were not,
 and the plan carries its approved bytes: `loop-cohort schedule` pins `plan.md`
 at `approve-plan`, and editing it — even for two line numbers — breaks that
 baseline. The documented recovery re-pins whatever is on disk, which the tool

@@ -248,8 +248,8 @@ widens what the gates cover, never what a maintainer may declare by hand.
   CI-parity disposition, so the widened equality needs no new suite and no
   `run-test-suite` or pinned-digest change (source:
   `.github/workflows/build-check.yml:288-289` runs
-  `tools/test_gitattributes_merge_driver.py`; `tools/lint-ci-parity.py:377`
-  holds `LOCAL("test-after-build-check")` for that step at `:378-379`). The same holds for
+  `tools/test_gitattributes_merge_driver.py`; `tools/lint-ci-parity.py:378-379`
+  holds `LOCAL("test-after-build-check")` for that step). The same holds for
   `tools/test_merge_driver_behaviour.py`, which T4 extends:
   `.github/workflows/build-check.yml:298-299` runs it and
   `tools/lint-ci-parity.py:380-381` disposes it. Both step-name strings are pinned
