@@ -59,7 +59,7 @@ new case and recorded in the same ledger.
 | Current architecture / `tools/test_gitattributes_merge_driver.py` module docstring | T3 | Docstring names both spec paths and the union the assertion measures | Both paths resolve and the equality described matches the assertion below it |
 | Current architecture / `Makefile` `bootstrap-git` target | T3 | All four strings describe a multi-generator driver | None names `make build-self` as the sole regenerator |
 | Current architecture / `tools/test_merge_driver_behaviour.py` module docstring | T4 | Docstring names both specs and disambiguates the two AC4s | Both spec paths appear and each convergence test's criterion is unambiguous |
-| Current architecture / `.github/workflows/build-check.yml` merge-driver comments | T3, T4 | Comment names this spec and the union rule | Comment cites this spec; both step-name strings unchanged, so `tools/lint-ci-parity.py:378-381` still resolves |
+| Current architecture / `.github/workflows/build-check.yml` merge-driver comments | T3, T4 | Comment names this spec and the union rule | Comment cites this spec; both step-name strings unchanged, so `tools/lint-ci-parity.py:377-380` still resolves |
 | Maintainer procedure / `AGENTS.local.md` § Worktree bootstrap | T4 | The sentence no longer scopes the without-bootstrap consequence to projections | Sentence covers both generators |
 | Maintainer procedure / `AGENTS.local.md` § Landing changes | T4 | The sentence beginning "Self-host projections carry `merge=regen`" describes the widened set; both regeneration commands present | That sentence covers both generators, and each command runs to exit 0 when pasted from the repository root |
 
@@ -165,7 +165,7 @@ when the record's `Date:` field is removed.
 - Rewrite the `.gitattributes` comment header and the module docstring per the
   durable-output map, and correct the `build-check.yml` comment above the two
   merge-driver steps. Leave both step-name strings alone: they are pinned as
-  literal dict keys at `tools/lint-ci-parity.py:378-381`.
+  literal dict keys at `tools/lint-ci-parity.py:377-380`.
 - Correct the four `bootstrap-git` strings in the `Makefile` — the recipe
   comment, the `##` help text, the registered driver name, and the completion
   echo, which also says "projections now auto-resolve" — so none scopes

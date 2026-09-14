@@ -133,3 +133,32 @@ measurement. Per-test attribution is reported instead because pytest charges
 time to the case that spent it, which survives the contention that destroys a
 whole-run comparison. The figures above are still an upper bound on a loaded
 machine, not a clean-room number.
+
+## Citation drift after the sync, and why the plan keeps its approved bytes (2026-09-13)
+
+Merging `origin/main` inserted `release-jsonl-otlp-exporter.yml` into
+`tools/lint-ci-parity.py`, and this change's own comment rewrap moved two
+workflow steps. Five citations in the contract drifted. Recomputed against the
+post-merge tree:
+
+| Cited as | Actually at |
+| --- | --- |
+| `build-check.yml:287` (AC1 step) | `:288-289` |
+| `build-check.yml:294-295` (behaviour step) | `:298-299` |
+| `lint-ci-parity.py:377` (AC1 disposition) | `:378-379` |
+| `lint-ci-parity.py:379` (behaviour disposition) | `:380-381` |
+| `lint-ci-parity.py:377-380` (both pinned keys) | `:378-381` |
+
+The three in `spec.md` were corrected in place. The two in `plan.md` were not,
+and the plan carries its approved bytes: `loop-cohort schedule` pins `plan.md`
+at `approve-plan`, and editing it — even for two line numbers — breaks that
+baseline. The documented recovery re-pins whatever is on disk, which the tool
+itself describes as "a re-approval in substance", and a re-approval is the
+human's to give, not something to take for a citation fix. Restoring the
+approved bytes returned `schedule check-current` to OK.
+
+The property those two citations stand for is unaffected and is what the
+closeout actually tests: both step-name strings are unchanged, so
+`lint-ci-parity.py`'s pinned dict keys still resolve. Only the line numbers in
+the plan's prose are stale, and this table is where a reader finds the current
+ones.
