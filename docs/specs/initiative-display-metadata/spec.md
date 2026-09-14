@@ -66,8 +66,11 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   into it. This changes what the projection emits, nothing upstream of it.
 - Weaken, delete, or narrow any assertion in the touched test files other than
   the display-field assertions inside the three named tests, which invert. The
-  absolute-path and repository-root leak guards in those files are a different
-  control and stay exactly as they are.
+  `assertNotIn(str(root), ...)` repository-root guard stays exactly as it is:
+  it catches a path leaked from the running process, which no decision here
+  touches. An absolute path a fixture itself authored into `name` or
+  `milestone` is a display-field assertion and inverts with the rest, because
+  projecting authored content verbatim is the decision.
 
 ## Testing Strategy
 
@@ -94,8 +97,10 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   value containing `·`, `–`, `—`, a semicolon, or a straight apostrophe.
 - [ ] **AC-0002.** A non-string TOML value assigned to `name` or `milestone`
   projects as a JSON string, never as a JSON number, boolean, array, or object.
-  Projected text by class: `123` → `"123"`, `4.5` → `"4.5"`, `true` → `"True"`,
-  `[1, 2]` → `"[1, 2]"`.
+  Projected text for each class under test: `123` → `"123"`, `4.5` → `"4.5"`,
+  `true` → `"True"`,
+  `[1, 2]` → `"[1, 2]"`, `{a = 1}` → `"{'a': 1}"`, and
+  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`.
 - [ ] **AC-0003.** `packs/core/.apm/skills/workspace-status/SKILL.md` describes both
   fields as values read from `workspace.toml`, enumerates `name` and `milestone`
   in the `initiatives` summary row alongside `slug`, `status`, `brief_queue` and
@@ -124,7 +129,7 @@ prose reaches the reader as written, exactly as the sibling `[backlog].open`
   `section.get(...)` with no coercion, so a non-string TOML value survives the
   `str` annotation (`workspace_status_engine.py:3822-3825`).
 - Technical: the four active initiatives' real milestone values carry `·`, `–`
-  and `—`, a semicolon and an apostrophe, reach 107 characters, and contain no
+  and `—`, a semicolon and a straight apostrophe between them, and contain no
   newline (probe over `workspace.toml`).
 - Product: a non-string value is coerced with `str()` rather than emitted as a
   JSON number or redacted (user confirmation 2026-09-14).

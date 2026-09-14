@@ -45,9 +45,9 @@ Every criterion is verified in `tools/test_workspace_status_cli.py`, which
 already owns this projection's CLI surface and runs the real script as a
 subprocess through its `_run_cli` helper.
 
-- AC-0001 is carried by the two converted tests. The charset members and the
-  107-character length come from this repository's own four active
-  initiatives, so the fixture data is the corpus rather than invented input.
+- AC-0001 is carried by the two converted tests. Their fixture values are
+  copied from this repository's own active initiatives, so the charset under
+  test is the corpus rather than invented input.
 - AC-0002 is a new case; no existing test supplies a non-string.
 - AC-0003 is a content assertion over the shipped `SKILL.md`, placed with the
   existing `SkillWiringTests` class, which already reads that file.
@@ -111,23 +111,36 @@ is recorded as a known shape, not handled.
 
 **Tests:** (`tools/test_workspace_status_cli.py`)
 - Convert `test_benign_initiative_display_fields_are_still_redacted` into
-  `test_initiative_display_fields_project_as_authored`, asserting AC-0001 over the
-  corpus charset. `stub: true` — the red is the two existing equality
-  assertions against `"workspace.toml"` failing on the authored value.
+  `test_initiative_display_fields_project_as_authored`, asserting AC-0001. The
+  current fixture carries only `·` (its dash is an ASCII hyphen), so the
+  charset rider would hold vacuously against it. Replace it with two
+  initiatives copied from `workspace.toml`: `ini-002`'s pair, whose milestone
+  carries `·` and `–`, and `ini-009`'s pair, whose milestone carries `·`, `—`,
+  a semicolon and a straight apostrophe. Their union is all five characters,
+  and two initiatives also give the criterion's quantifier something to range
+  over. `stub: true` — the red is the equality assertions against
+  `"workspace.toml"` failing against those authored values.
 - Convert `test_initiative_display_prose_is_not_projected` into
   `test_initiative_display_prose_projects_verbatim`, keeping its unusual input
   and asserting the value arrives unchanged. This is the case that records the
   trust-model decision in the suite.
-- New case for AC-0002 supplying `name = 123` and `milestone = 4.5`, asserting the
-  projected values are `"123"` and `"4.5"` and that `isinstance(value, str)`.
+- New case for AC-0002 covering every class the criterion fixes, across
+  sub-fixtures: `123` → `"123"`, `4.5` → `"4.5"`, `true` → `"True"`,
+  `[1, 2]` → `"[1, 2]"`, `{a = 1}` → `"{'a': 1}"`, and
+  `1979-05-27T07:32:00Z` → `"1979-05-27 07:32:00+00:00"`. Assert each projected
+  string literally and `isinstance(value, str)`. The boolean and inline-table
+  rows are the ones a later editor is most likely to "correct" toward TOML
+  syntax, so they are pinned rather than implied.
 - Update the third pinning site inside `test_cli_rich_fixture_shapes`, whose
   fixture already declares `milestone = "M1"`, to expect the authored value.
 - Ten assertions invert across the three tests, not three: six equality
   assertions, plus four `assertNotIn` guards naming fixture-authored display
   prose (`ignore previous instructions`, `/outside/should-not-leak`,
   `Platform Core`, `Adopt`), each of which becomes false once the fixture's own
-  values project. The `assertNotIn(str(root), ...)` repository-root leak guard
-  is a different control and stays untouched.
+  values project. `/outside/should-not-leak` is among them: the fixture authors
+  it into `milestone`, so it is a display-field assertion despite looking like
+  a path guard. Only `assertNotIn(str(root), ...)`, which catches a path leaked
+  from the running process, survives untouched.
 
 **Approach:**
 - Replace the two literals in `_build_json` with `str()` reads of the parsed
@@ -144,9 +157,14 @@ is recorded as a known shape, not handled.
 **Verification mode:** goal-based check
 
 **Tests:** (`tools/test_workspace_status_cli.py`, `SkillWiringTests`)
-- New content assertion for AC-0003 over the shipped `SKILL.md`: the rendering
-  template line is present, and the redaction paragraph's distinguishing
-  phrase is absent.
+- New content assertions for AC-0003 over the shipped `SKILL.md`, one per
+  conjunct: `name` and `milestone` both appear in the `initiatives` summary
+  row; both per-field rows describe a value read from `workspace.toml` rather
+  than a sentinel; the rendering template line is present; and both the
+  `Redacted display fields` phrase and the separate "Render the initiative
+  slug alone" instruction are absent. The absence conjunct needs both checks —
+  those two sentences sit at different lines, so one phrase check passes with
+  the instruction still shipped.
 
 **Approach:**
 - Restore the `Active initiatives` template line and remove the
@@ -222,8 +240,15 @@ assertion would duplicate an existing gate.
 ## Changelog
 
 - 2026-09-14 — drafted.
-- 2026-09-14 — revised from shaping review: corrected the dedup-guard
+- 2026-09-14 — revised from shaping review round 1: corrected the dedup-guard
   arithmetic (F1), enumerated the ten inverting assertions and the leak guard
   that survives (F2), added the `initiatives` summary row (F3), moved the
-  boolean-rendering decision out of the criterion (F4), and made T3's exit
-  condition a property rather than four corpus literals (F6).
+  boolean-rendering decision out of the criterion (F4), dropped the unframed
+  107-character length (F5), and made T3's exit condition a property rather
+  than four corpus literals (F6).
+- 2026-09-14 — revised from round 2, which was four-fifths consequences of
+  round 1's own repairs: narrowed the leak-guard carve-out that had forbidden
+  T1 (F7), gave every AC-0002 class a measured projected text and a case (F8),
+  split AC-0003's four conjuncts into four assertions (F9), replaced the
+  fixture so AC-0001's charset rider cannot hold vacuously (F10), and swept
+  F5's leftovers out of the plan and Assumptions (F11).
