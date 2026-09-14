@@ -502,3 +502,14 @@ docs/product/intents/dispatch-workflow-posture-assertions.md
   the roster-bearing bodies. Also: the plan's positional `ACn` references were
   replaced with stable descriptors, because inserting criteria in round 2 had
   silently shifted every one of them.
+- 2026-09-14: amended after measuring on a runner. The brief's per-invocation
+  figures were a partial decomposition -- six invocations named, 52 guessed --
+  and the guess was wrong by two orders of magnitude for
+  `packages/agentbundle/tests/`, which carries 174.7s of real work and was
+  weighted 6.1s. Shard 3 of run 34791356312 came in at 6.37 minutes against a
+  3.55-minute prediction, above the spec's own bound. The runner now emits a
+  duration per executed unit; the table holds measured values for every
+  invocation at or above 5s and a measured mean below it; and the floor moved to
+  `packages/agentbundle/tests/`, with `tools/test_check_artifact_contents.py`
+  measuring 132.3s on a runner rather than the brief's 174.7s. Predicted
+  makespan with measured weights is 203.1s across a 202.2-203.1s spread.

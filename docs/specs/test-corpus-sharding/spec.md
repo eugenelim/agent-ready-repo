@@ -137,16 +137,14 @@ is untouched and remains the complete public gate.
       run while it is being read.
 - [ ] Every declared precondition in the roster runs in every shard, including
       a shard that owns none of the work that precondition guards.
-- [ ] The weight table records these exact durations, each keyed to its
-      invocation and attributed to workflow run 34779996081:
-      `tools/test_check_artifact_contents.py` 174.7s;
-      `packs/core/tests/skills/work-loop/` 147.2s; `tests/` 91.0s;
-      `tools/test_build_gate_chain.py` 54.2s; `tools/test_workspace_status.py`
-      31.4s; `tools/test_lint_agents_md_diataxis_block.py` 27.1s.
-- [ ] Every roster work invocation with no recorded measurement takes the
-      declared default weight, and that default is derived from the recorded
-      totals rather than chosen: 843s total less 525.6s measured, over the
-      unmeasured work invocations.
+- [ ] The weight table records a measured duration for every roster work
+      invocation at or above 5 seconds, each keyed to its invocation and
+      attributed to the `ubuntu-latest` run it was harvested from.
+- [ ] Every roster work invocation below that threshold takes the declared
+      default weight, and that default is the measured mean of those
+      invocations rather than a chosen figure.
+- [ ] The shard runner emits one duration line per executed unit, preconditions
+      included, so the weight table can be re-measured rather than re-guessed.
 - [ ] The partition assigns invocations by that weight table rather than by
       roster position: given the recorded weights, the heaviest invocation and
       the second-heaviest are assigned to different shards at a shard count
@@ -221,9 +219,14 @@ is untouched and remains the complete public gate.
   surface; `test-unleased` and `run-test-suite` are pinned and stay untouched
   (source: `tools/test_local_ci_shared_test_deduplication.py:1009-1018,1052`).
 - Process: the six recorded serial runs give a 15.0-minute median and a
-  17.0-minute maximum; the sharding floor is the longest single invocation,
-  174.7s in `tools/test_check_artifact_contents.py` (source: user brief,
-  decomposed from run 34779996081).
+  17.0-minute maximum (source: user brief, decomposed from run 34779996081).
+- Technical: that brief's per-invocation figures did not survive measurement on
+  a runner. Harvested durations from run 34793156321 put the floor at 174.7s in
+  `packages/agentbundle/tests/`, not in `tools/test_check_artifact_contents.py`,
+  which measures 132.3s there; and 42 of the 58 work invocations total 37.8s
+  between them. The brief supplied six figures, so every other invocation was a
+  guess until this run replaced it (source: run 34793156321 `shard-timing`
+  output, harvested 2026-09-14).
 - Process: the task owner authorized pushing this branch and dispatching
   `test-corpus.yml` to obtain the sharded measurement (source: user
   confirmation 2026-09-13).

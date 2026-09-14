@@ -35,18 +35,43 @@ PRECONDITION_MARKERS = (
     '-c "import httpx"',
 )
 
-# Measured invocation durations from workflow run 34779996081.
+# Per-invocation durations in seconds, MEASURED on ubuntu-latest by workflow run
+# 34793156321 and harvested from its `shard-timing` lines. Only invocations at or
+# above 5s are listed; everything below shares DEFAULT_WEIGHT, and lumping them
+# costs nothing because all 42 of them together total 37.8s -- less than a
+# quarter of the single heaviest entry.
+#
+# These are a snapshot and they WILL drift. Refresh them rather than guessing:
+#   gh workflow run test-corpus.yml --ref <branch>
+#   gh run view <id> --job <job-id> --log | grep shard-timing
+#
+# The first entry is the floor: no shard count makes the slowest shard faster
+# than the longest single invocation, because an invocation is never split.
 WEIGHTS: dict[str, float] = {
-    "tools/test_check_artifact_contents.py": 174.7,
-    "packs/core/tests/skills/work-loop/": 147.2,
-    "tests/": 91.0,
-    "tools/test_build_gate_chain.py": 54.2,
-    "tools/test_workspace_status.py": 31.4,
+    "packages/agentbundle/tests/": 174.7,
+    "packs/core/tests/skills/work-loop/": 150.6,
+    "tools/test_check_artifact_contents.py": 132.3,
+    "tests/": 90.5,
+    "tools/test_build_gate_chain.py": 59.7,
+    "tools/test_workspace_status.py": 33.0,
+    "packages/credbroker/": 29.6,
     "tools/test_lint_agents_md_diataxis_block.py": 27.1,
+    "packs/core/tests/skills/project-knowledge/": 21.9,
+    "packs/core/tests/skills/workspace-status/": 11.3,
+    "tools/test_with_lease_cli.py": 9.4,
+    "tools/test_import_time_path_leaks.py": 9.3,
+    "packs/core/tests/skills/close-work/": 6.1,
+    "packs/core/tests/skills/new-spec/": 6.1,
+    "packs/core/tests/pack/": 6.0,
+    "packs/catalogue-curation/tests/skills/compile-okf/": 5.9,
 }
 
-# 843s total make test less 525.6s measured, spread over 52 unmeasured work units.
-DEFAULT_WEIGHT = 6.1
+# Mean of the 42 measured invocations below 5s (37.8s over 42), from the same
+# run. Derived from measurement, not chosen: an earlier value of 6.1s was a
+# back-of-envelope figure that put `packages/agentbundle/tests/` -- 174.7s of
+# real work -- in the same weight class as a 0.5s linter, and shard 3 of run
+# 34791356312 duly came in at 6.37 minutes against a 3.55-minute prediction.
+DEFAULT_WEIGHT = 0.9
 
 
 # Set in every child environment so a nested selector fails loudly instead of
@@ -109,15 +134,24 @@ class Executor(Protocol):
 
 
 def unit_key(line: str) -> str:
-    """Return the first non-flag path argument, or the normalized command."""
+    """Return the first non-flag path argument, or the normalized command.
+
+    The interpreter token is normalized out of the fallback form. ``$(PYTHON)``
+    expands to an absolute path that differs per environment
+    (``/opt/hostedtoolcache/...`` on a runner, a pyenv shim locally), so a key
+    built from the whole command would not match the same invocation across
+    machines -- a silent WEIGHTS miss that degrades balance and reads as a
+    different unit when comparing a local roster against a harvested one.
+    """
     tokens = line.split()
+    interpreter = re.compile(r"python(?:\d+(?:\.\d+)*)?")
     for index, token in enumerate(tokens):
-        if index == 0 and re.fullmatch(
-            r"python(?:\d+(?:\.\d+)*)?", Path(token).name
-        ):
+        if index == 0 and interpreter.fullmatch(Path(token).name):
             continue
         if "/" in token and not token.startswith("-"):
             return token
+    if tokens and interpreter.fullmatch(Path(tokens[0]).name):
+        return " ".join(["python", *tokens[1:]])
     return " ".join(tokens)
 
 
