@@ -268,11 +268,16 @@ widens what the gates cover, never what a maintainer may declare by hand.
 - Technical: `docs/specs/README.md` is tracked but no `build-check` chain step
   generates it, so the rule excludes it (source: no `index-records.py` step
   names `docs/specs` in the collected chain argv)
-- Technical: `web/src/lib/now-highlights.generated.json` is untracked and
-  gitignored, so it can neither conflict nor carry the driver, and the
-  coverage gap it represented is closed by deletion rather than by this change
-  (source: untracked by commit `da10ba428`, ignored at `.gitignore:146`, and
-  absent from `git ls-tree -r origin/main -- web/src/lib/`)
+- Technical: `web/src/lib/now-highlights.generated.json` is tracked and
+  generated but carries no required-check coverage, so it stays out of the
+  driver. It was untracked by `da10ba428` and re-added by `081c26209` (PR
+  #1292), and is no longer gitignored, so the earlier reason for excluding it —
+  that an untracked file cannot conflict — no longer holds. The reason that does
+  hold is the rule itself: `tools/build-site.py` writes it and has no `--check`
+  mode, no `build-check` chain step runs it, and only `pages.yml` and `docs.yml`
+  do — neither a required PR check. Nothing would red if a merge left it stale,
+  so the driver would discard a real edit unnoticed (source: `build-site.py`'s
+  argument parser; the chain's collected argv; those two workflows, 2026-09-13)
 - Process: the superseded spec's body is frozen and takes no amendment — a
   supersession Status pointer must cite an ADR, not a spec (source:
   `docs/CONVENTIONS.md:162-163` rule 2, and rule 4 at `:171-176`). The owner ruled on

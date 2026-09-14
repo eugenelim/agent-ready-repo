@@ -49,7 +49,8 @@
 # (`tools/**` is excluded from the drift comparison), the repo-root `CLAUDE.md`
 # symlink (git applies no content merge driver to a symlink blob), and
 # `docs/specs/README.md`, which has no generator at all because ADR-0112 retired
-# its index table.
+# its index table, and `web/src/lib/now-highlights.generated.json`, which a
+# generator does write but no required check regenerates.
 # Placed at end of file: the `binary` macro above expands to `-merge`, and a
 # later line wins.
 .claude/**                                                merge=regen
