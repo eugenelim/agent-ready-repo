@@ -208,3 +208,17 @@ tree, which is why the source and projection commits are separate).
 - `test_ac11_work_loop_projections_are_byte_identical_to_the_source` — **passed**
 - `test_self_host_skill_projections_match_their_canonical_sources` — **passed**
 - `git diff --check` — clean
+
+## T7 — complete bounded change passes local gates
+
+- three touched pack suites together — **62 passed** in 0.64s
+- both projection roster nodes — **2 passed**
+- `make lint-ruff lint-mypy` — ruff `All checks passed!`; mypy `Success: no issues
+  found in 139 source files`
+- `work-loop/SKILL.md` body — **884** lines, within the 890 ceiling and 116 below
+  the 1000-line CAT-S003 error
+- `lint-spec-status.py --root .` — **exit 0**, spec metadata clean (1 of 457 specs
+  changed against `origin/main`)
+
+Heavier corpus and roster-wide runs are left to CI, per this repository's stated
+local gate.
