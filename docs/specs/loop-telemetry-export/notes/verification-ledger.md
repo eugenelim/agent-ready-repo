@@ -854,3 +854,47 @@ the guide now leads with the `subprocess` form and states the limit; the refusal
 tests still cited withdrawn AC-0055; and the exit-code control missed a
 backticked table cell. That last was mutation-proved across all three forms —
 prose, plain cell, backticked cell — rather than only the one the finding named.
+
+## The worktree was removed mid-run, and the run_id changed
+
+**This run has two run_ids.** Everything recorded above under
+`1d9f519e-d9ce-461e-a164-bf55c1f4e6c1` happened; the current state file says
+`07aeb7a0-9d57-4f23-b5c9-513ccbed16c4`. Recorded rather than smoothed over,
+because commits and ledger sections above cite the first one.
+
+The worktree at `workspaces/agent-ready-repo/telemetry-exporter` was removed
+while the run sat at `CODE-REVIEW` (seq 32). The removal was clean — git kept no
+record of the worktree and the trash directory was empty — so it was a proper
+`worktree remove` against a committed tree, not a crash.
+
+**Nothing tracked was lost.** Commits live in the shared object store, so the
+branch ref survived at `ad71a1f70` and every commit with it. Six of them were
+unpushed at that moment and were pushed immediately on discovery; `origin` now
+carries the whole branch.
+
+**What was lost is exactly what is not tracked.** `engine-state.json` and
+`state.json` are gitignored and existed only inside that worktree: the engine's
+position, three review rounds, nineteen finding fingerprints, the completed-task
+evidence and section hashes, the amendment history, and the schedule. Every
+worktree and the main checkout were searched; no copy exists.
+
+**The irony is worth stating.** This is the same audit trail the owner chose to
+preserve when they declined a cohort reset and narrowed amendment 1 instead. It
+survived that decision and was then lost to an unrelated worktree removal. The
+decision was still right — it was made on the information available, and the
+alternative would have destroyed the trail deliberately rather than by accident.
+
+**What survives is the part that was tracked on purpose.** This ledger records
+what each round found, what was sustained and refuted, every disposition and its
+evidence. What is gone is the machine-readable baseline that detects a finding
+*recurring* across rounds — a capability, not a record.
+
+The state machine was re-initialised and walked back to its position against the
+same approved artifacts: `approved_plan_hash` is `5764bab99322…`, identical to
+the hash the narrowed amendment produced, so the contract the fresh cohort pinned
+is byte-for-byte the one that was approved.
+
+**The generalisable lesson:** a loop whose durable state is gitignored has an
+audit trail only as durable as the directory it sits in. Anything that must
+survive belongs in a tracked artifact, which is why the evidence above is in this
+file rather than in `state.json`.
