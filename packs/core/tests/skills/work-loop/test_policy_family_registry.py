@@ -72,8 +72,10 @@ def test_families_are_the_declared_five_records():
         {"id": "new-spec-step-5a", "tier": "advisory",
          "module": "skill:new-spec/SKILL.md"},
         {"id": "the-razor", "tier": "advisory", "module": "seed:AGENTS.md"},
-        {"id": "cognitive-load", "tier": "advisory",
-         "module": "seed:.agents/rules/cognitive-load.md"},
+        # Shares a module with the-razor: `module` names where a rule's text
+        # lives, and both now live inline in AGENTS.md. This is the registry's
+        # first duplicate module; no uniqueness constraint exists.
+        {"id": "cognitive-load", "tier": "advisory", "module": "seed:AGENTS.md"},
     ]
 
 
