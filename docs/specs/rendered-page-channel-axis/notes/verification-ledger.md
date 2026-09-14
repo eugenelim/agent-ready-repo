@@ -46,3 +46,61 @@ not a recollection:
 
 Six sites across two files, both already in T2's `Touches`. The zero-site
 condition is verified at the end of T2. No acceptance criterion changes.
+
+
+## T8 — the step performed end to end across two channels
+
+**Ran 2026-09-13 against a real surface.** AC-0017's four values, and a finding.
+
+- **Route:** `/agent-ready-repo/docs/contributing/`, the built docs site served
+  from `build/docs` at its configured base path.
+- **Channel basis:** `declared-breakpoints`. One breakpoint declared, `1152`,
+  because that is where the vendored Starlight component switches the right-hand
+  rail from an in-flow block to a fixed full-height column. Bands `<1152` and
+  `>=1152`; capture widths `1151` and `1152` by the shipped rule.
+- **Result state:** `completed`. Eight captures, two channels x two heights x two
+  scroll positions, each carrying all five required fields.
+- **Verdict:** `fail`. One unresolved finding of `Blocker` severity.
+
+### Observations
+
+| Capture | width | height | scroll | rail fixed | article top | rail empty tail |
+| --- | --- | --- | --- | --- | --- | --- |
+| below-1152-short-at-rest | 1151 | 600 | 0 | no | 648 | 20 |
+| below-1152-short-scrolled | 1151 | 600 | 400 | no | 248 | -380 |
+| below-1152-tall-at-rest | 1151 | 900 | 0 | no | **948** | **319** |
+| below-1152-tall-scrolled | 1151 | 900 | 400 | no | 548 | -81 |
+| from-1152-short-at-rest | 1152 | 600 | 0 | yes | 101 | -48 |
+| from-1152-short-scrolled | 1152 | 600 | 400 | yes | -299 | -48 |
+| from-1152-tall-at-rest | 1152 | 900 | 0 | yes | **101** | 252 |
+| from-1152-tall-scrolled | 1152 | 900 | 400 | yes | -299 | 252 |
+
+**Finding — `clipped-at-rest-top`, severity `Blocker`.** At 1151x900 at rest the
+whole content column is blank: the article's first line sits 948px down a 900px
+viewport, so a reader who never scrolls sees the navigation sidebar beside an
+empty white column and no article at all. The rail holds 799px of height with
+319px of empty space below its last in-flow child. One pixel wider, at 1152x900
+at rest, the same page renders correctly with its first line 101px down.
+
+The two captures differ only in viewport width, and `matchMedia('(min-width:
+72rem)')` reports `false` at 1151 and `true` at 1152 — read from the page rather
+than compared against a copy of the number, so a dependency moving its breakpoint
+cannot leave a width silently unchecked.
+
+This is the defect class the delivery exists for, found by the axis it adds. A
+capture set taken only at 1280, 1440 and 1920 sits entirely in the `>=1152` band
+and reports this page as sound. The finding is in `docs-site`, outside this
+delivery's scope, and a fix for it already exists on another branch; it is
+recorded here as the run's observation, not taken into this change.
+
+### A false pass caught before it was recorded
+
+The first run of this capture served `build/docs` as the server root. The site is
+built for the base path `/agent-ready-repo/docs`, so every stylesheet 404'd and
+every page rendered unstyled. The geometry probes still returned numbers —
+`railEmptyTail: 0` everywhere, `articleTop` identical across both channels — and
+the run would have been recorded as `completed` / `pass` on a page with no CSS
+applied at all. Reading one capture rather than the numbers is what exposed it.
+The rule the pack already states covers this: a value naming only filenames does
+not satisfy the observations field, and neither does a table of measurements
+nobody looked behind.
