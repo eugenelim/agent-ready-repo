@@ -510,6 +510,69 @@ def inspection_section(skill_markdown: str) -> str:
     return " ".join(section.split())
 
 
+def skill_capture_table(skill_markdown: str) -> dict[str, dict[str, str]]:
+    """§ 5a's copy of the required-capture table, in `required_captures` shape.
+
+    The skill restates the contract for the agent that performs it, so the two
+    copies can drift apart in silence. This reads the second one so a comparison
+    is possible at all.
+    """
+    section = skill_markdown.split("#### 5a. Capture", 1)
+    if len(section) != 2:
+        raise AssertionError("no '#### 5a. Capture' section in SKILL.md")
+    rows: list[list[str]] = []
+    for line in section[1].splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            if rows:
+                break
+            continue
+        if re.fullmatch(r"\|[\s:|-]+\|", stripped):
+            continue
+        rows.append([cell.strip() for cell in stripped.strip("|").split("|")])
+    if not rows:
+        raise AssertionError("§ 5a states no capture table")
+    header, body = rows[0], rows[1:]
+    for row in body:
+        if len(row) != len(header):
+            raise AssertionError(f"§ 5a capture row {row!r} does not match its header")
+    return {row[0]: {"height": row[1], "scroll": row[2]} for row in body}
+
+
+def normalize_predicate(cell: str) -> str:
+    """Presentation only, per AC-0009.
+
+    `≤`/`≥` become `<=`/`>=`, a trailing ` CSS px` is dropped, and backticks are
+    stripped. Nothing else: the numeric bound, the comparison operator, the
+    capture name and the unscrollable branch all survive, because those are the
+    four distinctions the drift guard exists to make.
+    """
+    out = cell.replace("≤", "<=").replace("≥", ">=").replace("`", "")
+    out = out.replace(" CSS px", "")
+    return " ".join(out.split())
+
+
+def capture_tables_agree(reference_markdown: str, skill_markdown: str) -> bool:
+    """Whether both copies of the capture contract state the same required set."""
+    def flat(table: dict[str, dict[str, str]]) -> dict[str, tuple[str, str]]:
+        return {
+            name: (normalize_predicate(rule["height"]), normalize_predicate(rule["scroll"]))
+            for name, rule in table.items()
+        }
+    return flat(required_captures(reference_markdown)) == flat(
+        skill_capture_table(skill_markdown)
+    )
+
+
+def worked_example_snippet(skill_markdown: str) -> str:
+    """The ```js capture snippet § 5a tells an adopter to copy."""
+    for block in skill_markdown.split("```js")[1:]:
+        body = block.split("```", 1)[0]
+        if "newPage" in body:
+            return body
+    raise AssertionError("§ 5a no longer carries a js capture snippet")
+
+
 def result_states(markdown: str) -> dict[str, str]:
     """`{result state: "yes"|"no"}` — whether it is a completed inspection."""
     return {

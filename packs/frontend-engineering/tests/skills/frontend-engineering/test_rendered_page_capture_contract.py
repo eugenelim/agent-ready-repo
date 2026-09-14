@@ -9,9 +9,12 @@ able to fail.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from frontend_engineering_rendered_page_rules import (
     capture_record_fields,
+    capture_tables_agree,
     channel_basis,
     channel_capture_width,
     channel_rules,
@@ -20,10 +23,14 @@ from frontend_engineering_rendered_page_rules import (
     fallback_channels,
     findings_for,
     judgement_request_fields,
+    normalize_predicate,
     read_rules,
+    read_skill,
     required_channels,
+    skill_capture_table,
     step_rules,
     width_in_channel,
+    worked_example_snippet,
 )
 
 REQUIRED = [
@@ -506,3 +513,95 @@ def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None
     gone = rules_markdown.replace("\n## Channels\n", "\n## Removed\n", 1)
     with pytest.raises(AssertionError, match="Channels"):
         evaluate_capture_set(gone, one_channel)
+
+
+# ── the two copies of the capture contract ──────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def skill_markdown() -> str:
+    return read_skill()
+
+
+def test_both_copies_of_the_capture_contract_agree(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """Verifies: the reference and § 5a state the same required-capture set.
+
+    They are restatements of one contract and drift apart in silence, which is
+    why the check reads both rather than one.
+    """
+    assert capture_tables_agree(rules_markdown, skill_markdown)
+
+
+@pytest.mark.parametrize(
+    ("name", "field", "replacement"),
+    [
+        ("changed numeric bound", "height", "≤700 CSS px"),
+        ("changed operator", "height", "≥600 CSS px"),
+        ("dropped unscrollable branch", "scroll", "0"),
+    ],
+)
+def test_the_drift_guard_distinguishes_what_it_must(
+    rules_markdown: str, skill_markdown: str, name: str, field: str, replacement: str
+) -> None:
+    """Verifies: the normalization is presentation-only.
+
+    A normalization that compared the capture names alone would pass every one of
+    these, and could never fail on the predicate drift the guard exists to catch.
+    """
+    row = "short-scrolled" if field == "scroll" else "short-at-rest"
+    original = skill_capture_table(skill_markdown)[row][field]
+    perturbed = skill_markdown.replace(original, replacement, 1)
+    assert perturbed != skill_markdown, f"{name}: the mutation did not apply"
+    assert not capture_tables_agree(rules_markdown, perturbed), (
+        f"the guard did not notice a {name}"
+    )
+
+
+def test_the_drift_guard_notices_a_changed_capture_name(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """The fourth distinction: a renamed row is a different required set."""
+    perturbed = skill_markdown.replace("| short-at-rest |", "| brief-at-rest |", 1)
+    assert perturbed != skill_markdown
+    assert not capture_tables_agree(rules_markdown, perturbed)
+
+
+def test_the_normalization_only_touches_presentation() -> None:
+    """Verifies: exactly the three presentation forms, and nothing else."""
+    assert normalize_predicate("≤600 CSS px") == "<=600"
+    assert normalize_predicate("≥900 CSS px") == ">=900"
+    assert normalize_predicate(">0, or `page-scrollable: no`") == ">0, or page-scrollable: no"
+    # A bound, an operator and the branch all survive.
+    assert normalize_predicate("≤600") != normalize_predicate("≤700")
+    assert normalize_predicate("≤600") != normalize_predicate("≥600")
+    assert normalize_predicate(">0, or `page-scrollable: no`") != normalize_predicate(">0")
+
+
+# ── the worked example ──────────────────────────────────────────────────────
+
+
+def test_the_worked_example_binds_width_to_the_channel(skill_markdown: str) -> None:
+    """Verifies: the snippet an adopter copies iterates channels and takes its
+    width from the one it is on.
+
+    The snippet used to open one hard-coded 390px viewport, so an adopter copying
+    it captured a single channel however many rows of the table they worked
+    through — teaching single-width capture by example whatever the rules said.
+    """
+    snippet = worked_example_snippet(skill_markdown)
+    channels = re.search(r"const channels = \[(.+?)\];", snippet, re.S)
+    assert channels, "the snippet no longer declares a channel list"
+    assert channels.group(1).count("width:") >= 2, (
+        "the snippet iterates fewer than two channels, so copying it captures one"
+    )
+    viewport = re.search(r"viewport:\s*\{([^}]*)\}", snippet)
+    assert viewport, "the snippet no longer opens a viewport"
+    width_clause = re.search(r"width:\s*([^,\n]+)", viewport.group(1))
+    assert width_clause, "the viewport sets no width"
+    assert not re.fullmatch(r"\d+", width_clause.group(1).strip()), (
+        f"the viewport width is the literal {width_clause.group(1).strip()!r}; it "
+        f"must come from the channel being iterated"
+    )
+    assert "channel." in width_clause.group(1)
