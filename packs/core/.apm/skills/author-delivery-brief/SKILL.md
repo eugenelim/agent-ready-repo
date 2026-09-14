@@ -159,9 +159,9 @@ result to this skill for revision; every unresolved finding keeps the brief at
 and returns a `Ready` brief to `Draft` before a fresh review. For a brief,
 material means a change to shared outcome, scope, coordination or delivery
 maps, governance-reference versus delivery-slice separation, deferred scope,
-readiness evidence, or materialization boundary. Before sealing, this lifecycle
-owner may record a wording, format, or evidence-link correction as nonmaterial
-and retain the bound result; otherwise redispatch.
+rabbit holes, design artifacts, readiness evidence, or materialization boundary.
+Before sealing, this lifecycle owner may record a wording, format, or evidence-link
+correction as nonmaterial and retain the bound result; otherwise redispatch.
 
 ### 3. Write back only after human confirmation
 

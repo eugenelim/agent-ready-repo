@@ -32,17 +32,42 @@ concurrency:
 
 jobs:
   corpus:
-    name: corpus (make test)
+    name: corpus (make test, shard ${{ matrix.shard }}/4)
+    strategy:
+      # Not fail-fast: one red shard must not cancel the others, or a dispatch
+      # reports the first failure instead of every shard's real result.
+      fail-fast: false
+      matrix:
+        # The ONLY thing that varies per job. `SHARDS=4` in the run step below
+        # must name exactly this many entries: a matrix of [1,2,3] against
+        # SHARDS=4 would leave shard 4's suites unrun while every job went
+        # green. tools/test_local_ci_shared_test_deduplication.py pins the two
+        # against each other so they cannot drift apart.
+        shard: [1, 2, 3, 4]
     # Exact standard GitHub-hosted label. Not `self-hosted`, not a runner group,
     # not an expression, not a larger-runner name: a dispatched run executes the
     # selected ref's code, and the intent excludes self-hosted capacity, so
     # persistent runner state is out of bounds.
     runs-on: ubuntu-latest
-    # ESTIMATE, not a measurement. No job has ever run this target on a runner.
-    # The only local figure available was taken on a machine at ~19x CPU
-    # oversubscription and is not transferable. Replace this number with the
-    # first recorded run's duration plus headroom.
-    timeout-minutes: 45
+    # MEASURED on this workflow. Three all-green runs of this same four-shard
+    # configuration, newest first, slowest shard then the per-shard spread:
+    #   34797328268  4.70 min  (2.88 / 3.68 / 3.77 / 4.70)
+    #   34795796140  4.65 min  (2.58 / 3.77 / 4.10 / 4.65)
+    #   34794070138  3.82 min  (3.47 / 3.65 / 3.80 / 3.82)
+    # Expect 4-5 minutes. Runner variance across identical code spans most of a
+    # minute -- wider than the gap the weight table balances between shards --
+    # so no single figure here is a target to tune against.
+    # Before sharding, six successful single-job runs of the same corpus gave a
+    # 15.0-minute median and a 17.0-minute maximum.
+    #
+    # 25 is floored on that SERIAL maximum, not on a multiple of a shard's
+    # duration. Three times the slowest shard is 11.5 to 14.1 minutes across the
+    # three runs above -- every one of them below 17 -- so a multiple-of-a-shard
+    # rule would time out a shard that somehow ran the whole corpus, reporting a
+    # cancellation instead of its real result. The failure this number exists to
+    # keep legible is the one where sharding stops working, and that failure
+    # takes serial time.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -109,7 +134,13 @@ jobs:
           test -d docs-site/node_modules || { echo "::error::docs-site dependencies not installed"; exit 1; }
           echo "provisioning probe: all measured availability conditions present"
 
-      # ONE command. The target already holds a roster of 51 pytest invocations;
-      # re-enumerating them here would create a second roster that drifts from it.
+      # ONE command, still undecomposed. The target holds the only roster; this
+      # passes a shard selector to it and re-enumerates nothing, which is why
+      # lint-ci-parity's out-of-scope disposition still holds — there remains no
+      # second roster here for a parity check to compare.
+      #
+      # Selection lives in the Makefile (tools/shard_test_roster.py reads
+      # `make -n test-unleased`), so adding or removing a suite there changes
+      # what every shard runs with no edit to this file.
       - name: make test
-        run: make test
+        run: make test SHARD=${{ matrix.shard }} SHARDS=4
