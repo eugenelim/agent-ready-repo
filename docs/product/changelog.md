@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][2.25.25] — 2026-09-13
+## [core][2.25.26] — 2026-09-13
 
 ### Highlights
 - **A frontend review now gets the pictures, not just the diff.** When a surface
@@ -66,6 +66,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `work-loop`: the `frontend-reviewer` dispatch line passes the rendered-page
   capture set, its recorded observations, and the adopter-named routes, and names
   the reviewer's reader-visible-layout lens.
+
+## [core][2.25.25] — 2026-09-13
+### Added
+
+- `workspace-status` can now check an explicit list of spec directories and
+  report each one's workspace membership as present or absent, including
+  canonical, duplicate, and supported legacy entries. The check is read-only
+  and does not require the selected spec artifact to exist.
+
+### Highlights
+
+- You can now ask `workspace-status` which explicitly selected specs still
+  have workspace membership and which do not, without changing
+  `workspace.toml` or treating absence as permission to delete anything.
 
 ## [core][2.25.24] — 2026-09-13
 

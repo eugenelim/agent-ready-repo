@@ -115,3 +115,4 @@
 | 0111 | [Intent review splits into a mechanical well-formedness check and a narrowed assumption attack](0111-intent-review-splits-well-formedness-from-assumption-attack.md) | Accepted | 2026-09-11 |
 | 0112 | [Index tables over a document corpus are generated or absent, never hand-maintained](0112-index-tables-are-generated-or-absent.md) | Accepted | 2026-09-13 |
 | 0113 | [The SAST/SCA guarantee moves from the local gate to `gate-sast`](0113-sast-guarantee-moves-from-the-local-gate-to-gate-sast.md) | Accepted | 2026-09-13 |
+| 0114 | [Prune success requires a two-sided post-mutation invariant](0114-prune-success-requires-a-two-sided-post-mutation-invariant.md) | Accepted | 2026-09-13 |
