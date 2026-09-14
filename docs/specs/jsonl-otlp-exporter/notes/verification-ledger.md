@@ -345,3 +345,52 @@ with it: thirty minutes for no output. Results are now flushed per case, each ru
 is bounded at 90 seconds, and a hang is recorded as its own outcome. A suite that
 hangs gives a developer no signal at all, which is the third time that hazard has
 appeared in this package.
+
+## Two corrections from outside this spec's own review rounds
+
+Both were found by the session implementing `loop-telemetry-export`, after this
+package had merged. Both are recorded here because this ledger exists to hold
+what got through, and these got through everything.
+
+### A gate that was never pointed at the code
+
+**mypy had never checked this package.** `tools/lint-mypy.py` carries its own
+`TYPED_PACKAGES` list and passes it as positional arguments, which override
+`[tool.mypy] files` in `pyproject.toml`. At this package's merge commit that list
+held only `agentbundle` and `credbroker` — and `[tool.mypy] files` had not been
+touched either, so this was not an attempt that failed, it was an attempt never
+made. Adding the package took the gate from 139 files to 146 and immediately
+found a real defect: `source.py`'s reader is annotated
+`Iterator[dict[str, Any]]` while yielding the `IDLE` sentinel that drives the
+follow-mode flush. The annotation was simply never true.
+
+What it survived: four implementation review rounds, the wiring sweep below, and
+35 green CI checks.
+
+**The sweep could not have caught it, and that is the useful part.**
+`wiring_sweep.py` mutates keyword arguments at call sites and asks whether
+anything notices. An annotation is not a call site, and a false annotation whose
+runtime behaviour is correct changes no observable a test can assert on. The
+instrument that would have caught it existed the whole time; it was pointed at
+two packages and not at this one.
+
+The repair walked three surfaces and the first two attempts were each partial, in
+exactly the pattern this ledger already records six times: widening the
+producer's return type moved the error to `cli.py`; widening that parameter moved
+it inside `batch_records`; `record is IDLE` reads as correct to a human and does
+not narrow a union for a type checker, even though the `continue` beneath makes
+the code sound. `isinstance(record, _Idle)` narrows, and is equivalent here
+because `_Idle` has exactly one instance.
+
+Fixed in `e2d5c146b` on the `loop-telemetry-export` branch, as part of T4 putting
+this package inside the repository's gates. Deliberately not duplicated on main:
+the fix already exists on that branch, and a second copy would collide mid-wave.
+
+### A count this spec reported wrongly throughout
+
+**The suite is 279 tests, not 410.** `pytest --co` reports "279 tests collected".
+The 410 figure appears in several commit messages on the merged branch and in the
+original pull-request description; the description is corrected, the commit
+messages are not rewritten. The number was mine and was repeated rather than
+re-measured — the failure is not the first wrong reading but that nothing ever
+re-derived it.
