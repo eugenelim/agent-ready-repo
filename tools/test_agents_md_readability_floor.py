@@ -27,9 +27,15 @@ _SPEC.loader.exec_module(scorer)
 # Measured on the finished files, 2026-09-13, with tools/score-cognition.py.
 # Pre-change they were 47.46/8.74 and 44.48/9.46; inlining the clauses raised
 # both. A floor pinned to the pre-change figures could never fire.
+#
+# Re-measured after T2b re-homed three clauses the retired topic file carried:
+# the earlier figures were 65.18/6.29 and 62.70/6.82, so both files improved
+# again. A floor left at the earlier numbers would still hold, which is exactly
+# why it needs re-recording — a stale floor sits below what the file now does
+# and stops detecting the first 1.3 points of regression.
 BASELINES = {
-    "AGENTS.md": (65.18, 6.29),
-    "packs/core/seeds/AGENTS.md": (62.70, 6.82),
+    "AGENTS.md": (66.43, 6.14),
+    "packs/core/seeds/AGENTS.md": (64.00, 6.66),
 }
 # Sized per unit, not shared: ease runs 0-100 and grade roughly 0-20, so one
 # number cannot mean the same thing on both.

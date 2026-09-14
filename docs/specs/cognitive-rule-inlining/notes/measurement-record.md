@@ -5,7 +5,8 @@
 > `AGENTS.md` is untouched, the topic file is not deleted, no prose is pruned.
 > This run compares the unchanged tree against the same tree with the chat
 > clauses hand-inlined into root `AGENTS.md`, reverted afterwards. It is a pilot
-> of the clauses. The paired run AC13 defines is still owed at T6.
+> of the clauses. The paired run AC13 defines is recorded in
+> [`measurement-record-paired-run.md`](measurement-record-paired-run.md).
 
 ## Provenance
 
@@ -14,7 +15,12 @@
 - **Pre-registration SHA-256:** `a9e8ad5c25681efa096244621d07ef57e438f363b16094a8ed7f1513765412eb`
   Recorded here so priority survives the raw transcripts, which are gitignored.
 - **Host:** Claude Code, `claude -p --output-format=stream-json`
-- **Model identifier:** session default (Opus 5; `claude-opus-5`)
+- **Model identifier:** `claude-sonnet-4-6`. The first version of this line
+  read "session default (Opus 5; `claude-opus-5`)", which assumed `claude -p`
+  inherits the parent session's model. It does not — it takes its own
+  default, measured as `claude-sonnet-4-6` by a probe on 2026-09-13. The
+  pilot's own runs were not captured, so this is the default at probe time
+  rather than a per-run record.
 - **Base SHA, both arms:** `dac83a5afb4f7409fbd4115211f3080a7640748d`
 - **Treatment arm carries no SHA.** It was a working-tree mutation, reverted. It
   cannot be re-derived. A future run commits both arms so each has one.
