@@ -97,10 +97,14 @@ is untouched and remains the complete public gate.
 
 ## Acceptance Criteria
 
-- [x] Standalone `make test`, invoked with no `SHARD` and no `SHARDS`, expands
-      to the same invocation list that `git show 28a169531:Makefile` expands
-      to. The baseline names that commit literally, never `HEAD`, which moves
-      as this work commits.
+- [x] Standalone `make test`, invoked with no `SHARD` and no `SHARDS`, adds no
+      roster invocation and removes none: its expansion equals that of the
+      Makefile this change merges into. The comparison is against the branch
+      point, never `HEAD`, which moves as this work commits — and never a frozen
+      commit either, since `main` may legitimately add a suite while the change
+      is open. It did: `main` added
+      `packs/frontend-engineering/tests/skills/frontend-engineering/`, taking the
+      roster from 62 lines to 63, and both sides still expand identically.
 - [x] For every shard count from 1 through 8, concatenating the invocation
       lists of shards `1..N` yields exactly the unsharded roster's work
       invocations as a multiset: every invocation appears in exactly one shard,

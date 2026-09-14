@@ -313,7 +313,7 @@ the three recorded mutations.
 
 **Tests:**
 - `make -n test-unleased` expands identically to the same command run against
-  `git show 28a169531:Makefile`, proven by diffing
+  the Makefile this change merges into (`git show origin/main:Makefile`), proven by diffing
   the two expansions. The baseline is that committed file, not a
   remembered or re-derived one. (AC: roster unchanged from 28a169531)
 - `make test SHARD=1 SHARDS=4` and its siblings 2, 3, 4 each run green.
@@ -338,7 +338,7 @@ deduplication suite passes.
 
 **Tests:**
 - `make -n test-unleased` output is byte-identical to the same command run
-  against `git show 28a169531:Makefile`. (AC: roster unchanged from 28a169531)
+  against the Makefile this change merges into (`git show origin/main:Makefile`). (AC: roster unchanged from 28a169531)
 - Both approved plan digests still reproduce: `7fadaf20…` over 62 standalone
   lines and `e48c8b01…` over 61 composed lines, recomputed through
   `_effective_composition_errors`. (AC: proofs run inside make test)
@@ -489,7 +489,7 @@ docs/product/intents/dispatch-workflow-posture-assertions.md
   values rather than an implementer's choice, with a 6-minute makespan bound
   that forces a re-dispatch; the workflow predicate is scoped to executable
   `run:` scalars, because the file's comments legitimately mention `tests/` and
-  a test name; and the baseline names commit `28a169531` literally rather than
+  a test name; and the baseline names the branch point literally rather than
   the moving `HEAD`.
 - 2026-09-13: round 3 closed five of six round-2 findings. The sixth was
   answered by narrowing the claim rather than hardening the check. The reviewer
@@ -513,3 +513,14 @@ docs/product/intents/dispatch-workflow-posture-assertions.md
   `packages/agentbundle/tests/`, with `tools/test_check_artifact_contents.py`
   measuring 132.3s on a runner rather than the brief's 174.7s. Predicted
   makespan with measured weights is 203.1s across a 202.2-203.1s spread.
+- 2026-09-14: merged `origin/main` (28 commits) before landing. It touched all
+  three files this change touches most — `Makefile`, `lint-ci-parity.py` and
+  `test_local_ci_shared_test_deduplication.py` — and added a roster suite,
+  `packs/frontend-engineering/tests/skills/frontend-engineering/`. The merge was
+  clean. Re-verified after it: the unsharded expansion is identical to
+  `origin/main`'s at 63 lines, no composition drift, no `MAKE_BASELINE_DIGESTS`
+  surface moved, and the four-shard balance holds at 202.9-203.1s over 59 work
+  units. The new suite carries `DEFAULT_WEIGHT` until a run measures it, which
+  is the drift the `shard-timing` output exists to correct.
+  AC1's baseline moved from a frozen commit to the branch point, because `main`
+  adding a suite is not this change altering the roster.
