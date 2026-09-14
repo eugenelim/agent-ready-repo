@@ -201,3 +201,78 @@ file as "88 passed, 1 unrelated environment failure" — a `PermissionError` fro
 `Path.rmdir()`. Re-run here: **89 passed**, no failure. It was the worker
 sandbox refusing a filesystem operation, not a repository defect, which is why
 a worker's gate report is reconciled rather than accepted.
+
+## T2 — the merge was computed and then discarded
+
+The worker built the per-setting resolver correctly and proved it with eight
+mutations. Its tests still did not verify AC-0041, because they asserted the
+resolver's `settings` dict and the `--config` choice — an intermediate and a
+consequence — rather than the property the criterion names: **the documented
+invocation** resolves each setting.
+
+What that missed, traced through the sender:
+
+- `--config` names ONE file, and `config.py` reads exactly one key from it:
+  `[telemetry].endpoint`.
+- `service_name` never comes from the config file at all. `cli.py` takes it from
+  `--service-name`, defaulting to the profile stem.
+- The resolver rendered no `--service-name`.
+
+So when the user file won the endpoint, the repository's `service_name` was
+merged, asserted in the dict, and then dropped: the sender would have used the
+profile stem while the resolver reported the repository's value. Every test
+passed.
+
+Repaired by rendering each merged non-endpoint setting as its own flag, and the
+control now asserts the *invocation*: with the endpoint coming from the user
+file, `--service-name` must still carry the repository's value.
+
+**A setting the sender cannot receive is now refused, not dropped.** A
+`[telemetry]` key with no flag and no config route would otherwise be silently
+inert — the adopter believes they configured something that does nothing, and
+these settings decide where data is sent, so the quiet failure is open rather
+than closed. The error names the offending key and the deliverable set. **This is
+a contract reading, recorded for the owner:** AC-0041 says each setting resolves
+from one scope or the other and says nothing about a setting that can resolve
+nowhere. Refusing is the reading taken; if silent tolerance is wanted, the
+criterion needs the words.
+
+Five mutations, each killing its own control:
+
+| Reverted | Control that failed |
+| --- | --- |
+| per-setting merge → whole-file-wins | the precedence test |
+| precedence reversed (user wins) | the precedence test |
+| the merged-setting flag rendering | the invocation test |
+| the undeliverable-setting refusal | the refusal test |
+| `--input` no longer under `.loop-run` | the arguments test (AC-0043) |
+
+The second is the one the plan warned would matter most: `desk-research` reads
+the user file first, telemetry reads the repository file first, and nothing about
+the code makes the direction obvious.
+
+**Every rendered flag was checked against the real emitter.** `--input`,
+`--root`, `--config`, `--profile` and `--service-name` all exist in the sender's
+argument parser. A documented invocation naming a flag the sender does not have
+would fail only when someone ran it.
+
+**The guide-index gate does not fail.** The worker could not run the three guide
+checks and reported that rather than guessing. Run here: `validate-guides` OK
+(225 checked), `check-guide-index` OK (21 packs), `lint-guide-titles` OK (231
+files).
+
+## A worktree collision, and why it is recorded here
+
+Mid-T2 a peer session ran `git checkout -b` in this shared worktree, moving HEAD
+off this branch for about three minutes. No work was lost — the five commits were
+safe on the branch, and untracked files survive a checkout.
+
+The cost was not lost work but **trustworthy-looking wrong numbers**:
+`make lint-mypy` reported 140 source files instead of 146, and
+`tools/test_gate_enumeration.py` reported "no tests ran". Both read exactly like
+a regression in the work under test. The count was chased rather than accepted,
+which is the only reason it was diagnosed as an absent tree rather than a defect.
+
+Worth recording because the lesson generalises past this incident: a gate whose
+denominator moved reports a smaller number, not an error. `147` after T2 — 146
+plus the new module — is what confirmed the tree was whole again.
