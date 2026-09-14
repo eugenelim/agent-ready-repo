@@ -153,12 +153,18 @@ post-merge tree:
 | `lint-ci-parity.py:379` (behaviour disposition) | `:380-381` |
 | `lint-ci-parity.py:377-380` (both pinned keys) | `:378-381` |
 
-The three in `spec.md` are corrected in place — though the first pass appended
-the new range beside the old one at `spec.md:251` instead of replacing it, so
-one wrong citation survived a round and this sentence was false until it did
-not. `:377` is the `windows-build-gate-chain` value; the AC1 pair is
-`:378-379`. The two in `plan.md` were not,
-and the plan carries its approved bytes: `loop-cohort schedule` pins `plan.md`
+All five rows are corrected in `spec.md`, at `:250`, `:251`, `:254`, `:255` and
+`:256`. The frozen `plan.md` carries two occurrences of the last row alone —
+`plan.md:62` and `:168`, both reading `:377-380` — and keeps them.
+
+Two rounds were needed for the `spec.md:251` row. The first pass appended the
+correct range beside the wrong one rather than replacing it, leaving `:377` and
+`:378-379` in one sentence, and this paragraph asserted all of them were
+corrected while that one was not. It was false for one round; it is true as of
+this commit. For the record, `:377` is the `windows-build-gate-chain` value and
+`:378-379` is the AC1 key/value pair.
+
+The plan's two stay as they are, and it carries its approved bytes: `loop-cohort schedule` pins `plan.md`
 at `approve-plan`, and editing it — even for two line numbers — breaks that
 baseline. The documented recovery re-pins whatever is on disk, which the tool
 itself describes as "a re-approval in substance", and a re-approval is the
