@@ -60,7 +60,7 @@ def test_the_reviewer_carries_a_reader_visible_layout_lens(reviewer: str) -> Non
     assert "## What you review — the six lenses" in reviewer, (
         "the lens count in the heading was not updated with the new lens"
     )
-    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    lens = _lens_six(reviewer)
     normalized = _normalized(lens)
     assert "rendered-page-inspection.md" in normalized, (
         "Lens 6 does not point at the shipped finding-class table"
@@ -283,7 +283,7 @@ def test_reviewer_lens_reads_the_width_axis(reviewer: str) -> None:
     looked for the words would have passed on the unchanged agent — a control
     that cannot fail on the thing it names.
     """
-    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    lens = _lens_six(reviewer)
     assert _lens_carries_the_width_imperative(lens), (
         "lens 6 carries no imperative to use the viewport width, or does not say "
         "what the width decides; the pre-existing sentence listing it among the "
@@ -327,7 +327,7 @@ def test_the_lens_still_tells_the_reviewer_to_use_the_scroll_position(
     Scoped to lens 6, like its sibling: an unscoped search stays green if the
     scroll imperative moves out of the lens entirely.
     """
-    lens = reviewer.split("### Lens 6", 1)[1].split("\n## ", 1)[0]
+    lens = _lens_six(reviewer)
     assert "**Use the scroll position.**" in lens
 
 

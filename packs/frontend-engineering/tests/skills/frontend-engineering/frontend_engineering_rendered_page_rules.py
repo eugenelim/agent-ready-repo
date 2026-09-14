@@ -130,6 +130,22 @@ def required_captures(markdown: str) -> dict[str, dict[str, str]]:
 
 CHANNELS_HEADING = "Channels"
 
+# Every rule row the completeness walk reads, by the table that states it. Both
+# the walk and its shipped-content test derive from this, so a row added to
+# either table inherits the delete-and-red discipline instead of needing to be
+# remembered into a hand-written list.
+WALK_RULE_ROWS = {
+    "Channels": (
+        "channel-source",
+        "channel-derivation",
+        "channel-boundary-belongs-to",
+        "channel-capture-width",
+        "channel-basis-recorded",
+        "every-required-channel-needs-the-matrix",
+    ),
+    "Required captures": ("every-captured-width-and-height-needs-the-pair",),
+}
+
 
 def _channel_section_rows(markdown: str, width: int) -> list[list[str]]:
     """Rows of the given cell width from the `## Channels` section.
@@ -371,8 +387,30 @@ def _scroll_pair_rule(markdown: str) -> str:
     return required_captures(markdown)["short-scrolled"]["scroll"]
 
 
+def _rule_present(rules: dict[str, str], key: str, table: str) -> str:
+    """The row's value, refusing when the row is absent.
+
+    A rule nobody states is not a rule this module may invent, and a reader that
+    quietly skips it is fail-open: deleting the row would leave every check
+    green, which is the one mutation a shipped-content criterion exists to catch.
+    """
+    if key not in rules:
+        raise AssertionError(
+            f"the {table} rule rows no longer state {key!r}; the rule is the "
+            f"data, not this module"
+        )
+    return rules[key]
+
+
 def _rule_in_force(rules: dict[str, str], key: str, table: str) -> bool:
     """Whether a rule row is in force, refusing to answer when it is absent.
+
+    Two kinds of row go through here and they differ in what an *off* position
+    means. A row that switches a rule off — `every-required-channel-needs-the-matrix`,
+    `every-captured-width-and-height-needs-the-pair` — is a stated decision and is
+    honoured. `channel-basis-recorded` admits no off position: its caller cannot
+    answer without it, so `channel_basis` refuses rather than guessing a basis.
+    An absent row always raises, whichever kind it is.
 
     An **absent** row raises: a rule nobody states is not a rule this module may
     invent, and a reader that quietly skips it is fail-open — deleting the row
@@ -385,12 +423,7 @@ def _rule_in_force(rules: dict[str, str], key: str, table: str) -> bool:
     channel rule with a bare `.get(...) == "required"`, so deleting the one row
     that gates the whole axis silently disabled it.
     """
-    if key not in rules:
-        raise AssertionError(
-            f"the {table} rule rows no longer state {key!r}; the rule is the "
-            f"data, not this module"
-        )
-    return rules[key] == "required"
+    return _rule_present(rules, key, table) == "required"
 
 
 def _required_rule(markdown: str, key: str) -> bool:
@@ -441,17 +474,22 @@ def evaluate_capture_set(
     required = required_captures(markdown)
     at_rest_rule = required["short-at-rest"]["scroll"]
     scrolled_rule = _scroll_pair_rule(markdown)
+    # Every rule row the walk depends on is proved present before any of it runs.
+    # Reading them lazily meant three of the five channel rows could be deleted
+    # with the walk still returning `complete`: the rows are only consulted on
+    # paths a fallback-basis run never takes.
+    rules = channel_rules(markdown)
+    for key in WALK_RULE_ROWS[CHANNELS_HEADING]:
+        _rule_present(rules, key, CHANNELS_HEADING)
     channels = required_channels(markdown, declared_breakpoints)
     matrix_required = _rule_in_force(
-        channel_rules(markdown), "every-required-channel-needs-the-matrix", "Channels"
+        rules, "every-required-channel-needs-the-matrix", "Channels"
     )
     pair_required = _required_rule(
         markdown, "every-captured-width-and-height-needs-the-pair"
     )
 
-    # Both switches are loop-invariant and are read once, above the walk. Inside
-    # it, `if not pair_required: continue` read as "skip this route" when it meant
-    # "this rule is switched off".
+    # Both switches are loop-invariant and read once, above the walk.
     for route, route_captures in sorted(by_route.items()):
         # Rules 1 and 2 — every required channel carries the height-and-scroll
         # matrix, within this route. The quantifier is shipped content.
@@ -474,24 +512,44 @@ def evaluate_capture_set(
         # carries the scroll pair. Grouping on the pair rather than the height
         # alone is the point: two widths at one height each carrying half a pair
         # would otherwise read as coverage.
-        if not pair_required:
-            continue
-        sizes = sorted(
-            {(int(c["viewport-width"]), int(c["viewport-height"])) for c in route_captures}
-        )
-        for width, height in sizes:
-            at_size = [
-                c
-                for c in route_captures
-                if int(c["viewport-width"]) == width
-                and int(c["viewport-height"]) == height
-            ]
-            if not any(_scroll_rule_met(at_rest_rule, c) for c in at_size):
-                missing.append(f"at-rest at {width}x{height} (route {route})")
-            if not any(_scroll_rule_met(scrolled_rule, c) for c in at_size):
-                missing.append(f"scrolled at {width}x{height} (route {route})")
+        # `pair_required` is loop-invariant, so this reads as a per-route skip
+        # while meaning "this rule is switched off". Kept as a guard on the block
+        # rather than a `continue` so the two rules read as two rules.
+        if pair_required:
+            _check_size_pairs(
+                route, route_captures, at_rest_rule, scrolled_rule, missing
+            )
 
     return ("incomplete", missing) if missing else ("complete", [])
+
+
+def _check_size_pairs(
+    route: str,
+    route_captures: list[dict[str, int | str]],
+    at_rest_rule: str,
+    scrolled_rule: str,
+    missing: list[str],
+) -> None:
+    """Rule 3, as its own unit so each rule reads and tests on its own.
+
+    Grouping on the width-and-height pair rather than the height alone is the
+    point: two widths at one height each carrying half a pair would otherwise
+    read as coverage.
+    """
+    sizes = sorted(
+        {(int(c["viewport-width"]), int(c["viewport-height"])) for c in route_captures}
+    )
+    for width, height in sizes:
+        at_size = [
+            c
+            for c in route_captures
+            if int(c["viewport-width"]) == width
+            and int(c["viewport-height"]) == height
+        ]
+        if not any(_scroll_rule_met(at_rest_rule, c) for c in at_size):
+            missing.append(f"at-rest at {width}x{height} (route {route})")
+        if not any(_scroll_rule_met(scrolled_rule, c) for c in at_size):
+            missing.append(f"scrolled at {width}x{height} (route {route})")
 
 
 def evaluate_record(markdown: str, record: dict[str, object]) -> tuple[str, list[str]]:
@@ -825,6 +883,11 @@ def inspection_result(
 
     Two questions, two answers. "The browser would not start" and "the page is
     broken" are both not-a-pass and are not the same thing.
+
+    `declared_breakpoints` selects the required channels and is deliberately not
+    echoed back here. The channel basis is recorded on the evidence manifest's
+    `viewports` field, which is the surface the contract names for it; this
+    function answers the two questions above and nothing else.
     """
     findings = findings or []
     set_status, _ = evaluate_capture_set(markdown, captures, declared_breakpoints)

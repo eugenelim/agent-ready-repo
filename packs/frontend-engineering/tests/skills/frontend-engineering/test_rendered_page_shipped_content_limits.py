@@ -305,48 +305,100 @@ def test_no_channel_is_named_for_a_device() -> None:
         )
 
 
-# Where a channel name can appear in shipped content. A channel is named in the
-# reference that declares it, in the skill that teaches the capture, and in the
-# worked snippet an adopter copies. The scope claim AC-0012 rests on is that every
-# such name is one the reference declares -- so this reads those files rather than
-# restating the claim.
-CHANNEL_NAME_SITES = (
-    SHIPPED_ROOT / "skills" / "frontend-engineering" / "references" / "rendered-page-inspection.md",
-    SHIPPED_ROOT / "skills" / "frontend-engineering" / "SKILL.md",
-    SHIPPED_ROOT / "agents" / "frontend-reviewer.md",
-)
+# ── the channel-name sweep ──────────────────────────────────────────────────
+#
+# Reach is DERIVED from `.apm/**` via `shipped_files()`, the same walk the two
+# guards above use, rather than from a hand-written file list. Two earlier
+# versions of this sweep were narrower than the claim they carried: the first
+# opened no file at all and compared the reference's declared set to a literal,
+# and the second opened three files by name — which let a device-named channel
+# ship in any of the other twenty-nine, and let the sweep be un-scoped by
+# deleting one tuple entry with nothing red.
+#
+# What is NOT derived is the set of shapes a channel name takes in prose. Each is
+# named below and each is a stated blind spot: a channel named in a shape absent
+# from this list is not caught. That reach is a property of asking a pattern to
+# read prose, and the list is here in the open rather than implied.
+INNER_NAME_FIELD = re.compile(r"\bname:\s*'([^']+)'")
+# `[^|\n]` and not `[^|]`: a class excluding only the pipe still matches a
+# newline, so a three-cell pattern spans lines and swallows the one-column
+# forbidden-token table, reporting `mobile` as a declared channel.
+INNER_BAND_ROW = re.compile(r"^\|\s*([a-zA-Z][\w-]*)\s*\|[^|\n]*\|[^|\n]*\|\s*$", re.MULTILINE)
 
-# How a channel name is written where it is used as one: as a `name:` field in the
-# worked snippet's channel list, and as the first cell of a band row.
-CHANNEL_NAME_IN_SNIPPET = re.compile(r"\bname:\s*'([^']+)'")
-# `[^|\n]` and not `[^|]`: a character class excluding only the pipe still
-# matches a newline, so the three-cell pattern spanned lines and swallowed the
-# one-column forbidden-token table, reporting `mobile` as a declared channel.
-BAND_ROW = re.compile(r"^\|\s*([a-z][\w-]*)\s*\|[^|\n]*\|[^|\n]*\|\s*$", re.MULTILINE)
+CHANNEL_NAME_SHAPES = {
+    # The worked capture snippet an adopter copies. Scoped to the `channels`
+    # array rather than to any `name:` field: the pack ships other skills whose
+    # snippets carry unrelated `name:` keys, and a bare field pattern reported
+    # `component-contract`'s `name: 'default'` as an undeclared channel.
+    "snippet-name-field": re.compile(
+        r"const channels\s*=\s*\[(?P<body>.*?)\]", re.S
+    ),
+    # A band row in the reference's `## Channels` table: `| narrow |  | <=480 |`.
+    # `[^|\n]` and not `[^|]`: a class excluding only the pipe still matches a
+    # newline, so the three-cell pattern spanned lines and swallowed the
+    # one-column forbidden-token table, reporting `mobile` as a declared channel.
+    # A band row in a `## Channels` table. Scoped to that section: the pack ships
+    # many unrelated three-cell tables, and the reference's own forbidden-token
+    # table sits in the same section.
+    "band-row": re.compile(
+        r"\n## Channels\n(?P<body>.*?)(?:\n## |\Z)", re.S
+    ),
+    # The prose that declares the fallback bands to an adopter:
+    # "`narrow` at <=480 CSS px and `wide` at >=1024 CSS px".
+    "prose-declaration": re.compile(r"`([a-z][\w-]*)`\s+at\s+[≤≥<>=]"),
+}
 
 
 def shipped_channel_names() -> dict[str, list[str]]:
-    """`{file label: [channel names used in it]}` across shipped content."""
+    """`{file label: [channel names used in it]}` over every shipped `.apm/**` file."""
     found: dict[str, list[str]] = {}
-    for path in CHANNEL_NAME_SITES:
-        text = path.read_text(encoding="utf-8")
-        names = CHANNEL_NAME_IN_SNIPPET.findall(text)
-        if path.name == "rendered-page-inspection.md":
-            section = text.split("\n## Channels\n", 1)[1].split("\n## ", 1)[0]
-            names += [m for m in BAND_ROW.findall(section) if m != "Channel"]
+    for path in shipped_files():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        names: list[str] = []
+        for shape_name, shape in CHANNEL_NAME_SHAPES.items():
+            for match in shape.findall(text):
+                if shape_name == "snippet-name-field":
+                    names += INNER_NAME_FIELD.findall(match)
+                elif shape_name == "band-row":
+                    names += [
+                        n for n in INNER_BAND_ROW.findall(match) if n != "Channel"
+                    ]
+                else:
+                    names.append(match)
         if names:
-            found[_label(path)] = names
+            found[_label(path)] = sorted(set(names))
     return found
 
 
-def test_every_shipped_channel_name_is_one_the_reference_declares() -> None:
-    """The premise the device guard's scope rests on, read rather than restated.
+def test_the_channel_sweep_reaches_every_file_that_names_a_channel() -> None:
+    """A sweep over an empty file list passes trivially, and a sweep narrowed by
+    one line passes just as quietly.
 
-    The first version of this compared the reference's declared set to a literal
-    pair and opened no other file, so the scope claim it was named for was
-    asserted, not checked: renaming the worked example's channel to `mobile` left
-    the whole suite green.
+    This is the reach control the sibling guards already carry at
+    `test_the_guards_actually_reach_this_deliverys_files`. It pins that the three
+    shipped files which actually name a channel are all reached, so removing one
+    from the sweep — or breaking the shape that finds it — reds here.
     """
+    reached = shipped_channel_names()
+    for expected in (
+        "rendered-page-inspection.md",  # the band table that declares them
+        "SKILL.md",                     # the prose declaration and the snippet
+    ):
+        assert any(expected in label for label in reached), (
+            f"the channel-name sweep reaches no file named {expected!r}; it sees "
+            f"{sorted(reached)}"
+        )
+    assert sum(len(v) for v in reached.values()) >= 4, (
+        f"the sweep found {reached}, which is fewer names than the reference "
+        f"declares in its band table alone"
+    )
+
+
+def test_every_shipped_channel_name_is_one_the_reference_declares() -> None:
+    """AC-0012's second clause: the premise the device guard's scope rests on."""
     declared = {name for name, _, _ in fallback_channels(read_rules())}
     used = shipped_channel_names()
     assert used, "no shipped file names a channel; the sweep found nothing to check"
@@ -370,20 +422,39 @@ def test_no_shipped_channel_name_carries_a_device_token() -> None:
                 )
 
 
-def test_the_device_sweep_catches_a_planted_channel_name(tmp_path: Path) -> None:
-    """The guard must fail on the thing it names, driven through the real guard.
+@pytest.mark.parametrize(
+    ("shape", "planted"),
+    [
+        ("snippet-name-field", "const channels = [{ name: 'mobile', width: 480 }];"),
+        (
+            "band-row",
+            "\n## Channels\n\n| Channel | Lower | Upper |\n| --- | --- | --- |\n"
+            "| tablet |  | <=480 |\n",
+        ),
+        ("prose-declaration", "Declare none and two apply — `desktop` at >=1024 CSS px."),
+    ],
+)
+def test_the_channel_sweep_catches_a_planted_name_in_every_shape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shape: str, planted: str
+) -> None:
+    """Drive the real guards, not a copy of their loop.
 
-    The first version re-implemented the guard's loop against a local literal, so
-    weakening the guard itself left it green.
+    The previous version wrote a tmp file `shipped_channel_names()` never read,
+    because its site list was a module constant, then re-ran the pattern inline —
+    the same re-implementation with a file in the middle. Here the sweep's own
+    file walk is redirected at the planted file, so both guards run over it and
+    weakening either one reds.
     """
-    tokens = forbidden_channel_name_tokens(read_rules())
-    planted = tmp_path / "planted.md"
-    planted.write_text("const channels = [{ name: 'mobile', width: 480 }];\n", encoding="utf-8")
-    names = CHANNEL_NAME_IN_SNIPPET.findall(planted.read_text(encoding="utf-8"))
-    assert names == ["mobile"], "the name pattern no longer finds a snippet channel"
-    assert any(t in names[0].lower() for t in tokens), (
-        "the shipped vocabulary would not catch a channel named for a device"
+    target = tmp_path / "planted.md"
+    target.write_text(planted, encoding="utf-8")
+    monkeypatch.setattr(
+        "test_rendered_page_shipped_content_limits.shipped_files", lambda: [target]
     )
+    assert shipped_channel_names(), f"the {shape} shape found no name to check"
+    with pytest.raises(AssertionError, match="does not declare"):
+        test_every_shipped_channel_name_is_one_the_reference_declares()
+    with pytest.raises(AssertionError, match="device name"):
+        test_no_shipped_channel_name_carries_a_device_token()
 
 
 def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:

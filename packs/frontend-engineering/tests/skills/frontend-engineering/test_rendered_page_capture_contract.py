@@ -13,6 +13,7 @@ import re
 
 import pytest
 from frontend_engineering_rendered_page_rules import (
+    WALK_RULE_ROWS,
     capture_record_fields,
     capture_tables_agree,
     channel_basis,
@@ -529,24 +530,57 @@ def test_the_channel_requirement_is_shipped_content(rules_markdown: str) -> None
         evaluate_capture_set(gone, one_channel)
 
 
-def test_every_rule_row_the_walk_reads_raises_when_deleted(rules_markdown: str) -> None:
-    """The general property, over every row rather than the one that failed.
+@pytest.mark.parametrize(
+    "row_key", [k for keys in WALK_RULE_ROWS.values() for k in keys]
+)
+def test_every_rule_row_the_walk_reads_raises_when_deleted(
+    rules_markdown: str, row_key: str
+) -> None:
+    """Derived from the rows the module declares the walk reads.
 
-    Blocker 1 was a single row read with a bare `.get(...) == "required"` while
-    its siblings raised. A per-row check is what makes the next row added to
-    either table inherit the discipline instead of the defect.
+    The first version hand-listed two keys while claiming to cover every row, and
+    picked the two that already had coverage: deleting `channel-derivation`,
+    `channel-boundary-belongs-to` or `channel-basis-recorded` left the walk
+    returning `complete`, because those rows are only consulted on paths a
+    fallback-basis run never takes.
     """
     full = _matrix(390) + _matrix(1280)
     assert evaluate_capture_set(rules_markdown, full) == ("complete", [])
-    for row_key in (
-        "every-required-channel-needs-the-matrix",
-        "every-captured-width-and-height-needs-the-pair",
-    ):
-        row = f"| {row_key} | required |\n"
-        assert row in rules_markdown, f"{row_key} is not a shipped row"
-        without = rules_markdown.replace(row, "", 1)
-        with pytest.raises(AssertionError, match=row_key):
-            evaluate_capture_set(without, full)
+    row = next(
+        line for line in rules_markdown.splitlines()
+        if line.strip().startswith(f"| {row_key} |")
+    )
+    without = rules_markdown.replace(row + "\n", "", 1)
+    assert without != rules_markdown
+    with pytest.raises(AssertionError, match=row_key):
+        evaluate_capture_set(without, full)
+
+
+def test_the_declared_breakpoint_basis_drives_the_completeness_walk(
+    rules_markdown: str,
+) -> None:
+    """The basis AC-0001 defines, and the one the end-to-end run actually used.
+
+    Every other completeness fixture uses the fallback bands, so the derived-band
+    path through the walk had no test at all, while AC-0005 and AC-0006 are stated
+    over "every required channel".
+    """
+    state, missing = evaluate_capture_set(rules_markdown, _matrix(1280), [1152])
+    assert state == "incomplete"
+    assert sorted(missing) == sorted(
+        f"{name} in below-1152 (route /a)"
+        for name in ("short-at-rest", "short-scrolled", "tall-at-rest", "tall-scrolled")
+    ), missing
+
+    # The two widths the shipped capture-width rule derives for those bands:
+    # 1151 and 1152, the pair straddling the declared breakpoint.
+    straddling = _matrix(1151) + _matrix(1152)
+    assert evaluate_capture_set(rules_markdown, straddling, [1152]) == ("complete", [])
+
+    # The same set is incomplete under the fallback basis, because neither width
+    # is inside `narrow` or `wide`. The basis changes the answer, which is why it
+    # is recorded rather than inferred.
+    assert evaluate_capture_set(rules_markdown, straddling)[0] == "incomplete"
 
 
 # ── the two copies of the capture contract ──────────────────────────────────
@@ -711,15 +745,20 @@ def test_the_manifest_example_is_a_band_set_the_derivation_produces(
     row = _manifest_viewports_row(skill_markdown)
     predicates = re.findall(r"`([<>]=?\d+(?:\s+[<>]=?\d+)?)`", row)
     assert predicates, "the row carries no example predicates"
-    bands = []
+    breakpoints = sorted({int(n) for n in re.findall(r"[<>]=?(\d+)", " ".join(predicates))})
+    # Compared against what the derivation produces for the breakpoints the
+    # example itself names. A non-overlap check alone would pass on
+    # `<480, >=600 <1152, >=1152` -- a set with a 120px gap no breakpoint list
+    # can yield -- and its 0..2000 sweep bound was a bare literal that would miss
+    # a boundary above it.
+    stated = []
     for predicate in predicates:
         parts = predicate.split()
         lower = next((x for x in parts if x.startswith(">")), "")
         upper = next((x for x in parts if x.startswith("<")), "")
-        bands.append((predicate, lower, upper))
-    # No width may satisfy two of them: that is what makes a band set a partition.
-    for width in range(2000):
-        hits = [p for p, lo, hi in bands if width_in_channel((p, lo, hi), width)]
-        assert len(hits) <= 1, (
-            f"width {width} satisfies {hits}; the example overlaps itself"
-        )
+        stated.append((lower, upper))
+    derived = [(lo, hi) for _, lo, hi in required_channels(rules_markdown, breakpoints)]
+    assert stated == derived, (
+        f"the example states {stated}, but the shipped derivation yields "
+        f"{derived} for the breakpoints it names, {breakpoints}"
+    )
