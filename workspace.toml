@@ -427,11 +427,16 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 
 ["ini-003".work]
 active  = [
-  {path = "docs/specs/rendered-page-channel-axis/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make viewport width a completeness axis of the rendered-page inspection, so a conforming capture set cannot sit entirely on one side of every breakpoint a surface declares", needs = [{type = "local", kind = "spec", path = "docs/specs/rendered-page-visual-inspection/spec.md"}]},
 ]
 queue   = [
 ]
 shipped = [
+  # Shipped 2026-09-14. Makes viewport width a completeness axis of the
+  # rendered-page inspection, so a capture set cannot sit entirely on one side of
+  # every breakpoint a surface declares. Supersedes the height-only scroll-pair
+  # criterion of the spec below, which carries a Status-line pointer to AC-0007.
+  {path = "docs/specs/rendered-page-channel-axis/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make viewport width a completeness axis of the rendered-page inspection, so a conforming capture set cannot sit entirely on one side of every breakpoint a surface declares", needs = [{type = "local", kind = "spec", path = "docs/specs/rendered-page-visual-inspection/spec.md"}]},
+
   # Shipped 2026-09-13. Makes the frontend-engineering pack look at the rendered
   # page, record what it saw, and refuse to complete a surface over an unresolved
   # blocking finding. Scope widened mid-delivery by owner decision to cover the
@@ -483,7 +488,13 @@ open = [
   # a destination, and the obligation would otherwise be enforced by someone
   # remembering to reread it -- the same unfalsifiable-rule shape that delivery
   # spent five review rounds removing from its own content.
-  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Derive the mapping from written path to gating suite instead of carrying it by recall: build-check hands pytest seven named targets, neither test-corpus nor test-roster has a pull-request trigger, and a pack-content change can write docs/product/changelog.md, pack.toml and two plugin manifests with no PR gate reading any of them", needs = []},
+  #
+  # Scope corrected 2026-09-14. The first version of this entry claimed the roster
+  # suite runs on no PR; build-check.yml:410 runs `python -m pytest tests/ -q`
+  # from the root and collects 1506 roster node IDs. Only the pack suite is
+  # genuinely PR-ungated. The evidence table in the source ref was corrected with
+  # it.
+  {path = "tools/repo/build_gate_chain.py", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rendered-page-channel-axis/notes/verification-ledger.md"}, summary = "Derive the mapping from written path to gating suite instead of carrying it by recall: packs/frontend-engineering/tests/ is named nowhere in build-check.yml, so a pack-content change ships its own guards PR-ungated and reaches CI only through the dispatch-only test-corpus workflow", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added

@@ -178,16 +178,17 @@ Separately scoped, discovered during delivery, and registered in
 anyone rereading this spec's notes.
 
 - **The mapping from written path to gating suite is carried by recall.**
-  `build-check.yml` hands pytest seven named targets and neither
-  `test-corpus.yml` nor `test-roster.yml` has a pull-request trigger, so no test
-  this delivery wrote runs on a PR — including AC-0019's only verification
-  artifact. Nothing connects `docs/product/changelog.md` to the roster test that
-  asserts its heading order except a person's memory, which is the same
-  unfalsifiable-rule shape this delivery removed from its own content. Owner: the
-  repository's gate chain, not this pack — the work touches `build-check.yml` and
-  the Makefile and does not belong in a pack-content delivery. Evidence: this
-  spec's `notes/verification-ledger.md`, § *What runs on a PR, and what this
-  delivery therefore owes*, which carries the reach table.
+  `packs/frontend-engineering/tests/` is named nowhere in `build-check.yml`, so
+  every guard this delivery wrote is PR-ungated and reaches CI only through the
+  dispatch-only `test-corpus.yml`. Nothing connects a written path to the suite
+  that reads it except a person's memory, which is the same unfalsifiable-rule
+  shape this delivery removed from its own content — and it was paid twice inside
+  this delivery, once on `docs/product/changelog.md` and once on `workspace.toml`.
+  Owner: the repository's gate chain, not this pack — the work touches
+  `build-check.yml` and the Makefile and does not belong in a pack-content
+  delivery. Evidence: this spec's `notes/verification-ledger.md`, § *What runs on
+  a PR, and what this delivery therefore owes*, whose reach table was corrected
+  on 2026-09-14 after the first version overstated the gap.
 
 ## Assumptions
 

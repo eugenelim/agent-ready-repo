@@ -306,36 +306,45 @@ other `frontend-engineering` heading precedes it.
 
 ## What runs on a PR, and what this delivery therefore owes
 
-**No test written by this delivery runs on a pull request.** Established by
-reading the workflows rather than assuming:
+**Corrected 2026-09-14 after an adversarial finding. The first version of this
+section was wrong, and a register entry had already been built on it.**
+
+It claimed "no test written by this delivery runs on a pull request" and marked
+`test-roster.yml` unreachable by PR. That was derived by grepping
+`tools/repo/build_gate_chain.py` for its `_pytest_step` calls and concluding
+about the whole PR gate — without reading `build-check.yml`, which carries 57
+`python -m pytest` invocations of its own. A filtered grep over one file was
+allowed to stand for an exhaustive answer about a different file.
+
+Measured rather than inferred:
 
 | Surface | PR trigger | Reaches this delivery's tests |
 | --- | --- | --- |
-| `build-check.yml` | yes | no — its chain hands pytest 7 named targets, none under `packs/frontend-engineering/` |
+| `build-check.yml` | yes | **partly** — `:410` runs `python -m pytest tests/ -q` from the root, collecting 1506 `tests/roster/` node IDs |
+| `build-check.yml` | yes | **no** for the pack suite — `packs/frontend-engineering` appears 0 times in the workflow |
 | `docs.yml` | yes | no |
-| `test-corpus.yml` (`make test`) | **dispatch only** | yes — `Makefile:574` runs the pack suite |
-| `test-roster.yml` (`tests/roster/`) | **dispatch only** | yes — and it is AC-0019's only artifact |
+| `test-corpus.yml` (`make test`) | dispatch only | yes — `Makefile:574` runs the pack suite |
+| `test-roster.yml` | dispatch only | yes, and redundantly: the roster is already reached by `build-check.yml` |
 
-This is the repository's design, not a defect in it: the heavy suites are
-dispatch-only by construction and neither is a required status check. The
-consequence for this delivery is specific and was not stated anywhere in the
-plan — **both dispatches are obligatory evidence here, not optional extras**:
+What that changes:
 
-- The pack suite carries every channel-axis guard and every mutation control this
-  delivery argued about for five review rounds. Without the corpus dispatch, a PR
-  shows none of it.
-- `tests/roster/test_rendered_page_channel_axis_supersession.py` is AC-0019's
-  **only** verification artifact. It was put there on a test-boundary argument —
-  the frozen spec belongs to this repository's lifecycle, not the pack's — which
-  was right for ownership and left the criterion reachable by no PR gate.
-- `tests/roster/test_verification_ledger_contract.py` is the invariant that the
-  changelog defect broke, and it is in the same unreachable-by-PR set.
+- **AC-0019 is PR-gated.** Its three tests in
+  `tests/roster/test_rendered_page_channel_axis_supersession.py` are collected by
+  `build-check.yml`. Placing it in the roster on the test-boundary argument cost
+  nothing in reach.
+- **The changelog invariant is PR-gated.** `test_the_core_release_heading_sits_directly_beneath_unreleased`
+  is collected too. The round-5 defect therefore survived a narrow **local**
+  command, not an absent CI gate — which is what this ledger's own "caught it by
+  accident" section actually describes, and the correction does not soften it.
+- **The residue is real and narrower than claimed.** `packs/frontend-engineering/tests/`
+  is named nowhere in `build-check.yml`, so the 295 channel-axis guards and every
+  mutation control five review rounds argued over are PR-ungated. The
+  `test-corpus.yml` dispatch remains obligatory evidence for this delivery. The
+  roster dispatch is not obligatory, only confirmatory.
 
 **Deviation, recorded rather than repaired.** T9's `Done when` names
-`make build-self` and `ruff check`, neither of which reads a `docs/` file or a
-roster test, while T9's own `Touches` lists `docs/product/changelog.md` and a
-roster test. The plan was sealed before that mismatch was visible. Rather than
-amend a sealed plan late, the obligation is carried here and discharged in the
-closeout: **both `gh workflow run test-corpus.yml` and
-`gh workflow run test-roster.yml` are dispatched against this branch after push,
-and their results belong to this delivery's evidence.**
+`make build-self` and `ruff check`, neither of which reads a `docs/` file, while
+T9's own `Touches` lists `docs/product/changelog.md`. The plan was sealed before
+that mismatch was visible. The obligation is carried here and discharged in the
+closeout: `gh workflow run test-corpus.yml` is dispatched against this branch
+after push, and its result belongs to this delivery's evidence.
