@@ -66,11 +66,76 @@ in the order Blocker, Major, Minor, Note. Without that rule the severity would
 depend on which class the judge happened to name first, which is the same
 judge-decides-severity outcome the table above exists to prevent.
 
+## Channels
+
+A **channel** is a band of viewport widths. A layout rule scoped to one side of a
+breakpoint does nothing on the other side, so a capture set that never leaves one
+band exercises that rule only where it already applies. Width is therefore a
+completeness axis beside height, not a field that merely gets recorded.
+
+Which bands a surface has comes from the breakpoints the adopter declares. When
+they declare none, these two apply. An empty bound cell means unbounded on that
+side.
+
+| Channel | Lower bound | Upper bound |
+| --- | --- | --- |
+| narrow |  | <=480 |
+| wide | >=1024 |  |
+
+A width between those bounds satisfies neither channel. The gap is deliberate: if
+one width could satisfy both, a single-channel set would read as covering two.
+
+| Rule | Value |
+| --- | --- |
+| channel-source | adopter-declared-breakpoints-or-fallback |
+| channel-derivation | bands-bounded-by-consecutive-breakpoints |
+| channel-boundary-belongs-to | wider-band |
+| channel-capture-width | lower-bound-else-largest-satisfying-upper |
+| channel-basis-recorded | required |
+| every-required-channel-needs-the-matrix | required |
+
+**Deriving bands from declared breakpoints.** For breakpoints `b1 < ... < bn`,
+the bands are `<b1`, then `>=bk` with `<bk+1` for each adjacent pair, then `>=bn`.
+Each boundary value belongs to the wider band, matching the mobile-first
+`min-width` semantics a breakpoint is normally written in. A declared breakpoint
+is a positive whole number of CSS pixels; a run refuses anything else, because a
+band's bound cells hold whole numbers.
+
+**The width a capture is taken at.** A channel names a band, not a number, so the
+width comes from the band: its lower bound where it has one, otherwise the
+largest whole number its upper bound admits. That rule answers for every band,
+including one unbounded on either side and one whose upper bound is exclusive.
+It puts each capture at the edge of its band, which is where a breakpoint-scoped
+rule changes behaviour — breakpoints at `1152` give captures at `1151` and
+`1152`. It does not exercise the rest of a band, so a rule that misbehaves away
+from a boundary is a different matter and this axis does not look for it.
+
+**Which basis a run used is recorded, never inferred.** A run over declared
+breakpoints and a fallback run can produce the same captures, and only the record
+tells them apart. This is the same rule `page-scrollable` follows and for the
+same reason.
+
+**A channel is named for what it measures, never for a device.** A device name
+carries a dimension that stops being true, and the name outlives the hardware.
+
+| Forbidden in a channel name |
+| --- |
+| mobile |
+| tablet |
+| desktop |
+| phone |
+| laptop |
+| iphone |
+| ipad |
+| android |
+
 ## Required captures
 
-Every inspected route needs all four of these. Heights are the browser viewport's
-height in CSS pixels; scroll position is the vertical offset the capture was
-taken at, in the same units.
+Every inspected route needs all four of these **in every required channel**.
+Heights are the browser viewport's height in CSS pixels; scroll position is the
+vertical offset the capture was taken at, in the same units. With the two
+fallback channels that is eight captures per route; a surface declaring `n`
+breakpoints needs four times `n + 1`.
 
 | Capture | Viewport height | Scroll position |
 | --- | --- | --- |
@@ -79,10 +144,11 @@ taken at, in the same units.
 | tall-at-rest | >=900 | 0 |
 | tall-scrolled | >=900 | >0, or page-scrollable: no |
 
-Two heights, because a layout that holds at one often fails at the other, and a
-reader on a laptop and a reader on a phone are both readers. Two scroll positions
-per height, because the at-rest view is the one nobody scrolls to reach and the
-scrolled view is where sticky and overlay elements land on top of content.
+Two heights, because a layout that holds at one often fails at the other. Two
+scroll positions per height, because the at-rest view is the one nobody scrolls to
+reach and the scrolled view is where sticky and overlay elements land on top of
+content. Every required channel, because a rule that applies on only one side of
+a breakpoint is exercised only by a capture taken from that side.
 
 **A page shorter than the viewport has no scrolled view.** When the page does not
 scroll at a given height, record `page-scrollable: no` on that height's at-rest
@@ -91,22 +157,23 @@ fold to look at. This is recorded, never inferred: a scroll position of 0 on its
 own means "this capture was taken at the top", which is also what a capture nobody
 scrolled looks like, and those two must stay distinguishable.
 
-A capture set missing any of the four is **incomplete**. An incomplete set cannot
-satisfy a completed inspection — it is not a pass with a gap, and no number of
-findings from the captures that are present makes it one.
+A capture set missing any of the four in any required channel is **incomplete**.
+An incomplete set cannot satisfy a completed inspection — it is not a pass with a
+gap, and no number of findings from the captures that are present makes it one.
 
-Further heights are welcome, and none beyond the two bands is required. But a
-height you **do** capture carries the same obligation as the required ones:
+Further widths and heights are welcome, and none beyond the required channels and
+the two height bands is required. But a width and height you **do** capture carry
+the same obligation as the required ones:
 
 | Rule | Value |
 | --- | --- |
-| every-captured-height-needs-the-pair | required |
+| every-captured-width-and-height-needs-the-pair | required |
 
-At every viewport height a route was actually captured at — including any beyond
-the two required bands — that route needs both an at-rest capture and a scrolled
-one, or a recorded `page-scrollable: no` at that height. A third height captured
-only at rest tells you less than not capturing it at all, because it looks like
-coverage.
+At every viewport width and height a route was actually captured at — including
+any beyond the required channels and bands — that route needs both an at-rest
+capture and a scrolled one, or a recorded `page-scrollable: no` at that width and
+height. A third size captured only at rest tells you less than not capturing it
+at all, because it looks like coverage.
 
 ## Capture record
 
