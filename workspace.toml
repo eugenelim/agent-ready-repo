@@ -698,43 +698,12 @@ open = [
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
   {path = "docs/product/intents/route-decision-analysis-depth.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/distribution-route-registry/spec.md"}, summary = "Give the route-decision checker cross-module depth under its own contract: follow route values across module boundaries, derive the discriminator field set from the route types, cover projector-identity and .get() dispatch, and derive the single-route exemption from the registration the lookup resolves through -- each exemption pinned by a mutation. Split out of distribution-route-registry after five review rounds in which each widening opened the next round's hole", needs = []},
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
-  {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   # Unblocks when: someone decides whether the seal should admit a prose-only
   # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
   # blocked mid-run and landed only after an owner-authorized cohort re-seal.
   {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
-  {slug = "agent-skill-engineering-guide-and-docsurl", summary = "agent-skill-engineering is the only pack in GUIDE_OPTIONAL_PACKS and its site docsUrl points at the guides index; the planned docs slice must add guides/agent-skill-engineering/, link it from guides/README.md, drop the exemption, and repoint docsUrl", source = "spec/agent-skill-engineering-foundation AC21 (owner decision 2026-08-27)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
-  # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
-  # cross-repository reference, so now that a spec's `Brief:` back-link is the
-  # canonical path form it reports a brief that lives in THIS repo as "unknown /
-  # not-yet-catalogued (cross-repo, unresolvable)" and drops the brief↔spec edge
-  # it exists to generalize. Informational, exit 0, so no gate catches it. A
-  # mistyped path is also only informational, where a mistyped bare slug has
-  # always been a fatal dangling pointer — so path-form typos are detected less
-  # strictly than slug-form ones. Fix: resolve a canonical local brief path to
-  # its brief node before endpoint classification
-  # (packs/core/.apm/skills/work-loop/scripts/lint-traceability.py). Attempted
-  # and withdrawn during the brief-path provenance fix: the shipped
-  # docs/specs/traceability-lint/spec.md makes this Ask-first ("changing a
-  # producer-pointer field") and its Never-do list forbids identifying a node by
-  # file path, hardcoding an artifact path, and treating a well-formed cross-repo
-  # reference as dangling — and a naive alias hard-failed on brief files that
-  # exist under a `[traceability].briefs` override. Unblocked by a reviewed
-  # amendment to that spec carrying the Ask-first sign-off; no `needs` edge.
-  {slug = "traceability-brief-path-backlink-unresolved", source = "spec-less brief-path provenance fix (review rounds 1 and 4)"},
-  # lint-brief-coverage.py and lint-traceability.py both still match a bare-slug
-  # `Brief:` back-link, so a slug-form spec passes every early gate and only
-  # fails later at workspace-status reconciliation, where it blocks dispatch.
-  # The docstrings now say the slug is backward-compatible only, but nothing
-  # tells an author at lint time. Fix: have the coverage lint emit a non-fatal
-  # note naming any spec whose back-link matched by slug rather than by path
-  # (lint-brief-coverage.py, receive-brief skill). Deferred because it adds
-  # output to a lint many repositories run in CI. Unblocked once the note is
-  # agreed to be non-fatal and that lint's output contract is versioned; no
-  # tracked dependency, so no `needs` edge.
-  {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
 
   {path = "docs/product/intents/ci-gate-main-runtime-budget.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Bring gate-main within its shipped 200-second budget after a docs-only run measured 302 seconds and localized 201 seconds to two steps", needs = []},
   {path = "docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen deferral identity and completed docs-only CI measurement while the 302-second gate-main miss moves to its runtime-budget intent", needs = []},
