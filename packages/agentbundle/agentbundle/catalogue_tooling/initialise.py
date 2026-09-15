@@ -17,6 +17,7 @@ Python 3.11 stdlib only.  No network, no subprocess, no third-party deps.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -455,14 +456,27 @@ def _stage_and_verify(
 
 
 def _atomic_write(dest: Path, content: bytes) -> None:
-    """Write *content* to *dest* atomically (write to .tmp then rename)."""
-    tmp = dest.with_suffix(dest.suffix + ".abtmp")
+    """Write *content* to *dest* atomically (stage in the parent, then replace).
+
+    The staging name is random and derived from nothing the caller can see, and
+    the file is created exclusively, so an entry an attacker left in the parent
+    directory is never opened through. ``0o666`` lets the kernel apply the
+    caller's umask, which keeps written files at the mode they had before this
+    helper staged its writes. See ``docs/specs/atomic-write-symlink-harden``.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Not derived from ``dest.name``: a long-but-valid destination plus a fixed
+    # suffix can exceed NAME_MAX, which the old 6-byte ".abtmp" stayed inside.
+    tmp = dest.parent / f".abtmp-{os.urandom(8).hex()}"
+    fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
     try:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_bytes(content)
-        tmp.rename(dest)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(content)
+        tmp.replace(dest)
     except Exception:
-        tmp.unlink(missing_ok=True)
+        # Suppressed so a failed cleanup cannot mask the caller's exception.
+        with contextlib.suppress(OSError):
+            tmp.unlink()
         raise
 
 
