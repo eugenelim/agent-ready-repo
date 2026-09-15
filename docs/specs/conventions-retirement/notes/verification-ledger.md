@@ -254,3 +254,30 @@ working already covers it.
 `packs/core/tests/pack/test_repository_context_seed.py` is amended in the same
 step: the heading set gains both sections, and only `Repository structure`
 remains an asserted offer.
+
+## T8 — the optional-guidance comment, and the cap condition
+
+Removed the `Documentation` offer that T4 made false. `Security considerations`
+and `Scoped instructions` were already removed by T7, in the task that made each
+real. `Repository structure` survives, because the seed still does not carry it.
+
+Guarded in both directions. Round 6 sustained a cheat that the comment could be
+trimmed by deleting it outright, so `test_comment_still_offers_what_the_seed_lacks`
+asserts the surviving offer keeps its trigger-and-benefit shape. Negative control
+recorded: deleting the comment fails both assertions; restoring it passes both.
+
+### The T1 margin was needed, and by roughly the amount estimated
+
+T1 measured a 187-line projection and set the cap to 200, with the 13-line
+margin justified as absorbing re-rendering — the procedure requires each block
+land in its destination's own voice rather than being pasted, so source length
+is not rendered length.
+
+The seed finished at 196. So re-rendering cost 9 lines against a 13-line margin.
+The margin was the right call and was not excessive; had the cap been set to the
+projection, T7 would have breached it by 9 rather than by 4, and the ask-first
+boundary would have been spent on a measurement error rather than on ordering.
+
+This is the headroom condition round 6 moved here from T1, where it could not
+fail because the content did not yet exist. It is now a test that runs the
+linter with every promotion present.

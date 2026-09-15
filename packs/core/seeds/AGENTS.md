@@ -186,9 +186,6 @@ instruction that no longer matches the code is a defect in the instruction.
 Recommended additional guidance — add only after verifying its trigger. Each
 option should link to the owning source instead of copying its rules.
 
-- `Documentation` — trigger: two or more authoritative sources need routing.
-  Benefit: agents can find architecture, decisions, and contributor guidance
-  without imposing a new document layout.
 - `Repository structure` — trigger: ownership or change boundaries are not
   obvious, such as generated projections, multiple build roots, or unusual test
   ownership. Benefit: agents see responsibility and change guidance without a

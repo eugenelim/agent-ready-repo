@@ -433,6 +433,72 @@ def test_seed_omits_the_repo_specific_blessed_helpers() -> None:
         )
 
 
+PROMOTED_SECTIONS = ("Documentation", "Security considerations", "Scoped instructions")
+
+
+def optional_guidance_comment() -> str:
+    """The seed's trailing recommended-additional-guidance comment."""
+    body = SEED_AGENTS.read_text(encoding="utf-8")
+    marker = "Recommended additional guidance"
+    if marker not in body:
+        return ""
+    start = body.rindex("<!--", 0, body.index(marker))
+    return body[start : body.index("-->", start) + 3]
+
+
+# --------------------------------------------------------------------------
+# AC24 — the optional-guidance comment stops offering what the seed now has
+# --------------------------------------------------------------------------
+
+def test_comment_no_longer_offers_the_promoted_sections() -> None:
+    """AC24.
+
+    Each promoted section stops being an offered option in the task that makes
+    it real. Leaving the offer would invite an adopter to add what they have.
+    """
+    comment = optional_guidance_comment()
+    assert comment, "the seed's optional-guidance comment is absent entirely"
+    still_offered = [s for s in PROMOTED_SECTIONS if f"`{s}`" in comment]
+    assert not still_offered, (
+        f"the comment still offers sections the seed already carries: {still_offered}"
+    )
+
+
+def test_comment_still_offers_what_the_seed_lacks() -> None:
+    """AC24, the other direction.
+
+    Deleting the comment outright would satisfy the assertion above while
+    removing guidance an adopter still needs, so the surviving offer is asserted
+    too.
+    """
+    comment = optional_guidance_comment()
+    assert "`Repository structure`" in comment, (
+        "the comment no longer offers Repository structure, which the seed does "
+        "not carry — the comment was trimmed too far, or deleted"
+    )
+    assert "trigger" in comment.lower() and "benefit" in comment.lower(), (
+        "the surviving offer lost its trigger-and-benefit shape"
+    )
+
+
+def test_seed_is_within_its_cap_with_every_promotion_present() -> None:
+    """The headroom condition, checked where the accumulated content exists.
+
+    At T1 the content T2-T8 add did not exist, so any cap above the file's
+    length passed and the rest was the implementer's estimate.
+    """
+    import subprocess
+
+    completed = subprocess.run(
+        ["python3", "tools/lint-agents-md.py"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert completed.returncode == 0, (
+        "the AGENTS.md linter fails with every promotion present:\n"
+        + completed.stdout[-1500:]
+    )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
