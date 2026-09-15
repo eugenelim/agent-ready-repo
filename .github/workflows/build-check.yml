@@ -602,6 +602,7 @@ jobs:
           tests/roster/test_loop_run_event_contract.py
           tests/roster/test_loop_telemetry_disclosure_contract.py
           tests/roster/test_loop_telemetry_spec_tally.py
+          tests/roster/test_core_optional_runtime_dependency.py
 
       # agent-skill-engineering-consumer-integrations: the consumer half binds
       # packs/core, packs/architect and packs/agent-skill-engineering plus

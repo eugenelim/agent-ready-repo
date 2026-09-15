@@ -35,7 +35,6 @@ from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severi
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import catalogue_lint as catalogue_lint_command
 
-_REPO = Path(__file__).resolve().parents[4]
 
 # ---------------------------------------------------------------------------
 # Shared filesystem helpers
@@ -111,53 +110,6 @@ _PACK_A_TOML = (
     'recovery = "revert"\n'
 )
 _PACK_A_JSON = '{"name": "pack-a", "version": "0.1.0"}'
-
-
-def test_core_optional_runtime_dependency_is_report_only(
-    monkeypatch,
-    capsys,
-) -> None:
-    """AC-0039: an absent optional dependency is informational and read-only."""
-    real_distribution = _lint_module.importlib_metadata.distribution
-
-    def distribution_without_exporter(name: str) -> importlib_metadata.Distribution:
-        """Make exporter absence deterministic without hiding other distributions."""
-        if name == "jsonl-otlp-exporter":
-            raise _lint_module.importlib_metadata.PackageNotFoundError(name)
-        return real_distribution(name)
-
-    process_launches: list[tuple[object, ...]] = []
-
-    def reject_process_launch(*args: object, **kwargs: object) -> None:
-        """Fail if catalogue lint tries to invoke any external process."""
-        process_launches.append(args)
-        raise AssertionError(f"catalogue lint invoked a process: {args!r} {kwargs!r}")
-
-    monkeypatch.setattr(
-        _lint_module.importlib_metadata,
-        "distribution",
-        distribution_without_exporter,
-    )
-    monkeypatch.setattr(subprocess, "Popen", reject_process_launch)
-    monkeypatch.setattr(os, "system", reject_process_launch)
-
-    status = catalogue_lint_command.run(SimpleNamespace(
-        root=str(_REPO),
-        pack="core",
-        format="table",
-        deep=False,
-    ))
-    report = capsys.readouterr().err
-
-    assert "── core ──" in report
-    assert "jsonl-otlp-exporter" in report
-    assert "optional runtime dependency" in report
-    assert "unsatisfied" in report
-    assert status == 0
-    # Not redundant with the raise inside the hook: if catalogue lint ever
-    # caught the AssertionError on its way out, the launch would still be
-    # recorded here and this line is what would report it.
-    assert process_launches == []
 
 
 # ---------------------------------------------------------------------------
