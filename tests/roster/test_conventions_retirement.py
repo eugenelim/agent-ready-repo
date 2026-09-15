@@ -499,6 +499,22 @@ def test_seed_is_within_its_cap_with_every_promotion_present() -> None:
     )
 
 
+ARCH_README = REPO_ROOT / "docs/architecture/README.md"
+SEED_ARCH_README = REPO_ROOT / "packs/core/seeds/docs/architecture/README.md"
+
+# § 5a's operative content. Round 8 found T9's original test guarded the
+# `reference.md` seating, which belongs to § Document hierarchy and so to T3.
+ARCH_RULES = ("STATUS: PLANNED", "Last verified against commit", "current state")
+
+
+def test_architecture_readme_states_the_current_state_rules() -> None:
+    """§ 5a's own operative content, in both copies."""
+    for path in (ARCH_README, SEED_ARCH_README):
+        body = visible_prose(path.read_text(encoding="utf-8"))
+        absent = [r for r in ARCH_RULES if r not in body]
+        assert not absent, f"{path.relative_to(REPO_ROOT)} omits: {absent}"
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
