@@ -1,7 +1,7 @@
 # Plan: self-host state schema 3
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`docs/architecture/catalogue/state.md`](../../architecture/catalogue/state.md)
   (the file's current field list and its two named limits);
   [`docs/architecture/catalogue/upstream-sync.md`](../../architecture/catalogue/upstream-sync.md)

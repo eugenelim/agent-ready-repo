@@ -1,6 +1,6 @@
 # Spec: self-host state schema 3
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -151,18 +151,18 @@ Every outcome is a compressible invariant over a pure function or a single
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The `.agentbundle/self-host-state.json` that `catalogue init
+- [x] **AC-0001.** The `.agentbundle/self-host-state.json` that `catalogue init
       --preset self-hosted` writes carries `schema_version` `"3"`.
-- [ ] **AC-0002.** That file carries a `recipe` object whose keys are exactly
+- [x] **AC-0002.** That file carries a `recipe` object whose keys are exactly
       `packs`, `profiles`, `guides`, `attribution`, `tooling`, `name`,
       `display_name`, `description`, `owner_name`, `owner_email`,
       `preferred_adapter`, and `repository_url`.
-- [ ] **AC-0003.** That file carries a `pin` object whose keys include
+- [x] **AC-0003.** That file carries a `pin` object whose keys include
       `source_revision`, `archive_sha256`, and `synced_at`.
-- [ ] **AC-0004.** After a run that passes no pack or profile filter,
+- [x] **AC-0004.** After a run that passes no pack or profile filter,
       `recipe.packs` and `recipe.profiles` hold the resolved names the run
       selected — never `null`, an empty list, or a token standing for "all".
-- [ ] **AC-0005.** Under any `attribution` value other than `attributed`, the
+- [x] **AC-0005.** Under any `attribution` value other than `attributed`, the
       identity strings the file records — `recipe.name`, `display_name`,
       `description`, `owner_name`, `owner_email`, `preferred_adapter`,
       `repository_url`, and `pin.source_uri` — pass the same identity leak
@@ -171,23 +171,23 @@ Every outcome is a compressible invariant over a pure function or a single
       `managed_paths`, and `managed_target_path` hold names drawn from the
       source tree or the adopter's filesystem, not values the identity
       transform owns.
-- [ ] **AC-0006.** Under `--attribution attributed`, a re-run that supplies no
+- [x] **AC-0006.** Under `--attribution attributed`, a re-run that supplies no
       identity flags leaves every identity value in the target's
       `catalogue.toml` byte-identical to the first run's.
-- [ ] **AC-0007.** Under `--attribution attributed`, `pin.source_uri` holds the
+- [x] **AC-0007.** Under `--attribution attributed`, `pin.source_uri` holds the
       source path in the same resolved form the run used to read the source.
-- [ ] **AC-0008.** Under any other `attribution` value, the `pin` object has no
+- [x] **AC-0008.** Under any other `attribution` value, the `pin` object has no
       `source_uri` key.
-- [ ] **AC-0009.** For a local-path `--source`, `pin.source_revision` and
+- [x] **AC-0009.** For a local-path `--source`, `pin.source_revision` and
       `pin.archive_sha256` are both `null`.
-- [ ] **AC-0010.** `pin.synced_at` matches the pattern
+- [x] **AC-0010.** `pin.synced_at` matches the pattern
       `\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z` against the whole string, with no
       leading or trailing character of any kind.
-- [ ] **AC-0011.** Given a state file carrying `schema_version` `"2"` with
+- [x] **AC-0011.** Given a state file carrying `schema_version` `"2"` with
       neither a `recipe` nor a `pin` key, a path recorded in its
       `managed_paths` whose recorded `sha256` matches the file on disk, and
       which the current run no longer plans, is deleted from the target.
-- [ ] **AC-0012.** On a re-run over a target holding a schema-3 state,
+- [x] **AC-0012.** On a re-run over a target holding a schema-3 state,
       invoking `init` without a given field's flag produces the recorded value,
       read at that field's location:
 
@@ -203,23 +203,23 @@ Every outcome is a compressible invariant over a pure function or a single
       | `packs` | the directory names under the target's `packs/` |
       | `profiles` | the `.toml` file stems under the target's `profiles/` |
 
-- [ ] **AC-0013.** For each field AC-0012 enumerates, the same re-run invoked
+- [x] **AC-0013.** For each field AC-0012 enumerates, the same re-run invoked
       with that field's flag writes the flag's value, not the recorded one.
-- [ ] **AC-0014.** On a re-run over a target whose recipe records
+- [x] **AC-0014.** On a re-run over a target whose recipe records
       `attribution = "attributed"`, `tooling = "vendored"`, and
       `guides = "none"`, invoking `init` without `--attribution`, `--tooling`,
       or `--guides` resolves `white-label`, `external`, and `selected`
       respectively.
-- [ ] **AC-0015.** Every path that discards a recorded value — a failed field
+- [x] **AC-0015.** Every path that discards a recorded value — a failed field
       constraint, a `recipe` that is not an object, a read the confinement
       helper refuses, or a selection name the source does not ship — emits a
       diagnostic naming what was discarded and
       `.agentbundle/self-host-state.json` as its origin, without reproducing
       the discarded value. No discard is silent.
-- [ ] **AC-0016.** A `recipe` key whose value is not a JSON object is treated
+- [x] **AC-0016.** A `recipe` key whose value is not a JSON object is treated
       as absent, and the run produces the same derivation it would have
       produced had the key been missing.
-- [ ] **AC-0017.** Every value the generated `catalogue.toml` interpolates —
+- [x] **AC-0017.** Every value the generated `catalogue.toml` interpolates —
       `name`, `display_name`, `description`, `preferred_adapter`,
       `repository_url`, `owner_name`, `owner_email`, and each adapter entry —
       is escaped for that sink, so that a recorded value containing any
@@ -227,17 +227,17 @@ Every outcome is a compressible invariant over a pure function or a single
       backslash, a newline, and a control character such as `ESC` or `NUL` —
       leaves the document parseable and carrying exactly the tables and keys a
       benign value produces.
-- [ ] **AC-0018.** On a TTY re-run, the prompt for a recorded field offers the
+- [x] **AC-0018.** On a TTY re-run, the prompt for a recorded field offers the
       recorded value as its default, and a value typed at that prompt is the
       one written.
-- [ ] **AC-0019.** The version string in
+- [x] **AC-0019.** The version string in
       `packages/agentbundle/agentbundle/version.py` is `0.45.0`, and that same
       value appears in `packages/agentbundle/pyproject.toml`, the "What's new
       in" heading of `packages/agentbundle/README-pypi.md`, the topmost
       release heading of `packages/agentbundle/CHANGELOG.md`, the topmost
       `agentbundle` release heading of `docs/product/changelog.md`, and the
       `expected` literal in `tests/roster/test_okf_catalogue_discovery.py`.
-- [ ] **AC-0020.** Every recorded value is rejected before any use if it
+- [x] **AC-0020.** Every recorded value is rejected before any use if it
       carries a character that alters rendering or cursor state — the C0 and C1
       control ranges, the ANSI escape introducer, and the Unicode bidirectional
       and format overrides. This is a property of the value at read time, so it
@@ -245,11 +245,11 @@ Every outcome is a compressible invariant over a pure function or a single
       `catalogue.toml`, the whole-tree byte transform, the operator's terminal,
       and any diagnostic. It applies to every field, including those whose
       other constraint is a URL or address pattern.
-- [ ] **AC-0021.** The state file is read through the repository's confined
+- [x] **AC-0021.** The state file is read through the repository's confined
       regular-file helper, rooted at the target and bounded at 4 MiB; a file
       exceeding that bound is refused. When the helper refuses a read for any
       reason, the run produces the no-recipe derivation rather than aborting.
-- [ ] **AC-0022.** A recorded `packs` or `profiles` entry is used only when it
+- [x] **AC-0022.** A recorded `packs` or `profiles` entry is used only when it
       is a member of the set of names the source actually ships, compared as a
       name and never as a path fragment, so that an entry such as
       `../../elsewhere` is rejected rather than resolved. A rejected entry
