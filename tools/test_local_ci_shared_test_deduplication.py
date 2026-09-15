@@ -1180,7 +1180,12 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # no note of its own; it was the single addition
     # test_benign_initiative_display_fields_are_still_redacted, so the count
     # has a continuous account behind it again rather than a gap.
-    assert len(cli_contract) == len(direct_cli_nodes) == 165
+    # Re-pinned 2026-09-15: 165 -> 166. One addition, no removals, no renames:
+    #   test_skill_contract_handles_empty_display_fields
+    # It pins the rendering rule for an initiative whose workspace.toml section
+    # omits name or milestone -- a state the redaction sentinel made unreachable
+    # until display metadata began projecting as authored.
+    assert len(cli_contract) == len(direct_cli_nodes) == 166
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1402,7 +1407,8 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
     }
 
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 165
+    # Same delta as the re-pin note above; both literals move together.
+    assert len(direct_ids) == 166
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

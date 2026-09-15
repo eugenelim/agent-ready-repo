@@ -60,6 +60,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.4] — 2026-09-15
+
+### Fixed
+
+- `workspace-status`: an initiative whose `workspace.toml` section omits `name`
+  or `milestone` no longer renders a blank segment at orientation. Neither key
+  is required by the schema and no finding fires for a missing one, so both
+  project as empty strings; the rendering template now omits the segment rather
+  than showing `— ` followed by nothing. The state was unreachable while those
+  fields were redacted and became reachable when they began projecting as
+  authored in 2.26.2.
+
 ## [core][2.26.3] — 2026-09-14
 
 ### Highlights
