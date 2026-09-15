@@ -182,7 +182,8 @@ So the chain is D1 → D2 → V1 → D3. **Neither brief delivers as a unit**, a
 slice cut must follow that order rather than assume brief-atomic delivery.
 
 
-No slice is confirmed and no spec is authored. Each AC number below is a
+D1 is confirmed with a Shipped spec; D2 and D3 are unconfirmed with no authored
+spec. Each AC number below is a
 **ceiling and a stall threshold, never a floor**. A spec author stops below the
 ceiling when the feature is already atomic and testable; reaching it triggers a
 split or an explicit owner decision.

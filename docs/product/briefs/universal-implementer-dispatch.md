@@ -237,7 +237,8 @@ orchestration rewrite.
 
 ## Proposed slices
 
-No slice is confirmed and no spec is authored. Each AC number below is a
+U1 was confirmed on 2026-09-03 and its spec is Shipped; U3 and U2 are unconfirmed, and neither has an authored spec.
+Each AC number below is a
 **ceiling and a stall threshold, never a floor** — the single statement of that
 rule for this brief. Fewer independently testable criteria are correct when
 they cover the slice; reaching the ceiling triggers a split or an explicit

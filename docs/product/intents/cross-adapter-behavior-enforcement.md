@@ -277,28 +277,29 @@ inline cases are owner decisions rather than gaps, as § "De-risk" records.
 **Nothing else in the chain is missing** — the review phases already deliver
 and enforce, and the gate and closeout phases need no model.
 
-**One capability is partly delivered, and two further slices are unblocked.**
+**Two capabilities are partly delivered, and two further slices are unblocked.**
 All five capabilities now have briefs —
 [`universal-implementer-dispatch`](../briefs/universal-implementer-dispatch.md),
 [`spec-author-agent`](../briefs/spec-author-agent.md),
 [`phase-scoped-policy-delivery`](../briefs/phase-scoped-policy-delivery.md),
 [`policy-arrival-validator`](../briefs/policy-arrival-validator.md), and
 [`multi-adapter-eval-runner`](../briefs/multi-adapter-eval-runner.md) — and the
-intent → brief → confirmed slice → spec path has been walked once, by
-capability 1. Its U1 slice is **shipped**:
+intent → brief → confirmed slice → spec path has been walked by capability 1
+and capability 3. Capability 1's U1 slice is **shipped**:
 [`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)
-carries `Status: Shipped`, merged in `d7cf1b741`. That brief is `Executing`;
-every other capability brief is `Draft`.
+carries `Status: Shipped`, merged in `d7cf1b741`. The
+`universal-implementer-dispatch` and `phase-scoped-policy-delivery` briefs are
+`Executing`; the three remaining capability briefs are `Draft`.
 
-Two slices are unblocked right now: `spec-author-agent`'s S1, whose envelope
-gate U1 discharged, and `phase-scoped-policy-delivery`'s D1, which gates on
-nothing.
+`phase-scoped-policy-delivery`'s D1 shipped on 2026-09-04. The slices unblocked
+right now are `spec-author-agent`'s S1, whose envelope gate U1 discharged, and
+`universal-implementer-dispatch`'s U3, which gates after U1.
 
 ## Decomposition
 
-The capability level beneath this intent. Capability 1 is confirmed and has one
-shipped slice; the rest are unconfirmed. **The order is set by what unblocks
-what**, not by dependency alone.
+The capability level beneath this intent. Capabilities 1 and 3 are confirmed and
+each has one shipped slice; the remaining capabilities are unconfirmed. **The
+order is set by what unblocks what**, not by dependency alone.
 
 1. `universal-implementer-dispatch` — **the enabler, and unconditional.** Route
    every spec-backed plan task through the implementer agent sequentially
