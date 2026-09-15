@@ -1,8 +1,10 @@
 # Upstream sync for a derived catalogue
 
-> **STATUS: PLANNED.** Nothing in this document is implemented. It records the
-> designed architecture for `agentbundle catalogue sync` so the spec and plan
-> that build it have one place to disagree with.
+> **STATUS: PLANNED.** The `sync` verb does not exist; no phase of it is
+> implemented. The one prerequisite that changed `init` instead has shipped —
+> see § Shipped: credbroker source follows its pack. Everything else here
+> records the designed architecture for `agentbundle catalogue sync` so the
+> spec and plan that build it have one place to disagree with.
 >
 > Current-state context: [`derived-catalogue.md`](derived-catalogue.md) and
 > [`state.md`](state.md).
@@ -80,7 +82,7 @@ therefore preserved by reuse, not by a parallel implementation.
 
 ### Stage 3 — classify, never overwrite
 
-The unconditional write at `initialise_self_hosted.py:1059` is replaced by
+The unconditional write at `initialise_self_hosted.py:1145` is replaced by
 `safety.classify(relpath, root, state)`:
 
 | Tier | Condition | Action |
@@ -89,7 +91,7 @@ The unconditional write at `initialise_self_hosted.py:1059` is replaced by
 | Tier-2 | on-disk `sha256` differs — adopter edited it | `safety.write_companion` → `<name>.upstream.<ext>` |
 | Tier-3 | path absent from state | leave untouched, report |
 
-The `CONFLICT` abort at `:1051` becomes a Tier-3 row in the plan. Every write
+The `CONFLICT` abort at `:1137` becomes a Tier-3 row in the plan. Every write
 goes through `safety.write_jailed`, so the path jail is not optional; source
 reads keep using the confined helpers in `catalogue_tooling.file_safety`.
 
@@ -112,6 +114,11 @@ mechanism.
 run covers the recorded recipe. `catalogue.toml`, `tests/conformance/`, and the
 identity fields are derivation-wide and move only with a full sync.
 
+`--package` has two valid names, not one: `agentbundle` (present in vendored
+mode) and `credbroker` (present whenever the `credential-brokers` pack is
+selected, in either tooling mode). Both are real subtrees of a derived tree
+today — see § Shipped: credbroker source follows its pack.
+
 ## Compatibility is warn-only
 
 Sync **never refuses on a version signal it introduces**. It reports three
@@ -119,9 +126,9 @@ advisory rows from metadata the repository already maintains:
 
 | Signal | Source | Declared by |
 | --- | --- | --- |
-| Pack version moved | `[pack] version` | all 25 default-selected packs |
-| Adapter-contract version moved | `[pack.adapter-contract] version` vs `SPEC_VERSION` | 24 of 28 packs |
-| Declared dependency violated | `[pack.dependencies] required` / `conflicts` | 8 of 28 packs |
+| Pack version moved | `[pack] version` | all 21 default-selected packs |
+| Adapter-contract version moved | `[pack.adapter-contract] version` vs `SPEC_VERSION` | all 24 packs |
+| Declared dependency violated | `[pack.dependencies] required` / `conflicts` | 8 of 24 packs |
 
 This is a deliberate decision against a maintained compatibility matrix.
 Creating a signal strong enough to refuse safely means carrying versioned packs
@@ -131,7 +138,7 @@ Two consequences are accepted openly:
 
 - **The existing gate that looks like a backstop is inert.**
   `check_spec_version_gate` compares major components only
-  (`commands/_common.py:252`). The CLI ships `SPEC_VERSION = 0.18`; the 24
+  (`commands/_common.py:225`). The CLI ships `SPEC_VERSION = 0.18`; the
   declaring packs spread across `0.7`–`0.13`. Every one has major `0`, so the
   gate has passed for all of them since it was written. Sync still invokes it,
   because the gate's uniform-refusal contract is repository-wide and warn-only
@@ -180,71 +187,77 @@ Four, which makes this security-boundary work:
 Additive. `catalogue init`, `install`, `upgrade`, and `adapt` keep their
 contracts unchanged; removing the new verb restores the status quo exactly.
 
-0. **credbroker source follows its pack** — the prerequisite above. It changes
-   `init`, not `sync`, and stands alone: it restores the drift gate in derived
-   catalogues whether or not `sync` ever ships.
+0. ~~**credbroker source follows its pack**~~ — **done**, shipped in
+   agentbundle 0.44.2. It changed `init`, not `sync`, and stood alone: it
+   restored the drift gate in derived catalogues whether or not `sync` ever
+   ships. See § Shipped: credbroker source follows its pack.
+
+Four phases remain, in this order:
+
 1. **State schema 3** — recipe and pin fields, written by `init`, read by
    `sync`. Schema-2 states stay readable; such a target syncs by supplying the
    recipe flags once, which then persist.
 2. **`sync` with `--dry-run` and `--check` only** — resolve, replay, classify,
    and plan, with no write path.
 3. **The apply path**, plus the scoping flags.
-4. **Vendored package sync**, last, because it carries the self-replacement
-   risk.
+4. **Package sync** — both `packages/` subtrees a derived catalogue can carry,
+   `agentbundle` (vendored mode only) and `credbroker`. Last, because the
+   agentbundle half carries the self-replacement risk.
 
-## Prerequisite: credbroker source follows its pack
+## Shipped: credbroker source follows its pack
 
-Sync cannot manage what the derivation never copied, so this is a prerequisite
-to phase 3 rather than a part of it.
+Sync cannot manage what the derivation never copied. That dependency is now
+satisfied rather than pending: agentbundle 0.44.2 made `init` copy
+`packages/credbroker/` into the target whenever the `credential-brokers` pack
+is selected, in both tooling modes.
 
-`packages/credbroker/` is absent from a derived catalogue in both tooling modes,
-which silently disables the `user-libs` build primitive — the pack copy is a
-generated, drift-gated projection upstream and frozen, unverifiable content
-downstream. [`derived-catalogue.md`](derived-catalogue.md) § Gap has the
-mechanism.
+The reasoning still holds and is worth keeping. `packages/credbroker/` used to
+be absent from a derived catalogue in both tooling modes, which silently
+disabled the `user-libs` build primitive — the pack copy was a generated,
+drift-gated projection upstream and frozen, unverifiable content downstream.
+Copying it to `packages/credbroker/` is the path
+`user_libs._package_source_dir` already resolves, so projection and drift gate
+came back live with no change to `user_libs.py` itself, and an external-tooling
+adopter gets the same guarantee as a vendored one. This differs from
+agentbundle's vendored target (`.agentbundle/tooling/agentbundle/`) on purpose:
+agentbundle is vendored as an *install source* the adopter `pip install -e`s,
+while credbroker is a *build input resolved by relative path*. Same principle,
+different mechanics. [`derived-catalogue.md`](derived-catalogue.md) § Why
+credbroker source follows its pack has the current mechanism.
 
-**Decision:** copy `packages/credbroker/` to `packages/credbroker/` in the
-target whenever the `credential-brokers` pack is selected, independent of
-`--tooling`. That is the path `user_libs._package_source_dir` already resolves,
-so projection and drift gate come back live with no code change, and an
-external-tooling adopter gets the same guarantee as a vendored one.
-
-This differs from agentbundle's vendored target
-(`.agentbundle/tooling/agentbundle/`) on purpose: agentbundle is vendored as an
-*install source* the adopter `pip install -e`s, while credbroker is a *build
-input resolved by relative path*. Same principle, different mechanics.
-
-Once the source is present, `packages/` becomes a sync-scopable subtree and
-`--package credbroker` means what it says.
+The consequence for sync: `packages/` is already a sync-scopable subtree, so
+`--package credbroker` names something real from the first phase that ships a
+scoping flag. § Granularity's `--package <name>` therefore covers two packages
+in phase 4 — `agentbundle` and `credbroker` — not one.
 
 ## White-label pins carry no upstream identity
 
 The leak check scans only the planned byte map, and the state file is written
-after it. So `.agentbundle/self-host-state.json` is never scanned — while
-already recording `source_pack_identity` from the upstream catalogue's `name`,
-the exact string white-label mode bans everywhere else. The adopter commits and
-ships that file. This is a live defect, not a documented carve-out.
+after it, so `.agentbundle/self-host-state.json` is never scanned. That scope
+is deliberate and stays. The consequence is a standing rule rather than a
+defect: **every field written to this file must be safe on its own.**
 
-Adding `source_uri` would make it materially worse. A bare name is a string
-someone might dismiss as coincidence; `git+https://github.com/<owner>/<repo>@<ref>`
-is a working pointer that names owner, repository, and ref.
+`source_pack_identity` already follows that rule. Since agentbundle 0.44.2 it
+records the derived catalogue's name under white-label and the upstream name
+only under `attributed`, where attribution makes no promise of anonymity.
+
+`source_uri` is the field phase 1 must hold to the same rule, and it is the
+harder case. A bare upstream name is a string someone might dismiss as
+coincidence; `git+https://github.com/<owner>/<repo>@<ref>` is a working pointer
+that names owner, repository, and ref.
 
 **Decision — under `--attribution white-label`, the pin is opaque:**
 
-| Field | `attributed` | `white-label` |
-| --- | --- | --- |
-| `source_uri` | recorded | omitted |
-| `source_revision` | recorded | recorded — a ref such as `v1.2.3` identifies nothing |
-| `archive_sha256` | recorded | recorded — a digest identifies nothing |
-| `source_pack_identity` | upstream name | the **derived** catalogue's name |
+| Field | `attributed` | `white-label` | Status |
+| --- | --- | --- | --- |
+| `source_pack_identity` | upstream name | the **derived** catalogue's name | shipped, 0.44.2 |
+| `source_uri` | recorded | omitted | phase 1 |
+| `source_revision` | recorded | recorded — a ref such as `v1.2.3` identifies nothing | phase 1 |
+| `archive_sha256` | recorded | recorded — a digest identifies nothing | phase 1 |
 
 `--check` is unaffected: it compares digests, not URIs. The only loss is that a
 bare `sync` cannot re-resolve its source under white-label, so the adopter
 passes `--source` each run — which the command takes anyway.
-
-The last row closes the existing defect rather than documenting it. Under
-`attributed`, upstream identity stays permitted, consistent with the two
-declared attribution surfaces.
 
 ## Alternatives rejected
 

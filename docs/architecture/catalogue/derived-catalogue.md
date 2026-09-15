@@ -18,7 +18,9 @@ The implementation is
 Selection is by default inclusive. With no `--pack`, `--profile`, or `--adapter`
 flags, `select_packs` returns every directory under `packs/` except tooling
 packs (`catalogue-curation`) and `_`-prefixed ones. Measured against this
-repository: **25 packs and 7 profiles**.
+repository on 2026-09-14: **21 packs and 3 profiles** — 24 pack directories
+less `catalogue-curation` and the two `_`-prefixed ones, and the three
+top-level `profiles/*.toml` files.
 
 | Source | Target | Controlled by |
 | --- | --- | --- |
@@ -26,6 +28,7 @@ repository: **25 packs and 7 profiles**.
 | `profiles/<name>.toml` | `profiles/<name>.toml` | `--profile` (repeatable); all by default |
 | `guides/_shared/` | `guides/_shared/` | `--guides selected`; `--guides none` copies nothing |
 | `tests/conformance/` | `tests/conformance/` | always, in both tooling modes |
+| `packages/credbroker/` | `packages/credbroker/` | selection of the `credential-brokers` pack, in both tooling modes; `tests/` excluded |
 | generated | `catalogue.toml` | `--name`, `--display-name`, `--owner-*`, `--repository-url` |
 
 Two more targets exist in `--tooling vendored` mode only:
@@ -48,17 +51,17 @@ is no per-guide flag.
 
 ## What is not copied
 
-`docs/`, `contracts/`, `tools/`, `web/`, `packages/credbroker/`, and
-`packs/catalogue-curation/` (outside vendored mode) stay upstream. The derived
-tree is a filtered subset, and which filter produced it is knowledge that lives
-only in the init invocation — not in the tree.
-
-`packages/credbroker/` is on that list by omission rather than by design, and it
-has consequences the others do not — see § Gap below.
+`docs/`, `contracts/`, `tools/`, `web/`, and `packs/catalogue-curation/`
+(outside vendored mode) stay upstream. The derived tree is a filtered subset,
+and which filter produced it is knowledge that lives only in the init
+invocation — not in the tree.
 
 ## How credbroker reaches a derived catalogue
 
-Through the `credential-brokers` pack, not through `packages/`.
+Two ways, both keyed to one flag-free condition: the `credential-brokers` pack
+being selected. The runnable copy rides inside the pack. The package source
+that generates that copy is copied alongside it, so the projection that keeps
+the two in step keeps working downstream.
 
 [`build/user_libs.py`](../../../packages/agentbundle/agentbundle/build/user_libs.py)
 projects `packages/credbroker/credbroker/` byte-faithfully into
@@ -76,41 +79,42 @@ The four packs that depend on it — `atlassian`, `figma`, `linear`, and
 `credential-brokers`. There is no machine-readable edge from any pack to the
 `credbroker` *library version*.
 
-### Gap: the user-libs gate goes silent in a derived catalogue
+### Why credbroker source follows its pack
 
-`packages/credbroker/` is not copied in either tooling mode, and
-`user_libs._package_source_dir` resolves its source of truth as
-`packs_dir.parent / "packages/credbroker/credbroker"` — that is,
-`<catalogue-root>/packages/credbroker/credbroker/`. In a derived tree that path
-does not exist, so `compute_projections` returns an empty list and **both**
-consumers become no-ops:
+`user_libs._package_source_dir` resolves the source of truth by relative path:
+`packs_dir.parent / "packages/credbroker/credbroker"`, that is
+`<catalogue-root>/packages/credbroker/credbroker/`. A derived tree must carry
+the package at exactly that path or the resolver finds nothing.
 
-- `apply_projection` writes nothing, so `catalogue self-host` never produces the
-  `.agentbundle/lib/credbroker/` floor staging that this repository commits.
-- `check_drift` compares nothing and returns clean.
+So init copies `packages/credbroker/` into the target whenever the
+`credential-brokers` pack is selected, in **both** tooling modes — an
+external-tooling adopter running `catalogue self-host` needs the resolver to
+land just as much as a vendored one. Two details keep the copy in shape:
 
-The module docstring names this outcome exactly: *"if the package source were
-ever deleted, the gate goes silent."* A derived catalogue reaches it by
-omission rather than deletion.
+- The destination is derived from the resolver's own constant
+  (`_USER_LIBS_PACKAGE_DIR = PACKAGE_SUBPATH.parent.as_posix()`) rather than
+  re-spelled, so the copy follows the resolver if that path ever moves.
+- `tests/` is excluded, matching `user_libs.collect_sources`, which already
+  skips `tests` subtrees. The drift gate therefore compares the same file set
+  on both sides, and the exclusion costs it nothing.
 
-The `.apm/user-libs/credbroker/` copy still arrives with the pack, so credbroker
-**runs**. What the adopter loses is every other property: they cannot regenerate
-it, cannot patch it from source, and get no drift signal if they or an upstream
-sync modify it. The copy is a generated projection upstream and frozen,
-unmanaged content downstream — and `tests/conformance/`, the four-file suite
-init does copy, has no user-libs coverage to catch the difference.
+Absent the package, `compute_projections` returns an empty list and **both**
+consumers become silent no-ops: `apply_projection` writes no
+`.agentbundle/lib/credbroker/` floor, and `check_drift` compares nothing and
+reports clean. The `.apm/user-libs/credbroker/` copy still arrives with the
+pack either way, so credbroker would keep **running** — as frozen content with
+no source and no drift signal, the shape that hides a change rather than
+announcing it. `tests/conformance/`, the four-file suite init copies, has no
+user-libs coverage to catch that difference. Init emits a diagnostic when the
+source directory is missing, naming that outcome rather than passing quietly.
 
-The agentbundle precedent resolves this. `packages/agentbundle/` is vendored to
-`.agentbundle/tooling/agentbundle/` because it is an *install source* — the
-adopter `pip install -e`s it. `packages/credbroker/` is a *build input resolved
-by relative path*, so the equivalent move is to copy it to
-`packages/credbroker/` in the target, where the existing resolver already looks.
-That reactivates projection and drift gate with no code change. The natural rule
-is that **credbroker source follows its pack** — copied whenever
-`credential-brokers` is selected, independent of `--tooling` — because an
-external-tooling adopter running `catalogue self-host` hits the same silent gate
-as a vendored one. [`upstream-sync.md`](upstream-sync.md) carries this as a
-decision, not an open question.
+This is deliberately **not** the `packages/agentbundle/` treatment.
+`packages/agentbundle/` is vendored to `.agentbundle/tooling/agentbundle/`
+because it is an *install source* the adopter `pip install -e`s. credbroker is
+a *build input resolved by relative path*. Same principle, different mechanics:
+the two paths are not interchangeable and **must not be reconciled**. The
+shipped code carries that warning as a comment on `_USER_LIBS_PACKAGE_DIR`, for
+the same reason it appears here.
 
 ## Identity and the leak boundary
 
@@ -123,17 +127,28 @@ the transformed bytes in a temporary directory, and violations fail the run
 with nothing written — so `--dry-run` surfaces the same violations a real run
 would. This ordering is why white-label safety does not depend on cleanup.
 
-**The leak check has a blind spot, and it is a live defect.** The check scans
-only the planned byte map. The state file at
-`.agentbundle/self-host-state.json` is written four steps later and is never in
-that map, so it is never scanned — and it records `source_pack_identity`,
-assigned from the upstream catalogue's `name`. That is the exact string
-white-label mode bans everywhere else in the tree, sitting in a file the
-adopter commits and ships.
+**The leak check has a structural blind spot, and that part is deliberate.**
+The check scans only the planned byte map. The state file at
+`.agentbundle/self-host-state.json` is written four steps later, is never in
+that map, and so is never scanned. That is still true. Bringing the state file
+inside the check would make a usable pin impossible in the very mode that most
+needs control over what ships, so the scope stays as it is.
 
-The decided fix is the opaque-pin rule in
+What closed is the one leak that ran through it. `source_pack_identity` used to
+be assigned from the upstream catalogue's `name` unconditionally — the exact
+string white-label mode bans everywhere else in the tree, sitting in a file the
+adopter commits and ships. `_source_pack_identity(source_meta, cfg)` now
+decides the value: the source catalogue's name under `attributed`, where
+attribution makes no promise of anonymity, and the **derived** catalogue's name
+otherwise. The branch tests for `attributed` rather than for `white-label`, so
+any other attribution mode added later fails closed to the non-disclosing
+value.
+
+The blind spot therefore still bounds what may be written there: any future
+field in this file has to be safe on its own, because no control will check it.
+See [`state.md`](state.md) for the field-level shape, and
 [`upstream-sync.md`](upstream-sync.md) § White-label pins carry no upstream
-identity. See [`state.md`](state.md) for the field-level shape.
+identity for the pin fields a later phase adds under the same constraint.
 
 ## What a re-run does today
 
@@ -141,9 +156,9 @@ Re-running `init` at an existing target is the only update path that exists,
 and it is not safe for a tree the adopter has edited:
 
 - **Managed files are overwritten unconditionally**
-  (`initialise_self_hosted.py:1059`). No hash is compared, no companion is
+  (`initialise_self_hosted.py:1145`). No hash is compared, no companion is
   written, nothing is reported. Adopter edits are lost.
-- **One unmanaged file aborts the whole run** (`:1051`). `classify_conflicts`
+- **One unmanaged file aborts the whole run** (`:1137`). `classify_conflicts`
   runs over every planned file absent from the ownership state, and any
   pre-existing one is a `CONFLICT` that fails the command.
 - **Stale removal disagrees with both.** `_remove_stale_owned_paths` compares

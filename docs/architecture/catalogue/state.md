@@ -41,23 +41,29 @@ overwrites, lands as a `.upstream.<ext>` companion, or is refused.
 ## Derivation state — `.agentbundle/self-host-state.json`
 
 Written after the identity leak check, so it is not part of the checked byte
-map — a blind spot with consequences under `--attribution white-label`, below.
+map. That is deliberate and permanent: every value written here has to be safe
+on its own, because no control will scan it.
 
 ```
 schema_version        "2"
 managed_paths         [{path, sha256}] — every file init wrote
 adapters              the adapter set the derivation targeted
 managed_target_path   the absolute target this state describes
-source_pack_identity  the upstream catalogue's name
+source_pack_identity  under `attributed`, the upstream catalogue's name;
+                      under any other attribution mode, the derived one's
 source_root_kind      "self-hosted-source"
 ```
+
+`_source_pack_identity` picks that value, branching on `attributed` rather than
+on `white-label` so an attribution mode added later gets the non-disclosing
+name by default.
 
 `managed_paths` is the ownership boundary: a path in it is one init wrote, and
 a path absent from it belongs to the adopter. `_remove_stale_owned_paths` is
 the only consumer today. It removes a path that has left the plan **only** when
 the recorded `sha256` matches disk — so an adopter-edited file is never deleted.
 
-Three limits follow from the current shape:
+Two limits follow from the current shape:
 
 - **Schema-1 entries are permanently inert.** `_migrate_managed_paths` converts
   a bare string path to `{path, sha256: None}`. A `None` hash cannot satisfy the
@@ -65,13 +71,10 @@ Three limits follow from the current shape:
   can be neither updated safely nor removed.
 - **No recipe, no pin.** The file records what was written but not what was
   *chosen* (packs, profiles, guides mode, attribution mode, identity fields) and
-  not which upstream it came from beyond a bare catalogue name. Both gaps are
-  why a re-run cannot reproduce the derivation — see
+  not which upstream it came from — beyond a bare catalogue name under
+  `attributed`, and nothing at all under white-label. Both gaps are why a
+  re-run cannot reproduce the derivation — see
   [`derived-catalogue.md`](derived-catalogue.md) § What a re-run does today.
-- **`source_pack_identity` leaks under white-label.** It holds the upstream
-  catalogue's `name` — the exact string white-label mode bans everywhere the
-  leak check reaches. Because this file is written after that check, it is never
-  scanned, and the adopter commits and ships it.
 
 ## Planned: schema 3
 
@@ -87,11 +90,12 @@ pin      source_uri, source_revision, archive_sha256, synced_at
 provenance names deliberately — one vocabulary across both state files.
 
 Under `--attribution white-label` the pin is written in opaque form:
-`source_uri` is omitted, `source_pack_identity` holds the **derived** name
-rather than the upstream one, and only `source_revision` and `archive_sha256`
-are recorded — a ref and a digest, neither of which identifies upstream.
-`--check` still works, because it compares digests. This closes the
-`source_pack_identity` leak above rather than documenting it.
+`source_uri` is omitted, and only `source_revision` and `archive_sha256` are
+recorded — a ref and a digest, neither of which identifies upstream.
+`source_pack_identity` already holds the **derived** name in that mode, so
+schema 3 changes nothing there; the new work is the `source_uri` omission,
+which keeps a working `git+https://…` pointer out of a file no leak check
+scans. `--check` still works, because it compares digests.
 
 This file has no contract in [`contracts/`](../../../contracts/). It is defined
 in code only.
