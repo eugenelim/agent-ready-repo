@@ -1132,6 +1132,19 @@ open = [
   # own chat-only provenance lives in its Source block, not here -- the same
   # shape the other chat-only intents use. Unblocks now; no dependency.
   {path = "docs/product/intents/skill-sequence-wayfinding.md", kind = "intent", source = {mode = "repo-origin"}, summary = "A practitioner knows what to run next and where they are in the sequence, from the surface they are already on, agreeing with the sequence their pack declares", needs = []},
+  # Found 2026-09-15 while correcting `supervisor-mode.md`, which claimed
+  # `schedule` fails loud on an ill-formed plan. Two of the three plan shapes are
+  # already right: a dependency cycle stops the run, and a forward reference warns
+  # on stderr and is reordered so the dependency runs first -- that contract is
+  # pinned by test_schedule_warns_but_reorders_on_forward_ref, so it is settled and
+  # not in scope here. The third shape is the gap: an ID naming no task in the plan
+  # disappears, which is the case that actually runs work out of order.
+  # NOT mechanical -- an owner decision, because refusing reds any adopter plan that
+  # currently carries a stale ID. Whoever takes it: the predicate must key off the
+  # whole plan's task set, NOT `remaining_set`. `schedule_unfinished_plan`
+  # intersects with `remaining_set` on purpose so a completed dependency counts as
+  # met; keying the new check there instead reds every amended plan.
+  {path = "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py", kind = "defect", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/references/supervisor-mode.md"}, summary = "`loop-cohort schedule` silently drops a `Depends on:` entry naming a task the plan does not contain: only IDs present in the plan's own task set are kept, so the edge is lost with no warning and no error, the tasks collapse into one wave, and the per-wave GATES run collapses with them. Cross-spec dependency forms are unaffected. Refusing is a breaking change for any plan carrying a stale ID, so it needs an owner decision and an acceptance criterion.", needs = []},
 
 ]
 

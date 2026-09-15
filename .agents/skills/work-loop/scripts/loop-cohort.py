@@ -1423,6 +1423,12 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
         f"loop-cohort: schedule persisted for {spec_dir.name} "
         f"({len(waves)} wave(s), plan_hash={plan_hash[:12]}…)"
     )
+    print(
+        "loop-cohort: dispatch — send each task above to one implementer subagent, one\n"
+        "  at a time, when that agent is installed; otherwise run them yourself and note\n"
+        "  the degradation in the final summary. Scheduling, gates, review and state\n"
+        "  stay with you."
+    )
     return 0
 
 
