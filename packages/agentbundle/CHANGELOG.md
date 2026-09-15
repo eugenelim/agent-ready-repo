@@ -24,6 +24,27 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   in-process: no package manager is invoked, nothing is installed, and the exit
   code stays 0.
 
+## [0.44.2] — 2026-09-14
+
+### Fixed
+
+- `catalogue init --preset self-hosted` copies `packages/credbroker/` into the
+  target whenever the `credential-brokers` pack is selected, in both tooling
+  modes. The user-libs projection resolves its source by relative path, so a
+  derived catalogue that omitted it reached the whole-package-retirement
+  branch by accident: the projection found no sources, `catalogue self-host`
+  wrote no `.agentbundle/lib/credbroker/` floor, and the drift gate compared
+  nothing and reported clean. The pack-vendored copy still arrived, leaving
+  frozen content with no source and no drift signal. This is not the
+  `packages/agentbundle/` treatment — that tree is vendored to
+  `.agentbundle/tooling/` because it is an install source, while this is a
+  build input resolved by relative path.
+- `--attribution white-label` records the derived catalogue's name in
+  `.agentbundle/self-host-state.json`, not the upstream one. The identity scan
+  runs over the planned file map before that file is written, so the upstream
+  name — identity anchor #1, which the scan allows zero hits of anywhere —
+  reached a file the adopter commits and ships. `attributed` is unchanged.
+
 ## [0.44.1] — 2026-09-13
 
 ### Changed

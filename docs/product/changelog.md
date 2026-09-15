@@ -120,6 +120,114 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
 
+## [core][2.26.3] — 2026-09-14
+
+### Highlights
+
+- `workspace-status` can now prune an explicitly approved selection of
+  delivery artifacts. A successful exit guarantees that every selected
+  artifact directory and every workspace membership resolving to it are
+  absent, proven in one coherent observation taken while the shared workspace
+  lock is held. If either half survives, the command fails and names which
+  one, rather than reporting success.
+- An interrupted prune is now recoverable from the command's own output: a
+  failure names the selection and how far it got, and a busy lock names the
+  lock file and the process holding it.
+- Creating a durable work artifact now coordinates with that same lock, so an
+  intake and a prune can no longer interleave and leave the register
+  disagreeing with what is on disk.
+
+### Added
+
+- `workspace-status prune` removes a selected artifact together with every
+  workspace entry resolving to it, including duplicate, legacy-alias and
+  non-spec-kind forms. It requires an explicit confirmation bound to the
+  selection and to the artifacts' recorded state; `prune --preview` emits the
+  unsigned challenge a caller needs to build one. A repository-level protected
+  list refuses targets that must never be removed, comments and formatting in
+  `workspace.toml` are preserved, and nothing outside the selection changes.
+
+## [core][2.26.2] — 2026-09-14
+
+### Highlights
+
+- **`workspace-status` shows you which initiative is which again.** Orientation
+  used to list bare slugs, because the projection replaced each initiative's
+  name and milestone with a stand-in meaning "this value was not safe to hand
+  to an agent." That guard was added when display text from `workspace.toml`
+  was treated as untrusted input. It is not: `workspace.toml` lives inside the
+  repository it describes, so anyone who can reach it already has the source,
+  and the guard was costing readability for a risk that was not there. A
+  session now opens with `ini-002 — Platform Core (milestone: P5 · Adopt (M1–M5
+  shipped))`.
+
+### Changed
+
+- `workspace-status`: `initiatives[].name` and `initiatives[].milestone` carry
+  the values `workspace.toml` assigns, as authored. Non-string values are
+  coerced to their text form, so the fields are always JSON strings. `SKILL.md`
+  describes and renders both fields and no longer instructs the consumer to
+  render the slug alone.
+
+## [core][2.26.1] — 2026-09-14
+
+### Highlights
+
+- **`workspace-status` no longer tells you an initiative is called
+  "workspace.toml".** An initiative's name and milestone are free text you type
+  into `workspace.toml`, and the status tool deliberately never passes them
+  through — they always come back as the literal `workspace.toml`, the same
+  stand-in every other field uses to mean "this value was not safe to hand to an
+  agent." The skill's own instructions had not caught up and still told the agent
+  to print them, so a status run announced `ini-002 — workspace.toml (milestone:
+  workspace.toml)`. Active initiatives now show their slug alone.
+
+### Fixed
+
+- `workspace-status`: the key list and the "Active initiatives" rendering
+  template described `initiatives[].name` and `initiatives[].milestone` as
+  values to display. Both are documented as the redaction sentinel, the
+  rendering template shows the slug alone, and the skill is told not to read
+  `workspace.toml` to recover either value — doing so would put back the
+  untrusted prose the sentinel keeps out of agent context.
+
+## [agentbundle][0.44.2] — 2026-09-14
+
+### Highlights
+
+- **A catalogue you derive now keeps a working check on its vendored
+  `credbroker` code.** `catalogue init --preset self-hosted` copied the
+  vendored copy of that code but left its source behind, and the check that
+  compares the two passed by finding nothing to compare. The copy was frozen:
+  an edit to it went unreported, and `catalogue self-host` never produced the
+  staged floor it is meant to write. Selecting the `credential-brokers` pack
+  now brings the source across too, so the comparison is real again.
+- **`--attribution white-label` no longer leaves the upstream catalogue's name
+  in a file you commit.** That mode promises no upstream trace, and the scan
+  enforcing it allows the upstream name zero occurrences anywhere — but the
+  scan runs before `.agentbundle/self-host-state.json` is written, so the name
+  landed there unchecked. The file now records your own catalogue's name.
+  `--attribution attributed` is unchanged and still records the upstream name.
+
+### Fixed
+
+- `catalogue init --preset self-hosted` copies `packages/credbroker/` into the
+  target whenever the `credential-brokers` pack is selected, independent of
+  `--tooling`. `agentbundle/build/user_libs.py` resolves the package by
+  relative path at `<catalogue root>/packages/credbroker/credbroker/`; absent
+  it, `compute_projections` returns an empty list and both of its consumers
+  become silent no-ops — `apply_projection` writes no
+  `.agentbundle/lib/credbroker/` floor and `check_drift` reports clean over
+  nothing. The copy carries no test content, matching the boundary the
+  vendored-pack copy already draws.
+- `--attribution white-label` records the derived catalogue's name as
+  `source_pack_identity` in `.agentbundle/self-host-state.json`. The leak check
+  runs over the planned file map at step 9 and that file is written at step 13,
+  so it was never scanned. Its scope is deliberately unchanged: bringing the
+  state file inside the check would make a usable upstream pin impossible in
+  the mode that most needs control over what ships, so the recorded value
+  changed instead.
+
 ## [core][2.26.0] — 2026-09-13
 
 ### Changed

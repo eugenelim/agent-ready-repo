@@ -166,10 +166,12 @@ biting. None of it is a claim about an adopter's project.*
 
 **1. Four layout defects reached a reader in one session**, on a surface built
 with this pack's doctrine. Prompt code blocks overflowed by **1,863px**
-(`web/src/test/e2e/guidebook-walk.spec.ts:50`); a navigation rail rendered behind
-the site header at rest, losing its first **36px** (`:135`); once pinned, the
-rail's own header covered entries **2 and 3** of its list (`:69`); and an in-page
-table of contents held **one entry** because the headings were `####` against a
+(`web/src/test/e2e/guidebook-walk.spec.ts`, "overflowed by 1,863px");
+a navigation rail rendered behind the site header at rest, losing its first
+**36px** (`docs-site/src/styles/starlight.css`, "first 36px of the rail");
+once pinned, the rail's own header covered entries **2 and 3** of its list
+(`guidebook-walk.spec.ts`, "hiding items 2 and 3"); and an in-page table of
+contents held **one entry** because the headings were `####` against a
 site that indexes `h2`–`h3` (`docs/guides/guidebook-step-contract.md:84-87`). A
 human found all four by looking.
 
@@ -177,9 +179,9 @@ human found all four by looking.
 passed while the element sat behind the header; a padding assertion passed while
 content scrolled underneath it; "the header is not covered" passed while the
 header covered its own list. The repository records the shape: "Both mutations of
-the fix passed that check, which is how a control that cannot fail looks from the
-outside" (`guidebook-walk.spec.ts:128-131`). Note what ended it — not a better
-assertion, a person looking.
+the fix passed that check, which is how a control that cannot fail looks from
+the outside" (`guidebook-walk.spec.ts`, "the fix passed that check"). Note
+what ended it — not a better assertion, a person looking.
 
 **3. It is not one bad session.** The same shape — content behind fixed chrome,
 past every gate, found by looking — had already happened on a different surface
@@ -227,7 +229,22 @@ nature — it is that a reader of a diff executes nothing. Attributing the gap t
 **2. The recorded numbers differ from the ones this started with.** 1,863px not
 1,775; one TOC entry not zero; entries 2 and 3; 36px. The 128-state sweep is not
 in the repository — what shipped is 90 (3 viewports × 5 steps × 3 page-scroll ×
-2 rail-scroll, `guidebook-walk.spec.ts:18-33`, `:78-79`).
+2 rail-scroll, as the sweep stood at `f2b1f5ab4`). That arithmetic is a frozen
+historical record and is deliberately not pointed at the live tables, which no
+longer yield it. The
+sweep has since grown, and this note no longer states its current state count.
+That figure was wrong here twice — once by outliving its inputs, once when both
+inputs were stated a viewport short and the total survived because the errors
+cancelled — and the recipe given for re-deriving it was itself incomplete: which
+viewports reach the scroll loops is decided by Starlight's own `72rem` query in
+`node_modules`, not by anything this note cites. A count that needs an input
+from outside the repository to stay true does not belong in a durable note. The
+90 above is the figure as shipped, and stays as the historical measure.
+
+Citations into the files that change alongside this note quote a fragment
+instead of naming a line, because a line number into a file under active edit
+is stale by the next commit. Citations into files this change does not touch
+keep their line ranges.
 
 **3. Two of my own earlier claims are withdrawn.** "Every reviewer is read-only"
 is false — `adversarial-reviewer.md:4`, `quality-engineer.md:4` and
