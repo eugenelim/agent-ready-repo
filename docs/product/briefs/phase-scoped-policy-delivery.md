@@ -182,8 +182,7 @@ So the chain is D1 → D2 → V1 → D3. **Neither brief delivers as a unit**, a
 slice cut must follow that order rather than assume brief-atomic delivery.
 
 
-D1 is confirmed with a Shipped spec; D2 and D3 are unconfirmed with no authored
-spec. Each AC number below is a
+Each AC number below is a
 **ceiling and a stall threshold, never a floor**. A spec author stops below the
 ceiling when the feature is already atomic and testable; reaching it triggers a
 split or an explicit owner decision.
@@ -202,23 +201,12 @@ cite the same guide rather than creating phase-specific duplicates.
 brief, so "after capability 1" reads as "after every slice of
 `universal-implementer-dispatch`" — which includes U2, and U2 gates on D3. The
 two briefs then appear to block each other although nothing real does, because
-D3 needs only the *envelope*. That phantom deadlock was measured and recorded by
-the sibling, under a § "Proposed slices" sub-heading titled **"Reconciliation
-obligation, owed before U2 is confirmed and not before U1"**, which names the
-amendment as this brief's to make: the gating "must be amended from
-`capability 1` to `U1`".
+D3 needs only the *envelope*. The D3 row above owns the gating fact and names
+U1, the slice that delivers the sequential implementer envelope. No real
+dependency waits on U2, U3, or the sibling brief as a whole.
 
-That obligation reached `main` with U1, in the PR #1220 merge `d7cf1b741`
-(2026-09-03), so the paragraph is readable in
-[`universal-implementer-dispatch.md`](universal-implementer-dispatch.md) on this
-checkout.
+Settled 2026-09-03, the remaining per-slice gating token and its rationale are:
 
-Settled 2026-09-03, and the wording above is that amendment:
-
-- **D3 gates on U1**, the slice that delivers the sequential implementer
-  envelope, matching the precedent already set by `spec-author-agent.md`'s S1
-  ("after **U1** defines the shared envelope contract"). It does not gate on U2,
-  U3, or the sibling brief as a whole.
 - **D2's gating token is S1, and a second edge reaches S2.** The *envelope* D2
   inlines into is S1's deliverable, so the token names S1 rather than the whole
   capability. But D2's Verification column names a fixture that "enters a
@@ -324,36 +312,16 @@ primitive exceeds it and returns to shaping.
   is why D1 reserves `DIRECT-LIGHT`. `universal-implementer-dispatch.md` records
   the same gap from the consuming side and leaves two options open: widen D3, or
   let U2 own light-path assembly. Neither is chosen, and neither bears on D1.
-- **Open — the registry schema and exact files under the work-loop skill's
-  blessed `references/` tree are not chosen.** No policy-family registry exists
-  in runtime sources. Search:
-
-  ```text
-  rg -n "policy[_ -]famil|phase[_ -]polic|selected[_ -]famil|policy[_ -]verdict" \
-    packs/core/.apm packages/agentbundle/agentbundle tools \
-    -g '*.py' -g '*.json' -g '*.toml' -g '*.md'
-  # exit 1: no matches
-  ```
-
-- **Open, decided at D1's slice confirmation — the initial phase-to-family map
-  is not selected.** The parent names candidate decompositions but authorizes no
-  family list. The candidates are not open-ended:
+- **Closed 2026-09-04 — D1 supplied the registry and selector.** The registry is
+  `packs/core/.apm/skills/work-loop/references/policy-families.md`; its selector
+  is `packs/core/.apm/skills/work-loop/scripts/select-policy-families.py`.
+- **Closed 2026-09-04 — D1 selected and shipped the initial phase-to-family
+  map.** The registry carries five families, two at tier `precise` and three at
+  tier `advisory`, with an entry for each legal FSM state plus the reserved
+  `DIRECT-LIGHT` key. The selection was drawn from
   [`guidance-activation-measurement.md`](guidance-activation-measurement.md)
-  § "Scope / Non-goals" → "The local stratum — six named rules" carries a
-  **floor measured 2026-09-02** that already names each rule's canonical home and
-  whether it is gradable — `work-intake` public routing precedence, the
-  observable-outcome rule, `new-spec` step 5a, the razor's bounded-search rung,
-  repository anchoring, and cognitive-load simplification. D1 selects its initial
-  families from that measured set and classifies each `precise` or `advisory`
-  under the parent's tier semantics.
-
-  D1 takes no dependency on that brief's M1 slice. M1 owns finalising that
-  table's *locator* and *gradability* columns, and the same section binds
-  membership independently: the
-  six rules are "a floor M1 may not silently drop", and a rule that proves
-  ungradable is an owner escalation rather than a substitution. So M1 can change
-  how a rule is measured but not which rules are in the floor, and D1's registry
-  is a *delivery* list that may diverge from the *measurement* corpus in any case.
+  § "Scope / Non-goals" → "The local stratum — six named rules", the
+  **floor measured 2026-09-02**, rather than invented for the registry.
 - **Open — the dispatch API's exact byte handoff is not established.** D2 and
   D3 need a construction test showing that the artifact validated by V1 is the
   brief sent to the subagent, not a nearby copy.
@@ -380,8 +348,7 @@ semantic fields, and the Spec map may be empty.
 | phase-policy-registry-and-selector | Shipped |
 
 [`phase-policy-registry-and-selector`](../../specs/phase-policy-registry-and-selector/spec.md)
-delivers D1. The Status column is auto-derived — do not hand-edit it. D2 and D3
-are unconfirmed and have no spec.
+delivers D1. The Status column is auto-derived — do not hand-edit it.
 
 ## Provenance
 
