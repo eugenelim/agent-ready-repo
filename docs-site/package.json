@@ -18,12 +18,12 @@
     "preastro": "python3 ../tools/build-site.py --renderer-inputs"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.0",
+    "@astrojs/markdown-remark": "7.3.1",
     "@astrojs/starlight": "0.42.0",
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
-    "astro": "7.3.1",
+    "astro": "7.3.2",
     "mermaid": "11.17.2",
     "unist-util-visit": "5.1.0"
   },
