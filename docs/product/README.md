@@ -51,3 +51,25 @@ projection regenerated in the same change — see [`AGENTS.md`](AGENTS.md).
 Unlike ADRs and shipped specs (which are frozen records), files here must
 match current reality. Drift is a bug. The maintenance rules are in
 [`../CONVENTIONS.md`](../CONVENTIONS.md#document-lifecycle).
+
+## What belongs here
+
+What the product is *currently* doing — the counterpart to `architecture/`.
+Without this layer you have per-feature contracts and decision history, but no
+answer to "what is the product up to right now?"
+
+| File | Holds | Note |
+| --- | --- | --- |
+| `roadmap.md` | Direction for the next few quarters | Direction, not commitments. An item that has not moved in two consecutive reviews is a drift signal. |
+| `changelog.md` | User-visible changes by release | One section per release, naming every artifact it covers. |
+| `intents/<slug>.md` | One admitted outcome, recorded before a solution is chosen | Optional. |
+| `briefs/<slug>.md` | One delivery outcome and the specs that deliver it | Optional, for work too large to be one spec. |
+
+The changelog's heading level is load-bearing. A section carrying a version and
+a date is released, so it sits at the top level directly beneath
+`[Unreleased]` — never nested inside it. An entry is required in the same change
+that bumps a released artifact's version, because you know the version at write
+time: you are setting it. Tooling that ships in no release needs no entry.
+
+A published package also keeps its own changelog beside its source, for readers
+who get the package and not the repository.

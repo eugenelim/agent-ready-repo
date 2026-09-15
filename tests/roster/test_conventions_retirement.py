@@ -515,6 +515,31 @@ def test_architecture_readme_states_the_current_state_rules() -> None:
         assert not absent, f"{path.relative_to(REPO_ROOT)} omits: {absent}"
 
 
+PRODUCT_README = REPO_ROOT / "docs/product/README.md"
+SEED_PRODUCT_README = REPO_ROOT / "packs/core/seeds/docs/product/README.md"
+
+# § 5b's ownership list. Round 8 found the living-docs rule this section also
+# carries is already in the seed, so the assertion names content the seed lacks.
+PRODUCT_AREAS = ("roadmap", "changelog", "intents", "briefs")
+
+
+def test_product_readme_states_the_area_ownership() -> None:
+    """§ 5b's operative content, in both copies."""
+    for path in (PRODUCT_README, SEED_PRODUCT_README):
+        body = visible_prose(path.read_text(encoding="utf-8")).lower()
+        absent = [a for a in PRODUCT_AREAS if a not in body]
+        assert not absent, f"{path.relative_to(REPO_ROOT)} omits: {absent}"
+
+
+def test_product_readme_states_the_changelog_heading_rule() -> None:
+    """The load-bearing half: a released section is never nested."""
+    for path in (PRODUCT_README, SEED_PRODUCT_README):
+        body = visible_prose(path.read_text(encoding="utf-8"))
+        assert "Unreleased" in body, (
+            f"{path.relative_to(REPO_ROOT)} omits the changelog heading rule"
+        )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
