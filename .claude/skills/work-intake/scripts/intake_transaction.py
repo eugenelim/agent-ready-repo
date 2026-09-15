@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+
+WORKSPACE_LOCK_FILE = ".workspace-repair.lock"
 
 
 class TransactionStatus(Enum):
@@ -17,6 +21,7 @@ class TransactionStatus(Enum):
     RECONCILIATION_REQUIRED = "reconciliation_required"
     RECONCILIATION_RECORD_FAILED = "reconciliation_record_failed"
     INVALID_TARGET = "invalid_target"
+    LOCK_BUSY = "lock_busy"
     DISPATCH_FAILED = "dispatch_failed"
 
 
@@ -51,8 +56,9 @@ def run_intake_transaction(
     """
 
     try:
+        resolved_root = repository_root.resolve(strict=True)
         confined_target = resolve_confined_target(
-            repository_root=repository_root,
+            repository_root=resolved_root,
             configured_parent=configured_parent,
             artifact_target=artifact_target,
         )
@@ -64,22 +70,35 @@ def run_intake_transaction(
         )
 
     try:
-        materialize_artifact(confined_target)
-    except Exception:
-        return _recover_partial_state(
-            failed_stage="artifact_write",
-            rollback_partial_state=rollback_partial_state,
-            record_reconciliation=record_reconciliation,
+        lock_path = _acquire_workspace_lock(resolved_root)
+    except FileExistsError:
+        return TransactionResult(
+            status=TransactionStatus.LOCK_BUSY,
+            failed_stage="lock_acquisition",
+            dispatch_started=False,
         )
 
     try:
-        register_workspace_entry()
-    except Exception:
-        return _recover_partial_state(
-            failed_stage="registration_write",
-            rollback_partial_state=rollback_partial_state,
-            record_reconciliation=record_reconciliation,
-        )
+        try:
+            materialize_artifact(confined_target)
+        except Exception:
+            return _recover_partial_state(
+                failed_stage="artifact_write",
+                rollback_partial_state=rollback_partial_state,
+                record_reconciliation=record_reconciliation,
+            )
+
+        try:
+            register_workspace_entry()
+        except Exception:
+            return _recover_partial_state(
+                failed_stage="registration_write",
+                rollback_partial_state=rollback_partial_state,
+                record_reconciliation=record_reconciliation,
+            )
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            lock_path.unlink()
 
     try:
         dispatch_processor()
@@ -94,6 +113,32 @@ def run_intake_transaction(
         failed_stage=None,
         dispatch_started=True,
     )
+
+
+def _acquire_workspace_lock(repository_root: Path) -> Path:
+    """Acquire the shared lock used by every workspace writer.
+
+    The file protocol coordinates this transaction with repair-apply,
+    migration apply and rollback, guarded refresh, and prune operations.
+    """
+
+    lock_path = repository_root / WORKSPACE_LOCK_FILE
+    descriptor = os.open(
+        lock_path,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+        0o600,
+    )
+    try:
+        pid = str(os.getpid()).encode("ascii")
+        if os.write(descriptor, pid) != len(pid):
+            raise OSError("short write while recording lock owner")
+        os.fsync(descriptor)
+    except Exception:
+        os.close(descriptor)
+        lock_path.unlink()
+        raise
+    os.close(descriptor)
+    return lock_path
 
 
 def resolve_confined_target(

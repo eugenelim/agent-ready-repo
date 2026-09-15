@@ -2881,35 +2881,10 @@ _SELECTED_SPEC_COLLECTIONS = frozenset(
 )
 
 
-def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, object]:
-    """Return membership occurrences for an explicit ordered spec selection.
-
-    The selected spec artifacts need not exist. Only ``workspace.toml`` is read;
-    matching is performed on canonical repository-relative artifact identities.
-    """
-    if not selectors:
-        return {"error": {"code": "empty_selection"}}
-
-    selected_artifact_paths: list[str] = []
-    for selector in selectors:
-        artifact_path = f"{selector}/spec.md" if isinstance(selector, str) else ""
-        if (
-            not _is_canonical_spec_artifact_path(artifact_path)
-            or _confined_artifact_path(root, selector) is None
-        ):
-            return {"error": {"code": "invalid_selector"}}
-        selected_artifact_paths.append(artifact_path)
-
-    workspace_path = _confined_artifact_path(root, "workspace.toml")
-    if workspace_path is None:
-        return {"error": {"code": "invalid_workspace"}}
-    try:
-        workspace = parse_workspace(workspace_path)
-    except tomllib.TOMLDecodeError:
-        return {"error": {"code": "malformed_toml"}}
-    except OSError:
-        return {"error": {"code": "invalid_workspace"}}
-
+def resolve_selected_memberships(
+    workspace: dict, selected_artifact_paths: list[str]
+) -> dict[str, list[dict]]:
+    """Resolve selected occurrences from already-parsed workspace state."""
     (
         memberships,
         legacy_memberships,
@@ -2917,9 +2892,9 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
         parse_blocked_memberships,
     ) = _extract_canonical_memberships(workspace)
     if any(finding.code == "invalid_workspace" for finding in findings):
-        return {"error": {"code": "invalid_workspace"}}
+        raise ValueError("invalid workspace")
 
-    occurrences_by_path: dict[str, list[dict[str, object]]] = {
+    occurrences_by_path: dict[str, list[dict]] = {
         path: [] for path in selected_artifact_paths
     }
     for membership in memberships:
@@ -2971,6 +2946,45 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
                 "form": "parse-blocked",
             }
         )
+    return occurrences_by_path
+
+
+def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, object]:
+    """Return membership occurrences for an explicit ordered spec selection.
+
+    The selected spec artifacts need not exist. Only ``workspace.toml`` is read;
+    matching is performed on canonical repository-relative artifact identities.
+    """
+    if not selectors:
+        return {"error": {"code": "empty_selection"}}
+
+    selected_artifact_paths: list[str] = []
+    for selector in selectors:
+        artifact_path = f"{selector}/spec.md" if isinstance(selector, str) else ""
+        if (
+            not _is_canonical_spec_artifact_path(artifact_path)
+            or _confined_artifact_path(root, selector) is None
+        ):
+            return {"error": {"code": "invalid_selector"}}
+        selected_artifact_paths.append(artifact_path)
+
+    workspace_path = _confined_artifact_path(root, "workspace.toml")
+    if workspace_path is None:
+        return {"error": {"code": "invalid_workspace"}}
+    try:
+        workspace = parse_workspace(workspace_path)
+    except tomllib.TOMLDecodeError:
+        return {"error": {"code": "malformed_toml"}}
+    except OSError:
+        return {"error": {"code": "invalid_workspace"}}
+    try:
+        # The pure seam calls _extract_canonical_memberships(...) and
+        # _legacy_canonical_alias(...) for selected identity resolution.
+        occurrences_by_path = resolve_selected_memberships(
+            workspace, selected_artifact_paths
+        )
+    except ValueError:
+        return {"error": {"code": "invalid_workspace"}}
 
     return {
         "results": [

@@ -341,6 +341,32 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 13,
+      "prompt": "Preview the approved prune of this selected delivery artifact.",
+      "expected_output": "The agent invokes the workspace-status prune preview with the explicit approved selection. It reports the operation identity and digest needed for an independently supplied confirmation, does not delete or change workspace membership during preview, and does not choose additional artifacts to remove.",
+      "assertions": [
+        "Invokes prune with --preview and the explicit approved selection",
+        "Reports the preview operation identity and digest",
+        "Does not delete an artifact or modify workspace membership during preview",
+        "Does not select additional artifacts or treat preview as authorization"
+      ],
+      "files": [
+        "evals/files/workspace.toml"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "operation_id",
+          "operation_digest"
+        ],
+        "output_excludes": [
+          "deleted",
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
     }
   ]
 }

@@ -60,6 +60,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.3] — 2026-09-14
+
+### Highlights
+
+- `workspace-status` can now prune an explicitly approved selection of
+  delivery artifacts. A successful exit guarantees that every selected
+  artifact directory and every workspace membership resolving to it are
+  absent, proven in one coherent observation taken while the shared workspace
+  lock is held. If either half survives, the command fails and names which
+  one, rather than reporting success.
+- An interrupted prune is now recoverable from the command's own output: a
+  failure names the selection and how far it got, and a busy lock names the
+  lock file and the process holding it.
+- Creating a durable work artifact now coordinates with that same lock, so an
+  intake and a prune can no longer interleave and leave the register
+  disagreeing with what is on disk.
+
+### Added
+
+- `workspace-status prune` removes a selected artifact together with every
+  workspace entry resolving to it, including duplicate, legacy-alias and
+  non-spec-kind forms. It requires an explicit confirmation bound to the
+  selection and to the artifacts' recorded state; `prune --preview` emits the
+  unsigned challenge a caller needs to build one. A repository-level protected
+  list refuses targets that must never be removed, comments and formatting in
+  `workspace.toml` are preserved, and nothing outside the selection changes.
+
 ## [core][2.26.2] — 2026-09-14
 
 ### Highlights

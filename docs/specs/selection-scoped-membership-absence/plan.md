@@ -1,7 +1,7 @@
 # Plan: Selection-scoped membership absence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` (`_extract_canonical_memberships`, `_legacy_canonical_alias`, and `run_canonical_reconciliation`); `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py` (additive subcommand routing and JSON emission); analogous construction path `tests/roster/test_workspace_status_projection.py`; governing constraints `packs/AGENTS.md`, ADR-0114, and RFC-0096 2026-09-13 Errata. Named uncertainty: the exact additive CLI subcommand and flag spelling is not established by a prior contract and must be settled during plan approval without changing the spec's selection or result semantics.
 
 > **Plan contract:** this is the implementation strategy. It may change
