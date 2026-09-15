@@ -1015,3 +1015,24 @@ emits.
 plan is frozen — the cohort pins `approved_plan_hash` — so the stale citation is
 recorded here rather than edited there. The test's content is unchanged; only its
 home moved.
+
+## The base-freshness gate was waived, and this is the record of it
+
+The task owner waived the work-loop base-freshness check for this workspace and
+directed that Claude's checkout be treated as the accepted base. Every Codex
+brief in this delivery carried that exception verbatim, and no
+`check-base-freshness.py`, fetch, pull, `ls-remote`, or substitute origin probe
+was run by any worker.
+
+What the waiver costs: the gate exists so a delivery cannot be built on a base
+that has since moved, and nothing else in the loop detects that. The cost was not
+hypothetical here — `main` released core 2.25.27 mid-delivery, a shared `rerere`
+cache replayed a peer's resolution that discarded this branch's version bump, and
+the collision surfaced through a changelog conflict rather than through the gate
+whose job it is. Renumbering to 2.27.0 across five surfaces followed.
+
+This is recorded rather than repaired: the waiver was the owner's decision and
+remains theirs. The follow-on registered in `[backlog].open` asks the narrower
+question the episode actually raised — whether a waived base-freshness check
+should leave a durable marker on the run, so that a later reader of the branch
+can tell a base that was verified from a base that was accepted on authority.
