@@ -706,45 +706,6 @@ open = [
   {slug = "agent-skill-engineering-guide-and-docsurl", summary = "agent-skill-engineering is the only pack in GUIDE_OPTIONAL_PACKS and its site docsUrl points at the guides index; the planned docs slice must add guides/agent-skill-engineering/, link it from guides/README.md, drop the exemption, and repoint docsUrl", source = "spec/agent-skill-engineering-foundation AC21 (owner decision 2026-08-27)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
-  # Deferred rather than bundled: packages/agentbundle/ is a protected tree
-  # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-
-  # RFC:` trailer) and AGENTS.local.md requires a pyproject version bump for an
-  # engine change. A config-drift fix should not become an engine release. The
-  # parity gate anchors the literal instead, which catches divergence but not
-  # the duplication.
-  # Unblocks when: an engine-scoped RFC is open to cite in the trailer.
-  {slug = "marketplace-description-fourth-statement-in-self-host", summary = "self_host.py restates the marketplace description a fourth time; removing it needs an Engine-Change-RFC and a version bump", source = "spec/marketplace-generator-single-source (governance gate)"},
-
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing
-  # commit needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "marketplace-envelope-config-authority", summary = "Make catalogue.toml the marketplace-envelope authority for all six render.py entrypoints, after deciding toml_emit's 'main' scaffold default", source = "spec/marketplace-generator-single-source (review blocker 3)"},
-
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing
-  # commit needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "output-drift-silent-without-dist", summary = "CAT-V-014 cannot fire in CI because _step_output_drift early-returns when dist/ is absent", source = "spec/marketplace-generator-single-source (assumption)"},
-
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing
-  # commit needs an Engine-Change-RFC trailer naming a real RFC.
-  {slug = "marketplace-ref-not-git-ref-validated", summary = "marketplace-entry.schema.json's ref and sha are unvalidated strings on an ingress path (archive.py, verify.py --root)", source = "spec/marketplace-generator-single-source (review concern 3)"},
-
-  # Blocker: the fix changes protected packages/agentbundle/** and needs an
-  # Engine-Change-RFC trailer naming a real RFC.
-  {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", summary = "An empty or absent claude-plugin-branch makes a fork's install route resolve to upstream's repo and ref", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # Unblocks when: a maintainer runs the canary arm; settings writes are theirs.
-  # Deferred rather than bundled: closing it needs a repository-settings action
-  # and a live canary run, neither of which is a code change this PR could
-  # carry.
-  {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # Unblocks when: SAST rule authoring is in scope (sast-cwe-delta-review is
-  # adjacent).
-  # Deferred rather than bundled: bounding it needs a different instrument
-  # entirely — a runtime assertion inside the build, or a semgrep rule — not
-  # more static reading.
-  {slug = "marketplace-envelope-post-import-rebind-unbounded", summary = "Neither parity layer bounds a post-import rebind of _DIST_BRANCH or _MARKETPLACE_DESCRIPTION", source = "spec/marketplace-generator-single-source (review residual)"},
-  # Unblocks when: the publisher's import surface is next touched.
-  # Deferred rather than bundled: the fix is to change the publisher's import
-  # surface, which is publish-path code this PR deliberately does not touch.
-  {slug = "marketplace-publisher-branch-layer-2-only", summary = "The publisher's BRANCH push target is covered by the parity gate's literal layer only, not the resolved-value layer", source = "spec/marketplace-generator-single-source (review concern 4)"},
   # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
   # cross-repository reference, so now that a spec's `Brief:` back-link is the
   # canonical path form it reports a brief that lives in THIS repo as "unknown /
