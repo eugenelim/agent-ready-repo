@@ -1,7 +1,7 @@
 # Plan: atomic-write-symlink-harden
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packages/AGENTS.md` (version-bump rule, test homes)
   and `packages/agentbundle/AGENTS.md` (package traps). Analogous production
   implementations: `agentbundle/build/projections/merge_into_agent_json.py:236`

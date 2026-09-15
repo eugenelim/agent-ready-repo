@@ -1,6 +1,6 @@
 # Spec: atomic-write-symlink-harden
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -122,41 +122,41 @@ same created-file list and exit code as before.
 
 ## Acceptance Criteria
 
-- [ ] Given a symlink pre-planted at `<dest>.abtmp` — the staging name the helper
+- [x] Given a symlink pre-planted at `<dest>.abtmp` — the staging name the helper
   used before this change — when `atomic_write(dest, content)` returns, the file
   that symlink points at holds the bytes it held before the call.
-- [ ] Given an entry already present at the staging path `atomic_write` is about
+- [x] Given an entry already present at the staging path `atomic_write` is about
   to use, the call fails and that entry's target holds the bytes it held before
   the call — the staging file is created exclusively, so a collision refuses
   rather than being written through.
-- [ ] Given two successive `atomic_write` calls to the same `dest`, the staging
+- [x] Given two successive `atomic_write` calls to the same `dest`, the staging
   path each call moves into place differs between the two calls.
-- [ ] Given a symlink pre-planted at `dest` itself, when
+- [x] Given a symlink pre-planted at `dest` itself, when
   `atomic_write(dest, content)` returns, the file that symlink pointed at holds
   the bytes it held before the call.
-- [ ] After `atomic_write(dest, content)` returns, `dest` is a regular file, not
+- [x] After `atomic_write(dest, content)` returns, `dest` is a regular file, not
   a symlink.
-- [ ] After `atomic_write(dest, content)` returns, `dest` holds exactly
+- [x] After `atomic_write(dest, content)` returns, `dest` holds exactly
   `content`.
-- [ ] A file `atomic_write` creates carries the same permission bits as a file
+- [x] A file `atomic_write` creates carries the same permission bits as a file
   `Path.write_bytes` creates in the same directory under the same umask.
-- [ ] After a successful `atomic_write(dest, content)`, the only entry
+- [x] After a successful `atomic_write(dest, content)`, the only entry
   `atomic_write` has added to `dest.parent` is `dest`.
-- [ ] When writing the staging file raises, `atomic_write` adds no entry to
+- [x] When writing the staging file raises, `atomic_write` adds no entry to
   `dest.parent`.
-- [ ] When moving the staging file into place raises, `atomic_write` adds no
+- [x] When moving the staging file into place raises, `atomic_write` adds no
   entry to `dest.parent`.
-- [ ] When writing or moving raises, `atomic_write` propagates that exception
+- [x] When writing or moving raises, `atomic_write` propagates that exception
   rather than returning normally.
-- [ ] `packages/agentbundle/tests/unit/` passes with no existing test modified,
+- [x] `packages/agentbundle/tests/unit/` passes with no existing test modified,
   and a real `agentbundle catalogue init` into an empty directory exits 0 and
   reports the same created-file list it reported before the change.
-- [ ] `packages/agentbundle/agentbundle/version.py`,
+- [x] `packages/agentbundle/agentbundle/version.py`,
   `packages/agentbundle/pyproject.toml`, and the `expected` literal in
   `tests/roster/test_okf_catalogue_discovery.py` read one version, and that
   version is higher than the version `origin/main` carries at the moment the
   release surfaces are last edited.
-- [ ] The topmost version heading of `packages/agentbundle/CHANGELOG.md`, the
+- [x] The topmost version heading of `packages/agentbundle/CHANGELOG.md`, the
   topmost agentbundle heading of `docs/product/changelog.md`, and the
   `What's new in` heading of `packages/agentbundle/README-pypi.md` name that same
   version.

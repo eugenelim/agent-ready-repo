@@ -895,8 +895,12 @@ class TestAtomicWriteSymlinkHardening:
     def test_failure_propagates_and_leaves_no_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failing_stage: str
     ) -> None:
+        # A sentinel instance, so the assertion below distinguishes "the
+        # original error reached the caller" from "some OSError did".
+        sentinel = OSError("stage refused")
+
         def _boom(*args: object, **kwargs: object) -> None:
-            raise OSError("stage refused")
+            raise sentinel
 
         if failing_stage == "write":
             # A proxy around the real handle: the fd is still owned and closed,
@@ -910,7 +914,7 @@ class TestAtomicWriteSymlinkHardening:
                     self._inner = inner
 
                 def write(self, data: bytes) -> int:
-                    raise OSError("stage refused")
+                    raise sentinel
 
                 def __getattr__(self, name: str) -> object:
                     return getattr(self._inner, name)
@@ -928,6 +932,58 @@ class TestAtomicWriteSymlinkHardening:
         else:
             monkeypatch.setattr(os, "replace", _boom)
 
-        with pytest.raises(OSError):
+        with pytest.raises(OSError) as caught:
             self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+        assert caught.value is sentinel
         assert list(tmp_path.iterdir()) == []
+
+    def test_descriptor_is_closed_when_the_handle_cannot_be_opened(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # os.fdopen owns the descriptor only once it returns. If it raises,
+        # only the helper can close it — and nothing else in this class would
+        # notice the leak.
+        opened: list[int] = []
+        real_open = os.open
+        sentinel = OSError("handle refused")
+
+        def _record(*args: object, **kwargs: object) -> int:
+            fd = real_open(*args, **kwargs)  # type: ignore[arg-type]
+            opened.append(fd)
+            return fd
+
+        def _refuse(*args: object, **kwargs: object) -> None:
+            raise sentinel
+
+        monkeypatch.setattr(os, "open", _record)
+        monkeypatch.setattr(os, "fdopen", _refuse)
+
+        with pytest.raises(OSError) as caught:
+            self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+
+        assert caught.value is sentinel
+        assert len(opened) == 1
+        with pytest.raises(OSError):  # EBADF — the descriptor was closed
+            os.fstat(opened[0])
+        assert list(tmp_path.iterdir()) == []
+
+    def test_a_failed_cleanup_names_the_leftover_without_replacing_the_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        sentinel = OSError("move refused")
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise sentinel
+
+        def _unlink_refused(*args: object, **kwargs: object) -> None:
+            raise PermissionError("cleanup refused")
+
+        monkeypatch.setattr(os, "replace", _boom)
+        monkeypatch.setattr(Path, "unlink", _unlink_refused)
+
+        with pytest.raises(OSError) as caught:
+            self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+
+        assert caught.value is sentinel
+        notes = getattr(caught.value, "__notes__", [])
+        assert any(".abtmp-" in note for note in notes)
