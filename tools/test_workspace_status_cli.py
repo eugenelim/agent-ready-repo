@@ -1958,6 +1958,38 @@ class SkillWiringTests(unittest.TestCase):
     def _skill_text(self) -> str:
         return self._SKILL_PATH.read_text(encoding="utf-8")
 
+    def test_skill_contract_handles_empty_display_fields(self) -> None:
+        """An omitted `name` or `milestone` must not render as a blank segment.
+
+        Both project as empty strings with no finding, because neither key is
+        required by the workspace.toml schema and no validator fires for a
+        missing one. Before display metadata was projected as authored, the
+        redaction sentinel made both unconditionally non-empty, so the template
+        could never reach this state; it can now, and the template is where it
+        is handled.
+        """
+        text = self._skill_text()
+        template_line = next(
+            (
+                line for line in text.splitlines()
+                if line.startswith("`<ini-slug>`")
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            template_line, "the Active initiatives template line is absent from SKILL.md"
+        )
+        # The rule may wrap, so read the paragraph the template line opens.
+        start = text.index(template_line)
+        paragraph = text[start:text.index("\n- **Brief queue**", start)]
+        # Whitespace-normalised: the rule wraps, and a phrase split across a
+        # line break is still the phrase. Asserting the raw text would pin the
+        # wrapping rather than the content.
+        flat = " ".join(paragraph.split())
+        self.assertIn("omit", flat.lower())
+        self.assertIn("`name` is empty", flat)
+        self.assertIn("`milestone` is empty", flat)
+
     def test_skill_contract_describes_display_fields_as_values(self) -> None:
         """AC-0003: the shipped contract describes and renders both fields.
 

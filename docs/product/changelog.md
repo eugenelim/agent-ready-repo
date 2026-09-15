@@ -120,6 +120,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
 
+## [core][2.26.4] — 2026-09-15
+
+### Fixed
+
+- `workspace-status`: an initiative whose `workspace.toml` section omits `name`
+  or `milestone` no longer renders a blank segment at orientation. Neither key
+  is required by the schema and no finding fires for a missing one, so both
+  project as empty strings; the rendering template now omits the segment rather
+  than showing `— ` followed by nothing. The state was unreachable while those
+  fields were redacted and became reachable when they began projecting as
+  authored in 2.26.2.
+
 ## [core][2.26.3] — 2026-09-14
 
 ### Highlights
@@ -227,6 +239,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   state file inside the check would make a usable upstream pin impossible in
   the mode that most needs control over what ships, so the recorded value
   changed instead.
+
+## [frontend-engineering][0.2.5] — 2026-09-14
+
+### Highlights
+
+- A surface can now declare the minimum viewport width it supports, and the
+  rendered-page inspection stops asking for captures below it. A desktop-only
+  tool that supports 1280 and up is asked for four captures per route in one
+  channel instead of eight across two.
+- Declaring a minimum never hides a width the surface does claim. It only ever
+  raises a band's lower bound, so a minimum that falls between the default bands
+  leaves the wider one where it is rather than pulling a capture down into a gap
+  that satisfies no channel.
+- A breakpoint above the minimum keeps its own band, so a high minimum cannot
+  flatten a surface that really is responsive above it. Each run records the
+  minimum it used and any breakpoint the minimum discarded, so a mistyped
+  minimum is distinguishable from a deliberate single-channel surface.
+
+### Changed
+
+- The channel axis takes an optional declared minimum width. Bands lying wholly
+  below it stop being required and the lowest surviving band starts at it.
+- The evidence manifest's `viewports` field records the minimum in force, or
+  `none-declared`, and any discarded breakpoints.
+- The journey's `youProvide` names the supported minimum width among the inputs
+  an adopter brings.
 
 ## [core][2.26.0] — 2026-09-13
 

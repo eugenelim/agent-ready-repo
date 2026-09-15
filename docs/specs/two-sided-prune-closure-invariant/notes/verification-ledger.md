@@ -456,3 +456,39 @@ automatically; the last two are hand-declared and each has its own gate. Local r
 caught none of this — `make build-self` is silent about all three, and the
 `.gitattributes` check lives in a suite that takes 105 seconds and is not part of
 the local gate set.
+
+## Correction, 2026-09-15 — this delivery left `main` red
+
+Two of this slice's roster cases failed on `main` after merge, and one of them
+blocked every unrelated pull request. Both are mine, and both share one root
+cause: I encoded **delivery-time** obligations as **standing** tests.
+
+**`test_pack_delivery_contract_is_complete_and_version_increased` demanded a bump
+from every branch.** It asserted `core_version == base_patch + 1`
+unconditionally. On `main` the merge base is HEAD, so it required a version that
+does not exist yet; on any branch touching something other than `packs/core` it
+demanded a bump nobody owed. The assertion now applies only when the branch
+actually changes `packs/core`, and only when a bump landed — which is what this
+pack's rule says in the first place. Verified across four cells: no core change
+passes, a correct next patch passes, a minor jump fails, an unequal pair fails.
+
+**`test_existing_subcommands_are_unchanged` compared a base that could not
+start.** Its fixture materialises the base CLI and engine into a temp directory
+by `git show`. After the prune moved into its own module the base CLI had a
+sibling to load that the fixture never copied, so the base exited 2 while HEAD
+exited 0 and the comparison failed on identical code. The fixture now copies the
+prune module too, tolerating its absence at revisions before the split.
+
+**The helper both depend on could not fail safely.** `_base_revision()` ran
+`git merge-base origin/main HEAD` with `check=True`, so a shallow clone, a
+detached checkout, or a fork without that ref would raise rather than degrade. It
+now falls back to `HEAD`, which makes a base-relative property not assert instead
+of erroring on a question about the environment.
+
+The lesson worth keeping: a criterion phrased about *this delivery* — "the shipped
+version is the next patch above the merge base" — becomes a different and much
+stronger claim when it is written as a test every future branch runs. AC-0026 is
+about what this slice ships. The test has to be about what any branch owes. I
+reviewed this assertion through several rounds and strengthened it twice on
+reviewer findings without once asking what it would do on a branch that is not
+this one.

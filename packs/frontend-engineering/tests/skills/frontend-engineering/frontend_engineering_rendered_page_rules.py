@@ -149,6 +149,8 @@ REQUIRED_RULE_ROWS = {
         "channel-capture-width",
         "channel-basis-recorded",
         "every-required-channel-needs-the-matrix",
+        "channel-minimum-derivation",
+        "channel-minimum-recorded",
     ),
     "Required captures": ("every-captured-width-and-height-needs-the-pair",),
 }
@@ -221,11 +223,41 @@ def forbidden_channel_name_tokens(markdown: str) -> list[str]:
     return [row[0] for row in rows]
 
 
+# The operators a bound cell may state. Both bound helpers below derive their
+# refusals from this set rather than hand-listing cases, so widening the grammar
+# cannot introduce an operator no helper decides.
+BOUND_OPERATORS = ("<=", ">=", "<", ">", "=")
+_BELOW_BOUND = ("<", "<=")
+_ABOVE_BOUND = (">", ">=")
+
+
 def _bound_value(predicate: str) -> tuple[str, int]:
     match = re.fullmatch(r"(<=|>=|<|>|=)?\s*(\d+)", predicate.strip())
     if match is None:
         raise AssertionError(f"unparseable bound in the table: {predicate!r}")
     return match.group(1) or "=", int(match.group(2))
+
+
+def _largest_admitted(upper: str) -> int:
+    """The largest whole width an upper-bound cell admits.
+
+    One source, because the drop condition and the capture-width rule must agree
+    by construction rather than by two copies of the same expression staying in
+    step. `<=` and `=` admit their own value; `<` admits one less.
+
+    An above-bound operator in an upper-bound cell is a malformed table, not a
+    band: `>480` admits every width above 480, so returning 479 for it would drop
+    a band admitting almost everything. Refusing beats computing a wrong largest
+    in silence.
+    """
+    op, value = _bound_value(upper)
+    if op in _ABOVE_BOUND:
+        raise AssertionError(
+            f"upper bound cell {upper!r} states an above-bound operator; an upper "
+            f"bound admits widths below it, and this cell admits everything above "
+            f"{value}, so it does not describe a band's upper edge"
+        )
+    return value if op in ("<=", "=") else value - 1
 
 
 def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
@@ -241,20 +273,125 @@ def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
             "is the data, not this module"
         )
     if lower:
-        op, value = _bound_value(lower)
-        return value if op in (">=", "=") else value + 1
-    op, value = _bound_value(upper)
-    return value if op in ("<=", "=") else value - 1
+        return _smallest_admitted(lower)
+    return _largest_admitted(upper)
+
+
+def _smallest_admitted(lower: str) -> int:
+    """The smallest whole width a lower-bound cell admits.
+
+    The mirror of `_largest_admitted`, and it exists for the same reason: a
+    below-bound operator in a *lower* cell is a malformed table, not a band.
+    `<=480` as a lower bound admits every width up to 480, so returning 481 for
+    it — which is what a `value + 1` fallthrough did — names a capture width
+    outside the band it came from, in silence.
+    """
+    op, value = _bound_value(lower)
+    if op in _BELOW_BOUND:
+        raise AssertionError(
+            f"lower bound cell {lower!r} states a below-bound operator; a lower "
+            f"bound admits widths above it, and this cell admits everything up to "
+            f"{value}, so it does not describe a band's lower edge"
+        )
+    return value if op in (">=", "=") else value + 1
+
+
+def _minimum_derivation_rule(markdown: str) -> None:
+    """Prove the table still states the derivation this module implements.
+
+    Called on **every** derivation, not only when a minimum is supplied, matching
+    `channel_capture_width`, which validates its token on every call. A check
+    reached only by the path that uses it cannot tell a shipped rule from a
+    deleted one on the path that does not.
+    """
+    rule = channel_rules(markdown).get("channel-minimum-derivation")
+    if rule != "drop-bands-below-clamp-lowest-survivor":
+        raise AssertionError(
+            "the Channels table no longer states channel-minimum-derivation; the "
+            "rule is the data, not this module"
+        )
+
+
+def _validate_minimum(minimum: int | None) -> None:
+    """A declared minimum is a positive whole number of CSS pixels, or absent.
+
+    `isinstance(True, int)` is true, so the bool exclusion is not redundant: a
+    `True` minimum would otherwise clamp a band to `>=1`.
+    """
+    if minimum is None:
+        return
+    if not isinstance(minimum, int) or isinstance(minimum, bool) or minimum <= 0:
+        raise AssertionError(
+            f"declared minimum width {minimum!r} is not a positive whole number "
+            f"of CSS pixels; a band's bound cells hold whole numbers"
+        )
+
+
+def _apply_minimum(
+    bands: list[tuple[str, str, str]],
+    minimum: int,
+    *,
+    rename: bool,
+) -> list[tuple[str, str, str]]:
+    """Drop bands wholly below the minimum, then raise the lowest survivor.
+
+    Raise, never assign: assigning would lower `wide >=1024` to `>=600` under a
+    600 minimum and demand a capture at 600, a width the reference states
+    satisfies neither fallback channel by deliberate design.
+
+    `rename` is false for the fallback bands, whose names come from the shipped
+    table and stay as that table gives them, and true for breakpoint-derived
+    bands, whose names are built from bounds and so must be rebuilt from the
+    bounds after the clamp.
+    """
+    survivors = [b for b in bands if _band_admits_at_or_above(b, minimum)]
+    if not survivors:
+        return []
+    name, lower, upper = survivors[0]
+    if not lower or _bound_value(lower)[1] < minimum:
+        clamped = f">={minimum}"
+        survivors[0] = (_clamped_name(clamped, upper) if rename else name, clamped, upper)
+    return survivors
+
+
+def _band_admits_at_or_above(band: tuple[str, str, str], minimum: int) -> bool:
+    """Whether the band admits any width at or above the minimum.
+
+    Keyed on the upper bound's operator, not only its value: `<=480` admits 480
+    and survives a 480 minimum where `<480` does not. A band with no upper bound
+    is unbounded above and always admits one.
+    """
+    _, _, upper = band
+    if not upper:
+        return True
+    # Routed through the same `_largest_admitted` the capture-width rule uses,
+    # so the two agree by construction. A hand-written `<=` special case here
+    # silently disagreed with `satisfies` on `=480` and on a bare `480`, both of
+    # which admit exactly 480 and were being dropped under a 480 minimum — the
+    # same false drop the `<=` case exists to prevent.
+    return _largest_admitted(upper) >= minimum
+
+
+def _clamped_name(lower: str, upper: str) -> str:
+    """The band's name recomputed from its bounds after the clamp.
+
+    The walk prints this name in its incomplete report, so a band starting at
+    1280 reported as `from-768` would misdescribe what is missing.
+    """
+    low = _bound_value(lower)[1]
+    return f"{low}-to-{_bound_value(upper)[1]}" if upper else f"from-{low}"
 
 
 def required_channels(
-    markdown: str, declared_breakpoints: list[int] | None = None
+    markdown: str,
+    declared_breakpoints: list[int] | None = None,
+    minimum: int | None = None,
 ) -> list[tuple[str, str, str]]:
     """The bands a route must be captured in, and the basis they came from.
 
     With declared breakpoints, the bands they bound; without, the shipped
-    fallback. The breakpoints are a **run input**, which is why they arrive as an
-    argument and not out of the markdown.
+    fallback. The breakpoints and the minimum are both **run inputs**, which is
+    why they arrive as arguments and not out of the markdown.
     """
     rules = channel_rules(markdown)
     if rules.get("channel-source") != "adopter-declared-breakpoints-or-fallback":
@@ -262,8 +399,17 @@ def required_channels(
             "the Channels table no longer states channel-source; the rule is the "
             "data, not this module"
         )
+    # Before the early return, both of them. The breakpoint validation loop below
+    # sits after it, so a minimum validated beside that loop would be checked on
+    # the declared path and skipped on the fallback path -- which is the surface
+    # this input exists for: an internal tool with a minimum and no breakpoints.
+    _validate_minimum(minimum)
+    _minimum_derivation_rule(markdown)
     if not declared_breakpoints:
-        return fallback_channels(markdown)
+        bands = fallback_channels(markdown)
+        if minimum is None:
+            return bands
+        return _apply_minimum(bands, minimum, rename=False)
     if rules.get("channel-derivation") != "bands-bounded-by-consecutive-breakpoints":
         raise AssertionError(
             "the Channels table no longer states channel-derivation"
@@ -283,7 +429,50 @@ def required_channels(
     for lower, upper in zip(ordered, ordered[1:], strict=False):
         bands.append((f"{lower}-to-{upper}", f">={lower}", f"<{upper}"))
     bands.append((f"from-{ordered[-1]}", f">={ordered[-1]}", ""))
-    return bands
+    if minimum is None:
+        return bands
+    return _apply_minimum(bands, minimum, rename=True)
+
+
+def minimum_in_force(markdown: str, minimum: int | None = None) -> str:
+    """The declared minimum a run used, or `none-declared` when none was.
+
+    A stated value a reader can assert on, distinct from a field nobody wrote:
+    the record reader counts a field absent when its value is `None` or empty.
+    """
+    if not _rule_in_force(channel_rules(markdown), "channel-minimum-recorded", "Channels"):
+        raise AssertionError(
+            "the Channels table switched channel-minimum-recorded off; a run that "
+            "does not record the minimum it used cannot be told apart from one "
+            "that declared none"
+        )
+    _validate_minimum(minimum)
+    return "none-declared" if minimum is None else str(minimum)
+
+
+def discarded_breakpoints(
+    markdown: str,
+    declared_breakpoints: list[int] | None = None,
+    minimum: int | None = None,
+) -> list[int]:
+    """The declared breakpoints the minimum discarded, strictly below it.
+
+    Gated on the same row as `minimum_in_force`, and gated **before** the empty
+    shortcut: a reader that returns `[]` for a no-breakpoints run before
+    consulting the switch is fail-open on exactly the path this input serves.
+    """
+    if not _rule_in_force(channel_rules(markdown), "channel-minimum-recorded", "Channels"):
+        raise AssertionError(
+            "the Channels table switched channel-minimum-recorded off; a run that "
+            "does not record which breakpoints the minimum discarded cannot tell "
+            "a mistyped minimum from a deliberate single-channel surface"
+        )
+    _validate_minimum(minimum)
+    if minimum is None or not declared_breakpoints:
+        return []
+    # Strictly below: a breakpoint equal to the minimum still bounds a surviving
+    # channel, which AC-0002's [768, 1024]-at-768 fixture asserts.
+    return sorted({b for b in declared_breakpoints if b < minimum})
 
 
 def channel_basis(
@@ -415,8 +604,9 @@ def _rule_in_force(rules: dict[str, str], key: str, table: str) -> bool:
     Two kinds of row go through here and they differ in what an *off* position
     means. A row that switches a rule off — `every-required-channel-needs-the-matrix`,
     `every-captured-width-and-height-needs-the-pair` — is a stated decision and is
-    honoured. `channel-basis-recorded` admits no off position: its caller cannot
-    answer without it, so `channel_basis` refuses rather than guessing a basis.
+    honoured. `channel-basis-recorded` and `channel-minimum-recorded` admit no off
+    position: their callers cannot answer without them, so `channel_basis`,
+    `minimum_in_force` and `discarded_breakpoints` refuse rather than guessing.
     An absent row always raises, whichever kind it is.
 
     An **absent** row raises: a rule nobody states is not a rule this module may
@@ -447,6 +637,7 @@ def evaluate_capture_set(
     markdown: str,
     captures: list[dict[str, int | str]],
     declared_breakpoints: list[int] | None = None,
+    minimum: int | None = None,
 ) -> tuple[str, list[str]]:
     """`("complete", [])` or `("incomplete", [missing requirement names])`.
 
@@ -485,7 +676,7 @@ def evaluate_capture_set(
     rules = channel_rules(markdown)
     for key in REQUIRED_RULE_ROWS[CHANNELS_HEADING]:
         _rule_present(rules, key, CHANNELS_HEADING)
-    channels = required_channels(markdown, declared_breakpoints)
+    channels = required_channels(markdown, declared_breakpoints, minimum)
     matrix_required = _rule_in_force(
         rules, "every-required-channel-needs-the-matrix", "Channels"
     )
@@ -882,19 +1073,22 @@ def inspection_result(
     captures: list[dict[str, int | str]],
     findings: list[dict[str, object]] | None = None,
     declared_breakpoints: list[int] | None = None,
+    minimum: int | None = None,
 ) -> dict[str, str]:
     """`{"state": ..., "verdict": ...}` — did it run, and did it pass.
 
     Two questions, two answers. "The browser would not start" and "the page is
     broken" are both not-a-pass and are not the same thing.
 
-    `declared_breakpoints` selects the required channels and is deliberately not
-    echoed back here. The channel basis is recorded on the evidence manifest's
+    `declared_breakpoints` and `minimum` both select the required channels and
+    are deliberately not echoed back here. The channel basis is recorded on the evidence manifest's
     `viewports` field, which is the surface the contract names for it; this
     function answers the two questions above and nothing else.
     """
     findings = findings or []
-    set_status, _ = evaluate_capture_set(markdown, captures, declared_breakpoints)
+    set_status, _ = evaluate_capture_set(
+        markdown, captures, declared_breakpoints, minimum
+    )
     # `evaluate_capture_set` answers "is the set complete"; the shipped
     # `Result states` table is the authority on what that state is called.
     state = "completed" if set_status == "complete" else set_status

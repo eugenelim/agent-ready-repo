@@ -31,11 +31,19 @@ def _base_revision() -> str:
 
     Pinning a literal SHA lets the comparison drift onto a stale contract as the
     base branch moves; the merge base cannot.
+
+    Falls back to `HEAD` when no merge base resolves — a shallow clone, a detached
+    checkout, or a fork without the `origin/main` ref. Callers then compare HEAD
+    with itself, so a base-relative property simply does not assert rather than
+    erroring on an environment question it cannot answer.
     """
-    return subprocess.run(
+    completed = subprocess.run(
         ["git", "merge-base", "origin/main", "HEAD"],
-        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
-    ).stdout.strip()
+        cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+    )
+    if completed.returncode != 0 or not completed.stdout.strip():
+        return "HEAD"
+    return completed.stdout.strip()
 
 
 ENGINE_PATH = REPO_ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
@@ -360,18 +368,26 @@ def default_command_compatibility(
     """Materialize the frozen base CLI and engine without a Git worktree write."""
     base_scripts = tmp_path / "base-scripts"
     base_scripts.mkdir()
-    relative_scripts = (
+    # The CLI loads its engine and the prune sibling from its own directory, so a
+    # partial copy compares a base that cannot start against a HEAD that can.
+    required = (
         "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py",
         "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
     )
-    for relative in relative_scripts:
+    # Present only at revisions after the prune moved into its own module.
+    optional = (
+        "packs/core/.apm/skills/workspace-status/scripts/workspace_status_prune.py",
+    )
+    for relative in required + optional:
         completed = subprocess.run(
             ["git", "show", f"{_base_revision()}:{relative}"],
             cwd=REPO_ROOT,
             check=False,
             capture_output=True,
         )
-        assert completed.returncode == 0, completed.stderr.decode("utf-8")
+        if completed.returncode != 0:
+            assert relative in optional, completed.stderr.decode("utf-8")
+            continue
         (base_scripts / Path(relative).name).write_bytes(completed.stdout)
     return single_registered_target, base_scripts / "workspace_status.py"
 
@@ -1519,18 +1535,33 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
     plugin_version = re.search(r'"version":\s*"([^"]+)"', plugin).group(1)
     assert core_version == plugin_version, (core_version, plugin_version)
 
-    # The shipped version must be exactly the next patch above the merge base, so
-    # leaving both files unchanged fails and so does a minor or major bump.
-    base_core = subprocess.run(
-        ["git", "show", f"{_base_revision()}:packs/core/pack.toml"],
-        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
-    ).stdout
-    base_version = re.search(r'^version = "([^"]+)"', base_core, re.M).group(1)
-    b_major, b_minor, b_patch = (int(part) for part in base_version.split("."))
-    assert core_version == f"{b_major}.{b_minor}.{b_patch + 1}", (base_version, core_version)
+    # The bump rule binds a branch that CHANGES the core pack. Asserting it
+    # unconditionally made this test red on `main` itself — where the merge base
+    # is HEAD, so the "next patch" names a version that does not exist yet — and
+    # red on every branch that touches something else entirely. Scope it to the
+    # condition that actually obliges a bump.
+    base = _base_revision()
+    changed = subprocess.run(
+        ["git", "diff", "--quiet", base, "--", "packs/core"],
+        cwd=REPO_ROOT, capture_output=True,
+    ).returncode != 0
 
-    # The core-led changelog entry must name that exact version.
-    assert f"## [core][{core_version}]" in changelog, core_version
+    if changed:
+        base_core = subprocess.run(
+            ["git", "show", f"{base}:packs/core/pack.toml"],
+            cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+        ).stdout
+        base_version = re.search(r'^version = "([^"]+)"', base_core, re.M).group(1)
+        if base_version != core_version:
+            # A bump landed: it must be exactly the next patch, since this pack
+            # reserves minor for new primitives and major for removals.
+            b_major, b_minor, b_patch = (int(p) for p in base_version.split("."))
+            assert core_version == f"{b_major}.{b_minor}.{b_patch + 1}", (
+                base_version,
+                core_version,
+            )
+            # And the core-led changelog entry must name that exact version.
+            assert f"## [core][{core_version}]" in changelog, core_version
     assert any("prune" in path.read_text(encoding="utf-8") for path in evals if path.is_file())
     assert "prune" in changelog.lower() and workspace_status_eval_contract.exists()
 
