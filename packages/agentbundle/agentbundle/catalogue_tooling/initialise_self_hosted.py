@@ -25,6 +25,7 @@ import sys
 import tempfile
 import tomllib
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -243,15 +244,73 @@ class SelfHostedInitResult:
 
 
 @dataclass
-class SelfHostOwnershipState:
-    """Tracks which paths were written so future updates only remove our files."""
+class SelfHostRecipe:
+    """Record the resolved inputs needed to reproduce a self-hosted init."""
 
-    schema_version: str = "2"
+    packs: list[str] = field(default_factory=list)
+    profiles: list[str] = field(default_factory=list)
+    guides: str = "selected"
+    attribution: str = "white-label"
+    tooling: str = "external"
+    name: str = ""
+    display_name: str = ""
+    description: str = ""
+    owner_name: str = ""
+    owner_email: str = ""
+    preferred_adapter: str = ""
+    repository_url: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the stable JSON representation of the resolved recipe."""
+        return {
+            "packs": self.packs,
+            "profiles": self.profiles,
+            "guides": self.guides,
+            "attribution": self.attribution,
+            "tooling": self.tooling,
+            "name": self.name,
+            "display_name": self.display_name,
+            "description": self.description,
+            "owner_name": self.owner_name,
+            "owner_email": self.owner_email,
+            "preferred_adapter": self.preferred_adapter,
+            "repository_url": self.repository_url,
+        }
+
+
+@dataclass
+class SelfHostPin:
+    """Record source provenance available at the time of self-hosted init."""
+
+    source_uri: str | None = None
+    source_revision: str | None = None
+    archive_sha256: str | None = None
+    synced_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the pin, omitting source identity outside attributed mode."""
+        result: dict[str, Any] = {
+            "source_revision": self.source_revision,
+            "archive_sha256": self.archive_sha256,
+            "synced_at": self.synced_at,
+        }
+        if self.source_uri is not None:
+            result["source_uri"] = self.source_uri
+        return result
+
+
+@dataclass
+class SelfHostOwnershipState:
+    """Track the write set, replay recipe, and source pin for future updates."""
+
+    schema_version: str = "3"
     managed_paths: list[dict] = field(default_factory=list)  # [{path, sha256}]
     adapters: list[str] = field(default_factory=list)
     managed_target_path: str = ""
     source_pack_identity: str = ""
     source_root_kind: str = "self-hosted-source"
+    recipe: SelfHostRecipe = field(default_factory=SelfHostRecipe)
+    pin: SelfHostPin = field(default_factory=SelfHostPin)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -261,6 +320,8 @@ class SelfHostOwnershipState:
             "managed_target_path": self.managed_target_path,
             "source_pack_identity": self.source_pack_identity,
             "source_root_kind": self.source_root_kind,
+            "recipe": self.recipe.to_dict(),
+            "pin": self.pin.to_dict(),
         }
 
 
@@ -519,6 +580,11 @@ def _collect_dir_bytes(
 # Identity transformation (in-memory)
 # ---------------------------------------------------------------------------
 
+def _is_attributed(cfg: SelfHostedInitConfig) -> bool:
+    """Return whether upstream identity may be retained in generated output."""
+    return cfg.attribution == "attributed"
+
+
 def _build_anchors(source_meta: dict[str, Any]) -> dict[str, str]:
     """Extract identity-bearing literal values from source catalogue.toml."""
     cat = source_meta.get("catalogue", {})
@@ -591,7 +657,7 @@ def _apply_identity_transform_bytes(
     Returns list of {from, to} replacement dicts (for B12 identity_replacements).
     Only operates on white-label mode; attributed mode is a no-op.
     """
-    if cfg.attribution == "attributed":
+    if _is_attributed(cfg):
         return []
 
     applied: set[tuple[str, str]] = set()
@@ -613,6 +679,17 @@ def _apply_identity_transform_bytes(
             continue
 
     return [{"from": old, "to": new} for old, new in sorted(applied)]
+
+
+def _transform_recipe_string(
+    value: str | None,
+    anchors: dict[str, str],
+    cfg: SelfHostedInitConfig,
+) -> str | None:
+    """Apply the tree's identity transform semantics to one recipe value."""
+    if value is None or _is_attributed(cfg):
+        return value
+    return _transform_text(value, anchors, cfg)
 
 
 def _get_replacement_for(anchor_name: str, anchor_val: str, cfg: SelfHostedInitConfig) -> str:
@@ -649,7 +726,7 @@ def _verify_bytes_in_tmpdir(
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(content)
         attribution_paths: list[str] | None = None
-        if cfg.attribution == "attributed":
+        if _is_attributed(cfg):
             attribution_paths = _ATTRIBUTION_SURFACES
         identity_violations = verify(
             tmppath, anchors, mode=cfg.attribution, attribution_paths=attribution_paths
@@ -840,7 +917,7 @@ def _source_pack_identity(
     anchor value here survives replacement and then fails the leak check. Keep
     identity wording generic.
     """
-    if cfg.attribution == "attributed":
+    if _is_attributed(cfg):
         return source_meta.get("catalogue", {}).get("name", "")
     return cfg.name or ""
 
@@ -1185,6 +1262,38 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             managed_target_path=str(cfg.target),
             source_pack_identity=_source_pack_identity(source_meta, cfg),
             source_root_kind="self-hosted-source",
+            recipe=SelfHostRecipe(
+                packs=pack_names,
+                profiles=profile_names,
+                guides=cfg.guides,
+                attribution=cfg.attribution,
+                tooling=cfg.tooling,
+                name=_transform_recipe_string(cfg.name, anchors, cfg) or "",
+                display_name=(
+                    _transform_recipe_string(cfg.display_name, anchors, cfg) or ""
+                ),
+                description=(
+                    _transform_recipe_string(cfg.description, anchors, cfg) or ""
+                ),
+                owner_name=(
+                    _transform_recipe_string(cfg.owner_name, anchors, cfg) or ""
+                ),
+                owner_email=(
+                    _transform_recipe_string(cfg.owner_email, anchors, cfg) or ""
+                ),
+                preferred_adapter=(
+                    _transform_recipe_string(cfg.preferred_adapter, anchors, cfg) or ""
+                ),
+                repository_url=_transform_recipe_string(
+                    cfg.repository_url, anchors, cfg
+                ),
+            ),
+            pin=SelfHostPin(
+                source_uri=str(cfg.source.resolve()) if _is_attributed(cfg) else None,
+                source_revision=None,
+                archive_sha256=None,
+                synced_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
         )
         _write_ownership_state(cfg.target, new_state)
         files_written.append(("create", _OWNERSHIP_STATE_FILE))

@@ -108,10 +108,21 @@ the upstream wording while the recipe stored a rewritten copy, and AC-0012
 would then write that copy into `catalogue.toml`, an attribution surface,
 on the next bare re-run. AC-0005 and AC-0006 pin the two halves.
 
-The list-valued fields are the exception: `recipe.packs` and `recipe.profiles`
-hold directory and file names that must match the source tree on disk, so they
-are recorded **verbatim**. Transforming them would make a read-back select
-packs that do not exist.
+Two groups are the exception, both for the same reason — they are closed
+vocabularies whose values must match a fixed set, not free text that can carry
+identity. `recipe.packs` and `recipe.profiles` hold directory and file names
+that must match the source tree on disk; transforming them would make a
+read-back select packs that do not exist. `recipe.guides`, `recipe.attribution`,
+and `recipe.tooling` hold one of a fixed set of mode tokens. Both groups are
+recorded **verbatim**.
+
+The mode fields are not a theoretical case. `_transform_text` performs a
+substring `str.replace`, so a source catalogue named `extern` rewrote
+`tooling` from `"external"` to the derived name plus `"al"` — measured on the
+implementation before this was corrected. Only the fields that can actually
+carry upstream identity take the transform: `description`, whose derived
+default embeds the source catalogue's name, and `preferred_adapter`, which
+falls back to the source's value.
 
 **D4 — mode fields are recorded, not consumed.** Reading `attribution` back
 would let an edit to an unscanned file select `attributed`. Reading `tooling`
@@ -413,6 +424,10 @@ prose; mark `upstream-sync.md` § Rollout phase 1 done and record there that
 ## Changelog
 
 - 2026-09-14 — initial draft.
+- 2026-09-14 — D3 corrected during T2: the closed-vocabulary mode fields join
+  the list fields as recorded-verbatim. The original wording said "each recipe
+  string", which the worker implemented faithfully and which corrupted
+  `recipe.tooling` under a source name that is a substring of a mode value.
 - 2026-09-14 — revised against three spec-stage reviews: recipe written
   post-transform (D3), read-back extended to `packs`/`profiles`, per-field
   read-time constraints, prompt seeding (D7), TOML sink escaping split out as

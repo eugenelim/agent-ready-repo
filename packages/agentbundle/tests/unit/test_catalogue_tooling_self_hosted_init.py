@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,8 +16,10 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     _VENDORED_PACK_EXCLUDE,
     SelfHostedInitConfig,
     SelfHostOwnershipState,
+    SelfHostPin,
     _collect_dir_bytes,
     _generate_catalogue_toml,
+    _transform_recipe_string,
     init_self_hosted,
     select_packs,
     validate_fields,
@@ -36,7 +39,11 @@ def _make_source(tmp_path: Path, packs: list[str] | None = None) -> Path:
     source.mkdir()
     (source / "catalogue.toml").write_text(
         '[catalogue]\nname = "upstream-catalogue"\ndisplay_name = "Upstream Catalogue"\n'
-        'description = "The upstream."\n',
+        'description = "The upstream."\n'
+        'maintainers = [{name = "Upstream Maintainer", email = "upstream@example.com"}]\n'
+        '[catalogue.links]\n'
+        'homepage = "https://upstream.example.com"\n'
+        'repository = "https://upstream.example.com/catalogue"\n',
         encoding="utf-8",
     )
     packs_dir = source / "packs"
@@ -342,8 +349,8 @@ def test_init_self_hosted_writes_ownership_state(tmp_path: Path) -> None:
     assert state_path.exists()
     import json
     state = json.loads(state_path.read_text(encoding="utf-8"))
-    # Schema 2: managed_paths is list of {path, sha256} dicts.
-    assert state["schema_version"] == "2"
+    # Schema 3 retains schema 2's managed_paths shape.
+    assert state["schema_version"] == "3"
     assert isinstance(state["managed_paths"], list)
     assert all(
         isinstance(e, dict) and "path" in e and "sha256" in e
@@ -424,7 +431,7 @@ def test_init_self_hosted_vendored_missing_agentbundle_diagnostic(tmp_path: Path
 # ---------------------------------------------------------------------------
 
 def test_ownership_state_to_dict() -> None:
-    # Schema 2: managed_paths is list of {path, sha256} dicts.
+    # Schema 3 retains schema 2's managed_paths shape.
     state = SelfHostOwnershipState(
         managed_paths=[
             {"path": "packs/core/pack.toml", "sha256": "abc123"},
@@ -432,7 +439,7 @@ def test_ownership_state_to_dict() -> None:
         ]
     )
     d = state.to_dict()
-    assert d["schema_version"] == "2"
+    assert d["schema_version"] == "3"
     paths = [e["path"] for e in d["managed_paths"]]
     assert "catalogue.toml" in paths
     assert "packs/core/pack.toml" in paths
@@ -736,7 +743,7 @@ def test_external_next_steps_per_adapter(tmp_path: Path) -> None:
 # Phase 2 — B9: ownership state enrichment + removal logic
 # ---------------------------------------------------------------------------
 
-def test_ownership_state_schema2_fields(tmp_path: Path) -> None:
+def test_ownership_state_schema3_fields(tmp_path: Path) -> None:
     import json
     source = _make_source(tmp_path)
     cfg = _base_cfg(tmp_path, source)
@@ -745,7 +752,7 @@ def test_ownership_state_schema2_fields(tmp_path: Path) -> None:
     state = json.loads(
         (cfg.target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
     )
-    assert state["schema_version"] == "2"
+    assert state["schema_version"] == "3"
     assert "adapters" in state
     assert "managed_target_path" in state
     assert "source_pack_identity" in state
@@ -1346,3 +1353,180 @@ def test_a_benign_value_still_produces_the_expected_tables(tmp_path: Path) -> No
     assert parsed["catalogue"]["name"] == "my-catalogue"
     assert parsed["catalogue"]["links"]["repository"] == "https://example.com/mine"
     assert parsed["catalogue"]["maintainers"][0]["email"] == "owner@example.com"
+
+
+# ---------------------------------------------------------------------------
+# Self-host state schema 3 — write path
+# ---------------------------------------------------------------------------
+
+
+def test_state_is_schema_three_with_both_groups(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "derived", source=source, name="my-catalogue"
+    )
+
+    assert init_self_hosted(cfg).ok
+    state = _read_state(cfg.target)
+
+    assert state["schema_version"] == "3"
+    assert set(state["recipe"]) == {
+        "packs",
+        "profiles",
+        "guides",
+        "attribution",
+        "tooling",
+        "name",
+        "display_name",
+        "description",
+        "owner_name",
+        "owner_email",
+        "preferred_adapter",
+        "repository_url",
+    }
+    assert {"source_revision", "archive_sha256", "synced_at"} <= set(
+        state["pin"]
+    )
+
+
+def test_bare_run_records_resolved_selections(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "derived", source=source, name="my-catalogue"
+    )
+
+    assert init_self_hosted(cfg).ok
+    recipe = _read_state(cfg.target)["recipe"]
+
+    assert recipe["packs"] == ["core", "governance-extras"]
+    assert recipe["profiles"] == ["default"]
+
+
+def test_recipe_mode_fields_are_recorded_verbatim(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _make_source(tmp_path)
+    monkeypatch.setattr(
+        "agentbundle.catalogue_tooling.initialise_self_hosted._verify_bytes_in_tmpdir",
+        lambda *_args: ([], []),
+    )
+    metadata_path = source / "catalogue.toml"
+    metadata_path.write_text(
+        metadata_path.read_text(encoding="utf-8").replace(
+            'name = "upstream-catalogue"', 'name = "extern"', 1
+        ),
+        encoding="utf-8",
+    )
+    cfg = _base_cfg(
+        tmp_path,
+        source,
+        guides="selected",
+        attribution="white-label",
+        tooling="external",
+    )
+
+    assert init_self_hosted(cfg).ok
+    recipe = _read_state(cfg.target)["recipe"]
+
+    for field, expected in {
+        "guides": "selected",
+        "attribution": "white-label",
+        "tooling": "external",
+    }.items():
+        assert recipe[field] == expected
+
+
+def test_derived_tree_passes_leak_check_including_state_file(tmp_path: Path) -> None:
+    """Use the production anchor builder and verifier over the written tree."""
+    from agentbundle.catalogue_tooling.identity import verify
+    from agentbundle.catalogue_tooling.initialise_self_hosted import _build_anchors
+
+    source = _make_source(tmp_path)
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "derived", source=source, name="my-catalogue"
+    )
+
+    assert init_self_hosted(cfg).ok
+    anchors = _build_anchors(
+        tomllib.loads((source / "catalogue.toml").read_text(encoding="utf-8"))
+    )
+
+    assert verify(cfg.target, anchors) == []
+
+
+def test_attributed_recipe_strings_keep_upstream_identity(tmp_path: Path) -> None:
+    """Attributed recipe strings take the same no-transform branch as the tree."""
+    source = _make_source(tmp_path)
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "derived",
+        source=source,
+        name="my-catalogue",
+        attribution="attributed",
+    )
+
+    assert init_self_hosted(cfg).ok
+
+    assert _read_state(cfg.target)["recipe"]["description"] == (
+        "A self-hosted catalogue derived from upstream-catalogue."
+    )
+
+
+def test_attributed_recipe_transform_is_a_no_op(tmp_path: Path) -> None:
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "derived",
+        source=tmp_path / "source",
+        name="my-catalogue",
+        attribution="attributed",
+    )
+    recorded = "A self-hosted catalogue derived from upstream-catalogue."
+
+    assert _transform_recipe_string(
+        recorded, {"name": "upstream-catalogue"}, cfg
+    ) == recorded
+
+
+@pytest.mark.parametrize(
+    ("attribution", "has_source_uri"),
+    [
+        ("attributed", True),
+        ("white-label", False),
+        ("unexpected", False),
+    ],
+)
+def test_pin_source_uri_is_attribution_gated(
+    tmp_path: Path, attribution: str, has_source_uri: bool
+) -> None:
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source, attribution=attribution)
+
+    assert init_self_hosted(cfg).ok
+    pin = _read_state(cfg.target)["pin"]
+
+    assert ("source_uri" in pin) is has_source_uri
+    if has_source_uri:
+        assert pin["source_uri"] == str(source.resolve())
+
+
+def test_self_host_pin_omits_unset_source_uri() -> None:
+    pin = SelfHostPin(
+        source_uri=None,
+        source_revision=None,
+        archive_sha256=None,
+        synced_at="2026-09-14T12:34:56Z",
+    )
+
+    assert "source_uri" not in pin.to_dict()
+
+
+def test_local_source_pin_has_empty_provenance_and_utc_timestamp(
+    tmp_path: Path,
+) -> None:
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source)
+
+    assert init_self_hosted(cfg).ok
+    pin = _read_state(cfg.target)["pin"]
+
+    assert pin["source_revision"] is None
+    assert pin["archive_sha256"] is None
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", pin["synced_at"])
