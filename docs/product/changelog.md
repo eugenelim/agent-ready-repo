@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `loop-cohort schedule` now reminds full-mode controllers to delegate scheduled
   tasks one at a time when an implementer is installed, or run them directly
   and note the single-agent degradation.
+- `work-loop`: `loop-cohort schedule` stops on cycles, reports and reorders
+  forward references so dependencies run first, and drops missing task IDs
+  without a diagnostic. Its supervisor reference does not promise that
+  `schedule` validates declared dependency existence.
 
 ## [core][2.26.5] — 2026-09-15
 

@@ -10,9 +10,11 @@
 plan's full `Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and, when an
 `implementer` subagent is installed, dispatches each plan task in topological
 order with one implementer at a time. It does *not* auto-fan-out. `schedule`
-also fails loud on a dependency cycle or a forward-reference (a task whose
-declared dep is authored later), so an ill-formed plan is caught at PLAN, not
-run out of order.
+stops the run on a dependency cycle. It reports a forward reference (a task
+whose declared dependency is authored later) on stderr, corrects the wave order
+so the dependency runs first, and continues. A `Depends on:` entry naming a
+task absent from the plan is dropped without a diagnostic, so the controller
+must not treat `schedule` as validating that declared dependencies exist.
 
 This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
