@@ -25,6 +25,7 @@ the adopter-genericity criterion.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import NamedTuple
@@ -616,7 +617,7 @@ def test_the_forbidden_token_list_is_shipped_not_stated_here() -> None:
 # them pass on the strength of the others while putting that carrier outside the
 # control's reach entirely.
 REFERENCE = "references/rendered-page-inspection.md"
-SKILL = "SKILL.md"
+SKILL = "skills/frontend-engineering/SKILL.md"
 HOW_TO = "how-to/inspect-the-rendered-page.md"
 EVALS = "evals/evals.json"
 
@@ -653,7 +654,29 @@ def _swept_files() -> dict[str, str]:
     return out
 
 
-def _sentences(text: str) -> list[str]:
+def _json_string_values(text: str) -> list[str]:
+    """Every string value in a JSON document, flattened.
+
+    AC-0021 states that for JSON each string value is one unit. Without this the
+    blank-line split is a no-op — `evals.json` contains none — so the whole file
+    is one paragraph and a single 459-character "sentence" spans three separate
+    `assertions` entries. A conditioner in a neighbouring assertion then
+    satisfies the predicate for an anchor that is not conditioned at all, which
+    is the co-location discharge this criterion exists to reject.
+    """
+    def walk(node: object) -> list[str]:
+        if isinstance(node, str):
+            return [node]
+        if isinstance(node, dict):
+            return [s for v in node.values() for s in walk(v)]
+        if isinstance(node, list):
+            return [s for v in node for s in walk(v)]
+        return []
+
+    return walk(json.loads(text))
+
+
+def _sentences(text: str, *, is_json: bool = False) -> list[str]:
     """Paragraph units first, then whitespace-normalized within a unit, then
     sentences.
 
@@ -666,8 +689,9 @@ def _sentences(text: str) -> list[str]:
     The negative lookbehind keeps `b1 < ... < bn` in one piece: a period adjacent
     to another period is an ellipsis, not a sentence end.
     """
+    paragraphs = _json_string_values(text) if is_json else text.split("\n\n")
     units = []
-    for paragraph in text.split("\n\n"):
+    for paragraph in paragraphs:
         normalized = " ".join(paragraph.split())
         units.extend(re.split(r"(?<!\.)\. |; |: ", normalized))
     return units
@@ -683,7 +707,7 @@ def test_no_shipped_surface_states_a_superseded_capture_claim() -> None:
     swept = _swept_files()
     for anchor, _carriers, conditioner in SUPERSEDED_CLAIMS:
         for label, text in swept.items():
-            for sentence in _sentences(text):
+            for sentence in _sentences(text, is_json=label.endswith(".json")):
                 if anchor in sentence:
                     assert conditioner in sentence, (
                         f"{label}: {anchor!r} states a superseded capture claim "

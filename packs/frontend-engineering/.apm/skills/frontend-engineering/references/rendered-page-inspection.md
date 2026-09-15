@@ -122,9 +122,9 @@ minimum where its own bound sits below — raised, never lowered, so a minimum
 cannot invent a width the surface never claimed. A band with no upper bound is
 never dropped. A breakpoint strictly below the minimum is discarded and recorded
 as discarded; one equal to the minimum still bounds a surviving channel. A
-clamped band is renamed from its bounds after the clamp, so a band clamped to
-`>=1280` with no upper bound reads `from-1280`; a clamped fallback band keeps the
-name its row gives it.
+clamped band is renamed from its bounds after the clamp, under the same naming
+scheme the derivation already uses; a clamped fallback band keeps the name its
+row gives it.
 
 **The minimum in force is recorded beside the basis, not inside it.** A run
 records the value it used, or `none-declared` when none was, and separately the

@@ -434,14 +434,15 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 active  = [
 ]
 queue   = [
-  # Approved 2026-09-14. Lets a surface declare the minimum viewport width it
+]
+shipped = [
+  # Shipped 2026-09-14. Lets a surface declare the minimum viewport width it
   # supports, so the channel axis stops requiring a capture below it. Supersedes
   # the "exactly the bands those breakpoints bound" and "exactly two channels"
   # criteria of the spec it needs, which take Status-line pointers to AC-0002
   # and AC-0003.
   {path = "docs/specs/channel-minimum-width/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Let a surface declare its supported minimum width, so the rendered-page inspection stops requiring a capture below the width the surface supports", needs = [{type = "local", kind = "spec", path = "docs/specs/rendered-page-channel-axis/spec.md"}]},
-]
-shipped = [
+
   # Shipped 2026-09-14. Makes viewport width a completeness axis of the
   # rendered-page inspection, so a capture set cannot sit entirely on one side of
   # every breakpoint a surface declares. Supersedes the height-only scroll-pair

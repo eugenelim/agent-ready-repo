@@ -819,7 +819,7 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | Field | What to record |
 |---|---|
 | routes | List of routes/URLs or file paths tested |
-| viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands, the supported minimum width in force or none-declared, and any declared breakpoints the minimum discarded. Record the last two as plain numbers, never as predicates; the example above declares no minimum, so it records none-declared and discards nothing |
+| viewports | The channels covered, each as the width predicate that defines it (e.g. `<480`, `>=480 <1152`, `>=1152` for breakpoints 480 and 1152), plus whether those channels came from declared breakpoints or from the fallback bands, the supported minimum width in force or none-declared, and any declared breakpoints the minimum discarded. Record the last two as plain numbers, never as predicates; the example above declares no minimum (worked example: minimum none-declared), so it records none-declared and discards nothing |
 | browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
 | states | Which of the 18 states were exercised during testing |
 | screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |

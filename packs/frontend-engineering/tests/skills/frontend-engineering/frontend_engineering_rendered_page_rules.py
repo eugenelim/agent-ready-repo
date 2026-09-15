@@ -281,7 +281,6 @@ def _validate_minimum(minimum: int | None) -> None:
 
 
 def _apply_minimum(
-    markdown: str,
     bands: list[tuple[str, str, str]],
     minimum: int,
     *,
@@ -318,8 +317,14 @@ def _band_admits_at_or_above(band: tuple[str, str, str], minimum: int) -> bool:
     _, _, upper = band
     if not upper:
         return True
+    # The largest width the upper bound admits, by the same rule
+    # `channel_capture_width` applies — not a parallel comparison. A hand-written
+    # `<=` special case silently disagreed with `satisfies` on `=480` and on a
+    # bare `480`, both of which admit exactly 480 and were being dropped under a
+    # 480 minimum: the same false drop the `<=` case exists to prevent.
     op, value = _bound_value(upper)
-    return value >= minimum if op == "<=" else value > minimum
+    largest = value if op in ("<=", "=") else value - 1
+    return largest >= minimum
 
 
 def _clamped_name(lower: str, upper: str) -> str:
@@ -359,7 +364,7 @@ def required_channels(
         bands = fallback_channels(markdown)
         if minimum is None:
             return bands
-        return _apply_minimum(markdown, bands, minimum, rename=False)
+        return _apply_minimum(bands, minimum, rename=False)
     if rules.get("channel-derivation") != "bands-bounded-by-consecutive-breakpoints":
         raise AssertionError(
             "the Channels table no longer states channel-derivation"
@@ -381,7 +386,7 @@ def required_channels(
     bands.append((f"from-{ordered[-1]}", f">={ordered[-1]}", ""))
     if minimum is None:
         return bands
-    return _apply_minimum(markdown, bands, minimum, rename=True)
+    return _apply_minimum(bands, minimum, rename=True)
 
 
 def minimum_in_force(markdown: str, minimum: int | None = None) -> str:

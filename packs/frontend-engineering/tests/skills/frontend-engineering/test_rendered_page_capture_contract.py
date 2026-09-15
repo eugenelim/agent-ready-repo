@@ -33,10 +33,14 @@ from frontend_engineering_rendered_page_rules import (
     read_rules,
     read_skill,
     required_channels,
+    satisfies,
     skill_capture_table,
     step_rules,
     width_in_channel,
     worked_example_snippet,
+)
+from frontend_engineering_rendered_page_rules import (
+    _band_admits_at_or_above as _band_admits,
 )
 
 REQUIRED = [
@@ -799,15 +803,22 @@ def test_the_manifest_example_is_a_band_set_the_derivation_produces(
     # stating a 1280 minimum beside predicates for breakpoints 480 and 1152
     # compares green against a no-minimum derivation while teaching an adopter a
     # required set the minimum reduces to one channel.
-    stated_minimum = re.search(r"minimum (\d+)", row)
-    minimum = int(stated_minimum.group(1)) if stated_minimum else None
+    slot = re.search(r"worked example: minimum (\S+?)[,)]", row)
+    assert slot, (
+        "the viewports row states no `worked example: minimum <value>` slot, so "
+        "the minimum its predicates were derived under cannot be read; a prose "
+        "scan would pick up any digit following the word 'minimum'"
+    )
+    token = slot.group(1)
+    minimum = None if token == "none-declared" else int(token)
     derived = [
         (lo, hi)
         for _, lo, hi in required_channels(rules_markdown, breakpoints, minimum)
     ]
     assert stated == derived, (
         f"the example states {stated}, but the shipped derivation yields "
-        f"{derived} for the breakpoints it names, {breakpoints}"
+        f"{derived} for the breakpoints it names, {breakpoints}, under the "
+        f"minimum it declares, {token}"
     )
 
 
@@ -966,15 +977,15 @@ def test_a_breakpoint_above_the_minimum_keeps_its_band(rules_markdown: str) -> N
 def test_the_minimum_is_recorded_beside_the_basis(rules_markdown: str) -> None:
     """Verifies AC-0006: a separate field, and the basis vocabulary unwidened.
 
-    Exact equality on the whole basis value, not a prefix match: a reader
-    returning `declared-breakpoints+1280` would satisfy a looser check, and that
-    is the third-vocabulary-value shape *Ask first* gates.
+    The basis vocabulary is not asserted here, and the reason is stronger than a
+    test: `channel_basis` takes no minimum parameter at all, so a reader
+    returning `declared-breakpoints+1280` cannot be expressed through its
+    signature. The separateness AC-0006 requires is structural. Restating the
+    shipped `test_the_channel_basis_is_recorded_not_inferred` here would have
+    duplicated it while implying an interaction the module cannot have.
     """
-    assert channel_basis(rules_markdown, None) == "fallback"
     assert minimum_in_force(rules_markdown, 1280) == "1280"
-    assert channel_basis(rules_markdown, [768]) == "declared-breakpoints"
     assert minimum_in_force(rules_markdown, None) == "none-declared"
-    assert minimum_in_force(rules_markdown, None) != ""
 
 
 def test_discarded_breakpoints_are_recorded(rules_markdown: str) -> None:
@@ -1042,17 +1053,35 @@ def test_no_two_required_channels_admit_a_common_width(rules_markdown: str) -> N
         None, [768], [400, 800], [768, 1024], [1536], [1440, 1920],
         [768, 1536], [768, 1024, 1440],
     ]
+    probes = {1, 100, 399, 400, 479, 480, 481, 600, 767, 768, 1023, 1024,
+              1151, 1152, 1279, 1280, 1439, 1440, 1535, 1536, 1919, 1920,
+              12799, 12800, 20000}
     for minimum in minima:
         for breakpoints in breakpoint_lists:
             channels = required_channels(rules_markdown, breakpoints, minimum)
-            probes = {1, 100, 399, 400, 479, 480, 481, 600, 767, 768, 1023, 1024,
-                      1151, 1152, 1279, 1280, 1439, 1440, 1535, 1536, 1919, 1920,
-                      12799, 12800, 20000}
+            # `len(covering) <= 1` is vacuously true of an empty band list, and
+            # the filter has a live "no survivors" branch, so without this the
+            # sweep is green while the derivation yields nothing at all.
+            assert channels, (
+                f"the derivation yielded no channel at all under minimum="
+                f"{minimum} breakpoints={breakpoints}; every input the contract "
+                f"admits leaves at least one band, because a band unbounded "
+                f"above is never dropped"
+            )
             for width in probes:
                 covering = [c for c in channels if width_in_channel(c, width)]
                 assert len(covering) <= 1, (
                     f"width {width} satisfies {[c[0] for c in covering]} under "
                     f"minimum={minimum} breakpoints={breakpoints}"
+                )
+            # The probe set and the input lists are parallel hand-written lists.
+            # Without this, adding a breakpoint list without adding its boundary
+            # widths gives a green run that examined nothing new, silently.
+            for band in channels:
+                assert any(width_in_channel(band, w) for w in probes), (
+                    f"band {band} is reached by no probe under minimum={minimum} "
+                    f"breakpoints={breakpoints}; the probe set has fallen behind "
+                    f"the input lists and this sweep is no longer examining it"
                 )
 
 
@@ -1072,7 +1101,13 @@ def test_the_walk_honours_the_declared_minimum(rules_markdown: str) -> None:
     assert evaluate_capture_set(rules_markdown, four, None, 1280) == ("complete", [])
     state, missing = evaluate_capture_set(rules_markdown, four, None, 480)
     assert state == "incomplete"
-    assert _names(missing, "short-at-rest")
+    # The channel, not just the capture name: the walk writes
+    # "{capture} in {channel} (route {route})", and a regression that dropped
+    # `wide` instead of keeping `narrow` reports "short-at-rest" too.
+    assert any("in narrow (" in entry for entry in missing), (
+        f"the 480 minimum drops nothing, so the narrow channel must still be "
+        f"required and reported missing; the walk reported {missing}"
+    )
     assert evaluate_capture_set(rules_markdown, four, [768], 1280) == ("complete", [])
 
 
@@ -1094,6 +1129,20 @@ def test_the_inspection_result_honours_the_declared_minimum(
     assert is_completed_inspection_result(rules_markdown, without) is False
 
 
+def _section_5a(skill_markdown: str) -> str:
+    """The rendered-page inspection section only, whitespace-normalized.
+
+    `SKILL.md` carries twenty top-level sections. A file-wide search passes with
+    the sentence living under any of them, while the section that teaches the
+    step goes silent — which is the scoping AC-0009 already applies to the
+    journey's `youProvide` value for the same reason.
+    """
+    start = skill_markdown.index("## 5. Rendered-page inspection")
+    rest = skill_markdown[start + 1 :]
+    end = rest.index("\n## ") if "\n## " in rest else len(rest)
+    return " ".join(rest[:end].split())
+
+
 def test_the_skill_states_the_minimum_input(skill_markdown: str) -> None:
     """Verifies AC-0008: § 5a states the input, positively.
 
@@ -1102,7 +1151,14 @@ def test_the_skill_states_the_minimum_input(skill_markdown: str) -> None:
     anyway — keyed on that, this would go green without § 5a ever saying the
     input exists.
     """
-    assert "may declare a supported minimum width" in " ".join(skill_markdown.split())
+    section = _section_5a(skill_markdown)
+    assert "may declare a supported minimum width" in section, (
+        "SKILL.md § 5. Rendered-page inspection does not state that a surface "
+        "may declare a supported minimum width. The literal belongs in that "
+        "section, not merely somewhere in the file: an agent performing the step "
+        "reads § 5a, and the sentence moving to another section would leave the "
+        "step silent about an input that decides how many channels it captures."
+    )
 
 
 def test_manifest_viewports_field_records_the_minimum(skill_markdown: str) -> None:
@@ -1122,7 +1178,69 @@ def test_manifest_viewports_field_records_the_minimum(skill_markdown: str) -> No
     assert "discard" in row.lower(), (
         "the row does not record the breakpoints the minimum discarded"
     )
-    assert not re.search(r"`[<>]=?\d+`\s*(?:minimum|discarded)", row), (
+    assert not re.search(
+        r"`[<>]=?\d+`\s*(?:minimum|discarded)|(?:minimum|discarded)\s*`[<>]=?\d+`", row
+    ), (
         "the minimum and discarded values are backticked predicates; the worked "
         "example control would read them as part of the band set"
+    )
+
+
+def test_the_manifest_example_control_reads_a_stated_minimum(
+    rules_markdown: str, skill_markdown: str
+) -> None:
+    """The stated-minimum branch of the worked-example control is exercised.
+
+    The shipped row declares `none-declared`, so nothing in the suite drives the
+    non-`None` path: a mutation pinning the parsed minimum to `None` would be
+    invisible, and the control would silently go back to comparing every row
+    against a no-minimum derivation. This drives a row that states one.
+
+    It also fixes the arithmetic the control protects. Under a 1280 minimum the
+    predicates for breakpoints 480 and 1152 collapse to a single band, so a row
+    keeping all three while declaring 1280 contradicts itself.
+    """
+    row = _manifest_viewports_row(skill_markdown)
+    stated = row.replace(
+        "worked example: minimum none-declared", "worked example: minimum 1280"
+    )
+    assert stated != row, "the row carries no worked-example minimum slot to rewrite"
+
+    slot = re.search(r"worked example: minimum (\S+?)[,)]", stated)
+    assert slot and slot.group(1) == "1280"
+
+    predicates = re.findall(r"`([<>]=?\d+(?:\s+[<>]=?\d+)?)`", stated)
+    breakpoints = sorted({int(n) for n in re.findall(r"[<>]=?(\d+)", " ".join(predicates))})
+    derived = [
+        (lo, hi) for _, lo, hi in required_channels(rules_markdown, breakpoints, 1280)
+    ]
+    assert derived == [(">=1280", "")], (
+        f"a 1280 minimum against breakpoints {breakpoints} must leave one clamped "
+        f"band; the derivation yielded {derived}"
+    )
+    assert len(predicates) != len(derived), (
+        "the row's three predicates and the minimum-aware derivation must differ, "
+        "or this fixture proves nothing about the parse branch"
+    )
+
+
+@pytest.mark.parametrize("upper", ["<=480", "<480", "=480", "480"])
+def test_the_drop_condition_agrees_with_satisfies_on_every_operator(
+    rules_markdown: str, upper: str
+) -> None:
+    """A band is dropped only when its upper bound admits no width at or above
+    the minimum — decided by the same grammar `satisfies` reads.
+
+    The shipped fallback table uses `<=` and an empty cell, so a hand-written
+    `<=`-only comparison passes every shipped case while disagreeing with
+    `satisfies` on `=480` and on a bare `480`: both admit exactly 480, and both
+    were being dropped under a 480 minimum. The reference is data this module
+    reads, so an operator the grammar admits is reachable from any fork of it.
+    """
+    band = ("probe", "", upper)
+    admits_480 = satisfies(upper, 480)
+    survives = width_in_channel(band, 480) and _band_admits(band, 480)
+    assert survives == admits_480, (
+        f"upper bound {upper!r} admits 480 under satisfies={admits_480}, but the "
+        f"drop condition says it survives a 480 minimum={survives}"
     )
