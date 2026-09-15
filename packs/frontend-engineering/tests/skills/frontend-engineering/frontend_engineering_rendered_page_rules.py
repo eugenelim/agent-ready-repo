@@ -230,6 +230,17 @@ def _bound_value(predicate: str) -> tuple[str, int]:
     return match.group(1) or "=", int(match.group(2))
 
 
+def _largest_admitted(upper: str) -> int:
+    """The largest whole width an upper-bound cell admits.
+
+    One source, because the drop condition and the capture-width rule must agree
+    by construction rather than by two copies of the same expression staying in
+    step. `<=` and `=` admit their own value; `<` admits one less.
+    """
+    op, value = _bound_value(upper)
+    return value if op in ("<=", "=") else value - 1
+
+
 def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
     """The width a capture in this band is taken at, per the shipped rule.
 
@@ -245,8 +256,7 @@ def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
     if lower:
         op, value = _bound_value(lower)
         return value if op in (">=", "=") else value + 1
-    op, value = _bound_value(upper)
-    return value if op in ("<=", "=") else value - 1
+    return _largest_admitted(upper)
 
 
 def _minimum_derivation_rule(markdown: str) -> None:
@@ -317,14 +327,12 @@ def _band_admits_at_or_above(band: tuple[str, str, str], minimum: int) -> bool:
     _, _, upper = band
     if not upper:
         return True
-    # The largest width the upper bound admits, by the same rule
-    # `channel_capture_width` applies — not a parallel comparison. A hand-written
-    # `<=` special case silently disagreed with `satisfies` on `=480` and on a
-    # bare `480`, both of which admit exactly 480 and were being dropped under a
-    # 480 minimum: the same false drop the `<=` case exists to prevent.
-    op, value = _bound_value(upper)
-    largest = value if op in ("<=", "=") else value - 1
-    return largest >= minimum
+    # Routed through the same `_largest_admitted` the capture-width rule uses,
+    # so the two agree by construction. A hand-written `<=` special case here
+    # silently disagreed with `satisfies` on `=480` and on a bare `480`, both of
+    # which admit exactly 480 and were being dropped under a 480 minimum — the
+    # same false drop the `<=` case exists to prevent.
+    return _largest_admitted(upper) >= minimum
 
 
 def _clamped_name(lower: str, upper: str) -> str:

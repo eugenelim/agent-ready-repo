@@ -1130,17 +1130,20 @@ def test_the_inspection_result_honours_the_declared_minimum(
 
 
 def _section_5a(skill_markdown: str) -> str:
-    """The rendered-page inspection section only, whitespace-normalized.
+    """The § 5a capture sub-section only, whitespace-normalized.
 
     `SKILL.md` carries twenty top-level sections. A file-wide search passes with
     the sentence living under any of them, while the section that teaches the
     step goes silent — which is the scoping AC-0009 already applies to the
     journey's `youProvide` value for the same reason.
     """
-    start = skill_markdown.index("## 5. Rendered-page inspection")
+    start = skill_markdown.index("#### 5a.")
     rest = skill_markdown[start + 1 :]
-    end = rest.index("\n## ") if "\n## " in rest else len(rest)
-    return " ".join(rest[:end].split())
+    # The next heading at any level ends the sub-section: 5b follows at `####`,
+    # and terminating only on `\n## ` would return 5a, 5b and 5c together while
+    # the criterion scopes its literal to 5a.
+    nxt = re.search(r"\n#{2,4} ", rest)
+    return " ".join(rest[: nxt.start() if nxt else len(rest)].split())
 
 
 def test_the_skill_states_the_minimum_input(skill_markdown: str) -> None:
@@ -1191,37 +1194,29 @@ def test_the_manifest_example_control_reads_a_stated_minimum(
 ) -> None:
     """The stated-minimum branch of the worked-example control is exercised.
 
-    The shipped row declares `none-declared`, so nothing in the suite drives the
-    non-`None` path: a mutation pinning the parsed minimum to `None` would be
-    invisible, and the control would silently go back to comparing every row
-    against a no-minimum derivation. This drives a row that states one.
+    This calls the control itself rather than re-typing its regex and its
+    comparison. An earlier version of this test did re-type them, and pinning the
+    control's parse to `None` left the whole suite green — the copy read the row
+    correctly while the shipping code was never exercised on a stated minimum.
 
-    It also fixes the arithmetic the control protects. Under a 1280 minimum the
-    predicates for breakpoints 480 and 1152 collapse to a single band, so a row
-    keeping all three while declaring 1280 contradicts itself.
+    The shipped row declares `none-declared`, so nothing else drives the branch.
+    Here the row states 1280 while keeping predicates for breakpoints 480 and
+    1152, which a 1280 minimum collapses to one band — so a control that reads
+    the minimum must fail, and one that ignores it must pass.
     """
     row = _manifest_viewports_row(skill_markdown)
-    stated = row.replace(
-        "worked example: minimum none-declared", "worked example: minimum 1280"
+    contradicting = skill_markdown.replace(
+        "worked example: minimum none-declared", "worked example: minimum 1280", 1
     )
-    assert stated != row, "the row carries no worked-example minimum slot to rewrite"
+    assert contradicting != skill_markdown, (
+        "the row carries no worked-example minimum slot to rewrite"
+    )
+    assert "`<480`" in row, "the row no longer states a declared-breakpoint example"
 
-    slot = re.search(r"worked example: minimum (\S+?)[,)]", stated)
-    assert slot and slot.group(1) == "1280"
-
-    predicates = re.findall(r"`([<>]=?\d+(?:\s+[<>]=?\d+)?)`", stated)
-    breakpoints = sorted({int(n) for n in re.findall(r"[<>]=?(\d+)", " ".join(predicates))})
-    derived = [
-        (lo, hi) for _, lo, hi in required_channels(rules_markdown, breakpoints, 1280)
-    ]
-    assert derived == [(">=1280", "")], (
-        f"a 1280 minimum against breakpoints {breakpoints} must leave one clamped "
-        f"band; the derivation yielded {derived}"
-    )
-    assert len(predicates) != len(derived), (
-        "the row's three predicates and the minimum-aware derivation must differ, "
-        "or this fixture proves nothing about the parse branch"
-    )
+    with pytest.raises(AssertionError, match="minimum it declares"):
+        test_the_manifest_example_is_a_band_set_the_derivation_produces(
+            rules_markdown, contradicting
+        )
 
 
 @pytest.mark.parametrize("upper", ["<=480", "<480", "=480", "480"])
