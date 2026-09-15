@@ -15,6 +15,42 @@ name: Publish Claude plugin packages
 # Excludes `catalogue-curation/` (operator-only pack) but includes
 # `marketplace.json` at the branch root for machine-readable discovery.
 #
+# The push filter below is an ALLOWLIST of everything this job consumes: the
+# fifteen published pack sources and every pack's two scope-declaring
+# manifests, plus the builder, the Makefile, the publish script and the root
+# marketplace it refuses against, and the publication-control gate with the
+# three files it reads. The route is per-pack (agentbundle's
+# `per-pack-claude-plugin.toml` recipe), so a push that touches none of these
+# cannot change a published plugin.
+#
+# An allowlist rather than `paths-ignore` because this job is gated on the
+# `claude-plugin-publish` environment: a push that cannot change the output
+# still opens a deployment approval, and the repo's own history is the argument
+# -- replayed over the 200 most recent merges to `main`, this allowlist runs on
+# 40 and skips 160, and none of the 160 touched a published pack's sources. The
+# shape that does not work is an ignore-list of the repo-only pack directories:
+# it skipped 0 of the 200, because a pack change here rides with a changelog
+# entry and the self-hosted `.claude/` and `.agents/` projections.
+#
+# An allowlist fails unsafe by nature: a pack missing from it stops publishing
+# with nothing red. tools/lint-plugin-roster.py closes that -- it holds the
+# literal `PUBLISHED` roster, already refuses an unrostered pack, and fails when
+# this list and that roster disagree in either direction. Keep the two in one
+# commit. A brand-new pack is caught a step earlier: tools/lint-plugin-membership.py
+# fails while it is publishable from source but absent from the root
+# marketplace, and entering that marketplace is what makes the roster refuse it.
+#
+# Accepted limitation: GitHub evaluates a path filter over at most the first 300
+# changed files, so a larger push could match nothing here and skip a publish it
+# owed. Left as is rather than backstopped -- the 200 most recent merges to
+# `main` top out at 92 changed files, and `workflow_dispatch` above recovers the
+# case by hand if it ever lands.
+#
+# This comment is the operative statement of the trigger's reach. AC1 of
+# docs/specs/claude-plugins-publish-and-discover is frozen at the unfiltered
+# shape it verified, and a frozen body is not patched (docs/CONVENTIONS.md
+# rule 4).
+#
 # Skips committing when content is byte-for-byte identical to the
 # previous publish; cancels in-flight runs when a newer push lands.
 #
@@ -31,6 +67,43 @@ name: Publish Claude plugin packages
 on:
   push:
     branches: [main]
+    paths:
+      # The published packs. Mirrors `PUBLISHED` in tools/lint-plugin-roster.py.
+      - 'packs/agent-skill-engineering/**'
+      - 'packs/architect/**'
+      - 'packs/atlassian/**'
+      - 'packs/contracts/**'
+      - 'packs/converters/**'
+      - 'packs/credential-brokers/**'
+      - 'packs/desk-research/**'
+      - 'packs/experience-design/**'
+      - 'packs/figma/**'
+      - 'packs/frontend-engineering/**'
+      - 'packs/github/**'
+      - 'packs/linear/**'
+      - 'packs/product-documentation/**'
+      - 'packs/product-engineering/**'
+      - 'packs/product-strategy/**'
+      # Every pack's scope declaration, not just a published one's. The job
+      # re-derives the publishable set from all of `packs/` in order to
+      # WITHDRAW a pack whose scopes narrowed, so a narrowing has to trigger
+      # the run that enacts it. These two globs also mean a brand-new pack's
+      # first publish fires before anyone thinks to extend the list above.
+      # `packs/_*/` is matched too; the builder skips those slugs, so the only
+      # cost is a rare needless run on an example pack.
+      - 'packs/*/pack.toml'
+      - 'packs/*/.claude-plugin/plugin.json'
+      # What turns those sources into the published tree, and what gates it.
+      - 'packages/agentbundle/**'
+      - 'Makefile'
+      - 'tools/catalogue/**'
+      - 'tools/pack_scope.py'
+      - 'tools/lint-claude-plugin-publish-control.py'
+      - '.github/claude-plugin-publish-control.json'
+      - 'tools/capture-publish-control-evidence.py'
+      - 'docs/specs/claude-plugin-hook-parity/publish-control-evidence.json'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/publish-claude-plugins.yml'
   workflow_dispatch:
 
 concurrency:
