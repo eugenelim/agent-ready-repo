@@ -340,6 +340,52 @@ def test_seed_documentation_keeps_the_universal_rows() -> None:
     )
 
 
+# The four development-workflow rules T5 promotes. Behaviour, no repo coupling.
+WORKFLOW_RULES = (
+    "Scope changes precisely",
+    "destructive or irreversible",
+    "new top-level directory",
+    "unrelated discoveries",
+)
+
+# The three coding-convention rules T6 promotes.
+CODING_RULES = (
+    "types and docstrings",
+    "new dependency",
+    "silently resolve",
+)
+
+# The two rules T7 promotes into sections of their own.
+SECURITY_RULES = ("Never commit personal information or credentials",)
+SCOPED_RULES = ("stale or conflicting instructions",)
+
+
+def absent_from_section(path: Path, heading: str, needles: tuple[str, ...]) -> tuple[str, ...]:
+    """Return the needles missing from one section's visible prose."""
+    section = section_of(path.read_text(encoding="utf-8"), heading)
+    if not section:
+        return (f"section `## {heading}` is absent",) + needles
+    return tuple(n for n in needles if n not in section)
+
+
+# --------------------------------------------------------------------------
+# AC21 — the development-workflow rules
+# --------------------------------------------------------------------------
+
+def test_seed_states_the_development_workflow_rules() -> None:
+    """AC21."""
+    absent = absent_from_section(SEED_AGENTS, "Development workflow", WORKFLOW_RULES)
+    assert not absent, f"the seed's Development workflow section omits: {absent}"
+
+
+def test_the_workflow_rule_guard_detects_their_absence() -> None:
+    """Negative control: the red is produced by stripping."""
+    section = section_of(SEED_AGENTS.read_text(encoding="utf-8"), "Development workflow")
+    for rule in WORKFLOW_RULES:
+        section = section.replace(rule, "")
+    assert all(rule not in section for rule in WORKFLOW_RULES)
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

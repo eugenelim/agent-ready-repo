@@ -77,6 +77,14 @@ Follow the repository's existing contributor workflow. Use the `work-loop`
 skill for repository changes when installed; it owns planning, verification,
 review, and recovery.
 
+- Scope changes precisely to the request, and surface assumptions or conflicts
+  before building. Record disagreement rather than complying silently.
+- Get confirmation before destructive or irreversible operations.
+- Propose a new top-level directory through the repository's decision process
+  rather than creating one.
+- Keep unrelated discoveries out of the current change unless the accepted
+  contract admits them. Note them somewhere durable instead.
+
 Commits are [Conventional Commits](https://www.conventionalcommits.org/) —
 `<type>(<scope>): <subject>`, `type` one of `feat`, `fix`, `docs`, `refactor`,
 `test`, `perf`, `build`, `ci`, `chore`, `scope` the package or area touched. Keep
