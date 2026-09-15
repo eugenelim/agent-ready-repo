@@ -636,6 +636,12 @@ def schedule_unfinished_plan(plan_text: str, state: dict) -> list[list[str]]:
         task_id: dependencies.get(task_id, set()) & remaining_set
         for task_id in remaining
     }
+    unknown = detect_unknown_deps(plan_text, scan_task_ids=remaining_set)
+    if unknown:
+        raise ValueError(
+            "dependency names no task in the plan: "
+            + ", ".join(f"{a}->{b}" for a, b in unknown)
+        )
     cycles = detect_cycles(remaining, remaining_dependencies)
     if cycles:
         raise ValueError(

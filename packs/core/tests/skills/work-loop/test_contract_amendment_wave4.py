@@ -847,3 +847,73 @@ def test_workflow_and_eval_require_normal_reapproval_and_no_automatic_narrowing(
     assert "stable owner-authority reference" in case["expected_output"]
     assert "ordinary plan-locked edge" in case["expected_output"]
     assert "cannot invoke it automatically" in case["expected_output"]
+
+
+# ── Unknown-dependency refusal (T2) ────────────────────────────────────────
+
+
+def test_schedule_unfinished_plan_raises_for_unknown_dep() -> None:
+    """schedule_unfinished_plan raises ValueError naming the (task, dep) pair
+    when an unfinished task declares a dependency that names no task in the plan."""
+    cohort = _load("loop-cohort.py")
+    plan = (
+        "## T1: task one\n\n**Depends on:** none\n\nsome content\n\n"
+        "## T2: task two\n\n**Depends on:** T7\n\nsome content\n"
+    )
+    state: dict = {"completed_task_ids": [], "completed_task_section_hashes": {}}
+    with pytest.raises(ValueError, match="T2->T7"):
+        cohort.schedule_unfinished_plan(plan, state)
+
+
+def test_schedule_unfinished_plan_ac7_completed_dep_is_met() -> None:
+    """AC7: an unfinished task that depends on a completed task schedules normally.
+
+    The resolution set is every task in the plan, not just unfinished ones, so
+    a completed dependency is resolved rather than refused."""
+    cohort = _load("loop-cohort.py")
+    plan = (
+        "## T1: completed\n\n**Depends on:** none\n\nproof one\n\n"
+        "## T2: remaining\n\n**Depends on:** T1\n\nbuild two\n"
+    )
+    pins = cohort.task_section_hashes(plan, {"T1"})
+    state: dict = {
+        "completed_task_ids": ["T1"],
+        "completed_task_section_hashes": pins,
+    }
+    # T2 depends on completed T1 — must succeed, not refuse.
+    assert cohort.schedule_unfinished_plan(plan, state) == [["T2"]]
+
+
+def test_schedule_unfinished_plan_ac7a_completed_task_stale_dep_is_ignored() -> None:
+    """AC7a: a completed task whose Depends on names an absent ID does not refuse
+    the run, because completed tasks are outside the scan set."""
+    cohort = _load("loop-cohort.py")
+    # T1 (completed) declares a dependency on T99, which does not exist in the plan.
+    # T2 (remaining) has a valid dependency on none.
+    plan = (
+        "## T1: completed\n\n**Depends on:** T99\n\nproof one\n\n"
+        "## T2: remaining\n\n**Depends on:** none\n\nbuild two\n"
+    )
+    pins = cohort.task_section_hashes(plan, {"T1"})
+    state: dict = {
+        "completed_task_ids": ["T1"],
+        "completed_task_section_hashes": pins,
+    }
+    # T1's stale declaration is out of scope (not in remaining_set); must not raise.
+    assert cohort.schedule_unfinished_plan(plan, state) == [["T2"]]
+
+
+def test_schedule_unfinished_plan_ac4_unknown_dep_beats_cycle() -> None:
+    """AC4 (amendment path): when a plan has both an unknown dependency and a cycle,
+    the unknown-dependency refusal takes precedence over the cycle refusal."""
+    cohort = _load("loop-cohort.py")
+    # T1 and T2 form a cycle; T3 has an unknown dependency on T99.
+    plan = (
+        "## T1: task one\n\n**Depends on:** T2\n\ncontent\n\n"
+        "## T2: task two\n\n**Depends on:** T1\n\ncontent\n\n"
+        "## T3: task three\n\n**Depends on:** T99\n\ncontent\n"
+    )
+    state: dict = {"completed_task_ids": [], "completed_task_section_hashes": {}}
+    with pytest.raises(ValueError, match="T3->T99") as exc_info:
+        cohort.schedule_unfinished_plan(plan, state)
+    assert "cycle" not in str(exc_info.value)
