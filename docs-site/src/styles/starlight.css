@@ -833,8 +833,37 @@ main h1 {
      exactly how much of the rail stayed covered, and what CI caught after this
      looked right locally. */
   --docs-orientation-band-rule: 1px;
-  /* The sticky header at rest: the band, its rule, and the nav. Anything that
-     must sit clear of the header reads this one value. */
+  /* The sticky header at rest: the band, its rule, and the nav.
+     Two things to know before reading it.
+     It describes the header only at 50rem and above — `PageFrame.astro` hides
+     the band below that and drops the header to `top: 0`.
+     And it is the header's TALLEST state: it condenses to this less the band's
+     height on scroll. So the obligation is to clear the header in BOTH states,
+     which this value alone cannot express — reading it and stopping there is
+     what a withdrawn fix in this change did, and it left a 35px strip of
+     article text showing once the header condensed.
+     Two things should read it and do not. Both are measured and both are out
+     of this change's scope. This comment is where they are recorded, so a
+     status note need not retell them — but the change that fixes them should
+     measure and assert them, which is the point of recording them here.
+     Starlight's mobile ToC bar is pinned at `--sl-nav-height`, leaving 37 of
+     its 48px behind the header at rest.
+     Detect it by hit test, not by visibility: `checkVisibility()` returns true
+     throughout, and `elementFromPoint` at the control's centre returns the
+     header. A visibility assertion here passes while the control cannot be
+     tapped — that is why no gate caught either of these.
+     That bar renders only below 72rem, and the band only from 50rem, so the
+     bar's defect spans 50rem to 72rem.
+     `.sidebar-pane` in `PageFrame.astro` insets by the same value, and its
+     `inset-block` carries no media query, so its defect is live at EVERY width
+     from 50rem up, and the sweep asserts against none of them. Stated as a
+     rule rather than a list of widths, because a list goes stale the next time
+     one is added.
+     21 of the first sidebar link's 27px sit behind the header at rest there.
+     Neither is a one-line change: Starlight derives `scroll-padding-top` from
+     the ToC bar's height, so moving either one moves where an anchor-navigated
+     heading lands. A fix here that ignored that put a heading 13.4px inside
+     the bar at 1024. */
   --docs-header-height: calc(
     var(--sl-nav-height) + var(--docs-orientation-band-height) +
       var(--docs-orientation-band-rule)
@@ -859,16 +888,35 @@ main h1 {
  * page" heading was equally covered. Padding for the tallest state costs a band
  * of space once scrolled, which reads as breathing room; being hidden at the
  * top of every page does not.
+ *
+ * Scoped to the same breakpoint Starlight scopes its own rail rules to. Below
+ * 72rem the rail is not fixed and its panel is `display: none`, so `top` did
+ * nothing and the `100vh` height made an empty in-flow block hold most of a
+ * screen above the article. A rule written for a fixed column has to end where
+ * the column does.
+ *
+ * The measurements live with the assertions that hold this, in
+ * `web/src/test/e2e/guidebook-walk.spec.ts` — one record, so a later edit
+ * cannot leave two ranges disagreeing here.
  * ------------------------------------------------------------------------- */
 
 .right-sidebar {
-  /* Inset below the header, not padded away from it. The rail is a fixed,
-     full-height scroll container, so padding only moved its *first* content
-     clear — everything after it still scrolled up underneath the header, which
-     at 1280x600 on the eight-skill step hid four of the five entries. Insetting
-     shortens the scrollport instead, so the rail's own top edge is where its
-     content stops. */
-  top: var(--docs-header-height);
-  height: calc(100vh - var(--docs-header-height));
+  /* Unscoped, and left that way: it reads no header value and reserved none of
+     the space this fix is about, so scoping it would have moved the rail's
+     first content 16px at every width below 72rem for no reason the defect
+     gives. */
   padding-top: 1rem;
+}
+
+@media (min-width: 72rem) {
+  .right-sidebar {
+    /* Inset below the header, not padded away from it. The rail is a fixed,
+       full-height scroll container, so padding only moved its *first* content
+       clear — everything after it still scrolled up underneath the header,
+       which at 1280x600 on the eight-skill step hid four of the five entries.
+       Insetting shortens the scrollport instead, so the rail's own top edge is
+       where its content stops. */
+    top: var(--docs-header-height);
+    height: calc(100vh - var(--docs-header-height));
+  }
 }
