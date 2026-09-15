@@ -542,7 +542,11 @@ Format output in four sections (omit sections with no entries):
 ---
 
 **Active initiatives:** (for each entry in `initiatives[]`)
-`<ini-slug>` — `<name>` (milestone: `<milestone>`)
+`<ini-slug>` — `<name>` (milestone: `<milestone>`) — omit the `— <name>`
+segment when `name` is empty, and the `(milestone: …)` segment when `milestone`
+is empty. Both are empty when the initiative's `workspace.toml` section omits
+the key, which is an authoring gap rather than a value; rendering the segment
+anyway shows the reader a blank where a name should be.
 - **Brief queue** (from `initiatives[].brief_queue`; omit when `null`): Executing: `<executing>` (or "none") · Ready: N · Draft: N · Shipped: N · Withdrawn: N · Cancelled: N
 
 **Active context — signals** _(ongoing; do not need action):_
