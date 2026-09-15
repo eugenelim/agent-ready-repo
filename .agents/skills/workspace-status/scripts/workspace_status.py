@@ -922,9 +922,14 @@ def _build_json(root: Path, result, mode: str) -> dict:
         )
         initiatives_out.append({
             "slug": _public_ini_slug(ini.slug),
-            "name": "workspace.toml",
+            # `workspace.toml` is working material for developers in the same
+            # repository, carrying the same trust as the source beside it, so
+            # its display prose projects as authored. `str()` coerces rather
+            # than validates: a non-string here is an authoring error, and
+            # reporting what arrived beats reconstructing TOML syntax.
+            "name": str(ini.name),
             "status": ini.status if ini.status in {"active", "paused", "closed"} else "invalid",
-            "milestone": "workspace.toml",
+            "milestone": str(ini.milestone),
             "brief_queue": _brief_queue_dict(ini.brief_queue),
             "queue_empty": len(surviving_queue) == 0,
         })
