@@ -107,3 +107,72 @@ message was therefore amended to strip the `Engine-Change-RFC:` trailer and the
 guard re-run: it failed, naming all five protected-tree paths. The trailer was
 restored and the guard re-run green. The green result is the gate passing, not
 the gate skipping.
+
+## Amendment: the requested mode is `0o644`, not `0o666`
+
+CodeQL on PR #1327 raised one high-severity alert,
+`py/overly-permissive-file` at `initialise.py:470`: "Overly permissive mask in
+open sets file to world writable."
+
+Measured before deciding, one directory per umask:
+
+| umask | `Path.write_bytes` (the code being replaced) | `os.open(…, 0o666)` |
+| --- | --- | --- |
+| `022` | `0o644` | `0o644` |
+| `077` | `0o600` | `0o600` |
+| `000` | `0o666` | `0o666` |
+
+So the alert was not a regression — `Path.write_bytes` requests `0o666` too, and
+CodeQL could not see it because the literal lives inside CPython. It was,
+however, a true statement about the idiom: under a null umask both the old and
+the new code produce a world-writable file.
+
+The owner chose to tighten rather than suppress. No CodeQL suppression was
+added, and the repository still has none.
+
+**The first attempt, `0o644`, was wrong, and a review round caught it.** It
+closes the alert, but it also drops the group-write bit — so under umask `002`,
+the usual setting on a shared-group system, a catalogue tree a team shares stops
+being group-editable. The shipped mode is `0o664`, which drops only the
+other-write bit. Measured across six umasks against a control file written by
+`Path.write_bytes` in the same directory:
+
+| umask | old (`write_bytes`) | shipped (`0o664`) |
+| --- | --- | --- |
+| `022` | `0o644` | `0o644` |
+| `002` | `0o664` | `0o664` |
+| `077` | `0o600` | `0o600` |
+| `027` | `0o640` | `0o640` |
+| `007` | `0o660` | `0o660` |
+| `000` | `0o666` | `0o664` |
+
+Identical at every ordinary umask; different only where the old code was
+world-writable.
+
+The acceptance criterion was amended to match — "the bits `Path.write_bytes`
+produces, with the other-write bit cleared" — and the test's comparison value
+became `stat.S_IMODE(control.stat().st_mode) & 0o664`.
+
+**The test had to start driving the umask.** The runner's own umask is `022`,
+where `0o644` and `0o664` produce identical files, so a tightening mutation was
+invisible. The mode case is now parametrized over all six umasks above. Three
+mode mutations were then each shown to red it:
+
+| Mutation | Umasks that red |
+| --- | --- |
+| mode → `0o644` | `007`, `000`, and one more (3 of 6) |
+| mode → `0o666` | `000` (1 of 6) |
+| mode → `0o600` | 5 of 6 |
+
+Before parametrization, the `0o644` mutation redded nothing.
+
+The plan's § Design decisions was corrected in place. That section is working
+material under the plan's own contract, not pinned content, so the correction
+needs no amendment — but it does move `plan.md` off the hash the cohort pinned
+at `schedule`, and `loop-engine transition … wave-complete` runs
+`schedule check-current`, so it refused. An earlier note here claimed no further
+check reads that hash; that was wrong. The documented cohort recovery was run —
+restore `Status: Approved` in both files, `loop-cohort reset`, `init`,
+`approve-plan`, `schedule`, restore the statuses — and the wave pointer walked
+forward again. The canonical hash was confirmed to exclude the `Status:` line,
+so restoring the statuses afterwards does not disturb the new pin.
