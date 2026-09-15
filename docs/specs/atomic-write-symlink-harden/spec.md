@@ -105,10 +105,14 @@ same created-file list and exit code as before.
 - **The temporary-file and exception outcomes: TDD.** Same shape: force a
   failure, then list the directory. A unit test is the only surface that can
   drive those branches.
-- **The permission outcome: TDD.** A file written by the current implementation
-  is the comparison value, so the test writes one in the same directory under
-  the same umask and compares. Naming a literal mode instead would pin the
-  test's umask rather than the property.
+- **The permission outcome: TDD, driven over several umasks.** A file written
+  by the previous implementation is the comparison value, so the test writes one
+  in the same directory under the same umask and compares against it masked to
+  `0o664`. Naming a literal mode instead would pin the runner's umask rather
+  than the property. The test sets the umask itself rather than inheriting it,
+  because under the usual `022` several distinct modes produce identical files —
+  `002` is what separates a tightened mode from a correct one, and `000` is what
+  separates "not world-writable" from "whatever `Path.write_bytes` asked for".
 - **Unchanged tooling output: goal-based check, plus one manual run.** The
   existing `packages/agentbundle/tests/unit/` suite is run unmodified; what it
   proves is bounded by the assertions already in it, because no test in it
@@ -138,8 +142,10 @@ same created-file list and exit code as before.
   a symlink.
 - [x] After `atomic_write(dest, content)` returns, `dest` holds exactly
   `content`.
-- [x] A file `atomic_write` creates carries the same permission bits as a file
-  `Path.write_bytes` creates in the same directory under the same umask.
+- [x] A file `atomic_write` creates carries the permission bits a file
+  `Path.write_bytes` creates in the same directory under the same umask, with
+  the other-write bit cleared — identical under every ordinary umask, and not
+  world-writable even under a null one.
 - [x] After a successful `atomic_write(dest, content)`, the only entry
   `atomic_write` has added to `dest.parent` is `dest`.
 - [x] When writing the staging file raises, `atomic_write` adds no entry to
@@ -177,12 +183,21 @@ answer rather than as a durable follow-on.
   leaves `dest` itself a symlink to that target (source: read-only probe,
   2026-09-15 — planted link, victim file's contents replaced, `dest.is_symlink()`
   returned `True`).
-- Technical: `os.open(path, O_CREAT|O_EXCL|O_WRONLY, 0o666)` under a random name
+- Technical: `os.open(path, O_CREAT|O_EXCL|O_WRONLY, 0o664)` under a random name
   supplies all three properties the repair needs at once — the name is
   unguessable, a pre-existing entry raises `FileExistsError` instead of being
   followed, and the kernel applies the caller's umask (source: read-only probe,
   2026-09-15 — mode `0o644` under umask `022`, `FileExistsError` raised against a
   planted symlink, victim file intact).
+- Technical: `Path.write_bytes` requests `0o666`, so under a null umask the code
+  this change replaces produced a world-writable file. Requesting `0o664` instead
+  reproduces the old mode exactly at umask `022`, `002`, `077`, `027` and `007`,
+  and differs only at `000`, where it drops the other-write bit (source:
+  read-only probe, 2026-09-15, measured at all six umasks; and CodeQL
+  `py/overly-permissive-file` on PR #1327, which flagged the `0o666` literal that
+  `Path.write_bytes` had been hiding inside CPython). `0o644` was rejected: it
+  also drops the group-write bit, which under umask `002` is what a
+  group-shared catalogue tree relies on.
 - Technical: the package's two existing atomic writers
   (`build/projections/merge_into_agent_json.py:236` and
   `build/projections/user_merge_json.py:283`) stage into the target's parent and
@@ -213,7 +228,8 @@ answer rather than as a durable follow-on.
   permissions of every file `catalogue init` writes, which is why the helper uses
   `os.open` with an explicit mode instead (source: read-only probe, 2026-09-15 —
   in one directory under umask `022`, `write_bytes` gave `0o644`,
-  `NamedTemporaryFile` gave `0o600`, and `os.open(..., 0o666)` gave `0o644`).
+  `NamedTemporaryFile` gave `0o600`, and `os.open` with an explicit mode gave
+  `0o644`).
 - Technical: `Path.replace` calls `os.replace`, so a test can observe the
   staging path the helper moves into place without naming the helper's internals
   (source: read-only probe, 2026-09-15 — a spy installed on `os.replace`

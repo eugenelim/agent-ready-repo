@@ -876,15 +876,34 @@ class TestAtomicWriteSymlinkHardening:
         assert not dest.is_symlink()
         assert dest.read_bytes() == b"WRITTEN"
 
-    def test_written_file_keeps_the_umask_derived_mode(self, tmp_path: Path) -> None:
-        control = tmp_path / "control.toml"
-        control.write_bytes(b"CONTROL")
-        dest = tmp_path / "catalogue.toml"
+    # The runner's own umask is almost always 022, where 0o644 and 0o664 are
+    # indistinguishable — so a mode mutation would pass unnoticed unless the
+    # test drives the umask itself. 002 is what separates them; 000 is what
+    # separates "not world-writable" from "whatever write_bytes asked for".
+    @pytest.mark.parametrize("umask", [0o022, 0o002, 0o077, 0o027, 0o007, 0o000])
+    def test_written_file_keeps_the_umask_derived_mode(
+        self, tmp_path: Path, umask: int
+    ) -> None:
+        previous = os.umask(umask)
+        try:
+            control = tmp_path / "control.toml"
+            control.write_bytes(b"CONTROL")
+            dest = tmp_path / "catalogue.toml"
 
-        self._atomic_write(dest, b"WRITTEN")
+            self._atomic_write(dest, b"WRITTEN")
 
-        expected = stat.S_IMODE(control.stat().st_mode)
-        assert stat.S_IMODE(dest.stat().st_mode) == expected
+            control_mode = stat.S_IMODE(control.stat().st_mode)
+            written_mode = stat.S_IMODE(dest.stat().st_mode)
+        finally:
+            os.umask(previous)
+
+        # The comparison value is a file the replaced implementation's own call
+        # produced, in the same directory under the same umask. The `& 0o664`
+        # is the one deliberate difference: the helper never requests the
+        # other-write bit that `Path.write_bytes` asks for, so a null umask
+        # cannot leave a catalogue file world-writable. Group-write survives,
+        # because under umask 002 it is what a shared catalogue tree relies on.
+        assert written_mode == control_mode & 0o664
 
     def test_successful_write_leaves_no_other_entry(self, tmp_path: Path) -> None:
         dest = tmp_path / "catalogue.toml"

@@ -85,7 +85,7 @@ One call replaces all of it. The helper mints a staging name of the fixed form
 `dest.name`, because a 240-byte destination basename plus a 23-byte suffix
 exceeds the 255-byte `NAME_MAX` that the old 6-byte `.abtmp` suffix stayed
 inside. It opens that name with
-`os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)`. That single line
+`os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o664)`. That single line
 carries three properties the old code lacked, and an implementer who reaches for
 a friendlier API loses at least one of them:
 
@@ -93,7 +93,7 @@ a friendlier API loses at least one of them:
 | --- | --- | --- |
 | The name cannot be guessed in advance | `os.urandom(8).hex()`, with no component derived from `dest` | A planted link at a derivable name receives the write |
 | A collision refuses rather than follows | `O_EXCL` | A guessed name is followed into its target |
-| The file keeps its usual permissions | mode `0o666`, umask applied by the kernel | Files drop from `0644` to `0600` |
+| The file keeps its usual permissions, minus world-write | mode `0o664`, umask applied by the kernel | At `0o666`, world-writable under a null umask; at `0o644`, group-write lost under umask `002`; via `NamedTemporaryFile`, `0644` drops to `0600` |
 
 `tempfile.NamedTemporaryFile` — the shape the two sibling helpers use — supplies
 the first two and loses the third: it hard-codes mode `0600`. Restoring the
@@ -101,8 +101,20 @@ umask-derived mode around it requires reading the umask, and the only portable
 read is `os.umask(0)` followed by restoring it, which exposes a process-wide
 window where another thread's file is created world-writable. Measured on
 2026-09-15: `Path.write_bytes` produced `0o644`, `NamedTemporaryFile` produced
-`0o600`, and `os.open(..., 0o666)` produced `0o644`, all in one directory under
-umask `022`.
+`0o600`, and `os.open` with an explicit mode produced `0o644`, all in one
+directory under umask `022`.
+
+The requested mode is `0o664`, not the `0o666` that `Path.write_bytes` itself
+requests. Measured at six umasks, the two are identical at `022`, `002`, `077`,
+`027` and `007`, and differ only at `000`, where `0o666` yields a world-writable
+file. Matching `write_bytes` exactly would have carried that forward, so the
+helper asks for one bit less. CodeQL's `py/overly-permissive-file` is what
+surfaced it — the literal was always there, hidden inside CPython.
+
+`0o644` was the first attempt and was wrong: it also drops group-write, so under
+umask `002` a catalogue tree a team shares stops being group-editable. The
+runner's own umask is `022`, where `0o644` and `0o664` are indistinguishable, so
+the mode test drives the umask itself rather than inheriting it.
 
 The only new failure this introduces is `FileExistsError` from `O_EXCL`. It is
 not a validation of the caller's `dest` — the spec's `Never do` forbids that —
@@ -331,7 +343,7 @@ class TestAtomicWriteSymlinkHardening:
 - Write the cases, run them, record the red on the first two.
 - Replace the body of `_atomic_write`: mint the staging name as
   `.abtmp-<os.urandom(8).hex()>`, open it with
-  `os.O_CREAT | os.O_EXCL | os.O_WRONLY` and mode `0o666`, write it through
+  `os.O_CREAT | os.O_EXCL | os.O_WRONLY` and mode `0o664`, write it through
   `os.fdopen`, then `Path.replace` it onto `dest`. Add no `fsync` — see
   § Failure, edge cases & resilience for why.
 - Keep the signature, the docstring's promise, and the parent `mkdir`.
@@ -461,7 +473,7 @@ that do need a race.
   defective: "the staging path differs between calls" admits an implementation
   that alternates two predictable names, and restoring the mode around
   `NamedTemporaryFile` needs a process-global umask window. Both are answered by
-  one change of mechanism to `os.open` with `O_EXCL` and an explicit `0o666`,
+  one change of mechanism to `os.open` with `O_EXCL` and an explicit mode,
   which supplies unguessability, refusal-on-collision, and the umask-derived mode
   without touching global state. Owner approved the mechanism change on
   2026-09-15. Also separated a pre-planted ancestor symlink from the race-class
