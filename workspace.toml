@@ -390,15 +390,20 @@ shipped = [
   {path = "docs/specs/dependency-scoped-completion-receipts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Project the dependency-scoped four-field completion receipt from the citing local need, so a dependant on a closed-out and pruned delivery resolves instead of reporting missing_dependency", needs = [{type = "local", kind = "spec", path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/status-projection-and-context-exclusion/spec.md"}]},
   {path = "docs/specs/reclassified-lifecycle-result/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Carry Reclassified in the lifecycle record by pairing it with retain-exception, reachable only from a retained record on a supplied acceptance and terminal thereafter", needs = []},
   {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
+  # RFC-0096 Wave 7c slice 1 of 2. Read-only: it resolves whether any membership
+  # points at a selected spec, including duplicate and legacy-alias forms. Shipped
+  # 2026-09-13 at 31 focused roster cases; slice 2 composes it, and RFC-0096's
+  # 2026-09-13 Errata uses it to re-verify each carved-out candidate before any
+  # deletion.
+  {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
+  # RFC-0096 Wave 7c slice 2 of 2. The destructive half: it removes an approved
+  # selection of artifacts together with every membership resolving to them, and
+  # refuses success unless one coherent observation taken under the shared lock
+  # proves both sides absent. ADR-0114 forbids an atomic prune, so the invariant
+  # closes the operation rather than the window. Shipped 2026-09-14.
+  {path = "docs/specs/two-sided-prune-closure-invariant/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md"}, summary = "Remove an approved selection of delivery artifacts and every workspace.toml membership resolving to them, proving both absent in one coherent locked observation before exit zero, and failing whenever either half survives", needs = [{type = "local", kind = "spec", path = "docs/specs/selection-scoped-membership-absence/spec.md"}]},
 ]
 queue   = [
-  # RFC-0096 Wave 7c slice 1 of 2, registered 2026-09-13 after ADR-0114 chose the
-  # post-mutation-invariant route. Read-only: it resolves whether any membership
-  # points at a selected spec, including duplicate and legacy-alias forms. Slice 2
-  # (the prune operation) composes it, and RFC-0096's 2026-09-13 Errata requires it
-  # to re-verify each carved-out candidate before any deletion. Draft; requires
-  # human approval before dispatch.
-  {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached
