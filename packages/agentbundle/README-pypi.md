@@ -14,6 +14,18 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.44.3
+
+Repository maintenance only: this release changes `make build-check`, which
+runs against a source checkout. Nothing an installed `agentbundle` does
+changes.
+
+The check that keeps `agentbundle/_data/` in step with its core-pack sources
+now fails on a copy that is missing, not only on one that has drifted. It also
+derives which copies are needed from the sources themselves, so a bundled
+script that loads a helper nobody bundled is reported instead of shipping an
+import that cannot resolve.
+
 ## What's new in 0.44.2
 
 A catalogue you derive with `catalogue init --preset self-hosted` now keeps a
