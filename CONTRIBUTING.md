@@ -95,7 +95,7 @@ Three gates, all of which run locally:
 - **`make build-check`** — fails if any projected path was edited directly without the upstream moving. Run this *after* `build-self` to confirm the tree is clean.
 - **`conventions-check`** — the agent-artifact and conventions linter (also runs via the `pre-pr` hook). Available as a slash command in the core pack.
 
-Commit format is Conventional Commits — full rules in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits). If your commit implements a spec, RFC, or ADR, cite it in the footer (`Spec:`, `RFC:`, `ADR:`).
+Commit format is Conventional Commits — full rules in [`AGENTS.md` § Coding conventions](AGENTS.md#coding-conventions). If your commit implements a spec, RFC, or ADR, cite it in the footer (`Spec:`, `RFC:`, `ADR:`).
 
 ## Cutting an `agentbundle` release
 

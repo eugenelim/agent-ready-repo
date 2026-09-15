@@ -193,3 +193,42 @@ For everything else — features, multi-file bug fixes, refactors, migrations, s
 - [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale, deeper than this page.
 - [The token economy of the loop](token-economy.md) — what the loop wastes, what it spends on purpose, and why the cold reviewer is worth its cost.
 - [The `work-loop` skill itself](../../../packs/core/.apm/skills/work-loop/SKILL.md) — the authoritative procedure. Loaded by the agent when a non-trivial task starts.
+
+## Why the loop
+
+Skip the loop only when a change is cosmetic, tightly local, behavior-preserving,
+*and* obviously verifiable — a one-line authentication, migration, production-
+config, or public-interface change is not trivial. For everything else, follow
+the **plan → execute → verify → review → iterate** loop. The mechanics are in
+the `work-loop` skill; this section is the why.
+
+**Why a loop, not a single pass.** LLM self-assessment is unreliable: agents
+declare victory when they *feel* done. Mechanical gates (lint, typecheck,
+tests) plus an adversarial review pass replace "feel" with verifiable
+termination. The loop keeps going until both kinds of check are satisfied —
+or it pauses for human replanning.
+
+Before construction, a caller may use `shaping-reviewer` to test a contract's
+scope and observability. That is distinct from the later code-review lenses:
+adversarial review checks delivery drift, security review checks threats, and
+quality review checks maintainability.
+
+**Why think before acting.** The cost of a wrong start is higher than the
+cost of thinking. For high-stakes changes (architectural choices, multi-file
+refactors, anything touching shared infrastructure), use your agent's
+extended-thinking facility — it catches the wrong assumption *before* it
+becomes 14 commits of wrong code. For routine work, skip the ceremony; the
+discipline is "match thinking depth to stakes," not "always think hardest."
+
+**Why iterate, not retry-from-scratch.** Most loops converge: gates fail,
+review surfaces a finding, the next pass fixes it. Restart-from-scratch
+loses the planning context. We do it the other way only when fresh context
+is the *point* — an unattended, fresh-session-per-iteration loop (see the
+work-loop skill).
+
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
+
+**Why capture learnings.** A loop that finishes without updating *some*
+doc, skill, or note has wasted what it learned. The next agent (or a
+human) will pay for it again. The work-loop skill enumerates where each
+kind of learning belongs.

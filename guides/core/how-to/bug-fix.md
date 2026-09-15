@@ -151,7 +151,7 @@ If the bug is intermittent or production-only, the skill refuses to draft a fix 
 ## When not to use this workflow
 
 - **New features.** If "fixing" the bug means changing what the code *should* do, that's a behavior change. Use `new-spec` instead — see [how to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md).
-- **Refactors that preserve behavior.** No bug, no fix — just a PR with a clear rationale. See [`docs/CONVENTIONS.md` § Pull requests](../../../docs/CONVENTIONS.md#pull-requests).
+- **Refactors that preserve behavior.** No bug, no fix — just a PR with a clear rationale. See [`AGENTS.md` § Development workflow](../../../AGENTS.md#development-workflow).
 - **Spikes and throwaway exploration.** If the output is going to be thrown away, the skill's discipline adds friction for no gain.
 - **You don't know whether it's a bug.** Investigate first; come back when you have an answer shaped like "the code does X, it should do Y."
 
@@ -167,6 +167,6 @@ the reviewed PR.
 - [`bug-fix` skill](../../../packs/core/.apm/skills/bug-fix/SKILL.md) — authoritative procedure.
 - [How to plan and execute non-trivial work](plan-and-execute-non-trivial-work.md) — the loop discipline that `bug-fix` hands off to for multi-file fixes.
 - [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../docs/CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
-- [`docs/CONVENTIONS.md` § Commits](../../../docs/CONVENTIONS.md#commits) — Conventional Commits format and the body conventions the skill follows.
+- [`AGENTS.md` § Coding conventions](../../../AGENTS.md#coding-conventions) — Conventional Commits format and the body conventions the skill follows.
 - [How to write a new RFC](../../governance-extras/how-to/new-rfc.md) — when a "bug" turns out to be a cross-cutting design question.
 - [How to record a new ADR](../../governance-extras/how-to/new-adr.md) — when the root-cause analysis surfaces a decision worth pinning.

@@ -530,7 +530,7 @@ def main() -> int:
                         f"drift-watch: '{probe}' should be gitignored "
                         f"(session-scratch — see "
                         f".claude/skills/work-loop/references/state-schema.md, "
-                        f"CONVENTIONS.md#supervisor-mode)."
+                        f"work-loop/references/supervisor-mode.md)."
                     )
 
     # 10g — risk-trigger block byte-identical across the three work-loop

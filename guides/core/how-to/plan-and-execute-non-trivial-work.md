@@ -223,3 +223,25 @@ For bug-shaped work that crosses multiple files, see [how to fix a bug](bug-fix.
 - [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
 - [How to fix a bug](bug-fix.md) — `bug-fix` is the entry point for bug-shaped work.
 - [How to adapt the pack to your project](adapt-to-project.md) — post-install setup; do this before your first feature.
+
+## Enforcement
+
+Two layered mechanisms enforce discipline before a PR opens:
+
+| Layer | Mechanism | What it gates |
+|---|---|---|
+| Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Implementation retry cap (`--phase gates-failed`) and review retry cap (`--phase review`) (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
+| Your gate | `tools/hooks/pre-pr.py` | Runs the caps check, then **your project's own** lint / typecheck / test commands — wire them into the stub in `pre-pr.py` (or let the `adapt-to-project` skill fill them in from your detected build commands). |
+
+This is **Shift Left**: catch problems as early as possible, locally
+before CI, at PLAN before EXECUTE. The pre-EXECUTE adversarial review
+in the work-loop skill is the same pattern at a different layer —
+moving review left from after code is written to before it is.
+
+`session-start.py` is shipped pre-wired by the install pipeline: the
+SessionStart binding lands in the adapter's local settings file
+automatically, no manual paste. `pre-pr.py` stays consumer-wired,
+because Claude Code has no PR-open lifecycle event (`Stop` fires after
+every agent turn — wrong semantics). Wire `pre-pr.py` via
+`.git/hooks/pre-push` if you want it automatic, or run it by hand
+before opening a PR.
