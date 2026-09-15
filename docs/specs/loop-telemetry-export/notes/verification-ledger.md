@@ -931,3 +931,47 @@ Also applied: the guide led with the shell-printing example while calling the
 `subprocess` form preferred. The section now leads with `subprocess`. A first
 mechanical reorder produced prose that used `resolved` before defining it, so the
 section was rewritten rather than spliced.
+
+## Security review — no blockers, and one confinement that was not one
+
+Three concerns, all sustained and repaired.
+
+**The user-scope confinement was a tautology.** `resolve()` called
+`_read_layout(user_path.parent, user_path)` — confining a file against its own
+directory, which every absolute path satisfies. The helper still opened that file
+safely; what it did not do was constrain **which** file. The caller chose, and the
+resolver guaranteed only that the choice was opened without following a link.
+
+`resolve()` now takes a **root** per scope and derives `agentbundle-layout.toml`
+itself. The control that pins it needed two attempts:
+
+| Mutation | Result |
+| --- | --- |
+| `sorted(user_root.glob("*.toml"))[0]` | **survived** — `agentbundle-layout.toml` sorts first, so the mutation never changed the file |
+| `sorted(..., reverse=True)[0]` | killed |
+| caller-supplied `private.toml` | killed |
+
+The first is the lesson: a mutation that does not change behaviour proves nothing
+about the control, and it looks exactly like a control that failed. The
+instrument was verified before its verdict, for the second time in this delivery.
+
+**A planted `pack.toml` could turn the lint into a denial.** The schema check
+reports a violation without stopping collection, so `runtime-dependencies = 0`
+reached a `for` loop over an integer, and `package = ""` reached
+`importlib.metadata.distribution("")` — which raises `ValueError`, **not**
+`PackageNotFoundError`, confirmed directly rather than assumed. A lint that
+crashes on untrusted input is a denial rather than a diagnostic.
+
+**Quoting is not escaping.** `shlex.join` stops POSIX argument injection and does
+nothing about terminal control sequences, and an unknown `[telemetry]` key went
+into the refusal message raw — so a key containing a newline could forge extra
+error lines. Keys are now rendered with `repr`.
+
+**What the review found sound, recorded because it took the most care to build:**
+symlinks, junctions, reparse points, FIFOs, devices, directories and multi-link
+hardlinks all refused; `O_NOFOLLOW` plus descriptor-relative opening and pre/post
+inode comparison closing the replacement race; the 64 KiB bound enforced from
+descriptor metadata before parsing and again on read; UTF-8 decoding before
+`tomllib`; repository precedence correct, with no user-scope endpoint reaching the
+arguments when the repository declares one; and `resolve()` importing no network
+or process API and opening no socket.

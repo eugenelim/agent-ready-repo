@@ -1643,6 +1643,12 @@ class _PackRules:
             return []
 
         dependencies = pt.get("pack", {}).get("runtime-dependencies", [])
+        # A planted pack.toml is untrusted input to a lint, and a lint that
+        # crashes on bad input is a denial rather than a diagnostic. The schema
+        # check reports a violation but does not stop collection, so this runs
+        # against whatever the file actually contained.
+        if not isinstance(dependencies, list):
+            return []
         diagnostics: list[Diagnostic] = []
         for dependency in dependencies:
             if (
@@ -1652,11 +1658,12 @@ class _PackRules:
             ):
                 continue
             package = dependency.get("package")
-            if not isinstance(package, str):
+            # `distribution("")` raises ValueError, not PackageNotFoundError.
+            if not isinstance(package, str) or not package.strip():
                 continue
             try:
                 importlib_metadata.distribution(package)
-            except importlib_metadata.PackageNotFoundError:
+            except (importlib_metadata.PackageNotFoundError, ValueError):
                 diagnostics.append(_diag(
                     DiagnosticCode.CAT_L032,
                     Severity.INFO,

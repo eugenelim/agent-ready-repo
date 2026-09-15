@@ -16,7 +16,11 @@ FIXTURES = Path(__file__).parents[1] / "fixtures" / "telemetry-layout"
 
 
 def _copy_layout_fixtures(tmp_path: Path) -> tuple[Path, Path]:
-    """Copy the two checked-in layout fixtures into their runtime scopes."""
+    """Copy the two checked-in layout fixtures in; return the two ROOTS.
+
+    `resolve` derives each filename itself, so a test that needs the user file
+    builds it the same way the resolver does.
+    """
     repo_root = tmp_path / "repo"
     user_root = tmp_path / "user"
     repo_root.mkdir()
@@ -30,14 +34,39 @@ def _copy_layout_fixtures(tmp_path: Path) -> tuple[Path, Path]:
         FIXTURES / "user-agentbundle-layout.toml",
         user_path,
     )
-    return repo_root, user_path
+    return repo_root, user_root
+
+
+def test_the_caller_cannot_choose_which_user_file_is_read(tmp_path: Path) -> None:
+    """The user scope names a ROOT; the resolver derives the filename.
+
+    An earlier signature took the user file's path and confined it against its
+    own parent, which confines nothing: every absolute path passes a check whose
+    root is its own directory. The caller chose the file and the resolver only
+    guaranteed it opened safely. This pins that the filename is ours.
+    """
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
+    (repo_root / "agentbundle-layout.toml").write_text(
+        "[telemetry]\n", encoding="utf-8", newline="\n"
+    )
+    # a second, differently-named file sitting in the same root
+    (user_root / "private.toml").write_text(
+        '[telemetry]\nendpoint = "https://attacker.example:4318"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    resolved = resolve(repo_root, user_root)
+
+    assert "https://attacker.example:4318" not in str(resolved.arguments)
+    assert resolved.settings.get("endpoint") != "https://attacker.example:4318"
 
 
 def test_resolve_merges_each_setting_repository_first(tmp_path: Path) -> None:
     """Repository values win while omitted values fall back to user scope."""
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
 
-    resolved = resolve(repo_root, user_path)
+    resolved = resolve(repo_root, user_root)
 
     assert resolved.settings == {
         "endpoint": "https://repo-collector.example:4318",
@@ -53,9 +82,9 @@ def test_resolve_renders_repository_event_input_and_sender_flags(tmp_path: Path)
     Also pins the rest of the rendered argument vector, so a flag that stops
     being emitted fails here rather than at the Collector.
     """
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
 
-    resolved = resolve(repo_root, user_path)
+    resolved = resolve(repo_root, user_root)
 
     assert resolved.arguments == (
         "--input",
@@ -91,14 +120,15 @@ def test_merged_setting_reaches_the_invocation_not_only_the_settings_dict(
     that, the merge is computed and then discarded, and the sender silently uses
     a different service name than the repository asked for.
     """
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
+    user_path = user_root / "agentbundle-layout.toml"
     (repo_root / "agentbundle-layout.toml").write_text(
         '[telemetry]\nservice_name = "work-loop-repo"\n',
         encoding="utf-8",
         newline="\n",
     )
 
-    resolved = resolve(repo_root, user_path)
+    resolved = resolve(repo_root, user_root)
 
     # the endpoint came from the user file ...
     config_index = resolved.arguments.index("--config")
@@ -132,7 +162,7 @@ def test_resolve_refuses_a_setting_the_sender_cannot_receive(tmp_path: Path) -> 
     These settings decide where data is sent, so a silently ignored one fails
     open: the adopter believes they configured something that does nothing.
     """
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
     (repo_root / "agentbundle-layout.toml").write_text(
         '[telemetry]\nendpoint = "https://repo.example:4318"\ncompression = "gzip"\n',
         encoding="utf-8",
@@ -140,7 +170,7 @@ def test_resolve_refuses_a_setting_the_sender_cannot_receive(tmp_path: Path) -> 
     )
 
     with pytest.raises(ValueError, match="compression"):
-        resolve(repo_root, user_path)
+        resolve(repo_root, user_root)
 
 
 def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
@@ -153,7 +183,8 @@ def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
     exercised the repository side would leave the user side silently dropping it
     — and the user file is the one this catalogue trusts less.
     """
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
+    user_path = user_root / "agentbundle-layout.toml"
     (repo_root / "agentbundle-layout.toml").write_text(
         '[telemetry]\nendpoint = "https://repo.example:4318"\n',
         encoding="utf-8",
@@ -164,19 +195,20 @@ def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
     )
 
     with pytest.raises(ValueError, match="compression"):
-        resolve(repo_root, user_path)
+        resolve(repo_root, user_root)
 
 
 def test_resolve_uses_user_config_when_repo_omits_endpoint(tmp_path: Path) -> None:
     """The one-config sender receives the file that owns the endpoint setting."""
-    repo_root, user_path = _copy_layout_fixtures(tmp_path)
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
+    user_path = user_root / "agentbundle-layout.toml"
     (repo_root / "agentbundle-layout.toml").write_text(
         '[telemetry]\nservice_name = "work-loop-repo"\n',
         encoding="utf-8",
         newline="\n",
     )
 
-    resolved = resolve(repo_root, user_path)
+    resolved = resolve(repo_root, user_root)
 
     assert resolved.settings["endpoint"] == "https://user-collector.example:4318"
     assert resolved.settings["service_name"] == "work-loop-repo"
@@ -205,7 +237,7 @@ def test_resolve_rejects_invalid_user_layout(tmp_path: Path, body: str) -> None:
     user_path.write_text(body, encoding="utf-8", newline="\n")
 
     with pytest.raises(ValueError):
-        resolve(repo_root, user_path)
+        resolve(repo_root, user_root)
 
 
 def test_resolve_rejects_oversized_user_layout(tmp_path: Path) -> None:
@@ -221,7 +253,7 @@ def test_resolve_rejects_oversized_user_layout(tmp_path: Path) -> None:
     user_path.write_bytes(b" " * (MAX_LAYOUT_BYTES + 1))
 
     with pytest.raises(BoundExceeded):
-        resolve(repo_root, user_path)
+        resolve(repo_root, user_root)
 
 
 def test_resolve_rejects_user_layout_symlink(tmp_path: Path) -> None:
@@ -246,4 +278,4 @@ def test_resolve_rejects_user_layout_symlink(tmp_path: Path) -> None:
         pytest.skip("symlinks unavailable")
 
     with pytest.raises(UnsafeContentError):
-        resolve(repo_root, user_path)
+        resolve(repo_root, user_root)

@@ -83,24 +83,26 @@ def _read_layout(root: Path, path: Path) -> dict[str, str]:
     return settings
 
 
-def resolve(repo_root: Path, user_path: Path) -> ResolvedTelemetryLayout:
+def resolve(repo_root: Path, user_root: Path) -> ResolvedTelemetryLayout:
     """Resolve repository-first telemetry settings and render sender arguments.
 
-    Both layout files are untrusted. Repository scope uses the catalogue's
-    confinement helper with the repository root. User scope uses the same
-    descriptor-safe helper with the explicitly supplied layout directory as its
-    root, so an out-of-repository config remains supported without following a
-    link at that boundary.
+    Both layout files are untrusted, and each scope names a ROOT rather than a
+    file. The filename is derived here, not supplied: an earlier signature took
+    the user file's path directly and confined it against its own parent, which
+    is not a confinement at all -- every absolute path passes a check whose root
+    is its own directory, so the caller chose which file was read and the
+    resolver only guaranteed it was opened safely.
     """
     if not repo_root.is_absolute():
         raise TelemetryLayoutError("repo_root must be absolute")
-    if not user_path.is_absolute():
-        raise TelemetryLayoutError("user_path must be absolute")
+    if not user_root.is_absolute():
+        raise TelemetryLayoutError("user_root must be absolute")
 
     validate_confined_directory(repo_root, repo_root)
     repo_path = repo_root / _LAYOUT_NAME
     repo_settings = _read_layout(repo_root, repo_path)
-    user_settings = _read_layout(user_path.parent, user_path)
+    user_path = user_root / _LAYOUT_NAME
+    user_settings = _read_layout(user_root, user_path)
 
     # workspace_mcp chooses one whole scope for each section. Telemetry must
     # merge each setting instead: a repository value wins, while only an omitted
@@ -109,9 +111,13 @@ def resolve(repo_root: Path, user_path: Path) -> ResolvedTelemetryLayout:
 
     undeliverable = sorted(set(settings) - _DELIVERABLE)
     if undeliverable:
+        # The key comes from an untrusted file and lands in a message someone
+        # reads in a terminal. `!r` escapes control characters, so a key
+        # containing a newline cannot forge extra error lines and an ESC
+        # sequence cannot repaint the display.
         raise TelemetryLayoutError(
             "[telemetry] settings the sender cannot receive: "
-            + ", ".join(undeliverable)
+            + ", ".join(repr(name) for name in undeliverable)
             + f" (deliverable: {', '.join(sorted(_DELIVERABLE))})"
         )
 

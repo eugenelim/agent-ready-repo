@@ -63,7 +63,7 @@ install it, nothing can send, whatever any configuration file says.
 
 Run this from the repository root after installing `jsonl-otlp-exporter`. The
 resolver reads `agentbundle-layout.toml` from the repository root and from your
-user layout path. It writes nothing and does not run the sender.
+user layout directory. It writes nothing and does not run the sender.
 
 ```python
 import subprocess
@@ -72,8 +72,11 @@ from pathlib import Path
 from agentbundle.telemetry_layout import resolve
 
 repo_root = Path.cwd()
-user_layout = Path.home() / ".agentbundle" / "agentbundle-layout.toml"
-resolved = resolve(repo_root, user_layout)
+user_root = Path.home() / ".agentbundle"
+# Both arguments are directories, not files. The resolver derives the
+# `agentbundle-layout.toml` filename itself in each scope, so the caller
+# cannot point it at some other file.
+resolved = resolve(repo_root, user_root)
 
 # `resolved.arguments` is already a list, so hand it straight to subprocess.
 # No shell is involved, so no quoting question arises on any platform.
