@@ -5,7 +5,9 @@ live in [RFCs](../rfc/).
 
 - [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) — system model and deeper links.
 - [`overview.md`](overview.md) — directory map.
-- [`catalogue.md`](catalogue.md) — catalogue source and resolution.
+- [`catalogue/`](catalogue/README.md) — catalogue source and resolution, the
+  derived catalogue `catalogue init --preset self-hosted` produces, and its
+  state files.
 - [`skill-and-pack-format.md`](skill-and-pack-format.md) — skill, pack, and projection formats.
 - [`pack-layout.md`](pack-layout.md) — pack source layout.
 - [`pack-manifest.md`](pack-manifest.md) — pack metadata projection.
@@ -30,6 +32,9 @@ CONVENTIONS.
 
 ## Planned architecture
 
+- **STATUS: PLANNED** — [Upstream sync](catalogue/upstream-sync.md) designs
+  `agentbundle catalogue sync`, the path a derived catalogue takes upstream
+  changes by.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.

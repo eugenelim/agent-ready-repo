@@ -97,6 +97,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
 
+## [agentbundle][0.46.0] — 2026-09-15
+
+### Highlights
+
+- **A self-hosted catalogue can now be recreated from its recorded recipe.** A
+  repeat `catalogue init --preset self-hosted` keeps the recorded catalogue
+  identity and pack and profile selections unless you explicitly replace them.
+
+### Changed
+
+- `catalogue init --preset self-hosted` writes schema-3 state with a recipe and
+  source pin. The generated `catalogue.toml` escapes every interpolated value.
+  Local-path sources have no source revision or archive digest to record.
+
 ## [agentbundle][0.45.0] — 2026-09-14
 
 ### Highlights

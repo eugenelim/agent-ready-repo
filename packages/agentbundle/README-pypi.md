@@ -14,6 +14,18 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.46.0
+
+`catalogue init --preset self-hosted` now records the recipe it used and
+reuses its identity fields plus pack and profile selections on a later run.
+Running the same command again therefore recreates the recorded catalogue
+without deriving a new name or widening the selected pack set. Explicit flags
+still take precedence.
+
+The recorded state now has schema 3 and carries the available source pin.
+Because `--source` accepts a local path, its revision and archive digest are
+null. Values written into the generated `catalogue.toml` are escaped for TOML.
+
 ## What's new in 0.45.0
 
 `agentbundle` can now work out where to send your work-loop telemetry.

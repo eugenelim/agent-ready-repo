@@ -24,7 +24,9 @@ import re
 import sys
 import tempfile
 import tomllib
+import unicodedata
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +50,7 @@ from agentbundle.catalogue_tooling.initialise import (
     rollback,
 )
 from agentbundle.catalogue_tooling.results import FileAction
+from agentbundle.scope import shipped_adapters_from_contract
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -67,6 +70,8 @@ _ATTRIBUTION_SURFACES: list[str] = ["catalogue.toml", "ATTRIBUTION.md"]
 
 # State file written to .agentbundle/ in the target.
 _OWNERSHIP_STATE_FILE = ".agentbundle/self-host-state.json"
+_OWNERSHIP_STATE_MAX_BYTES = 4 * 1024 * 1024
+_RECIPE_TEXT_MAX_LENGTH = 4096
 
 # Vendored tooling root inside the target.
 _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
@@ -243,15 +248,88 @@ class SelfHostedInitResult:
 
 
 @dataclass
-class SelfHostOwnershipState:
-    """Tracks which paths were written so future updates only remove our files."""
+class SelfHostRecipe:
+    """Record the resolved inputs needed to reproduce a self-hosted init."""
 
-    schema_version: str = "2"
+    packs: list[str] = field(default_factory=list)
+    profiles: list[str] = field(default_factory=list)
+    guides: str = "selected"
+    attribution: str = "white-label"
+    tooling: str = "external"
+    name: str = ""
+    display_name: str = ""
+    description: str = ""
+    owner_name: str = ""
+    owner_email: str = ""
+    preferred_adapter: str = ""
+    repository_url: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the stable JSON representation of the resolved recipe."""
+        return {
+            "packs": self.packs,
+            "profiles": self.profiles,
+            "guides": self.guides,
+            "attribution": self.attribution,
+            "tooling": self.tooling,
+            "name": self.name,
+            "display_name": self.display_name,
+            "description": self.description,
+            "owner_name": self.owner_name,
+            "owner_email": self.owner_email,
+            "preferred_adapter": self.preferred_adapter,
+            "repository_url": self.repository_url,
+        }
+
+
+@dataclass
+class _SelfHostRecipeInput:
+    """Validated, optional recipe values read from an untrusted state file."""
+
+    packs: list[str] | None = None
+    profiles: list[str] | None = None
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    owner_name: str | None = None
+    owner_email: str | None = None
+    preferred_adapter: str | None = None
+    repository_url: str | None = None
+
+
+@dataclass
+class SelfHostPin:
+    """Record source provenance available at the time of self-hosted init."""
+
+    source_uri: str | None = None
+    source_revision: str | None = None
+    archive_sha256: str | None = None
+    synced_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the pin, omitting source identity outside attributed mode."""
+        result: dict[str, Any] = {
+            "source_revision": self.source_revision,
+            "archive_sha256": self.archive_sha256,
+            "synced_at": self.synced_at,
+        }
+        if self.source_uri is not None:
+            result["source_uri"] = self.source_uri
+        return result
+
+
+@dataclass
+class SelfHostOwnershipState:
+    """Track the write set, replay recipe, and source pin for future updates."""
+
+    schema_version: str = "3"
     managed_paths: list[dict] = field(default_factory=list)  # [{path, sha256}]
     adapters: list[str] = field(default_factory=list)
     managed_target_path: str = ""
     source_pack_identity: str = ""
     source_root_kind: str = "self-hosted-source"
+    recipe: SelfHostRecipe = field(default_factory=SelfHostRecipe)
+    pin: SelfHostPin = field(default_factory=SelfHostPin)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -261,6 +339,8 @@ class SelfHostOwnershipState:
             "managed_target_path": self.managed_target_path,
             "source_pack_identity": self.source_pack_identity,
             "source_root_kind": self.source_root_kind,
+            "recipe": self.recipe.to_dict(),
+            "pin": self.pin.to_dict(),
         }
 
 
@@ -322,9 +402,120 @@ def _prompt(prompt_text: str) -> str:
         return ""
 
 
+def _recipe_diagnostic(field_name: str, reason: str) -> str:
+    """Describe a discarded state value without echoing attacker-controlled text."""
+    return (
+        f"discarded recorded {field_name} from {_OWNERSHIP_STATE_FILE}: {reason}"
+    )
+
+
+def _is_safe_recipe_text(value: object, *, allow_empty: bool = False) -> bool:
+    """Return whether a recorded scalar is bounded and terminal-safe."""
+    return (
+        isinstance(value, str)
+        and (allow_empty or bool(value))
+        and len(value) <= _RECIPE_TEXT_MAX_LENGTH
+        and value == value.strip()
+        and not any(
+            unicodedata.category(character) in {"Cc", "Cf"} for character in value
+        )
+    )
+
+
+def _read_recipe_selection(
+    raw_recipe: dict[str, Any],
+    field_name: str,
+    available: set[str],
+    diagnostics: list[str],
+) -> list[str] | None:
+    """Return a recorded selection only when every entry is a shipped name."""
+    if field_name not in raw_recipe:
+        return None
+    value = raw_recipe[field_name]
+    if not isinstance(value, list) or not all(
+        _is_safe_recipe_text(item) and item in available for item in value
+    ):
+        diagnostics.append(
+            _recipe_diagnostic(field_name, "selection is not shipped by the source")
+        )
+        return None
+    return value
+
+
+def _load_self_host_recipe(
+    raw_state: dict[str, Any] | None,
+    source: Path,
+    diagnostics: list[str],
+) -> _SelfHostRecipeInput | None:
+    """Constrain the replay recipe from an already confined ownership state."""
+    if raw_state is None:
+        return None
+    if "recipe" not in raw_state:
+        return None
+    raw_recipe = raw_state["recipe"]
+    if not isinstance(raw_recipe, dict):
+        diagnostics.append(_recipe_diagnostic("recipe", "recipe is not an object"))
+        return None
+
+    available_packs = set(select_packs(source, None))
+    available_profiles = set(_select_profiles(source, None))
+    recipe = _SelfHostRecipeInput(
+        packs=_read_recipe_selection(
+            raw_recipe, "packs", available_packs, diagnostics
+        ),
+        profiles=_read_recipe_selection(
+            raw_recipe, "profiles", available_profiles, diagnostics
+        ),
+    )
+
+    validators = {
+        "name": lambda value: bool(_SAFE_NAME_RE.fullmatch(value)),
+        "display_name": lambda _value: True,
+        "description": lambda _value: True,
+        "owner_name": lambda _value: True,
+        "owner_email": lambda value: not value or bool(_EMAIL_RE.fullmatch(value)),
+        "repository_url": lambda value: bool(_URL_RE.fullmatch(value))
+        and not _URL_USERINFO_RE.match(value),
+    }
+    for field_name, validator in validators.items():
+        if field_name not in raw_recipe:
+            continue
+        value = raw_recipe[field_name]
+        if field_name == "repository_url" and value is None:
+            continue
+        allow_empty = field_name == "owner_email"
+        if not _is_safe_recipe_text(value, allow_empty=allow_empty) or not validator(value):
+            diagnostics.append(
+                _recipe_diagnostic(field_name, "value failed its read-time constraint")
+            )
+            continue
+        setattr(recipe, field_name, value)
+
+    if "preferred_adapter" in raw_recipe:
+        value = raw_recipe["preferred_adapter"]
+        try:
+            available_adapters = set(shipped_adapters_from_contract())
+        except (OSError, RuntimeError, tomllib.TOMLDecodeError):
+            available_adapters = set()
+        if (
+            _is_safe_recipe_text(value)
+            and isinstance(value, str)
+            and value in available_adapters
+        ):
+            recipe.preferred_adapter = value
+        else:
+            diagnostics.append(
+                _recipe_diagnostic(
+                    "preferred_adapter", "value is not a shipped adapter name"
+                )
+            )
+    return recipe
+
+
 def collect_fields(
     cfg: SelfHostedInitConfig,
     source_meta: dict[str, Any],
+    recipe: _SelfHostRecipeInput | None = None,
 ) -> SelfHostedInitConfig:
     """Return a resolved copy of cfg with defaults filled in.
 
@@ -333,33 +524,63 @@ def collect_fields(
     """
     cat = source_meta.get("catalogue", {})
 
+    recipe = recipe or _SelfHostRecipeInput()
     name = cfg.name
     if not name:
-        derived = _derive_name(cfg.target)
-        name = _prompt(f"Catalogue name [{derived}]: ") or derived
+        default_name = recipe.name or _derive_name(cfg.target)
+        name = _prompt(f"Catalogue name [{default_name}]: ") or default_name
 
     display_name = cfg.display_name
     if not display_name:
-        derived_dn = name.replace("-", " ").replace("_", " ").title()
-        display_name = _prompt(f"Display name [{derived_dn}]: ") or derived_dn
+        default_display_name = recipe.display_name or (
+            name.replace("-", " ").replace("_", " ").title()
+        )
+        display_name = (
+            _prompt(f"Display name [{default_display_name}]: ")
+            or default_display_name
+        )
 
     description = cfg.description
     if not description:
         src_name = cat.get("name", "upstream")
-        derived_desc = f"A self-hosted catalogue derived from {src_name}."
+        default_description = (
+            recipe.description
+            or f"A self-hosted catalogue derived from {src_name}."
+        )
         description = (
-            _prompt(f"Description [{derived_desc}]: ") or derived_desc
+            _prompt(f"Description [{default_description}]: ") or default_description
         )
 
     owner_name = cfg.owner_name
     if not owner_name:
-        owner_name = _prompt("Owner name: ") or display_name
+        default_owner_name = recipe.owner_name or display_name
+        owner_prompt = (
+            f"Owner name [{default_owner_name}]: "
+            if recipe.owner_name is not None
+            else "Owner name: "
+        )
+        owner_name = _prompt(owner_prompt) or default_owner_name
 
     owner_email = cfg.owner_email
     if not owner_email:
-        owner_email = _prompt("Owner email: ") or ""
+        default_owner_email = recipe.owner_email or ""
+        email_prompt = (
+            f"Owner email [{default_owner_email}]: "
+            if recipe.owner_email is not None
+            else "Owner email: "
+        )
+        owner_email = _prompt(email_prompt) or default_owner_email
 
-    preferred_adapter = cfg.preferred_adapter or cat.get("preferred_adapter", "claude-code")
+    preferred_adapter = (
+        cfg.preferred_adapter
+        or recipe.preferred_adapter
+        or cat.get("preferred_adapter", "claude-code")
+    )
+    repository_url = (
+        cfg.repository_url
+        if cfg.repository_url is not None
+        else recipe.repository_url
+    )
 
     return SelfHostedInitConfig(
         target=cfg.target,
@@ -373,18 +594,47 @@ def collect_fields(
         owner_name=owner_name,
         owner_email=owner_email,
         preferred_adapter=preferred_adapter,
-        repository_url=cfg.repository_url,
+        repository_url=repository_url,
         archive_uri=cfg.archive_uri,
-        packs=cfg.packs,
+        packs=cfg.packs if cfg.packs is not None else recipe.packs,
         adapters=cfg.adapters,
-        profiles=cfg.profiles,
+        profiles=cfg.profiles if cfg.profiles is not None else recipe.profiles,
         dry_run=cfg.dry_run,
     )
 
 
-def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
+def validate_fields(
+    cfg: SelfHostedInitConfig, *, recorded_recipe: SelfHostRecipe | None = None
+) -> list[str]:
     """Return list of validation error messages (empty = valid)."""
     errors: list[str] = []
+    recipe = recorded_recipe or SelfHostRecipe(
+        name=cfg.name or "",
+        display_name=cfg.display_name or "",
+        description=cfg.description or "",
+        owner_name=cfg.owner_name or "",
+        owner_email=cfg.owner_email or "",
+        preferred_adapter=cfg.preferred_adapter or "",
+        repository_url=cfg.repository_url,
+    )
+    replay_scalars = {
+        "name": recipe.name,
+        "display-name": recipe.display_name,
+        "description": recipe.description,
+        "owner-name": recipe.owner_name,
+        "owner-email": recipe.owner_email,
+        "preferred-adapter": recipe.preferred_adapter,
+        "repository-url": recipe.repository_url,
+    }
+    for field_name, value in replay_scalars.items():
+        if value is None and field_name == "repository-url":
+            continue
+        if not _is_safe_recipe_text(value, allow_empty=field_name == "owner-email"):
+            errors.append(
+                f"{field_name} cannot be recorded for replay: "
+                "must have no surrounding whitespace or control characters "
+                f"and be at most {_RECIPE_TEXT_MAX_LENGTH} characters"
+            )
     if not cfg.name or not _SAFE_NAME_RE.match(cfg.name):
         errors.append(
             f"name {cfg.name!r} is invalid: must match [A-Za-z0-9][A-Za-z0-9_-]*"
@@ -406,6 +656,13 @@ def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
         errors.append(
             f"owner-email {cfg.owner_email!r} does not look like a valid email address"
         )
+    if cfg.preferred_adapter:
+        try:
+            available_adapters = set(shipped_adapters_from_contract())
+        except (OSError, RuntimeError, tomllib.TOMLDecodeError):
+            available_adapters = set()
+        if cfg.preferred_adapter not in available_adapters:
+            errors.append("preferred-adapter is not a shipped adapter name")
     return errors
 
 
@@ -519,6 +776,11 @@ def _collect_dir_bytes(
 # Identity transformation (in-memory)
 # ---------------------------------------------------------------------------
 
+def _is_attributed(cfg: SelfHostedInitConfig) -> bool:
+    """Return whether upstream identity may be retained in generated output."""
+    return cfg.attribution == "attributed"
+
+
 def _build_anchors(source_meta: dict[str, Any]) -> dict[str, str]:
     """Extract identity-bearing literal values from source catalogue.toml."""
     cat = source_meta.get("catalogue", {})
@@ -591,7 +853,7 @@ def _apply_identity_transform_bytes(
     Returns list of {from, to} replacement dicts (for B12 identity_replacements).
     Only operates on white-label mode; attributed mode is a no-op.
     """
-    if cfg.attribution == "attributed":
+    if _is_attributed(cfg):
         return []
 
     applied: set[tuple[str, str]] = set()
@@ -613,6 +875,17 @@ def _apply_identity_transform_bytes(
             continue
 
     return [{"from": old, "to": new} for old, new in sorted(applied)]
+
+
+def _transform_recipe_string(
+    value: str | None,
+    anchors: dict[str, str],
+    cfg: SelfHostedInitConfig,
+) -> str | None:
+    """Apply the tree's identity transform semantics to one recipe value."""
+    if value is None or _is_attributed(cfg):
+        return value
+    return _transform_text(value, anchors, cfg)
 
 
 def _get_replacement_for(anchor_name: str, anchor_val: str, cfg: SelfHostedInitConfig) -> str:
@@ -649,7 +922,7 @@ def _verify_bytes_in_tmpdir(
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(content)
         attribution_paths: list[str] | None = None
-        if cfg.attribution == "attributed":
+        if _is_attributed(cfg):
             attribution_paths = _ATTRIBUTION_SURFACES
         identity_violations = verify(
             tmppath, anchors, mode=cfg.attribution, attribution_paths=attribution_paths
@@ -664,22 +937,39 @@ def _verify_bytes_in_tmpdir(
 
 def _toml_str(val: str) -> str:
     """Escape a string value for safe embedding in a TOML double-quoted string."""
-    return val.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
+    escapes = {
+        "\b": "\\b",
+        "\t": "\\t",
+        "\n": "\\n",
+        "\f": "\\f",
+        "\r": "\\r",
+        '"': '\\"',
+        "\\": "\\\\",
+    }
+    encoded: list[str] = []
+    for character in val:
+        if character in escapes:
+            encoded.append(escapes[character])
+        elif ord(character) <= 0x1F or ord(character) == 0x7F:
+            encoded.append(f"\\u{ord(character):04X}")
+        else:
+            encoded.append(character)
+    return "".join(encoded)
 
 
 def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
     lines: list[str] = [
         "[catalogue]",
-        f'name = "{cfg.name}"',
+        f'name = "{_toml_str(cfg.name or "")}"',
         f'display_name = "{_toml_str(cfg.display_name or "")}"',
         f'description = "{_toml_str(cfg.description or "")}"',
-        f'preferred_adapter = "{cfg.preferred_adapter or "claude-code"}"',
+        f'preferred_adapter = "{_toml_str(cfg.preferred_adapter or "claude-code")}"',
         "",
     ]
     if cfg.repository_url:
         lines += [
             "[catalogue.links]",
-            f'repository = "{cfg.repository_url}"',
+            f'repository = "{_toml_str(cfg.repository_url or "")}"',
             "",
         ]
     lines += [
@@ -687,12 +977,12 @@ def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
         f'name = "{_toml_str(cfg.owner_name or "")}"',
     ]
     if cfg.owner_email:
-        lines.append(f'email = "{cfg.owner_email}"')
+        lines.append(f'email = "{_toml_str(cfg.owner_email)}"')
 
     # B6: Vendored tooling mode writes [catalogue.tooling] section.
     if cfg.tooling == "vendored":
         adapters = cfg.adapters or [cfg.preferred_adapter or "claude-code"]
-        adapters_toml = "[" + ", ".join(f'"{a}"' for a in adapters) + "]"
+        adapters_toml = "[" + ", ".join(f'"{_toml_str(a)}"' for a in adapters) + "]"
         lines += [
             "",
             "[catalogue.tooling]",
@@ -708,15 +998,33 @@ def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
 # Ownership state persistence
 # ---------------------------------------------------------------------------
 
-def _load_ownership_state(target: Path) -> dict | None:
-    """Read existing ownership state from target. Returns None if absent/unreadable."""
+def _load_ownership_state(
+    target: Path, diagnostics: list[str]
+) -> dict[str, Any] | None:
+    """Read ownership state once through the bounded confinement boundary."""
     state_path = target / _OWNERSHIP_STATE_FILE
-    if not state_path.is_file():
+    if not state_path.exists() and not state_path.is_symlink():
         return None
     try:
-        data = json.loads(state_path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else None
-    except Exception:
+        data = json.loads(
+            read_confined_regular_file(
+                target, state_path, max_bytes=_OWNERSHIP_STATE_MAX_BYTES
+            ).decode("utf-8")
+        )
+        if not isinstance(data, dict):
+            diagnostics.append(_recipe_diagnostic("recipe", "state is not an object"))
+            return None
+        return data
+    except (
+        UnsafeContentError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        OSError,
+        RecursionError,
+    ):
+        diagnostics.append(
+            _recipe_diagnostic("recipe", "state file could not be read safely")
+        )
         return None
 
 
@@ -803,9 +1111,12 @@ def _remove_stale_owned_paths(
 
 def _write_ownership_state(target: Path, state: SelfHostOwnershipState) -> None:
     state_path = target / _OWNERSHIP_STATE_FILE
+    if state_path.parent.is_symlink() or state_path.is_symlink():
+        raise UnsafeContentError("ownership state path must not be a symlink")
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(
-        json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+    atomic_write(
+        state_path,
+        (json.dumps(state.to_dict(), indent=2) + "\n").encode("utf-8"),
     )
 
 
@@ -840,7 +1151,7 @@ def _source_pack_identity(
     anchor value here survives replacement and then fails the leak check. Keep
     identity wording generic.
     """
-    if cfg.attribution == "attributed":
+    if _is_attributed(cfg):
         return source_meta.get("catalogue", {}).get("name", "")
     return cfg.name or ""
 
@@ -889,7 +1200,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             ok=False,
             dry_run=cfg.dry_run,
             name=cfg.name or "",
-            diagnostics=list(msgs),
+            diagnostics=[*diagnostics, *msgs],
             violations=violations or [],
         )
 
@@ -926,15 +1237,34 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         archive_uri=cfg.archive_uri,
     )
 
+    old_state = _load_ownership_state(cfg.target, diagnostics)
+    recipe = _load_self_host_recipe(old_state, cfg.source, diagnostics)
+
     # 4. Collect fields (TTY prompts + defaults).
     # Capture whether any field was already supplied before defaults are filled in.
     field_collection_mode = "explicit" if any(
         [cfg.name, cfg.display_name, cfg.description, cfg.owner_name, cfg.owner_email]
     ) else "default"
-    cfg = collect_fields(cfg, source_meta)
+    cfg = collect_fields(cfg, source_meta, recipe)
 
-    # 5. Validate fields.
-    errors = validate_fields(cfg)
+    # 5. Transform the replay values, then validate the exact values that the
+    # ownership state will record.
+    anchors = _build_anchors(source_meta)
+    recorded_recipe = SelfHostRecipe(
+        guides=cfg.guides,
+        attribution=cfg.attribution,
+        tooling=cfg.tooling,
+        name=_transform_recipe_string(cfg.name, anchors, cfg) or "",
+        display_name=_transform_recipe_string(cfg.display_name, anchors, cfg) or "",
+        description=_transform_recipe_string(cfg.description, anchors, cfg) or "",
+        owner_name=_transform_recipe_string(cfg.owner_name, anchors, cfg) or "",
+        owner_email=_transform_recipe_string(cfg.owner_email, anchors, cfg) or "",
+        preferred_adapter=(
+            _transform_recipe_string(cfg.preferred_adapter, anchors, cfg) or ""
+        ),
+        repository_url=_transform_recipe_string(cfg.repository_url, anchors, cfg),
+    )
+    errors = validate_fields(cfg, recorded_recipe=recorded_recipe)
     if errors:
         return _fail(*errors)
 
@@ -1068,7 +1398,6 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     file_kinds["catalogue.toml"] = "catalogue"
 
     # 8. Apply identity transform in-memory (white-label mode only).
-    anchors = _build_anchors(source_meta)
     identity_replacements = _apply_identity_transform_bytes(file_bytes, anchors, cfg)
 
     # 9. Leak check (in-memory via tmpdir — runs in both real and dry-run mode
@@ -1101,7 +1430,6 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     leak_scan_result: dict = {"ok": True, "violation_count": 0}
 
     # 10. Load old ownership state; split planned files into owned vs new.
-    old_state = _load_ownership_state(cfg.target)
     old_owned_paths: set[str] = set()
     if old_state:
         for entry in _migrate_managed_paths(old_state):
@@ -1185,8 +1513,31 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             managed_target_path=str(cfg.target),
             source_pack_identity=_source_pack_identity(source_meta, cfg),
             source_root_kind="self-hosted-source",
+            recipe=SelfHostRecipe(
+                packs=pack_names,
+                profiles=profile_names,
+                guides=cfg.guides,
+                attribution=cfg.attribution,
+                tooling=cfg.tooling,
+                name=recorded_recipe.name,
+                display_name=recorded_recipe.display_name,
+                description=recorded_recipe.description,
+                owner_name=recorded_recipe.owner_name,
+                owner_email=recorded_recipe.owner_email,
+                preferred_adapter=recorded_recipe.preferred_adapter,
+                repository_url=recorded_recipe.repository_url,
+            ),
+            pin=SelfHostPin(
+                source_uri=str(cfg.source.resolve()) if _is_attributed(cfg) else None,
+                source_revision=None,
+                archive_sha256=None,
+                synced_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
         )
-        _write_ownership_state(cfg.target, new_state)
+        try:
+            _write_ownership_state(cfg.target, new_state)
+        except (OSError, UnsafeContentError):
+            return _fail("write failed: ownership state path is unsafe")
         files_written.append(("create", _OWNERSHIP_STATE_FILE))
 
     # 14. Build next steps.

@@ -37,6 +37,7 @@ from both outputs.
 | Projection output | `dist/`, `.claude/`, `.codex/`, `.agents/` | Catalogue build and self-host commands | Install routes and agent runtimes |
 | Install state | `.agentbundle-state.toml` | Install, upgrade, uninstall, and init-state commands | List, diff, reconcile, and upgrade |
 | Direct-source provenance | `.agentbundle-state.toml` (schema 0.5) | Direct install and upgrade | List, show, and upgrade re-consent |
+| Derivation state (schema 3) | `.agentbundle/self-host-state.json` | `catalogue init --preset self-hosted` | Stale-path removal and recorded recipe defaults on a later init run |
 | Adaptation marker | `.adapt-install-marker.toml` | `agentbundle install` or `install-marker.py` | Core session-start and adapt workflows |
 
 ## 4. Dependencies and allowed edges
