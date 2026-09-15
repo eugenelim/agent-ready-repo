@@ -20,12 +20,9 @@ Monkeypatching strategy:
 
 from __future__ import annotations
 
-import importlib.metadata as importlib_metadata
 import json
 import os
-import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import agentbundle.build.lint_packs as _lp_module
 import agentbundle.catalogue_tooling.lint as _lint_module
@@ -33,8 +30,6 @@ import pytest
 from agentbundle.catalogue_tooling.lint import lint_catalogue, render_json, render_table
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
-from agentbundle.commands import catalogue_lint as catalogue_lint_command
-
 
 # ---------------------------------------------------------------------------
 # Shared filesystem helpers
