@@ -225,6 +225,7 @@ changed. -->
   coerced to their text form, so the fields are always JSON strings. `SKILL.md`
   describes and renders both fields and no longer instructs the consumer to
   render the slug alone.
+
 ## [core][2.26.1] — 2026-09-14
 
 ### Highlights
