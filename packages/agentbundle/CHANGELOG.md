@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.46.1] — 2026-09-15
+
+### Fixed
+
+- `catalogue init` no longer writes through a temporary path another local
+  user can predict. The staging file now gets a random name, is created
+  exclusively, and keeps the permissions your umask would give it, so a
+  symlink left in the target directory cannot redirect the write. This
+  matters when you initialise a catalogue in a directory you do not
+  exclusively control, such as a shared or world-writable parent.
+
 ## [0.46.0] — 2026-09-15
 
 ### Changed

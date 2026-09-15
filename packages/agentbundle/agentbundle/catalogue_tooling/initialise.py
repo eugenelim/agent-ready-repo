@@ -455,14 +455,43 @@ def _stage_and_verify(
 
 
 def _atomic_write(dest: Path, content: bytes) -> None:
-    """Write *content* to *dest* atomically (write to .tmp then rename)."""
-    tmp = dest.with_suffix(dest.suffix + ".abtmp")
+    """Write *content* to *dest* atomically (stage in the parent, then replace).
+
+    The staging name is random and derived from nothing the caller can see, and
+    the file is created exclusively, so an entry an attacker left in the parent
+    directory is never opened through. ``0o664`` lets the kernel apply the
+    caller's umask, so a written file keeps the mode it had before this helper
+    staged its writes under every ordinary umask — including ``002``, where the
+    group-write bit is the point — while dropping the other-write bit that
+    ``Path.write_bytes``'s ``0o666`` would grant under a null umask.
+    See ``docs/specs/atomic-write-symlink-harden``.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Not derived from ``dest.name``: a long-but-valid destination plus a fixed
+    # suffix can exceed NAME_MAX, which the old 6-byte ".abtmp" stayed inside.
+    tmp = dest.parent / f".abtmp-{os.urandom(8).hex()}"
+    fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o664)
     try:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_bytes(content)
-        tmp.rename(dest)
-    except Exception:
-        tmp.unlink(missing_ok=True)
+        # os.fdopen owns the descriptor only once it returns; if it raises
+        # first, nothing else will ever close fd.
+        try:
+            handle = os.fdopen(fd, "wb")
+        except BaseException:
+            os.close(fd)
+            raise
+        with handle:
+            handle.write(content)
+        tmp.replace(dest)
+    except Exception as exc:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError as cleanup_exc:
+            # Never let a failed cleanup replace the caller's exception, but do
+            # not lose it either: the staging name is random, so without this
+            # note nothing tells an operator which file was left behind.
+            exc.add_note(
+                f"leftover staging file {tmp} could not be removed: {cleanup_exc}"
+            )
         raise
 
 

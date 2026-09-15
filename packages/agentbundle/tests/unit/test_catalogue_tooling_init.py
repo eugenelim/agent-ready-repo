@@ -11,15 +11,21 @@ Coverage map (per plan.md):
   T8 — Init engine pure functions (metadata resolution, conflict detection)
   T9 — catalogue_init command handler shape
   T10 — CLI registration
+
+Also: atomic_write symlink hardening (docs/specs/atomic-write-symlink-harden).
 """
 
 from __future__ import annotations
 
 import json
+import os
+import stat
 import sys
 import tomllib
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 # ---------------------------------------------------------------------------
 # T1 — Schema relaxation
@@ -781,3 +787,222 @@ class TestCliRegistration:
         from agentbundle.cli import _PATH_BEARING_ATTRS
 
         assert "target" in _PATH_BEARING_ATTRS
+
+
+# ---------------------------------------------------------------------------
+# atomic_write symlink hardening — docs/specs/atomic-write-symlink-harden
+# ---------------------------------------------------------------------------
+
+_FIXED = b"\xde\xad\xbe\xef\xde\xad\xbe\xef"
+_FIXED_STAGING = f".abtmp-{_FIXED.hex()}"
+
+
+class TestAtomicWriteSymlinkHardening:
+    """`atomic_write` must not open a caller-derivable staging path."""
+
+    @staticmethod
+    def _atomic_write(dest: Path, content: bytes) -> None:
+        from agentbundle.catalogue_tooling.initialise import atomic_write
+
+        atomic_write(dest, content)
+
+    def test_planted_symlink_at_legacy_staging_path_is_not_written_through(
+        self, tmp_path: Path
+    ) -> None:
+        victim = tmp_path / "victim.txt"
+        victim.write_bytes(b"ORIGINAL")
+        dest = tmp_path / "catalogue.toml"
+        try:
+            (tmp_path / "catalogue.toml.abtmp").symlink_to(victim)
+        except OSError:  # pragma: no cover - platform without symlink support
+            pytest.skip("symlinks unavailable")
+
+        self._atomic_write(dest, b"WRITTEN")
+
+        assert victim.read_bytes() == b"ORIGINAL"
+
+    def test_entry_at_the_staging_path_refuses_instead_of_being_followed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Pin the random component so the staging name is knowable, then occupy
+        # it. Exclusive creation must refuse; following the link would overwrite
+        # the victim, which is the whole defect.
+        monkeypatch.setattr(os, "urandom", lambda n: _FIXED[:n])
+        victim = tmp_path / "victim.txt"
+        victim.write_bytes(b"ORIGINAL")
+        dest = tmp_path / "catalogue.toml"
+        try:
+            (tmp_path / _FIXED_STAGING).symlink_to(victim)
+        except OSError:  # pragma: no cover - platform without symlink support
+            pytest.skip("symlinks unavailable")
+
+        with pytest.raises(FileExistsError):
+            self._atomic_write(dest, b"WRITTEN")
+
+        assert victim.read_bytes() == b"ORIGINAL"
+
+    def test_staging_path_differs_between_calls(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        staged: list[str] = []
+        real_replace = os.replace
+
+        def _spy(src, dst, **kwargs):  # type: ignore[no-untyped-def]
+            staged.append(str(src))
+            return real_replace(src, dst, **kwargs)
+
+        monkeypatch.setattr(os, "replace", _spy)
+        dest = tmp_path / "catalogue.toml"
+        self._atomic_write(dest, b"ONE")
+        self._atomic_write(dest, b"TWO")
+
+        assert len(staged) == 2
+        assert staged[0] != staged[1]
+
+    def test_planted_symlink_at_dest_is_replaced_not_followed(
+        self, tmp_path: Path
+    ) -> None:
+        victim = tmp_path / "victim.txt"
+        victim.write_bytes(b"ORIGINAL")
+        dest = tmp_path / "catalogue.toml"
+        try:
+            dest.symlink_to(victim)
+        except OSError:  # pragma: no cover - platform without symlink support
+            pytest.skip("symlinks unavailable")
+
+        self._atomic_write(dest, b"WRITTEN")
+
+        assert victim.read_bytes() == b"ORIGINAL"
+        assert not dest.is_symlink()
+        assert dest.read_bytes() == b"WRITTEN"
+
+    # The runner's own umask is almost always 022, where 0o644 and 0o664 are
+    # indistinguishable — so a mode mutation would pass unnoticed unless the
+    # test drives the umask itself. 002 is what separates them; 000 is what
+    # separates "not world-writable" from "whatever write_bytes asked for".
+    @pytest.mark.parametrize("umask", [0o022, 0o002, 0o077, 0o027, 0o007, 0o000])
+    def test_written_file_keeps_the_umask_derived_mode(
+        self, tmp_path: Path, umask: int
+    ) -> None:
+        previous = os.umask(umask)
+        try:
+            control = tmp_path / "control.toml"
+            control.write_bytes(b"CONTROL")
+            dest = tmp_path / "catalogue.toml"
+
+            self._atomic_write(dest, b"WRITTEN")
+
+            control_mode = stat.S_IMODE(control.stat().st_mode)
+            written_mode = stat.S_IMODE(dest.stat().st_mode)
+        finally:
+            os.umask(previous)
+
+        # The comparison value is a file the replaced implementation's own call
+        # produced, in the same directory under the same umask. The `& 0o664`
+        # is the one deliberate difference: the helper never requests the
+        # other-write bit that `Path.write_bytes` asks for, so a null umask
+        # cannot leave a catalogue file world-writable. Group-write survives,
+        # because under umask 002 it is what a shared catalogue tree relies on.
+        assert written_mode == control_mode & 0o664
+
+    def test_successful_write_leaves_no_other_entry(self, tmp_path: Path) -> None:
+        dest = tmp_path / "catalogue.toml"
+        self._atomic_write(dest, b"WRITTEN")
+        assert sorted(p.name for p in tmp_path.iterdir()) == ["catalogue.toml"]
+
+    @pytest.mark.parametrize("failing_stage", ["write", "move"])
+    def test_failure_propagates_and_leaves_no_entry(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failing_stage: str
+    ) -> None:
+        # A sentinel instance, so the assertion below distinguishes "the
+        # original error reached the caller" from "some OSError did".
+        sentinel = OSError("stage refused")
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise sentinel
+
+        if failing_stage == "write":
+            # A proxy around the real handle: the fd is still owned and closed,
+            # but the write itself raises. Injecting only at the move would
+            # leave an implementation that guards the move but not the write
+            # looking correct.
+            real_fdopen = os.fdopen
+
+            class _FailingHandle:
+                def __init__(self, inner: object) -> None:
+                    self._inner = inner
+
+                def write(self, data: bytes) -> int:
+                    raise sentinel
+
+                def __getattr__(self, name: str) -> object:
+                    return getattr(self._inner, name)
+
+                def __enter__(self) -> _FailingHandle:
+                    return self
+
+                def __exit__(self, *exc: object) -> bool:
+                    self._inner.close()  # type: ignore[attr-defined]
+                    return False
+
+            monkeypatch.setattr(
+                os, "fdopen", lambda *a, **k: _FailingHandle(real_fdopen(*a, **k))
+            )
+        else:
+            monkeypatch.setattr(os, "replace", _boom)
+
+        with pytest.raises(OSError) as caught:
+            self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+        assert caught.value is sentinel
+        assert list(tmp_path.iterdir()) == []
+
+    def test_descriptor_is_closed_when_the_handle_cannot_be_opened(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # os.fdopen owns the descriptor only once it returns. If it raises,
+        # only the helper can close it — and nothing else in this class would
+        # notice the leak.
+        opened: list[int] = []
+        real_open = os.open
+        sentinel = OSError("handle refused")
+
+        def _record(*args: object, **kwargs: object) -> int:
+            fd = real_open(*args, **kwargs)  # type: ignore[arg-type]
+            opened.append(fd)
+            return fd
+
+        def _refuse(*args: object, **kwargs: object) -> None:
+            raise sentinel
+
+        monkeypatch.setattr(os, "open", _record)
+        monkeypatch.setattr(os, "fdopen", _refuse)
+
+        with pytest.raises(OSError) as caught:
+            self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+
+        assert caught.value is sentinel
+        assert len(opened) == 1
+        with pytest.raises(OSError):  # EBADF — the descriptor was closed
+            os.fstat(opened[0])
+        assert list(tmp_path.iterdir()) == []
+
+    def test_a_failed_cleanup_names_the_leftover_without_replacing_the_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        sentinel = OSError("move refused")
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise sentinel
+
+        def _unlink_refused(*args: object, **kwargs: object) -> None:
+            raise PermissionError("cleanup refused")
+
+        monkeypatch.setattr(os, "replace", _boom)
+        monkeypatch.setattr(Path, "unlink", _unlink_refused)
+
+        with pytest.raises(OSError) as caught:
+            self._atomic_write(tmp_path / "catalogue.toml", b"WRITTEN")
+
+        assert caught.value is sentinel
+        notes = getattr(caught.value, "__notes__", [])
+        assert any(".abtmp-" in note for note in notes)

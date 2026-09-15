@@ -109,6 +109,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
 
+## [agentbundle][0.46.1] — 2026-09-15
+
+### Fixed
+
+- **A symlink in your target directory can no longer redirect what
+  `catalogue init` writes.** The staging file now carries a random name, is
+  created exclusively, and keeps the permissions your umask would give it.
+  This closes a way another local user could have had a file of their
+  choosing overwritten, at your privilege, when you initialise a catalogue
+  in a directory you do not exclusively control.
+
 ## [agentbundle][0.46.0] — 2026-09-15
 
 ### Highlights
