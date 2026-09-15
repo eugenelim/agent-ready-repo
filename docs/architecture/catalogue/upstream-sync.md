@@ -195,8 +195,12 @@ contracts unchanged; removing the new verb restores the status quo exactly.
 Phase 1 is complete. Three phases remain, in this order:
 
 1. ~~**State schema 3**~~ — **done**. `init` writes the recipe and pin fields.
-   A `git+https://` source affords no resolved ref and no digest, so the pin's
-   `source_revision` and `archive_sha256` are null.
+   `init --source` takes a local path only: it resolves the argument as a
+   filesystem path (`commands/catalogue_init.py:202`) and never dispatches a
+   URI through `resolve_catalogue()`. So every pin `init` writes today is
+   § Stage 1's local-clone row, and its `source_revision` and `archive_sha256`
+   are null. A source form that affords a resolved ref or a digest first
+   reaches the pin when `sync` resolves it in phase 2.
 2. **`sync` with `--dry-run` and `--check` only** — resolve, replay, classify,
    and plan, with no write path.
 3. **The apply path**, plus the scoping flags.
