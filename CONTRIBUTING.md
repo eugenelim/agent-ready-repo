@@ -26,7 +26,7 @@ The chain is proportional, not ceremonial: small fixes can go straight to a PR, 
 Two reads will save you time:
 
 - [`AGENTS.md`](AGENTS.md) — how this repo expects agents and contributors to work (the plan → execute → verify → review loop, what's in scope vs out, the non-negotiables).
-- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the single source of truth for *how we work in this repo*: document hierarchy, commit format, PR shape, and the [pack source-of-truth split](docs/CONVENTIONS.md#pack-source-of-truth-split) that every code change in this repo lives under.
+- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the single source of truth for *how we work in this repo*: document hierarchy, commit format, PR shape, and the [pack source-of-truth split](docs/architecture/pack-layout.md#the-source-of-truth-split) that every code change in this repo lives under.
 
 One install: the artifact and skill-spec linters parse YAML via PyYAML. Run `pip install -r tools/requirements.txt` once. The linters also print an actionable install hint with exit code 2 if the import fails, so the first lint run will remind you.
 
@@ -38,7 +38,7 @@ Every adapter-projected file in this repo has an upstream under `packs/<pack>/`.
 
 The muscle memory: edit the upstream, run `make build-self` (add `FORCE=1` if your tree is dirty), commit both the upstream and the regenerated projection in the same PR.
 
-Full rule with the projected-paths list: [`CONVENTIONS.md § Pack source-of-truth split`](docs/CONVENTIONS.md#pack-source-of-truth-split).
+Full rule with the projected-paths list: [`pack-layout.md § The source-of-truth split`](docs/architecture/pack-layout.md#the-source-of-truth-split).
 
 ## Three contribution lanes
 

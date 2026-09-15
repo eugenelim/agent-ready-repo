@@ -540,6 +540,20 @@ def test_product_readme_states_the_changelog_heading_rule() -> None:
         )
 
 
+PACK_LAYOUT = REPO_ROOT / "docs/architecture/pack-layout.md"
+
+# § Pack source-of-truth split's operative content: the Projected-versus-Manual
+# classification, and the edit-the-upstream-then-regenerate rule.
+PACK_LAYOUT_RULES = ("Projected", "Manual", "make build-self", "EXCLUDED_PATTERNS")
+
+
+def test_pack_layout_states_the_source_of_truth_split() -> None:
+    """§ Pack source-of-truth split's operative content."""
+    body = visible_prose(PACK_LAYOUT.read_text(encoding="utf-8"))
+    absent = [r for r in PACK_LAYOUT_RULES if r not in body]
+    assert not absent, f"docs/architecture/pack-layout.md omits: {absent}"
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

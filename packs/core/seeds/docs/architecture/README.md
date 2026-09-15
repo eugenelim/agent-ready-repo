@@ -16,13 +16,6 @@ does this codebase look like today" without replaying ADR history.
 Lifecycle: living. Update whenever the layout or major dependencies
 change.
 
-Note for contributors: the bundle's source-of-truth split (skills,
-agents, hooks, commands, hook-wiring, and pack seeds all live under
-`packs/<pack>/`) is described in
-[`../CONVENTIONS.md` § Pack source-of-truth split](../CONVENTIONS.md#pack-source-of-truth-split).
-Anything in this directory documents the *projected* layout adopters
-end up with; the pack-side authoring rules are in CONVENTIONS.
-
 ## What belongs here
 
 How the code is *currently* organized. Not why — that is a decision record; not

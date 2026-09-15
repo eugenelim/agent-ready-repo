@@ -24,9 +24,9 @@ Architecture docs are a living snapshot. Update them with layout or dependency
 changes.
 
 The bundle source-of-truth split lives in
-[`../CONVENTIONS.md` § Pack source-of-truth split](../CONVENTIONS.md#pack-source-of-truth-split).
-This directory documents projected adopter layout; pack authoring rules live in
-CONVENTIONS.
+[`pack-layout.md` § The source-of-truth split](pack-layout.md#the-source-of-truth-split).
+This directory documents the projected adopter layout; the pack-side authoring
+rules live with that split.
 
 ## Planned architecture
 
