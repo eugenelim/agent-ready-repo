@@ -161,7 +161,7 @@ know right now — not an immutable audit log. Keep it accurate:
 - **Edit** an entry's body, title, or scope when the lesson changes.
 - **Remove** an entry when the underlying code is gone, the constraint
   no longer applies, or the lesson has been promoted to a canonical
-  location (AGENTS.md, CONVENTIONS.md, architecture doc).
+  location (AGENTS.md, a guide, or an architecture doc).
 - **Add** a note in the body when an edit would otherwise be confusing
   (`"Previously covered X; promoted to packages/AGENTS.md"`).
 

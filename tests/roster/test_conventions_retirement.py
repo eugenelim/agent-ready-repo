@@ -128,12 +128,18 @@ _FENCE_RE = re.compile(r"^```.*?^```", re.DOTALL | re.MULTILINE)
 
 
 def visible_prose(text: str) -> str:
-    """Strip HTML comments and fenced blocks before matching.
+    """Strip HTML comments and fenced blocks, then normalise whitespace.
 
     A token parked in a comment, a fence, a heading or a link title satisfies a
-    naive substring check while governing nothing.
+    naive substring check while governing nothing — hence the stripping.
+
+    Whitespace is collapsed because a needle spanning two words fails whenever
+    the prose happens to wrap between them, which makes the guard report a
+    missing rule that is present. Found in T19: the Finish-checklist obligation
+    wrapped between "not done" and "until those are updated".
     """
-    return _FENCE_RE.sub("", _COMMENT_RE.sub("", text))
+    stripped = _FENCE_RE.sub("", _COMMENT_RE.sub("", text))
+    return " ".join(stripped.split())
 
 
 # The three session-priming rules T2 seats in both AGENTS.md files, each named by
@@ -606,6 +612,30 @@ def test_seeded_specs_readme_states_the_distinction_and_vocabulary() -> None:
     body = visible_prose(SEED_SPECS_README.read_text(encoding="utf-8"))
     for needle in ("Implementing", "Shipped", "Executing", "lifecycle index"):
         assert needle in body, f"the seeded specs README omits {needle!r}"
+
+
+RELOCATED_OWNERS = {
+    "packs/core/.apm/skills/work-intake/references/lifecycle-index.md":
+        ("path", "kind", "source", "summary", "needs"),
+    "guides/_shared/explanation/documentation-contracts.md":
+        ("tutorial", "how-to", "reference", "explanation"),
+    "packs/core/.apm/skills/work-loop/references/knowledge-base.md":
+        ("pattern", "gotcha", "antipattern", "show-knowledge"),
+    "packs/core/.apm/skills/work-loop/SKILL.md":
+        ("not done until those are updated",),
+    "CONTRIBUTING.md": ("Profile A", "Profile B", "Profile C"),
+    "guides/_shared/how-to/author-a-skill.md": ("three times", "speculatively"),
+}
+
+
+def test_relocated_sections_landed_with_their_operative_content() -> None:
+    """One assertion per destination, naming what each section actually carries."""
+    for rel, needles in RELOCATED_OWNERS.items():
+        path = REPO_ROOT / rel
+        assert path.is_file(), f"{rel} does not exist"
+        body = visible_prose(path.read_text(encoding="utf-8")).lower()
+        absent = [n for n in needles if n.lower() not in body]
+        assert not absent, f"{rel} omits: {absent}"
 
 
 # --------------------------------------------------------------------------

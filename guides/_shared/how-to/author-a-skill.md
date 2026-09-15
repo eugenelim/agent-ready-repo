@@ -425,3 +425,14 @@ Full reference and CLI equivalents: [`guides/_shared/reference/pack-config-api.m
 - [Skill script conventions](../reference/skill-script-conventions.md) — flag conventions, docblocks, shared-libs, pack-config API.
 - [`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
 - [`docs/CONVENTIONS.md`](../../../docs/CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).
+
+## When a skill earns its place
+
+Skills are workflows agents invoke for repeating tasks: scaffolding a package,
+opening an ADR, running a release. They live in the adapter's skills directory as
+`<name>/SKILL.md`.
+
+Add a skill when you've done the same multi-step thing three times. Don't add
+one speculatively — speculative skills bloat context and degrade adherence.
+
+The skill index is generated at the bottom of `AGENTS.md`.
