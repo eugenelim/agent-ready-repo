@@ -223,6 +223,14 @@ def forbidden_channel_name_tokens(markdown: str) -> list[str]:
     return [row[0] for row in rows]
 
 
+# The operators a bound cell may state. Both bound helpers below derive their
+# refusals from this set rather than hand-listing cases, so widening the grammar
+# cannot introduce an operator no helper decides.
+BOUND_OPERATORS = ("<=", ">=", "<", ">", "=")
+_BELOW_BOUND = ("<", "<=")
+_ABOVE_BOUND = (">", ">=")
+
+
 def _bound_value(predicate: str) -> tuple[str, int]:
     match = re.fullmatch(r"(<=|>=|<|>|=)?\s*(\d+)", predicate.strip())
     if match is None:
@@ -243,7 +251,7 @@ def _largest_admitted(upper: str) -> int:
     in silence.
     """
     op, value = _bound_value(upper)
-    if op in (">", ">="):
+    if op in _ABOVE_BOUND:
         raise AssertionError(
             f"upper bound cell {upper!r} states an above-bound operator; an upper "
             f"bound admits widths below it, and this cell admits everything above "
@@ -265,9 +273,27 @@ def channel_capture_width(markdown: str, lower: str, upper: str) -> int:
             "is the data, not this module"
         )
     if lower:
-        op, value = _bound_value(lower)
-        return value if op in (">=", "=") else value + 1
+        return _smallest_admitted(lower)
     return _largest_admitted(upper)
+
+
+def _smallest_admitted(lower: str) -> int:
+    """The smallest whole width a lower-bound cell admits.
+
+    The mirror of `_largest_admitted`, and it exists for the same reason: a
+    below-bound operator in a *lower* cell is a malformed table, not a band.
+    `<=480` as a lower bound admits every width up to 480, so returning 481 for
+    it — which is what a `value + 1` fallthrough did — names a capture width
+    outside the band it came from, in silence.
+    """
+    op, value = _bound_value(lower)
+    if op in _BELOW_BOUND:
+        raise AssertionError(
+            f"lower bound cell {lower!r} states a below-bound operator; a lower "
+            f"bound admits widths above it, and this cell admits everything up to "
+            f"{value}, so it does not describe a band's lower edge"
+        )
+    return value if op in (">=", "=") else value + 1
 
 
 def _minimum_derivation_rule(markdown: str) -> None:

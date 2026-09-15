@@ -13,6 +13,7 @@ import re
 
 import pytest
 from frontend_engineering_rendered_page_rules import (
+    BOUND_OPERATORS,
     REQUIRED_RULE_ROWS,
     capture_record_fields,
     capture_set_rules,
@@ -1220,11 +1221,15 @@ def test_the_manifest_example_control_reads_a_stated_minimum(
 
 
 @pytest.mark.parametrize("upper", ["<=480", "<480", "=480", "480"])
-def test_the_drop_condition_agrees_with_satisfies_on_every_operator(
+def test_the_drop_condition_agrees_with_satisfies_on_below_bound_operators(
     rules_markdown: str, upper: str
 ) -> None:
     """A band is dropped only when its upper bound admits no width at or above
     the minimum — decided by the same grammar `satisfies` reads.
+
+    Named for the operators it sweeps. Completeness over the whole grammar is
+    `test_every_bound_operator_the_grammar_admits_is_decided`, which sources its
+    domain from `BOUND_OPERATORS` so a widened parser cannot slip past it.
 
     The shipped fallback table uses `<=` and an empty cell, so a hand-written
     `<=`-only comparison passes every shipped case while disagreeing with
@@ -1253,3 +1258,34 @@ def test_an_above_bound_upper_cell_is_refused(rules_markdown: str, upper: str) -
     """
     with pytest.raises(AssertionError, match="above-bound operator"):
         _band_admits(("probe", "", upper), 480)
+
+
+@pytest.mark.parametrize("op", [*BOUND_OPERATORS, ""])
+def test_every_bound_operator_the_grammar_admits_is_decided(
+    rules_markdown: str, op: str
+) -> None:
+    """Each cell either yields a width inside its own band, or refuses.
+
+    The domain is `BOUND_OPERATORS`, the set the bound grammar itself parses,
+    rather than a hand-listed set beside it: an operator added to the parser
+    enters this sweep automatically, where two parallel lists would have let it
+    through undecided.
+
+    Silence is the failure mode under test. A `value + 1` fallthrough answered
+    481 for a `<=480` lower bound — a capture width outside the band that named
+    it — and a `value - 1` fallthrough answered 479 for a `>480` upper bound,
+    dropping a band that admits almost everything.
+    """
+    cell = f"{op}480"
+    for lower, upper in ((cell, ""), ("", cell)):
+        try:
+            width = channel_capture_width(rules_markdown, lower, upper)
+        except AssertionError as exc:
+            assert "does not describe a band" in str(exc), (
+                f"{cell!r} was refused for the wrong reason: {exc}"
+            )
+            continue
+        assert width_in_channel(("probe", lower, upper), width), (
+            f"cell {cell!r} yielded capture width {width}, which is outside the "
+            f"band ({lower!r}, {upper!r}) it was derived from"
+        )
