@@ -35,7 +35,7 @@ The two skills look adjacent but solve different problems. Get this right before
 | Reject path | `Rejected` is a normal terminal state — the discussion was the point | A pre-acceptance ADR that doesn't earn `Accepted` just isn't committed; there's no `Rejected` state |
 | Trigger | The direction is unresolved and more than one owner must agree | The decision is made (or is being formally proposed) and has a concrete tradeoff |
 
-Quick rule: **RFCs propose; ADRs record.** If the discussion hasn't happened yet, you want an RFC. If the discussion is done and you're writing it down so the next maintainer can reconstruct it, you want an ADR. Both are covered by the lifecycle table in [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle).
+Quick rule: **RFCs propose; ADRs record.** If the discussion hasn't happened yet, you want an RFC. If the discussion is done and you're writing it down so the next maintainer can reconstruct it, you want an ADR. Both are covered by the lifecycle table in [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes).
 
 If you're recording a decision that's already settled, see [how to record a decision (ADR)](new-adr.md) instead.
 
@@ -208,7 +208,7 @@ The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejecte
 - **`Open`** — ready for reviewers. Update the frontmatter and push.
 - **`Final Comment Period`** — discussion is winding down; last call for objections.
 - **`Experimental`** (optional) — the proposal includes an `Experiment / validation` section and the trial is running; the RFC sits here, results pending in a linked spike note, until they land and it moves to a terminal status. Use only when an experiment is genuinely in flight.
-- **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
+- **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
 
 The skill then regenerates the index so the new file shows up in it, by running
 the bundled generator over the RFC directory:
@@ -282,4 +282,4 @@ turn its concrete decisions into ADRs, specs, or convention changes.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where governance-extras fits relative to `core`.
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
 - [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) — the lifecycle, filename rule, and when-to / when-not-to.
-- [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
+- [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.

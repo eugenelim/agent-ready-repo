@@ -187,6 +187,75 @@ def test_the_priming_guard_ignores_commented_out_content() -> None:
     assert set(missing_priming_rules(faked)) == set(PRIMING_TOKENS)
 
 
+DOCS_README = REPO_ROOT / "docs/README.md"
+SEED_DOCS_README = REPO_ROOT / "packs/core/seeds/docs/README.md"
+
+# The areas core actually seeds under docs/. A map row per area, because the
+# repo's own § Documentation table is the model and an adopter has no others.
+SEEDED_DOC_AREAS = ("architecture/", "product/", "specs/", "knowledge/")
+
+# The lifecycle classes the § Document lifecycle section defines.
+LIFECYCLE_CLASSES = ("living", "frozen", "governance")
+
+# The § 5 wrapper's living-layer definition — the operative content of the
+# section this task also owns.
+LIVING_LAYER_AREAS = ("docs/architecture/", "docs/product/", "guides/")
+
+
+def missing_doc_map_content(text: str) -> tuple[str, ...]:
+    """Return what a docs map is required to state and does not."""
+    body = visible_prose(text)
+    lowered = body.lower()
+    absent = [area for area in SEEDED_DOC_AREAS if area not in body]
+    absent += [f"lifecycle class {c!r}" for c in LIFECYCLE_CLASSES if c not in lowered]
+    absent += [f"living-layer area {a!r}" for a in LIVING_LAYER_AREAS if a not in body]
+    return tuple(absent)
+
+
+# --------------------------------------------------------------------------
+# AC15, AC18 — the docs map
+# --------------------------------------------------------------------------
+
+def test_seeded_docs_map_states_the_areas_and_lifecycle_classes() -> None:
+    """AC15 and AC18."""
+    assert SEED_DOCS_README.is_file(), (
+        "packs/core/seeds/docs/README.md does not exist; an adopter entering "
+        "docs/ has no route into its own documentation tree"
+    )
+    absent = missing_doc_map_content(SEED_DOCS_README.read_text(encoding="utf-8"))
+    assert not absent, f"the seeded docs map does not state: {absent}"
+
+
+def test_seeded_docs_map_carries_the_adopter_extension_placeholder() -> None:
+    """AC18. An adopter extends the map; they do not start from a blank file."""
+    assert SEED_DOCS_README.is_file(), "packs/core/seeds/docs/README.md does not exist"
+    body = SEED_DOCS_README.read_text(encoding="utf-8")
+    assert "<" in body and ">" in body, (
+        "the seeded map carries no placeholder row for an area core does not seed"
+    )
+
+
+def test_repo_docs_map_states_the_same_areas() -> None:
+    """The repository's own copy carries the content it seeds."""
+    assert DOCS_README.is_file(), "docs/README.md does not exist"
+    absent = missing_doc_map_content(DOCS_README.read_text(encoding="utf-8"))
+    assert not absent, f"the repository docs map does not state: {absent}"
+
+
+def test_the_doc_map_guard_detects_missing_content() -> None:
+    """Negative control: the red is produced by stripping."""
+    if not SEED_DOCS_README.is_file():
+        return  # the existence assertions above already carry the red
+    stripped = SEED_DOCS_README.read_text(encoding="utf-8")
+    for needle in SEEDED_DOC_AREAS + LIVING_LAYER_AREAS:
+        stripped = stripped.replace(needle, "")
+    for needle in LIFECYCLE_CLASSES:
+        stripped = re.sub(needle, "", stripped, flags=re.IGNORECASE)
+    assert missing_doc_map_content(stripped), (
+        "the doc-map guard does not detect removal of the content it asserts"
+    )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

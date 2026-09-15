@@ -108,3 +108,66 @@ at all — otherwise the exclusion check passes vacuously.
 
 Root `AGENTS.md` is now out of the consumer domain: T2 removed its last two
 `CONVENTIONS` references. That is the first baseline file this work has cleared.
+
+## T3 — docs/README.md as the doc map
+
+Created `packs/core/seeds/docs/README.md` and `docs/README.md`, declared the
+seed, added the installed path, and re-pointed the section's consumers.
+
+Discovery returned three `#document-lifecycle` consumers:
+`guides/governance-extras/how-to/new-adr.md`,
+`guides/governance-extras/how-to/new-rfc.md`, and
+`packs/core/seeds/docs/product/README.md`. All three now address
+`docs/README.md#the-three-lifecycle-classes`.
+
+The `§ 5` discovery form also returned `.github/pull_request_template.md`,
+`packs/core/.apm/skills/workspace-status/references/agentbundle-layout.md` and
+`tools/test_build_site_routing.py` — every one cites § 5b specifically, so they
+belong to T10, not here. Recorded rather than acted on.
+
+**The anchor protocol works end to end.** Writing the chosen heading back into
+`notes/anchor-map.txt` moved all five `#document-lifecycle` uses from unresolved
+to resolved: the resolver went from 30 unresolved to 25. That is the first proof
+T0's resolver and the write-back seam function as designed.
+
+### The repo copy diverges from the seed, deliberately
+
+The seed lists the four areas `core` installs plus one placeholder row. The
+repository's own copy replaces that placeholder with `adr/`, `rfc/` and
+`guides/`, which no `core` seed provides — `adr/` and `rfc/` arrive with
+`governance-extras`. A seed that listed them would ship an adopter a map to
+directories they never receive, which is the defect the round-5 scaffold audit
+found in `packs/core/seeds/docs/architecture/README.md`.
+
+### Re-pointing a contract rather than preserving its shape
+
+`tests/roster/test_adapt_reference_architecture.py` pinned four things about
+§ Document hierarchy's ASCII diagram: `reference.md (golden`, `overview.md (map`,
+a descriptive/normative gloss, and fixed-width row alignment of the box.
+
+The operative content is the distinction — `overview.md` is descriptive, the map;
+`reference.md` is normative, the golden path. The box was presentation. So the
+gloss moved to the docs map under its own heading, the test re-points at
+`packs/core/seeds/docs/README.md`, and the row-alignment guard was removed with
+the diagram it policed rather than left asserting over content that no longer
+exists.
+
+Stripped red recorded: removing the `**normative**` and `**descriptive**`
+markers fails `test_docs_map_seats_reference_md`; restoring them passes.
+
+### Two gates that fired for the wrong reason
+
+**`catalogue lint` rejected the new seed even though the declaration was
+correct.** `python3 -m agentbundle` resolved to
+`/Users/eu.gene.lim/orca/agent-ready-repo/` — the main checkout — because the
+editable install pointed there, so the CLI never loaded this worktree's
+`_SEEDS_REQUIRED_PLACEHOLDERS`. Confirmed by `pip show`, diagnosed with a
+one-shot `PYTHONPATH`, then fixed by repointing the editable install to this
+worktree with owner approval. Repointing is shared state: other worktrees now
+resolve here until it is pointed back.
+
+**The install snapshot is a golden, not a hand-maintained list.** A hand-edited
+insertion reordered `workspace.toml` and failed
+`test_first_install_snapshot[core]`. Reverted and regenerated with
+`UPDATE_GOLDEN=1`, which produced a one-line diff adding `docs/README.md` and
+reordered nothing.

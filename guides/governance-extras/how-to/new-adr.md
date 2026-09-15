@@ -252,4 +252,4 @@ the durable decision changes.
 - [`new-adr` skill](../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
 - [`docs/CONVENTIONS.md` § ADR](../../../docs/CONVENTIONS.md#2-adr--architecture-decision-records--docsadr) — the immutability rule, status values, when-to-write tests.
-- [`docs/CONVENTIONS.md` § Document lifecycle](../../../docs/CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.
+- [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.

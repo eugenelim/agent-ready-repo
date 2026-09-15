@@ -517,6 +517,7 @@ _SEEDS_REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/rfc/README.md": ("<!-- no RFCs yet -->",),
     "docs/adr/README.md": ("<!-- no ADRs yet -->",),
     "governance/manifest.example.yaml": ("ADR-NNNN",),
+    "docs/README.md": ("<your area>",),
     "docs/architecture/README.md": (),
     "docs/knowledge/README.md": (),
     "docs/product/README.md": (),

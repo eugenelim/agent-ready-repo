@@ -4,6 +4,7 @@ AGENT_RULES.md
 docs/AGENTS.md
 docs/CHARTER.md
 docs/CONVENTIONS.md
+docs/README.md
 docs/architecture/README.md
 docs/architecture/overview.md
 docs/knowledge/README.md
