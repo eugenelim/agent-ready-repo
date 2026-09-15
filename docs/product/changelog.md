@@ -72,6 +72,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fields were redacted and became reachable when they began projecting as
   authored in 2.26.2.
 
+## [agentbundle][0.44.3] — 2026-09-15
+
+<!-- No Highlights: this release changes `make build-check`, a gate that runs
+against a source checkout. `run_build_check_drift_gates` resolves its corpus
+from REPO_ROOT, which is derived from the installed package location, so an
+adopter running the published CLI cannot reach it. Nothing a consumer acts on
+changed. -->
+
+### Fixed
+
+- `make build-check` fails when a declared packaged runtime is missing, not
+  only when it has drifted. `agentbundle/_data/` carries a copy of each core
+  pack script the packaged CLI runs where no installed skill tree is present,
+  and the gate compared bytes only when both halves of a pair existed, so an
+  absent copy was silently skipped. That is the worse failure of the two: the
+  packaged engine loads its siblings from its own directory, so an unsynced
+  copy breaks it at import while the gate reports clean. The skip now mirrors
+  the write condition of the sync path itself — wherever `build-self` would
+  have written a copy, the gate requires it present and byte-identical. A tree
+  with no `_data/` directory is a partial checkout and is still tolerated.
+- The same gate derives the declared set's sibling closure rather than trusting
+  it. Pairs are hand-declared, so a runtime could be bundled while the helper it
+  loads was not — the state reached during the workspace-status prune split,
+  where `build-self` synced the engine and not its new sibling and nothing
+  complained. `_data/` is flat, so every helper is reached as a sibling of the
+  loading module's own file. The gate reads those reaches and requires each to
+  be a declared pair or an exemption carrying its reason. An ancestor hop is not
+  a sibling, so a reach into another skill tree is excluded by construction
+  rather than by allow-list; a sibling whose name is computed rather than
+  literal fails closed rather than passing unread.
+
 ## [core][2.26.3] — 2026-09-14
 
 ### Highlights

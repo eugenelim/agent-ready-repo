@@ -33,6 +33,7 @@ named here are the current defaults.  When `catalogue.toml` declares a
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
@@ -110,9 +111,9 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
             / "workspace_status_prune.py",
         ),
         (
-            # This packaged runtime backs source-authority parsing. Executable
-            # acquisition runs from the work-intake skill tree, where its
-            # intake_guard.py redactor sibling is present.
+            # This packaged runtime backs source-authority parsing only; the
+            # unbundled sibling that fact excuses is recorded in
+            # `_RUNTIME_SIBLING_EXEMPTIONS`.
             root / "packs" / "core" / ".apm" / "skills" / "work-intake"
             / "scripts" / "refresh.py",
             root / "packages" / "agentbundle" / "agentbundle" / "_data"
@@ -127,6 +128,130 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
             for name in ("cooling.py", "close_work.py", "file_safety.py")
         ),
     )
+
+
+# A bundled runtime loads its helpers as siblings of its own file, because the
+# `_data/` layout is flat. Every sibling it reaches must therefore be bundled
+# too, or the packaged CLI resolves a module that is not there. Pairs are
+# hand-declared, so declaring one and forgetting the helper it loads is the
+# failure mode `_runtime_sibling_reaches` below exists to make loud.
+#
+# A sibling that is deliberately left out belongs here with the reason the
+# packaged layout can do without it. The gate refuses any reach that is neither
+# bundled nor listed. An entry that stops being reached is stale, but that is a
+# fact about this repository's own sources rather than about whatever tree the
+# gate is pointed at, so `test_packaged_runtime_sibling_exemptions_are_live`
+# asserts it against the real tree instead.
+_RUNTIME_SIBLING_EXEMPTIONS: dict[tuple[str, str], str] = {
+    ("work_intake_refresh.py", "intake_guard.py"): (
+        "only `parse_source_authority` is called on the packaged copy and it "
+        "does not reach `_intake_guard_callable`; the acquisition path that "
+        "does runs from the installed work-intake skill tree, where the "
+        "redactor sibling is present"
+    ),
+}
+
+
+def _file_relative_path_kind(node: ast.expr, env: dict[str, str]) -> str | None:
+    """Classify an expression as the running file, its directory, or neither.
+
+    Only these two kinds can name a sibling. An ancestor hop — `parents[n]` —
+    deliberately classifies as neither, so a reach out of the module's own
+    directory into another skill tree is not mistaken for a sibling: those
+    reaches cannot resolve under the flat `_data/` layout and their callers
+    guard for it.
+    """
+
+    if isinstance(node, ast.Name):
+        return env.get(node.id)
+    if isinstance(node, ast.Attribute):
+        if node.attr in _PATH_IDENTITY_ATTRS:
+            return _file_relative_path_kind(node.value, env)
+        if node.attr == "parent":
+            return "dir" if _file_relative_path_kind(node.value, env) == "file" else None
+        return None
+    if isinstance(node, ast.Call):
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _PATH_IDENTITY_ATTRS:
+            return _file_relative_path_kind(func.value, env)
+        if (
+            isinstance(func, ast.Name)
+            and func.id == "Path"
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Name)
+            and node.args[0].id == "__file__"
+        ):
+            return "file"
+    return None
+
+
+_PATH_IDENTITY_ATTRS = frozenset({"resolve", "absolute", "expanduser"})
+_PACKAGED_MODULE_PREFIX = "agentbundle._data."
+
+
+def _runtime_sibling_reaches(source: str) -> tuple[set[str], list[str]]:
+    """Return the sibling module filenames a runtime source loads, and blind spots.
+
+    Reads the three shapes this repository's runtimes actually use to reach a
+    sibling: `Path(__file__)...with_name("x.py")`, `<own directory> / "x.py"`,
+    and `importlib.import_module("agentbundle._data.x")`.
+
+    The second element lists reaches whose target is computed rather than
+    literal. The analysis cannot name those, so the caller fails on them rather
+    than passing a module it could not read.
+    """
+
+    tree = ast.parse(source)
+    env: dict[str, str] = {}
+    # Two passes: a name may be bound after the assignment that classifies it
+    # (module-level `SCRIPT_DIR`, function-local `engine_path`), and a second
+    # pass lets one binding resolve through another.
+    for _ in range(2):
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+            ):
+                kind = _file_relative_path_kind(node.value, env)
+                if kind is not None:
+                    env[node.targets[0].id] = kind
+
+    reaches: set[str] = set()
+    unreadable: list[str] = []
+    for node in ast.walk(tree):
+        target: ast.expr | None = None
+        lineno = 0
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "with_name"
+            and node.args
+            and _file_relative_path_kind(node.func.value, env) == "file"
+        ):
+            target, lineno = node.args[0], node.lineno
+        elif (
+            isinstance(node, ast.BinOp)
+            and isinstance(node.op, ast.Div)
+            and _file_relative_path_kind(node.left, env) == "dir"
+        ):
+            target, lineno = node.right, node.lineno
+        if target is not None:
+            if isinstance(target, ast.Constant) and isinstance(target.value, str):
+                if target.value.endswith(".py"):
+                    reaches.add(target.value)
+            else:
+                unreadable.append(f"line {lineno}")
+            continue
+        if (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value.startswith(_PACKAGED_MODULE_PREFIX)
+        ):
+            tail = node.value[len(_PACKAGED_MODULE_PREFIX):]
+            if tail and "." not in tail:
+                reaches.add(f"{tail}.py")
+    return reaches, unreadable
 
 
 # Canonical lowercase-hyphen marker grammar. The self-host
@@ -1730,8 +1855,25 @@ def run_build_check_drift_gates(
     # workspace-status can run from package data when no installed core skill
     # tree is present. Keep both bundled runtimes byte-identical to their pack
     # sources so that path never drifts into a weaker contract.
+    #
+    # The skip condition mirrors the real-write sync path's write condition
+    # exactly (see `_runtime_projections` use in `run_self_host`): whenever
+    # `make build-self` would have written a bundled copy, this gate requires
+    # that copy to be present and identical. A tree with no packaged-runtime
+    # directory at all is a partial checkout, not drift — but a present
+    # directory missing a declared copy is the worse failure, because the
+    # packaged engine imports its siblings by path and would fail at import
+    # while build-check reported clean.
     for source_path, bundled_path in _runtime_projections(REPO_ROOT):
-        if not source_path.is_file() or not bundled_path.is_file():
+        if not source_path.is_file() or not bundled_path.parent.is_dir():
+            continue
+        if not bundled_path.is_file():
+            failures.append(
+                "build-check: packaged runtime missing — "
+                f"{bundled_path.name} is declared as a packaged runtime but is "
+                "absent from packages/agentbundle/agentbundle/_data/; run "
+                "`make build-self` to sync it"
+            )
             continue
         if (
             source_path.read_bytes() != bundled_path.read_bytes()
@@ -1739,6 +1881,47 @@ def run_build_check_drift_gates(
             failures.append(
                 "build-check: packaged runtime drift — "
                 f"{bundled_path.name} must be byte-identical to its core pack source"
+            )
+
+    # Byte identity of the declared pairs says nothing about whether the set of
+    # pairs is complete. Derive the closure instead of trusting the hand-written
+    # list: every sibling a bundled runtime loads must itself be bundled, or be
+    # exempted with a reason.
+    _declared_bundled = {
+        bundled_path.name for _, bundled_path in _runtime_projections(REPO_ROOT)
+    }
+    for source_path, bundled_path in _runtime_projections(REPO_ROOT):
+        if not source_path.is_file():
+            continue
+        try:
+            _reaches, _unreadable = _runtime_sibling_reaches(
+                source_path.read_text(encoding="utf-8")
+            )
+        except (OSError, SyntaxError, UnicodeDecodeError) as exc:
+            failures.append(
+                "build-check: packaged runtime closure unreadable — "
+                f"{bundled_path.name} could not be parsed ({exc})"
+            )
+            continue
+        for _where in _unreadable:
+            failures.append(
+                "build-check: packaged runtime closure unreadable — "
+                f"{bundled_path.name} loads a sibling whose name is computed "
+                f"at {_where}; the closure check cannot confirm it is bundled"
+            )
+        for _sibling in sorted(_reaches):
+            if _sibling in _declared_bundled:
+                continue
+            _key = (bundled_path.name, _sibling)
+            if _key in _RUNTIME_SIBLING_EXEMPTIONS:
+                continue
+            failures.append(
+                "build-check: packaged runtime closure incomplete — "
+                f"{bundled_path.name} loads sibling {_sibling}, which is not a "
+                "declared packaged runtime; add the pair to "
+                "`_runtime_projections` or record it in "
+                "`_RUNTIME_SIBLING_EXEMPTIONS` with the reason the packaged "
+                "layout does not need it"
             )
 
     # ------------------------------------------------------------------

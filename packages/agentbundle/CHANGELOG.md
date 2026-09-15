@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.44.3] — 2026-09-15
+
+### Fixed
+
+- `make build-check` fails when a declared packaged runtime is missing, not
+  only when it has drifted. `agentbundle/_data/` carries a copy of each core
+  pack script the packaged CLI runs where no installed skill tree is present,
+  and the gate compared bytes only when both halves of a pair existed. An
+  absent copy hit the skip branch, so an incomplete packaged runtime passed
+  clean — the worse failure of the two, because the packaged engine loads its
+  siblings from its own directory and breaks at import. The skip now mirrors
+  the write condition of the sync path itself: wherever `build-self` would have
+  written a copy, the gate requires it present and byte-identical. A tree with
+  no `_data/` directory is a partial checkout and is still tolerated.
+- The same gate derives the declared set's sibling closure rather than trusting
+  it. Pairs are hand-declared, so a runtime could be bundled while the helper it
+  loads was not. `_data/` is flat, so every helper is reached as a sibling of
+  the loading module's own file; the gate now reads those reaches
+  (`Path(__file__)...with_name()`, a join on the module's own directory, and
+  `agentbundle._data.<name>` imports) and requires each one to be declared or
+  recorded as an exemption with its reason. An ancestor hop is not a sibling, so
+  a reach into another skill tree is excluded by construction. A sibling whose
+  name is computed rather than literal fails closed rather than passing unread.
+
 ## [0.44.2] — 2026-09-14
 
 ### Fixed

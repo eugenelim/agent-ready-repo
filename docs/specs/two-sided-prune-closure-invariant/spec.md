@@ -120,12 +120,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Follow-ons
 
 - eugenelim: RFC-0096 Wave 7d execution — combine this prune with the separately required reference-free mechanical check before selecting or deleting a carved-out spec. Wave 7d owns selection; this slice owns execution.
-- eugenelim: the packaged-runtime drift gate skips a declared pair whose bundled copy
-  is missing, so an incomplete packaged runtime passes build-check. Tightening it to
-  fail instead was tried here and reverted: an existing integration test builds a
-  synthetic minimal tree that legitimately lacks those files, so the stricter check
-  reds it. Closing the gap needs that fixture updated alongside, which is a change to
-  a pre-existing gate rather than to this slice.
+- eugenelim: ~~the packaged-runtime drift gate skips a declared pair whose bundled
+  copy is missing, so an incomplete packaged runtime passes build-check.~~ Closed
+  in a follow-up change to that pre-existing gate. The synthetic minimal tree this
+  slice ran into stays green without edits: the gate's skip now mirrors the
+  real-write sync path's own write condition, so it tolerates a tree with no
+  packaged-runtime directory and fails a present directory that is missing a
+  declared copy. The same change also closed the half this slice hit live —
+  pairs are hand-declared, so a bundled runtime could load a sibling nobody
+  declared. The gate now derives that closure from the sources instead of
+  trusting the list, and an unbundled sibling must carry a recorded reason.
 - eugenelim: a shipped spec should be easy to retire. Today it often is not: surfaces bind directly to spec directories — roster tests read their bytes, six files are SHA-256 pinned and four of those sit inside two spec directories, and other specs, guides, and records cite their paths — so a spec that has finished its job becomes permanently unretirable and the corpus only grows. Keeping shipped specs retirable is the upstream work: surfaces should carry the content they depend on, or reference a durable owner, rather than pinning a delivery contract that is meant to age out. Then removing a spec is only ever removing the spec.
 - eugenelim: the shared lock is fail-fast and PID-stamped but has no staleness recovery — a process killed while holding it leaves a lock file that refuses every later operation. Existing behavior, widened in blast radius by this slice's new participants.
 - workspace-status owner decision: `docs/specs/` currently holds 285 entry-less spec directories against 168 registered ones. If the prune becomes the repository's routine registration cleanup, the durable fix is upstream — registration discipline plus RFC-0094 adoption for work that should create no artifact at all — not a larger prune.
