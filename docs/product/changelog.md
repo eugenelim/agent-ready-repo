@@ -214,6 +214,32 @@ updates but never removes:
    working: the new `AGENTS.md` reads the router unconditionally, so your rows
    are still reached.
 
+## [frontend-engineering][0.2.5] — 2026-09-14
+
+### Highlights
+
+- A surface can now declare the minimum viewport width it supports, and the
+  rendered-page inspection stops asking for captures below it. A desktop-only
+  tool that supports 1280 and up is asked for four captures per route in one
+  channel instead of eight across two.
+- Declaring a minimum never hides a width the surface does claim. It only ever
+  raises a band's lower bound, so a minimum that falls between the default bands
+  leaves the wider one where it is rather than pulling a capture down into a gap
+  that satisfies no channel.
+- A breakpoint above the minimum keeps its own band, so a high minimum cannot
+  flatten a surface that really is responsive above it. Each run records the
+  minimum it used and any breakpoint the minimum discarded, so a mistyped
+  minimum is distinguishable from a deliberate single-channel surface.
+
+### Changed
+
+- The channel axis takes an optional declared minimum width. Bands lying wholly
+  below it stop being required and the lowest surviving band starts at it.
+- The evidence manifest's `viewports` field records the minimum in force, or
+  `none-declared`, and any discarded breakpoints.
+- The journey's `youProvide` names the supported minimum width among the inputs
+  an adopter brings.
+
 ## [core][2.25.27] — 2026-09-13
 
 ### Highlights
