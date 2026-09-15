@@ -35,6 +35,13 @@ CLI-surface changes may require release; see
 | Pack behavior | `packs/<pack>/tests/` |
 | Repository tool | beside its `tools/` script |
 
+This table is enforced, not stylistic. `packages/agentbundle/tests/` ships inside
+the sdist and is re-run against an extracted workspace holding only the package —
+no `contracts/`, `packs/`, `docs/`, or `catalogue.toml`. A test placed here that
+reads a repository path passes locally and fails the sdist artifact gate. Keep the
+package behaviour here against fixtures and move the repository-level half to
+`tests/roster/`; [`tests/AGENTS.md`](../tests/AGENTS.md) owns what that obliges.
+
 ## Deeper pointers
 
 Package release process lives in
