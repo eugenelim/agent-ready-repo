@@ -1,6 +1,6 @@
 # Spec: review-recurrence-family-key
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)

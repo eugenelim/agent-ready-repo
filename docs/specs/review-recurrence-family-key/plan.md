@@ -1,7 +1,7 @@
 # Plan: review-recurrence-family-key
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [`packs/AGENTS.md`](../../../packs/AGENTS.md),
   [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md),
   [`docs/architecture/loop-contract.md`](../../architecture/loop-contract.md)
