@@ -387,6 +387,24 @@ def test_the_workflow_rule_guard_detects_their_absence() -> None:
 
 
 # --------------------------------------------------------------------------
+# AC22 — the coding-convention rules
+# --------------------------------------------------------------------------
+
+def test_seed_states_the_coding_convention_rules() -> None:
+    """AC22."""
+    absent = absent_from_section(SEED_AGENTS, "Coding conventions", CODING_RULES)
+    assert not absent, f"the seed's Coding conventions section omits: {absent}"
+
+
+def test_the_coding_rule_guard_detects_their_absence() -> None:
+    """Negative control."""
+    section = section_of(SEED_AGENTS.read_text(encoding="utf-8"), "Coding conventions")
+    for rule in CODING_RULES:
+        section = section.replace(rule, "")
+    assert all(rule not in section for rule in CODING_RULES)
+
+
+# --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
 

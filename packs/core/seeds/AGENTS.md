@@ -121,6 +121,17 @@ one nearby example must not become a rule.
 Prefer clear code shape and exact names over a long note. Comment only to
 explain intent, a hard limit, or a trade-off the code cannot show.
 
+Add types and docstrings to code you change. Validate what crosses a boundary;
+trust internal callers and framework guarantees rather than re-checking them.
+
+Record a new dependency in the owning package's instructions, or in a decision
+record, before adding it. An import missing from the owning manifest is a new
+dependency even when it resolves locally.
+
+Do not silently resolve a conflict between documented guidance and code. State
+the evidence and the trade-off, then update whichever source owns the rule —
+never a generated projection of it.
+
 ### Cut before adding
 
 After understanding the code a change touches, stop at the first sufficient
