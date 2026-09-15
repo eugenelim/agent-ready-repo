@@ -277,39 +277,28 @@ inline cases are owner decisions rather than gaps, as § "De-risk" records.
 **Nothing else in the chain is missing** — the review phases already deliver
 and enforce, and the gate and closeout phases need no model.
 
-**Two capabilities are partly delivered, and two further slices are unblocked.**
-All five capabilities now have briefs —
+**Each of the five capabilities has a brief:**
 [`universal-implementer-dispatch`](../briefs/universal-implementer-dispatch.md),
 [`spec-author-agent`](../briefs/spec-author-agent.md),
 [`phase-scoped-policy-delivery`](../briefs/phase-scoped-policy-delivery.md),
 [`policy-arrival-validator`](../briefs/policy-arrival-validator.md), and
-[`multi-adapter-eval-runner`](../briefs/multi-adapter-eval-runner.md) — and the
-intent → brief → confirmed slice → spec path has been walked by capability 1
-and capability 3. Capability 1's U1 slice is **shipped**:
-[`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)
-carries `Status: Shipped`, merged in `d7cf1b741`. The
-`universal-implementer-dispatch` and `phase-scoped-policy-delivery` briefs are
-`Executing`; the three remaining capability briefs are `Draft`.
-
-`phase-scoped-policy-delivery`'s D1 shipped on 2026-09-04. The slices unblocked
-right now are `spec-author-agent`'s S1, whose envelope gate U1 discharged, and
-`universal-implementer-dispatch`'s U3, which gates after U1.
+[`multi-adapter-eval-runner`](../briefs/multi-adapter-eval-runner.md). Each
+brief's `- **Status:**` line owns its lifecycle state, and its coverage map owns
+spec status. The order is set by what unblocks what, not by dependency alone.
 
 ## Decomposition
 
-The capability level beneath this intent. Capabilities 1 and 3 are confirmed and
-each has one shipped slice; the remaining capabilities are unconfirmed. **The
-order is set by what unblocks what**, not by dependency alone.
+The capability level beneath this intent. **The order is set by what unblocks
+what**, not by dependency alone.
 
 1. `universal-implementer-dispatch` — **the enabler, and unconditional.** Route
    every spec-backed plan task through the implementer agent sequentially
    rather than only on the parallel path, and move implementation logic out of
    `work-loop`'s `SKILL.md`.
 
-   **Status: U1 shipped 2026-09-03** in `d7cf1b741`
-   ([`sequential-implementer-dispatch/spec.md`](../../specs/sequential-implementer-dispatch/spec.md)),
-   delivering the dispatch envelope. U3 (extraction) and U2 (direct-light
-   verdict dispatch) remain unshipped; U2 is unconfirmed.
+   U1 delivers the dispatch envelope; the
+   [brief's coverage map](../briefs/universal-implementer-dispatch.md#spec-map)
+   records its state.
 
    The three reasons this ranked first, and what U1 changed:
 

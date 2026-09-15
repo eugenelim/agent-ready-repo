@@ -252,7 +252,6 @@ orchestration rewrite.
 
 ## Proposed slices
 
-U1 was confirmed on 2026-09-03 and its spec is Shipped; U3 and U2 are unconfirmed, and neither has an authored spec.
 Each AC number below is a
 **ceiling and a stall threshold, never a floor** — the single statement of that
 rule for this brief. Fewer independently testable criteria are correct when
@@ -314,13 +313,9 @@ shared envelope contract", referencing this brief at slice granularity. But an
 edge recorded only on the consuming side is not resolved,
 because D3's spec author reads the sibling, not this file.
 
-**Reconciliation obligation, owed before U2 is confirmed and not before U1:**
-`phase-scoped-policy-delivery.md` must be amended from
-"capability 1" to "U1", matching `spec-author-agent.md`'s S1 row, which records
-"U1 shipped the shared envelope contract". That
-amendment is owned by the sibling brief's owner. If they disagree, the parent
-intent arbitrates; U2 stays unconfirmed until it is settled. U1 is unaffected —
-nothing in U1 depends on D3.
+**U2's gating depends on D3, whose gating is recorded in the sibling brief's
+[own slice row](phase-scoped-policy-delivery.md#proposed-slices).** U1 is
+unaffected because nothing in U1 depends on D3.
 
 **A third amendment is owed upward, to the parent.** Narrowing the eval
 population to the spec-backed path (§ "Success metrics") also narrows the
@@ -457,8 +452,7 @@ once and preserve its current statement that parallel fan-out is disabled.
 | sequential-implementer-dispatch | Shipped |
 
 [`sequential-implementer-dispatch`](../../specs/sequential-implementer-dispatch/spec.md)
-delivers U1. The Status column is auto-derived — do not hand-edit it. U3 and U2
-are unconfirmed and have no spec.
+delivers U1. The Status column is auto-derived — do not hand-edit it.
 
 ## Provenance
 
