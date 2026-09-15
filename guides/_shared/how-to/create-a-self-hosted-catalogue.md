@@ -117,6 +117,31 @@ agentbundle catalogue init my-catalogue \
 
 ---
 
+## Re-run a self-hosted init
+
+Run the same command again when you want to recreate a catalogue from its
+recorded recipe:
+
+```bash
+agentbundle catalogue init my-catalogue \
+  --preset self-hosted \
+  --source /path/to/source-catalogue
+```
+
+The command reads `.agentbundle/self-host-state.json` in the target. With no
+replacement flags, it reuses the recorded catalogue identity and selected packs
+and profiles. Pass an identity, `--pack`, or `--profile` flag to replace that
+recorded value for this run.
+
+The re-run overwrites files that the earlier init wrote. It does not restore
+the recorded attribution, tooling, or guide mode: omit those flags and their
+safe defaults apply.
+
+After a re-run, use `agentbundle catalogue verify --root my-catalogue` to check
+the recreated catalogue.
+
+---
+
 ## Guide inclusion
 
 Use `--guides selected` (default) to copy `guides/_shared/` from the source, or

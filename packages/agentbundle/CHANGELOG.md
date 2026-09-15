@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.46.0] — 2026-09-15
+
+### Changed
+
+- `catalogue init --preset self-hosted` writes schema-3 ownership state with a
+  recipe and source pin. A later run reuses recorded identity fields and pack
+  and profile selections when the corresponding flags are omitted; explicit
+  flags still win. Mode flags still resolve from their normal defaults.
+- State from a local-path `--source` records no source revision or archive
+  digest. Generated `catalogue.toml` values are escaped for TOML syntax.
+
 ## [0.45.0] — 2026-09-14
 
 ### Added

@@ -192,11 +192,11 @@ contracts unchanged; removing the new verb restores the status quo exactly.
    restored the drift gate in derived catalogues whether or not `sync` ever
    ships. See § Shipped: credbroker source follows its pack.
 
-Four phases remain, in this order:
+Phase 1 is complete. Three phases remain, in this order:
 
-1. **State schema 3** — recipe and pin fields, written by `init`, read by
-   `sync`. Schema-2 states stay readable; such a target syncs by supplying the
-   recipe flags once, which then persist.
+1. ~~**State schema 3**~~ — **done**. `init` writes the recipe and pin fields.
+   A `git+https://` source affords no resolved ref and no digest, so the pin's
+   `source_revision` and `archive_sha256` are null.
 2. **`sync` with `--dry-run` and `--check` only** — resolve, replay, classify,
    and plan, with no write path.
 3. **The apply path**, plus the scoping flags.

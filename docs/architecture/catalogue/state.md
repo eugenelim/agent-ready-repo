@@ -6,7 +6,7 @@
 | File | Answers | Written by | Schema |
 | --- | --- | --- | --- |
 | `.agentbundle-state.toml` | Which packs are *installed* into this target, at what version, from where | `install`, `upgrade`, `uninstall`, `init-state` | `0.4` (catalogue route), `0.5` (direct route) |
-| `.agentbundle/self-host-state.json` | Which files this tree was *derived from upstream*, and their content hashes | `catalogue init --preset self-hosted` | `2` |
+| `.agentbundle/self-host-state.json` | Which files this tree was *derived from upstream*, the recipe used, and the available source pin | `catalogue init --preset self-hosted` | `3` |
 
 A derived catalogue that also installs packs into itself carries both. Nothing
 reconciles them; they describe different relationships.
@@ -45,13 +45,30 @@ map. That is deliberate and permanent: every value written here has to be safe
 on its own, because no control will scan it.
 
 ```
-schema_version        "2"
+schema_version        "3"
 managed_paths         [{path, sha256}] — every file init wrote
 adapters              the adapter set the derivation targeted
 managed_target_path   the absolute target this state describes
 source_pack_identity  under `attributed`, the upstream catalogue's name;
                       under any other attribution mode, the derived one's
 source_root_kind      "self-hosted-source"
+recipe.packs          selected pack names
+recipe.profiles       selected profile names
+recipe.guides         guide inclusion mode
+recipe.attribution    attribution mode
+recipe.tooling        tooling mode
+recipe.name           catalogue identifier
+recipe.display_name   human-readable catalogue name
+recipe.description    catalogue description
+recipe.owner_name     maintainer name
+recipe.owner_email    maintainer email
+recipe.preferred_adapter
+                      preferred adapter
+recipe.repository_url repository URL, or null
+pin.source_revision   resolved source revision, or null
+pin.archive_sha256    archive digest, or null
+pin.synced_at         UTC time when init wrote the state
+pin.source_uri        source URI, only under `attributed`
 ```
 
 `_source_pack_identity` picks that value, branching on `attributed` rather than
@@ -63,39 +80,21 @@ a path absent from it belongs to the adopter. `_remove_stale_owned_paths` is
 the only consumer today. It removes a path that has left the plan **only** when
 the recorded `sha256` matches disk — so an adopter-edited file is never deleted.
 
-Two limits follow from the current shape:
-
-- **Schema-1 entries are permanently inert.** `_migrate_managed_paths` converts
+Schema-1 entries are permanently inert. `_migrate_managed_paths` converts
   a bare string path to `{path, sha256: None}`. A `None` hash cannot satisfy the
   removal guard, and cannot support a Tier comparison either, so such entries
   can be neither updated safely nor removed.
-- **No recipe, no pin.** The file records what was written but not what was
-  *chosen* (packs, profiles, guides mode, attribution mode, identity fields) and
-  not which upstream it came from — beyond a bare catalogue name under
-  `attributed`, and nothing at all under white-label. Both gaps are why a
-  re-run cannot reproduce the derivation — see
-  [`derived-catalogue.md`](derived-catalogue.md) § What a re-run does today.
 
-## Planned: schema 3
-
-[`upstream-sync.md`](upstream-sync.md) adds two field groups so a derivation can
-be replayed and pinned:
-
-```
-recipe   packs, profiles, guides, attribution, tooling, identity fields
-pin      source_uri, source_revision, archive_sha256, synced_at
-```
+The recipe preserves the identity fields and pack and profile selections that a
+later `init` reuses when those flags are omitted. Explicit flags still win. The
+recorded mode fields are not replay inputs, so omitted mode flags use their
+safe defaults.
 
 `source_uri`, `source_revision`, and `archive_sha256` reuse `PackState`'s
-provenance names deliberately — one vocabulary across both state files.
-
-Under `--attribution white-label` the pin is written in opaque form:
-`source_uri` is omitted, and only `source_revision` and `archive_sha256` are
-recorded — a ref and a digest, neither of which identifies upstream.
-`source_pack_identity` already holds the **derived** name in that mode, so
-schema 3 changes nothing there; the new work is the `source_uri` omission,
-which keeps a working `git+https://…` pointer out of a file no leak check
-scans. `--check` still works, because it compares digests.
+provenance names deliberately — one vocabulary across both state files. A
+local-path source has no resolved revision or archive digest, so both pin
+values are null. Under `--attribution white-label`, `source_uri` is omitted;
+the remaining pin fields do not identify upstream.
 
 This file has no contract in [`contracts/`](../../../contracts/). It is defined
 in code only.
