@@ -65,34 +65,43 @@ restate either contract.
 
 ## Current-state evidence
 
-- **[Measured]** `implementer` is reached only when a plan has multiple tasks
-  declaring `Depends on: none`; that restriction is in
-  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md), line 3.
-- **[Measured]** The only documented implementer dispatch is the parallel
-  supervisor path, while `dispatch-decision`, `worktree`, and `auto-parallel`
-  are disabled and exit non-zero in
-  [`supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md),
-  lines 3–7 and 83–87. The Phase-1 attribution for sequential execution is at
-  lines 3–7 and 229–232; lines 9–14 state the unattributed default
-  ("topological order, single-agent, on every adapter").
-- **[Measured]** A sequential-execution procedure already has an owner, and it
-  contradicts this outcome. `supervisor-mode.md` § "Phase 1 supervisor
-  procedure" (lines 223–236) says "Execute sequentially" with no implementer
-  dispatch, line 11 says tasks run **single-agent**, and § "Single-agent
-  fallback" (lines 238–243) tells the controller to "execute the independent
-  tasks yourself" when no `implementer`-matching subagent is installed. A fourth
-  text surface repeats it:
+This evidence was measured on 2026-09-15 against the tree with `origin/main` at `2fabbbc64`.
+
+- **[Measured]** The description in
+  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md) names a
+  "controller-supplied execution root"; the file contains zero
+  `Depends on: none` matches. The controller can dispatch `implementer` for a
+  scheduled task without that plan-text restriction.
+- **[Measured]** [`work-loop/SKILL.md`](../../../packs/core/.apm/skills/work-loop/SKILL.md)
+  § "Step 2. EXECUTE" declares
+  **"Sequential implementer dispatch."**
+  [`supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md)
+  states **"Default is sequential implementer dispatch."** The
+  `cmd_dispatch_decision`, `cmd_worktree_preflight` through
+  `cmd_worktree_cleanup`, and `cmd_auto_parallel` handlers in
+  [`loop-cohort.py`](../../../packs/core/.apm/skills/work-loop/scripts/loop-cohort.py)
+  return `_disabled(...)`; the supervisor contract says those verbs exit
+  non-zero.
+- **[Measured]** Sequential execution is owned by `supervisor-mode.md` §
+  "Phase 1 supervisor procedure", which says "Dispatch `implementer` tasks
+  sequentially". Its § "Single-agent fallback" remains scoped to a consumer
+  with no `implementer`-matching subagent and says to "execute the independent
+  tasks" itself, sequentially, in task-id order. The expected output in
   [`evals.json`](../../../packs/core/.apm/skills/work-loop/evals/evals.json)
-  line 42 expects "Run tasks one at a time in wave order" and names no agent.
-  U1 amends an existing owner; it does not design a new one.
-- **[Measured]** The agent contract assumes a supervisor-created
-  `.worktrees/<task-id>/` and forbids edits in the primary worktree in
-  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md), lines
-  48–51. Admitting an explicitly supplied main working tree is the bounded
-  agent-contract change.
-- **[Cited]** ADR-0061 defers parallel-wave orchestration at line 28 and records
-  the missing `pending_transition` schema at lines 30 and 47–49. Its erratum
-  freezes the decision at line 69. Sequential single-agent dispatch uses no
+  begins "Dispatch `implementer` tasks sequentially". The roster test
+  [`test_no_surface_denies_the_sequential_dispatch_envelope`](../../../tests/roster/test_sequential_implementer_dispatch_contract.py)
+  pins "single-agent, on every adapter" as absent.
+- **[Measured]** The agent contract in
+  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md) names
+  "Primary working tree" and "Already-created worktree" as execution roots,
+  with the controller as commit owner for the first and the implementer as
+  commit owner for the second. The roster test
+  [`test_no_surface_denies_the_sequential_dispatch_envelope`](../../../tests/roster/test_sequential_implementer_dispatch_contract.py)
+  pins `.worktrees/<task-id>/` as absent from that contract.
+- **[Cited]** ADR-0061 lists "parallel-wave orchestration" among the deferred
+  modes and says durable side-effect semantics require a `pending_transition`
+  schema. Its § "Errata" says "The Phase-1 decision is retained." and records
+  the ADR as "Accepted → Frozen". Sequential implementer dispatch uses no
   parallel worktree merge or collision decision, so **[inferred]** it needs no
   Phase-2 decision. See
   [`ADR-0061`](../../adr/0061-loop-infrastructure-phase-1.md).
@@ -104,24 +113,26 @@ restate either contract.
   # exit 1; no matches
   ```
 
-- **[Measured]** `work-loop/SKILL.md` is 832 total lines and **822 body lines**
-  — the body count is the one `CAT-S003` governs, and it is the pre-change
-  baseline the success metric above compares against:
+- **[Measured]** `work-loop/SKILL.md` is 894 total lines and **884 body lines**.
+  U1's starting point is **822 body lines**; **884 body lines** is the post-U1
+  baseline U3 measures against:
 
   ```bash
   wc -l packs/core/.apm/skills/work-loop/SKILL.md
-  # 832 packs/core/.apm/skills/work-loop/SKILL.md
+  # 894 packs/core/.apm/skills/work-loop/SKILL.md
 
   PYTHONPATH=packages/agentbundle:packages/credbroker \
     python3 -m agentbundle catalogue lint --root . --deep
   # [CAT-S003] WARN packs/core/.apm/skills/work-loop/SKILL.md
-  #   body exceeds 500 lines (got 822); the spec recommends staying under 500
+  #   body exceeds 500 lines (got 884); the spec recommends staying under 500
   ```
 
   `CAT-S003` counts body lines, warns above 500, and errors above 1,000 in
   [`skill_spec_lint.py`](../../../packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py),
-  lines 516–527. Moving implementation procedure out is therefore part of the
-  outcome, even if other work is needed later to clear the warning threshold.
+  anchored by the `_CODE_BODY = "CAT-S003"` constant and the messages "body
+  exceeds 500 lines" and "body exceeds 1000 lines". Moving implementation
+  procedure out is therefore part of the outcome, even if other work is needed
+  later to clear the warning threshold.
 - **[Cited]** The compatibility and oracle limits remain those in
   [`cross-model-steering-survey.md`](../research/cross-model-steering-survey.md)
   and
