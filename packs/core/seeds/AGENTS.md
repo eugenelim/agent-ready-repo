@@ -54,6 +54,23 @@ a rule that activates only when you already know it applies never activates. Its
 table ships empty, so this costs one short read until an adopter or a pack adds
 rows.
 
+## Documentation
+
+| Need | Canonical source | Scope |
+| --- | --- | --- |
+| What belongs where in `docs/` | [`docs/README.md`](docs/README.md) | Repository |
+| Project scope | [`docs/CHARTER.md`](docs/CHARTER.md) | Repository |
+| How the code is organized today | [`docs/architecture/README.md`](docs/architecture/README.md) | Repository and subsystem |
+| Durable feature contracts | [`docs/specs/README.md`](docs/specs/README.md) | Feature, when present |
+| Product direction and history | [`docs/product/README.md`](docs/product/README.md) | Repository |
+| Practitioner patterns and gotchas | [`docs/knowledge/README.md`](docs/knowledge/README.md) | File glob |
+| Repeating agent workflow | its `SKILL.md` | Workflow |
+| Mechanically knowable fact | code, schema, manifest, test, or linter | Owning component |
+
+Add a row when the repository has a source this list does not name. The rows
+above are what the `core` pack installs; a pack that seeds a new area brings its
+own entry point.
+
 ## Development workflow
 
 Follow the repository's existing contributor workflow. Use the `work-loop`
@@ -70,9 +87,9 @@ change, why, how do I verify it, and what did you not change that you
 considered? The last catches more than the rest.
 
 If the repository has `CONTRIBUTING.md` or equivalent guidance, link to it here.
-If it has none, the seeded [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) is an
-optional starting point to adopt with maintainer approval, not an authority that
-outranks existing guidance.
+If it has none, [`docs/README.md`](docs/README.md) is an optional starting point
+to adopt with maintainer approval, not an authority that outranks existing
+guidance.
 
 ## Build and test commands
 

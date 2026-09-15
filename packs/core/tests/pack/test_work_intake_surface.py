@@ -276,13 +276,24 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
     # repository need not have. Core still ships the file.
     assert relative_links == {
         "AGENT_RULES.md",
-        "docs/CONVENTIONS.md",
+        "docs/README.md",
+        "docs/CHARTER.md",
+        "docs/architecture/README.md",
+        "docs/specs/README.md",
+        "docs/product/README.md",
+        "docs/knowledge/README.md",
     }
     # Every linked target is a seeded file, or the link dangles on install.
     # Spelled out one literal at a time: a computed join reads to
     # `pack-tests-stay-in-pack` as a reach above packs/core, and the set
     # assertion above already fixes exactly which literals belong here.
     assert (_SEEDS / "AGENT_RULES.md").is_file()
+    assert (_SEEDS / "docs" / "README.md").is_file()
+    assert (_SEEDS / "docs" / "CHARTER.md").is_file()
+    assert (_SEEDS / "docs" / "architecture" / "README.md").is_file()
+    assert (_SEEDS / "docs" / "specs" / "README.md").is_file()
+    assert (_SEEDS / "docs" / "product" / "README.md").is_file()
+    assert (_SEEDS / "docs" / "knowledge" / "README.md").is_file()
     assert (_SEEDS / "docs" / "AGENTS.md").is_file()
     assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
 

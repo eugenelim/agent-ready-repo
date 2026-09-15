@@ -256,6 +256,90 @@ def test_the_doc_map_guard_detects_missing_content() -> None:
     )
 
 
+INSTALL_SNAPSHOT = REPO_ROOT / "tests/fixtures/install_snapshot/core.paths.txt"
+
+# The two rows that carry over from the repo's own table unchanged. Both stop an
+# agent hunting documentation for a fact another artifact owns.
+UNIVERSAL_DOC_ROWS = ("SKILL.md", "linter")
+
+_LINK_RE = re.compile(r"\]\(([^)]+)\)")
+
+
+def installed_paths() -> frozenset[str]:
+    """The paths an adopter actually receives from the core pack."""
+    return frozenset(
+        line.strip()
+        for line in INSTALL_SNAPSHOT.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    )
+
+
+def section_of(text: str, heading: str) -> str:
+    """Return one `##` section's body, or an empty string when absent."""
+    body = visible_prose(text)
+    marker = f"## {heading}"
+    if marker not in body:
+        return ""
+    start = body.index(marker)
+    rest = body[start + len(marker) :]
+    nxt = rest.find("\n## ")
+    return rest if nxt == -1 else rest[:nxt]
+
+
+# --------------------------------------------------------------------------
+# AC17, AC20 — the promoted Documentation table
+# --------------------------------------------------------------------------
+
+def test_seed_routes_into_its_own_doc_tree() -> None:
+    """AC17.
+
+    The seed's only reference to anything under `docs/` today is the pointer to
+    the retired file, so without this an adopter's root `AGENTS.md` names no
+    entry into the documentation it was just given.
+    """
+    documentation = section_of(SEED_AGENTS.read_text(encoding="utf-8"), "Documentation")
+    assert documentation, "the seed carries no `## Documentation` section"
+    assert "docs/README.md" in documentation, (
+        "the seed's Documentation section does not route to docs/README.md"
+    )
+
+
+def test_seed_documentation_names_only_installed_paths() -> None:
+    """AC20, scoping half.
+
+    The repo's own table lists `docs/adr/`, `docs/rfc/`, `guides/` and
+    `ARCHITECTURE.md`, none of which core installs. Copying it verbatim would
+    ship an adopter a table of links they cannot follow.
+    """
+    documentation = section_of(SEED_AGENTS.read_text(encoding="utf-8"), "Documentation")
+    assert documentation, "the seed carries no `## Documentation` section"
+    installed = installed_paths()
+    dangling = [
+        target
+        for target in _LINK_RE.findall(documentation)
+        if not target.startswith(("http://", "https://", "#"))
+        and target.split("#", 1)[0].strip("./") not in installed
+    ]
+    assert not dangling, (
+        f"the seed's Documentation table names paths core does not install: {dangling}"
+    )
+
+
+def test_seed_documentation_keeps_the_universal_rows() -> None:
+    """AC20, row half.
+
+    Once `docs/README.md` is installed, a single-row table satisfies both other
+    predicates, so the rows themselves are named operative content.
+    """
+    documentation = section_of(SEED_AGENTS.read_text(encoding="utf-8"), "Documentation")
+    absent = [row for row in UNIVERSAL_DOC_ROWS if row not in documentation]
+    assert not absent, (
+        "the seed's Documentation table drops the universal rows — a repeating "
+        f"workflow lives in its own SKILL.md, a mechanically knowable fact in "
+        f"code or a linter: {absent}"
+    )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

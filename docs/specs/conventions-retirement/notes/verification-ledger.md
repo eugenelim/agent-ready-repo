@@ -171,3 +171,44 @@ insertion reordered `workspace.toml` and failed
 `test_first_install_snapshot[core]`. Reverted and regenerated with
 `UPDATE_GOLDEN=1`, which produced a one-line diff adding `docs/README.md` and
 reordered nothing.
+
+## T4 — § Documentation promoted into the seed
+
+The seed now carries a `## Documentation` section after § Rule lookups, matching
+the repo's own order, and its last `CONVENTIONS` reference is gone. **The seed
+`AGENTS.md` is cleared from the consumer baseline** — the second file the work
+has cleared, after root `AGENTS.md`.
+
+Scoped to what core installs rather than copied. The repo's table names
+`docs/adr/`, `docs/rfc/`, `guides/` and `ARCHITECTURE.md`; none is a core
+install path, so the seeded version routes to `docs/README.md`,
+`docs/CHARTER.md`, and the four seeded area READMEs. `test_seed_documentation_names_only_installed_paths`
+checks every link target against `core.paths.txt`, so a later edit cannot
+re-introduce one.
+
+Both universal rows carried over unchanged — a repeating agent workflow lives in
+its own `SKILL.md`, a mechanically knowable fact in code, schema, manifest, test
+or linter. They are named operative content because once `docs/README.md` is
+installed, a single-row table satisfies every other predicate. Stripped red
+recorded: removing the two rows fails
+`test_seed_documentation_keeps_the_universal_rows`; restoring them passes.
+
+### Two pinned contracts amended in the same step
+
+`packs/core/tests/pack/test_repository_context_seed.py` pinned the seed's
+heading set to exactly five and separately required `Documentation` to remain
+backticked inside the optional-guidance comment. Both changed: the heading set
+gains `Documentation`, and the comment no longer offers it, because the trigger
+the comment itself named has fired — the seed installs four `docs/` areas plus
+the map. `Security considerations`, `Scoped instructions` and
+`Repository structure` stay offered until their own tasks promote them.
+
+`packs/core/tests/pack/test_work_intake_surface.py` pinned the seed's relative
+links to exactly `AGENT_RULES.md` and `docs/CONVENTIONS.md`. The set now names
+the map and the five area READMEs, each asserted to be a real seeded file — the
+test's own reason for pinning literals rather than computing a join, which the
+amendment preserves.
+
+Neither test contains a `CONVENTIONS` token, so this plan's discovery cannot
+surface them. They were found by reading the contracts before editing, which is
+what round 6 established as the rule.

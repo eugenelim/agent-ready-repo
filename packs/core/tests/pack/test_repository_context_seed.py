@@ -30,12 +30,16 @@ def test_seed_agents_distinguishes_minimum_from_conditional_guidance() -> None:
     assert headings == [
         "Project overview",
         "Rule lookups",
+        "Documentation",
         "Development workflow",
         "Build and test commands",
         "Coding conventions",
     ]
+    # `Documentation` is now a real section rather than an offered option: the
+    # seed installs four `docs/` areas plus `docs/README.md`, so the trigger the
+    # comment named has fired. The rest stay offered until their own task
+    # promotes them.
     for optional in (
-        "Documentation",
         "Security considerations",
         "Scoped instructions",
         "Repository structure",
