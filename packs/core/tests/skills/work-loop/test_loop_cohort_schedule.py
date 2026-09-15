@@ -93,6 +93,92 @@ def test_parse_plan_preserves_authored_order():
     assert deps["T3"] == {"T1", "T2"}
 
 
+# ── T1: detect_unknown_deps ─────────────────────────────────────────────────
+
+import pytest  # noqa: E402
+
+
+def test_detect_unknown_deps_names_the_absent_id():
+    plan = "## T1: a\n**Depends on:** none\n\n## T2: b\n**Depends on:** T7\n"
+    assert lc.detect_unknown_deps(plan) == [("T2", "T7")]
+
+
+def test_detect_unknown_deps_names_all_pairs_sorted():
+    # T1 declares unknown T9; T2 declares unknown T7 and T8.
+    plan = (
+        "## T1: a\n**Depends on:** T9\n\n"
+        "## T2: b\n**Depends on:** T8, T7\n"
+    )
+    assert lc.detect_unknown_deps(plan) == [("T1", "T9"), ("T2", "T7"), ("T2", "T8")]
+
+
+# Fixture plan for all legitimate-form cases: contains T1, T1a, T2, T3, T4.
+# T4's Depends on: field is substituted per parametrize.
+_CLEAN_PLAN_TEMPLATE = (
+    "## T1: a\n**Depends on:** none\n\n"
+    "## T1a: b\n**Depends on:** none\n\n"
+    "## T2: c\n**Depends on:** none\n\n"
+    "## T3: d\n**Depends on:** none\n\n"
+    "## T4: e\n**Depends on:** {dep}\n"
+)
+
+
+@pytest.mark.parametrize("dep", [
+    "none",
+    "T1",                  # in-plan ID
+    "T1a",                 # letter-suffix ID
+    "T1-T3",               # in-plan range (T1, T2, T3 all present)
+    "spec:other/T7",       # cross-spec marker
+    "`other` T7",          # legacy cross-spec marker
+    "T1 (trailing prose)",  # trailing parenthetical prose
+])
+def test_detect_unknown_deps_clean_forms(dep):
+    plan = _CLEAN_PLAN_TEMPLATE.format(dep=dep)
+    assert lc.detect_unknown_deps(plan) == []
+
+
+def test_detect_unknown_deps_forward_ref_is_clean():
+    # T1 depends on T2 which is authored later — but T2 is in the plan.
+    plan = "## T1: a\n**Depends on:** T2\n\n## T2: b\n**Depends on:** none\n"
+    assert lc.detect_unknown_deps(plan) == []
+
+
+def test_detect_unknown_deps_range_spanning_absent_intermediate():
+    # Plan holds T1 and T3; T3 declares T1-T3 so T2 is an absent intermediate.
+    plan = (
+        "## T1: a\n**Depends on:** none\n\n"
+        "## T3: c\n**Depends on:** T1-T3\n"
+    )
+    assert lc.detect_unknown_deps(plan) == [("T3", "T2")]
+
+
+def test_detect_unknown_deps_resolution_set_uses_full_plan():
+    # RESOLUTION AXIS — discriminating case.
+    # T3 declares dep on T1; scan set is {"T3"} (T1 and T2 are excluded from scan).
+    # T1 IS in the resolution set (the full plan), so the dep is met, not unknown.
+    # A mutant that derives the resolution set from scan_task_ids returns [("T3","T1")].
+    plan = (
+        "## T1: a\n**Depends on:** none\n\n"
+        "## T2: b\n**Depends on:** none\n\n"
+        "## T3: c\n**Depends on:** T1\n"
+    )
+    assert lc.detect_unknown_deps(plan, {"T3"}) == []
+
+
+def test_detect_unknown_deps_scan_set_gates_which_tasks_are_read():
+    # SCAN AXIS — one fixture, two calls, proven by difference.
+    # T2 declares an unknown dep (T9); T1 and T3 are clean.
+    plan = (
+        "## T1: a\n**Depends on:** none\n\n"
+        "## T2: b\n**Depends on:** T9\n\n"
+        "## T3: c\n**Depends on:** none\n"
+    )
+    # T2 excluded from scan → no pair reported
+    assert lc.detect_unknown_deps(plan, {"T1", "T3"}) == []
+    # T2 included in scan → pair appears
+    assert lc.detect_unknown_deps(plan, {"T1", "T2", "T3"}) == [("T2", "T9")]
+
+
 # ── T2: topological order ───────────────────────────────────────────────────
 
 def test_topological_waves_layers():

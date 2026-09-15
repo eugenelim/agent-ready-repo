@@ -515,19 +515,49 @@ MAX_AMENDMENT_EVIDENCE_REFS = 64
 MAX_AMENDMENT_STATE_BYTES = 1024 * 1024
 
 
-def parse_depends_on(field: str, local_task_ids):
-    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
+def _local_dep_ids(field: str) -> set[str]:
+    """Every local task ID a `Depends on:` field names, before plan membership filters it."""
     head = field.split("(")[0]
-    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
     cleaned = _CROSS_MARKER_RE.sub("", head)
     cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
     if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
-        return set(), cross
+        return set()
     ids: set[str] = set()
     for lo, hi in _RANGE_RE.findall(cleaned):
         ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
     ids.update(_TASK_ID_RE.findall(cleaned))
-    return {t for t in ids if t in local_task_ids}, cross
+    return ids
+
+
+def parse_depends_on(field: str, local_task_ids):
+    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
+    head = field.split("(")[0]
+    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
+    return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
+
+
+def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:
+    """Return (task, dep) pairs naming an ID the plan does not contain.
+
+    Dependencies always resolve against every task in `text`. `scan_task_ids`
+    restricts which tasks' declarations are read; None reads all of them.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    # Resolution set: ALL task IDs in the plan — never narrowed by the caller.
+    resolution_set = {m.group(1) for m in matches}
+    result: list[tuple[str, str]] = []
+    for i, m in enumerate(matches):
+        task_id = m.group(1)
+        if scan_task_ids is not None and task_id not in scan_task_ids:
+            continue
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        dm = DEPENDS_LINE_RE.search(text[m.end():end])
+        if not dm:
+            continue
+        unknown = _local_dep_ids(dm.group(1)) - resolution_set
+        for dep in sorted(unknown):
+            result.append((task_id, dep))
+    return sorted(result)
 
 
 def parse_plan(text: str):
