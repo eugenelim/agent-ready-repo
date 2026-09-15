@@ -374,3 +374,22 @@ def test_the_harness_no_longer_grades_against_a_height_only_floor() -> None:
         assert stale not in case["expected_output"], (
             f"expected_output still states the superseded floor: {stale!r}"
         )
+
+
+def test_the_harness_expects_the_minimum() -> None:
+    """Verifies AC-0011: both graded fields name the declared minimum.
+
+    Both, following `HARNESS_SUPERSEDED_FLOOR`'s precedent, which pins the
+    assertions and the `expected_output` opening. A test asserting on
+    `assertions` alone would leave the judge's grading prose silent on the
+    minimum while the rubric mentioned it.
+    """
+    case = _inspection_case()
+    assert any("minimum" in a for a in case["assertions"]), (
+        "no graded assertion names the declared minimum, so a judge would mark a "
+        "correct single-channel run as failing coverage"
+    )
+    assert "minimum" in case["expected_output"], (
+        "the expected_output prose does not name the minimum, so the graded "
+        "rubric and the prose beside it describe different runs"
+    )

@@ -48,7 +48,7 @@ rest and scrolled.
 A **channel** is a band of viewport widths. Which bands your surface has comes
 from the breakpoints you declare for it — one below the lowest, one above the
 highest, one between each adjacent pair, each boundary value belonging to the
-wider band. Declare none and two apply:
+wider band. Declare none and two apply, where no declared minimum narrows them:
 
 | Channel | Viewport width |
 |---|---|
@@ -67,8 +67,19 @@ used, declared or fallback.
 | tall-at-rest | ≥900 CSS px | 0 |
 | tall-scrolled | ≥900 CSS px | >0 |
 
-That is eight captures per route on the fallback bands, and four times *n + 1*
-where you declare *n* breakpoints.
+On the fallback bands, and with no declared minimum, that is eight captures per
+route. It is four times *n + 1* where you declare *n* breakpoints above the
+declared minimum, and fewer where a minimum discards one.
+
+**A surface that declares a minimum width.** Say your surface is an internal
+tool built for 1280 CSS px and up, and you declare that as its supported minimum.
+Every band lying wholly below 1280 stops being required, and the lowest band that
+survives starts at 1280 rather than below it. A surface with no breakpoints then
+has one channel, not two, so you take four captures per route in its one channel
+— at 1280, two heights each at rest and scrolled — instead of eight. Record the
+minimum you used and any breakpoint it discarded, beside the basis. A breakpoint
+above the minimum still carries its own band, so declaring one cannot flatten a
+surface that really is responsive above it.
 
 Two heights, because a layout that holds at one often fails at the other. Two
 scroll positions, because the at-rest view is the one nobody scrolls to reach,
