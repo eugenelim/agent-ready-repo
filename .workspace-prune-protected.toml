@@ -61,6 +61,7 @@ protected = [
   "docs/specs/legacy-queue",
   "docs/specs/legacy-shipped",
   "docs/specs/login",
+  "docs/specs/loop-telemetry-export",
   "docs/specs/loop-tooling-mandated-writes",
   "docs/specs/missing",
   "docs/specs/neighbour",

@@ -469,7 +469,7 @@ constant and reword one `--help` string, which leaves § 5.1's "`budgets` is a
 copy" behaviour intact.
 
 - **§ 5.1 — re-measured, holds.** Fourteen fields, confirmed by driving real
-  transitions against `core` 2.27.0 rather than by reading the source. It was
+  transitions against `core` 2.26.5 rather than by reading the source. It was
   thirteen until `schema` shipped; the count here is pinned to an emitted line by
   AC-0051, so it cannot drift from what the engine writes. The one-round
   `budgets` lag this section describes was reproduced directly.

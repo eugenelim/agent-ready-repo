@@ -60,30 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [agentbundle][0.45.0] — 2026-09-14
-
-### Highlights
-
-- **`agentbundle` can now work out where to send your loop telemetry.** A new
-  resolver reads your repository and personal layout files and returns the exact
-  arguments for the separately installed sender. Repository settings win per
-  setting, because sending data off the machine is a team decision rather than a
-  personal one — the opposite of how personal research settings resolve.
-- **`catalogue lint` now tells you when an optional tool a pack wants is not
-  installed.** It names the package and exits 0. It never installs anything.
-
-### Added
-
-- `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
-  resolution over both `agentbundle-layout.toml` files, returning the merged
-  `[telemetry]` settings and the sender's arguments. Both files are read through
-  the catalogue's confinement helper, bounded at 64 KiB, with malformed, oversized,
-  wrongly typed and symlinked inputs refused.
-- `CAT-L032` — an informational diagnostic naming an optional runtime dependency
-  that is declared by a pack and not installed. Detection is in-process; no
-  package manager is invoked and the exit code stays 0.
-
-## [core][2.27.0] — 2026-09-14
+## [core][2.26.5] — 2026-09-15
 
 ### Highlights
 
@@ -119,6 +96,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs/architecture/telemetry.md` describes the sender that now exists. Its
   § 5.1 field count is pinned to a line the engine emits.
+
+## [agentbundle][0.45.0] — 2026-09-14
+
+### Highlights
+
+- **`agentbundle` can now work out where to send your loop telemetry.** A new
+  resolver reads your repository and personal layout files and returns the exact
+  arguments for the separately installed sender. Repository settings win per
+  setting, because sending data off the machine is a team decision rather than a
+  personal one — the opposite of how personal research settings resolve.
+- **`catalogue lint` now tells you when an optional tool a pack wants is not
+  installed.** It names the package and exits 0. It never installs anything.
+
+### Added
+
+- `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
+  resolution over both `agentbundle-layout.toml` files, returning the merged
+  `[telemetry]` settings and the sender's arguments. Both files are read through
+  the catalogue's confinement helper, bounded at 64 KiB, with malformed, oversized,
+  wrongly typed and symlinked inputs refused.
+- `CAT-L032` — an informational diagnostic naming an optional runtime dependency
+  that is declared by a pack and not installed. Detection is in-process; no
+  package manager is invoked and the exit code stays 0.
 
 ## [core][2.26.4] — 2026-09-15
 

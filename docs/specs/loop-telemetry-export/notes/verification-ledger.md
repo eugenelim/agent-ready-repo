@@ -1036,3 +1036,19 @@ remains theirs. The follow-on registered in `[backlog].open` asks the narrower
 question the episode actually raised — whether a waived base-freshness check
 should leave a durable marker on the run, so that a later reader of the branch
 can tell a base that was verified from a base that was accepted on authority.
+
+## The core bump is a patch, not a minor
+
+`test_pack_delivery_contract_is_complete_and_version_increased` requires a branch
+that changes `packs/core` to bump the pack to exactly the next patch above the
+merge base: the pack reserves minor for new primitives and major for removals.
+This delivery adds a mapping profile -- data inside an existing skill -- and one
+key on the event envelope. Neither is a new primitive, so 2.27.0 was wrong and
+the version is 2.26.5 above main's 2.26.4.
+
+The earlier entries recording a renumber to 2.27.0 stay as written: they were
+true when written, and the reason the number moved again is that main released
+2.26.1 through 2.26.4 underneath this branch while the assertion above was
+rescoped by #1316 to fire on any branch touching `packs/core`. Five surfaces
+carry the number -- `pack.toml`, `.claude-plugin/plugin.json`, the product
+changelog heading, `docs/architecture/telemetry.md`, and this ledger.
