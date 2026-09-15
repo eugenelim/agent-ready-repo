@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -63,6 +64,9 @@ def _make_source(tmp_path: Path, packs: list[str] | None = None) -> Path:
     (source / "profiles").mkdir()
     (source / "profiles" / "default.toml").write_text(
         '[profile]\nname = "default"\n', encoding="utf-8"
+    )
+    (source / "profiles" / "alternate.toml").write_text(
+        '[profile]\nname = "alternate"\n', encoding="utf-8"
     )
     shutil.copytree(
         scaffold_root() / "tests" / "conformance",
@@ -1399,7 +1403,7 @@ def test_bare_run_records_resolved_selections(tmp_path: Path) -> None:
     recipe = _read_state(cfg.target)["recipe"]
 
     assert recipe["packs"] == ["core", "governance-extras"]
-    assert recipe["profiles"] == ["default"]
+    assert recipe["profiles"] == ["alternate", "default"]
 
 
 def test_recipe_mode_fields_are_recorded_verbatim(
@@ -1530,3 +1534,321 @@ def test_local_source_pin_has_empty_provenance_and_utc_timestamp(
     assert pin["source_revision"] is None
     assert pin["archive_sha256"] is None
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", pin["synced_at"])
+
+
+# ---------------------------------------------------------------------------
+# Self-host state schema 3 — recipe read path
+# ---------------------------------------------------------------------------
+
+
+def _write_state(target: Path, state: dict) -> None:
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(state) + "\n", encoding="utf-8")
+
+
+@pytest.fixture(autouse=True)
+def _avoid_sandboxed_temp_cleanup_for_recipe_tests(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep T3 tests on their contract surface in restricted local sandboxes."""
+    recipe_test_prefixes = (
+        "test_recorded_recipe_",
+        "test_explicit_field_",
+        "test_empty_recorded_",
+        "test_recorded_mode_",
+        "test_non_object_recipe_",
+        "test_recorded_value_",
+        "test_render_controls_",
+        "test_recorded_selection_",
+        "test_confined_read_",
+        "test_state_read_",
+        "test_schema_two_",
+    )
+    if request.node.name.startswith(recipe_test_prefixes):
+        monkeypatch.setattr(
+            "agentbundle.catalogue_tooling.initialise_self_hosted._verify_bytes_in_tmpdir",
+            lambda *_args: ([], []),
+        )
+
+
+def test_recorded_recipe_survives_a_bare_rerun(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    first_cfg = SelfHostedInitConfig(
+        target=target,
+        source=source,
+        attribution="attributed",
+        name="recorded-name",
+        display_name="Recorded Name",
+        description="Recorded description.",
+        owner_name="Recorded Owner",
+        owner_email="recorded@example.com",
+        preferred_adapter="codex",
+        repository_url="https://example.com/recorded",
+        packs=["core"],
+        profiles=["alternate"],
+    )
+    assert init_self_hosted(first_cfg).ok
+    first_catalogue = (target / "catalogue.toml").read_bytes()
+
+    result = init_self_hosted(
+        SelfHostedInitConfig(
+            target=target, source=source, attribution="attributed"
+        )
+    )
+
+    assert result.ok
+    assert (target / "catalogue.toml").read_bytes() == first_catalogue
+    parsed = tomllib.loads(first_catalogue.decode("utf-8"))["catalogue"]
+    assert parsed["name"] == "recorded-name"
+    assert parsed["display_name"] == "Recorded Name"
+    assert parsed["description"] == "Recorded description."
+    assert parsed["preferred_adapter"] == "codex"
+    assert parsed["links"]["repository"] == "https://example.com/recorded"
+    assert parsed["maintainers"] == [
+        {"name": "Recorded Owner", "email": "recorded@example.com"}
+    ]
+    assert sorted(path.name for path in (target / "packs").iterdir()) == ["core"]
+    assert sorted(path.stem for path in (target / "profiles").iterdir()) == [
+        "alternate"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("field", "override", "expected"),
+    [
+        ("name", "flag-name", "flag-name"),
+        ("display_name", "Flag Name", "Flag Name"),
+        ("description", "Flag description.", "Flag description."),
+        ("owner_name", "Flag Owner", "Flag Owner"),
+        ("owner_email", "flag@example.com", "flag@example.com"),
+        ("preferred_adapter", "gemini", "gemini"),
+        ("repository_url", "https://example.com/flag", "https://example.com/flag"),
+        ("packs", ["governance-extras"], ["governance-extras"]),
+        ("profiles", ["default"], ["default"]),
+    ],
+)
+def test_explicit_field_wins_over_recorded_recipe(
+    tmp_path: Path, field: str, override: object, expected: object
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(
+        _base_cfg(
+            tmp_path,
+            source,
+            target=target,
+            packs=["core"],
+            profiles=["alternate"],
+            repository_url="https://example.com/recorded",
+        )
+    ).ok
+
+    result = init_self_hosted(
+        SelfHostedInitConfig(target=target, source=source, **{field: override})
+    )
+    assert result.ok
+    parsed = tomllib.loads((target / "catalogue.toml").read_text(encoding="utf-8"))[
+        "catalogue"
+    ]
+    observed = {
+        "name": parsed["name"],
+        "display_name": parsed["display_name"],
+        "description": parsed["description"],
+        "owner_name": parsed["maintainers"][0]["name"],
+        "owner_email": parsed["maintainers"][0]["email"],
+        "preferred_adapter": parsed["preferred_adapter"],
+        "repository_url": parsed["links"]["repository"],
+        "packs": sorted(
+            path.parent.name for path in (target / "packs").glob("*/pack.toml")
+        ),
+        "profiles": sorted(path.stem for path in (target / "profiles").glob("*.toml")),
+    }[field]
+    assert observed == expected
+
+
+def test_empty_recorded_owner_email_remains_absent(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(
+        _base_cfg(tmp_path, source, target=target, owner_email="")
+    ).ok
+    assert init_self_hosted(SelfHostedInitConfig(target=target, source=source)).ok
+    parsed = tomllib.loads((target / "catalogue.toml").read_text(encoding="utf-8"))
+    assert "email" not in parsed["catalogue"]["maintainers"][0]
+
+
+def test_recorded_mode_fields_are_never_read(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(_base_cfg(tmp_path, source, target=target)).ok
+    state = _read_state(target)
+    state["recipe"].update(
+        {"attribution": "attributed", "tooling": "vendored", "guides": "none"}
+    )
+    _write_state(target, state)
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert result.attribution_mode == "white-label"
+    assert result.tooling_mode == "external"
+    assert (target / "guides" / "_shared").exists() is False
+    assert _read_state(target)["recipe"]["guides"] == "selected"
+
+
+def test_non_object_recipe_is_discarded_with_diagnostic(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    _write_state(target, {"schema_version": "3", "recipe": ["not-an-object"]})
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert result.name == "derived"
+    assert any("discarded recorded recipe" in item for item in result.diagnostics)
+    assert all("not-an-object" not in item for item in result.diagnostics)
+
+
+def test_recorded_value_seeds_prompt_but_typed_reply_wins(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(
+        _base_cfg(tmp_path, source, target=target, name="recorded-name")
+    ).ok
+    prompts: list[str] = []
+
+    def answer(prompt: str) -> str:
+        prompts.append(prompt)
+        return "typed-name" if prompt.startswith("Catalogue name") else ""
+
+    monkeypatch.setattr(
+        "agentbundle.catalogue_tooling.initialise_self_hosted._prompt", answer
+    )
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert prompts[0] == "Catalogue name [recorded-name]: "
+    assert result.name == "typed-name"
+
+
+@pytest.mark.parametrize(
+    ("field", "hostile"),
+    [
+        ("name", "safe\x1b]0;pwned\x07"),
+        ("display_name", "safe\x1b]0;pwned\x07"),
+        ("description", "safe\x1b]0;pwned\x07"),
+        ("owner_name", "safe\x1b]0;pwned\x07"),
+        ("owner_email", "a\x1b]0;pwned\x07@b.co"),
+        ("preferred_adapter", "claude-code\x1b]0;pwned\x07"),
+        ("repository_url", "https://x\x1b]0;pwned\x07"),
+        ("description", "safe\u202eevil"),
+    ],
+)
+def test_render_controls_are_rejected_before_use(
+    tmp_path: Path, field: str, hostile: str
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(_base_cfg(tmp_path, source, target=target)).ok
+    state = _read_state(target)
+    state["recipe"][field] = hostile
+    _write_state(target, state)
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert hostile.encode() not in (target / "catalogue.toml").read_bytes()
+    assert any(f"recorded {field}" in item for item in result.diagnostics)
+    assert all(hostile not in item for item in result.diagnostics)
+
+
+@pytest.mark.parametrize("field", ["packs", "profiles"])
+def test_recorded_selection_requires_source_name_membership(
+    tmp_path: Path, field: str
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(_base_cfg(tmp_path, source, target=target)).ok
+    state = _read_state(target)
+    state["recipe"][field] = ["../../elsewhere"]
+    _write_state(target, state)
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert any(f"recorded {field}" in item for item in result.diagnostics)
+    assert sorted(result.selected_packs) == ["core", "governance-extras"]
+    assert sorted(result.selected_profiles) == ["alternate", "default"]
+    assert all("../../elsewhere" not in item for item in result.diagnostics)
+
+
+def test_confined_read_refusal_falls_back_to_no_recipe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import importlib
+
+    module = importlib.import_module(
+        "agentbundle.catalogue_tooling.initialise_self_hosted"
+    )
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(
+        _base_cfg(tmp_path, source, target=target, name="recorded-name")
+    ).ok
+    original_read = module.read_confined_regular_file
+
+    def refuse_state(root: Path, path: Path, **kwargs) -> bytes:
+        if path.name == "self-host-state.json":
+            raise module.UnsafeContentError("refused")
+        return original_read(root, path, **kwargs)
+
+    monkeypatch.setattr(module, "read_confined_regular_file", refuse_state)
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert result.name == "derived"
+    assert any("discarded recorded recipe" in item for item in result.diagnostics)
+    assert all("refused" not in item for item in result.diagnostics)
+
+
+def test_state_read_is_bounded_at_four_mib(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    _write_state(
+        target,
+        {"schema_version": "3", "recipe": {}, "padding": "x" * (4 * 1024 * 1024)},
+    )
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert result.name == "derived"
+    assert any("discarded recorded recipe" in item for item in result.diagnostics)
+
+
+def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None:
+    import hashlib
+
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    stale = target / "stale.txt"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("owned\n", encoding="utf-8")
+    _write_state(
+        target,
+        {
+            "schema_version": "2",
+            "managed_paths": [
+                {"path": "stale.txt", "sha256": hashlib.sha256(b"owned\n").hexdigest()}
+            ],
+        },
+    )
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert not stale.exists()

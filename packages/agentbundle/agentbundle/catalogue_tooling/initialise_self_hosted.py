@@ -49,6 +49,7 @@ from agentbundle.catalogue_tooling.initialise import (
     rollback,
 )
 from agentbundle.catalogue_tooling.results import FileAction
+from agentbundle.scope import shipped_adapters_from_contract
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -68,6 +69,11 @@ _ATTRIBUTION_SURFACES: list[str] = ["catalogue.toml", "ATTRIBUTION.md"]
 
 # State file written to .agentbundle/ in the target.
 _OWNERSHIP_STATE_FILE = ".agentbundle/self-host-state.json"
+_OWNERSHIP_STATE_MAX_BYTES = 4 * 1024 * 1024
+_RECIPE_TEXT_MAX_LENGTH = 4096
+_RENDER_CONTROL_RE = re.compile(
+    "[\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200b-\\u200f\\u202a-\\u202e\\u2060-\\u206f\\ufeff]"
+)
 
 # Vendored tooling root inside the target.
 _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
@@ -279,6 +285,21 @@ class SelfHostRecipe:
 
 
 @dataclass
+class _SelfHostRecipeInput:
+    """Validated, optional recipe values read from an untrusted state file."""
+
+    packs: list[str] | None = None
+    profiles: list[str] | None = None
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    owner_name: str | None = None
+    owner_email: str | None = None
+    preferred_adapter: str | None = None
+    repository_url: str | None = None
+
+
+@dataclass
 class SelfHostPin:
     """Record source provenance available at the time of self-hosted init."""
 
@@ -383,9 +404,131 @@ def _prompt(prompt_text: str) -> str:
         return ""
 
 
+def _recipe_diagnostic(field_name: str, reason: str) -> str:
+    """Describe a discarded state value without echoing attacker-controlled text."""
+    return (
+        f"discarded recorded {field_name} from {_OWNERSHIP_STATE_FILE}: {reason}"
+    )
+
+
+def _is_safe_recipe_text(value: object, *, allow_empty: bool = False) -> bool:
+    """Return whether a recorded scalar is bounded and terminal-safe."""
+    return (
+        isinstance(value, str)
+        and (allow_empty or bool(value))
+        and len(value) <= _RECIPE_TEXT_MAX_LENGTH
+        and value == value.strip()
+        and _RENDER_CONTROL_RE.search(value) is None
+    )
+
+
+def _read_recipe_selection(
+    raw_recipe: dict[str, Any],
+    field_name: str,
+    available: set[str],
+    diagnostics: list[str],
+) -> list[str] | None:
+    """Return a recorded selection only when every entry is a shipped name."""
+    if field_name not in raw_recipe:
+        return None
+    value = raw_recipe[field_name]
+    if not isinstance(value, list) or not all(
+        _is_safe_recipe_text(item) and item in available for item in value
+    ):
+        diagnostics.append(
+            _recipe_diagnostic(field_name, "selection is not shipped by the source")
+        )
+        return None
+    return value
+
+
+def _load_self_host_recipe(
+    target: Path,
+    source: Path,
+    diagnostics: list[str],
+) -> _SelfHostRecipeInput | None:
+    """Load and constrain the replay recipe from the target ownership state."""
+    state_path = target / _OWNERSHIP_STATE_FILE
+    if not state_path.exists() and not state_path.is_symlink():
+        return None
+    try:
+        raw_state = json.loads(
+            read_confined_regular_file(
+                target, state_path, max_bytes=_OWNERSHIP_STATE_MAX_BYTES
+            ).decode("utf-8")
+        )
+    except (UnsafeContentError, UnicodeDecodeError, json.JSONDecodeError, OSError):
+        diagnostics.append(
+            _recipe_diagnostic("recipe", "state file could not be read safely")
+        )
+        return None
+    if not isinstance(raw_state, dict):
+        diagnostics.append(_recipe_diagnostic("recipe", "state is not an object"))
+        return None
+    raw_recipe = raw_state.get("recipe")
+    if raw_recipe is None:
+        return None
+    if not isinstance(raw_recipe, dict):
+        diagnostics.append(_recipe_diagnostic("recipe", "recipe is not an object"))
+        return None
+
+    available_packs = set(select_packs(source, None))
+    available_profiles = set(_select_profiles(source, None))
+    recipe = _SelfHostRecipeInput(
+        packs=_read_recipe_selection(
+            raw_recipe, "packs", available_packs, diagnostics
+        ),
+        profiles=_read_recipe_selection(
+            raw_recipe, "profiles", available_profiles, diagnostics
+        ),
+    )
+
+    validators = {
+        "name": lambda value: bool(_SAFE_NAME_RE.fullmatch(value)),
+        "display_name": lambda _value: True,
+        "description": lambda _value: True,
+        "owner_name": lambda _value: True,
+        "owner_email": lambda value: not value or bool(_EMAIL_RE.fullmatch(value)),
+        "repository_url": lambda value: bool(_URL_RE.fullmatch(value))
+        and not _URL_USERINFO_RE.match(value),
+    }
+    for field_name, validator in validators.items():
+        if field_name not in raw_recipe or raw_recipe[field_name] is None:
+            continue
+        value = raw_recipe[field_name]
+        allow_empty = field_name == "owner_email"
+        if not _is_safe_recipe_text(value, allow_empty=allow_empty) or not validator(value):
+            diagnostics.append(
+                _recipe_diagnostic(field_name, "value failed its read-time constraint")
+            )
+            continue
+        setattr(recipe, field_name, value)
+
+    if "preferred_adapter" in raw_recipe:
+        value = raw_recipe["preferred_adapter"]
+        try:
+            available_adapters = set(shipped_adapters_from_contract())
+        except (OSError, RuntimeError, tomllib.TOMLDecodeError):
+            available_adapters = set()
+        if (
+            _is_safe_recipe_text(value)
+            and isinstance(value, str)
+            and value in available_adapters
+        ):
+            recipe.preferred_adapter = value
+        else:
+            diagnostics.append(
+                _recipe_diagnostic(
+                    "preferred_adapter", "value is not a shipped adapter name"
+                )
+            )
+    return recipe
+
+
 def collect_fields(
     cfg: SelfHostedInitConfig,
     source_meta: dict[str, Any],
+    recipe: _SelfHostRecipeInput | None = None,
 ) -> SelfHostedInitConfig:
     """Return a resolved copy of cfg with defaults filled in.
 
@@ -394,33 +537,63 @@ def collect_fields(
     """
     cat = source_meta.get("catalogue", {})
 
+    recipe = recipe or _SelfHostRecipeInput()
     name = cfg.name
     if not name:
-        derived = _derive_name(cfg.target)
-        name = _prompt(f"Catalogue name [{derived}]: ") or derived
+        default_name = recipe.name or _derive_name(cfg.target)
+        name = _prompt(f"Catalogue name [{default_name}]: ") or default_name
 
     display_name = cfg.display_name
     if not display_name:
-        derived_dn = name.replace("-", " ").replace("_", " ").title()
-        display_name = _prompt(f"Display name [{derived_dn}]: ") or derived_dn
+        default_display_name = recipe.display_name or (
+            name.replace("-", " ").replace("_", " ").title()
+        )
+        display_name = (
+            _prompt(f"Display name [{default_display_name}]: ")
+            or default_display_name
+        )
 
     description = cfg.description
     if not description:
         src_name = cat.get("name", "upstream")
-        derived_desc = f"A self-hosted catalogue derived from {src_name}."
+        default_description = (
+            recipe.description
+            or f"A self-hosted catalogue derived from {src_name}."
+        )
         description = (
-            _prompt(f"Description [{derived_desc}]: ") or derived_desc
+            _prompt(f"Description [{default_description}]: ") or default_description
         )
 
     owner_name = cfg.owner_name
     if not owner_name:
-        owner_name = _prompt("Owner name: ") or display_name
+        default_owner_name = recipe.owner_name or display_name
+        owner_prompt = (
+            f"Owner name [{default_owner_name}]: "
+            if recipe.owner_name is not None
+            else "Owner name: "
+        )
+        owner_name = _prompt(owner_prompt) or default_owner_name
 
     owner_email = cfg.owner_email
     if not owner_email:
-        owner_email = _prompt("Owner email: ") or ""
+        default_owner_email = recipe.owner_email or ""
+        email_prompt = (
+            f"Owner email [{default_owner_email}]: "
+            if recipe.owner_email is not None
+            else "Owner email: "
+        )
+        owner_email = _prompt(email_prompt) or default_owner_email
 
-    preferred_adapter = cfg.preferred_adapter or cat.get("preferred_adapter", "claude-code")
+    preferred_adapter = (
+        cfg.preferred_adapter
+        or recipe.preferred_adapter
+        or cat.get("preferred_adapter", "claude-code")
+    )
+    repository_url = (
+        cfg.repository_url
+        if cfg.repository_url is not None
+        else recipe.repository_url
+    )
 
     return SelfHostedInitConfig(
         target=cfg.target,
@@ -434,11 +607,11 @@ def collect_fields(
         owner_name=owner_name,
         owner_email=owner_email,
         preferred_adapter=preferred_adapter,
-        repository_url=cfg.repository_url,
+        repository_url=repository_url,
         archive_uri=cfg.archive_uri,
-        packs=cfg.packs,
+        packs=cfg.packs if cfg.packs is not None else recipe.packs,
         adapters=cfg.adapters,
-        profiles=cfg.profiles,
+        profiles=cfg.profiles if cfg.profiles is not None else recipe.profiles,
         dry_run=cfg.dry_run,
     )
 
@@ -966,7 +1139,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             ok=False,
             dry_run=cfg.dry_run,
             name=cfg.name or "",
-            diagnostics=list(msgs),
+            diagnostics=[*diagnostics, *msgs],
             violations=violations or [],
         )
 
@@ -1003,12 +1176,14 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         archive_uri=cfg.archive_uri,
     )
 
+    recipe = _load_self_host_recipe(cfg.target, cfg.source, diagnostics)
+
     # 4. Collect fields (TTY prompts + defaults).
     # Capture whether any field was already supplied before defaults are filled in.
     field_collection_mode = "explicit" if any(
         [cfg.name, cfg.display_name, cfg.description, cfg.owner_name, cfg.owner_email]
     ) else "default"
-    cfg = collect_fields(cfg, source_meta)
+    cfg = collect_fields(cfg, source_meta, recipe)
 
     # 5. Validate fields.
     errors = validate_fields(cfg)
