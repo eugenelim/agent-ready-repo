@@ -1,0 +1,27 @@
+# Old anchor -> destination file -> owning task.
+# The destination FILE is a plan-time decision. The destination HEADING is
+# determined during execution against the real file and proved by the anchor
+# resolving; it is deliberately not fixed here.
+#
+# Regenerate the left column with:
+#   git grep -ho 'CONVENTIONS\.md#[a-z0-9-]*' -- . ':!docs/specs' ':!docs/rfc' \
+#     ':!docs/adr' ':!docs/product' ':!web' ':!docs/CONVENTIONS.md' \
+#     ':!packs/core/seeds/docs/CONVENTIONS.md' | sort -u
+#
+# old-anchor | destination-file | task
+#commits | AGENTS.md | T1
+#pull-requests | AGENTS.md | T1
+#privacy | AGENTS.md | T1
+#pack-source-of-truth-split | docs/architecture/pack-layout.md | T2
+#document-lifecycle | docs/README.md | T3
+#2-adr--architecture-decision-records--docsadr | guides/governance-extras/how-to/new-adr.md | T4
+#3-rfc--request-for-comments--docsrfc | guides/governance-extras/how-to/new-rfc.md | T4
+#4-specs-and-plans--docsspecsfeature | packs/core/.apm/skills/new-spec/ | T5
+#how-we-do-non-trivial-work | guides/core/explanation/core-pack.md | T6
+#supervisor-mode | packs/core/.apm/skills/work-loop/references/ | T6
+#enforcement | guides/core/how-to/plan-and-execute-non-trivial-work.md | T6
+#model-selection | packs/core/.apm/skills/work-loop/references/ | T6
+# No anchor: the unheaded Skills paragraph at docs/CONVENTIONS.md:1291-1300, cited
+# as "§ Skills" by guides/_shared/how-to/author-a-skill.md:14,427. It carries no
+# heading, so no anchor and no heading-based discovery form reaches it.
+(no anchor) § Skills | guides/_shared/how-to/author-a-skill.md | T8

@@ -483,6 +483,24 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Discovered while shaping docs/specs/conventions-retirement. The core pack's
+  # seeds impose obligations and links that only other packs -- or no pack --
+  # can satisfy, and core declares no dependency on any of them. Verified
+  # 2026-09-14: seeded `docs/CHARTER.md` orders an RFC for charter revisions and
+  # seeded `docs/product/roadmap.md` orders one for substantive roadmap changes,
+  # while `docs/rfc/` is seeded by governance-extras and appears in no core
+  # install path. Seeded `docs/architecture/README.md` and
+  # `docs/product/README.md` link to `./adr/`, `./rfc/` and `./guides/`;
+  # governance-extras seeds the first two as auto-generated indexes and no pack
+  # seeds the third, nor `docs/GOVERNANCE.md`, `docs/product/personas.md` or
+  # `docs/product/release-checklist.md`. An adopter installing core alone
+  # receives a charter mandating a process it cannot learn and READMEs pointing
+  # at directories it never gets. The fix is to uncouple: core states only what
+  # it installs, and a pack that owns a process carries its own mandate. Owner
+  # declined to absorb this into the retirement spec so that change stays scoped
+  # to the document it retires; the retirement instead narrows its scaffold-link
+  # criteria to the links it touches, which leaves these untouched and visible.
+  {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
   # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
   # rather than left in that spec's notes: a closed spec's notes directory is not
   # a destination, and the obligation would otherwise be enforced by someone
