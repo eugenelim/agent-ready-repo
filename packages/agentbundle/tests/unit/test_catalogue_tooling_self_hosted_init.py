@@ -1341,6 +1341,60 @@ def test_vendored_adapter_entries_are_escaped(tmp_path: Path) -> None:
     assert "evil" not in parsed["catalogue"]["tooling"]
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "display_name",
+        "description",
+        "preferred_adapter",
+        "repository_url",
+        "owner_name",
+        "owner_email",
+    ],
+)
+@pytest.mark.parametrize("control", ["\0", "\x1b", "\x7f", "\b", "\f"])
+def test_toml_forbidden_controls_are_escaped_at_every_scalar_interpolation(
+    tmp_path: Path, field: str, control: str
+) -> None:
+    payload = f"before{control}after"
+    kwargs = {"name": "my-catalogue"}
+    kwargs[field] = payload
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "t", source=tmp_path / "s", **kwargs
+    )
+
+    catalogue = tomllib.loads(_generate_catalogue_toml(cfg))["catalogue"]
+    accessors = {
+        "name": lambda: catalogue["name"],
+        "display_name": lambda: catalogue["display_name"],
+        "description": lambda: catalogue["description"],
+        "preferred_adapter": lambda: catalogue["preferred_adapter"],
+        "repository_url": lambda: catalogue["links"]["repository"],
+        "owner_name": lambda: catalogue["maintainers"][0]["name"],
+        "owner_email": lambda: catalogue["maintainers"][0]["email"],
+    }
+    observed = accessors[field]()
+    assert observed == payload
+
+
+@pytest.mark.parametrize("control", ["\0", "\x1b", "\x7f", "\b", "\f"])
+def test_toml_forbidden_controls_are_escaped_in_vendored_adapter_entries(
+    tmp_path: Path, control: str
+) -> None:
+    payload = f"before{control}after"
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "t",
+        source=tmp_path / "s",
+        name="my-catalogue",
+        tooling="vendored",
+        adapters=[payload],
+    )
+
+    catalogue = tomllib.loads(_generate_catalogue_toml(cfg))["catalogue"]
+    assert catalogue["tooling"]["adapters"] == [payload]
+
+
 def test_a_benign_value_still_produces_the_expected_tables(tmp_path: Path) -> None:
     """AC-0017's positive clause: escaping must not change a normal document."""
     cfg = SelfHostedInitConfig(
@@ -1406,14 +1460,16 @@ def test_bare_run_records_resolved_selections(tmp_path: Path) -> None:
     assert recipe["profiles"] == ["alternate", "default"]
 
 
-def test_recipe_mode_fields_are_recorded_verbatim(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_recipe_mode_fields_are_recorded_verbatim(tmp_path: Path) -> None:
+    """Mode tokens are a closed vocabulary and never take the identity transform.
+
+    The source is renamed to `extern` because the transform replaces anchors by
+    substring, so an ungated transform rewrites the token `external` to the
+    derived name plus `al`. The real leak check runs here rather than being
+    stubbed out: this derivation passes it, so stubbing would only hide a
+    regression.
+    """
     source = _make_source(tmp_path)
-    monkeypatch.setattr(
-        "agentbundle.catalogue_tooling.initialise_self_hosted._verify_bytes_in_tmpdir",
-        lambda *_args: ([], []),
-    )
     metadata_path = source / "catalogue.toml"
     metadata_path.write_text(
         metadata_path.read_text(encoding="utf-8").replace(
@@ -1564,6 +1620,10 @@ def _avoid_sandboxed_temp_cleanup_for_recipe_tests(
         "test_confined_read_",
         "test_state_read_",
         "test_schema_two_",
+        "test_null_",
+        "test_ownership_",
+        "test_recursive_",
+        "test_init_rejects_",
     )
     if request.node.name.startswith(recipe_test_prefixes):
         monkeypatch.setattr(
@@ -1711,6 +1771,43 @@ def test_non_object_recipe_is_discarded_with_diagnostic(tmp_path: Path) -> None:
     assert all("not-an-object" not in item for item in result.diagnostics)
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "display_name",
+        "description",
+        "owner_name",
+        "owner_email",
+        "preferred_adapter",
+    ],
+)
+def test_null_recorded_scalar_is_discarded_with_diagnostic(
+    tmp_path: Path, field: str
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    _write_state(target, {"schema_version": "3", "recipe": {field: None}})
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert any(f"recorded {field}" in item for item in result.diagnostics)
+
+
+def test_null_recorded_repository_url_is_valid(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    _write_state(
+        target, {"schema_version": "3", "recipe": {"repository_url": None}}
+    )
+
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert not any("recorded repository_url" in item for item in result.diagnostics)
+
+
 def test_recorded_value_seeds_prompt_but_typed_reply_wins(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1746,6 +1843,8 @@ def test_recorded_value_seeds_prompt_but_typed_reply_wins(
         ("preferred_adapter", "claude-code\x1b]0;pwned\x07"),
         ("repository_url", "https://x\x1b]0;pwned\x07"),
         ("description", "safe\u202eevil"),
+        ("description", "safe\u00adevil"),
+        ("description", "safe\u0600evil"),
     ],
 )
 def test_render_controls_are_rejected_before_use(
@@ -1807,12 +1906,91 @@ def test_confined_read_refusal_falls_back_to_no_recipe(
         return original_read(root, path, **kwargs)
 
     monkeypatch.setattr(module, "read_confined_regular_file", refuse_state)
+    result = init_self_hosted(
+        SelfHostedInitConfig(target=target, source=source, dry_run=True)
+    )
+
+    assert result.ok, result.diagnostics
+    assert result.name == "derived"
+    assert any("discarded recorded recipe" in item for item in result.diagnostics)
+    assert all("refused" not in item for item in result.diagnostics)
+
+
+def test_ownership_state_is_read_once_through_confined_helper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import importlib
+
+    module = importlib.import_module(
+        "agentbundle.catalogue_tooling.initialise_self_hosted"
+    )
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    assert init_self_hosted(_base_cfg(tmp_path, source, target=target)).ok
+    original_read = module.read_confined_regular_file
+    state_reads = 0
+
+    def count_state_reads(root: Path, path: Path, **kwargs) -> bytes:
+        nonlocal state_reads
+        if path.name == "self-host-state.json":
+            state_reads += 1
+        return original_read(root, path, **kwargs)
+
+    monkeypatch.setattr(module, "read_confined_regular_file", count_state_reads)
+    result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
+
+    assert result.ok
+    assert state_reads == 1
+
+
+@pytest.mark.parametrize("symlink_parent", [False, True])
+def test_ownership_state_write_refuses_symlink_path_or_parent(
+    tmp_path: Path, symlink_parent: bool
+) -> None:
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    target.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    outside_state = outside / "self-host-state.json"
+    outside_state.write_text("do not truncate\n", encoding="utf-8")
+    state_parent = target / ".agentbundle"
+    try:
+        if symlink_parent:
+            state_parent.symlink_to(outside, target_is_directory=True)
+        else:
+            state_parent.mkdir()
+            (state_parent / "self-host-state.json").symlink_to(outside_state)
+    except OSError as exc:
+        pytest.skip(f"symlink unavailable: {exc}")
+
+    result = init_self_hosted(_base_cfg(tmp_path, source, target=target))
+
+    assert not result.ok
+    assert outside_state.read_text(encoding="utf-8") == "do not truncate\n"
+
+
+def test_recursive_json_state_falls_back_to_no_recipe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import importlib
+
+    module = importlib.import_module(
+        "agentbundle.catalogue_tooling.initialise_self_hosted"
+    )
+    source = _make_source(tmp_path)
+    target = tmp_path / "derived"
+    _write_state(target, {"schema_version": "3", "recipe": {"name": "recorded"}})
+
+    def recurse(_value: str) -> object:
+        raise RecursionError
+
+    monkeypatch.setattr(module.json, "loads", recurse)
     result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
 
     assert result.ok
     assert result.name == "derived"
     assert any("discarded recorded recipe" in item for item in result.diagnostics)
-    assert all("refused" not in item for item in result.diagnostics)
 
 
 def test_state_read_is_bounded_at_four_mib(tmp_path: Path) -> None:
@@ -1828,6 +2006,54 @@ def test_state_read_is_bounded_at_four_mib(tmp_path: Path) -> None:
     assert result.ok
     assert result.name == "derived"
     assert any("discarded recorded recipe" in item for item in result.diagnostics)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("name", " padded "),
+        ("display_name", " padded "),
+        ("description", " padded "),
+        ("owner_name", " padded "),
+        ("owner_email", " padded@example.com "),
+        ("preferred_adapter", " claude-code "),
+        ("repository_url", " https://example.com/padded "),
+    ],
+)
+def test_init_rejects_recipe_scalar_that_cannot_be_replayed(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source, **{field: value})
+
+    result = init_self_hosted(cfg)
+
+    assert not result.ok
+    assert not (cfg.target / ".agentbundle" / "self-host-state.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("name", "a" * 4097),
+        ("display_name", "a" * 4097),
+        ("description", "a" * 4097),
+        ("owner_name", "a" * 4097),
+        ("owner_email", f"{'a' * 4092}@b.co"),
+        ("preferred_adapter", "a" * 4097),
+        ("repository_url", f"https://example.com/{'a' * 4097}"),
+    ],
+)
+def test_init_rejects_recipe_scalar_over_replay_limit(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source, **{field: value})
+
+    result = init_self_hosted(cfg)
+
+    assert not result.ok
+    assert not (cfg.target / ".agentbundle" / "self-host-state.json").exists()
 
 
 def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None:

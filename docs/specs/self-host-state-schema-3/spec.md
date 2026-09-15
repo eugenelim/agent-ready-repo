@@ -163,8 +163,14 @@ Every outcome is a compressible invariant over a pure function or a single
       `recipe.packs` and `recipe.profiles` hold the resolved names the run
       selected — never `null`, an empty list, or a token standing for "all".
 - [ ] **AC-0005.** Under any `attribution` value other than `attributed`, the
-      serialized bytes of that file pass the same identity leak check the
-      planned byte map passes, against the same anchor set.
+      identity strings the file records — `recipe.name`, `display_name`,
+      `description`, `owner_name`, `owner_email`, `preferred_adapter`,
+      `repository_url`, and `pin.source_uri` — pass the same identity leak
+      check the planned byte map passes, against the same anchor set. The
+      structural values are out of scope: `recipe.packs`, `recipe.profiles`,
+      `managed_paths`, and `managed_target_path` hold names drawn from the
+      source tree or the adopter's filesystem, not values the identity
+      transform owns.
 - [ ] **AC-0006.** Under `--attribution attributed`, a re-run that supplies no
       identity flags leaves every identity value in the target's
       `catalogue.toml` byte-identical to the first run's.
@@ -299,6 +305,16 @@ Every outcome is a compressible invariant over a pure function or a single
   `_SAFE_NAME_RE.match("abc\n")` matches. All three are `$`-anchored, and
   Python's `$` matches before a trailing newline; `\S` and `[^@\s]` both admit
   the escape introducer. `_EMAIL_RE` additionally admits a double quote.
+- Technical: AC-0005 is scoped to the identity strings rather than the whole
+  file, because the structural values can collide with an anchor by
+  coincidence and carry no information when they do. A source catalogue named
+  `extern` makes the code-defined token `"external"` a substring match, which
+  would refuse a legitimate derivation while disclosing nothing — `"external"`
+  is the value whatever upstream is called. Two limits follow and are accepted:
+  a pack or profile whose name embeds upstream identity is recorded verbatim,
+  and `managed_paths` has carried such names since schema 2. Neither is new
+  exposure — `verify` scans file contents and never path names, so those names
+  already sit unchecked in the derived tree's directory structure.
 - Technical: AC-0005's oracle is blind to any value the anchor builder does not
   anchor. That builder skips values of four characters or fewer and reads only
   `name`, `display_name`, `description`, one maintainer name and email, and the

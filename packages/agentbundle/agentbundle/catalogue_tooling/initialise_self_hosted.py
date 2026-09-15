@@ -24,6 +24,7 @@ import re
 import sys
 import tempfile
 import tomllib
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -71,9 +72,6 @@ _ATTRIBUTION_SURFACES: list[str] = ["catalogue.toml", "ATTRIBUTION.md"]
 _OWNERSHIP_STATE_FILE = ".agentbundle/self-host-state.json"
 _OWNERSHIP_STATE_MAX_BYTES = 4 * 1024 * 1024
 _RECIPE_TEXT_MAX_LENGTH = 4096
-_RENDER_CONTROL_RE = re.compile(
-    "[\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200b-\\u200f\\u202a-\\u202e\\u2060-\\u206f\\ufeff]"
-)
 
 # Vendored tooling root inside the target.
 _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
@@ -418,7 +416,9 @@ def _is_safe_recipe_text(value: object, *, allow_empty: bool = False) -> bool:
         and (allow_empty or bool(value))
         and len(value) <= _RECIPE_TEXT_MAX_LENGTH
         and value == value.strip()
-        and _RENDER_CONTROL_RE.search(value) is None
+        and not any(
+            unicodedata.category(character) in {"Cc", "Cf"} for character in value
+        )
     )
 
 
@@ -443,31 +443,16 @@ def _read_recipe_selection(
 
 
 def _load_self_host_recipe(
-    target: Path,
+    raw_state: dict[str, Any] | None,
     source: Path,
     diagnostics: list[str],
 ) -> _SelfHostRecipeInput | None:
-    """Load and constrain the replay recipe from the target ownership state."""
-    state_path = target / _OWNERSHIP_STATE_FILE
-    if not state_path.exists() and not state_path.is_symlink():
+    """Constrain the replay recipe from an already confined ownership state."""
+    if raw_state is None:
         return None
-    try:
-        raw_state = json.loads(
-            read_confined_regular_file(
-                target, state_path, max_bytes=_OWNERSHIP_STATE_MAX_BYTES
-            ).decode("utf-8")
-        )
-    except (UnsafeContentError, UnicodeDecodeError, json.JSONDecodeError, OSError):
-        diagnostics.append(
-            _recipe_diagnostic("recipe", "state file could not be read safely")
-        )
+    if "recipe" not in raw_state:
         return None
-    if not isinstance(raw_state, dict):
-        diagnostics.append(_recipe_diagnostic("recipe", "state is not an object"))
-        return None
-    raw_recipe = raw_state.get("recipe")
-    if raw_recipe is None:
-        return None
+    raw_recipe = raw_state["recipe"]
     if not isinstance(raw_recipe, dict):
         diagnostics.append(_recipe_diagnostic("recipe", "recipe is not an object"))
         return None
@@ -493,9 +478,11 @@ def _load_self_host_recipe(
         and not _URL_USERINFO_RE.match(value),
     }
     for field_name, validator in validators.items():
-        if field_name not in raw_recipe or raw_recipe[field_name] is None:
+        if field_name not in raw_recipe:
             continue
         value = raw_recipe[field_name]
+        if field_name == "repository_url" and value is None:
+            continue
         allow_empty = field_name == "owner_email"
         if not _is_safe_recipe_text(value, allow_empty=allow_empty) or not validator(value):
             diagnostics.append(
@@ -619,6 +606,24 @@ def collect_fields(
 def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
     """Return list of validation error messages (empty = valid)."""
     errors: list[str] = []
+    replay_scalars = {
+        "name": cfg.name,
+        "display-name": cfg.display_name,
+        "description": cfg.description,
+        "owner-name": cfg.owner_name,
+        "owner-email": cfg.owner_email,
+        "preferred-adapter": cfg.preferred_adapter,
+        "repository-url": cfg.repository_url,
+    }
+    for field_name, value in replay_scalars.items():
+        if value is None and field_name == "repository-url":
+            continue
+        if not _is_safe_recipe_text(value, allow_empty=field_name == "owner-email"):
+            errors.append(
+                f"{field_name} cannot be recorded for replay: "
+                "must have no surrounding whitespace or control characters "
+                f"and be at most {_RECIPE_TEXT_MAX_LENGTH} characters"
+            )
     if not cfg.name or not _SAFE_NAME_RE.match(cfg.name):
         errors.append(
             f"name {cfg.name!r} is invalid: must match [A-Za-z0-9][A-Za-z0-9_-]*"
@@ -640,6 +645,13 @@ def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
         errors.append(
             f"owner-email {cfg.owner_email!r} does not look like a valid email address"
         )
+    if cfg.preferred_adapter:
+        try:
+            available_adapters = set(shipped_adapters_from_contract())
+        except (OSError, RuntimeError, tomllib.TOMLDecodeError):
+            available_adapters = set()
+        if cfg.preferred_adapter not in available_adapters:
+            errors.append("preferred-adapter is not a shipped adapter name")
     return errors
 
 
@@ -914,7 +926,24 @@ def _verify_bytes_in_tmpdir(
 
 def _toml_str(val: str) -> str:
     """Escape a string value for safe embedding in a TOML double-quoted string."""
-    return val.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
+    escapes = {
+        "\b": "\\b",
+        "\t": "\\t",
+        "\n": "\\n",
+        "\f": "\\f",
+        "\r": "\\r",
+        '"': '\\"',
+        "\\": "\\\\",
+    }
+    encoded: list[str] = []
+    for character in val:
+        if character in escapes:
+            encoded.append(escapes[character])
+        elif ord(character) <= 0x1F or ord(character) == 0x7F:
+            encoded.append(f"\\u{ord(character):04X}")
+        else:
+            encoded.append(character)
+    return "".join(encoded)
 
 
 def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
@@ -958,15 +987,33 @@ def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
 # Ownership state persistence
 # ---------------------------------------------------------------------------
 
-def _load_ownership_state(target: Path) -> dict | None:
-    """Read existing ownership state from target. Returns None if absent/unreadable."""
+def _load_ownership_state(
+    target: Path, diagnostics: list[str]
+) -> dict[str, Any] | None:
+    """Read ownership state once through the bounded confinement boundary."""
     state_path = target / _OWNERSHIP_STATE_FILE
-    if not state_path.is_file():
+    if not state_path.exists() and not state_path.is_symlink():
         return None
     try:
-        data = json.loads(state_path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else None
-    except Exception:
+        data = json.loads(
+            read_confined_regular_file(
+                target, state_path, max_bytes=_OWNERSHIP_STATE_MAX_BYTES
+            ).decode("utf-8")
+        )
+        if not isinstance(data, dict):
+            diagnostics.append(_recipe_diagnostic("recipe", "state is not an object"))
+            return None
+        return data
+    except (
+        UnsafeContentError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        OSError,
+        RecursionError,
+    ):
+        diagnostics.append(
+            _recipe_diagnostic("recipe", "state file could not be read safely")
+        )
         return None
 
 
@@ -1053,9 +1100,12 @@ def _remove_stale_owned_paths(
 
 def _write_ownership_state(target: Path, state: SelfHostOwnershipState) -> None:
     state_path = target / _OWNERSHIP_STATE_FILE
+    if state_path.parent.is_symlink() or state_path.is_symlink():
+        raise UnsafeContentError("ownership state path must not be a symlink")
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(
-        json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+    atomic_write(
+        state_path,
+        (json.dumps(state.to_dict(), indent=2) + "\n").encode("utf-8"),
     )
 
 
@@ -1176,7 +1226,8 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         archive_uri=cfg.archive_uri,
     )
 
-    recipe = _load_self_host_recipe(cfg.target, cfg.source, diagnostics)
+    old_state = _load_ownership_state(cfg.target, diagnostics)
+    recipe = _load_self_host_recipe(old_state, cfg.source, diagnostics)
 
     # 4. Collect fields (TTY prompts + defaults).
     # Capture whether any field was already supplied before defaults are filled in.
@@ -1353,7 +1404,6 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     leak_scan_result: dict = {"ok": True, "violation_count": 0}
 
     # 10. Load old ownership state; split planned files into owned vs new.
-    old_state = _load_ownership_state(cfg.target)
     old_owned_paths: set[str] = set()
     if old_state:
         for entry in _migrate_managed_paths(old_state):
@@ -1470,7 +1520,10 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 synced_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
-        _write_ownership_state(cfg.target, new_state)
+        try:
+            _write_ownership_state(cfg.target, new_state)
+        except (OSError, UnsafeContentError):
+            return _fail("write failed: ownership state path is unsafe")
         files_written.append(("create", _OWNERSHIP_STATE_FILE))
 
     # 14. Build next steps.
