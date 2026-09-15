@@ -8,11 +8,17 @@ this repository emitted before the `schema` key shipped. That matters, because a
 hand-written corpus can only contain line shapes someone thought of, and a schema
 validated against it would pass by construction.
 
-These tests live in the agentbundle unit suite rather than `tests/roster/`, where
-the repository's other JSON Schema contract tests sit, because roster is not
-reached by `make test` -- a roster test runs on a pull request only when
-`build-check.yml` names it individually. A contract this one pins is better
-checked on every build than on a dispatch.
+These tests are roster-owned. They read `contracts/jsonschema/` and
+`packs/core/tests/.../fixtures/`, neither of which exists inside the published
+`agentbundle` sdist -- and `packages/agentbundle/tests/` ships in that sdist and
+is re-run against the extracted workspace. Sitting there, they failed the sdist
+artifact gate with a `FileNotFoundError` on the schema, which is the gate
+correctly reporting that a repository-level contract had been packaged as a
+package test.
+
+Roster is not auto-discovered, so `build-check.yml` names this file explicitly.
+That is the repository's mechanism for a roster-owned contract that must be
+checked on every pull request rather than on a dispatch.
 """
 from __future__ import annotations
 
@@ -22,7 +28,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-_REPO = Path(__file__).resolve().parents[4]
+_REPO = Path(__file__).resolve().parents[2]
 _SCHEMA_PATH = _REPO / "contracts/jsonschema/loop-run-event.schema.json"
 _CORPUS_PATH = _REPO / "packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl"
 _IDENTITY_FIELDS = ("seq", "run_id", "spec", "from", "event", "to", "at")
