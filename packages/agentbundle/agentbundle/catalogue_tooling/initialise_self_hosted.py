@@ -670,16 +670,16 @@ def _toml_str(val: str) -> str:
 def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
     lines: list[str] = [
         "[catalogue]",
-        f'name = "{cfg.name}"',
+        f'name = "{_toml_str(cfg.name or "")}"',
         f'display_name = "{_toml_str(cfg.display_name or "")}"',
         f'description = "{_toml_str(cfg.description or "")}"',
-        f'preferred_adapter = "{cfg.preferred_adapter or "claude-code"}"',
+        f'preferred_adapter = "{_toml_str(cfg.preferred_adapter or "claude-code")}"',
         "",
     ]
     if cfg.repository_url:
         lines += [
             "[catalogue.links]",
-            f'repository = "{cfg.repository_url}"',
+            f'repository = "{_toml_str(cfg.repository_url or "")}"',
             "",
         ]
     lines += [
@@ -687,12 +687,12 @@ def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
         f'name = "{_toml_str(cfg.owner_name or "")}"',
     ]
     if cfg.owner_email:
-        lines.append(f'email = "{cfg.owner_email}"')
+        lines.append(f'email = "{_toml_str(cfg.owner_email)}"')
 
     # B6: Vendored tooling mode writes [catalogue.tooling] section.
     if cfg.tooling == "vendored":
         adapters = cfg.adapters or [cfg.preferred_adapter or "claude-code"]
-        adapters_toml = "[" + ", ".join(f'"{a}"' for a in adapters) + "]"
+        adapters_toml = "[" + ", ".join(f'"{_toml_str(a)}"' for a in adapters) + "]"
         lines += [
             "",
             "[catalogue.tooling]",

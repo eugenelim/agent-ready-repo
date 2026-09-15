@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     SelfHostedInitConfig,
     SelfHostOwnershipState,
     _collect_dir_bytes,
+    _generate_catalogue_toml,
     init_self_hosted,
     select_packs,
     validate_fields,
@@ -1273,3 +1275,74 @@ def test_white_label_target_tree_carries_no_upstream_anchor(tmp_path: Path) -> N
     )
     violations = verify(cfg.target, anchors, mode="white-label")
     assert not violations, [(v.path, v.anchor, v.line) for v in violations]
+
+
+# ---------------------------------------------------------------------------
+# AC-0017 — every value interpolated into the generated catalogue.toml is
+# escaped for that sink.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "field,payload",
+    [
+        ("name", 'my-catalogue"\n[catalogue.links]\nrepository = "https://evil'),
+        ("display_name", 'D"\n[catalogue.links]\nrepository = "https://evil'),
+        ("description", 'X"\n[catalogue.links]\nrepository = "https://evil'),
+        (
+            "preferred_adapter",
+            'claude-code"\n[catalogue.links]\nrepository = "https://evil',
+        ),
+        ("repository_url", 'https://x"\n[catalogue.tooling]\nadapters = ["evil'),
+        ("owner_name", 'O"\n[catalogue.links]\nrepository = "https://evil'),
+        ("owner_email", 'a@b."\n[catalogue.links]\nrepository = "https://evil'),
+    ],
+)
+def test_no_interpolated_value_can_forge_a_catalogue_toml_table(
+    tmp_path: Path, field: str, payload: str
+) -> None:
+    """A recorded value must not be able to open a table of its own.
+
+    The field validators are not the control here: `_URL_RE` and `_EMAIL_RE`
+    both admit a double quote, and `preferred_adapter` has no validator at all.
+    The escaping at the sink is what holds.
+    """
+    kwargs = {"name": "my-catalogue"}
+    kwargs[field] = payload
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "t", source=tmp_path / "s", **kwargs
+    )
+    parsed = tomllib.loads(_generate_catalogue_toml(cfg))
+    assert parsed["catalogue"].get("links", {}).get("repository") != "https://evil"
+    assert "tooling" not in parsed["catalogue"]
+
+
+def test_vendored_adapter_entries_are_escaped(tmp_path: Path) -> None:
+    """The adapter list is the fifth raw interpolation site."""
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "t",
+        source=tmp_path / "s",
+        name="my-catalogue",
+        tooling="vendored",
+        adapters=['claude-code"]\nevil = "yes'],
+    )
+    parsed = tomllib.loads(_generate_catalogue_toml(cfg))
+    assert "evil" not in parsed["catalogue"]["tooling"]
+
+
+def test_a_benign_value_still_produces_the_expected_tables(tmp_path: Path) -> None:
+    """AC-0017's positive clause: escaping must not change a normal document."""
+    cfg = SelfHostedInitConfig(
+        target=tmp_path / "t",
+        source=tmp_path / "s",
+        name="my-catalogue",
+        display_name="My Catalogue",
+        description="A catalogue.",
+        owner_name="Owner",
+        owner_email="owner@example.com",
+        repository_url="https://example.com/mine",
+    )
+    parsed = tomllib.loads(_generate_catalogue_toml(cfg))
+    assert parsed["catalogue"]["name"] == "my-catalogue"
+    assert parsed["catalogue"]["links"]["repository"] == "https://example.com/mine"
+    assert parsed["catalogue"]["maintainers"][0]["email"] == "owner@example.com"
