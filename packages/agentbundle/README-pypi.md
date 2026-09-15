@@ -33,6 +33,18 @@ rather than silently ignored.
 runtime dependency you do not have installed. It names the package and exits 0.
 It never invokes a package manager and never installs anything.
 
+## What's new in 0.44.3
+
+Repository maintenance only: this release changes `make build-check`, which
+runs against a source checkout. Nothing an installed `agentbundle` does
+changes.
+
+The check that keeps `agentbundle/_data/` in step with its core-pack sources
+now fails on a copy that is missing, not only on one that has drifted. It also
+derives which copies are needed from the sources themselves, so a bundled
+script that loads a helper nobody bundled is reported instead of shipping an
+import that cannot resolve.
+
 ## What's new in 0.44.2
 
 A catalogue you derive with `catalogue init --preset self-hosted` now keeps a
@@ -163,6 +175,7 @@ Claude Code fields Kiro cannot read (`permissionMode`, `memory`, `maxTurns`, …
 and IDE-only keys that make the CLI loader drop an agent (`hooks`) are dropped,
 each with a `kiro: dropping … agent field` line on stderr. If you relied on the
 previous pass-through, check your build log after upgrading.
+
 ## What's new in 0.39.3
 
 The bundled workspace-status engine now recognizes reviewed legacy work-intake
