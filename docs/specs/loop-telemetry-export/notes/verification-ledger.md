@@ -975,3 +975,43 @@ descriptor metadata before parsing and again on read; UTF-8 decoding before
 `tomllib`; repository precedence correct, with no user-scope endpoint reaching the
 arguments when the repository declares one; and `resolve()` importing no network
 or process API and opening no socket.
+
+## A gate with no pytest surface caught 18 failures this branch introduced
+
+`tools/test-lint-pack-test-boundary.py` is a test-lint script. It has no pytest
+surface, so no `python3 -m pytest` invocation anywhere in this delivery could
+reach it, and every "gates green" report before this point was assembled from a
+gate list that did not contain it. Run directly, it failed with 18 violations
+across three files — all three authored by this branch. The same script on
+`origin/main` passes 154 cases, so the regression is this delivery's and not
+inherited.
+
+The rule it enforces: a test under `packs/<pack>/tests/` may not read above its
+own pack. Repository-level coverage belongs in `tests/conformance` or
+`tests/roster`.
+
+The three files failed it for two different reasons, and the difference decided
+the repair:
+
+| File | Reach | Repair |
+| --- | --- | --- |
+| `test_work_loop_profile.py` | every path it needs is *inside* `packs/core` | re-anchored at `parents[3]` — the pack — instead of routing up to the root and back down |
+| `test_telemetry_disclosure_contract.py` | `docs/architecture/`, `guides/` | moved to `tests/roster/test_loop_telemetry_disclosure_contract.py` |
+| `test_spec_tally_control.py` | `docs/specs/` | moved to `tests/roster/test_loop_telemetry_spec_tally.py` |
+
+Only the first was a genuine pack test. The other two assert facts about
+repository documents and had no business living in a pack tree; the lint was
+reporting a home that was wrong before it was a citation that was wrong.
+
+Moving the disclosure contract broke its sibling import of
+`test_loop_engine_events_jsonl`, which owns the recipe for driving one real
+transition. It is now loaded by path and registered in `sys.modules` before
+execution. Copying the recipe into the roster file was rejected: a second copy
+drifts from the engine the moment the setup changes, and the field-count
+assertion is only worth anything while it runs against what the engine really
+emits.
+
+`plan.md` line 345 still cites the disclosure contract at its old pack path. The
+plan is frozen — the cohort pins `approved_plan_hash` — so the stale citation is
+recorded here rather than edited there. The test's content is unchanged; only its
+home moved.

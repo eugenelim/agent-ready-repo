@@ -35,14 +35,18 @@ def _makefile() -> str:
 
 
 def _run_test_suite_body() -> str:
-    """The define `make test` expands, not the whole Makefile.
+    """The define `make test` expands, with comment lines stripped.
 
-    Asserting against the whole file would pass on a line sitting in a comment
-    or in a target nothing invokes.
+    Asserting against the whole file would pass on a line in a target nothing
+    invokes; asserting against the raw define would pass on a line someone
+    commented out. A `#` line in a Makefile recipe is not executed, so it
+    cannot satisfy a claim that a suite runs.
     """
     match = re.search(r"override define run-test-suite(.*?)^endef", _makefile(), re.S | re.M)
     assert match, "run-test-suite define not found — Makefile structure changed"
-    return match.group(1)
+    return "\n".join(
+        line for line in match.group(1).splitlines() if not line.lstrip().startswith("#")
+    )
 
 
 def test_package_is_on_the_root_pytest_pythonpath() -> None:
@@ -107,7 +111,11 @@ def test_package_suite_is_invoked_by_the_define_make_test_expands() -> None:
 
 
 def test_package_build_backend_is_audited() -> None:
-    makefile = _makefile()
+    # Comment lines stripped first: a commented-out `--build-system` argument
+    # audits nothing, and a regex over raw text cannot tell the difference.
+    makefile = "\n".join(
+        line for line in _makefile().splitlines() if not line.lstrip().startswith("#")
+    )
     leg = re.search(r"--build-system\s*\\?\s*\n((?:.*\\\n)*.*)", makefile)
     assert leg, "pip-audit --build-system leg not found"
     assert f"{_PACKAGE_DIR}/pyproject.toml" in leg.group(1), (

@@ -111,13 +111,29 @@ def resolve(repo_root: Path, user_root: Path) -> ResolvedTelemetryLayout:
 
     undeliverable = sorted(set(settings) - _DELIVERABLE)
     if undeliverable:
-        # The key comes from an untrusted file and lands in a message someone
-        # reads in a terminal. `!r` escapes control characters, so a key
-        # containing a newline cannot forge extra error lines and an ESC
-        # sequence cannot repaint the display.
+        # Name the file each key came from. The merged mapping has already lost
+        # that, and two files were read: without the scope the reader has to open
+        # both to find out which one to edit, and a key present in both looks
+        # like a key present in one.
+        scopes = {"repository": (repo_settings, repo_path), "user": (user_settings, user_path)}
+        # Keys and paths both reach a terminal, and the keys come from an
+        # untrusted file. `!r` escapes control characters, so a key containing a
+        # newline cannot forge extra error lines and an ESC sequence cannot
+        # repaint the display.
+        reported = ", ".join(
+            "{} (from {})".format(
+                repr(name),
+                " and ".join(
+                    f"{label} {str(path)!r}"
+                    for label, (source, path) in scopes.items()
+                    if name in source
+                ),
+            )
+            for name in undeliverable
+        )
         raise TelemetryLayoutError(
             "[telemetry] settings the sender cannot receive: "
-            + ", ".join(repr(name) for name in undeliverable)
+            + reported
             + f" (deliverable: {', '.join(sorted(_DELIVERABLE))})"
         )
 

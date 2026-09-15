@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[5]
+_REPO = Path(__file__).resolve().parents[2]
 _TELEMETRY = _REPO / "docs/architecture/telemetry.md"
 _AGENTBUNDLE = _REPO / "docs/architecture/agentbundle.md"
 _GUIDE = _REPO / "guides/core/how-to/export-loop-telemetry.md"
@@ -40,14 +40,36 @@ def _section(text: str, heading: str) -> str:
     return re.split(r"\n#{1,6} ", body, maxsplit=1)[0]
 
 
+# The envelope suite lives in the pack tree and owns the recipe for driving one
+# real transition. This file is repository-level -- it compares an architecture
+# document against an emitted line -- so it cannot sit beside that suite and
+# import it as a sibling. Loading it by path keeps ONE copy of the recipe; a
+# second copy here would drift from the engine the moment the setup changed.
+def _envelope_suite():
+    import importlib.util
+    import sys
+
+    path = _REPO / "packs/core/tests/skills/work-loop/test_loop_engine_events_jsonl.py"
+    name = "loop_engine_events_jsonl_helpers_for_disclosure_contract"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader, f"cannot load the envelope suite from {path}"
+    module = importlib.util.module_from_spec(spec)
+    # Registered before execution: the module resolves its own dataclasses
+    # against `sys.modules[__name__]` while it is being executed.
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _emitted_line_key_count(tmp_path: Path) -> int:
-    from test_loop_engine_events_jsonl import (
-        _LOOP_ENGINE,
-        _engine_init,
-        _init_git_repo,
-        _make_spec_dir,
-        _run,
-    )
+    helpers = _envelope_suite()
+    _LOOP_ENGINE = helpers._LOOP_ENGINE
+    _engine_init = helpers._engine_init
+    _init_git_repo = helpers._init_git_repo
+    _make_spec_dir = helpers._make_spec_dir
+    _run = helpers._run
 
     repo = _init_git_repo(tmp_path)
     spec_dir = _make_spec_dir(repo)

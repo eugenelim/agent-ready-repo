@@ -154,6 +154,9 @@ def test_core_optional_runtime_dependency_is_report_only(
     assert "optional runtime dependency" in report
     assert "unsatisfied" in report
     assert status == 0
+    # Not redundant with the raise inside the hook: if catalogue lint ever
+    # caught the AssertionError on its way out, the launch would still be
+    # recorded here and this line is what would report it.
     assert process_launches == []
 
 

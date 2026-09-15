@@ -57,8 +57,15 @@ def test_poller_reads_a_versioned_record_exactly_as_it_reads_a_legacy_one(
     tmp_path: Path,
 ) -> None:
     # AC-0052
+    # The assumption is about _LEGACY, not about the merge: `{**_LEGACY, ...}`
+    # makes the key difference true by construction, so asserting it proves
+    # nothing. What can actually break is _LEGACY gaining a `schema` key, which
+    # would make the two records identical and the comparison below vacuous.
+    assert "schema" not in _LEGACY, (
+        "_LEGACY already carries `schema`, so the versioned record below is the "
+        "same record and the comparison no longer distinguishes the two shapes"
+    )
     versioned = {**_LEGACY, "schema": 1}
-    assert versioned.keys() - _LEGACY.keys() == {"schema"}, "the records must differ only by `schema`"
 
     legacy_result = _parsed_result(_LEGACY, tmp_path / "legacy")
     versioned_result = _parsed_result(versioned, tmp_path / "versioned")

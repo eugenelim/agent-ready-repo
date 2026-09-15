@@ -14,8 +14,12 @@ import json
 import tomllib
 from pathlib import Path
 
-_REPO = Path(__file__).resolve().parents[5]
-_PROFILE = _REPO / "packs/core/.apm/skills/work-loop/profiles/work-loop.toml"
+# Anchored at the owning pack, not the repository root. Every path this file
+# needs is inside `packs/core`, so routing up to the root and back down was a
+# reach outside the pack that bought nothing -- and the pack-test boundary
+# lint refuses it.
+_PACK = Path(__file__).resolve().parents[3]
+_PROFILE = _PACK / ".apm/skills/work-loop/profiles/work-loop.toml"
 
 
 def _engine_module():
@@ -24,7 +28,7 @@ def _engine_module():
 
     spec = importlib.util.spec_from_file_location(
         "core_work_loop_loop_engine_profile_under_test",
-        _REPO / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py",
+        _PACK / ".apm/skills/work-loop/scripts/loop-engine.py",
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

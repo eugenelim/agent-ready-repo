@@ -198,6 +198,62 @@ def test_resolve_refuses_an_undeliverable_setting_from_the_user_scope(
         resolve(repo_root, user_root)
 
 
+@pytest.mark.parametrize(
+    ("repo_body", "user_body", "expected_scopes"),
+    [
+        pytest.param(
+            '[telemetry]\nendpoint = "https://repo.example:4318"\ncompression = "gzip"\n',
+            '[telemetry]\n',
+            ("repository",),
+            id="repository-only",
+        ),
+        pytest.param(
+            '[telemetry]\nendpoint = "https://repo.example:4318"\n',
+            '[telemetry]\ncompression = "gzip"\n',
+            ("user",),
+            id="user-only",
+        ),
+        pytest.param(
+            '[telemetry]\nendpoint = "https://repo.example:4318"\ncompression = "gzip"\n',
+            '[telemetry]\ncompression = "zstd"\n',
+            ("repository", "user"),
+            id="both-scopes",
+        ),
+    ],
+)
+def test_the_refusal_names_the_file_the_setting_came_from(
+    tmp_path: Path,
+    repo_body: str,
+    user_body: str,
+    expected_scopes: tuple[str, ...],
+) -> None:
+    """Two files were read, so the refusal has to say which one to edit.
+
+    The merge is computed before the check, and a merged mapping no longer knows
+    where a key came from. The `both-scopes` case is the one that decides the
+    shape: a key present in each file must name each file, because a message that
+    named only the winning scope would send the reader to delete a line that is
+    also in the other one.
+    """
+    repo_root, user_root = _copy_layout_fixtures(tmp_path)
+    repo_path = repo_root / "agentbundle-layout.toml"
+    user_path = user_root / "agentbundle-layout.toml"
+    repo_path.write_text(repo_body, encoding="utf-8", newline="\n")
+    user_path.write_text(user_body, encoding="utf-8", newline="\n")
+
+    with pytest.raises(ValueError) as caught:
+        resolve(repo_root, user_root)
+
+    message = str(caught.value)
+    paths = {"repository": repo_path, "user": user_path}
+    for scope, path in paths.items():
+        named = f"{scope} {str(path)!r}" in message
+        assert named is (scope in expected_scopes), (
+            f"{scope} scope {'missing from' if scope in expected_scopes else 'wrongly named in'} "
+            f"the refusal: {message}"
+        )
+
+
 def test_resolve_uses_user_config_when_repo_omits_endpoint(tmp_path: Path) -> None:
     """The one-config sender receives the file that owns the endpoint setting."""
     repo_root, user_root = _copy_layout_fixtures(tmp_path)
