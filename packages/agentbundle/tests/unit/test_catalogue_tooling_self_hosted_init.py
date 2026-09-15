@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -18,6 +19,7 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     SelfHostedInitConfig,
     SelfHostOwnershipState,
     SelfHostPin,
+    Violation,
     _collect_dir_bytes,
     _generate_catalogue_toml,
     _transform_recipe_string,
@@ -28,6 +30,9 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
 from agentbundle.scaffold import scaffold_root
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+_TOML_FORBIDDEN_CONTROLS = tuple(
+    chr(code) for code in (*range(0x09), *range(0x0A, 0x20), 0x7F)
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1353,7 +1358,11 @@ def test_vendored_adapter_entries_are_escaped(tmp_path: Path) -> None:
         "owner_email",
     ],
 )
-@pytest.mark.parametrize("control", ["\0", "\x1b", "\x7f", "\b", "\f"])
+@pytest.mark.parametrize(
+    "control",
+    _TOML_FORBIDDEN_CONTROLS,
+    ids=[f"U+{ord(control):04X}" for control in _TOML_FORBIDDEN_CONTROLS],
+)
 def test_toml_forbidden_controls_are_escaped_at_every_scalar_interpolation(
     tmp_path: Path, field: str, control: str
 ) -> None:
@@ -1378,7 +1387,11 @@ def test_toml_forbidden_controls_are_escaped_at_every_scalar_interpolation(
     assert observed == payload
 
 
-@pytest.mark.parametrize("control", ["\0", "\x1b", "\x7f", "\b", "\f"])
+@pytest.mark.parametrize(
+    "control",
+    _TOML_FORBIDDEN_CONTROLS,
+    ids=[f"U+{ord(control):04X}" for control in _TOML_FORBIDDEN_CONTROLS],
+)
 def test_toml_forbidden_controls_are_escaped_in_vendored_adapter_entries(
     tmp_path: Path, control: str
 ) -> None:
@@ -1865,6 +1878,63 @@ def test_render_controls_are_rejected_before_use(
     assert all(hostile not in item for item in result.diagnostics)
 
 
+@pytest.mark.parametrize("category_control", ["\x1b", "\u202e"], ids=["Cc", "Cf"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "display_name",
+        "description",
+        "owner_name",
+        "owner_email",
+        "preferred_adapter",
+        "repository_url",
+        "packs",
+        "profiles",
+    ],
+)
+def test_every_recorded_field_rejects_cc_and_cf_characters(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    category_control: str,
+) -> None:
+    import importlib
+
+    module = importlib.import_module(
+        "agentbundle.catalogue_tooling.initialise_self_hosted"
+    )
+    benign_values = {
+        "name": "safe-name",
+        "display_name": "Safe Name",
+        "description": "Safe description",
+        "owner_name": "Safe Owner",
+        "owner_email": "safe@example.com",
+        "preferred_adapter": "claude-code",
+        "repository_url": "https://example.com/safe",
+        "packs": "core",
+        "profiles": "default",
+    }
+    benign = benign_values[field]
+    hostile = benign[:1] + category_control + benign[1:]
+    monkeypatch.setattr(module, "select_packs", lambda *_args: [hostile])
+    monkeypatch.setattr(module, "_select_profiles", lambda *_args: [hostile])
+    monkeypatch.setattr(
+        module, "shipped_adapters_from_contract", lambda: [hostile]
+    )
+    recorded_value: object = [hostile] if field in {"packs", "profiles"} else hostile
+    diagnostics: list[str] = []
+
+    recipe = module._load_self_host_recipe(
+        {"recipe": {field: recorded_value}}, tmp_path, diagnostics
+    )
+
+    assert recipe is not None
+    assert getattr(recipe, field) is None
+    assert any(f"recorded {field}" in item for item in diagnostics)
+    assert all(hostile not in item for item in diagnostics)
+
+
 @pytest.mark.parametrize("field", ["packs", "profiles"])
 def test_recorded_selection_requires_source_name_membership(
     tmp_path: Path, field: str
@@ -1927,19 +1997,44 @@ def test_ownership_state_is_read_once_through_confined_helper(
     source = _make_source(tmp_path)
     target = tmp_path / "derived"
     assert init_self_hosted(_base_cfg(tmp_path, source, target=target)).ok
+    state_path = target / ".agentbundle" / "self-host-state.json"
+    stale = target / "stale.txt"
+    stale.write_text("owned\n", encoding="utf-8")
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["recipe"]["name"] = "snapshot-name"
+    state["managed_paths"].append(
+        {
+            "path": "stale.txt",
+            "sha256": hashlib.sha256(b"owned\n").hexdigest(),
+        }
+    )
+    snapshot = (json.dumps(state) + "\n").encode()
+    disk_state = json.loads(state_path.read_text(encoding="utf-8"))
+    disk_state["recipe"]["name"] = "disk-name"
+    state_path.write_text(json.dumps(disk_state) + "\n", encoding="utf-8")
     original_read = module.read_confined_regular_file
+    original_path_read_text = Path.read_text
     state_reads = 0
 
     def count_state_reads(root: Path, path: Path, **kwargs) -> bytes:
         nonlocal state_reads
         if path.name == "self-host-state.json":
             state_reads += 1
+            return snapshot
         return original_read(root, path, **kwargs)
 
+    def refuse_direct_state_reopen(path: Path, *args, **kwargs) -> str:
+        if path == state_path:
+            raise AssertionError("ownership state was reopened directly")
+        return original_path_read_text(path, *args, **kwargs)
+
     monkeypatch.setattr(module, "read_confined_regular_file", count_state_reads)
+    monkeypatch.setattr(Path, "read_text", refuse_direct_state_reopen)
     result = init_self_hosted(SelfHostedInitConfig(target=target, source=source))
 
     assert result.ok
+    assert result.name == "snapshot-name"
+    assert not stale.exists()
     assert state_reads == 1
 
 
@@ -2053,6 +2148,40 @@ def test_init_rejects_recipe_scalar_over_replay_limit(
     result = init_self_hosted(cfg)
 
     assert not result.ok
+    assert not (cfg.target / ".agentbundle" / "self-host-state.json").exists()
+
+
+def test_transformed_recipe_value_is_validated_before_target_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import importlib
+
+    module = importlib.import_module(
+        "agentbundle.catalogue_tooling.initialise_self_hosted"
+    )
+    source = _make_source(tmp_path)
+    source_description = "The upstream."
+    description = source_description + "x" * (4096 - len(source_description))
+    cfg = _base_cfg(tmp_path, source, description=description)
+    leak_checks = 0
+
+    def intercept_identity_leak(*_args) -> tuple[list[Violation], list[Violation]]:
+        nonlocal leak_checks
+        leak_checks += 1
+        return [module.Violation("catalogue.toml", "description", 1)], []
+
+    monkeypatch.setattr(module, "_verify_bytes_in_tmpdir", intercept_identity_leak)
+
+    result = init_self_hosted(cfg)
+
+    assert not result.ok
+    assert leak_checks == 0
+    assert not result.violations
+    assert any(
+        "description cannot be recorded for replay" in item
+        for item in result.diagnostics
+    )
     assert not (cfg.target / ".agentbundle" / "self-host-state.json").exists()
 
 

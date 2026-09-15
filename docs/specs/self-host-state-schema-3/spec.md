@@ -290,13 +290,16 @@ Every outcome is a compressible invariant over a pure function or a single
   **source** catalogue's name. The derived tree escapes that only because the
   identity transform rewrites it inside the planned bytes, which the state file
   is not among — so a recorded description needs its own control. AC-0005 is
-  that control, and it is stated over the whole file rather than that one field
-  so a field added later inherits it.
+  that control. It is stated over the identity strings rather than that one
+  field, so an identity field added later inherits it.
 - Technical: `validate_fields` covers `name`, `repository_url`, `archive_uri`,
-  and `owner_email` only. `display_name`, `description`, `owner_name`, and
-  `preferred_adapter` reach the generated `catalogue.toml` and the whole-tree
-  byte transform with no check, which is why AC-0015 and AC-0017 are stated
-  rather than left to that function.
+  and `owner_email` only, so it was never the control for the free-text fields
+  that reach the generated `catalogue.toml` and the whole-tree byte transform.
+  The replay constraints are: they apply at read time to every replay-eligible
+  recipe value — the seven identity scalars plus `packs` and `profiles` — and
+  at write time to the transformed values actually recorded, so `init` refuses
+  to emit a recipe its own re-read would discard. The recorded mode fields and
+  the pin are not replay-eligible and are not read through that validation.
 - Technical: the validators that do exist are not sink-safe on their own, which
   is why AC-0017 and AC-0020 are stated over every value rather than over the
   fields that prompted them. Verified by running the compiled patterns:

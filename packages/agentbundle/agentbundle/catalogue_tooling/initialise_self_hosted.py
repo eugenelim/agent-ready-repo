@@ -603,17 +603,28 @@ def collect_fields(
     )
 
 
-def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
+def validate_fields(
+    cfg: SelfHostedInitConfig, *, recorded_recipe: SelfHostRecipe | None = None
+) -> list[str]:
     """Return list of validation error messages (empty = valid)."""
     errors: list[str] = []
+    recipe = recorded_recipe or SelfHostRecipe(
+        name=cfg.name or "",
+        display_name=cfg.display_name or "",
+        description=cfg.description or "",
+        owner_name=cfg.owner_name or "",
+        owner_email=cfg.owner_email or "",
+        preferred_adapter=cfg.preferred_adapter or "",
+        repository_url=cfg.repository_url,
+    )
     replay_scalars = {
-        "name": cfg.name,
-        "display-name": cfg.display_name,
-        "description": cfg.description,
-        "owner-name": cfg.owner_name,
-        "owner-email": cfg.owner_email,
-        "preferred-adapter": cfg.preferred_adapter,
-        "repository-url": cfg.repository_url,
+        "name": recipe.name,
+        "display-name": recipe.display_name,
+        "description": recipe.description,
+        "owner-name": recipe.owner_name,
+        "owner-email": recipe.owner_email,
+        "preferred-adapter": recipe.preferred_adapter,
+        "repository-url": recipe.repository_url,
     }
     for field_name, value in replay_scalars.items():
         if value is None and field_name == "repository-url":
@@ -1236,8 +1247,24 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     ) else "default"
     cfg = collect_fields(cfg, source_meta, recipe)
 
-    # 5. Validate fields.
-    errors = validate_fields(cfg)
+    # 5. Transform the replay values, then validate the exact values that the
+    # ownership state will record.
+    anchors = _build_anchors(source_meta)
+    recorded_recipe = SelfHostRecipe(
+        guides=cfg.guides,
+        attribution=cfg.attribution,
+        tooling=cfg.tooling,
+        name=_transform_recipe_string(cfg.name, anchors, cfg) or "",
+        display_name=_transform_recipe_string(cfg.display_name, anchors, cfg) or "",
+        description=_transform_recipe_string(cfg.description, anchors, cfg) or "",
+        owner_name=_transform_recipe_string(cfg.owner_name, anchors, cfg) or "",
+        owner_email=_transform_recipe_string(cfg.owner_email, anchors, cfg) or "",
+        preferred_adapter=(
+            _transform_recipe_string(cfg.preferred_adapter, anchors, cfg) or ""
+        ),
+        repository_url=_transform_recipe_string(cfg.repository_url, anchors, cfg),
+    )
+    errors = validate_fields(cfg, recorded_recipe=recorded_recipe)
     if errors:
         return _fail(*errors)
 
@@ -1371,7 +1398,6 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     file_kinds["catalogue.toml"] = "catalogue"
 
     # 8. Apply identity transform in-memory (white-label mode only).
-    anchors = _build_anchors(source_meta)
     identity_replacements = _apply_identity_transform_bytes(file_bytes, anchors, cfg)
 
     # 9. Leak check (in-memory via tmpdir — runs in both real and dry-run mode
@@ -1493,25 +1519,13 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 guides=cfg.guides,
                 attribution=cfg.attribution,
                 tooling=cfg.tooling,
-                name=_transform_recipe_string(cfg.name, anchors, cfg) or "",
-                display_name=(
-                    _transform_recipe_string(cfg.display_name, anchors, cfg) or ""
-                ),
-                description=(
-                    _transform_recipe_string(cfg.description, anchors, cfg) or ""
-                ),
-                owner_name=(
-                    _transform_recipe_string(cfg.owner_name, anchors, cfg) or ""
-                ),
-                owner_email=(
-                    _transform_recipe_string(cfg.owner_email, anchors, cfg) or ""
-                ),
-                preferred_adapter=(
-                    _transform_recipe_string(cfg.preferred_adapter, anchors, cfg) or ""
-                ),
-                repository_url=_transform_recipe_string(
-                    cfg.repository_url, anchors, cfg
-                ),
+                name=recorded_recipe.name,
+                display_name=recorded_recipe.display_name,
+                description=recorded_recipe.description,
+                owner_name=recorded_recipe.owner_name,
+                owner_email=recorded_recipe.owner_email,
+                preferred_adapter=recorded_recipe.preferred_adapter,
+                repository_url=recorded_recipe.repository_url,
             ),
             pin=SelfHostPin(
                 source_uri=str(cfg.source.resolve()) if _is_attributed(cfg) else None,

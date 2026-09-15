@@ -411,6 +411,24 @@ prose; mark `upstream-sync.md` § Rollout phase 1 done and record there that
   file uses `managed_paths` only, so a mixed-version tree degrades to schema-2
   behavior rather than failing.
 
+## Accepted residue
+
+- **The transform can only grow a value, never make it otherwise unsafe.**
+  Write-time replay validation runs on the transformed values. A review asked
+  for a case where the transform alone introduces a non-length violation such
+  as a control character or surrounding whitespace. Every value
+  `_get_replacement_for` can insert is a `cfg` identity value or the clean
+  placeholder URL, and each of those is already rejected at write time if it
+  carries whitespace or a control character. The case is therefore unreachable
+  by mechanism, and length growth — which is reachable — is covered.
+
+- **`atomic_write` follows a symlink at its `.abtmp` temporary path.**
+  `catalogue_tooling/initialise.py` writes through `<dest>.abtmp` with
+  `Path.write_bytes()`, so the symlink guard on the final state path is
+  bypassable via the temporary path. Pre-existing, shared by four modules, and
+  write-only with no privilege gain — anyone who can plant that symlink can
+  already write the tree. Routed out of this change; it needs its own.
+
 ## Risks
 
 - **A recorded value reaches the whole-tree transform.** `validate_fields`
