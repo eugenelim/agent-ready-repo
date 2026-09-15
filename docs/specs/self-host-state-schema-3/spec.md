@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** none
+- **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)
 - **Contract:** none — `.agentbundle/self-host-state.json` is defined in code only and has no file under `contracts/`
 - **Shape:** data
 
