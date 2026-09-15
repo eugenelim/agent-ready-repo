@@ -327,7 +327,7 @@ with the round/cost counters reset.
 - **The traceability lint** consumes the **traceability slot** this loop
   produces; the cascade transition walks **the same edges**. The loop runs the
   lint at the **G2 / convergence gate**: once the `Discovery:` up-edge header has
-  landed (the producer — `new-spec` + `CONVENTIONS.md` § 4), the loop runs it
+  landed (the producer — `new-spec` and its spec-and-plan contract reference), the loop runs it
   **fail-closed (`--strict`)** at G2 so a structural orphan blocks convergence;
   **until the header is in place the lint stays warn-only** (specs without the
   header are warnings, not failures). Producer-before-consumer: the header lands
@@ -379,10 +379,10 @@ brief:
   **converters / md-to-office projection adapter**, not a discovery
   skill.
 
-## Loop-skill doctrine (carried here, not in CONVENTIONS)
+## Loop-skill doctrine (carried here, not in a shared convention)
 
 The **two-loop split** (discovery vs delivery) and the **surfacing predicate's
-stall clause** are carried in **this skill's doctrine — not a `CONVENTIONS.md`
+stall clause** are carried in **this skill's doctrine — not a shared-convention
 operating-model section**:
 
 - **Two loops, not one.** Discovery (vision → brief, this loop) and delivery (spec
@@ -395,7 +395,7 @@ operating-model section**:
   cannot find a referent (a genuinely failed referent, a `paused-at-bound`, a
   value conflict), it **surfaces and waits** — it never guesses past the gate.
 
-The only `CONVENTIONS.md` § 4 touch the discovery work makes is the **spec-format**
+The only `a shared convention` § 4 touch the discovery work makes is the **spec-format**
 `Discovery:` up-edge header + discovery-artifact `type:` markers (format, **not**
 operating-model doctrine).
 
@@ -412,7 +412,7 @@ operating-model doctrine).
 - **Degrading the security lens silently on a security boundary** — surface it.
 - **Committing a `sensitive`/`regulated` fact verbatim** to a shared/remote store,
   or writing working state to the product repo's main line.
-- **Carrying the two-loop split or the surfacing predicate as a `CONVENTIONS.md`
+- **Carrying the two-loop split or the surfacing predicate as a `a shared convention`
   section** — it lives here.
 - **Emitting the brief as a finished plan rather than a connected hypothesis** —
   every load-bearing assumption carries a validation hook; *converged ≠ validated*.

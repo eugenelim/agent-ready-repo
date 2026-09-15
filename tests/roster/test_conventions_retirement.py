@@ -583,6 +583,31 @@ def test_seeded_charter_states_its_revision_rule() -> None:
     )
 
 
+SPEC_CONTRACT_REF = REPO_ROOT / "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md"
+SEED_SPECS_README = REPO_ROOT / "packs/core/seeds/docs/specs/README.md"
+
+# § 4's four subsections. A prose move can silently drop one, so each is named.
+SPEC_CONTRACT_RULES = (
+    "Spec metadata contract",
+    "Low-level design lives in the plan",
+    "construction tests",
+    "contracts/<type>/",
+)
+
+
+def test_spec_contract_reference_carries_all_four_subsections() -> None:
+    body = visible_prose(SPEC_CONTRACT_REF.read_text(encoding="utf-8"))
+    absent = [r for r in SPEC_CONTRACT_RULES if r not in body]
+    assert not absent, f"the spec-and-plan contract reference omits: {absent}"
+
+
+def test_seeded_specs_readme_states_the_distinction_and_vocabulary() -> None:
+    """The adopter half. A seed cannot link to an adapter-specific skill path."""
+    body = visible_prose(SEED_SPECS_README.read_text(encoding="utf-8"))
+    for needle in ("Implementing", "Shipped", "Executing", "lifecycle index"):
+        assert needle in body, f"the seeded specs README omits {needle!r}"
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

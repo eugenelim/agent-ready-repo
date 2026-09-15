@@ -205,6 +205,6 @@ and no source converges on a universal one.
 - [Review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md)
   — why a review loop over these artifacts terminates on a residue rather than
   on a clean verdict.
-- [`docs/CONVENTIONS.md`](../CONVENTIONS.md) § 4 — the spec metadata contract and
+- the `new-spec` skill's `references/spec-and-plan-contract.md` — the spec metadata contract and
   the contract-versus-construction split, which this page describes rather than
   redefines.
