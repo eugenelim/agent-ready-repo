@@ -405,6 +405,35 @@ def test_the_coding_rule_guard_detects_their_absence() -> None:
 
 
 # --------------------------------------------------------------------------
+# AC23 — the security and stale-instruction rules, in sections of their own
+# --------------------------------------------------------------------------
+
+def test_seed_states_the_never_commit_rule() -> None:
+    """AC23, first half."""
+    absent = absent_from_section(SEED_AGENTS, "Security considerations", SECURITY_RULES)
+    assert not absent, f"the seed's Security considerations section omits: {absent}"
+
+
+def test_seed_states_the_report_stale_rule() -> None:
+    """AC23, second half."""
+    absent = absent_from_section(SEED_AGENTS, "Scoped instructions", SCOPED_RULES)
+    assert not absent, f"the seed's Scoped instructions section omits: {absent}"
+
+
+def test_seed_omits_the_repo_specific_blessed_helpers() -> None:
+    """The helpers list is this repository's, not an adopter's.
+
+    Promoting it would hand an adopter a list of tools they do not have, which
+    is the same defect as a table of links they cannot follow.
+    """
+    body = SEED_AGENTS.read_text(encoding="utf-8")
+    for repo_only in ("credbroker", "file_safety", "UnsafeContentError"):
+        assert repo_only not in body, (
+            f"the seed names {repo_only!r}, which only this repository provides"
+        )
+
+
+# --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
 

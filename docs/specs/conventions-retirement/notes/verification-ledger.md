@@ -212,3 +212,45 @@ amendment preserves.
 Neither test contains a `CONVENTIONS` token, so this plan's discovery cannot
 surface them. They were found by reading the contracts before editing, which is
 what round 6 established as the rule.
+
+## T5, T6, T7 — the remaining promotions into the seed
+
+T5 seated the four development-workflow rules; T6 the three coding-convention
+rules; T7 promoted the never-commit rule and the report-stale rule into
+`## Security considerations` and `## Scoped instructions`, which are now real
+sections rather than offered options. T7 also moved the never-commit rule out of
+§ Coding conventions, where T2 had placed it as prose, so it is stated once.
+
+The blessed-helpers list stayed out, and a guard asserts the seed never names
+`credbroker`, `file_safety` or `UnsafeContentError` — promoting them would hand
+an adopter a list of tools they do not have, the same defect as a table of links
+they cannot follow.
+
+### T7 exceeded the line cap, and the cause was my task split
+
+After T7's two sections landed the seed was 204 lines against the 200-line cap
+T1 set. T8 is the task that trims the optional-guidance comment, so the file was
+oversized in the window between them: an invalid intermediate state, which is
+exactly what round 6 sustained as "walk the intermediate states" and what the
+step-4 check requires each task to avoid.
+
+The fix was not a second cap raise. Round 8 refuted a finding that wanted the
+cap pinned in a test, on the ground that § Boundaries already makes raising it
+an ask-first action and T8 already runs the linter after the last seed edit —
+raising it twice to accommodate my own ordering would have spent that boundary
+on a defect rather than a need.
+
+Instead the task that makes an entry false removes it. T7 promotes
+`Security considerations` and `Scoped instructions`, so T7 removes those two
+offers from the comment; the seed lands at 198. T8 keeps the `Documentation`
+entry that T4 made false, plus whatever the comment retains.
+
+That is the correct shape generally: a separate "trim the comment" task was an
+artifact of splitting one concern per task, and it created a window where the
+file advertised sections it already had. Recorded rather than amended, because
+the plan is frozen and each task's own step-4 obligation to leave the tree
+working already covers it.
+
+`packs/core/tests/pack/test_repository_context_seed.py` is amended in the same
+step: the heading set gains both sections, and only `Repository structure`
+remains an asserted offer.
