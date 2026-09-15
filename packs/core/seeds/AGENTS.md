@@ -60,6 +60,15 @@ Follow the repository's existing contributor workflow. Use the `work-loop`
 skill for repository changes when installed; it owns planning, verification,
 review, and recovery.
 
+Commits are [Conventional Commits](https://www.conventionalcommits.org/) —
+`<type>(<scope>): <subject>`, `type` one of `feat`, `fix`, `docs`, `refactor`,
+`test`, `perf`, `build`, `ci`, `chore`, `scope` the package or area touched. Keep
+the repository's existing convention when it already has one.
+
+A pull-request description answers four questions in order: what does this
+change, why, how do I verify it, and what did you not change that you
+considered? The last catches more than the rest.
+
 If the repository has `CONTRIBUTING.md` or equivalent guidance, link to it here.
 If it has none, the seeded [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) is an
 optional starting point to adopt with maintainer approval, not an authority that
@@ -111,6 +120,10 @@ Never cut validation at a trust boundary; error handling that prevents data
 loss; security or privacy controls; accessibility; an explicit accepted
 requirement; required tests, migrations, documentation, or human approval; or
 a policy or platform restriction the user cannot waive.
+
+Never commit personal information or credentials. Use generic placeholders in
+repository artifacts: no real names, emails, hostnames, tokens or customer
+identifiers, in code, fixtures, tests or prose.
 
 Delete claims that do not affect the accepted outcome. Before stating a
 necessary claim about a named repository target as fact, perform one bounded

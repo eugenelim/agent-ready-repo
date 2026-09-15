@@ -79,6 +79,9 @@ required artifacts, planning, verification, review, recovery, and completion.
 - Propose a new top-level directory through the repository decision process.
 - Keep unrelated discoveries out of the current change unless the accepted
   work-loop contract admits them.
+- A pull-request description answers four questions in order: what does this
+  change, why, how do I verify it, and what did you not change that you
+  considered? The last catches more than the rest.
 
 ## Build and test commands
 
@@ -94,8 +97,11 @@ make build-self && make bootstrap-sites  # local: these WRITE files you then rea
 
 ## Coding conventions
 
-Commit conventions and the full repository rules live in
-[`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
+Commits are [Conventional Commits](https://www.conventionalcommits.org/) —
+`<type>(<scope>): <subject>`, `type` one of `feat`, `fix`, `docs`, `refactor`,
+`test`, `perf`, `build`, `ci`, `chore`, `scope` the package or area touched. One
+implementing a spec ends `Spec: docs/specs/<feature>/spec.md`; one following an
+ADR or RFC cites it the same way.
 
 - Cut before adding. After reading the code a change touches, take the first
   sufficient option and stop:
@@ -135,8 +141,9 @@ Commit conventions and the full repository rules live in
 ## Security considerations
 
 Never commit personal information or credentials. Use generic placeholders in
-repository artifacts. Follow the security workflow for security-boundary
-changes and [the privacy convention](docs/CONVENTIONS.md#privacy).
+repository artifacts: no real names, emails, hostnames, tokens or customer
+identifiers, in code, fixtures, tests or prose. Follow the security workflow for
+security-boundary changes.
 
 **Blessed security tools/helpers:**
 

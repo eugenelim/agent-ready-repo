@@ -120,6 +120,73 @@ def run_scan(pattern: str | None = None) -> tuple[str, ...]:
     return tuple(line for line in completed.stdout.splitlines() if line.strip())
 
 
+ROOT_AGENTS = REPO_ROOT / "AGENTS.md"
+SEED_AGENTS = REPO_ROOT / "packs/core/seeds/AGENTS.md"
+
+_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_FENCE_RE = re.compile(r"^```.*?^```", re.DOTALL | re.MULTILINE)
+
+
+def visible_prose(text: str) -> str:
+    """Strip HTML comments and fenced blocks before matching.
+
+    A token parked in a comment, a fence, a heading or a link title satisfies a
+    naive substring check while governing nothing.
+    """
+    return _FENCE_RE.sub("", _COMMENT_RE.sub("", text))
+
+
+# The three session-priming rules T2 seats in both AGENTS.md files, each named by
+# a token distinctive enough that a paraphrase does not accidentally satisfy it.
+PRIMING_TOKENS = (
+    "Conventional Commits",
+    "`feat`",
+    "what did you not change that you",
+    "Never commit personal information or credentials",
+    "generic placeholders",
+)
+
+
+def missing_priming_rules(text: str) -> tuple[str, ...]:
+    """Return the priming tokens absent from a file's visible prose."""
+    body = visible_prose(text)
+    return tuple(token for token in PRIMING_TOKENS if token not in body)
+
+
+# --------------------------------------------------------------------------
+# AC4, AC5 — the session-priming rules, with a negative control
+# --------------------------------------------------------------------------
+
+def test_both_agents_files_state_the_priming_rules() -> None:
+    """AC4 and AC5."""
+    for path in (ROOT_AGENTS, SEED_AGENTS):
+        absent = missing_priming_rules(path.read_text(encoding="utf-8"))
+        assert not absent, f"{path.relative_to(REPO_ROOT)} is missing: {absent}"
+
+
+def test_the_priming_guard_detects_their_absence() -> None:
+    """Negative control: the red is produced by stripping, not by timing.
+
+    A destination is usually the topic's natural owner and may already state a
+    rule, so requiring the assertion to have been red before the edit is not a
+    usable proof. Stripping the content and watching the same predicate fail is.
+    """
+    stripped = SEED_AGENTS.read_text(encoding="utf-8")
+    for token in PRIMING_TOKENS:
+        stripped = stripped.replace(token, "")
+    absent = missing_priming_rules(stripped)
+    assert set(absent) == set(PRIMING_TOKENS), (
+        "the priming guard does not detect removal of the rules it asserts; "
+        f"it reported only {absent}"
+    )
+
+
+def test_the_priming_guard_ignores_commented_out_content() -> None:
+    """A token in an HTML comment or a fenced block governs nothing."""
+    faked = "<!--\n" + "\n".join(PRIMING_TOKENS) + "\n-->\n"
+    assert set(missing_priming_rules(faked)) == set(PRIMING_TOKENS)
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------
@@ -146,16 +213,32 @@ def test_guard_invokes_the_scan_rather_than_restating_it() -> None:
     assert "ac2-scan.sh" in body
 
 
-def test_scan_reports_in_domain_and_excludes_historical_records() -> None:
-    """Positive and negative control on the predicate itself."""
-    reported = run_scan()
-    assert any(p == "AGENTS.md" for p in reported), (
-        "the scan reports no in-domain path; its exclusions have swallowed the domain"
+def test_scan_admits_an_in_domain_tree() -> None:
+    """Positive control on the predicate's reach.
+
+    Deliberately not anchored on the retirement's own pattern: the retired path
+    leaves every file as the work lands, and by the deletion task the default
+    scan returns nothing by design. A witness on that pattern would therefore
+    report a swallowed domain the moment the work succeeded. `MAX_SEED_LINES`
+    lives in `tools/`, which no exclusion covers and this change does not move.
+    """
+    assert "tools/lint-agents-md.py" in run_scan("MAX_SEED_LINES"), (
+        "the scan no longer reaches tools/; its exclusions have widened"
     )
-    for excluded in ("docs/knowledge/observations/", "docs/adr/", "docs/rfc/"):
-        assert not any(p.startswith(excluded) for p in reported), (
-            f"historical records under {excluded} leaked into the scan domain"
-        )
+
+
+def test_scan_excludes_the_historical_record_trees() -> None:
+    """Negative control, one witness per excluded class.
+
+    `## Decision` occurs inside `docs/adr/`, so a scan that reaches it would
+    report those files. Their absence is the exclusion working rather than the
+    pattern simply missing.
+    """
+    reported = run_scan("## Decision")
+    assert reported, "the witness pattern matches nothing; the control is vacuous"
+    for excluded in ("docs/adr/", "docs/rfc/", "docs/knowledge/observations/"):
+        leaked = [p for p in reported if p.startswith(excluded)]
+        assert not leaked, f"historical records leaked into the domain: {leaked}"
 
 
 # --------------------------------------------------------------------------
