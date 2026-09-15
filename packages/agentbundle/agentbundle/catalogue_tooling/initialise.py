@@ -17,7 +17,6 @@ Python 3.11 stdlib only.  No network, no subprocess, no third-party deps.
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import os
@@ -470,13 +469,26 @@ def _atomic_write(dest: Path, content: bytes) -> None:
     tmp = dest.parent / f".abtmp-{os.urandom(8).hex()}"
     fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
     try:
-        with os.fdopen(fd, "wb") as handle:
+        # os.fdopen owns the descriptor only once it returns; if it raises
+        # first, nothing else will ever close fd.
+        try:
+            handle = os.fdopen(fd, "wb")
+        except BaseException:
+            os.close(fd)
+            raise
+        with handle:
             handle.write(content)
         tmp.replace(dest)
-    except Exception:
-        # Suppressed so a failed cleanup cannot mask the caller's exception.
-        with contextlib.suppress(OSError):
-            tmp.unlink()
+    except Exception as exc:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError as cleanup_exc:
+            # Never let a failed cleanup replace the caller's exception, but do
+            # not lose it either: the staging name is random, so without this
+            # note nothing tells an operator which file was left behind.
+            exc.add_note(
+                f"leftover staging file {tmp} could not be removed: {cleanup_exc}"
+            )
         raise
 
 
