@@ -213,8 +213,8 @@ that are owner decisions rather than delivery gaps.
 - Direct-light implementation stays inline by owner decision. U2 dispatches a
   policy *verdict*, never a build, because dispatching direct-light
   implementation would trip the **Multi-person** risk trigger at
-  `packs/core/.apm/skills/work-loop/SKILL.md` lines 73-74 and force full mode
-  (line 70: "Risk triggers — any one routes the work to full mode"),
+  `packs/core/.apm/skills/work-loop/SKILL.md` and force full mode under "Risk
+  triggers — any one routes the work to full mode",
   contradicting the light path's purpose.
 - Repair rounds re-entering `CODE-IMPLEMENTATION` also stay inline. Three of
   the four re-entry edges in
@@ -399,12 +399,14 @@ it:
 - Does the public portability claim need amending to the qualification tuple
   above? That is a governance decision rather than a delivery slice, and it
   likely needs an RFC.
-- Which policy families ship first, and which tier does each fall into? A
-  deterministic family needs no judge; a semantic one needs a calibrated judge
-  and a measured false-block rate.
-- Does a `policies/` directory extend the blessed skill layout, or do policies
-  live under an existing directory? A non-blessed subdirectory warns under
-  `CAT-S004`.
+- The initial five policy families and their tiers shipped with D1: two
+  `precise` and three `advisory`. No judge has been calibrated and no
+  false-block rate has been measured; no brief currently owns either.
+- **Settled — policies live under the existing blessed `references/` tree**
+  (owner decision, 2026-09-15). D1 placed the registry at
+  `packs/core/.apm/skills/work-loop/references/policy-families.md`; `CAT-S004`
+  warns on a non-blessed subdirectory, so the lint forced the location rather
+  than leaving a preference to revisit.
 
 ## Source
 

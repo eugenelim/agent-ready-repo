@@ -148,10 +148,10 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
   in
   [`loop-engine.py`](../../../packs/core/.apm/skills/work-loop/scripts/loop-engine.py).
   Three carry repair work rather than a plan task and do **not** dispatch:
-  `gates-failed` (line 550), `findings-remain` (552), and `blocker-applied`
-  (554). The fourth, `wave-passed` (548), re-enters with the next wave's plan
+  `gates-failed`, `findings-remain`, and `blocker-applied`. The fourth,
+  `wave-passed`, re-enters with the next wave's plan
   tasks and **does** dispatch. The existing rule already points this way:
-  `supervisor-mode.md` lines 163–165 say "Do not redispatch the same implementer
+  `supervisor-mode.md` says "Do not redispatch the same implementer
   on the same task — the assumption that produced the failure is what needs
   revising, not the attempt." That sentence sits on the currently dormant
   parallel path, so it is corroboration rather than authority. "Universal"
@@ -164,12 +164,12 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
 - The smallest change to `implementer.md` that accepts an explicit execution
   root in the primary working tree or an already-created worktree, **and**
   re-states the agent's own use condition at
-  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md) line 3
+  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md)
   ("Used by `work-loop` when a plan has multiple tasks declaring
   `Depends on: none`") so it no longer restricts the agent to the multi-task
   parallel case. This is a contract-consistency change, not a selection-
   mechanism change: [`catalogue-curation/spec.md`](../../specs/catalogue-curation/spec.md)
-  line 91 records that "skills activate by description, **agents are dispatched
+  records that "skills activate by description, **agents are dispatched
   by the loop**", so the field steers no automatic selection. It is still
   load-bearing, because leaving it unchanged ships an agent whose own contract
   restricts it to a case the controller no longer dispatches it for, and the
@@ -201,7 +201,7 @@ spec-backed dispatch universal on the two named adapters; U3 removes duplicate
 implementation procedure from the controller. U2 is not near-term: it waits on
 U1 plus three named slices — D1, V1, D3 — whose own closure reaches D2 and the
 whole of capability 2, because
-[`policy-arrival-validator.md`](policy-arrival-validator.md) line 166 gates V1
+[`policy-arrival-validator.md`](policy-arrival-validator.md) gates V1
 "after D2 emits the framed digest; end-to-end dispatch proof also waits on
 capabilities 1 and 2". That is four slices across three briefs. This is not an
 orchestration rewrite.
@@ -215,7 +215,8 @@ orchestration rewrite.
   dispatches *whenever the projected `implementer` is installed*. The shipped
   escape hatch at
   [`supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md)
-  lines 238–243 is the honest bound, not a defect. The slice spec must state
+  § "Single-agent fallback" is the honest bound, not a defect. The slice spec
+  must state
   whether U1 retains, re-points, or deletes it; silently leaving it operative
   next to a "universal" claim is the failure mode.
 - **The implementer holds no Git authority in the primary working tree.** It
@@ -224,27 +225,30 @@ orchestration rewrite.
   confirmation; this bound is not, because the Outcome claims recovery authority
   for the primary session.
 - **Extraction must not orphan a mirror.** The bundled-fixes carve-out at
-  `work-loop/SKILL.md` lines 417–429 is a marked canonical site with two
-  pointers into it —
-  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md) lines 52–55
+  `work-loop/SKILL.md`, headed **"Bundled-fixes carve-out."**, is a marked
+  canonical site with two pointers into it —
+  [`implementer.md`](../../../packs/core/.apm/agents/implementer.md), at
+  "Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE",
   and
   [`adversarial-reviewer.md`](../../../packs/core/.apm/agents/adversarial-reviewer.md)
-  lines 197–200. Any extraction either leaves that block in `SKILL.md` or
+  at "Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE". Any
+  extraction either leaves that block in `SKILL.md` or
   re-points all three sites in the same slice. Collapsing the three copies into
   one home is separate work and is not admitted here.
 - No hard per-criterion word budget may be proposed. That form is rejected by
   the Shipped criterion in
   [`shaping-review-contracts/spec.md`](../../specs/shaping-review-contracts/spec.md),
-  line 230, by
-  [`RFC-0099`](../../rfc/0099-cut-before-adding-and-artifact-shaping.md), line
-  901, by `new-spec/SKILL.md`, line 505, and by
+  "`new-spec` and shaping review reject hard AC word budgets", by
+  [`RFC-0099`](../../rfc/0099-cut-before-adding-and-artifact-shaping.md), "no hard
+  word budget is added", by `new-spec/SKILL.md`, which "rejects hard AC word
+  budgets", and by
   [`agent-authoring-input-quality.md`](agent-authoring-input-quality.md) §
   "Sizing discipline".
 - A policy family later carried by this envelope ships precise or advisory,
   never between those states. The rule and its supporting measurement are owned
   by the parent's § "De-risk"; see
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md),
-  lines 160–166. This capability does not implement that policy layer.
+  § "De-risk". This capability does not implement that policy layer.
 
 ## Proposed slices
 
@@ -284,7 +288,7 @@ D3. U2 owns the dispatch and the controller boundary only; it owns neither
 selection, assembly, nor validation.
 
 **D3's scope, as written, does not cover U2's case — that is a second owed
-amendment.** `phase-scoped-policy-delivery.md` line 159 scopes D3 to "every
+amendment.** `phase-scoped-policy-delivery.md`'s D3 row scopes D3 to "every
 sequential **implementer** brief", verified by a fixture that "enters each
 **implementation-bearing state**". Direct-light matches neither: U2's
 dispatched agent is not an implementer, it returns a verdict and writes
@@ -298,21 +302,22 @@ above. Both options are open; neither is chosen here, and neither touches U1.
 **U2 and D3 deadlock as both briefs are written today. This brief does not
 resolve that unilaterally; it records the obligation.**
 [`phase-scoped-policy-delivery.md`](phase-scoped-policy-delivery.md) gates D3
-"after V1 and capability 1" at line 159 and repeats it at lines 204–206:
+"after V1 and capability 1" and repeats:
 "D3 cannot name its final callable surface or end-to-end fixture until
 `universal-implementer-dispatch` **lands**." That names this brief whole, and
 U2 is part of it, so D3 waits on U2 while U2 waits on D3.
 
 The substantive fix is narrow — D3 needs the *envelope*, which is U1's
 deliverable, not U2's — and the precedent already exists:
-[`spec-author-agent.md`](spec-author-agent.md) line 149 gates S1 "after **U1**
-defines the shared envelope contract", referencing this brief at slice
-granularity. But an edge recorded only on the consuming side is not resolved,
+[`spec-author-agent.md`](spec-author-agent.md)'s S1 row records "U1 shipped the
+shared envelope contract", referencing this brief at slice granularity. But an
+edge recorded only on the consuming side is not resolved,
 because D3's spec author reads the sibling, not this file.
 
 **Reconciliation obligation, owed before U2 is confirmed and not before U1:**
-`phase-scoped-policy-delivery.md` lines 159 and 204–206 must be amended from
-"capability 1" to "U1", matching `spec-author-agent.md` line 149. That
+`phase-scoped-policy-delivery.md` must be amended from
+"capability 1" to "U1", matching `spec-author-agent.md`'s S1 row, which records
+"U1 shipped the shared envelope contract". That
 amendment is owned by the sibling brief's owner. If they disagree, the parent
 intent arbitrates; U2 stays unconfirmed until it is settled. U1 is unaffected —
 nothing in U1 depends on D3.
@@ -321,13 +326,13 @@ nothing in U1 depends on D3.
 population to the spec-backed path (§ "Success metrics") also narrows the
 antecedent of the parent's predeclared kill condition, which reads "once **every
 task** routes through the implementer" at
-[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
-lines 176–179. This brief does not re-scope a predeclared kill condition by
+[`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md).
+This brief does not re-scope a predeclared kill condition by
 assertion: the parent owes an amendment to "every spec-backed plan task", owned
 by the parent's owner, on the same footing as the two sibling amendments above.
 
-There is no `U1 → D1` edge: `phase-scoped-policy-delivery.md` line 157 gates D1
-`none`. Once the amendment above lands, **no backward edge runs from D3 to
+There is no `U1 → D1` edge: `phase-scoped-policy-delivery.md`'s D1 row gates
+D1 `none`. Once the amendment above lands, **no backward edge runs from D3 to
 U2** — until then the cycle is real, which is why U2 is unconfirmed.
 
 **U2 dispatches a verdict, not a build, and that is what keeps direct-light
@@ -404,9 +409,11 @@ once and preserve its current statement that parallel fan-out is disabled.
   ```
 
   This finds the real owner: `supervisor-mode.md` § "Phase 1 supervisor
-  procedure" (lines 223–236) and § "Single-agent fallback" (lines 238–243), with
-  the default at line 11 and a fourth text surface at `evals/evals.json` line
-  42. `supervisor-mode.md` is therefore the leading destination candidate, and
+  procedure" and § "Single-agent fallback", with the declaration "Default is
+  sequential implementer dispatch" and a fourth text surface at
+  `evals/evals.json`, "Dispatch `implementer` tasks sequentially using the
+  schedule order". `supervisor-mode.md` is therefore the leading destination
+  candidate, and
   the spec must accept or reject it on the record rather than defaulting to a
   new file.
 - **Closed 2026-09-03 by U1's spec** (AC11 and § "Testing Strategy") — the runtime dispatch assertion shape for `claude-code` and `codex` was not yet
@@ -420,7 +427,8 @@ once and preserve its current statement that parallel fan-out is disabled.
 
   The slice spec must name the construction-test seam before approval.
 - **Closed 2026-09-03 by U1's spec** (AC4) — the main-tree report and commit contract was not yet settled. Current
-  `implementer.md` requires the agent to commit inside a worktree (lines 74–77),
+  `implementer.md`'s **"Already-created worktree"** execution-root rule requires
+  the agent to commit there,
   while the primary-session controller owns the shared checkout. The spec must
   decide who commits on the sequential path without expanding into parallel
   merge behavior. The *bound* on that decision is not owed — § "Constraints"
