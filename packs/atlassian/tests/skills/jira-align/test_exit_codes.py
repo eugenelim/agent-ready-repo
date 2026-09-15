@@ -70,7 +70,7 @@ def _deps_installed() -> bool:
     return not (proc.returncode == 2 and "missing dependency" in proc.stderr)
 
 
-# CONVENTIONS § "The argv ban" canonical six — every credentialed CLI must
+# the credentialed-skill contract § The argv ban canonical six — every credentialed CLI must
 # refuse these before argparse can echo the value.
 CANONICAL_BANNED_FLAGS = (
     "--token", "--api-token", "--api-key", "--bearer", "--pat", "--password",

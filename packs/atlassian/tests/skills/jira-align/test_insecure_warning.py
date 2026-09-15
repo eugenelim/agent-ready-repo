@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """`--insecure` must disclose itself on stderr.
 
-`docs/CONVENTIONS.md` § *Five anti-patterns rejected by name* requires
+The credentialed-skill contract § Anti-pattern register requires
 ``--insecure`` to be opt-in and to "emit a stderr warning". This CLI was silent.
 
 Unlike ``jira.py`` and ``crawl_space.py`` there is no SSO-cookie path here, so

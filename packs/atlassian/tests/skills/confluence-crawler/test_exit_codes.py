@@ -70,7 +70,7 @@ def _deps_installed() -> bool:
     return _run("--help").returncode == 0
 
 
-# CONVENTIONS § "The argv ban" canonical six — every credentialed CLI must
+# the credentialed-skill contract § The argv ban canonical six — every credentialed CLI must
 # refuse these before argparse can echo the value. The guard runs before
 # parse_args, so --check below is an incidental carrier (never consulted).
 CANONICAL_BANNED_FLAGS = (

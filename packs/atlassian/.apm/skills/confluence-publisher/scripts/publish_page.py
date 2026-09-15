@@ -119,7 +119,7 @@ DEFAULT_VERSION_COMMENT = "Published by confluence-publisher"
 # transcript. The Confluence PAT (or Cloud API token used as a Basic-auth
 # password) is resolved only via env / keyring / dotfile. Mirrors the
 # sibling jira / jira-align idiom (exact-set match).
-# Superset of the CONVENTIONS § "The argv ban" canonical six
+# Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
 # short -t and a Confluence-specific alias.
 TOKEN_CLI_FLAGS = frozenset({
