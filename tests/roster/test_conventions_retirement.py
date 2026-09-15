@@ -554,6 +554,35 @@ def test_pack_layout_states_the_source_of_truth_split() -> None:
     assert not absent, f"docs/architecture/pack-layout.md omits: {absent}"
 
 
+NEW_ADR_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-adr.md"
+NEW_RFC_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-rfc.md"
+SEED_CHARTER = REPO_ROOT / "packs/core/seeds/docs/CHARTER.md"
+
+RFC_LIFECYCLE_STATES = ("Draft", "Open", "Final Comment Period", "Accepted", "Withdrawn")
+
+
+def test_adr_guide_states_what_an_adr_records() -> None:
+    body = visible_prose(NEW_ADR_GUIDE.read_text(encoding="utf-8"))
+    for needle in ("immutable", "supersed"):
+        assert needle in body.lower(), f"the ADR guide omits {needle!r}"
+
+
+def test_rfc_guide_states_the_lifecycle_the_skill_cites() -> None:
+    """`rfc-status` cited § 3 for the valid states; the guide now owns them."""
+    body = visible_prose(NEW_RFC_GUIDE.read_text(encoding="utf-8"))
+    absent = [s for s in RFC_LIFECYCLE_STATES if s not in body]
+    assert not absent, f"the RFC guide omits lifecycle states: {absent}"
+
+
+def test_seeded_charter_states_its_revision_rule() -> None:
+    """The reserved-versus-normal distinction, which the seed lacked."""
+    body = visible_prose(SEED_CHARTER.read_text(encoding="utf-8"))
+    assert "typo" in body.lower() and "broken link" in body.lower(), (
+        "the seeded charter omits the revision rule's normal-change list, so an "
+        "adopter cannot tell a reserved change from a wording fix"
+    )
+
+
 # --------------------------------------------------------------------------
 # AC2c — the canary
 # --------------------------------------------------------------------------

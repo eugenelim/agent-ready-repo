@@ -31,7 +31,7 @@ The two skills look adjacent but solve different problems. Get this right before
 | --- | --- | --- |
 | Tense | Forward-looking ("should we change X?") | Backward-facing ("we chose X over Y") |
 | Lifecycle | `Draft` → `Open` → `Final Comment Period` → `Accepted` \| `Rejected` \| `Withdrawn` (optional `Experimental` while a trial runs) | `Proposed` → `Accepted` → (`Deprecated` \| `Superseded by ADR-NNNN`) |
-| Body after acceptance | Frozen at acceptance (status field can change later, body cannot); stays as historical record; produces follow-on ADRs, specs, or CONVENTIONS edits | Frozen at acceptance (status field can change later, body cannot) |
+| Body after acceptance | Frozen at acceptance (status field can change later, body cannot); stays as historical record; produces follow-on ADRs, specs, or convention edits | Frozen at acceptance (status field can change later, body cannot) |
 | Reject path | `Rejected` is a normal terminal state — the discussion was the point | A pre-acceptance ADR that doesn't earn `Accepted` just isn't committed; there's no `Rejected` state |
 | Trigger | The direction is unresolved and more than one owner must agree | The decision is made (or is being formally proposed) and has a concrete tradeoff |
 
@@ -45,7 +45,7 @@ If you're recording a decision that's already settled, see [how to record a deci
 **Pack:** `governance-extras`. `new-rfc` does not ship in `core`. Verify with `ls .claude/skills/new-rfc/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
 :::
 
-- A working `docs/rfc/` directory. The skill creates one if it's missing, but the home for the file matters — the lifecycle rules in `docs/CONVENTIONS.md` only apply to RFCs at this path.
+- A working `docs/rfc/` directory. The skill creates one if it's missing, but the home for the file matters — the lifecycle rules above only apply to RFCs at this path.
 - Web search available in your agent harness (Claude Code's `WebSearch`, or the equivalent elsewhere). The external prior-art sweep degrades gracefully without it — the skill says so explicitly rather than fabricating citations — but you lose half the research phase's value.
 
 ## What to bring
@@ -57,7 +57,7 @@ the citation is what makes the later decision traceable.
 
 ## When `new-rfc` is the right call
 
-Before invoking, check that the change clears one of these bars, lifted from [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc):
+Before invoking, check that the change clears one of these bars, lifted from [§ The RFC lifecycle](#the-rfc-lifecycle):
 
 - The direction is unresolved **and** more than one owner has to agree.
 - Someone explicitly asks for a proposal to be circulated.
@@ -130,7 +130,7 @@ requiring spec citations in every feature PR
 use the new-rfc skill to amend the work-loop iteration cap from 5
 to 7 based on six months of stasis-detection data
 ```
-(Differs from above: an *amendment* to an existing convention — the research phase already has the target sitting in `docs/CONVENTIONS.md`, so the proposal hinges on whether the precedent's reasoning still holds today, not on prior-art existence.)
+(Differs from above: an *amendment* to an existing convention — the research phase already has the target sitting in the convention that owns it, so the proposal hinges on whether the precedent's reasoning still holds today, not on prior-art existence.)
 
 Natural phrasings (`propose a change to …`, `let's get input on …`, `draft an RFC for …`) match the skill's description and often trigger it. The explicit form is the reliable one.
 
@@ -156,7 +156,7 @@ un-researched questions to rescue.
 You'll see a `RESEARCH FINDINGS:` block in chat (not in the RFC file — the body is gated) with these sections:
 
 1. **Decisions / subpoints.** The proposal broken into the decisions it asks for, **each self-contained enough to decide from the block alone — you shouldn't have to open a file.** Each states the question in plain language and lists its options — *collectively exhaustive (MECE) along a stated axis and grounded in prior art, not a round number someone invented* — with, per option, its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it, then a recommendation, an owner, and a decide-by. This is where to push: if a subpoint shows "3 options" with no axis or sources, the space wasn't modelled; if the options are bare names with no trade-offs, the handoff is too terse to decide from — send it back.
-2. **Prior art (in repo).** Grep hits across `docs/CHARTER.md`, `docs/CONVENTIONS.md`, `docs/adr/`, `docs/rfc/`, `docs/specs/`, and `docs/architecture/`, each with a file path. They often reveal the proposal touches something you didn't know was decided.
+2. **Prior art (in repo).** Grep hits across `AGENTS.md`, `docs/CHARTER.md`, `docs/adr/`, `docs/rfc/`, `docs/specs/`, and `docs/architecture/`, each with a file path. They often reveal the proposal touches something you didn't know was decided.
 3. **Prior art (external).** Web-search results on how comparable projects or processes handled this shape of problem (Rust RFCs, PEPs, IETF BCPs). Each a markdown link. Empty here is a finding — say so — not an omission.
 4. **De-risk.** The one assumption that, if false, sinks the proposal, and the result of a small spike against it (or why none was needed).
 
@@ -222,11 +222,11 @@ Run the same command with `--check` to find out whether it would change.
 
 ## Step 8 — After acceptance
 
-An accepted RFC is rarely the last artifact. It points at concrete follow-on work, which lives in `docs/specs/<feature>/`, `docs/adr/`, or `docs/CONVENTIONS.md`:
+An accepted RFC is rarely the last artifact. It points at concrete follow-on work, which lives in `docs/specs/<feature>/`, `docs/adr/`, or the artifact that owns the convention:
 
 - **Architectural decisions → one or more ADRs.** See [how to record a decision (ADR)](new-adr.md).
 - **Concrete features → specs.** See [how to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md).
-- **Convention changes → direct edits to `docs/CONVENTIONS.md`.** The change itself, not a copy of the RFC text. Cite the RFC where the reasoning belongs.
+- **Convention changes → a direct edit to whichever artifact owns the rule**: `AGENTS.md` for session-priming rules, the owning guide for process, the owning skill for a workflow's mechanics. The change itself, not a copy of the RFC text. Cite the RFC where the reasoning belongs.
 
 The RFC's job is done once the follow-on artifacts exist. It stays as history.
 
@@ -281,5 +281,78 @@ turn its concrete decisions into ADRs, specs, or convention changes.
 - [How to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md) — what an accepted RFC's feature follow-on looks like.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where governance-extras fits relative to `core`.
 - [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
-- [`docs/CONVENTIONS.md` § RFC](../../../docs/CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) — the lifecycle, filename rule, and when-to / when-not-to.
+- [§ The RFC lifecycle](#the-rfc-lifecycle) — the lifecycle, filename rule, and when-to / when-not-to.
 - [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
+
+## The RFC lifecycle
+
+> The `rfc/README.md` index is generated from the records themselves, so it
+> cannot disagree with them. Regenerate it rather than editing a row.
+
+**What:** a proposal to change something significant — a new feature area, a
+new convention, a deprecation, a breaking change to a public interface. RFCs
+are *forward-looking governance*; ADRs are *backward-looking record*.
+
+**Lifecycle:**
+
+```
+Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
+```
+
+**Optional `Experimental` status.** An RFC that proposes running an
+experiment — using an optional `Experiment / validation` section of the RFC
+template — may sit in `Experimental` while the trial runs and
+results are pending, instead of being forced to a premature Accept or Reject.
+Results live in a linked spike note (or a follow-up RFC / superseding ADR),
+not the RFC body; when they land, the RFC moves to `Accepted | Rejected |
+Withdrawn`. An `Experimental` RFC is still in-flight (Governance class, not
+Frozen). Use it only when an experiment is genuinely running.
+
+Once an RFC is **Accepted**, it produces follow-on artifacts:
+
+- Architectural decisions → one or more ADRs
+- Concrete features → specs in `docs/specs/`
+- Convention changes → edits to this file (the change itself, not a copy of it)
+
+After follow-ons exist, the RFC's job is done. It stays in the repo as history.
+
+**Optional `NNNN-notes/` companion.** An RFC may carry a sibling
+`docs/rfc/NNNN-notes/` folder for promoted research and supporting material —
+sketches, evidence, a distilled research brief lifted from a sustained
+investigation — mirroring the optional `notes/` folder a spec carries (§4). It
+is optional and informal; the RFC body remains the contract.
+
+**Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
+
+**Template:** the RFC template provided by the repository's RFC workflow, if it has one.
+
+**When to open an RFC:**
+
+- Direction is unresolved and more than one owner must agree.
+- Someone explicitly asks to circulate a proposal.
+- Always reserved, taking the strongest route the repository has:
+  - charter mission, scope, or foundational principles;
+  - maintainer authority, approval process, or governance model;
+  - a security trust model, as distinct from a security implementation;
+  - withdrawal of, or a breaking change to, a stable published compatibility promise.
+- Evidence only, never sufficient: package or file count, public visibility, top-level
+  location, a prior ADR, or a governed-document pathname. These raise review depth;
+  they do not select the artifact.
+
+**When NOT to open an RFC:**
+
+- Bug fix, performance work, behavior-preserving refactor, or accepted-decision
+  implementation → PR; cite the decision.
+- Bounded feature whose direction is settled → issue, or a spec when concrete behaviour
+  and acceptance criteria need defining.
+- Settled durable architectural choice, including a settled replacement for a prior ADR
+  → ADR, or a superseding ADR.
+- Reversible, time-bounded trial with stated exit criteria → normal implementation
+  review; promote to RFC only if permanent adoption is contested.
+- Conventions maintenance that preserves an obligation → PR; a changed obligation uses
+  the test above; authority, mission, scope, and principles are reserved.
+
+Without an RFC process, reserved and unresolved multi-owner decisions require owners to
+reach and retain an explicit recorded decision before implementation, using the existing
+mechanism; no file, pack, or configuration is required. Honour a stricter declared local
+policy as an override.
