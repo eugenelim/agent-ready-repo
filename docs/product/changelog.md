@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.26.6] — 2026-09-15
+
+### Fixed
+
+- `loop-cohort schedule` now reminds full-mode controllers to delegate scheduled
+  tasks one at a time when an implementer is installed, or run them directly
+  and note the single-agent degradation.
+
 ## [core][2.26.5] — 2026-09-15
 
 ### Highlights
