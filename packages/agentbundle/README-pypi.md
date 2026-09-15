@@ -14,6 +14,25 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.45.0
+
+`agentbundle` can now work out where to send your work-loop telemetry.
+`agentbundle.telemetry_layout.resolve()` reads the `[telemetry]` section of the
+`agentbundle-layout.toml` in your repository and the one in your user layout
+directory, and returns the arguments for the separately installed
+`jsonl-otlp-exporter` sender. Nothing is sent unless you configure an endpoint
+and install that sender: they are two separate consents.
+
+Repository settings win per setting, because sending data off the machine is a
+team decision rather than a personal one. Both files are read through the
+catalogue's confinement helper and bounded at 64 KiB, and a `[telemetry]`
+setting the sender has no route for is refused — naming the file it came from —
+rather than silently ignored.
+
+`catalogue lint` also reports `CAT-L032` when a pack declares an optional
+runtime dependency you do not have installed. It names the package and exits 0.
+It never invokes a package manager and never installs anything.
+
 ## What's new in 0.44.3
 
 Repository maintenance only: this release changes `make build-check`, which
@@ -156,6 +175,7 @@ Claude Code fields Kiro cannot read (`permissionMode`, `memory`, `maxTurns`, …
 and IDE-only keys that make the CLI loader drop an agent (`hooks`) are dropped,
 each with a `kiro: dropping … agent field` line on stderr. If you relied on the
 previous pass-through, check your build log after upgrading.
+
 ## What's new in 0.39.3
 
 The bundled workspace-status engine now recognizes reviewed legacy work-intake

@@ -205,7 +205,10 @@ def resolve_destination(url: str, resolver: Callable[..., Sequence] | None = Non
 
 
 def batch_records(
-    records: Iterable[Mapping[str, Any]],
+    # The sentinel is part of the accepted input, not an intruder: `records` is
+    # the reader's iterator, which yields IDLE to say it has caught up. It is
+    # filtered out below, so it never reaches a batch or the encoder.
+    records: Iterable[Mapping[str, Any] | _Idle],
     encode: Callable[[Sequence[Mapping[str, Any]]], bytes],
     max_records: int = MAX_RECORDS_PER_REQUEST,
     max_bytes: int = MAX_BODY_BYTES,
@@ -223,7 +226,11 @@ def batch_records(
     """
     pending: list[Mapping[str, Any]] = []
     for record in records:
-        if record is IDLE:
+        # `isinstance`, not `is IDLE`: `_Idle` has exactly one instance, so the
+        # two are equivalent here, and only this form narrows the union for a
+        # type checker -- which is what lets `pending.append` below be checked
+        # rather than merely asserted by the `continue`.
+        if isinstance(record, _Idle):
             # The reader went quiet. Under bare `--follow` the iterator never
             # ends, so waiting for a full batch means an appended record is held
             # forever and AC-0021 is never satisfied. Flushing on idle sends what

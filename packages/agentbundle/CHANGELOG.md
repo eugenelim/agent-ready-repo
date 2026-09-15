@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.45.0] — 2026-09-14
+
+### Added
+
+- `agentbundle.telemetry_layout.resolve()` — per-setting, repository-first
+  resolution over the repository and user `agentbundle-layout.toml` files,
+  returning the merged `[telemetry]` settings and the argument vector for the
+  separately installed `jsonl-otlp-exporter` sender. Each scope names a root and
+  the filename is derived, so the caller cannot choose which file is read. Both
+  are read through the catalogue confinement helper and bounded at 64 KiB;
+  malformed, oversized, wrongly typed and symlinked inputs are refused. A
+  `[telemetry]` setting with no route to the sender is refused rather than
+  ignored, and the refusal names the file it came from.
+- `CAT-L032` — an informational catalogue-lint diagnostic naming an optional
+  runtime dependency a pack declares that is not installed. Detection is
+  in-process: no package manager is invoked, nothing is installed, and the exit
+  code stays 0.
+
 ## [0.44.3] — 2026-09-15
 
 ### Fixed
@@ -129,6 +147,7 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   row's recorded digest before parsing it. An uninspectable prior declaration
   or a capability widening fails closed without changing the projection or
   state.
+
 ## [0.42.0] — 2026-09-03
 
 ### Added
@@ -298,6 +317,7 @@ symlink targets, and mode bits.
   turning a skill name into a `skill://` URI needs templating the
   frontmatter-mapping grammar cannot express, so the build stops rather than
   emitting an unresolvable resource entry.
+
 ## [0.39.3] — 2026-08-23
 
 ### Changed
@@ -570,6 +590,7 @@ symlink targets, and mode bits.
   The build's `.apm` and `seeds` copytrees still pass `symlinks=True`, and that
   stays: preserving a link there is *safe* precisely because nothing reads the
   target at that layer. The defect was the composition, not either layer.
+
 ## [0.36.0] — 2026-08-16
 
 ### Fixed
@@ -626,6 +647,7 @@ symlink targets, and mode bits.
   wrong disclosure policy without noticing. Pass `"catalogue"` to keep the old
   behaviour, or `"single-pack"` when rendering a subset. The function had no
   callers in this repository.
+
 ## [0.35.3] — 2026-08-15
 
 ### Fixed

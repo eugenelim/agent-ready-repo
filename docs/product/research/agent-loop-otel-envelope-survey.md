@@ -166,10 +166,26 @@ transitions in `code` mode, clearing the actual guards (`approve-plan`,
 build a view of time-in-phase, gate failures, and stalls. Three first-party
 findings came out of it, none of which the literature could have supplied.
 
+> **Largely superseded — six of the eight are now derivable, and no new event
+> is needed.** The verdicts below were measured before core 2.25.14 added
+> `waived`, `budgets` and `phase_s`. Re-measured against core 2.25.26 in
+> [loop telemetry event derivability](loop-telemetry-event-derivability.md):
+> the retry counters are visible, the run's true start time *is* on the first
+> line — so the init-line recommendation below is retired — and `spec-stalled`
+> resolves at the consumer. Two rows are **not** fully closed: `gate-waived`'s
+> field exists but carries a retry-cap override rather than a waived gate verdict,
+> and `budget-exceeded` means *time or token*, whose token half no envelope change
+> can supply. The paragraphs are kept as the historical measurement. The finding
+> that still stands unchanged is the last one in this section: the eight roadmap
+> names cannot express `contract-amendment`.
+
 **Only five of the eight roadmap events are reachable from
 `.loop-run/events.jsonl`.** *(As measured, before core 2.25.14 widened it to
-fourteen.)* The engine writes a seven-field line per transition
-(`seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`) over 15 FSM event names.
+thirteen — corrected 2026-09-13 from "fourteen", which contradicted this
+document's own supersession banner above and is not what the engine emits:
+three separate driven runs measured thirteen keys on every line.)* The engine
+writes a seven-field line per transition (`seq`, `run_id`, `spec`, `from`,
+`event`, `to`, `at`) over 15 FSM event names.
 Walking all 15 against the eight gives:
 
 | Verdict | Roadmap event | Source |
@@ -178,10 +194,10 @@ Walking all 15 against the eight gives:
 | Sourced by an FSM event | `gate-failed` | `findings-remain`, `spec-rejected`, `plan-rejected`, `gates-failed`, `blocker-applied` |
 | Sourced by an FSM event | `spec-shipped` | `done` |
 | Derived from another field | `gate-reached` | exact — a transition whose `to` is a gate state |
-| Derived from another field | `spec-started` | approximate — start time not recorded |
-| Needs an envelope change | `gate-waived` | none — *closed by core 2.25.14 (`waived`)* |
-| Needs an envelope change | `budget-exceeded` | none — *partly closed by core 2.25.14 (`budgets`); the cap-reached half stays unreachable while `loop-cohort` owns the counters* |
-| Needs an envelope change | `spec-stalled` | none — *`phase_s` added in core 2.25.14; the terminal-stall blind spot below still stands* |
+| Derived from another field | `spec-started` | exact — *superseded 2026-09-13: seq 1's `phase_started_at` is `init`'s own timestamp* |
+| Needs an envelope change | `gate-waived` | none — *superseded 2026-09-13: `waived` exists but records only that a caller supplied the override flag, including at 0/5, so the roadmap event is still not derivable* |
+| Needs an envelope change | `budget-exceeded` | none — *superseded 2026-09-13: INI-005 defines this as time or token, not retries. Time is derivable from `phase_s`; tokens are not available to any pack* |
+| Needs an envelope change | `spec-stalled` | none — *superseded 2026-09-13: resolves at the consumer from silence plus a threshold; the terminal-stall blind spot below still stands* |
 
 **The retry counters are invisible to the event log.** Measured: after a real
 `gates-failed` and a real `findings-remain`, `implementation_retry_count`,

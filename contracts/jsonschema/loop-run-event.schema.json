@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/jsonschema/loop-run-event.schema.json",
+  "title": "Loop run event line",
+  "$comment": "One line of .loop-run/events.jsonl, written by packs/core/.apm/skills/work-loop/scripts/loop-engine.py on every FSM transition. The contract this pins is owned by docs/specs/loop-telemetry-export/spec.md; docs/architecture/telemetry.md section 5.1 describes the envelope. `schema` is absent on records written before it shipped, so it is optional here and constrained only when present -- a replayed legacy record is appended unchanged and must still validate.",
+  "type": "object",
+  "required": ["seq", "run_id", "spec", "from", "event", "to", "at"],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Transition sequence within the run; joins to the cohort on <run_id>:<seq>."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifies the run, not the agent and not the spec."
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative spec directory."
+    },
+    "from": {
+      "type": "string",
+      "minLength": 1,
+      "description": "State the transition left."
+    },
+    "event": {
+      "type": "string",
+      "minLength": 1,
+      "description": "FSM event name."
+    },
+    "to": {
+      "type": "string",
+      "minLength": 1,
+      "description": "State the transition entered."
+    },
+    "at": {
+      "type": "string",
+      "minLength": 1,
+      "description": "RFC 3339 instant the transition was written."
+    },
+    "schema": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "description": "Envelope version. Absent on records written before versioning shipped; never retro-stamped onto a replayed record."
+    },
+    "phase_started_at": {
+      "type": ["string", "null"],
+      "description": "When the phase being left began. Null when it could not be worked out -- never omitted."
+    },
+    "phase_s": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Seconds in the phase being left."
+    },
+    "result": {
+      "type": ["string", "null"],
+      "description": "What a gate decided. Null for the five routing events that decide nothing; a consumer counting passes and failures must filter that out first."
+    },
+    "awaiting_input": {
+      "type": "boolean",
+      "description": "True exactly when the destination is one of the three human-gate states."
+    },
+    "waived": {
+      "type": "boolean",
+      "description": "True when the caller supplied --allow-retry-cap-override on this transition. It does not mean a cap was reached."
+    },
+    "budgets": {
+      "type": "object",
+      "description": "A copy of the cohort retry counters as they stood one transition ago; loop-cohort owns them and moves them afterwards.",
+      "properties": {
+        "implementation_retry_count": {"type": ["integer", "null"], "minimum": 0},
+        "max_implementation_retries": {"type": ["integer", "null"], "minimum": 0},
+        "review_retry_count": {"type": ["integer", "null"], "minimum": 0},
+        "max_review_retries": {"type": ["integer", "null"], "minimum": 0}
+      }
+    }
+  }
+}

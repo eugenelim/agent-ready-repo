@@ -495,6 +495,38 @@ backlog = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Two corrections to `loop-telemetry-export`'s contract that were found by doing
+  # the work and could not be made to it. `loop-cohort` refuses a plan that rewrites
+  # a completed task's section, and both corrections land inside T2 and T4, which
+  # the wave advances had already recorded complete. Landing them anyway required
+  # `loop-cohort reset`, which destroys the cohort audit trail -- three review
+  # rounds, nineteen finding fingerprints, the amendment history -- so the owner
+  # chose the trail and the amendment was narrowed. Neither blocks anything: both
+  # behaviours ship, are gated and are mutation-proved; what is missing is contract
+  # text. The general question the entry carries is whether the amendment path needs
+  # a way to correct a completed task's contract at all, since a contract error found
+  # by implementing its own task is always discovered after that task is frozen.
+  # `roadmap.md` names eight loop-telemetry events. Measuring them against what the
+  # work-loop can actually emit (docs/product/research/loop-telemetry-event-derivability.md)
+  # found six derivable, one half-derivable and one impossible: `gate-waived` names a
+  # verdict waiver the FSM cannot perform, and `budget-exceeded`'s token half needs
+  # counts the pack never sees. The roadmap vocabulary therefore promises measurements
+  # that no amount of implementation will produce. Fix is a vocabulary decision, not
+  # code: retire, rename, or re-scope the two names in roadmap.md. Nothing is blocked --
+  # the shipped exporter carries the six that are derivable. Unblock: an owner decision
+  # on whether roadmap event names are commitments or sketches.
+  {path = "docs/product/intents/loop-telemetry-event-vocabulary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/loop-telemetry-event-derivability.md"}, summary = "Reconcile roadmap.md's eight loop-telemetry event names with the six the work-loop can actually emit, rather than adding events to match the vocabulary", needs = []},
+  # The work-loop base-freshness gate was waived by the task owner for the
+  # `loop-telemetry-export` delivery, and the waiver left no trace on the run: a later
+  # reader cannot tell a base that was verified from one accepted on authority. The
+  # episode that showed the cost is in the spec's verification ledger -- main released
+  # core 2.25.27 mid-delivery and a shared rerere cache discarded this branch's version
+  # bump, surfacing as a changelog conflict instead of as the gate. Fix would be a
+  # durable marker written by packs/core/.apm/skills/work-loop/scripts (the engine state
+  # or the run's event line), not a new gate. Nothing is blocked. Unblock: a decision on
+  # whether a waived gate should be recorded on the run at all.
+  {path = "docs/specs/loop-telemetry-export/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},
+  {path = "docs/product/intents/loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether AC-0031's four-of-six enumeration and the uncriterioned undeliverable-setting refusal are worth a contract change now that both behaviours have shipped", needs = []},
   # Discovered while delivering docs/specs/rendered-page-channel-axis. Registered
   # rather than left in that spec's notes: a closed spec's notes directory is not
   # a destination, and the obligation would otherwise be enforced by someone

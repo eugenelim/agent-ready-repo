@@ -481,6 +481,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest TDD stub lifecycle contract (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest loop-telemetry contracts (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest agent-skill-engineering consumer integrations (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest curation QA + RFC template contracts (roster-owned)":

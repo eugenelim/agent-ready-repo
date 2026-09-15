@@ -1,6 +1,6 @@
 # Spec: loop-telemetry-export
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
@@ -53,7 +53,7 @@ distribution an adopter installs on purpose.
 | User-facing promise | Applicable — an adopter must learn the capability exists, what it sends, and where | `guides/core/how-to/export-loop-telemetry.md` | spec owner | Disclosure sentence naming capability, payload and destination | Guide indexed |
 | Optional-dependency reporting | Applicable — the first reader of `[[pack.runtime-dependencies]]` | `packs/core/pack.toml` + the catalogue lint's reporting path | spec owner | Lint run naming the unsatisfied optional dependency | AC-0039 green |
 | Release history | Applicable — a `packs/core` content change | `docs/product/changelog.md` | release workflow | Version bump with entry | Entry present |
-| Current product truth | Applicable — the spec must be discoverable | `docs/specs/README.md` | spec owner | Row in the active list | Row present |
+| Current product truth | Not applicable — `docs/specs/README.md` carries no index (ADR-0112: an index over a document corpus is generated or absent); specs are discovered by listing the directory | — | — | — | — |
 | Reusable learning | Applicable — the capability/consumer contract split generalises | `project-knowledge` public seam | work-loop closeout | Capture receipt | Receipt or `project-knowledge unavailable` |
 | Operations | Not applicable — no deployed infrastructure is owned here | — | — | — | — |
 
@@ -116,28 +116,28 @@ appears in exactly one of the three groups.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` contains a
+- [x] **AC-0020.** `guides/core/how-to/export-loop-telemetry.md` contains a
   level-2 heading `## What leaves your machine`, and the section under it
   contains each of the literal strings `.loop-run/events.jsonl`, `OTLP logs`,
   and `nothing is sent until you configure an endpoint`.
 
-- [ ] **AC-0021.** `docs/architecture/telemetry.md` contains neither the literal
+- [x] **AC-0021.** `docs/architecture/telemetry.md` contains neither the literal
   string `does not work today` nor `writes nothing for any pack`.
-- [ ] **AC-0045.** Every `agentbundle.md` anchor cited by
+- [x] **AC-0045.** Every `agentbundle.md` anchor cited by
   `docs/architecture/telemetry.md` resolves to a heading present in
   `docs/architecture/agentbundle.md`.
 
-- [ ] **AC-0022.** `docs/architecture/telemetry.md` § 2 contains neither the
+- [x] **AC-0022.** `docs/architecture/telemetry.md` § 2 contains neither the
   literal string `No exporter ships` nor `Nothing transmits`.
 
-- [ ] **AC-0031.** `jsonl-otlp-exporter` appears in the root `pyproject.toml`
+- [x] **AC-0031.** `jsonl-otlp-exporter` appears in the root `pyproject.toml`
   `pythonpath`, mypy's `files`, the `Makefile` test-suite invocations, and the
   pip-audit build-system leg, so its tests and type checks are run by this
   repository's gates.
-- [ ] **AC-0039.** With the distribution absent, `agentbundle catalogue lint`
+- [x] **AC-0039.** With the distribution absent, `agentbundle catalogue lint`
   reports `jsonl-otlp-exporter` as an optional, unsatisfied runtime dependency of
   `core` and exits 0, invoking no package manager.
-- [ ] **AC-0040.** This repository ships a profile at
+- [x] **AC-0040.** This repository ships a profile at
   `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` declaring
   `timestamp_field = "at"`, `timestamp_format = "rfc3339"`,
   `severity_field = "result"`, a `severity_map` reading exactly
@@ -148,53 +148,53 @@ appears in exactly one of the three groups.
   line rather than as a name list, so a field added to the envelope fails this
   criterion instead of being dropped silently.
 
-- [ ] **AC-0043.** The documented invocation resolves `--input` to the
+- [x] **AC-0043.** The documented invocation resolves `--input` to the
   repository root's `.loop-run/events.jsonl`.
-- [ ] **AC-0044.** The documented invocation passes
+- [x] **AC-0044.** The documented invocation passes
   `packs/core/.apm/skills/work-loop/profiles/work-loop.toml` to the sender's
   `--profile` flag, and a line the engine actually emitted reaches the Collector
   with its `at`, `result`, `run_id` and `seq` at the destinations that file
   declares. The profile is supplied as data by this consumer; the sender
   registers no profile of its own.
-- [ ] **AC-0041.** The documented invocation resolves each `[telemetry]` setting
+- [x] **AC-0041.** The documented invocation resolves each `[telemetry]` setting
   from the repository `agentbundle-layout.toml` when that file declares it, and
   from the user `agentbundle-layout.toml` when the repository file exists but
   declares no value for it.
 
-- [ ] **AC-0042.** No exit code named in
+- [x] **AC-0042.** No exit code named in
   `guides/core/how-to/export-loop-telemetry.md` falls in
   the 2–9 band reserved by
   [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
 
-- [ ] **AC-0046.** Every event line `loop-engine` constructs for a transition and
+- [x] **AC-0046.** Every event line `loop-engine` constructs for a transition and
   appends to `.loop-run/events.jsonl` carries `schema` with integer value 1.
   This governs freshly constructed records only; a replayed record is AC-0047's.
 
-- [ ] **AC-0047.** An `events.pending` record that carries no `schema` key is
+- [x] **AC-0047.** An `events.pending` record that carries no `schema` key is
   appended to `events.jsonl` unchanged, still carrying no `schema` key.
-- [ ] **AC-0048.** The recorded corpus at
+- [x] **AC-0048.** The recorded corpus at
   `packs/core/tests/skills/work-loop/fixtures/event-corpus.jsonl` holds at least
   one record carrying `schema` and at least one legacy record carrying none, and
   `contracts/jsonschema/loop-run-event.schema.json` validates every line of it.
-- [ ] **AC-0049.** That schema rejects a record whose `schema` is any value other
+- [x] **AC-0049.** That schema rejects a record whose `schema` is any value other
   than a positive integer, and rejects a record missing any of the seven identity
   fields `seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`.
-- [ ] **AC-0050.** `contracts/README.md`'s file table names
+- [x] **AC-0050.** `contracts/README.md`'s file table names
   `contracts/jsonschema/loop-run-event.schema.json`.
-- [ ] **AC-0051.** The integer written as the field count in
+- [x] **AC-0051.** The integer written as the field count in
   `docs/architecture/telemetry.md` § 5.1 equals the number of keys on a line the
   engine emits.
-- [ ] **AC-0052.** `workspace_mcp.py`'s events poller yields the same parsed
+- [x] **AC-0052.** `workspace_mcp.py`'s events poller yields the same parsed
   result for a legacy record carrying no `schema` as for the otherwise identical
   record carrying `schema: 1`.
 
-- [ ] **AC-0054.** `docs/architecture/telemetry.md` § 2 contains each of the
+- [x] **AC-0054.** `docs/architecture/telemetry.md` § 2 contains each of the
   literal strings `jsonl-otlp-exporter`, `separately installed` and `sends
   nothing until an endpoint is configured`. AC-0021 and AC-0022 delete stale
   claims; this criterion is what makes the section say something, so a § 2 gutted
   to an empty heading cannot satisfy all three.
 
-- [ ] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
+- [x] **AC-0053.** `contracts/jsonschema/loop-run-event.schema.json` carries a
   `$comment` whose value contains the literal string
   `docs/specs/loop-telemetry-export/spec.md`.
 
@@ -202,6 +202,14 @@ appears in exactly one of the three groups.
 
 <!-- Identity is append-only: a retired identifier is never reused. Entries are
      bare identifiers; the narrative belongs above, not on the entry line. -->
+
+AC-0055 was introduced by amendment 1 on 2026-09-14 and withdrawn the same day,
+unapproved. A criterion needs a task entry, and its only honest home was T2 —
+which `loop-cohort` had already recorded complete, and it refuses a plan that
+rewrites a completed task's section. The behaviour it would have governed still
+ships and is still tested; what it lacks is a criterion. Listed here because the
+identifier reached pushed history, and identity is append-only: it is never
+reused, even though it was never approved.
 
 AC-0017 through AC-0019 were retired 2026-09-12 when the event-line version was
 carved into a separate spec. That spec was folded back here on 2026-09-13, so
@@ -246,6 +254,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 - AC-0036
 - AC-0037
 - AC-0038
+- AC-0055
 
 ## Follow-ons
 
@@ -258,7 +267,7 @@ re-authored there under that spec's own identifiers. None is reused here.
 
 ## Assumptions
 
-- Technical: gate enumeration in this repository is literal, not glob-based (source: `Makefile:515-516`, `pyproject.toml:16`, `pyproject.toml:94-96`, `Makefile:361-366`)
+- Technical: gate enumeration in this repository is literal, not glob-based, and there are **six** such enumerations, not the four AC-0031 names (source: `pyproject.toml` `pythonpath` and `[tool.mypy] files`; the `Makefile`'s `PYTHONPATH` assignment, its test-suite invocations and its pip-audit `--build-system` leg; `tools/lint-mypy.py`'s `TYPED_PACKAGES`)
 - Technical: `[[pack.runtime-dependencies]]` exists in the pack schema and has no reader (source: `packages/agentbundle/agentbundle/_data/pack.schema.json:217-246`)
 - Technical: the envelope carries fourteen fields once AC-0046 ships, of which `at`, `result`, `run_id` and `seq` are the four the profile needs (source: `docs/architecture/telemetry.md` § 5.1; `loop-engine.py:1608-1623`)
 - Process: Tier 1 detect → fail-clean is mandatory and the default (source: `guides/_shared/how-to/author-a-skill.md:104-117`)

@@ -8,7 +8,12 @@
 # isolated Python for the active executable, shell-quotes it, then replaces this
 # recursive value with the resolved simple value for the rest of the make run.
 PYTHON ?= $(eval PYTHON := $(shell python3 -I -B -c 'import shlex, sys; print(shlex.quote(sys.executable) if sys.executable else "")'))$(if $(PYTHON),$(PYTHON),$(error unable to resolve python3 executable))
-PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
+# jsonl-otlp-exporter is here as well as in pyproject's `pythonpath` because
+# each packages/*/ suite has its own [tool.pytest.ini_options], which is the
+# nearer configfile for its own run -- so the root `pythonpath` does not reach
+# it. Without this entry `make test` collects zero of its tests and reports
+# eight collection errors, not a failure anyone would read as missing coverage.
+PYTHONPATH := packages/agentbundle:packages/credbroker:packages/jsonl-otlp-exporter:$(PYTHONPATH)
 # Stale __pycache__ makes catalogue verify's fresh-output build (CAT-V-014)
 # fail mid-run, on a clean tree too. Overridable: PYTHONDONTWRITEBYTECODE= make ci
 PYTHONDONTWRITEBYTECODE ?= 1
@@ -383,7 +388,8 @@ sast-unleased:
 	# Audit the PEP 517 backends that execute during package builds. Extract the
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
 	python3 tools/audit-requirements.py --build-system \
-		packages/agentbundle/pyproject.toml packages/credbroker/pyproject.toml
+		packages/agentbundle/pyproject.toml packages/credbroker/pyproject.toml \
+		packages/jsonl-otlp-exporter/pyproject.toml
 	# Audit AgentBundle's authoring/lint extra from pyproject.toml so the SCA
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
@@ -565,6 +571,7 @@ endif
 override define run-test-suite
 $(PYTHON) -m pytest packages/agentbundle/tests/ -q -p tools.pytest_collection_floor --minimum-collected=3200 --collection-floor-suite=packages/agentbundle/tests/
 $(PYTHON) -m pytest packages/credbroker/ -q
+$(PYTHON) -m pytest packages/jsonl-otlp-exporter/ -q
 $(PYTHON) tools/lint-conformance-portability.py --root .
 $(PYTHON) tools/lint-direct-code-table.py --root .
 # spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
@@ -639,6 +646,9 @@ $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 $(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 $(PYTHON) -m pytest tools/test_editable_install_guard.py -q
+# Every gate enumeration that must name jsonl-otlp-exporter. Each site is a
+# literal list, so adding the package to one adds it to none of the others.
+$(PYTHON) -m pytest tools/test_gate_enumeration.py -q
 # This exact class is stable in forward/reverse order and under the state-leak
 # characterization controls. The import-time path guard deliberately retains
 # its sanitized full-roster child collection inside this outer pytest process.
