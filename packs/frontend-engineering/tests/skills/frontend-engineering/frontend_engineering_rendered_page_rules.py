@@ -236,8 +236,19 @@ def _largest_admitted(upper: str) -> int:
     One source, because the drop condition and the capture-width rule must agree
     by construction rather than by two copies of the same expression staying in
     step. `<=` and `=` admit their own value; `<` admits one less.
+
+    An above-bound operator in an upper-bound cell is a malformed table, not a
+    band: `>480` admits every width above 480, so returning 479 for it would drop
+    a band admitting almost everything. Refusing beats computing a wrong largest
+    in silence.
     """
     op, value = _bound_value(upper)
+    if op in (">", ">="):
+        raise AssertionError(
+            f"upper bound cell {upper!r} states an above-bound operator; an upper "
+            f"bound admits widths below it, and this cell admits everything above "
+            f"{value}, so it does not describe a band's upper edge"
+        )
     return value if op in ("<=", "=") else value - 1
 
 

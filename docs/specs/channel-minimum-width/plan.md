@@ -134,7 +134,7 @@ chain is `inspection_result` → `evaluate_capture_set` → `required_channels`,
 a minimum that stops anywhere short of the top is unreachable from the result an
 adopter records, which is the whole outcome. `inspection_result` deliberately
 does not echo the basis back, and the minimum follows that same rule: it selects
-required channels and is recorded on the § 5a manifest row, not in the result. The clamped-band naming rule and its two templates are stated in AC-0002 and
+required channels and is recorded on the `## Evidence manifest` `viewports` row, not in the result. The clamped-band naming rule and its two templates are stated in AC-0002 and
 AC-0003, with the fallback exception; the walk prints that name in its incomplete
 report, which is why it is contract rather than detail. AC-0002 and AC-0003 are canonical for the drop
 condition and the clamp; this plan states the mechanism they imply rather than

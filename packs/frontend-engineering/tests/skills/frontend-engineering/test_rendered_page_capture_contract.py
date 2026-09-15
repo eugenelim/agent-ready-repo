@@ -1239,3 +1239,17 @@ def test_the_drop_condition_agrees_with_satisfies_on_every_operator(
         f"upper bound {upper!r} admits 480 under satisfies={admits_480}, but the "
         f"drop condition says it survives a 480 minimum={survives}"
     )
+
+
+@pytest.mark.parametrize("upper", [">480", ">=480"])
+def test_an_above_bound_upper_cell_is_refused(rules_markdown: str, upper: str) -> None:
+    """An upper-bound cell stating an above-bound operator is a malformed table.
+
+    `_bound_value` parses `>480` without complaint, so the largest-admitted rule
+    would return 479 and the drop condition would discard a band that admits
+    every width above 480 — while `satisfies` reads the same cell as unbounded
+    above. Refusing is the honest answer; computing a wrong largest in silence is
+    the failure this control exists to stop.
+    """
+    with pytest.raises(AssertionError, match="above-bound operator"):
+        _band_admits(("probe", "", upper), 480)
