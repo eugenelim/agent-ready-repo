@@ -113,11 +113,11 @@ unit, which is the first thing to compare families across rounds.
 
 ## Acceptance Criteria
 
-**Family.** A finding's family is its cited location plus its *stable title* —
-the captured title with the leading ordinal and any bracketed severity tag
-removed, and the `**` markers dropped. A finding identifier the reviewer
-assigned, such as `F1:`, stays: it is content, not position. The plan's
-*Data & schema* owns both preimage forms.
+**Family.** A finding's family identifies the same finding across rounds where
+the fingerprint cannot, because the fingerprint's preimage carries position that
+a repair moves. The plan's *Data & schema* owns both preimage forms and the
+normalisation; the criteria below fix the properties that normalisation must
+have, which is what makes them checkable without restating it.
 
 ### Family key
 
@@ -139,7 +139,9 @@ assigned, such as `F1:`, stays: it is content, not position. The plan's
 - [ ] **AC-0007.** The family key is present on each of the three classification
   payloads — the one `review inspect --json` emits, the one
   `review classify --json` emits, and the one returned for a report classified
-  `invalid` — and is an empty list on the `invalid` payload.
+  `invalid` — and is an empty list on the `invalid` payload. The first two are
+  distinct call sites through one emitter; only the `invalid` return is a
+  separate builder, so the third case is the one that can fail alone.
 - [ ] **AC-0008.** `review raw-classify`'s field set is unchanged.
 
 ### Documentation
@@ -154,10 +156,19 @@ assigned, such as `F1:`, stays: it is content, not position. The plan's
 ### Compatibility
 
 - [ ] **AC-0011.** For the `findings` and `clean` classifications,
-  `matches_previous_round` remains a function of the canonical fingerprint set
-  and the previous round's fingerprint set alone.
+  `matches_previous_round` remains a function of the round's canonical
+  fingerprint set and the `finding_fingerprints` value the classifier reads —
+  not `previous_finding_fingerprints`, which is a separate documented key the
+  comparison does not use.
 
 ## Follow-ons
+
+- **Retiring full mode's stasis stop disposition** is specified separately, in
+  [`stasis-stop-retirement`](../stasis-stop-retirement/spec.md). ADR-0104 decides
+  the retirement; that spec carries it out. This spec has one dependency on it:
+  ADR-0104 requires recurrence to be Surfaced, and today the only shipped
+  Surface instruction sits in the same sentence as the halt being removed. That
+  spec preserves the Surface disposition; this one supplies the key read there.
 
 - **The follow-on unit: store families and compare them across rounds.** This
   slice exposes the key; nothing yet uses it. Comparing rounds requires a state
