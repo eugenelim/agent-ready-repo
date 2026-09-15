@@ -1067,3 +1067,209 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     assert own.exists(), "the adopter's own pack lost its tests"
     guided = cfg.target / "guides" / "_shared" / "tests" / "test_g.py"
     assert guided.exists(), "the guides call site stopped carrying test content"
+
+
+# ---------------------------------------------------------------------------
+# credbroker package source travels with the credential-brokers pack
+#
+# `user_libs` resolves its source of truth at `packs_dir.parent /
+# packages/credbroker/credbroker`. A derived catalogue that omits it reaches
+# the documented whole-package-retirement branch by accident: both consumers of
+# `compute_projections` become silent no-ops, so `catalogue self-host` writes no
+# floor and `check_drift` reports clean over nothing.
+# ---------------------------------------------------------------------------
+
+
+def _add_credbroker_source(source: Path) -> None:
+    """Add a minimal `packages/credbroker/` project to a source tree."""
+    pkg_root = source / "packages" / "credbroker"
+    (pkg_root / "credbroker").mkdir(parents=True)
+    (pkg_root / "pyproject.toml").write_text(
+        '[project]\nname = "credbroker"\nversion = "0.1.0"\n', encoding="utf-8"
+    )
+    (pkg_root / "credbroker" / "__init__.py").write_text(
+        "from ._core import resolve\n\n__all__ = ['resolve']\n", encoding="utf-8"
+    )
+    (pkg_root / "credbroker" / "_core.py").write_text(
+        "def resolve(name: str) -> str:\n    return name\n", encoding="utf-8"
+    )
+    # Test content, to prove the derived catalogue does not carry it.
+    (pkg_root / "tests" / "unit").mkdir(parents=True)
+    (pkg_root / "tests" / "unit" / "test_core.py").write_text(
+        "def test_x() -> None:\n    assert True\n", encoding="utf-8"
+    )
+
+
+def _with_credbroker_pack(tmp_path: Path) -> Path:
+    """A source catalogue carrying the credential-brokers pack and its source."""
+    source = _make_source(tmp_path, packs=["core", "credential-brokers"])
+    _add_credbroker_source(source)
+    # The pack-vendored copy the build pipeline projects alongside the floor.
+    vendored = source / "packs" / "credential-brokers" / ".apm" / "user-libs"
+    (vendored / "credbroker").mkdir(parents=True)
+    for leaf in ("__init__.py", "_core.py"):
+        shutil.copyfile(
+            source / "packages" / "credbroker" / "credbroker" / leaf,
+            vendored / "credbroker" / leaf,
+        )
+    return source
+
+
+@pytest.mark.parametrize("tooling", ["external", "vendored"])
+def test_credbroker_source_travels_in_both_tooling_modes(
+    tmp_path: Path, tooling: str
+) -> None:
+    """The copy is keyed on the pack, not on --tooling.
+
+    credbroker is a build input resolved by relative path, unlike
+    `packages/agentbundle/`, which is an install source and therefore vendored
+    to `.agentbundle/tooling/` in vendored mode only.
+    """
+    source = _with_credbroker_pack(tmp_path)
+    if tooling == "vendored":
+        # Same shape as test_init_self_hosted_vendored_copies_tooling: the
+        # importable runtime tree only, not the engine's own project docs.
+        agentbundle_src = source / "packages" / "agentbundle" / "agentbundle"
+        agentbundle_src.parent.mkdir(parents=True)
+        shutil.copytree(PACKAGE_ROOT / "agentbundle", agentbundle_src)
+    cfg = _base_cfg(tmp_path, source, tooling=tooling)
+    result = init_self_hosted(cfg)
+    assert result.ok, result.diagnostics
+
+    # Exactly the path `user_libs._package_source_dir` resolves.
+    landed = cfg.target / "packages" / "credbroker" / "credbroker" / "_core.py"
+    assert landed.is_file(), (
+        f"credbroker source absent under tooling={tooling}; the user-libs "
+        "projection and its drift gate are inert in this derived catalogue"
+    )
+    assert (
+        landed.read_bytes()
+        == (source / "packages" / "credbroker" / "credbroker" / "_core.py").read_bytes()
+    )
+    assert (cfg.target / "packages" / "credbroker" / "pyproject.toml").is_file()
+    # It is NOT ALSO vendored as an install source.
+    assert not (
+        cfg.target / ".agentbundle" / "tooling" / "packages" / "credbroker"
+    ).exists()
+
+
+def test_credbroker_copy_carries_no_test_content(tmp_path: Path) -> None:
+    source = _with_credbroker_pack(tmp_path)
+    cfg = _base_cfg(tmp_path, source)
+    assert init_self_hosted(cfg).ok
+    assert not (cfg.target / "packages" / "credbroker" / "tests").exists()
+
+
+def test_credbroker_source_absent_when_pack_not_selected(tmp_path: Path) -> None:
+    """No pack that vendors it, no reason to carry its source."""
+    source = _with_credbroker_pack(tmp_path)
+    cfg = _base_cfg(tmp_path, source, packs=["core"])
+    assert init_self_hosted(cfg).ok
+    assert not (cfg.target / "packages" / "credbroker").exists()
+
+
+def test_derived_catalogue_has_a_live_user_libs_projection(tmp_path: Path) -> None:
+    """The defect's actual consequence: the gate resolves sources, not [].
+
+    Asserted against `compute_projections` itself rather than a consequence of
+    it, because `[]` is what makes BOTH consumers no-ops.
+    """
+    from agentbundle.build.user_libs import check_drift, compute_projections
+
+    source = _with_credbroker_pack(tmp_path)
+    cfg = _base_cfg(tmp_path, source)
+    assert init_self_hosted(cfg).ok
+
+    packs_dir = cfg.target / "packs"
+    projections = compute_projections(cfg.target, packs_dir)
+    assert projections, "compute_projections returned [] — the gate is silent"
+    targets = {p.target for p in projections}
+    assert cfg.target / ".agentbundle" / "lib" / "credbroker" / "_core.py" in targets
+
+    # And the gate now *speaks*: the floor staging is not there yet, so a
+    # freshly derived catalogue is told to build it rather than told it is clean.
+    drifts = check_drift(cfg.target, packs_dir)
+    assert any(
+        "missing" in d and ".agentbundle/lib/credbroker" in d.replace("\\", "/")
+        for d in drifts
+    ), drifts
+
+
+def test_user_libs_projection_is_silent_without_the_package_source(
+    tmp_path: Path,
+) -> None:
+    """Differential control: the previous test passes for the stated reason.
+
+    Removing only `packages/credbroker/` from the derived tree must collapse
+    the projection to `[]` and the drift report to clean. Without this, the
+    assertions above could hold for some unrelated reason.
+    """
+    from agentbundle.build.user_libs import check_drift, compute_projections
+
+    source = _with_credbroker_pack(tmp_path)
+    cfg = _base_cfg(tmp_path, source)
+    assert init_self_hosted(cfg).ok
+
+    shutil.rmtree(cfg.target / "packages" / "credbroker")
+    packs_dir = cfg.target / "packs"
+    assert compute_projections(cfg.target, packs_dir) == []
+    assert check_drift(cfg.target, packs_dir) == []
+
+
+# ---------------------------------------------------------------------------
+# source_pack_identity must not leak upstream identity under white-label
+#
+# `verify()` allows the upstream catalogue name zero hits anywhere in
+# white-label mode, but the leak check runs at step 9 over the planned
+# `file_bytes` map and the state file is written at step 13, outside it.
+# ---------------------------------------------------------------------------
+
+
+def _read_state(target: Path) -> dict:
+    import json
+
+    return json.loads(
+        (target / ".agentbundle" / "self-host-state.json").read_text(encoding="utf-8")
+    )
+
+
+def test_white_label_state_pins_the_derived_name(tmp_path: Path) -> None:
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source, attribution="white-label")
+    assert init_self_hosted(cfg).ok
+    assert _read_state(cfg.target)["source_pack_identity"] == "my-catalogue"
+
+
+def test_attributed_state_keeps_the_upstream_pin(tmp_path: Path) -> None:
+    """Attributed mode makes no anonymity promise; the accurate pin stays."""
+    source = _make_source(tmp_path)
+    cfg = _base_cfg(tmp_path, source, attribution="attributed")
+    assert init_self_hosted(cfg).ok
+    assert _read_state(cfg.target)["source_pack_identity"] == "upstream-catalogue"
+
+
+def test_white_label_target_tree_carries_no_upstream_anchor(tmp_path: Path) -> None:
+    """The property, scanned over what actually landed on disk.
+
+    `_verify_bytes_in_tmpdir` scans the planned byte map; this scans the written
+    target, which is the surface the adopter commits and ships. It is the only
+    form of the check that can see a file written after step 9.
+    """
+    from agentbundle.catalogue_tooling.identity import verify
+    from agentbundle.catalogue_tooling.initialise_self_hosted import _build_anchors
+
+    source = _with_credbroker_pack(tmp_path)
+    cfg = _base_cfg(tmp_path, source, attribution="white-label")
+    assert init_self_hosted(cfg).ok
+
+    anchors = _build_anchors(
+        {
+            "catalogue": {
+                "name": "upstream-catalogue",
+                "display_name": "Upstream Catalogue",
+                "description": "The upstream.",
+            }
+        }
+    )
+    violations = verify(cfg.target, anchors, mode="white-label")
+    assert not violations, [(v.path, v.anchor, v.line) for v in violations]

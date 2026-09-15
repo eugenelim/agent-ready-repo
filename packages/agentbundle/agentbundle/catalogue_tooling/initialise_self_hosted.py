@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from agentbundle.build.user_libs import PACK_NAME as _USER_LIBS_PACK
+from agentbundle.build.user_libs import PACKAGE_SUBPATH as _USER_LIBS_PACKAGE_SUBPATH
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
@@ -115,6 +117,33 @@ _BUILD_RESIDUE_DIRS: frozenset[str] = frozenset(
 )
 _BUILD_RESIDUE_FILES: frozenset[str] = frozenset({".DS_Store", "coverage.xml"})
 _VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)
+
+# The credbroker project directory: the parent of the package `user_libs`
+# resolves. `user_libs._package_source_dir` looks for the package at
+# `packs_dir.parent / PACKAGE_SUBPATH`, i.e. `<catalogue root>/packages/
+# credbroker/credbroker/`, so a derived catalogue must carry it at exactly that
+# path. Derived from the resolver's own constant rather than re-spelled, so the
+# copy follows the resolver if that path ever moves.
+#
+# Absent it, `compute_projections` finds no sources and returns `[]`, which
+# makes BOTH its consumers silent no-ops in the derived tree: `apply_projection`
+# writes no `.agentbundle/lib/credbroker/` floor, and `check_drift` compares
+# nothing and reports clean. The pack-vendored copy under
+# `.apm/user-libs/credbroker/` still arrives with the pack, so credbroker still
+# runs — as frozen content with no source and no drift signal.
+#
+# This is deliberately NOT the `packages/agentbundle/` treatment. That one is
+# vendored to `.agentbundle/tooling/agentbundle/` because it is an *install
+# source* the adopter `pip install -e`s. credbroker is a *build input resolved
+# by relative path*. Same principle, different mechanics: the two paths are not
+# interchangeable and must not be reconciled.
+_USER_LIBS_PACKAGE_DIR: str = _USER_LIBS_PACKAGE_SUBPATH.parent.as_posix()
+
+# No test content ships to a derived catalogue — the same boundary
+# `_VENDORED_PACK_EXCLUDE` draws. `user_libs.collect_sources` already excludes
+# `tests` from the projection, so the drift gate compares the same file set
+# either way and this costs the gate nothing.
+_USER_LIBS_PACKAGE_EXCLUDE: tuple[str, ...] = ("tests/",)
 
 
 # ---------------------------------------------------------------------------
@@ -780,6 +809,42 @@ def _write_ownership_state(target: Path, state: SelfHostOwnershipState) -> None:
     )
 
 
+def _source_pack_identity(
+    source_meta: dict[str, Any], cfg: SelfHostedInitConfig
+) -> str:
+    """Return the pin recorded in the committed ownership state file.
+
+    Under ``attributed``, that is the source catalogue's name — the accurate
+    provenance pin, and permitted because attributed mode makes no promise of
+    anonymity.
+
+    Otherwise it is the **derived** catalogue's name. The source name is
+    identity anchor #1, and ``verify()`` allows it zero hits anywhere in
+    white-label mode. But the leak check runs over the planned ``file_bytes``
+    map, and ``_OWNERSHIP_STATE_FILE`` is written afterwards and is never in
+    that map — so pinning the source name here would ship the exact banned
+    string in a file the adopter commits, past a control that cannot see it.
+
+    Bringing the state file inside the leak check would instead make a usable
+    pin impossible in the very mode that most needs control over what ships,
+    so the value changes rather than the check's scope.
+
+    The branch is on ``attributed`` rather than on ``white-label`` so that any
+    other value fails closed to the non-disclosing pin, matching how
+    ``_apply_identity_transform_bytes`` and ``verify`` both treat ``attributed``
+    as the single exception.
+
+    Note for editors: this module's own prose is vendored into a target and
+    scanned. ``_transform_text`` replaces anchors case-sensitively while
+    ``verify`` matches case-insensitively, so a differently-cased echo of an
+    anchor value here survives replacement and then fails the leak check. Keep
+    identity wording generic.
+    """
+    if cfg.attribution == "attributed":
+        return source_meta.get("catalogue", {}).get("name", "")
+    return cfg.name or ""
+
+
 # ---------------------------------------------------------------------------
 # Next-steps builder
 # ---------------------------------------------------------------------------
@@ -950,6 +1015,27 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
         if collect_error:
             return _fail(collect_error)
 
+    # The credbroker package source travels with the pack that vendors it, in
+    # BOTH tooling modes — it is a build input the user-libs projection resolves
+    # by relative path, not an install source. See _USER_LIBS_PACKAGE_DIR.
+    if _USER_LIBS_PACK in pack_names:
+        src_user_libs = cfg.source / _USER_LIBS_PACKAGE_DIR
+        if src_user_libs.is_dir() and not src_user_libs.is_symlink():
+            collect_error = _collect_source_dir(
+                src_user_libs,
+                _USER_LIBS_PACKAGE_DIR,
+                kind="package",
+                exclude=_USER_LIBS_PACKAGE_EXCLUDE,
+            )
+            if collect_error:
+                return _fail(collect_error)
+        else:
+            diagnostics.append(
+                f"{_USER_LIBS_PACKAGE_DIR}/ not found in source; the "
+                f"{_USER_LIBS_PACK} pack ships without its package source, so "
+                "the user-libs projection and its drift gate stay inert"
+            )
+
     # Vendored mode: copy agentbundle source and catalogue-curation.
     if cfg.tooling == "vendored":
         src_agentbundle = cfg.source / "packages" / "agentbundle"
@@ -1097,7 +1183,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             ],
             adapters=adapters,
             managed_target_path=str(cfg.target),
-            source_pack_identity=source_meta.get("catalogue", {}).get("name", ""),
+            source_pack_identity=_source_pack_identity(source_meta, cfg),
             source_root_kind="self-hosted-source",
         )
         _write_ownership_state(cfg.target, new_state)

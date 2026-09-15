@@ -14,6 +14,21 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.44.2
+
+A catalogue you derive with `catalogue init --preset self-hosted` now keeps a
+working drift check on its vendored `credbroker` code. Selecting the
+`credential-brokers` pack copies the package source alongside it, so the check
+that compares the vendored copy against that source has something to compare.
+Previously the source was left behind and the check passed by finding nothing:
+the vendored copy was frozen, and an edit to it went unreported.
+
+`--attribution white-label` also no longer records the upstream catalogue's
+name in `.agentbundle/self-host-state.json`. That file is written after the
+identity scan runs, so the name reached a file you commit and ship. It now
+records your own catalogue's name. `--attribution attributed` is unchanged and
+still records the upstream name.
+
 ## What's new in 0.44.1
 
 Installing a pack now adds its default output location to an
