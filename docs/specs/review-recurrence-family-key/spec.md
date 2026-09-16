@@ -29,8 +29,8 @@ follow-on unit named below, which is a state-schema and public-interface change.
 ### Why the current key cannot carry recurrence
 
 `state-schema.md` records `finding_fingerprints` as
-`sha256("<file>|<line>|<title>")` per finding and names stasis detection as its
-consumer. Three parts of that preimage move while the finding does not:
+`sha256("<file>|<line>|<title>")` per finding and records that the comparison
+reads false through most real recurrence, because the preimage carries position. Three parts of that preimage move while the finding does not:
 
 | Part | Moves when | Present in |
 | --- | --- | --- |

@@ -122,7 +122,8 @@ A feature lifecycle, end to end, with the parts named:
    same as the previous round's, the loop surfaces that and carries on; the
    iteration cap is what bounds it. The signal is advisory because the
    fingerprint carries a line number and an ordinal that any repair moves, so
-   it never fired in two months of recorded runs (ADR-0104).
+   it reads false through most real recurrence and never fired across two
+   months of recorded runs.
 10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.
 
 The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Boundaries because the reviewer measures plans against Boundaries before falling back to the declined-pattern register. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.
@@ -160,7 +161,7 @@ Two well-known spec-driven workflows exist; the core pack overlaps with both but
 | Supervisor-mode parallelism for independent tasks | — | ✓ |
 | Cross-harness reach | partial (multiple agent harnesses supported) | ✓ (direct adapters for Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro — plus APM's `HookIntegrator` for the targets it covers) |
 
-Spec Kit's spec-driven loop terminates at `/implement` — there's no state-machine loop around it that re-fires until an adversarial reviewer returns clean. The core pack treats `/implement` as step 5 of 10. The extra five steps — gates, adversarial review, a mechanical iteration cap, specialist reviewers, learning capture — are the ones that catch the failures spec-shape alone can't.
+Spec Kit's spec-driven loop terminates at `/implement` — there's no state-machine loop around it that re-fires until an adversarial reviewer returns clean. The core pack treats `/implement` as step 5 of 10. The extra five steps — gates, adversarial review, specialist reviewers, reporting repeated findings, learning capture — are the ones that catch the failures spec-shape alone can't.
 
 ### vs. Kiro IDE's spec-driven mode
 

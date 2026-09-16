@@ -158,8 +158,9 @@ def test_the_surface_disposition_survives(target: Path, surface_disposition: str
     the way an edit satisfying absence alone loses them.
     """
     assert surface_disposition in _flat(target), (
-        f"Surface disposition lost from {_rel(target)}; the accepted decision requires it and is "
-        "frozen, so restoring it is a spec fix rather than an ADR amendment"
+        f"required disposition lost from {_rel(target)}: {surface_disposition!r}. "
+        "ADR-0104 requires the signal to stay reported, and two of these share a "
+        "sentence with the halt that was removed."
     )
 
 

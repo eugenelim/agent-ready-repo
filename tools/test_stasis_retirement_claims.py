@@ -64,15 +64,38 @@ def _published_markdown() -> list[Path]:
 # RFC and is deliberately untouched; it says "stasis-detection data", which the
 # hyphen is all that keeps out of `RETIRED_CLAIMS`'s reach.
 PRESERVED_PUBLISHED = (
-    "use the new-rfc skill to amend the work-loop iteration cap from 5 to 7 "
-    "based on six months of stasis-detection data",
+    (
+        "guides/governance-extras/how-to/new-rfc.md",
+        "use the new-rfc skill to amend the work-loop iteration cap from 5 to 7 "
+        "based on six months of stasis-detection data",
+    ),
 )
+
+
+def _preserved(pairs: tuple[tuple[str, str], ...]) -> list[str]:
+    """Establish each preserved literal from the file it is attributed to.
+
+    The collision domain is text that lives in files. Comparing a phrase list
+    against a hand-copied literal guards a copy, not the thing: if the real
+    wording drifts, the sweep reds on a compliant tree while the guard that
+    exists to prevent that stays green.
+    """
+    out: list[str] = []
+    for relpath, literal in pairs:
+        target = ROOT / relpath
+        assert target.is_file(), f"preserved text attributed to a missing file: {relpath}"
+        assert literal in _flat(target), (
+            f"preserved literal no longer appears in {relpath}: {literal!r}. "
+            "The collision guard is now checking a phrase that is not there."
+        )
+        out.append(literal)
+    return out
 
 
 @pytest.mark.parametrize("claim", RETIRED_CLAIMS)
 def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
     """A published-claim sweep must not be able to red on prose kept on purpose."""
-    collisions = [s for s in PRESERVED_PUBLISHED if claim in s.lower()]
+    collisions = [s for s in _preserved(PRESERVED_PUBLISHED) if claim in s.lower()]
     assert not collisions, (
         f"retired claim {claim!r} matches preserved published text: {collisions}"
     )
@@ -81,8 +104,8 @@ def test_no_retired_claim_matches_preserved_published_text(claim: str) -> None:
 @pytest.mark.parametrize(
     "paragraph",
     (
-        "The extra five steps — gates, adversarial review, a mechanical iteration "
-        "cap, specialist reviewers, learning capture",
+        "The extra five steps — gates, adversarial review, specialist reviewers, "
+        "reporting repeated findings, learning capture",
         "reviewer findings send you back to FIX, and the iteration cap sends you "
         "to a human",
     ),
@@ -160,6 +183,10 @@ RETIRED_PHRASES = (
     "stops a third pass",
     "refuses to self-certify past a red gate or a repeated finding",
     "it stops at plan approval, unresolved boundaries, repeated findings",
+    # The vocabulary that made both suites green over a two-criterion violation.
+    # It was added to the published list first; the runtime surfaces are edited
+    # surfaces too, so the criteria reach them and the sweep must as well.
+    "fingerprint stasis",
 )
 
 # Explicit, not a glob over a tree: an earlier attempt widened the path list and
@@ -180,15 +207,24 @@ SWEEP_CORPUS = (
 
 # Statements the change preserves. A retired phrase matching any of these would
 # red on the compliant tree, which is the "too tight and too loose" failure.
+_REFS = "packs/core/.apm/skills/work-loop/references/"
+_SKILL = "packs/core/.apm/skills/work-loop/SKILL.md"
+
 PRESERVED_TEXT = (
-    "session end, retry cap, stasis, or model judgment never invokes this "
-    "transition or creates a follow-on",
-    "Retry caps, review stasis, and a clean intermediate unit never complete "
-    "intent or create follow-ons",
-    "an intermediate clean unit, retry cap, or stasis never completes accepted intent",
-    "A merged PR, retry cap, or review stasis alone is not completion",
-    "Surface it, and continue the round sequence",
-    "Surface it; it starts no transition and stops no loop",
+    (_REFS + "delivery-contract-lifecycle.md",
+     "session end, retry cap, stasis, or model judgment never invokes this "
+     "transition or creates a follow-on"),
+    (_REFS + "delivery-contract-lifecycle.md",
+     "Retry caps, review stasis, and a clean intermediate unit never complete "
+     "intent or create follow-ons"),
+    (_SKILL,
+     "an intermediate clean unit, retry cap, or stasis never completes accepted intent"),
+    (_SKILL,
+     "A merged PR, retry cap, or review stasis alone is not completion"),
+    (_REFS + "finding-adjudication.md",
+     "Surface it, and continue the round sequence"),
+    (_REFS + "state-schema.md",
+     "Surface it; it starts no transition and stops no loop"),
 )
 
 
@@ -222,7 +258,7 @@ def test_the_retired_halt_stays_retired(phrase: str) -> None:
 @pytest.mark.parametrize("phrase", RETIRED_PHRASES)
 def test_no_retired_phrase_matches_preserved_text(phrase: str) -> None:
     """The sweep must not be able to red on text this change keeps."""
-    collisions = [s for s in PRESERVED_TEXT if phrase in s.lower()]
+    collisions = [s for s in _preserved(PRESERVED_TEXT) if phrase in s.lower()]
     assert not collisions, (
         f"retired phrase {phrase!r} matches preserved text: {collisions}. "
         "A sweep that fires on the compliant tree is unusable; narrow the phrase."

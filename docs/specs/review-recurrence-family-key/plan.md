@@ -149,8 +149,9 @@ same path as an empty fingerprint list.
 
 **Approach:**
 - `finding-adjudication.md`: name the key and cite this plan's *Data & schema*
-  for the preimage. Do not attach it to the stasis row, whose disposition is
-  "do not start another round".
+  for the preimage. Do not attach it to the repeated-findings row: that row
+  carries the Surface disposition for a different signal, and folding a second
+  one into it makes one review surface out of two unrelated changes.
 - `loop-contract.md`: identity within a round is keyed with position; recurrence
   across rounds is keyed without it.
 - Bump both pack manifests by one patch above whatever they hold at execution

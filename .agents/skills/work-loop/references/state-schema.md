@@ -67,7 +67,7 @@ write-second ordering.
 | `last_review_record_operation_id` | `<run_id>:<transition_sequence>` of the round most recently recorded under an operation id, or `null`. Supplied by the caller — this writer never reads `engine-state.json` — and read back to tell a completed write from one that never landed. |
 | `last_review_record_payload_digest` | `sha256("<form>\n<payload>")` of the payload recorded under that id: the sorted deduplicated fingerprint list, the artifact digest for either clean form, or the empty string for `--all-skipped`. Stored, never derived on read — a recording round overwrites `finding_fingerprints` and leaves `last_review_clean_source` untouched, so `state.json` stops describing an earlier round's payload as soon as the next round lands. A repeat under the same id with a matching digest is a completed write and changes nothing; a differing digest is refused. A round whose digest cannot be computed is refused rather than recorded, so no recorded id is ever undecidable. |
 | `max_review_retries` | Cap. Default: `5`. See `review_retry_count` for the two verbs that enforce it, and *Changing a cap* below for the two ways past it. |
-| `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; compared across rounds by `review inspect`. The line moves with any repair, and `<title>` carries the finding's ordinal from the reviewer's numbered list, so both shift when an earlier finding is retired — an equal set means an unchanged round rather than a stalled one. |
+| `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; compared across rounds by `review inspect`. Two parts of that preimage move while the finding does not: `<line>` shifts when a repair edits above it, and `<title>` carries the finding's ordinal from the reviewer's numbered list, so retiring an earlier finding renumbers the survivors. Equality across rounds is therefore rare even when the findings recur. |
 | `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |
 | `auto_parallel` | Always `false` in Phase 1; `dispatch-decision` and `auto-parallel` verbs are disabled. |
 | `last_commit_sha` | Latest commit SHA (informational; set externally). |
@@ -190,8 +190,10 @@ after the status token on the status line.
 previous round's exactly. Surface it; it starts no transition and stops no
 loop. It is not a stasis detector: the fingerprint carries a line number and
 an ordinal, so a repair that moves a finding gives it a new fingerprint, and
-an equal set means an unchanged round, not a stalled one. The halt this flag
-once carried is retired for that reason.
+a repair that shifts a line gives an otherwise-identical finding a new
+fingerprint, so the flag reads false through most real recurrence. It misses
+what it was built to catch, which is why the halt it once carried is retired.
+A false reading is not evidence that the round made progress.
 
 **Atomic writes.** Both tools update their JSON files through
 `tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed
