@@ -163,17 +163,13 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
   every approval path; approval before the first read or write under the
   directory; and the binding of every later resolution to the approved value.
   Separately enumerated because each is its own criterion: final-target
-  re-canonicalization; confinement at each missing intermediate directory; the
-  slug class and its 64-character bound; the `type:` mismatch, absent or
-  unparseable check with its blank-template refusal; **a matching `type:`
-  surfaced before replacement**; user-profile product belonging; and
-  extract-as-data for an existing target read before amending;
-  final-target re-canonicalization; confinement re-established at each missing
-  intermediate directory as it is created; the slug class and its 64-character
-  bound with refusal before path composition; the `type:` check treating absent or
-  unparseable as a collision and forbidding a blank template over an existing
-  artifact; user-profile product belonging before replacement; and extract-as-data
-  for an existing target read before amending.
+  re-canonicalization; confinement re-established at each missing intermediate
+  directory as it is created, not at a nominal parent; the slug class and its
+  64-character bound, refused before any path is composed; the `type:` check
+  treating absent or unparseable as a collision and forbidding a blank template
+  over an existing artifact; a matching `type:` surfaced before replacement;
+  user-profile product belonging before replacement; and extract-as-data for an
+  existing target read before amending.
 
 **Approach:**
 - Author the body once, then write the other three copies from it so equality is
@@ -199,10 +195,15 @@ exists in all four skills as one body.
 - Goal-based: each ships a `references/agentbundle-layout.md`, and
   `python3 -m pytest tests/conformance/test_pack_layout_declared_section.py -q` passes.
 - Goal-based: `information-architecture` states `type: information-architecture`
-  and `design-principles` states `type: design-principles` — the literals the
-  criteria fix, not whichever marker an implementer would otherwise invent. They ship no template, so the declaration
-  is the only place it can live; `design-system` and `creative-direction` carry
-  theirs in the templates T3 and T4 add.
+  — the literal a criterion fixes, so the marker is not invented at
+  implementation and does not join the pack's discover-by-marker set unreviewed.
+- Goal-based: `design-principles` still states `type: design-principles`. No
+  criterion fixes that literal because the skill already emits it; it survives a
+  rewrite rather than being chosen, and it sits on the same line as the
+  `docs/design` literal T5 removes, which is how it could be lost.
+- Neither ships a template, so the declaration is the only place the marker can
+  live; `design-system` and `creative-direction` carry theirs in the templates
+  T3 and T4 add.
 
 **Approach:**
 - Targets come from the acceptance criteria, which are the canonical statement —
@@ -369,11 +370,17 @@ longer publishes a path no skill writes.
 **Depends on:** T3, T4, T5, T6, T7, T8
 
 **Tests:**
-- TDD by mutation: the declaration test red when one write's `**Confinement:**`
-  line is removed, and again when one module copy is altered so equality fails.
-- TDD by mutation: the guide-agreement test red when the orphaned
-  `screens/<slug>.md` path is restored to the `interaction-design` step.
-- TDD by mutation: the registry test red when one stale `DESIGN.md` row is restored.
+- TDD, differential: the declaration test green against the tree, and red when
+  one write's `**Confinement:**` line is removed, and again when one module copy
+  is altered so equality fails.
+- TDD, differential: the guide-agreement test green against the tree, and red
+  when the orphaned `screens/<slug>.md` path is restored to the
+  `interaction-design` step.
+- TDD, differential: the registry test green against the tree, and red when one
+  stale `DESIGN.md` row is restored.
+- Each is a pair. A test red against the unmutated tree satisfies a
+  mutation-only check while proving nothing, so greenness is stated here rather
+  than left to a downstream suite.
 
 **Approach:**
 - The declaration and registry tests are pack-confined. The guide-agreement test
