@@ -14,6 +14,15 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.46.1
+
+`catalogue init` no longer stages its writes under a name another local user
+can predict. The temporary file now has a random name, is created
+exclusively, and keeps the permissions your umask would give it. A symlink
+left in the target directory can no longer redirect the write — which
+matters if you initialise a catalogue somewhere you do not exclusively
+control, such as a shared or world-writable directory.
+
 ## What's new in 0.46.0
 
 `catalogue init --preset self-hosted` now records the recipe it used and
