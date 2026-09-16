@@ -228,6 +228,27 @@ def _replacement_failures(
     )
 
 
+CHANGELOG = REPO_ROOT / "docs/product/changelog.md"
+
+
+def test_the_changelog_header_names_no_retired_document() -> None:
+    """The living half of a file whose entries are historical.
+
+    `docs/product/changelog.md` is excluded from the AC2 scan because its dated
+    entries name the retired document and stay untouched. Its maintenance header
+    is not an entry: it is live guidance, and the exclusion cannot tell the two
+    apart because a pathspec is file-granular. Round 9 found a dangling pointer
+    there. Blind spot, named: this checks only the text above the first `##`
+    heading, so a live pointer introduced lower in the file is not detected.
+    """
+    body = CHANGELOG.read_text(encoding="utf-8")
+    header = body.split("\n## ", 1)[0]
+    assert RETIRED_TOKEN not in header, (
+        "the changelog's maintenance header names the retired document; it is "
+        "live guidance, not a dated entry, so it is repaired normally"
+    )
+
+
 def run_scan(pattern: str | None = None) -> tuple[str, ...]:
     """Invoke the recorded scan predicate and return the paths it reports."""
     argv = ["sh", str(SCAN)] + ([pattern] if pattern else [])
