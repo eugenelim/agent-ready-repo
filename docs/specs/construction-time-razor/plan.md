@@ -65,21 +65,21 @@ implementer delta lands inside a section one of them slices:
 `packs/core/tests/skills/work-loop/test_sequential_implementer_dispatch.py` and
 `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
-The rung each fixture must report is fixed by `spec.md`, not by the runner:
-AC-0002 names rung 2 exactly and AC-0018 names rung 3 or rung 6. The runner
-compares the report's named rung against those constants rather than counting
-labels, so the comparison value cannot be widened after a failing run. Where two
-rungs answer a fixture jointly the contract names both, which keeps the check a
-comparison instead of an adjudication between two defensible readings.
+The runner records the rung each report names but grades none of them. Which
+rung applies to a fixture is not resolvable from the ladder by machine, so the
+rung is recorded for the ledger and protected by a content pin rather than gated.
+Four review rounds each produced a fresh defect in the gated form before that was
+settled.
 
 Functional success is read from each fixture's `Done when:` one-liner rather than
 from the report's `ready` status, because a status is the run's own account of
 itself. The runner records the one-liner's exit code and stdout for every
 satisfiable fixture.
 
-Protection, not criteria: T3 adds one pack-local content pin asserting that
+Protection, not criteria: T3 adds pack-local content pins asserting that
 `implementer.md` names the ladder by its heading and states no numbered rung of
-its own. Its purpose is to catch silent deletion of the delta and to catch a
+its own, and that `work-loop/SKILL.md`'s declination rule still requires a rung.
+The second pin is the whole protection for T2, whose rule is working material. Its purpose is to catch silent deletion of the delta and to catch a
 future third copy; it is recorded here rather than in the spec because a check
 that a sentence exists cannot decide whether the behaviour holds.
 
@@ -161,14 +161,12 @@ those copies are never edited directly.
 - `docs/specs/construction-time-razor/notes/probes/run-probe.sh` materialises
   every fixture and drives two scored runs each. It is the generator for every
   figure in the ledger, and it holds each fixture's expected rung.
-- Reuse fixture, proving AC-0001 and AC-0002: the emitted function delegates to
-  the sibling helper, and the report names the existing-solution rung. Proven red
-  on the pre-change contract — two runs, byte-identical duplication, no rung
-  named.
-- Helper-absent control, proving AC-0003, AC-0004 and AC-0018: no new module is
-  emitted, status is `ready`, and the named rung is rung 3 or rung 6. That last
-  check is what fails a constant or fabricated rung label, and its allowed values
-  come from the contract rather than from the fixture.
+- Reuse fixture, proving AC-0001: the emitted function delegates to the sibling
+  helper. Proven red on the pre-change contract — two runs, byte-identical
+  duplication, and no report mentioned a search, a candidate or a rung.
+- Helper-absent control, proving AC-0003 and AC-0004: no new module is emitted
+  and status is `ready`. The runner also records the rung each report names, for
+  the ledger; no criterion grades it.
 - Every satisfiable fixture's `Done when:` one-liner is run and its exit code and
   stdout recorded, proving AC-0019. This is the external functional signal; a
   `ready` status never stands in for it.
@@ -214,19 +212,25 @@ over two consecutive runs.
 
 **Verification mode:** goal-based check
 
+This task carries no acceptance criterion. Which rung a declination names is not
+mechanically decidable from the ladder, so the rule ships as working material
+protected by the content pin in T3 rather than as contract. The spec's Retired
+identifiers section records the demotion, its destination, its pin and the owner
+authority for it. The probes below are recorded evidence, not gates.
+
 **Tests:**
-- Declination fixture, proving AC-0013. Its frozen request plants two temptations
-  whose ladder answers are unambiguous and different: one addition the request
-  never asks for, whose answer is the not-genuinely-needed rung, and one hand-written
-  routine the language's own library already provides, whose answer is the
-  standard-library rung. Each entry must name its own rung, and the two must
-  differ. Proven red on the pre-change contract — one frozen request produced six
-  entries and named no rung.
-- Non-rung control, proving AC-0014: the request carries one temptation declined
-  by an explicit accepted requirement rather than by any rung. That entry must
-  record the requirement as its reason and name no rung. This fails if the rule
-  forces a fabricated rung onto every line.
-- Body-length floor: `work-loop/SKILL.md`'s body stays under 1,000 lines,
+- Declination fixture, recorded in the ledger: the frozen request plants two
+  temptations whose ladder answers differ — one addition the request never asks
+  for, and one hand-written routine the language's own library already provides.
+  The runner records which rung, if any, each emitted entry names. The
+  pre-change baseline is six entries and no rung named, so any rung at all is a
+  visible change; the ledger states this is a recorded observation and not a
+  detection claim.
+- Non-rung control, recorded in the ledger: one temptation declined by an
+  explicit accepted requirement rather than by any rung. The runner records
+  whether that entry names a rung, which is the over-fire signal a reader
+  inspects.
+- Body-length floor, gated: `work-loop/SKILL.md`'s body stays under 1,000 lines,
   measured as `skill_spec_lint.py` measures it.
 - `no stub (goal-based)`
 
@@ -239,8 +243,8 @@ over two consecutive runs.
   and the fidelity ladder.
 - Edit only at the PLAN step, outside both sha256-pinned windows.
 
-**Done when:** every check in this task's `Tests:` holds, each behavioural arm
-over two consecutive runs.
+**Done when:** the body-length floor holds, both probes are run and recorded in
+the ledger, and the T3 content pin covers this rule.
 
 **Grounding:** the register's disposition that a recorded rung is not ladder
 narration.
@@ -269,10 +273,12 @@ narration.
   Behaviour register durable output rather than as a criterion. Each case's own
   text records that the set is a register, because this skill sits outside the
   eval allowlist and a case here cannot detect a regression.
-- One new pack-local content pin asserts `implementer.md` names the ladder
-  heading and contains no numbered rung of its own — the protection recorded
-  under Construction tests, anchored at `parents[2]` so it never reads above its
-  pack.
+- Two new pack-local content pins, anchored at `parents[2]` so neither reads
+  above its pack: one asserts `implementer.md` names the ladder heading and
+  contains no numbered rung of its own; the other asserts `work-loop/SKILL.md`'s
+  declination rule still requires a `Cut before adding` rung. These are the
+  protection recorded under Construction tests, and the second is the only thing
+  standing behind T2.
 - `make lint-ruff lint-mypy` clean; `python3 -m pytest packs/core/tests/pack/ -q` green.
 - `no stub (goal-based)`
 

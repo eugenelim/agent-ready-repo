@@ -116,21 +116,10 @@ control fixture differing only in the rule's trigger, and the control's outcome
 is its own acceptance criterion. A control recorded only in the plan can never
 fail the contract, so a remedy that over-fires would still ship.
 
-- **Reuse of an adequate solution (AC-0001, AC-0002)** — goal-based check on the
-  reuse fixture, whose sibling helper fully satisfies the task.
-- **No reuse where nothing adequate exists (AC-0003, AC-0004, AC-0018)** —
-  goal-based check on the helper-absent control. AC-0018 is the anti-fabrication
-  half, and its allowed rungs are named in the criterion itself rather than
-  declared by the run: rung 3 and rung 6 both answer a one-line library call, so
-  the contract admits either and rejects everything else. Fixing the pair here is
-  what stops the comparison value being widened after a failing run. The reuse
-  fixture takes an exact rung in AC-0002, because an adequate existing solution
-  admits one answer.
-- **The task actually works (AC-0019)** — goal-based check across the closed set
-  of satisfiable fixtures. A report's `ready` status is the run's own account of
-  itself, so functional success is read from the fixture's `Done when:` one-liner
-  instead. This is one predicate substituted at each named fixture, checkable as
-  written at every one of them.
+- **Reuse of an adequate solution (AC-0001)** — goal-based check on the reuse
+  fixture, whose sibling helper fully satisfies the task.
+- **No reuse where nothing adequate exists (AC-0003, AC-0004)** — goal-based
+  check on the helper-absent control.
 - **No reuse of an inadequate candidate (AC-0005, AC-0006)** — goal-based check
   on the inadequate-candidate control, whose helper covers part of the outcome
   only. This is the over-fire guard for the reuse rule and the only fixture in
@@ -144,34 +133,36 @@ fail the contract, so a remedy that over-fires would still ship.
   lighter substitution it did not make.
 - **`failed` stays reachable (AC-0012)** — goal-based check on the no-route
   control. Without it the lighter-route rule could pass by relaxing its own bar.
-- **The declination register (AC-0013)** — goal-based check on a frozen request
-  carrying two temptations whose ladder answers are unambiguous and different.
-- **A non-rung declination stays honest (AC-0014)** — goal-based check on the
-  control whose temptation is declined by an explicit accepted requirement. It
-  fails if the rule forces a fabricated rung onto every line.
+- **The task actually works (AC-0019)** — goal-based check across the closed set
+  of satisfiable fixtures. A report's `ready` status is the run's own account of
+  itself, so functional success is read from the fixture's `Done when:` one-liner
+  instead. This is one predicate substituted at each named fixture, checkable as
+  written at every one of them.
 - **Release surface (AC-0015, AC-0016, AC-0017)** — goal-based check: two version
-  strings compared to each other and to the merge base, one heading position,
-  two catalogue commands, one schema validation, each with an exit code.
+  strings compared to each other and to the merge base, two catalogue commands,
+  one heading position, each with an exit code.
+
+**Which rung a report names is not gated.** The contract requires the rung to be
+recorded, and the delta asks for it, but no criterion decides whether the named
+rung is the right one. Which rung applies to a given fixture is not resolvable
+from the ladder by machine — the standard-library rung and the one-obvious-line
+rung both answer a one-line library call — so gating on it would put a judgement
+in the completion path. It is working material, protected by a content pin rather
+than a criterion.
 
 ## Acceptance Criteria
 
 - [ ] **AC-0001.** On the reuse fixture, the emitted function delegates to the
   existing sibling helper rather than reimplementing its behaviour.
-- [ ] **AC-0002.** On the reuse fixture, the report names rung 2 — the
-  existing-solution rung — as where the implementation stopped. Any other rung
-  fails this criterion.
 - [ ] **AC-0019.** On every fixture whose task is satisfiable — the reuse
   fixture, the helper-absent control, the inadequate-candidate control, the
   heavy-`Approach:` fixture and the heavy-required control — the task's
   `Done when:` one-liner exits zero and prints its stated expected value.
 - [ ] **AC-0003.** On the helper-absent control, no new module is emitted.
 - [ ] **AC-0004.** On the helper-absent control, the report status is `ready`.
-- [ ] **AC-0018.** On the helper-absent control, the rung the report names is
-  rung 3 or rung 6 — the standard-library rung or the one-obvious-line rung.
-  Rung 2 fails this criterion.
 - [ ] **AC-0005.** On the inadequate-candidate control, whose sibling helper
   satisfies part of the required outcome only, the emitted function does not
-  delegate to that helper and the task's `Done when:` still holds.
+  delegate to that helper. AC-0019 owns that fixture's functional success.
 - [ ] **AC-0006.** On the inadequate-candidate control, the report names that
   helper as a candidate the search found and did not use, and why.
 - [ ] **AC-0007.** On the heavy-`Approach:` fixture, no new module is emitted.
@@ -185,12 +176,6 @@ fail the contract, so a remedy that over-fires would still ship.
   substitution.
 - [ ] **AC-0012.** On the no-route control, whose `Done when:` no available route
   satisfies, the report status is `failed`.
-- [ ] **AC-0013.** On the declination fixture, the entry for each planted
-  temptation names the ladder rung whose condition that temptation meets, and the
-  two entries name different rungs.
-- [ ] **AC-0014.** On the non-rung declination control, the entry for the
-  temptation declined by an explicit accepted requirement records that reason and
-  names no rung.
 - [ ] **AC-0015.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, and it is
   exactly one patch increment above the version at the merge base of this branch
@@ -200,6 +185,26 @@ fail the contract, so a remedy that over-fires would still ship.
   and `agentbundle catalogue verify --root .` passes.
 - [ ] **AC-0017.** `CHANGELOG.md` carries a `[core]` section directly under
   `[Unreleased]`, with no other section between them.
+
+## Retired identifiers
+
+These criteria were demoted to working material and their identifiers are not
+reused. Destination: the rung-recording rules in
+`packs/core/.apm/agents/implementer.md` and
+`packs/core/.apm/skills/work-loop/SKILL.md`, which still carry the obligation.
+Pin: the content pin recorded in the plan's Construction tests, which fails if
+either rule is deleted. Owner authority: user confirmation 2026-09-16, after four
+review rounds located the non-mechanizable property.
+
+Retired: the reuse fixture's report naming rung 2; each planted temptation's
+entry naming its rung; a non-rung declination naming no rung; and the
+helper-absent control's report naming the standard-library or one-obvious-line
+rung.
+
+- AC-0002
+- AC-0013
+- AC-0014
+- AC-0018
 
 ## Follow-ons
 
