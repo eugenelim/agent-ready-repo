@@ -114,9 +114,14 @@ def test_governance_guides_name_both_generated_indexes() -> None:
     Was the retired conventions document and its seed. `adr/` and `rfc/` are
     seeded by governance-extras, so its how-to guides are where an author meets
     the rule that those indexes are generated.
+
+    Each guide states the rule for the index its own author regenerates. An ADR
+    author does not regenerate the RFC index, so pairing each guide with the
+    other's index asserted an obligation neither guide owes.
     """
-    for path in (ROOT / "guides/governance-extras/how-to/new-adr.md",
-                 ROOT / "guides/governance-extras/how-to/new-rfc.md"):
-        body = path.read_text(encoding="utf-8")
-        for name in ("adr/README.md", "rfc/README.md"):
-            assert f"The `{name}` index is generated" in body, f"{path} lost {name}"
+    for relative, name in (
+        ("guides/governance-extras/how-to/new-adr.md", "adr/README.md"),
+        ("guides/governance-extras/how-to/new-rfc.md", "rfc/README.md"),
+    ):
+        body = (ROOT / relative).read_text(encoding="utf-8")
+        assert f"The `{name}` index is generated" in body, f"{relative} lost {name}"

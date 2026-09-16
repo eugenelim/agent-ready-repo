@@ -8,17 +8,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SUPERVISOR = ROOT / "packs/core/.apm/skills/work-loop/references/supervisor-mode.md"
 EVALS = ROOT / "packs/core/.apm/skills/work-loop/evals/evals.json"
-SEED = ROOT / "packs/core/seeds/AGENTS.md"
 IMPLEMENTER = ROOT / "packs/core/.apm/agents/implementer.md"
 GUIDE = ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
 
 
 def test_no_surface_denies_the_sequential_dispatch_envelope() -> None:
-    """Former single-agent and mandatory-worktree claims cannot return."""
-    for path in (SUPERVISOR, SEED):
-        assert "single-agent, on every adapter" not in path.read_text(encoding="utf-8")
-    # AC8's third recorded contradiction: the repo-profile description.
-    assert "single-agent work-loop" not in SEED.read_text(encoding="utf-8")
+    """Former single-agent and mandatory-worktree claims cannot return.
+
+    The third recorded contradiction lived in the seeded conventions document,
+    which the conventions retirement deletes. Supervisor mode is a skill concern
+    and an adopter scaffold states no dispatch rule, so the claim has no seeded
+    surface to return to and the negative is asserted where the rule now lives
+    rather than re-pointed at a file that never carried it.
+    """
+    assert "single-agent, on every adapter" not in SUPERVISOR.read_text(
+        encoding="utf-8"
+    )
+    assert "single-agent work-loop" not in SUPERVISOR.read_text(encoding="utf-8")
     implementer = IMPLEMENTER.read_text(encoding="utf-8")
     assert ".worktrees/<task-id>/" not in implementer
     assert "all edits happen inside" not in implementer
@@ -27,13 +33,14 @@ def test_no_surface_denies_the_sequential_dispatch_envelope() -> None:
 def test_dispatch_surfaces_name_implementer_and_keep_the_fallback() -> None:
     """Omission is caught separately from removal of the former contradiction."""
     supervisor = SUPERVISOR.read_text(encoding="utf-8")
-    seed = SEED.read_text(encoding="utf-8")
     implementer = IMPLEMENTER.read_text(encoding="utf-8")
     # Pin the dispatch clause per surface, not the bare token: every one of these
     # files names `implementer` for other reasons, so a token check stays green
     # when the dispatch rule itself is deleted.
     assert "dispatches each plan task in topological" in supervisor
-    assert "one `implementer` at a time" in seed
+    # The sequential limit itself, which the retired seeded document used to
+    # carry alongside the reference. Its one live home is the reference.
+    assert "one `implementer` at a time" in supervisor
     assert "controller-supplied execution root" in implementer
     fallback = supervisor.split("## Single-agent fallback", 1)[1].split(
         "## Cross-references", 1
