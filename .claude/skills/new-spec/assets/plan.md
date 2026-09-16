@@ -203,7 +203,9 @@ ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
 *spec-sequencing*, not intra-plan waves, and are excluded from this plan's
 DAG. The scheduler **fails on a dependency cycle** and **warns on a
 forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first).
+running the dep first). A `Depends on:` entry that
+names no task in the plan is refused: the run exits non-zero, every offending
+task→dep pair is named, and nothing is persisted.
 
 **Optional `Touches:` grammar** (read by `loop-cohort schedule`).
 A task *may* add a `**Touches:**` line listing the file globs it expects to
@@ -223,7 +225,7 @@ could pick it up and complete it without follow-up questions:
 
 ### T1: <task name>
 
-**Depends on:** <none | T0, ...>
+**Depends on:** <none | comma-separated prior task IDs>
 
 **Tests:**
 - <test 1 — behaviour, edge case, or property; reference the Acceptance
