@@ -86,11 +86,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-Every behavioural outcome is verified by **goal-based check**: a scored run of
-the shipped contract against a frozen fixture, whose result is read by a
-mechanical predicate over what the run emits — which symbol the emitted module
-imports, whether a named module exists, which rung the report names, which
-status it carries. The mode is goal-based rather than TDD because the subject is
+Every **gated** behavioural outcome is verified by **goal-based check**: a
+scored run of the shipped contract against a frozen fixture, whose result is read
+by a mechanical predicate over what the run emits — which symbol the emitted
+module imports, whether a named module exists, which status the report carries.
+The rung a report names is recorded but not gated; see the note below the
+groups. The mode is goal-based rather than TDD because the subject is
 a prose contract consumed by a model session, so no in-process invariant is
 compressible; and it is not manual QA because each outcome is decided by a
 predicate over emitted bytes rather than by a reader's judgement.
@@ -111,10 +112,12 @@ rung, the helper-absent fixture's is not. A report that stamps one constant rung
 on every run therefore fails at least one criterion, which is what makes the
 check falsifiable rather than a label count.
 
-**Controls are criteria, not plan detail.** Each behavioural rule carries a
-control fixture differing only in the rule's trigger, and the control's outcome
-is its own acceptance criterion. A control recorded only in the plan can never
-fail the contract, so a remedy that over-fires would still ship.
+**A gated rule's control is a criterion, not plan detail.** Each gated rule
+carries a control fixture differing only in the rule's trigger, and that
+control's outcome is its own acceptance criterion. A control recorded only in the
+plan can never fail the contract, so a remedy that over-fires would still ship.
+The rung-recording rule is not gated and its observations are recorded evidence,
+which is the cost the owner accepted for it.
 
 - **Reuse of an adequate solution (AC-0001)** — goal-based check on the reuse
   fixture, whose sibling helper fully satisfies the task.
@@ -142,13 +145,21 @@ fail the contract, so a remedy that over-fires would still ship.
   strings compared to each other and to the merge base, two catalogue commands,
   one heading position, each with an exit code.
 
-**Which rung a report names is not gated.** The contract requires the rung to be
-recorded, and the delta asks for it, but no criterion decides whether the named
-rung is the right one. Which rung applies to a given fixture is not resolvable
-from the ladder by machine — the standard-library rung and the one-obvious-line
-rung both answer a one-line library call — so gating on it would put a judgement
-in the completion path. It is working material, protected by a content pin rather
-than a criterion.
+**Which rung a report names is not gated, and neither is the declination
+rule.** Both shipped contracts still require a rung to be recorded, but no
+criterion decides whether the recorded rung is the right one, and no criterion
+scores the declination register at all. Which rung applies to a given fixture is
+not resolvable from the ladder by machine — the standard-library rung and the
+one-obvious-line rung both answer a one-line library call — so gating on it would
+put a judgement in the completion path.
+
+Three obligations therefore survive as working material: the implementer records
+the rung it stopped at, a declination names the rung that killed it, and a
+declination declined for a reason no rung covers may state that reason instead.
+Their protection is the content pins recorded in the plan, which fail if any of
+the three disappears. Probe observations about them are recorded in the
+verification ledger and carry no completion effect: a surprising observation is a
+prompt to look, not a failed gate.
 
 ## Acceptance Criteria
 

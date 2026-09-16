@@ -34,9 +34,10 @@ slices only as far as the first `<!--`, and the declination delta sits at the
 PLAN step, outside both sha256-pinned windows.
 
 The riskiest part is not the prose — it is proving the prose moved behaviour
-without over-firing. Each rule is therefore scored against fixtures differing
-only in its trigger, and every control's outcome is its own acceptance
-criterion rather than plan detail. One committed script materialises the whole
+without over-firing. Each **gated** rule is therefore scored against fixtures
+differing only in its trigger, and that control's outcome is its own acceptance
+criterion rather than plan detail. The rung-recording rule is not gated: its
+fixtures are run and recorded, and the content pins are its protection. One committed script materialises the whole
 fixture set into a temporary directory so the evidence regenerates rather than
 being hand-curated; the script enumerates the fixtures so no count is restated
 here to decay. The fixtures are not loose repository files because
@@ -76,10 +77,21 @@ from the report's `ready` status, because a status is the run's own account of
 itself. The runner records the one-liner's exit code and stdout for every
 satisfiable fixture.
 
-Protection, not criteria: T3 adds pack-local content pins asserting that
-`implementer.md` names the ladder by its heading and states no numbered rung of
-its own, and that `work-loop/SKILL.md`'s declination rule still requires a rung.
-The second pin is the whole protection for T2, whose rule is working material. Its purpose is to catch silent deletion of the delta and to catch a
+Protection, not criteria: T3 adds pack-local content pins covering the three
+obligations the demotion left as working material, so the protection fails if any
+one of them disappears rather than only if a heading does:
+
+1. `implementer.md` requires the report to record the rung the implementation
+   stopped at.
+2. `work-loop/SKILL.md`'s declination rule requires each entry to name the rung
+   that killed its temptation.
+3. That same rule still admits a stated non-rung reason where no rung applies —
+   the exception whose removal would turn the rule into a demand for a fabricated
+   label.
+
+A fourth pin asserts `implementer.md` names the ladder by its heading and states
+no numbered rung of its own, which is what catches a future third copy. Pin 2 and
+pin 3 together are the whole protection for T2, whose rule carries no criterion. Its purpose is to catch silent deletion of the delta and to catch a
 future third copy; it is recorded here rather than in the spec because a check
 that a sentence exists cannot decide whether the behaviour holds.
 
@@ -273,12 +285,10 @@ narration.
   Behaviour register durable output rather than as a criterion. Each case's own
   text records that the set is a register, because this skill sits outside the
   eval allowlist and a case here cannot detect a regression.
-- Two new pack-local content pins, anchored at `parents[2]` so neither reads
-  above its pack: one asserts `implementer.md` names the ladder heading and
-  contains no numbered rung of its own; the other asserts `work-loop/SKILL.md`'s
-  declination rule still requires a `Cut before adding` rung. These are the
-  protection recorded under Construction tests, and the second is the only thing
-  standing behind T2.
+- Four new pack-local content pins, anchored at `parents[2]` so none reads above
+  its pack, covering the four obligations enumerated under Construction tests.
+  Each pin must fail on the removal of its own obligation, so a single pin over a
+  shared heading does not satisfy this bullet.
 - `make lint-ruff lint-mypy` clean; `python3 -m pytest packs/core/tests/pack/ -q` green.
 - `no stub (goal-based)`
 
