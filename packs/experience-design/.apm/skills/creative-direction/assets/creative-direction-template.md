@@ -1,3 +1,12 @@
+---
+type: creative-direction
+slug: "<kebab-case-slug — the surface or product this direction serves>"
+# surface: the target platform this direction is for. It changes which
+# platform standards ground each goal below.
+surface: "<responsive-web | iOS | Android | cross-platform>"
+date: "<YYYY-MM-DD>"
+---
+
 # Aesthetic direction: <surface or product name>
 
 <!--
@@ -7,14 +16,6 @@
   or values; those are derived later by `design-system`. Keep it
   short enough that a non-designer reads it in two minutes.
 -->
-
-## Surface
-
-<!-- The target platform for this direction. One of:
-     responsive-web | iOS | Android | cross-platform
-     This changes which platform standards ground each goal. -->
-
-**Target surface:** <responsive-web | iOS | Android | cross-platform>
 
 ## Named goals (ranked)
 
