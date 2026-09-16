@@ -1,7 +1,7 @@
 # Plan: design-output-addressing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump rule,
   § Security and authoring rules) and `docs/CONVENTIONS.md` § Phase-slice
   planning. Analogous implementation: `copy-direction/SKILL.md` steps 1, 3 and 6 —
@@ -458,7 +458,7 @@ recorded in the spec with its owner.
 
 ### T13: Release surface
 
-**Depends on:** T1 through T12
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12
 
 **Tests:**
 - Goal-based: `agentbundle catalogue verify --root .` exits 0, which owns the
