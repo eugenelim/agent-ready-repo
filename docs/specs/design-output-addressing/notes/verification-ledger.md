@@ -53,3 +53,35 @@ visibly smaller than the task, and mechanical. It is not a design call. T7
 depends on T2, so the declaration exists by then. Recorded here rather than
 amending the approved plan for a one-line correction, and listed under
 `Bundled fixes:` when T7 is committed.
+
+## Execution observation — the T7/T8 boundary at `DESIGN.md`, 2026-09-16
+
+T7's first test bans the literal `aesthetic/` from every file under
+`packs/experience-design/`. `packs/experience-design/DESIGN.md:248` carries the
+row `| aesthetic/ | creative-direction, design-system, design-principles |`, so
+T7 cannot pass while that row stands. But T8's approach claims the same edit —
+"replace the `aesthetic/` row with `direction/` and `tokens/`" — and T8 depends
+on T7, so it runs later. As written, T7's own test fails on a line T8 owns.
+
+**Disposition.** T7 replaces the `aesthetic/` row in `DESIGN.md`; it is the
+retire-`aesthetic/` task and its test is the binding check. T8 keeps the other
+five `DESIGN.md` corrections named in its approach: `screen-flows/` → the
+shipped `screens/`, `design-principles` moved to `principles/`, the missing
+`copy/` row, the `screens/` row that credits `interaction-design` with writing
+its own file, and the `output_dir` comment listing `briefs/`. T8's completion
+condition — every folder-naming surface names only declared folders — is
+unchanged by moving one row earlier, and nothing T8 does depends on that row
+still being present.
+
+Recorded here rather than amending the approved plan: the task boundary moves,
+no obligation is added or dropped, and the plan is frozen.
+
+## Execution observation — T3's template, 2026-09-16
+
+T3 was flagged before dispatch as the task that might not be able to ship a
+template that is both clean under `tools/lint-experience-agnostic.py` and
+useful to a reader, with instructions to surface the conflict rather than
+resolve it. The conflict did not materialise. Every numeral in
+`assets/token-taxonomy-template.md` is a step index or a list ordinal; no
+palette, dimension, duration, ratio, or easing curve appears. The lint exits 0.
+No owner decision was needed.
