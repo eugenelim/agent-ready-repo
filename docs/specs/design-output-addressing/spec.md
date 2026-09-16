@@ -69,7 +69,7 @@ rounds. None of the three is owed a follow-on: one is back in scope under a
 criterion and the other two need no further work.
 
 - **Repointing `interaction-design`'s line** — in scope, discharged by a criterion
-  below and implemented by the plan's T6. The path it publishes is orphaned, and
+  below and implemented by the plan. The path it publishes is orphaned, and
   correcting it introduces `<screen>` as a segment the page must then resolve.
 - **Giving `information-architecture`'s invented path reader-visible provenance** —
   no follow-on owed. This spec's first criterion gives that skill a declared path,
@@ -109,7 +109,7 @@ appears in **the seven** as a non-writer and separately owes a read repair.
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Applicable — seven guide steps promise a file that never arrives | `guides/experience-design/how-to/` | Guide author | Each of the nineteen steps states what its skill does | The guide-agreement test passes and `tools/lint-guidebook-steps.py` exits 0 |
 | Current product truth | Applicable — three registries name folders no skill writes | `packs/experience-design/DESIGN.md`, `pack.toml` subdirectory comment, `experience-status`'s folder-naming surfaces | Pack maintainer | No registry names a folder no skill declares | The registry-agreement test passes |
-| Interface compatibility | Applicable — the shared containment module is the artifact the module criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states every control its criteria require and every copy matches | The plan's T1 authors it before any task references it |
+| Interface compatibility | Applicable — the shared containment module is the artifact the module criteria quantify over | a byte-identical copy in each of the four writes' `references/containment.md` | Pack maintainer | The module states every control its criteria require and every copy matches | The module exists and is byte-identical in all four before any skill cites it |
 | Interface compatibility | Applicable — four declarations must satisfy the layout rule | each write's `references/agentbundle-layout.md` | Pack maintainer | `tests/conformance/test_pack_layout_declared_section.py` passes | Every layout reference states the pack's declared pair |
 | Decision rationale | Applicable — `direction/` is a new folder name | `docs/adr/` plus a reproducible dataset beside it | ADR author | The dataset carries the queries, sampling frame and inclusion rule | ADR accepted and its dataset reproduces the sample |
 | Operations | Applicable — the guide-agreement test is repository-level | `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py` | Maintainer | The test named as a step with a disposition | `tools/lint-ci-parity.py` exits 0 |
@@ -239,6 +239,9 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       directory it creates is confined under the approved `output_dir` at the
       component being created, not at a nominal parent that may itself be absent.
 - [ ] `creative-direction`'s template emits frontmatter `type: creative-direction`.
+- [ ] `information-architecture` declares `type: information-architecture` as the
+      marker its artifact emits, so the literal is fixed here rather than invented
+      at implementation and joining the pack's discover-by-marker set unreviewed.
 - [ ] `guides/experience-design/reference/experience-design.md` states no
       `docs/design/principles` path, since no skill declares one after the
       relocation.
@@ -254,6 +257,12 @@ appears in **the seven** as a non-writer and separately owes a read repair.
       written.
 - [ ] `interaction-design`'s `**Where it lands:**` line names the per-screen brief
       it enriches rather than denying a write or naming a file of its own.
+- [ ] For every step whose declared path this change moves, the step's simulated
+      agent-returns line names the same destination its `artifact_location` names,
+      or states that nothing was written. `establish-design-intent.md:55` claims a
+      write to `docs/design/principles/<slug>.md` and `design-each-screen.md:402`
+      to the orphaned `<output_dir>/screens/<slug>.md`; both are published prose
+      promising a path no skill will write.
 - [ ] Every step's `artifact_location` obligation in
       `guides/experience-design/how-to/` is one of: a path its owning skill
       declares, `**Writes no artifact.**` where the skill states no write step, or

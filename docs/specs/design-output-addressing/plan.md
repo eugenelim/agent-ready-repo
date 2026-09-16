@@ -26,11 +26,10 @@ discharges, not from a grouping of skills — that grouping is what drifted when
 the spec narrowed twice, and re-deriving from the criteria is why this plan
 replaces its predecessor rather than patching it.
 
-The `Depends on:` field on each task is the dependency shape; this paragraph does
-not restate it, because a prose summary of those edges has disagreed with them in
-every prior round of this plan. One thing worth saying that the fields cannot:
-**T1 → T2 is the only hard serialisation in the skill work**, because the four
-writes reference a module that must exist before they can cite it.
+The `Depends on:` field on each task is the dependency shape. This paragraph does
+not summarise it, characterise it, or count its branches: every prior round of
+this plan carried such a summary and every one of them disagreed with the fields.
+Read the fields.
 
 Review shape is **MIXED**. T2 is uniform across four skills; T1 and T11 are the
 deep tasks, because T1 authors a trust-boundary control and T11 is the only place
@@ -155,9 +154,11 @@ to it: `direction/<slug>.md`, `screens/<slug>-ia.md`, `principles/<slug>.md`, an
   at-or-beneath predicate; the reserved set for the repository branch and for the
   user-profile branch; refusal rather than confirmation for an inadmissible value;
   explicit confirmation for a repo-root value resolving outside the repository
-  tree; the approved root recorded with the run on every approval path; approval
-  before the first read or write under the directory; and the binding of every
-  later resolution to the approved value;
+  tree; the user-profile branch approved against its own declared absolute root,
+  which fixes the admissible root and is not the same clause as the reserved set
+  that fixes the inadmissible one; the approved root recorded with the run on
+  every approval path; approval before the first read or write under the
+  directory; and the binding of every later resolution to the approved value;
   final-target re-canonicalization; confinement re-established at each missing
   intermediate directory as it is created; the slug class and its 64-character
   bound with refusal before path composition; the `type:` check treating absent or
@@ -254,6 +255,8 @@ skill states its write step.
   embedded directive, and confirms product belonging for user-profile config.
 - Goal-based: `guides/experience-design/reference/experience-design.md` states no
   `docs/design/principles` path.
+- Goal-based: the agent-returns line at `establish-design-intent.md:55` names the
+  relocated destination rather than the literal it claims today.
 
 **Approach:**
 - The reader repairs belong in this task, not a later one: `design-review`'s load
@@ -277,6 +280,8 @@ skill states its write step.
   not deny a write.
 - Goal-based: `design-each-screen.md` resolves `<screen>` in the segment line under
   its table, which naming that path newly requires.
+- Goal-based: the agent-returns line at `design-each-screen.md:402` names the
+  brief rather than the orphaned `<output_dir>/screens/<slug>.md`.
 - Goal-based: `tools/lint-guidebook-steps.py` exits 0.
 
 **Approach:**
@@ -309,15 +314,14 @@ lint exits 0.
   prefix where a sibling line uses `<output_dir>`.
 
 **Approach:**
-- Update the two `**Where it lands:**` lines in `establish-design-intent.md` and
-  rewrite their rung annotations, whose second halves become false once T2 lands.
-- Fix `establish-design-intent.md:76`, which hardcodes `docs/design/` where every
-  sibling line uses `<output_dir>`.
+- Update all three `**Where it lands:**` lines in `establish-design-intent.md` —
+  `:76`, `:123` and `:193` — and rewrite the rung annotations on the latter two,
+  whose second halves become false once T2 lands.
 - Edit the transcript lines in `JOURNEY.md`, including the `screen-flows/` one that
   names a folder the pack does not ship, then regenerate the web copy here rather
   than at release — no lint compares the two.
 
-**Done when:** all four checks pass.
+**Done when:** every check in this task's Tests block passes.
 
 ### T8: Reconcile the registries
 
@@ -385,8 +389,12 @@ mutation, recorded in the ledger.
 - Visual / manual QA, paired per control: for each of the four writes, a benign run
   and then a run that must make the control fire — an `output_dir` at or beneath a
   reserved tree, a symlinked target, a non-conforming slug, an existing target with
-  a foreign `type:`, a blank-template-over-artifact attempt, and a foreign-product
-  target under user-profile config.
+  a foreign `type:`, and a foreign-product target under user-profile config.
+- Visual / manual QA, paired: the blank-template-over-artifact case for the two
+  writes that ship a template — `creative-direction` and `design-system`. The
+  other two ship none, so the case is unstageable by construction rather than by
+  circumstance, and an exemption is the honest disposition where a waiver would
+  imply a gap.
 - Visual / manual QA: a `design-review` load under a non-default `output_dir`.
 
 **Approach:**
