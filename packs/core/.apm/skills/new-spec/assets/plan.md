@@ -201,11 +201,11 @@ local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
 `spec:auth-tokens/T7`). Parenthetical prose after the IDs is
 ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
 *spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle**, **warns on a
+DAG. The scheduler **fails on a dependency cycle** and **warns on a
 forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first), and **refuses** any `Depends on:` entry that
-names no task in the plan is refused (non-zero exit, every offending
-task→dep pair named, nothing persisted).
+running the dep first). A `Depends on:` entry that
+names no task in the plan is refused: the run exits non-zero, every offending
+task→dep pair is named, and nothing is persisted.
 
 **Optional `Touches:` grammar** (read by `loop-cohort schedule`).
 A task *may* add a `**Touches:**` line listing the file globs it expects to
