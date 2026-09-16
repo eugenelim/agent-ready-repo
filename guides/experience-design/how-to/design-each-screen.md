@@ -59,7 +59,7 @@ Design this dashboard around the named business questions and domain model.
 **Agent returns:**
 <!-- rung: analytical-design SKILL.md -->
 
-> **Agent:** Done — I've written a widget hierarchy, spatial layout grammar, role-based views, and per-widget state handling to `<output_dir>/screens/<slug>-analytical.md`.
+> **Agent:** Done — I've produced a widget hierarchy, spatial layout grammar, role-based views, and per-widget state handling in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: analytical-design SKILL.md -->
@@ -80,8 +80,8 @@ Design this dashboard around the named business questions and domain model.
 **Watch out for:** A familiar dashboard pattern can make guessed widgets look inevitable. Notice widgets with no role, question, or domain object; argue with those general-pattern choices first and remove or ground them.
 <!-- rung: analytical-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-analytical.md`.
-<!-- rung: authored; analytical-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: analytical-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
@@ -109,7 +109,7 @@ Structure this acquisition surface around its content brief and design principle
 **Agent returns:**
 <!-- rung: conversion-design SKILL.md -->
 
-> **Agent:** Done — I've written a hero approach, above-fold contract, scroll story, and social-proof architecture to `<output_dir>/screens/<slug>-conversion.md`.
+> **Agent:** Done — I've produced a hero approach, above-fold contract, scroll story, and social-proof architecture in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: conversion-design SKILL.md -->
@@ -130,8 +130,8 @@ Structure this acquisition surface around its content brief and design principle
 **Watch out for:** A persuasive-looking hero can invent a pain or proof claim. Notice claims not present in the brief or evidence; remove those general-pattern lines and return to the content brief.
 <!-- rung: conversion-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-conversion.md`.
-<!-- rung: authored; conversion-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: conversion-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
@@ -157,7 +157,7 @@ Design the hierarchy and navigation for this documentation surface and its reade
 **Agent returns:**
 <!-- rung: documentation-design SKILL.md -->
 
-> **Agent:** Done — I've written a content hierarchy, navigation strategy, reading route, and documentation architecture to `<output_dir>/screens/<slug>-documentation.md`.
+> **Agent:** Done — I've produced a content hierarchy, navigation strategy, reading route, and documentation architecture in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: documentation-design SKILL.md -->
@@ -178,8 +178,8 @@ Design the hierarchy and navigation for this documentation surface and its reade
 **Watch out for:** A tidy tree can still reflect the author’s organization rather than reader goals. Notice category labels that do not answer a reader question; replace them with task or content-type routes.
 <!-- rung: documentation-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-documentation.md`.
-<!-- rung: authored; documentation-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: documentation-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
@@ -205,7 +205,7 @@ Design the reading hierarchy and editorial grid for this informational surface.
 **Agent returns:**
 <!-- rung: informational-design SKILL.md -->
 
-> **Agent:** Done — I've written a typographic hierarchy, calibrated reading pattern, editorial grid, and onward reading route to `<output_dir>/screens/<slug>-informational.md`.
+> **Agent:** Done — I've produced a typographic hierarchy, calibrated reading pattern, editorial grid, and onward reading route in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: informational-design SKILL.md -->
@@ -226,8 +226,8 @@ Design the reading hierarchy and editorial grid for this informational surface.
 **Watch out for:** An editorial grid can be visually coherent but unsupported by real content. Notice repeated placeholder-sized blocks or equal emphasis; supply a representative section and re-run.
 <!-- rung: informational-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-informational.md`.
-<!-- rung: authored; informational-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: informational-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
@@ -253,7 +253,7 @@ Design the listing, filter, comparison, and transaction structure for this marke
 **Agent returns:**
 <!-- rung: marketplace-design SKILL.md -->
 
-> **Agent:** Done — I've written listing-card hierarchy, filter architecture, comparison affordances, and a transaction bridge to `<output_dir>/screens/<slug>-marketplace.md`.
+> **Agent:** Done — I've produced listing-card hierarchy, filter architecture, comparison affordances, and a transaction bridge in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: marketplace-design SKILL.md -->
@@ -274,8 +274,8 @@ Design the listing, filter, comparison, and transaction structure for this marke
 **Watch out for:** Card density can look deliberate while assuming the wrong discovery mode. Notice browse-first pages shaped like dense search results, or zero results with no explanation; correct the mode or recovery route.
 <!-- rung: marketplace-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-marketplace.md`.
-<!-- rung: authored; marketplace-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: marketplace-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
@@ -301,7 +301,7 @@ Design the context, attention, and interruption structure for this workspace sur
 **Agent returns:**
 <!-- rung: workspace-design SKILL.md -->
 
-> **Agent:** Done — I've written a session arc, context-persistence architecture, attention zones, and interrupt design to `<output_dir>/screens/<slug>-workspace.md`.
+> **Agent:** Done — I've produced a session arc, context-persistence architecture, attention zones, and interrupt design in this session. Nothing was written to disk.
 
 **You push back:**
 <!-- rung: workspace-design SKILL.md -->
@@ -322,8 +322,8 @@ Design the context, attention, and interruption structure for this workspace sur
 **Watch out for:** A plausible workspace layout can guess which context deserves persistence. Notice zones or interrupts with no session evidence; challenge those general-pattern choices first and provide a real return scenario.
 <!-- rung: workspace-design SKILL.md -->
 
-**Where it lands:** `<output_dir>/screens/<slug>-workspace.md`.
-<!-- rung: authored; workspace-design SKILL.md declares the specification but not its path -->
+**Writes no artifact.** It produces the specification in the agent session and does not change files.
+<!-- rung: workspace-design SKILL.md; the file declares no write step -->
 
 **What it looks like:**
 <!-- rung: authored -->
