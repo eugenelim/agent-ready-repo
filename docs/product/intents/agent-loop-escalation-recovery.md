@@ -93,6 +93,59 @@ None is validated. Several are mutually compatible; some conflict.
 | H4 | Split the artifact once repairs stop being local | The contract was ~18,000 words across a spec and plan when repairs began reliably breaking distant clauses | No idea where the threshold is, or whether size is cause or correlate |
 | H5 | Escalate the **review question** rather than the review round — classify the model as viable / blocked / unstable before permitting clause-level findings | The one round that ran this way produced 4 substantive findings against 14 cosmetic, and named the root premise | Tried once, at the very end, on an artifact already being abandoned. Untested as an early intervention |
 | H6 | Require oracle acquisition before criteria are written — no criterion over an unverified claim about the world | The defect that ended the loop was exactly this: a claim about what the system observes, never checked | Cost unknown. May stall authoring on unknowns that do not matter |
+## Second observation: a different artifact, the same shape
+
+A later loop extended `new-spec`'s item-alignment checker with rules for four
+table-shaped defect classes, ran eight adversarial rounds, and retired all four.
+It is a second independent data point, on a small code artifact rather than an
+18,000-word contract, and it moves three of the hypotheses above.
+
+**What recurred was one class, not one defect.** Every rule had to decide
+something only a reader knows, and each failed at that seam:
+
+| Rule | What it had to decide | How it failed |
+| --- | --- | --- |
+| A stated row count disagrees with its table | which subject a count belongs to | a count about the next clause was credited to the table; a comma sufficed |
+| A citation names no section here | whether a table is elsewhere or nowhere | two wrong notes on this corpus, no right one |
+| Recover a heading from an undelimited citation | which captured words are the heading's | three mechanisms, each wrong in one direction or the other |
+| A cited section holds no table | whether a citation points here or narrates a removal | never fired correctly in 466 directories; its silence was luck |
+
+**Evidence for H2, with a correction.** Counts were not flat — 10, 4, 5, 5, 7,
+15, 15, 11 — and rose while the artifact shrank, because the reviewer's
+instrument was sharpened at round 6 from reading the diff to sweeping every
+assertion by mutation. Raw counts are not comparable across an instrument
+change, which is a second reason not to build a detector on them. What did move
+monotonically is the share of findings caused by the previous round's repair:
+0/10, 3/4, 4/5, 2/5. That ratio is mechanizable without classifying findings —
+it needs only "did the previous round's diff touch the line this finding cites"
+— so H2's "might be unmechanizable" is too pessimistic for at least one signal.
+
+**Evidence for H5 as an early intervention, which H2 called untested.** Round 8
+was briefed to ask one question — *is there a fourth proxy of the same kind?* —
+rather than to review the diff. It found the root premise in one pass, where
+seven diff-level rounds had found instances. H5 works early, not only at the
+end.
+
+**Evidence against H3's sufficiency.** Every repair here was small, and the
+self-inflicted share still rose. Bounding repair size would not have caught
+this; the defect was the mechanism being repaired, not the size of the repair.
+
+**The response that ended it was deletion, not escalation.** H1 through H6 all
+return to some artifact level and repair there. What resolved this loop, twice,
+was the owner saying cut it rather than fix it — and then measurement showing no
+rule had ever fired correctly. A routing table over these hypotheses needs a
+terminal branch that H1-H6 do not contain: *retire the construct*, available
+once a mechanism has failed at the same seam more than once.
+
+**Detection half that came free.** Eight assertions in that change could not
+fail — a fixture putting the asserted path out of reach, an absence the test
+harness itself guaranteed, two independently sufficient mechanisms where no
+single removal changed an outcome, and an assertion naming another rule's
+message. Reading found none of them. Mutating the subject found all eight. That
+is recorded in
+[`mutation-proof.md`](../../../packs/core/.apm/skills/work-loop/references/mutation-proof.md)
+and is the only thing that change shipped.
+
 ## The activation requirement applies here too
 
 Every hypothesis above is a rule, and this repository has shipped rules that did
