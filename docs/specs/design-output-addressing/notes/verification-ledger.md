@@ -85,3 +85,47 @@ resolve it. The conflict did not materialise. Every numeral in
 `assets/token-taxonomy-template.md` is a step index or a list ordinal; no
 palette, dimension, duration, ratio, or easing curve appears. The lint exits 0.
 No owner decision was needed.
+
+## Execution observation — T4's excerpt repair, 2026-09-16
+
+T4's frontmatter addition put `surface:` beside an existing `## Surface` body
+section that asks the reader for the same value. Two writable homes for one
+fact with no tie-breaker is a drift the pack would ship, so the body section was
+removed and its explanation carried onto the field.
+
+That removal falls inside a fenced excerpt `establish-design-intent.md`
+publishes, and `tools/lint-guidebook-steps.py` requires an excerpt to be a
+contiguous verbatim run of its declared source. The excerpt was re-taken from
+the template's first line. Doing so also repaired the caption below it, which
+claims to show "the opening of the template" and became false the moment
+frontmatter went in above the H1.
+
+**Disposition.** Both edits are bundled into T4 rather than deferred. The
+caption falsehood is not a pre-existing defect T7 inherits — T4 created it — and
+the excerpt is the verbatim mirror of the file T4 edits, so leaving it would
+have landed a red lint. No plan task's Tests block covers re-excerpting this
+preview: T6 re-excerpted `design-each-screen.md` only, and T7's guide work is
+the three `**Where it lands:**` lines and their rungs.
+
+## Unowned defect — the `creative-direction.md` filename, 2026-09-16
+
+Two shipped surfaces name this skill's artifact `creative-direction.md`:
+
+- `packs/experience-design/.apm/skills/creative-direction/SKILL.md:3`, in the
+  `description:` — "Produces ranked aesthetic goals and a `creative-direction.md`
+  record".
+- `guides/experience-design/reference/experience-design.md:155` — "recorded in
+  `creative-direction.md`".
+
+Neither matches the declared target `<output_dir>/direction/<slug>.md`, and
+neither matched the previous `<output_dir>/aesthetic/<slug>.md` either — this is
+a pre-existing wrong filename, not drift this change introduced. No task's Tests
+block covers either line: T4's is the template's frontmatter, and T7's literal
+work is scoped to `aesthetic/`, which neither line contains.
+
+**Disposition.** Left alone and recorded. It is a third defect in the same
+class the spec addresses — a claim about where a skill writes that disagrees
+with where it writes — but repairing it needs a criterion, and inventing one
+mid-implementation against a frozen contract is the failure this ledger exists
+to avoid. It belongs to the `design-handoff-read` follow-on or a successor, and
+should be carried there rather than closed here.
