@@ -281,3 +281,54 @@ boundary would have been spent on a measurement error rather than on ordering.
 This is the headroom condition round 6 moved here from T1, where it could not
 fail because the content did not yet exist. It is now a test that runs the
 linter with every promotion present.
+
+## T24 — the consumer sweep
+
+116 → 12. Every file the scan still returns is deletion-bound and owned by T25.
+
+**The agent briefs were the point.** `implementer`, `security-reviewer`,
+`discovery-lead` and `release-lead` now load `AGENTS.md` alone. The first two
+read the retired document in full on every dispatch, which is the cost this
+whole change exists to remove.
+
+### One documented exemption
+
+`packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py` lists
+`CONVENTIONS.md` among the internal locators shipped guidance must never cite.
+That is a *forbidden* literal, not a reference — and keeping it is stronger than
+removing it, because it now guards against the retired path being reintroduced
+into shipped guidance.
+
+The AC2 predicate cannot distinguish citing the file from forbidding its
+citation, so the file is exempted in `ac2-scan.sh` with that reason inline. The
+canary then failed, because it pins the script's form by digest — which is the
+canary working exactly as designed. Digest updated in the same commit.
+
+### Re-pointings that needed a judgement, not a substitution
+
+- `test_shaping_review_documentation_contract.py` asserted byte-parity between
+  the retired document and its seed. Parity is the wrong relation for what
+  replaced it: `docs/README.md` deliberately diverges, seed from repository. The
+  assertion became presence, with the reason recorded.
+- The same file's closed document set is now seven, not eight. The review-lens
+  distinction that put the retired document in it moved into `core-pack.md`,
+  already a member, so the entry drops rather than being replaced. Substituting
+  the docs map would have failed: a doc map is not a review-lens document.
+- `test_verification_ledger_contract.py` pinned three regions with their
+  clauses. Two anchors survived T15's move into the spec-and-plan contract; the
+  third — "A spec directory freezes as a unit" — sat under § Document lifecycle,
+  which T3 summarised rather than relocated verbatim. Its clauses are
+  spec-lifecycle mechanics, so the subsection moved into the spec-and-plan
+  contract where it belongs, and the test points there.
+- `test_tdd_stub_lifecycle_contract.py` gained AC9's existence assertion: every
+  member of its `live_sources` is proved present before being read, so a
+  vanished source cannot make its negative assertion pass vacuously.
+
+### A recurring process defect
+
+Two substitution passes silently matched nothing, because I built the needles
+from grep output truncated at 135 characters. A third failed because a Bash
+heredoc mangled a Python lambda. In all three cases the command reported success
+and the counts caught it. Writing the script to a file and checking the
+before/after count is the reliable shape; a replacement that does not match is
+indistinguishable from one that had nothing to do.
